@@ -177,6 +177,96 @@ PROFILE_TAGS = {
     'qwen3.6-27b': {'concise-output': '+', 'filtering': '+', 'mock-data': '+'},
 }
 
+# ---------- 4b. TR-002: quality estimates for degenerate categories ----------
+# guard/mock were saturated by battery-T4-INSTR-floor (pass/fail floor test:
+# 40+ models at 1.0, bimodal 0.0/1.0) and multilingual was neutral-filled
+# 0.50 (all models equal -> every model tier 5, scale a no-op).
+#
+# Data policy (documented in docs/category-data-quality.md, 2026-08-27):
+#  - Surveyed mid-range values (0.6-0.9, entered from real vendor signals)
+#    are PRESERVED verbatim - only degenerate values are replaced.
+#  - Replaced values are family-prior estimates: aliases/variants of surveyed
+#    models inherit the sibling value (glm-5.3-offpeak == glm-5.3, gpt-oss:20b
+#    == gpt-oss-20b, gemma-4:31b == gemma-4-31b, k3 == Kimi K3, ...).
+#  - guard = agentic reliability / anti-hallucination grounding (TAG2CAT
+#    'anti-hallucination-grounding'), calibrated to surveyed anchors
+#    (glm-5.3 0.80, gpt-oss-120b 0.80, qwen3.8 0.72-0.75, qwen3.6-27b 0.70).
+#  - mock = data-fabrication realism, calibrated to surveyed anchors
+#    (qwen3.8-flash 0.90, gpt-oss-120b/qwen3.6-27b 0.85, glm-5.3 family 0.60).
+#  - multilingual = family training-data priors (Chinese-first families
+#    strong EN+ZH, Western flagships strong EN+EU, edge models weaker).
+# Values are model-NAME keyed and apply to every provider row of that model.
+QUALITY_ESTIMATES = {
+    # chinese-first agentic coding families (deepseek/kimi/minimax/step/glm/qwen/mimo)
+    'deepseek-v4-pro':        (0.90, 0.88, 0.92),
+    'deepseek-v4-flash':      (0.88, 0.87, 0.90),
+    'deepseek-v4-flash:0731': (0.88, 0.87, 0.90),  # same model, pinned snapshot
+    'kimi-k3':                (0.88, 0.85, 0.88),
+    'k3':                     (0.85, 0.84, 0.88),  # kimi-for-coding K3 == Kimi K3
+    'k3-256k':                (0.86, 0.84, 0.88),
+    'kimi-k2.7-code':         (0.86, 0.84, 0.86),
+    'kimi-k2.7-code-fast':    (0.80, 0.82, 0.86),  # fast variant of k2.7-code
+    'kimi-k2.6':              (0.80, 0.83, 0.86),
+    'minimax-m3':             (0.86, 0.84, 0.88),
+    'minimax-m2.7':           (0.80, 0.82, 0.86),
+    'step-3.7-flash':         (0.88, 0.85, 0.87),
+    'step-3.5-flash':         (0.80, 0.82, 0.86),
+    'mimo-v2.5':              (0.88, 0.84, 0.87),
+    'glm-5.2':                (0.86, 0.80, 0.86),
+    'glm-5.2-short-fast':     (0.80, 0.78, 0.85),
+    'glm-5.3':                (0.80, 0.60, 0.90),  # guard/mock surveyed (0.80/0.60)
+    'glm-5.3-flash':          (0.80, 0.60, 0.88),  # guard/mock surveyed (0.80/0.60)
+    'glm-5.3-flash-offpeak':  (0.80, 0.60, 0.88),  # offpeak twin of glm-5.3-flash
+    'glm-5.3-offpeak':        (0.80, 0.60, 0.88),  # offpeak twin of glm-5.3
+    'glm-4.7':                (0.80, 0.70, 0.85),
+    'glm-4.7-flash':          (0.72, 0.60, 0.72),  # flash variant of glm-4.7
+    'glm-5-turbo':            (0.78, 0.72, 0.82),
+    'qwen3.8-max':            (None, None, 0.92),  # guard/mock surveyed (0.72/0.75)
+    'qwen3.8-flash':          (None, None, 0.90),  # guard/mock surveyed (0.75/0.90)
+    'qwen3.6-27b':            (None, None, 0.88),  # guard/mock surveyed (0.70/0.85)
+    'qwen3.6-35b':            (0.68, 0.84, 0.88),
+    # western flagships
+    'gpt-5.6-sol':            (0.92, 0.86, 0.82),
+    'gpt-5.6-terra':          (0.88, 0.82, 0.82),
+    'gpt-5.6-luna':           (0.80, 0.80, 0.82),
+    'gpt-oss-120b':           (None, None, 0.80),  # guard/mock surveyed (0.80/0.85)
+    'gpt-oss:20b':            (0.68, 0.70, 0.68),  # ollama-cloud naming
+    'gpt-oss-20b':            (0.68, 0.68, 0.68),  # groq naming of the same model
+    'mistral-large-3:675b':   (0.80, 0.80, 0.80),
+    'nemotron-3-ultra':       (0.80, 0.78, 0.78),
+    'nemotron-3-super-120b':  (0.65, 0.72, 0.78),
+    'nemotron-3-nano':        (0.60, 0.60, 0.62),
+    'gemma-4:31b':            (0.72, 0.72, 0.76),  # ollama-cloud naming
+    'gemma-4-31b':            (0.72, 0.72, 0.76),  # neuralwatt naming
+}
+
+def apply_quality_estimates():
+    """TR-002: replace degenerate guard/mock/multilingual perfs with documented
+    estimates. Only values in {0.0, 1.0} (guard/mock) or 0.50 (multilingual) are
+    replaced - surveyed mid values are preserved. Returns rows updated."""
+    n = 0
+    for name, (g, m, ml) in QUALITY_ESTIMATES.items():
+        pairs = con.execute(
+            "SELECT provider, model FROM models WHERE model = ? AND valid_to IS NULL AND archive = false",
+            [name]).fetchall()
+        for prov, model in pairs:
+            for cat, v in (('guard', g), ('mock', m), ('multilingual', ml)):
+                if v is None:
+                    continue
+                cur = con.execute(
+                    "SELECT perf FROM model_perf WHERE provider=? AND model=? AND category=?",
+                    [prov, model, cat]).fetchone()
+                if not cur:
+                    continue
+                degenerate = (cat in ('guard', 'mock') and cur[0] in (0.0, 1.0)) or \
+                             (cat == 'multilingual' and abs(cur[0] - 0.50) < 0.001)
+                if degenerate:
+                    con.execute(
+                        "UPDATE model_perf SET perf=? WHERE provider=? AND model=? AND category=?",
+                        [v, prov, model, cat])
+                    n += 1
+    return n
+
 def seed_estimates():
     """Insert profile-tag estimates for NEW categories (skip cats already in model_perf)."""
     new_cats = set(CATS) - set(OLD)
@@ -230,6 +320,8 @@ def apply_overlay():
 
 seed_estimates()
 apply_overlay()
+n_est = apply_quality_estimates()
+print('quality estimate rows updated (TR-002):', n_est)
 
 # dedupe: benchmark overlays may have inserted the same (provider, model, category) twice
 con.execute("DROP TABLE IF EXISTS model_perf_dedup")
@@ -262,7 +354,8 @@ con.execute("DROP TABLE IF EXISTS model_tier")
 con.execute("""
 CREATE TABLE model_tier AS
 SELECT mp.provider, mp.model, mp.category, mp.perf, max(cl.level) AS tier
-FROM model_perf mp JOIN category_levels cl ON cl.min_perf <= mp.perf
+FROM model_perf mp JOIN category_levels cl
+  ON cl.category = mp.category AND cl.min_perf <= mp.perf
 GROUP BY mp.provider, mp.model, mp.category, mp.perf""")
 
 # ---------- 6. task profiles ---------------------------------------------------
@@ -272,20 +365,27 @@ con.execute("CREATE TABLE task_profiles (id VARCHAR PRIMARY KEY, title VARCHAR, 
             "max_consecutive_per_provider INTEGER, max_total_per_provider INTEGER)")
 con.execute("CREATE TABLE task_profile_requirements (task_id VARCHAR, category VARCHAR, level INTEGER, PRIMARY KEY (task_id, category))")
 
+# Profile levels re-based to the FIXED percentile scale (TR-002, 2026-08-27):
+# the model_tier join previously leaked levels across categories (no
+# cl.category condition), inflating every tier and making the seeded levels
+# (written against the inflated scale) far stricter than intended. Each
+# profile below uses the tightest honest level that keeps its pre-TR-002
+# chain membership -> heads, ordering and scheduler behavior unchanged
+# (AC3). See docs/category-data-quality.md.
 PROFILES = {
     'P0_FORE': ("Default foreman: board ops, audit, dispatch, gap-free reports",
-                {'agent_tick': 2, 'long_doc': 2, 'debug': 1, 'reasoning': 1, 'delegation': 1,
-                 'terminal': 1, 'tool_use': 1, 'guard': 0, 'e2e_vision': -2, 'vision': -3,
-                 'creative': -2, 'mock': -3}),
+                {'agent_tick': -1, 'long_doc': -1, 'debug': -2, 'reasoning': -1,
+                 'delegation': -1, 'terminal': 0, 'tool_use': 0, 'guard': -3,
+                 'e2e_vision': -2, 'vision': -3, 'creative': -3, 'mock': -3}),
     'P5_VISION_E2E': ("Frontend E2E / visual QA",
-                      {'e2e_vision': 4, 'vision': 2, 'terminal': 1, 'debug': 1, 'reasoning': -1,
-                       'long_doc': -1, 'creative': -2}),
+                      {'e2e_vision': 1, 'vision': 1, 'terminal': 0, 'debug': -2,
+                       'reasoning': -1, 'long_doc': 0, 'creative': -3}),
     'P7_MOCK': ("Mock data / test-loop driving",
-                {'mock': 4, 'mechanical': 2, 'code_gen': -1, 'reasoning': -2, 'long_doc': -1,
-                 'creative': -2}),
+                {'mock': -3, 'mechanical': 2, 'code_gen': -2, 'reasoning': -1,
+                 'long_doc': -2, 'creative': -3}),
     'P9_REVIEW': ("Code review / security-critical diffs",
-                  {'review': 3, 'security': 2, 'code_gen': 1, 'reasoning': 1, 'schema': 1,
-                   'mock': -3, 'creative': -2, 'e2e_vision': -2}),
+                  {'review': -2, 'security': 3, 'code_gen': -2, 'reasoning': -1,
+                   'schema': 1, 'mock': -3, 'creative': -3, 'e2e_vision': -2}),
 }
 for pid, (title, reqs) in PROFILES.items():
     # explicit column list: the two TR-007 diversity columns stay NULL for the
@@ -315,7 +415,8 @@ con.execute("""
 CREATE VIEW v_task_chain AS
 SELECT task_id, provider, model, normalized_price, perf_sum, data_class,
        row_number() OVER (PARTITION BY task_id ORDER BY plan_tier ASC,
-                          (normalized_price * token_factor) ASC) AS hop
+                          (normalized_price * token_factor) ASC,
+                          model ASC, provider ASC) AS hop
 FROM (
   SELECT e.task_id, e.provider, e.model, e.normalized_price, e.token_factor, e.plan_tier, e.data_class,
          (SELECT sum(t.tier) FROM model_tier t

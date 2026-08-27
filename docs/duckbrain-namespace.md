@@ -16,7 +16,7 @@ time. The scheduler foreman consumes this via `~/.hermes/scripts/router_spawn.py
 
 ## Data (tables/, JSONL canonical)
 - `level_defs.jsonl` — the -5..+5 scale → percentiles of each category distribution
-- `model_perf.jsonl` — (provider, model, category, perf): 24 categories × 57 models
+- `model_perf.jsonl` — (provider, model, category, perf): 24 categories × 59 models
 - `category_levels.jsonl` — per-category thresholds (11 levels each)
 - `model_tier.jsonl` — every model's signed level per category
 - `task_profiles.jsonl` + `task_profile_requirements.jsonl` — P0_FORE / P5_VISION_E2E / P7_MOCK / P9_REVIEW
