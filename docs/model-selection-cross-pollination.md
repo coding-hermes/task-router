@@ -9,11 +9,34 @@ chains, fail-open) stay as designed; anything below is an extension candidate.
 
 ## Selection architecture ideas
 
-1. **Provider diversity cap** (`selector.select_diverse()`, at most one model
-   per provider). Task-router chains currently have NO diversity constraint —
-   the 3 cheapest healthy hops can all belong to one provider, so one outage
-   kills hops 1–3. Candidate: optional `max_per_provider` at resolve time
-   (e.g. 2) or a `diverse: true` profile flag. Cheap, high value.
+1. **Diversity = two knobs, applied as pruning — never a hard cap** (Bane's
+   design, 2026-08-27):
+   - `max_consecutive_per_provider` — how many hops in a ROW may come from one
+     provider (protects against provider-level rate limits / shared quota /
+     concurrency ceilings — some providers enforce concurrency limits).
+   - `max_total_per_provider` — how many hops total from one provider across
+     the full chain (breadth of provider coverage).
+   - Both are SETTINGS: global defaults + per-profile overrides. Applied by
+     walking the price-ordered eligible chain and dropping violators (each
+     with a reason), NOT by pre-filtering the provider out. Price order among
+     survivors is preserved.
+2. **Concurrency is per-MODEL, not per-provider** (Bane's correction — the
+   reason the cap must not be a hard "one per provider"):
+   - A model can be overloaded at its provider while the NEXT model from that
+     same provider is clear and ready to go. Some providers give one
+     concurrent request per model — if the single slot is taken by something
+     else, the model is busy, NOT the provider.
+   - Resolve rule: a model at its concurrency limit is skipped INDIVIDUALLY
+     (like a circuit exclusion); the provider's other models stay eligible.
+   - Pitfall this prevents: naive "1 model per provider" + per-model
+     concurrency 1 = the whole (cheap) provider vanishes whenever its one
+     slot is busy, even though a cheaper sibling model is free.
+   - Signal source: the spawn ledger (`~/.hermes/model-router/ledger.jsonl`,
+     schema v2 EXISTS but is unwired — ledger is 0 bytes). Every routed call
+     logs requested_pair / served_pair / chain_hop / outcome / latency —
+     in-flight counts per (provider, model) + per-hop fallback rates derive
+     from it. `quota-state.json` already has provider-level
+     `concurrency_free`; extend the concept to the model level.
 2. **Cost-weighted effectiveness with a sensitivity knob**:
    `effectiveness = quality / (cost ^ price_sensitivity)`, where 0.0 = pure
    quality, 1.0 = pure bang-for-buck (Chimera `selector.py`, per-call
