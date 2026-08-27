@@ -11,7 +11,6 @@
 {"task_id": "P0_FORE", "category": "review", "level": -1}
 {"task_id": "P0_FORE", "category": "schema", "level": 1}
 {"task_id": "P0_FORE", "category": "terminal", "level": -1}
-{"task_id": "P0_FORE", "category": "tool_use", "level": 5}
 {"task_id": "P0_FORE", "category": "vision", "level": -3}
 {"task_id": "P1_CODING", "category": "code_gen", "level": -2}
 {"task_id": "P1_CODING", "category": "debug", "level": -3}

@@ -319,49 +319,30 @@ PROFILE_TAGS = {
 #  - multilingual = family training-data priors (Chinese-first families
 #    strong EN+ZH, Western flagships strong EN+EU, edge models weaker).
 # Values are model-NAME keyed and apply to every provider row of that model.
-QUALITY_ESTIMATES = {
-    # chinese-first agentic coding families (deepseek/kimi/minimax/step/glm/qwen/mimo)
-    'deepseek-v4-pro':        (0.90, 0.88, 0.92),
-    'deepseek-v4-flash':      (0.88, 0.87, 0.90),
-    'deepseek-v4-flash:0731': (0.88, 0.87, 0.90),  # same model, pinned snapshot
-    'kimi-k3':                (0.88, 0.85, 0.88),
-    'k3':                     (0.85, 0.84, 0.88),  # kimi-for-coding K3 == Kimi K3
-    'k3-256k':                (0.86, 0.84, 0.88),
-    'kimi-k2.7-code':         (0.86, 0.84, 0.86),
-    'kimi-k2.7-code-fast':    (0.80, 0.82, 0.86),  # fast variant of k2.7-code
-    'kimi-k2.6':              (0.80, 0.83, 0.86),
-    'minimax-m3':             (0.86, 0.84, 0.88),
-    'minimax-m2.7':           (0.80, 0.82, 0.86),
-    'step-3.7-flash':         (0.88, 0.85, 0.87),
-    'step-3.5-flash':         (0.80, 0.82, 0.86),
-    'mimo-v2.5':              (0.88, 0.84, 0.87),
-    'glm-5.2':                (0.86, 0.80, 0.86),
-    'glm-5.2-short-fast':     (0.80, 0.78, 0.85),
-    'glm-5.3':                (0.80, 0.60, 0.90),  # guard/mock surveyed (0.80/0.60)
-    'glm-5.3-flash':          (0.80, 0.60, 0.88),  # guard/mock surveyed (0.80/0.60)
-    'glm-5.3-flash-offpeak':  (0.80, 0.60, 0.88),  # offpeak twin of glm-5.3-flash
-    'glm-5.3-offpeak':        (0.80, 0.60, 0.88),  # offpeak twin of glm-5.3
-    'glm-4.7':                (0.80, 0.70, 0.85),
-    'glm-4.7-flash':          (0.72, 0.60, 0.72),  # flash variant of glm-4.7
-    'glm-5-turbo':            (0.78, 0.72, 0.82),
-    'qwen3.8-max':            (None, None, 0.92),  # guard/mock surveyed (0.72/0.75)
-    'qwen3.8-flash':          (None, None, 0.90),  # guard/mock surveyed (0.75/0.90)
-    'qwen3.6-27b':            (None, None, 0.88),  # guard/mock surveyed (0.70/0.85)
-    'qwen3.6-35b':            (0.68, 0.84, 0.88),
-    # western flagships
-    'gpt-5.6-sol':            (0.92, 0.86, 0.82),
-    'gpt-5.6-terra':          (0.88, 0.82, 0.82),
-    'gpt-5.6-luna':           (0.80, 0.80, 0.82),
-    'gpt-oss-120b':           (None, None, 0.80),  # guard/mock surveyed (0.80/0.85)
-    'gpt-oss:20b':            (0.68, 0.70, 0.68),  # ollama-cloud naming
-    'gpt-oss-20b':            (0.68, 0.68, 0.68),  # groq naming of the same model
-    'mistral-large-3:675b':   (0.80, 0.80, 0.80),
-    'nemotron-3-ultra':       (0.80, 0.78, 0.78),
-    'nemotron-3-super-120b':  (0.65, 0.72, 0.78),
-    'nemotron-3-nano':        (0.60, 0.60, 0.62),
-    'gemma-4:31b':            (0.72, 0.72, 0.76),  # ollama-cloud naming
-    'gemma-4-31b':            (0.72, 0.72, 0.76),  # neuralwatt naming
-}
+# NOTE (Bane 2026-08-27): the estimate TABLE itself lives in
+# data/tables/quality_estimates.jsonl — this code block is documentation only;
+# the dict is loaded by _load_quality_estimates() below.
+
+def _load_quality_estimates():
+    """Load quality estimates from the DATA file (Bane 2026-08-27: provider/
+    model facts live in data, never hardcoded in scripts). Rows are
+    model-keyed: {model, guard?, mock?, multilingual?, note?}. Missing file
+    or row = no estimate (visible gap), never a code fallback."""
+    path = os.path.join(DATA_DIR, 'quality_estimates.jsonl')
+    out = {}
+    if not os.path.exists(path):
+        print(f'WARNING: {path} missing — quality estimates skipped (research agent to fill)')
+        return out
+    for line in open(path):
+        line = line.strip()
+        if not line:
+            continue
+        r = json.loads(line)
+        out[r['model']] = (r.get('guard'), r.get('mock'), r.get('multilingual'))
+    return out
+
+
+QUALITY_ESTIMATES = _load_quality_estimates()
 
 def apply_quality_estimates():
     """TR-002: replace degenerate guard/mock/multilingual perfs with documented
@@ -507,7 +488,24 @@ PROFILES = {
                 # excludes mimo-v2.5 (terminal -2), minimax-m3 / deepseek-v4-pro
                 # (agent_tick -1), gpt-oss (below bars); keeps the fleet's
                 # agentic workhorses in chain.
-                {'agent_tick': 2, 'tool_use': 5, 'delegation': 2,
+                # BANE 2026-08-27 (2nd correction): tool_use REMOVED from P0_FORE.
+                # Evidence: tool_use ratings are a cliff artifact, not knowledge —
+                # category_levels ladder: perf 0.72-0.83 -> tier -2, perf >=0.85 ->
+                # tier 5; NOTHING produces tiers 0-4; every hand-planted 5 has
+                # perf EXACTLY 0.85; only 1 real benchmark row exists (perf=None).
+                # Tool calling is table stakes in 2026; foreman = board ops/git/
+                # dispatch, not expert agentic coding. Keep tool_use in P1/P2.
+                # Admits gpt-5.6-luna + gpt-5.6-sol (failed ONLY on tool_use).
+                # NOTE: seed agent — keep tool_use OUT of P0_FORE on re-seed;
+                # fix the category_levels cliff for tool_use (real ladder).
+                # BANE 2026-08-27 (3rd): profile = MINIMUMS, not dreams. Every bar
+                # is a floor: agent_tick/delegation at ++ (mid) = instruction
+                # following + worker dispatch at solid level; reasoning/long_doc
+                # at 0 = average; code_gen/debug/terminal/review lenient; -3
+                # floors only exclude catastrophic. When REAL tool-call ratings
+                # exist, re-add tool_use=0 (AVERAGE) as the standing floor — never
+                # world-class. Do not re-inflate bars to favorites' hand-ratings.
+                {'agent_tick': 2, 'delegation': 2,
                  'reasoning': 0, 'long_doc': 0, 'debug': -2,
                  'terminal': -1, 'review': -1, 'schema': 1, 'code_gen': -1,
                  'creative': -3, 'vision': -3, 'e2e_vision': -2,

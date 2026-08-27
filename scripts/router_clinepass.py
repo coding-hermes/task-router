@@ -125,25 +125,16 @@ def sync(dry_run):
                             'source': 'clinepass-api', 'fetched_at': now, 'archive': False})
             have_cat.add(('clinepass', name))
 
-    # plan_terms — flat_subscription row if missing
+    # plan_terms — DO NOT fabricate from code (Bane 2026-08-27): the included
+    # list / plan cost / multiplier are provider facts that live in the DATA
+    # file plan_terms.jsonl. The plans API list is known STALE (11 vs docs 13)
+    # and hardcoding here caused the disable/re-enable flip-flop. If the row
+    # is missing, that is a visible gap for the research agent to fill from
+    # docs.cline.bot — never a code fallback.
     term_added = 0
     if 'clinepass' not in have_terms:
-        terms.append({
-            'provider': 'clinepass', 'billing_model': 'flat_subscription',
-            'plan_cost': 9.99, 'interval': 'monthly', 'usage_multiplier': 3.0,
-            # AUTHORITATIVE list: docs.cline.bot/getting-started/clinepass (13 models, 2026-08-27).
-            # The plans API list was STALE (11, missing glm-5.3 + qwen3.8-max) — never use it.
-            'included_models': ['glm-5.3', 'glm-5.2', 'kimi-k3', 'kimi-k2.7-code',
-                                'kimi-k2.6', 'deepseek-v4-pro', 'deepseek-v4-flash',
-                                'mimo-v2.5', 'mimo-v2.5-pro', 'minimax-m3',
-                                'qwen3.8-max', 'qwen3.7-max', 'qwen3.7-plus'],
-            'note': 'Cline Pass $9.99/mo flat — 2-5x usage vs standard API rate (docs.cline.bot); '
-                    'caps $1B/5h $2.5B/7d $5B/30d (usage-cost, effectively unlimited); plans API '
-                    'carries features.discount=0.5 flag on monthly (promo? verify); non-included '
-                    'models are PAYG at published per-token prices (research agent to fill).',
-            'source': 'clinepass-plans-api + docs.cline.bot 2026-08-27', 'added': today})
-        have_terms.add('clinepass')
-        term_added = 1
+        print('WARNING: plan_terms row for clinepass MISSING — research agent must fill '
+              'from docs.cline.bot/getting-started/clinepass (do NOT hardcode)')
 
     # temporary discounts for :free lanes
     disc_added = 0

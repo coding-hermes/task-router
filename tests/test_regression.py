@@ -191,14 +191,27 @@ def test_adhoc_profile_invariants(monkeypatch, tmp_path):
 
 def test_absent_state_is_fail_closed_all_excluded(monkeypatch, tmp_path):
     """CI regression (2026-08-27): a missing router-state dir means EVERY
-    provider is quota-gated (absent != open) -> empty chain, never a blind
-    spawn on an unverified provider."""
+    eligible provider is quota-gated (absent != open) -> empty chain, never a
+    blind spawn on an unverified provider. Per-hop exclusions: the count must
+    equal the full eligible chain (a provider with zero eligible models for
+    the profile has nothing to gate and does not appear)."""
     tables = _load_tables()
+    # full eligible chain with an open state dir (nothing gated)
+    open_state = _state_dir(tmp_path, providers=_open_providers(tables))
+    monkeypatch.setattr(router_spawn, "MR", str(open_state))
+    r_open = _resolve(monkeypatch, tmp_path, tables)
+    assert r_open["head"] is not None
+    n_eligible = len(r_open["chain"])
+    # absent state dir -> every eligible hop gated
     monkeypatch.setattr(router_spawn, "MR", str(tmp_path / "no-such-state"))
     r = _resolve(monkeypatch, tmp_path, tables)
     assert r["head"] is None
     assert r["chain"] == []
-    assert len(r["exclusions"]) == len(tables["providers"])
+    assert len(r["exclusions"]) == n_eligible, (
+        f"fail-closed must gate ALL {n_eligible} eligible hops, got {len(r['exclusions'])}"
+    )
+    gated = {e["provider"] for e in r["exclusions"]}
+    assert gated <= {p["id"] for p in tables["providers"]}
     reasons = [w for e in r["exclusions"] for w in e["why"]]
     assert any("quota" in w or "gate" in w for w in reasons)
 
@@ -303,7 +316,8 @@ def test_registry_integrity():
     core = {"providers", "models", "archetypes", "benchmarks", "projects",
             "level_defs", "category_levels", "model_perf", "model_tier",
             "task_profiles", "task_profile_requirements"}
-    sidecars = {"model_catalog", "model_notes", "plan_terms", "temporary_discounts", "provider_rules"}
+    sidecars = {"model_catalog", "model_notes", "plan_terms", "temporary_discounts",
+                "provider_rules", "quality_estimates"}
     assert core <= set(tables), f"missing core tables: {core - set(tables)}"
     assert set(tables) - core <= sidecars, f"unexpected tables: {set(tables) - core - sidecars}"
     models = tables["models"]
@@ -361,18 +375,16 @@ def test_plan_included_lanes_never_disabled():
             assert all(
                 not m.get("disabled") for m in lanes
             ), f"plan-included lane disabled: {t['provider']}/{mid} — sweep ran on stale plan list?"
-    # clinepass fallback list in the sync script must match the authoritative plan row
-    cp = next((t for t in terms if t["provider"] == "clinepass"), None)
-    if cp:
-        import re as _re
-        script = os.path.join(REPO, "scripts", "router_clinepass.py")
-        src = open(script).read()
-        m = _re.search(r"'included_models':\s*\[(.*?)\]", src, _re.S)
-        assert m, "router_clinepass.py fallback included_models not found"
-        fallback = _re.findall(r"'([^']+)'", m.group(1))
-        assert set(fallback) == set(cp["included_models"]), (
-            f"clinepass fallback list ({sorted(fallback)}) drifted from plan_terms "
-            f"({sorted(cp['included_models'])}) — update router_clinepass.py"
+    # clinepass: provider facts (plan cost, included models, multiplier) must
+    # NOT be hardcoded in scripts — they live in plan_terms.jsonl. A script
+    # that fabricates a plan row from code is a regime violation (caused the
+    # stale-11 flip-flop). Missing row = visible gap for the research agent.
+    for script_name in ("router_clinepass.py", "router_pricing.py",
+                        "router_plan_sweep.py", "router_seed.py"):
+        src = open(os.path.join(REPO, "scripts", script_name)).read()
+        assert "'included_models': [" not in src, (
+            f"{script_name} hardcodes a plan included_models list — provider "
+            f"facts belong in plan_terms.jsonl, never in code"
         )
 
 
