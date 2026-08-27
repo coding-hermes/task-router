@@ -536,6 +536,20 @@ PROFILES = {
                 {'long_doc': -1, 'spec_docs': 0, 'review': -1}),
     'P4_SECURITY': ("Security-critical: audits, guardrails, secure review",
                     {'security': 2, 'review': 0, 'guard': 0}),
+    # P6_DEFAULT (Bane 2026-08-27): the ONE default chain for the bulk of cron
+    # work — syncs, monitors, reports, infra, research feeds. Most crons
+    # (71/147 duckbrain-sync + monitors + infra) share this chain; specialized
+    # crons (foreman/coding/agentic/security/vision/docs) get their own.
+    # Levels = honest minimums (Bane 3rd correction): agent_tick/delegation at
+    # 0 (median floor — instruction following + worker dispatch), everything
+    # else lenient so cheap sub lanes stay eligible. Verified: 39 eligible
+    # active priced lanes (36 sub lanes), head $0.033/M, deepseek-v4-flash
+    # eligible (always-run guarantee intact). mechanical NOT required (sparse
+    # category — de-facto model filter, audit 2026-08-27).
+    'P6_DEFAULT': ("Default cron chain: syncs, monitors, reports, infra, research feeds",
+                   {'agent_tick': 0, 'delegation': 0, 'code_gen': -2,
+                    'reasoning': -1, 'long_doc': -1, 'schema': -1,
+                    'terminal': -1, 'tool_use': -1}),
 }
 # Preserve existing profile created_at across re-seeds (now() on every run
 # made registry.json + ns exports non-idempotent — Bane 2026-08-27 fix).

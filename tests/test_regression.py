@@ -347,7 +347,9 @@ def test_registry_integrity():
     assert len(disabled) < len(active), "disabled lanes must never outnumber active lanes"
     # profiles + requirements
     profs = {p["id"] for p in tables["task_profiles"]}
-    assert len(profs) == 8
+    assert len(profs) >= 8
+    # P6_DEFAULT (Bane 2026-08-27): the ONE default chain for most cron work
+    assert "P6_DEFAULT" in profs, "P6_DEFAULT profile missing"
     reqs = tables["task_profile_requirements"]
     assert all(r["task_id"] in profs for r in reqs)
     assert all(r["category"] in ALL_CATS for r in reqs)

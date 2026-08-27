@@ -33,6 +33,14 @@
 {"task_id": "P5_VISION_E2E", "category": "reasoning", "level": -1}
 {"task_id": "P5_VISION_E2E", "category": "terminal", "level": 0}
 {"task_id": "P5_VISION_E2E", "category": "vision", "level": 1}
+{"task_id": "P6_DEFAULT", "category": "agent_tick", "level": 0}
+{"task_id": "P6_DEFAULT", "category": "code_gen", "level": -2}
+{"task_id": "P6_DEFAULT", "category": "delegation", "level": 0}
+{"task_id": "P6_DEFAULT", "category": "long_doc", "level": -1}
+{"task_id": "P6_DEFAULT", "category": "reasoning", "level": -1}
+{"task_id": "P6_DEFAULT", "category": "schema", "level": -1}
+{"task_id": "P6_DEFAULT", "category": "terminal", "level": -1}
+{"task_id": "P6_DEFAULT", "category": "tool_use", "level": -1}
 {"task_id": "P7_MOCK", "category": "code_gen", "level": -2}
 {"task_id": "P7_MOCK", "category": "creative", "level": -3}
 {"task_id": "P7_MOCK", "category": "long_doc", "level": -2}
