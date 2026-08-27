@@ -10,7 +10,9 @@
 Exports tables to the routing namespace JSONL. Run: board venv python."""
 import duckdb, json, shutil, os, subprocess, datetime
 
-DB = '/home/kara/reports-repo/routing.duckdb'
+# ROUTING_DB override lets maintenance/tests point the whole loop (seed +
+# exports) at a scratch DB copy — same pattern as router_spawn.py (TR-005).
+DB = os.environ.get('ROUTING_DB', '/home/kara/reports-repo/routing.duckdb')
 NS = '/home/kara/duckbrain/namespaces/routing'
 con = duckdb.connect(DB)
 

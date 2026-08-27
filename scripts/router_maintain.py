@@ -115,12 +115,12 @@ def _parse_spot_output(text):
 def run_spot_check(dry_run=False):
     """Shell out to the OR spot-check tool. Returns ({or_id: prices}, err|None).
 
-    Fail-open: on any failure returns ({}, reason) — the caller skips reprice
-    without aborting the loop.
+    The spot-check is a read-only GET against /v1/models — it runs even under
+    --dry-run so the preview shows the REAL price diffs (AC4). Fail-open: on
+    any failure returns ({}, reason) — the caller skips reprice without
+    aborting the loop.
     """
     cmd = [sys.executable if not os.path.exists(BOARD_PY) else BOARD_PY, SPOT_CHECK] + SPOT_FAMILIES
-    if dry_run:
-        return {}, f'dry-run: would run {" ".join(cmd)}'
     try:
         p = subprocess.run(cmd, capture_output=True, text=True, timeout=90)
     except (OSError, subprocess.TimeoutExpired) as e:
@@ -251,31 +251,31 @@ def report_reprice(plan, dry_run):
 
 
 def step_reprice(dry_run):
-    global PRICES, DUCK_CON
+    global DUCK_CON
     if DUCK_CON is None:
         DUCK_CON = duckdb.connect(DB, read_only=True)
     prices, err = run_spot_check(dry_run=dry_run)
-    PRICES = prices
     today = _today()
     if err:
-        if err.startswith('dry-run'):
-            print('[reprice] DRY-RUN spot-check skipped (%s)' % err)
-            print('[reprice] would UPDATE models SET normalized_price=?, price_evidence=\'or-spot-%s\'' % today)
-            return
         print(f'[reprice] WARNING: skipping reprice — {err}', file=sys.stderr)
         print('[reprice] fail-open: continuing with existing prices')
         return
-    if dry_run:
-        plan = collect_reprice_plan(prices)
-        print('[reprice] DRY-RUN plan:')
-        report_reprice(plan, dry_run=True)
-        print("[reprice] would run: UPDATE models SET normalized_price=?, price_evidence='or-spot-%s'" % today)
-        return
-    # Fail-open: a bug here must never abort the whole maintenance run —
-    # seed/export/snapshot/commit proceed on the existing prices.
     try:
         plan = collect_reprice_plan(prices)
-        report_reprice(plan, dry_run=False)
+        report_reprice(plan, dry_run=dry_run)
+    except Exception as e:  # noqa: BLE001 — fail-open, never block the loop
+        print(f'[reprice] WARNING: reprice failed ({e}) — fail-open continuing',
+              file=sys.stderr)
+        return
+    if dry_run:
+        print("[reprice] would run: UPDATE models SET normalized_price=?, price_evidence='or-spot-%s'" % today)
+        return
+    # DuckDB forbids a read-only + read-write connection to the same file in
+    # one process — drop the plan connection before applying.
+    if DUCK_CON is not None:
+        DUCK_CON.close()
+        DUCK_CON = None
+    try:
         n = apply_reprice(plan, today)
     except Exception as e:  # noqa: BLE001 — fail-open, never block the loop
         print(f'[reprice] WARNING: reprice failed ({e}) — fail-open continuing',
