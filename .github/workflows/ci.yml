@@ -25,9 +25,27 @@ jobs:
       - name: Guard test command (gitreins parity)
         run: bash scripts/gitreins-guard-tests.sh
 
-      - name: Fresh-clone resolve smoke (stdlib)
+      - name: Fresh-clone resolve smoke (stdlib, hermetic state)
         run: |
-          python3 scripts/router_spawn.py coding-hermes-scheduler --format json | python3 -c "import json,sys; d=json.load(sys.stdin); assert d['head'] is not None, 'empty head'; print('head:', d['head']['provider'] + '/' + d['head']['model'], d['head']['usd_1m'])"
+          # A missing router-state dir means "every provider quota-gated" by
+          # design (fail-closed when state is unknown — see test_diversity
+          # _open_providers). CI writes a hermetic state dir mirroring prod:
+          # grok-build/crof GATED, everything else open, no circuits, all
+          # providers healthy.
+          STATE=$(mktemp -d)
+          python3 - "$STATE" <<'EOF'
+          import json, os, sys
+          state = sys.argv[1]
+          provs = {}
+          for line in open('data/tables/providers.jsonl'):
+              p = json.loads(line)
+              provs[p['id']] = {'status': 'gated', 'reason': 'ci-mirror'} if p['id'] in ('grok-build', 'crof') else {'status': 'open'}
+          json.dump({'updated': 'ci', 'providers': provs}, open(os.path.join(state, 'quota-state.json'), 'w'))
+          json.dump({'providers': {pid: {'status': 'open'} for pid in provs}}, open(os.path.join(state, 'health-state.json'), 'w'))
+          json.dump({'pairs': {}}, open(os.path.join(state, 'circuit-state.json'), 'w'))
+          EOF
+          export ROUTER_STATE_DIR="$STATE"
+          python3 scripts/router_spawn.py coding-hermes-scheduler --format json | python3 -c "import json,sys; d=json.load(sys.stdin); assert d['head'] is not None, 'empty head: %s' % d['exclusions'][:3]; print('head:', d['head']['provider'] + '/' + d['head']['model'], d['head']['usd_1m'])"
           python3 scripts/router_spawn.py --list-profiles | grep -q P0_FORE && echo "profiles ok"
 
       - name: Registry integrity
