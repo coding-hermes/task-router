@@ -301,7 +301,7 @@ def test_registry_integrity():
     core = {"providers", "models", "archetypes", "benchmarks", "projects",
             "level_defs", "category_levels", "model_perf", "model_tier",
             "task_profiles", "task_profile_requirements"}
-    sidecars = {"model_catalog", "model_notes", "plan_terms", "temporary_discounts"}
+    sidecars = {"model_catalog", "model_notes", "plan_terms", "temporary_discounts", "provider_rules"}
     assert core <= set(tables), f"missing core tables: {core - set(tables)}"
     assert set(tables) - core <= sidecars, f"unexpected tables: {set(tables) - core - sidecars}"
     models = tables["models"]
