@@ -70,7 +70,11 @@ def assess(tables):
             continue  # disabled = intentional exclusion (plan sweep / quality)
         p, name = m['provider'], m['model']
         missing = []
-        if m.get('normalized_price') in (None, 0):
+        # 0.0 is a REAL price for free lanes (discount/free evidence) — only
+        # NULL (or 0 with no evidence) counts as a missing price (2026-08-27)
+        ev = m.get('price_evidence') or ''
+        if m.get('normalized_price') is None or (
+                m.get('normalized_price') == 0 and not ev):
             missing.append('price')
         if (p, name) not in cat_by:
             missing.append('catalog')
