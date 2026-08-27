@@ -83,7 +83,9 @@ def assess(tables):
         if not any(v is not None for v in perf_cols):
             missing.append('perf')
         n_tier = len(tier_by.get((p, name), []))
-        if n_tier < CATS:
+        # tiers gap: < HALF the taxonomy evidenced (BLANK default -1 makes
+        # <24 normal; <12 evidenced cats = genuinely thin — 2026-08-27)
+        if n_tier < CATS // 2:
             missing.append(f'tiers({n_tier}/{CATS})')
         if not any(b.get('category') == 'sentiment' for b in bench_by.get(name, [])):
             missing.append('sentiment')
