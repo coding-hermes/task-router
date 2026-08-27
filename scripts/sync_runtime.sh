@@ -34,14 +34,21 @@ for f in router_spawn.py router_circuit.py router_ledger.py router_seed.py route
   fi
 done
 
-# --- 2. byte-identical copy (provider-health-probe cron: realpath guard) ---
-f=provider_health_probe.py
-if cmp -s "${REPO_SCRIPTS}/${f}" "${LIVE_DIR}/${f}"; then
-  echo "OK      ${f} -> byte-identical copy"
-else
-  cp "${REPO_SCRIPTS}/${f}" "${LIVE_DIR}/${f}"
-  chmod 644 "${LIVE_DIR}/${f}"
-  echo "SYNCED  ${f} -> copied from repo (byte-identical)"
-fi
+# --- 2. byte-identical copy (cron realpath guard: provider-health-probe AND
+#        router-data-quality pipelines — cron resolves symlinks and BLOCKS any
+#        script whose real path falls outside ~/.hermes/scripts/) ---
+for f in provider_health_probe.py router-data-quality.sh; do
+  want=644; [ "${f##*.}" = "sh" ] && want=755
+  if [ -f "${LIVE_DIR}/${f}" ] && [ ! -L "${LIVE_DIR}/${f}" ] \
+     && [ "$(stat -c %a "${LIVE_DIR}/${f}")" = "$want" ] \
+     && cmp -s "${REPO_SCRIPTS}/${f}" "${LIVE_DIR}/${f}"; then
+    echo "OK      ${f} -> byte-identical copy"
+  else
+    rm -f "${LIVE_DIR}/${f}"   # drop symlink first: cp would write THROUGH it
+    cp "${REPO_SCRIPTS}/${f}" "${LIVE_DIR}/${f}"
+    chmod "$want" "${LIVE_DIR}/${f}"
+    echo "SYNCED  ${f} -> copied from repo (byte-identical, mode $want)"
+  fi
+done
 
 echo "runtime wiring OK"
