@@ -48,8 +48,11 @@ import json, os, sys, argparse, datetime
 # the task-router repo — NOT a binary duckdb. Env-overridable for hermetic
 # tests. registry.json is produced by router_seed.py (version 3: {"version",
 # "generated_at", "tables": {name: [row...]}}).
-REGISTRY = os.environ.get('ROUTING_REGISTRY',
-                          '/home/kara/task-router/registry.json')
+# Repo-relative defaults: the project is self-contained (clone → use).
+_HERE = os.path.dirname(os.path.realpath(__file__))
+_REPO = os.path.dirname(_HERE)
+REGISTRY = os.environ.get('ROUTING_REGISTRY', os.path.join(_REPO, 'registry.json'))
+DATA_DIR = os.environ.get('ROUTING_DATA_DIR', os.path.join(_REPO, 'data', 'tables'))
 # State dir (quota/health/circuit/ledger). Env-overridable so tests are hermetic
 # and ops can point at a scratch dir; default identical to the historical path.
 MR = os.environ.get('ROUTER_STATE_DIR', os.path.expanduser('~/.hermes/model-router'))
@@ -210,11 +213,31 @@ def _prune_diversity(out_chain, exclusions, reasons, cons_cap, tot_cap):
 
 
 def _load_registry():
-    """registry.json → {tables: {name: [row...]}}; any error → {} (fail-open)."""
+    """registry.json → {tables: {name: [row...]}}; any error → {} (fail-open).
+
+    Fallback (fresh clone, no registry.json yet): read the committed
+    data/tables/*.jsonl (same keyed-record format) directly — the project is
+    usable with stdlib python only, no seed run required.
+    """
     try:
         with open(REGISTRY) as f:
             doc = json.load(f)
         return doc.get('tables') or {}
+    except Exception:
+        pass
+    try:
+        tables = {}
+        for fn in sorted(os.listdir(DATA_DIR)):
+            if fn.endswith('.jsonl'):
+                name = fn[:-len('.jsonl')]
+                rows = []
+                with open(os.path.join(DATA_DIR, fn)) as f:
+                    for line in f:
+                        line = line.strip()
+                        if line:
+                            rows.append(json.loads(line))
+                tables[name] = rows
+        return tables if tables else {}
     except Exception:
         return {}
 

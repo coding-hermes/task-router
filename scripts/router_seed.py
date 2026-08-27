@@ -15,8 +15,14 @@ import duckdb, json, shutil, os, subprocess, datetime
 # IN-MEMORY duckdb (engine only, nothing persisted as binary) and writes
 # registry.json. ROUTING_REGISTRY override lets maintenance/tests point the
 # whole loop at a scratch copy — same pattern as router_spawn.py (TR-005).
-REGISTRY = os.environ.get('ROUTING_REGISTRY', '/home/kara/task-router/registry.json')
-NS = '/home/kara/duckbrain/namespaces/routing'
+# Repo-relative defaults: the project is self-contained (clone → seed → use).
+_HERE = os.path.dirname(os.path.realpath(__file__))
+_REPO = os.path.dirname(_HERE)
+REGISTRY = os.environ.get('ROUTING_REGISTRY', os.path.join(_REPO, 'registry.json'))
+DATA_DIR = os.environ.get('ROUTING_DATA_DIR', os.path.join(_REPO, 'data', 'tables'))
+# The DuckBrain namespace is the S3-backed MIRROR — absent on a fresh clone;
+# the seed still runs (it just skips the ns export step).
+NS = os.environ.get('ROUTING_NS', '/home/kara/duckbrain/namespaces/routing')
 
 # Base tables come from the committed namespace JSONL (array-per-line, column
 # order = duckdb DESCRIBE order) — or from an existing registry.json when the
@@ -47,7 +53,24 @@ BASE_COLUMNS = {
 
 
 def _load_base_rows(name):
-    """Base-table rows from registry.json (preferred) or ns tables JSONL."""
+    """Base-table rows from the in-repo data/tables/*.jsonl (keyed records —
+    committed, self-contained), falling back to the ns mirror (array format)
+    or an existing registry.json."""
+    # 1) in-repo committed data (primary; works on a fresh clone)
+    path = os.path.join(DATA_DIR, f'{name}.jsonl')
+    try:
+        rows = []
+        with open(path) as f:
+            for line in f:
+                line = line.strip()
+                if line:
+                    rows.append(json.loads(line))
+        if rows:
+            cols = [c[0] for c in BASE_COLUMNS[name]]
+            return [tuple(r.get(c) for c in cols) for r in rows]
+    except Exception:
+        pass
+    # 2) existing registry.json (pre-migration convenience)
     try:
         with open(REGISTRY) as f:
             doc = json.load(f)
@@ -57,6 +80,7 @@ def _load_base_rows(name):
             return [tuple(r.get(c) for c in cols) for r in rows]
     except Exception:
         pass
+    # 3) ns mirror (array-per-line)
     path = f'{NS}/tables/{name}.jsonl'
     out = []
     with open(path) as f:
@@ -550,11 +574,29 @@ def _dump_registry():
         json.dump(doc, f, indent=1)
     print('wrote', REGISTRY, f'({os.path.getsize(REGISTRY) / 1024:.1f} KB)')
 
-os.makedirs(f'{NS}/tables', exist_ok=True)
-for t in ['level_defs', 'model_perf', 'category_levels', 'model_tier',
-          'task_profiles', 'task_profile_requirements']:
-    with open(f'{NS}/tables/{t}.jsonl', 'w') as f:
-        for row in con.execute(f'SELECT * FROM {t} ORDER BY 1').fetchall():
-            f.write(json.dumps(row, default=str) + '\n')
-print('exported tables to', NS)
+# ns mirror export (arrays) — only when the DuckBrain namespace exists; a
+# fresh clone has no ns and that's fine (data/tables/ is the committed source).
+if os.path.isdir(NS):
+    os.makedirs(f'{NS}/tables', exist_ok=True)
+    for t in ['level_defs', 'model_perf', 'category_levels', 'model_tier',
+              'task_profiles', 'task_profile_requirements']:
+        cols = [c[0] for c in con.execute(f'DESCRIBE {t}').fetchall()]
+        order = ', '.join(str(i + 1) for i in range(len(cols)))
+        with open(f'{NS}/tables/{t}.jsonl', 'w') as f:
+            for row in con.execute(f'SELECT * FROM {t} ORDER BY {order}').fetchall():
+                f.write(json.dumps(row, default=str) + '\n')
+    print('exported tables to', NS)
+else:
+    print('ns mirror absent — skipped ns export (fresh clone is fine)')
 _dump_registry()
+
+# Sync the COMMITTED in-repo data/tables/*.jsonl (keyed records) from the
+# freshly built registry — the self-contained source of truth.
+os.makedirs(DATA_DIR, exist_ok=True)
+with open(REGISTRY) as f:
+    _doc = json.load(f)
+for _t, _rows in _doc['tables'].items():
+    with open(f'{DATA_DIR}/{_t}.jsonl', 'w') as f:
+        for _r in _rows:
+            f.write(json.dumps(_r, ensure_ascii=False) + '\n')
+print('synced data/tables ->', DATA_DIR)

@@ -1,0 +1,11 @@
+{"level": -5, "label": "-----", "qcol": "q01"}
+{"level": -4, "label": "----", "qcol": "q05"}
+{"level": -3, "label": "---", "qcol": "q10"}
+{"level": -2, "label": "--", "qcol": "q20"}
+{"level": -1, "label": "-", "qcol": "q35"}
+{"level": 0, "label": "0", "qcol": "q50"}
+{"level": 1, "label": "+", "qcol": "q65"}
+{"level": 2, "label": "++", "qcol": "q80"}
+{"level": 3, "label": "+++", "qcol": "q90"}
+{"level": 4, "label": "++++", "qcol": "q95"}
+{"level": 5, "label": "+++++", "qcol": "q99"}

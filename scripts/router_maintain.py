@@ -47,8 +47,12 @@ import tempfile
 
 # Text registry (Bane 2026-08-27): live store = gitignored JSON in the repo,
 # NOT a binary duckdb. ROUTING_REGISTRY override = scratch copies for tests.
-REGISTRY = os.environ.get('ROUTING_REGISTRY', '/home/kara/task-router/registry.json')
-REGISTRY_DEFAULT = os.environ.get('ROUTING_REGISTRY_DEFAULT', '/home/kara/task-router/registry.json')
+# Repo-relative defaults: the project is self-contained (clone → use).
+_HERE = os.path.dirname(os.path.realpath(__file__))
+_REPO = os.path.dirname(_HERE)
+REGISTRY = os.environ.get('ROUTING_REGISTRY', os.path.join(_REPO, 'registry.json'))
+REGISTRY_DEFAULT = os.environ.get('ROUTING_REGISTRY_DEFAULT', REGISTRY)
+DATA_DIR = os.environ.get('ROUTING_DATA_DIR', os.path.join(_REPO, 'data', 'tables'))
 
 
 def _load_doc():
@@ -70,10 +74,10 @@ def _save_doc(doc):
 BOARD_PY = os.path.expanduser('~/.hermes/venvs/board/bin/python3')
 SPOT_CHECK = os.path.expanduser(
     '~/.hermes/skills/mlops/model-intelligence/scripts/or-family-spot-check.py')
-SEED_SCRIPT = '/home/kara/task-router/scripts/router_seed.py'
-ROUTING_NS = '/home/kara/duckbrain/namespaces/routing'
-TASKROUTER_NS = '/home/kara/duckbrain/namespaces/task-router'
-REPO = '/home/kara/task-router'
+SEED_SCRIPT = os.path.join(_REPO, 'scripts', 'router_seed.py')
+ROUTING_NS = os.environ.get('ROUTING_NS', '/home/kara/duckbrain/namespaces/routing')
+TASKROUTER_NS = os.environ.get('TASKROUTER_NS', '/home/kara/duckbrain/namespaces/task-router')
+REPO = _REPO
 
 # Base tables exported to BOTH namespaces by `export`.
 BASE_TABLES = ['archetypes', 'benchmarks', 'models', 'projects', 'providers']
@@ -341,6 +345,14 @@ def _table_rows(doc, table):
         yield json.dumps([r.get(c) for c in r], default=str)
 
 
+def _data_rows(doc, table):
+    """registry.json table → keyed-record JSONL (in-repo data/tables format)."""
+    rows = sorted((doc.get('tables') or {}).get(table) or [],
+                  key=lambda r: str(r.get(next(iter(r), '')) or ''))
+    for r in rows:
+        yield json.dumps(r, ensure_ascii=False)
+
+
 def write_table(path, table):
     doc = _load_doc()
     if doc is None:
@@ -355,12 +367,19 @@ def write_table(path, table):
 
 def step_export(dry_run):
     copied = []
+    doc = _load_doc()
     for t in BASE_TABLES:
+        dpath = f'{DATA_DIR}/{t}.jsonl'
         rpath = f'{ROUTING_NS}/tables/{t}.jsonl'
         tpath = f'{TASKROUTER_NS}/tables/{t}.jsonl'
         if dry_run:
-            print(f'[export] DRY-RUN: would export {t} -> {rpath} then copy -> {tpath}')
+            print(f'[export] DRY-RUN: would export {t} -> data/tables, {ROUTING_NS}, {TASKROUTER_NS}')
             continue
+        os.makedirs(DATA_DIR, exist_ok=True)
+        if doc is not None:
+            with open(dpath, 'w') as f:
+                for ln in _data_rows(doc, t):
+                    f.write(ln + '\n')
         write_table(rpath, t)
         shutil.copyfile(rpath, tpath)
         copied.append(t)
@@ -373,7 +392,7 @@ def step_export(dry_run):
         shutil.copyfile(rpath, tpath)
         copied.append(t)
     if not dry_run:
-        print(f'[export] synced {len(copied)} table file(s) into both namespaces')
+        print(f'[export] synced {len(copied)} table file(s): in-repo data/tables + both namespaces')
 
 
 def _fmt_profile_level(cat, lvl):

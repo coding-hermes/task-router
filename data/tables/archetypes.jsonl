@@ -1,0 +1,10 @@
+{"id": "agent-tick", "bar": 0.75, "skill_levels": "board/git/CI reconciliation, terse ops, deterministic verify", "notes": "foreman default"}
+{"id": "debug", "bar": 0.75, "skill_levels": "root cause, compiled-test oracle", "notes": "—"}
+{"id": "delegation", "bar": 0.75, "skill_levels": "self-contained briefs, ≤4 serial", "notes": "—"}
+{"id": "e2e-vision", "bar": 0.72, "skill_levels": "browser + vision + evidence", "notes": "—"}
+{"id": "guard", "bar": 0.72, "skill_levels": "fail-closed, machine schema, independence", "notes": "—"}
+{"id": "long-doc", "bar": 0.72, "skill_levels": "gap-free continuation-aware prose, coverage manifest", "notes": "sync/archival"}
+{"id": "mock", "bar": 0.68, "skill_levels": "schema-constrained volume, never flagship", "notes": "—"}
+{"id": "reasoning", "bar": 0.8, "skill_levels": "novel problems, math, verified derivations", "notes": "premium"}
+{"id": "review", "bar": 0.78, "skill_levels": "adversarial diff, security, independence", "notes": "—"}
+{"id": "schema", "bar": 0.78, "skill_levels": "migrations, invariants, RLS, rollback", "notes": "—"}
