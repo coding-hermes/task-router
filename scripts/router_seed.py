@@ -5,6 +5,7 @@
 - category_levels: per-category percentile thresholds (11 levels)
 - model_tier: per (provider, model, category) signed level
 - task_profiles + requirements: P0_FORE / P5_VISION_E2E / P7_MOCK / P9_REVIEW
+  + P1_CODING / P2_AGENTIC / P3_DOCS / P4_SECURITY (TR-003, 2026-08-27)
 - views: v_task_eligible, v_task_chain
 Exports tables to the routing namespace JSONL. Run: board venv python."""
 import duckdb, json, shutil, os, subprocess, datetime
@@ -386,6 +387,21 @@ PROFILES = {
     'P9_REVIEW': ("Code review / security-critical diffs",
                   {'review': -2, 'security': 3, 'code_gen': -2, 'reasoning': -1,
                    'schema': 1, 'mock': -3, 'creative': -3, 'e2e_vision': -2}),
+    # TR-003 profile library expansion (2026-08-27). Levels are the tightest
+    # honest requirement per workload axis, grounded in the live model_tier
+    # distributions (percentile scale -5..+5 = q01..q99 of each category):
+    #   P1_CODING  code_gen 0 (q50)  refactor 3 (median, min tier 3)  test 2 (median)  debug 0 (q50)
+    #   P2_AGENTIC agent_tick 0 (q50) tool_use 0 (q50) delegation 0 (q50) long_horizon 1 (median, min tier 1)
+    #   P3_DOCS    long_doc 0 (q50) spec_docs 4 (median, min tier 4) review 0 (q50)
+    #   P4_SECURITY security 3 (median, min tier 3) review 1 (q65) guard 1 (q65)
+    'P1_CODING': ("Fleet coding: feature work, refactors, tests, bug fixes",
+                  {'code_gen': 0, 'refactor': 3, 'test': 2, 'debug': 0}),
+    'P2_AGENTIC': ("Agentic autonomy: ticks, tool use, delegation, long-horizon runs",
+                   {'agent_tick': 0, 'tool_use': 0, 'delegation': 0, 'long_horizon': 1}),
+    'P3_DOCS': ("Specs + long-form docs + review",
+                {'long_doc': 0, 'spec_docs': 4, 'review': 0}),
+    'P4_SECURITY': ("Security-critical: audits, guardrails, secure review",
+                    {'security': 3, 'review': 1, 'guard': 1}),
 }
 for pid, (title, reqs) in PROFILES.items():
     # explicit column list: the two TR-007 diversity columns stay NULL for the

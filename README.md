@@ -38,7 +38,7 @@ Scale = **per-category percentiles**, not absolute scores: `−5`→q01 … `0`�
 - Perception/UI: `vision` (whole picture), `e2e_vision` (issues around the picture), `ui_frontend`
 - Language/content: `long_doc, spec_docs, creative, multilingual, review, security, mock`
 
-Seeded profiles: `P0_FORE` (default foreman), `P5_VISION_E2E`, `P7_MOCK`, `P9_REVIEW`.
+Seeded profiles: `P0_FORE` (default foreman), `P5_VISION_E2E`, `P7_MOCK`, `P9_REVIEW`, plus the TR-003 library: `P1_CODING` (fleet coding), `P2_AGENTIC` (agentic autonomy), `P3_DOCS` (specs/long docs/review), `P4_SECURITY` (security-critical).
 
 ## Runtime usage
 
