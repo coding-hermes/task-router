@@ -265,7 +265,8 @@ GROUP BY mp.provider, mp.model, mp.category, mp.perf""")
 # ---------- 6. task profiles ---------------------------------------------------
 con.execute("DROP TABLE IF EXISTS task_profiles")
 con.execute("DROP TABLE IF EXISTS task_profile_requirements")
-con.execute("CREATE TABLE task_profiles (id VARCHAR PRIMARY KEY, title VARCHAR, created_at TIMESTAMP)")
+con.execute("CREATE TABLE task_profiles (id VARCHAR PRIMARY KEY, title VARCHAR, created_at TIMESTAMP, "
+            "max_consecutive_per_provider INTEGER, max_total_per_provider INTEGER)")
 con.execute("CREATE TABLE task_profile_requirements (task_id VARCHAR, category VARCHAR, level INTEGER, PRIMARY KEY (task_id, category))")
 
 PROFILES = {
@@ -284,7 +285,10 @@ PROFILES = {
                    'mock': -3, 'creative': -2, 'e2e_vision': -2}),
 }
 for pid, (title, reqs) in PROFILES.items():
-    con.execute("INSERT INTO task_profiles VALUES (?,?, now())", [pid, title])
+    # explicit column list: the two TR-007 diversity columns stay NULL for the
+    # seeded profiles (no overrides → global defaults apply; existing behavior)
+    con.execute("INSERT INTO task_profiles (id, title, created_at) VALUES (?, ?, now())",
+                [pid, title])
     for c, lvl in reqs.items():
         con.execute("INSERT INTO task_profile_requirements VALUES (?,?,?)", [pid, c, lvl])
 

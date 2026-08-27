@@ -22,6 +22,7 @@ Scale = **per-category percentiles**, not absolute scores: `−5`→q01 … `0`�
 |---|---|
 | `scripts/router_spawn.py` | THE runtime lookup — project → profile → chain → gates → head |
 | `scripts/router_circuit.py` | circuit-breaker state per (provider, model), exp backoff 5m→1h |
+| `scripts/router_ledger.py` | spawn ledger start/end/status — per-model in-flight counts (TR-007) |
 | `scripts/provider_health_probe.py` | hourly provider pings (cron: provider-health-probe) |
 | `scripts/router_seed.py` | rebuild the 24-category layer from perf data (routing ns) |
 | `docs/integration.md` | scheduler integration spec (TASK-ROUTER-001/002) |
