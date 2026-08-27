@@ -9,3 +9,4 @@ __pycache__/
 .gitreins/tasks.yaml
 .gitreins/history/
 .gitreins/verdicts/
+dagger.db*
