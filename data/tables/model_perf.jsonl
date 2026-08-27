@@ -1,832 +1,519 @@
-{"provider": "clinepass", "model": "deepseek-v4-flash", "category": "agent_tick", "perf": 0.75}
-{"provider": "clinepass", "model": "deepseek-v4-flash", "category": "code_gen", "perf": 0.85}
-{"provider": "clinepass", "model": "deepseek-v4-flash", "category": "debug", "perf": 0.75}
-{"provider": "clinepass", "model": "deepseek-v4-flash", "category": "delegation", "perf": 0.75}
-{"provider": "clinepass", "model": "deepseek-v4-flash", "category": "e2e_vision", "perf": 0.55}
-{"provider": "clinepass", "model": "deepseek-v4-flash", "category": "guard", "perf": 0.88}
-{"provider": "clinepass", "model": "deepseek-v4-flash", "category": "long_doc", "perf": 0.55}
-{"provider": "clinepass", "model": "deepseek-v4-flash", "category": "mechanical", "perf": 0.72}
-{"provider": "clinepass", "model": "deepseek-v4-flash", "category": "mock", "perf": 0.87}
-{"provider": "clinepass", "model": "deepseek-v4-flash", "category": "reasoning", "perf": 0.7}
-{"provider": "clinepass", "model": "deepseek-v4-flash", "category": "review", "perf": 0.6}
-{"provider": "clinepass", "model": "deepseek-v4-flash", "category": "schema", "perf": 0.5}
-{"provider": "clinepass", "model": "deepseek-v4-flash", "category": "spec_docs", "perf": 0.72}
-{"provider": "clinepass", "model": "deepseek-v4-flash", "category": "terminal", "perf": 0.85}
-{"provider": "clinepass", "model": "deepseek-v4-flash", "category": "test", "perf": 0.85}
-{"provider": "clinepass", "model": "deepseek-v4-flash", "category": "tool_use", "perf": 0.85}
-{"provider": "clinepass", "model": "deepseek-v4-flash", "category": "vision", "perf": 0.45}
-{"provider": "clinepass", "model": "glm-5.3", "category": "agent_tick", "perf": 0.85}
-{"provider": "clinepass", "model": "glm-5.3", "category": "code_gen", "perf": 0.85}
-{"provider": "clinepass", "model": "glm-5.3", "category": "creative", "perf": 0.45}
-{"provider": "clinepass", "model": "glm-5.3", "category": "debug", "perf": 0.85}
-{"provider": "clinepass", "model": "glm-5.3", "category": "delegation", "perf": 0.85}
-{"provider": "clinepass", "model": "glm-5.3", "category": "e2e_vision", "perf": 0.35}
-{"provider": "clinepass", "model": "glm-5.3", "category": "guard", "perf": 0.8}
-{"provider": "clinepass", "model": "glm-5.3", "category": "long_doc", "perf": 0.8296}
-{"provider": "clinepass", "model": "glm-5.3", "category": "long_horizon", "perf": 0.85}
-{"provider": "clinepass", "model": "glm-5.3", "category": "mock", "perf": 0.6}
-{"provider": "clinepass", "model": "glm-5.3", "category": "reasoning", "perf": 0.9694}
-{"provider": "clinepass", "model": "glm-5.3", "category": "refactor", "perf": 0.72}
-{"provider": "clinepass", "model": "glm-5.3", "category": "review", "perf": 0.7111}
-{"provider": "clinepass", "model": "glm-5.3", "category": "schema", "perf": 0.88}
-{"provider": "clinepass", "model": "glm-5.3", "category": "security", "perf": 0.85}
-{"provider": "clinepass", "model": "glm-5.3", "category": "terminal", "perf": 0.85}
-{"provider": "clinepass", "model": "glm-5.3", "category": "test", "perf": 0.72}
-{"provider": "clinepass", "model": "glm-5.3", "category": "vision", "perf": 0.45}
-{"provider": "clinepass", "model": "kimi-k2.7-code", "category": "agent_tick", "perf": 0.75}
-{"provider": "clinepass", "model": "kimi-k2.7-code", "category": "code_gen", "perf": 0.72}
-{"provider": "clinepass", "model": "kimi-k2.7-code", "category": "debug", "perf": 0.75}
-{"provider": "clinepass", "model": "kimi-k2.7-code", "category": "delegation", "perf": 0.75}
-{"provider": "clinepass", "model": "kimi-k2.7-code", "category": "e2e_vision", "perf": 0.45}
-{"provider": "clinepass", "model": "kimi-k2.7-code", "category": "guard", "perf": 0.86}
-{"provider": "clinepass", "model": "kimi-k2.7-code", "category": "long_doc", "perf": 0.65}
-{"provider": "clinepass", "model": "kimi-k2.7-code", "category": "long_horizon", "perf": 0.85}
-{"provider": "clinepass", "model": "kimi-k2.7-code", "category": "mock", "perf": 0.84}
-{"provider": "clinepass", "model": "kimi-k2.7-code", "category": "reasoning", "perf": 0.78}
-{"provider": "clinepass", "model": "kimi-k2.7-code", "category": "refactor", "perf": 0.72}
-{"provider": "clinepass", "model": "kimi-k2.7-code", "category": "review", "perf": 0.72}
-{"provider": "clinepass", "model": "kimi-k2.7-code", "category": "schema", "perf": 0.5}
-{"provider": "clinepass", "model": "kimi-k2.7-code", "category": "test", "perf": 0.72}
-{"provider": "clinepass", "model": "kimi-k2.7-code", "category": "tool_use", "perf": 0.85}
-{"provider": "clinepass", "model": "kimi-k3", "category": "agent_tick", "perf": 0.9216}
-{"provider": "clinepass", "model": "kimi-k3", "category": "code_gen", "perf": 0.72}
-{"provider": "clinepass", "model": "kimi-k3", "category": "debug", "perf": 0.75}
-{"provider": "clinepass", "model": "kimi-k3", "category": "delegation", "perf": 0.75}
-{"provider": "clinepass", "model": "kimi-k3", "category": "e2e_vision", "perf": 0.75}
-{"provider": "clinepass", "model": "kimi-k3", "category": "guard", "perf": 0.88}
-{"provider": "clinepass", "model": "kimi-k3", "category": "long_doc", "perf": 1.0}
-{"provider": "clinepass", "model": "kimi-k3", "category": "long_horizon", "perf": 0.85}
-{"provider": "clinepass", "model": "kimi-k3", "category": "mock", "perf": 0.85}
-{"provider": "clinepass", "model": "kimi-k3", "category": "reasoning", "perf": 0.88}
-{"provider": "clinepass", "model": "kimi-k3", "category": "refactor", "perf": 0.72}
-{"provider": "clinepass", "model": "kimi-k3", "category": "review", "perf": 0.85}
-{"provider": "clinepass", "model": "kimi-k3", "category": "schema", "perf": 0.5}
-{"provider": "clinepass", "model": "kimi-k3", "category": "test", "perf": 0.72}
-{"provider": "clinepass", "model": "kimi-k3", "category": "tool_use", "perf": 0.85}
-{"provider": "clinepass", "model": "kimi-k3", "category": "ui_frontend", "perf": 0.72}
-{"provider": "clinepass", "model": "kimi-k3", "category": "vision", "perf": 0.72}
-{"provider": "clinepass", "model": "mimo-v2.5", "category": "agent_tick", "perf": 0.75}
-{"provider": "clinepass", "model": "mimo-v2.5", "category": "code_gen", "perf": 0.72}
-{"provider": "clinepass", "model": "mimo-v2.5", "category": "debug", "perf": 0.75}
-{"provider": "clinepass", "model": "mimo-v2.5", "category": "delegation", "perf": 0.75}
-{"provider": "clinepass", "model": "mimo-v2.5", "category": "e2e_vision", "perf": 0.5}
-{"provider": "clinepass", "model": "mimo-v2.5", "category": "guard", "perf": 0.88}
-{"provider": "clinepass", "model": "mimo-v2.5", "category": "long_doc", "perf": 0.65}
-{"provider": "clinepass", "model": "mimo-v2.5", "category": "mechanical", "perf": 0.72}
-{"provider": "clinepass", "model": "mimo-v2.5", "category": "mock", "perf": 0.84}
-{"provider": "clinepass", "model": "mimo-v2.5", "category": "reasoning", "perf": 0.75}
-{"provider": "clinepass", "model": "mimo-v2.5", "category": "refactor", "perf": 0.72}
-{"provider": "clinepass", "model": "mimo-v2.5", "category": "review", "perf": 0.7}
-{"provider": "clinepass", "model": "mimo-v2.5", "category": "schema", "perf": 0.5}
-{"provider": "clinepass", "model": "mimo-v2.5", "category": "terminal", "perf": 0.72}
-{"provider": "clinepass", "model": "mimo-v2.5", "category": "test", "perf": 0.72}
-{"provider": "clinepass", "model": "mimo-v2.5", "category": "tool_use", "perf": 0.85}
-{"provider": "clinepass", "model": "minimax-m3", "category": "agent_tick", "perf": 0.5}
-{"provider": "clinepass", "model": "minimax-m3", "category": "code_gen", "perf": 0.85}
-{"provider": "clinepass", "model": "minimax-m3", "category": "debug", "perf": 0.75}
-{"provider": "clinepass", "model": "minimax-m3", "category": "delegation", "perf": 0.5}
-{"provider": "clinepass", "model": "minimax-m3", "category": "e2e_vision", "perf": 0.55}
-{"provider": "clinepass", "model": "minimax-m3", "category": "guard", "perf": 0.86}
-{"provider": "clinepass", "model": "minimax-m3", "category": "long_doc", "perf": 0.78}
-{"provider": "clinepass", "model": "minimax-m3", "category": "long_horizon", "perf": 0.85}
-{"provider": "clinepass", "model": "minimax-m3", "category": "mock", "perf": 0.84}
-{"provider": "clinepass", "model": "minimax-m3", "category": "reasoning", "perf": 0.8}
-{"provider": "clinepass", "model": "minimax-m3", "category": "refactor", "perf": 0.45}
-{"provider": "clinepass", "model": "minimax-m3", "category": "review", "perf": 0.72}
-{"provider": "clinepass", "model": "minimax-m3", "category": "schema", "perf": 0.75}
-{"provider": "clinepass", "model": "minimax-m3", "category": "terminal", "perf": 0.72}
-{"provider": "clinepass", "model": "minimax-m3", "category": "test", "perf": 0.72}
-{"provider": "clinepass", "model": "minimax-m3", "category": "tool_use", "perf": 0.72}
-{"provider": "clinepass", "model": "minimax-m3", "category": "ui_frontend", "perf": 0.45}
-{"provider": "clinepass", "model": "minimax-m3", "category": "vision", "perf": 0.72}
-{"provider": "deepseek", "model": "deepseek-v4-flash", "category": "agent_tick", "perf": 0.75}
-{"provider": "deepseek", "model": "deepseek-v4-flash", "category": "code_gen", "perf": 0.85}
-{"provider": "deepseek", "model": "deepseek-v4-flash", "category": "debug", "perf": 0.75}
-{"provider": "deepseek", "model": "deepseek-v4-flash", "category": "delegation", "perf": 0.75}
-{"provider": "deepseek", "model": "deepseek-v4-flash", "category": "e2e_vision", "perf": 0.55}
-{"provider": "deepseek", "model": "deepseek-v4-flash", "category": "guard", "perf": 0.88}
-{"provider": "deepseek", "model": "deepseek-v4-flash", "category": "long_doc", "perf": 0.55}
-{"provider": "deepseek", "model": "deepseek-v4-flash", "category": "mechanical", "perf": 0.72}
-{"provider": "deepseek", "model": "deepseek-v4-flash", "category": "mock", "perf": 0.87}
-{"provider": "deepseek", "model": "deepseek-v4-flash", "category": "reasoning", "perf": 0.7}
-{"provider": "deepseek", "model": "deepseek-v4-flash", "category": "review", "perf": 0.6}
-{"provider": "deepseek", "model": "deepseek-v4-flash", "category": "schema", "perf": 0.5}
-{"provider": "deepseek", "model": "deepseek-v4-flash", "category": "spec_docs", "perf": 0.72}
-{"provider": "deepseek", "model": "deepseek-v4-flash", "category": "terminal", "perf": 0.85}
-{"provider": "deepseek", "model": "deepseek-v4-flash", "category": "test", "perf": 0.85}
-{"provider": "deepseek", "model": "deepseek-v4-flash", "category": "tool_use", "perf": 0.85}
-{"provider": "deepseek", "model": "deepseek-v4-flash", "category": "vision", "perf": 0.45}
-{"provider": "deepseek", "model": "deepseek-v4-pro", "category": "agent_tick", "perf": 0.5}
-{"provider": "deepseek", "model": "deepseek-v4-pro", "category": "code_gen", "perf": 0.85}
-{"provider": "deepseek", "model": "deepseek-v4-pro", "category": "debug", "perf": 0.5}
-{"provider": "deepseek", "model": "deepseek-v4-pro", "category": "delegation", "perf": 0.5}
-{"provider": "deepseek", "model": "deepseek-v4-pro", "category": "e2e_vision", "perf": 0.4}
-{"provider": "deepseek", "model": "deepseek-v4-pro", "category": "guard", "perf": 0.9}
-{"provider": "deepseek", "model": "deepseek-v4-pro", "category": "long_doc", "perf": 0.8}
-{"provider": "deepseek", "model": "deepseek-v4-pro", "category": "mock", "perf": 0.88}
-{"provider": "deepseek", "model": "deepseek-v4-pro", "category": "reasoning", "perf": 0.88}
-{"provider": "deepseek", "model": "deepseek-v4-pro", "category": "refactor", "perf": 0.85}
-{"provider": "deepseek", "model": "deepseek-v4-pro", "category": "review", "perf": 0.8}
-{"provider": "deepseek", "model": "deepseek-v4-pro", "category": "schema", "perf": 0.5}
-{"provider": "deepseek", "model": "deepseek-v4-pro", "category": "terminal", "perf": 0.85}
-{"provider": "deepseek", "model": "deepseek-v4-pro", "category": "test", "perf": 0.72}
-{"provider": "deepseek", "model": "deepseek-v4-pro", "category": "tool_use", "perf": 0.85}
-{"provider": "deepseek", "model": "deepseek-v4-pro", "category": "ui_frontend", "perf": 0.45}
-{"provider": "deepseek", "model": "deepseek-v4-pro", "category": "vision", "perf": 0.45}
-{"provider": "groq", "model": "gpt-oss-120b", "category": "agent_tick", "perf": 0.75}
-{"provider": "groq", "model": "gpt-oss-120b", "category": "code_gen", "perf": 0.72}
-{"provider": "groq", "model": "gpt-oss-120b", "category": "debug", "perf": 0.75}
-{"provider": "groq", "model": "gpt-oss-120b", "category": "delegation", "perf": 0.72}
-{"provider": "groq", "model": "gpt-oss-120b", "category": "e2e_vision", "perf": 0.25}
-{"provider": "groq", "model": "gpt-oss-120b", "category": "guard", "perf": 0.8}
-{"provider": "groq", "model": "gpt-oss-120b", "category": "long_doc", "perf": 0.5}
-{"provider": "groq", "model": "gpt-oss-120b", "category": "mock", "perf": 0.85}
-{"provider": "groq", "model": "gpt-oss-120b", "category": "reasoning", "perf": 0.65}
-{"provider": "groq", "model": "gpt-oss-120b", "category": "refactor", "perf": 0.72}
-{"provider": "groq", "model": "gpt-oss-120b", "category": "review", "perf": 0.62}
-{"provider": "groq", "model": "gpt-oss-120b", "category": "schema", "perf": 0.65}
-{"provider": "groq", "model": "gpt-oss-120b", "category": "test", "perf": 0.72}
-{"provider": "groq", "model": "gpt-oss-120b", "category": "tool_use", "perf": 0.85}
-{"provider": "groq", "model": "gpt-oss-20b", "category": "agent_tick", "perf": 0.0}
-{"provider": "groq", "model": "gpt-oss-20b", "category": "debug", "perf": 0.0}
-{"provider": "groq", "model": "gpt-oss-20b", "category": "delegation", "perf": 0.0}
-{"provider": "groq", "model": "gpt-oss-20b", "category": "e2e_vision", "perf": 0.0}
-{"provider": "groq", "model": "gpt-oss-20b", "category": "guard", "perf": 0.68}
-{"provider": "groq", "model": "gpt-oss-20b", "category": "long_doc", "perf": 0.0}
-{"provider": "groq", "model": "gpt-oss-20b", "category": "mock", "perf": 0.68}
-{"provider": "groq", "model": "gpt-oss-20b", "category": "reasoning", "perf": 0.0}
-{"provider": "groq", "model": "gpt-oss-20b", "category": "review", "perf": 0.0}
-{"provider": "groq", "model": "gpt-oss-20b", "category": "schema", "perf": 0.0}
-{"provider": "groq", "model": "qwen3.6-27b", "category": "agent_tick", "perf": 0.72}
-{"provider": "groq", "model": "qwen3.6-27b", "category": "debug", "perf": 0.7}
-{"provider": "groq", "model": "qwen3.6-27b", "category": "delegation", "perf": 0.72}
-{"provider": "groq", "model": "qwen3.6-27b", "category": "e2e_vision", "perf": 0.3}
-{"provider": "groq", "model": "qwen3.6-27b", "category": "guard", "perf": 0.7}
-{"provider": "groq", "model": "qwen3.6-27b", "category": "long_doc", "perf": 0.45}
-{"provider": "groq", "model": "qwen3.6-27b", "category": "mechanical", "perf": 0.72}
-{"provider": "groq", "model": "qwen3.6-27b", "category": "mock", "perf": 0.85}
-{"provider": "groq", "model": "qwen3.6-27b", "category": "reasoning", "perf": 0.65}
-{"provider": "groq", "model": "qwen3.6-27b", "category": "review", "perf": 0.55}
-{"provider": "groq", "model": "qwen3.6-27b", "category": "schema", "perf": 0.65}
-{"provider": "kimi-for-coding", "model": "k3", "category": "agent_tick", "perf": 0.0}
-{"provider": "kimi-for-coding", "model": "k3", "category": "code_gen", "perf": 0.72}
-{"provider": "kimi-for-coding", "model": "k3", "category": "debug", "perf": 0.0}
-{"provider": "kimi-for-coding", "model": "k3", "category": "delegation", "perf": 0.0}
-{"provider": "kimi-for-coding", "model": "k3", "category": "e2e_vision", "perf": 0.0}
-{"provider": "kimi-for-coding", "model": "k3", "category": "guard", "perf": 0.85}
-{"provider": "kimi-for-coding", "model": "k3", "category": "long_doc", "perf": 0.0}
-{"provider": "kimi-for-coding", "model": "k3", "category": "long_horizon", "perf": 0.85}
-{"provider": "kimi-for-coding", "model": "k3", "category": "mock", "perf": 0.84}
-{"provider": "kimi-for-coding", "model": "k3", "category": "reasoning", "perf": 0.0}
-{"provider": "kimi-for-coding", "model": "k3", "category": "refactor", "perf": 0.72}
-{"provider": "kimi-for-coding", "model": "k3", "category": "review", "perf": 0.0}
-{"provider": "kimi-for-coding", "model": "k3", "category": "schema", "perf": 0.0}
-{"provider": "kimi-for-coding", "model": "k3", "category": "test", "perf": 0.72}
-{"provider": "kimi-for-coding", "model": "k3", "category": "tool_use", "perf": 0.85}
-{"provider": "kimi-for-coding", "model": "k3", "category": "ui_frontend", "perf": 0.72}
-{"provider": "kimi-for-coding", "model": "k3", "category": "vision", "perf": 0.72}
-{"provider": "kimi-for-coding", "model": "k3-256k", "category": "agent_tick", "perf": 0.75}
-{"provider": "kimi-for-coding", "model": "k3-256k", "category": "debug", "perf": 0.5}
-{"provider": "kimi-for-coding", "model": "k3-256k", "category": "delegation", "perf": 0.75}
-{"provider": "kimi-for-coding", "model": "k3-256k", "category": "e2e_vision", "perf": 0.0}
-{"provider": "kimi-for-coding", "model": "k3-256k", "category": "guard", "perf": 0.86}
-{"provider": "kimi-for-coding", "model": "k3-256k", "category": "long_doc", "perf": 0.0}
-{"provider": "kimi-for-coding", "model": "k3-256k", "category": "mock", "perf": 0.84}
-{"provider": "kimi-for-coding", "model": "k3-256k", "category": "reasoning", "perf": 0.0}
-{"provider": "kimi-for-coding", "model": "k3-256k", "category": "review", "perf": 0.0}
-{"provider": "kimi-for-coding", "model": "k3-256k", "category": "schema", "perf": 0.5}
-{"provider": "kimi-for-coding", "model": "kimi-k2.7-code", "category": "agent_tick", "perf": 0.75}
-{"provider": "kimi-for-coding", "model": "kimi-k2.7-code", "category": "debug", "perf": 0.75}
-{"provider": "kimi-for-coding", "model": "kimi-k2.7-code", "category": "delegation", "perf": 0.75}
-{"provider": "kimi-for-coding", "model": "kimi-k2.7-code", "category": "e2e_vision", "perf": 0.45}
-{"provider": "kimi-for-coding", "model": "kimi-k2.7-code", "category": "guard", "perf": 0.86}
-{"provider": "kimi-for-coding", "model": "kimi-k2.7-code", "category": "long_doc", "perf": 0.65}
-{"provider": "kimi-for-coding", "model": "kimi-k2.7-code", "category": "mock", "perf": 0.84}
-{"provider": "kimi-for-coding", "model": "kimi-k2.7-code", "category": "reasoning", "perf": 0.78}
-{"provider": "kimi-for-coding", "model": "kimi-k2.7-code", "category": "review", "perf": 0.72}
-{"provider": "kimi-for-coding", "model": "kimi-k2.7-code", "category": "schema", "perf": 0.5}
-{"provider": "minimax", "model": "minimax-m2.7", "category": "agent_tick", "perf": 0.5}
-{"provider": "minimax", "model": "minimax-m2.7", "category": "debug", "perf": 0.75}
-{"provider": "minimax", "model": "minimax-m2.7", "category": "delegation", "perf": 0.5}
-{"provider": "minimax", "model": "minimax-m2.7", "category": "e2e_vision", "perf": 0.5}
-{"provider": "minimax", "model": "minimax-m2.7", "category": "guard", "perf": 0.8}
-{"provider": "minimax", "model": "minimax-m2.7", "category": "long_doc", "perf": 0.72}
-{"provider": "minimax", "model": "minimax-m2.7", "category": "mock", "perf": 0.82}
-{"provider": "minimax", "model": "minimax-m2.7", "category": "reasoning", "perf": 0.72}
-{"provider": "minimax", "model": "minimax-m2.7", "category": "review", "perf": 0.65}
-{"provider": "minimax", "model": "minimax-m2.7", "category": "schema", "perf": 0.5}
-{"provider": "minimax", "model": "minimax-m3", "category": "agent_tick", "perf": 0.5}
-{"provider": "minimax", "model": "minimax-m3", "category": "code_gen", "perf": 0.85}
-{"provider": "minimax", "model": "minimax-m3", "category": "debug", "perf": 0.75}
-{"provider": "minimax", "model": "minimax-m3", "category": "delegation", "perf": 0.5}
-{"provider": "minimax", "model": "minimax-m3", "category": "e2e_vision", "perf": 0.55}
-{"provider": "minimax", "model": "minimax-m3", "category": "guard", "perf": 0.86}
-{"provider": "minimax", "model": "minimax-m3", "category": "long_doc", "perf": 0.78}
-{"provider": "minimax", "model": "minimax-m3", "category": "long_horizon", "perf": 0.85}
-{"provider": "minimax", "model": "minimax-m3", "category": "mock", "perf": 0.84}
-{"provider": "minimax", "model": "minimax-m3", "category": "reasoning", "perf": 0.8}
-{"provider": "minimax", "model": "minimax-m3", "category": "refactor", "perf": 0.45}
-{"provider": "minimax", "model": "minimax-m3", "category": "review", "perf": 0.72}
-{"provider": "minimax", "model": "minimax-m3", "category": "schema", "perf": 0.75}
-{"provider": "minimax", "model": "minimax-m3", "category": "terminal", "perf": 0.72}
-{"provider": "minimax", "model": "minimax-m3", "category": "test", "perf": 0.72}
-{"provider": "minimax", "model": "minimax-m3", "category": "tool_use", "perf": 0.72}
-{"provider": "minimax", "model": "minimax-m3", "category": "ui_frontend", "perf": 0.45}
-{"provider": "minimax", "model": "minimax-m3", "category": "vision", "perf": 0.72}
-{"provider": "neuralwatt", "model": "gemma-4-31b", "category": "agent_tick", "perf": 0.75}
-{"provider": "neuralwatt", "model": "gemma-4-31b", "category": "debug", "perf": 0.75}
-{"provider": "neuralwatt", "model": "gemma-4-31b", "category": "delegation", "perf": 0.75}
-{"provider": "neuralwatt", "model": "gemma-4-31b", "category": "e2e_vision", "perf": 0.25}
-{"provider": "neuralwatt", "model": "gemma-4-31b", "category": "guard", "perf": 0.72}
-{"provider": "neuralwatt", "model": "gemma-4-31b", "category": "long_doc", "perf": 0.5}
-{"provider": "neuralwatt", "model": "gemma-4-31b", "category": "mock", "perf": 0.72}
-{"provider": "neuralwatt", "model": "gemma-4-31b", "category": "reasoning", "perf": 0.7}
-{"provider": "neuralwatt", "model": "gemma-4-31b", "category": "review", "perf": 0.62}
-{"provider": "neuralwatt", "model": "gemma-4-31b", "category": "schema", "perf": 0.5}
-{"provider": "neuralwatt", "model": "glm-5.2-short-fast", "category": "agent_tick", "perf": 0.5}
-{"provider": "neuralwatt", "model": "glm-5.2-short-fast", "category": "debug", "perf": 0.75}
-{"provider": "neuralwatt", "model": "glm-5.2-short-fast", "category": "delegation", "perf": 0.5}
-{"provider": "neuralwatt", "model": "glm-5.2-short-fast", "category": "e2e_vision", "perf": 0.0}
-{"provider": "neuralwatt", "model": "glm-5.2-short-fast", "category": "guard", "perf": 0.8}
-{"provider": "neuralwatt", "model": "glm-5.2-short-fast", "category": "long_doc", "perf": 0.0}
-{"provider": "neuralwatt", "model": "glm-5.2-short-fast", "category": "mock", "perf": 0.78}
-{"provider": "neuralwatt", "model": "glm-5.2-short-fast", "category": "reasoning", "perf": 0.0}
-{"provider": "neuralwatt", "model": "glm-5.2-short-fast", "category": "review", "perf": 0.0}
-{"provider": "neuralwatt", "model": "glm-5.2-short-fast", "category": "schema", "perf": 0.5}
-{"provider": "neuralwatt", "model": "kimi-k2.7-code-fast", "category": "agent_tick", "perf": 0.0}
-{"provider": "neuralwatt", "model": "kimi-k2.7-code-fast", "category": "debug", "perf": 0.0}
-{"provider": "neuralwatt", "model": "kimi-k2.7-code-fast", "category": "delegation", "perf": 0.0}
-{"provider": "neuralwatt", "model": "kimi-k2.7-code-fast", "category": "e2e_vision", "perf": 0.0}
-{"provider": "neuralwatt", "model": "kimi-k2.7-code-fast", "category": "guard", "perf": 0.8}
-{"provider": "neuralwatt", "model": "kimi-k2.7-code-fast", "category": "long_doc", "perf": 0.0}
-{"provider": "neuralwatt", "model": "kimi-k2.7-code-fast", "category": "mock", "perf": 0.82}
-{"provider": "neuralwatt", "model": "kimi-k2.7-code-fast", "category": "reasoning", "perf": 0.0}
-{"provider": "neuralwatt", "model": "kimi-k2.7-code-fast", "category": "review", "perf": 0.0}
-{"provider": "neuralwatt", "model": "kimi-k2.7-code-fast", "category": "schema", "perf": 0.0}
-{"provider": "neuralwatt", "model": "kimi-k3", "category": "agent_tick", "perf": 0.9216}
-{"provider": "neuralwatt", "model": "kimi-k3", "category": "code_gen", "perf": 0.72}
-{"provider": "neuralwatt", "model": "kimi-k3", "category": "debug", "perf": 0.75}
-{"provider": "neuralwatt", "model": "kimi-k3", "category": "delegation", "perf": 0.75}
-{"provider": "neuralwatt", "model": "kimi-k3", "category": "e2e_vision", "perf": 0.75}
-{"provider": "neuralwatt", "model": "kimi-k3", "category": "guard", "perf": 0.88}
-{"provider": "neuralwatt", "model": "kimi-k3", "category": "long_doc", "perf": 1.0}
-{"provider": "neuralwatt", "model": "kimi-k3", "category": "long_horizon", "perf": 0.85}
-{"provider": "neuralwatt", "model": "kimi-k3", "category": "mock", "perf": 0.85}
-{"provider": "neuralwatt", "model": "kimi-k3", "category": "reasoning", "perf": 0.88}
-{"provider": "neuralwatt", "model": "kimi-k3", "category": "refactor", "perf": 0.72}
-{"provider": "neuralwatt", "model": "kimi-k3", "category": "review", "perf": 0.85}
-{"provider": "neuralwatt", "model": "kimi-k3", "category": "schema", "perf": 0.5}
-{"provider": "neuralwatt", "model": "kimi-k3", "category": "test", "perf": 0.72}
-{"provider": "neuralwatt", "model": "kimi-k3", "category": "tool_use", "perf": 0.85}
-{"provider": "neuralwatt", "model": "kimi-k3", "category": "ui_frontend", "perf": 0.72}
-{"provider": "neuralwatt", "model": "kimi-k3", "category": "vision", "perf": 0.72}
-{"provider": "neuralwatt", "model": "qwen3.6-35b", "category": "agent_tick", "perf": 0.0}
-{"provider": "neuralwatt", "model": "qwen3.6-35b", "category": "debug", "perf": 0.0}
-{"provider": "neuralwatt", "model": "qwen3.6-35b", "category": "delegation", "perf": 0.0}
-{"provider": "neuralwatt", "model": "qwen3.6-35b", "category": "e2e_vision", "perf": 0.0}
-{"provider": "neuralwatt", "model": "qwen3.6-35b", "category": "guard", "perf": 0.68}
-{"provider": "neuralwatt", "model": "qwen3.6-35b", "category": "long_doc", "perf": 0.0}
-{"provider": "neuralwatt", "model": "qwen3.6-35b", "category": "mock", "perf": 0.84}
-{"provider": "neuralwatt", "model": "qwen3.6-35b", "category": "reasoning", "perf": 0.0}
-{"provider": "neuralwatt", "model": "qwen3.6-35b", "category": "review", "perf": 0.0}
-{"provider": "neuralwatt", "model": "qwen3.6-35b", "category": "schema", "perf": 0.0}
-{"provider": "ollama-cloud", "model": "deepseek-v4-flash", "category": "agent_tick", "perf": 0.75}
-{"provider": "ollama-cloud", "model": "deepseek-v4-flash", "category": "code_gen", "perf": 0.85}
-{"provider": "ollama-cloud", "model": "deepseek-v4-flash", "category": "debug", "perf": 0.75}
-{"provider": "ollama-cloud", "model": "deepseek-v4-flash", "category": "delegation", "perf": 0.75}
-{"provider": "ollama-cloud", "model": "deepseek-v4-flash", "category": "e2e_vision", "perf": 0.55}
-{"provider": "ollama-cloud", "model": "deepseek-v4-flash", "category": "guard", "perf": 0.88}
-{"provider": "ollama-cloud", "model": "deepseek-v4-flash", "category": "long_doc", "perf": 0.55}
-{"provider": "ollama-cloud", "model": "deepseek-v4-flash", "category": "mechanical", "perf": 0.72}
-{"provider": "ollama-cloud", "model": "deepseek-v4-flash", "category": "mock", "perf": 0.87}
-{"provider": "ollama-cloud", "model": "deepseek-v4-flash", "category": "reasoning", "perf": 0.7}
-{"provider": "ollama-cloud", "model": "deepseek-v4-flash", "category": "review", "perf": 0.6}
-{"provider": "ollama-cloud", "model": "deepseek-v4-flash", "category": "schema", "perf": 0.5}
-{"provider": "ollama-cloud", "model": "deepseek-v4-flash", "category": "spec_docs", "perf": 0.72}
-{"provider": "ollama-cloud", "model": "deepseek-v4-flash", "category": "terminal", "perf": 0.85}
-{"provider": "ollama-cloud", "model": "deepseek-v4-flash", "category": "test", "perf": 0.85}
-{"provider": "ollama-cloud", "model": "deepseek-v4-flash", "category": "tool_use", "perf": 0.85}
-{"provider": "ollama-cloud", "model": "deepseek-v4-flash", "category": "vision", "perf": 0.45}
-{"provider": "ollama-cloud", "model": "deepseek-v4-flash:0731", "category": "agent_tick", "perf": 0.75}
-{"provider": "ollama-cloud", "model": "deepseek-v4-flash:0731", "category": "code_gen", "perf": 0.85}
-{"provider": "ollama-cloud", "model": "deepseek-v4-flash:0731", "category": "debug", "perf": 0.5}
-{"provider": "ollama-cloud", "model": "deepseek-v4-flash:0731", "category": "delegation", "perf": 0.75}
-{"provider": "ollama-cloud", "model": "deepseek-v4-flash:0731", "category": "e2e_vision", "perf": 0.4679}
-{"provider": "ollama-cloud", "model": "deepseek-v4-flash:0731", "category": "guard", "perf": 0.88}
-{"provider": "ollama-cloud", "model": "deepseek-v4-flash:0731", "category": "long_doc", "perf": 0.55}
-{"provider": "ollama-cloud", "model": "deepseek-v4-flash:0731", "category": "mechanical", "perf": 0.72}
-{"provider": "ollama-cloud", "model": "deepseek-v4-flash:0731", "category": "mock", "perf": 0.87}
-{"provider": "ollama-cloud", "model": "deepseek-v4-flash:0731", "category": "reasoning", "perf": 0.7}
-{"provider": "ollama-cloud", "model": "deepseek-v4-flash:0731", "category": "review", "perf": 0.6}
-{"provider": "ollama-cloud", "model": "deepseek-v4-flash:0731", "category": "schema", "perf": 0.5}
-{"provider": "ollama-cloud", "model": "deepseek-v4-flash:0731", "category": "spec_docs", "perf": 0.72}
-{"provider": "ollama-cloud", "model": "deepseek-v4-flash:0731", "category": "terminal", "perf": 0.85}
-{"provider": "ollama-cloud", "model": "deepseek-v4-flash:0731", "category": "test", "perf": 0.85}
-{"provider": "ollama-cloud", "model": "deepseek-v4-flash:0731", "category": "tool_use", "perf": 0.85}
-{"provider": "ollama-cloud", "model": "deepseek-v4-flash:0731", "category": "vision", "perf": 0.45}
-{"provider": "ollama-cloud", "model": "deepseek-v4-pro", "category": "agent_tick", "perf": 0.5}
-{"provider": "ollama-cloud", "model": "deepseek-v4-pro", "category": "code_gen", "perf": 0.85}
-{"provider": "ollama-cloud", "model": "deepseek-v4-pro", "category": "debug", "perf": 0.5}
-{"provider": "ollama-cloud", "model": "deepseek-v4-pro", "category": "delegation", "perf": 0.5}
-{"provider": "ollama-cloud", "model": "deepseek-v4-pro", "category": "e2e_vision", "perf": 0.4}
-{"provider": "ollama-cloud", "model": "deepseek-v4-pro", "category": "guard", "perf": 0.9}
-{"provider": "ollama-cloud", "model": "deepseek-v4-pro", "category": "long_doc", "perf": 0.8}
-{"provider": "ollama-cloud", "model": "deepseek-v4-pro", "category": "mock", "perf": 0.88}
-{"provider": "ollama-cloud", "model": "deepseek-v4-pro", "category": "reasoning", "perf": 0.88}
-{"provider": "ollama-cloud", "model": "deepseek-v4-pro", "category": "refactor", "perf": 0.85}
-{"provider": "ollama-cloud", "model": "deepseek-v4-pro", "category": "review", "perf": 0.8}
-{"provider": "ollama-cloud", "model": "deepseek-v4-pro", "category": "schema", "perf": 0.5}
-{"provider": "ollama-cloud", "model": "deepseek-v4-pro", "category": "terminal", "perf": 0.85}
-{"provider": "ollama-cloud", "model": "deepseek-v4-pro", "category": "test", "perf": 0.72}
-{"provider": "ollama-cloud", "model": "deepseek-v4-pro", "category": "tool_use", "perf": 0.85}
-{"provider": "ollama-cloud", "model": "deepseek-v4-pro", "category": "ui_frontend", "perf": 0.45}
-{"provider": "ollama-cloud", "model": "deepseek-v4-pro", "category": "vision", "perf": 0.45}
-{"provider": "ollama-cloud", "model": "gemma-4:31b", "category": "agent_tick", "perf": 0.0}
-{"provider": "ollama-cloud", "model": "gemma-4:31b", "category": "debug", "perf": 0.0}
-{"provider": "ollama-cloud", "model": "gemma-4:31b", "category": "delegation", "perf": 0.0}
-{"provider": "ollama-cloud", "model": "gemma-4:31b", "category": "e2e_vision", "perf": 0.0}
-{"provider": "ollama-cloud", "model": "gemma-4:31b", "category": "guard", "perf": 0.72}
-{"provider": "ollama-cloud", "model": "gemma-4:31b", "category": "long_doc", "perf": 0.0}
-{"provider": "ollama-cloud", "model": "gemma-4:31b", "category": "mock", "perf": 0.72}
-{"provider": "ollama-cloud", "model": "gemma-4:31b", "category": "reasoning", "perf": 0.0}
-{"provider": "ollama-cloud", "model": "gemma-4:31b", "category": "review", "perf": 0.0}
-{"provider": "ollama-cloud", "model": "gemma-4:31b", "category": "schema", "perf": 0.0}
-{"provider": "ollama-cloud", "model": "glm-5.2", "category": "agent_tick", "perf": 0.75}
-{"provider": "ollama-cloud", "model": "glm-5.2", "category": "code_gen", "perf": 0.85}
-{"provider": "ollama-cloud", "model": "glm-5.2", "category": "creative", "perf": 0.45}
-{"provider": "ollama-cloud", "model": "glm-5.2", "category": "debug", "perf": 1.0}
-{"provider": "ollama-cloud", "model": "glm-5.2", "category": "delegation", "perf": 0.75}
-{"provider": "ollama-cloud", "model": "glm-5.2", "category": "e2e_vision", "perf": 0.3}
-{"provider": "ollama-cloud", "model": "glm-5.2", "category": "guard", "perf": 0.86}
-{"provider": "ollama-cloud", "model": "glm-5.2", "category": "long_doc", "perf": 0.7}
-{"provider": "ollama-cloud", "model": "glm-5.2", "category": "mock", "perf": 0.8}
-{"provider": "ollama-cloud", "model": "glm-5.2", "category": "reasoning", "perf": 0.85}
-{"provider": "ollama-cloud", "model": "glm-5.2", "category": "refactor", "perf": 0.72}
-{"provider": "ollama-cloud", "model": "glm-5.2", "category": "review", "perf": 0.88}
-{"provider": "ollama-cloud", "model": "glm-5.2", "category": "schema", "perf": 0.5}
-{"provider": "ollama-cloud", "model": "glm-5.2", "category": "security", "perf": 0.85}
-{"provider": "ollama-cloud", "model": "glm-5.2", "category": "spec_docs", "perf": 0.72}
-{"provider": "ollama-cloud", "model": "glm-5.2", "category": "terminal", "perf": 0.85}
-{"provider": "ollama-cloud", "model": "glm-5.2", "category": "test", "perf": 0.72}
-{"provider": "ollama-cloud", "model": "glm-5.2", "category": "tool_use", "perf": 0.85}
-{"provider": "ollama-cloud", "model": "glm-5.2", "category": "ui_frontend", "perf": 0.72}
-{"provider": "ollama-cloud", "model": "glm-5.2", "category": "vision", "perf": 0.45}
-{"provider": "ollama-cloud", "model": "gpt-oss:20b", "category": "agent_tick", "perf": 0.0}
-{"provider": "ollama-cloud", "model": "gpt-oss:20b", "category": "debug", "perf": 0.75}
-{"provider": "ollama-cloud", "model": "gpt-oss:20b", "category": "delegation", "perf": 0.0}
-{"provider": "ollama-cloud", "model": "gpt-oss:20b", "category": "e2e_vision", "perf": 0.0}
-{"provider": "ollama-cloud", "model": "gpt-oss:20b", "category": "guard", "perf": 0.68}
-{"provider": "ollama-cloud", "model": "gpt-oss:20b", "category": "long_doc", "perf": 0.0}
-{"provider": "ollama-cloud", "model": "gpt-oss:20b", "category": "mock", "perf": 0.7}
-{"provider": "ollama-cloud", "model": "gpt-oss:20b", "category": "reasoning", "perf": 0.0}
-{"provider": "ollama-cloud", "model": "gpt-oss:20b", "category": "review", "perf": 0.0}
-{"provider": "ollama-cloud", "model": "gpt-oss:20b", "category": "schema", "perf": 0.5}
-{"provider": "ollama-cloud", "model": "kimi-k2.6", "category": "agent_tick", "perf": 0.75}
-{"provider": "ollama-cloud", "model": "kimi-k2.6", "category": "debug", "perf": 0.75}
-{"provider": "ollama-cloud", "model": "kimi-k2.6", "category": "delegation", "perf": 0.75}
-{"provider": "ollama-cloud", "model": "kimi-k2.6", "category": "e2e_vision", "perf": 0.0}
-{"provider": "ollama-cloud", "model": "kimi-k2.6", "category": "guard", "perf": 0.8}
-{"provider": "ollama-cloud", "model": "kimi-k2.6", "category": "long_doc", "perf": 0.0}
-{"provider": "ollama-cloud", "model": "kimi-k2.6", "category": "mock", "perf": 0.83}
-{"provider": "ollama-cloud", "model": "kimi-k2.6", "category": "reasoning", "perf": 0.0}
-{"provider": "ollama-cloud", "model": "kimi-k2.6", "category": "review", "perf": 0.0}
-{"provider": "ollama-cloud", "model": "kimi-k2.6", "category": "schema", "perf": 0.5}
-{"provider": "ollama-cloud", "model": "kimi-k2.7-code", "category": "agent_tick", "perf": 0.75}
-{"provider": "ollama-cloud", "model": "kimi-k2.7-code", "category": "debug", "perf": 0.75}
-{"provider": "ollama-cloud", "model": "kimi-k2.7-code", "category": "delegation", "perf": 0.75}
-{"provider": "ollama-cloud", "model": "kimi-k2.7-code", "category": "e2e_vision", "perf": 0.45}
-{"provider": "ollama-cloud", "model": "kimi-k2.7-code", "category": "guard", "perf": 0.86}
-{"provider": "ollama-cloud", "model": "kimi-k2.7-code", "category": "long_doc", "perf": 0.65}
-{"provider": "ollama-cloud", "model": "kimi-k2.7-code", "category": "mock", "perf": 0.84}
-{"provider": "ollama-cloud", "model": "kimi-k2.7-code", "category": "reasoning", "perf": 0.78}
-{"provider": "ollama-cloud", "model": "kimi-k2.7-code", "category": "review", "perf": 0.72}
-{"provider": "ollama-cloud", "model": "kimi-k2.7-code", "category": "schema", "perf": 0.5}
-{"provider": "ollama-cloud", "model": "kimi-k3", "category": "agent_tick", "perf": 0.9216}
-{"provider": "ollama-cloud", "model": "kimi-k3", "category": "code_gen", "perf": 0.72}
-{"provider": "ollama-cloud", "model": "kimi-k3", "category": "debug", "perf": 0.75}
-{"provider": "ollama-cloud", "model": "kimi-k3", "category": "delegation", "perf": 0.75}
-{"provider": "ollama-cloud", "model": "kimi-k3", "category": "e2e_vision", "perf": 0.75}
-{"provider": "ollama-cloud", "model": "kimi-k3", "category": "guard", "perf": 0.88}
-{"provider": "ollama-cloud", "model": "kimi-k3", "category": "long_doc", "perf": 1.0}
-{"provider": "ollama-cloud", "model": "kimi-k3", "category": "long_horizon", "perf": 0.85}
-{"provider": "ollama-cloud", "model": "kimi-k3", "category": "mock", "perf": 0.85}
-{"provider": "ollama-cloud", "model": "kimi-k3", "category": "reasoning", "perf": 0.88}
-{"provider": "ollama-cloud", "model": "kimi-k3", "category": "refactor", "perf": 0.72}
-{"provider": "ollama-cloud", "model": "kimi-k3", "category": "review", "perf": 0.85}
-{"provider": "ollama-cloud", "model": "kimi-k3", "category": "schema", "perf": 0.5}
-{"provider": "ollama-cloud", "model": "kimi-k3", "category": "test", "perf": 0.72}
-{"provider": "ollama-cloud", "model": "kimi-k3", "category": "tool_use", "perf": 0.85}
-{"provider": "ollama-cloud", "model": "kimi-k3", "category": "ui_frontend", "perf": 0.72}
-{"provider": "ollama-cloud", "model": "kimi-k3", "category": "vision", "perf": 0.72}
-{"provider": "ollama-cloud", "model": "minimax-m2.7", "category": "agent_tick", "perf": 0.5}
-{"provider": "ollama-cloud", "model": "minimax-m2.7", "category": "debug", "perf": 0.75}
-{"provider": "ollama-cloud", "model": "minimax-m2.7", "category": "delegation", "perf": 0.5}
-{"provider": "ollama-cloud", "model": "minimax-m2.7", "category": "e2e_vision", "perf": 0.5}
-{"provider": "ollama-cloud", "model": "minimax-m2.7", "category": "guard", "perf": 0.8}
-{"provider": "ollama-cloud", "model": "minimax-m2.7", "category": "long_doc", "perf": 0.72}
-{"provider": "ollama-cloud", "model": "minimax-m2.7", "category": "mock", "perf": 0.82}
-{"provider": "ollama-cloud", "model": "minimax-m2.7", "category": "reasoning", "perf": 0.72}
-{"provider": "ollama-cloud", "model": "minimax-m2.7", "category": "review", "perf": 0.65}
-{"provider": "ollama-cloud", "model": "minimax-m2.7", "category": "schema", "perf": 0.5}
-{"provider": "ollama-cloud", "model": "minimax-m3", "category": "agent_tick", "perf": 0.5}
-{"provider": "ollama-cloud", "model": "minimax-m3", "category": "code_gen", "perf": 0.85}
-{"provider": "ollama-cloud", "model": "minimax-m3", "category": "debug", "perf": 0.75}
-{"provider": "ollama-cloud", "model": "minimax-m3", "category": "delegation", "perf": 0.5}
-{"provider": "ollama-cloud", "model": "minimax-m3", "category": "e2e_vision", "perf": 0.55}
-{"provider": "ollama-cloud", "model": "minimax-m3", "category": "guard", "perf": 0.86}
-{"provider": "ollama-cloud", "model": "minimax-m3", "category": "long_doc", "perf": 0.78}
-{"provider": "ollama-cloud", "model": "minimax-m3", "category": "long_horizon", "perf": 0.85}
-{"provider": "ollama-cloud", "model": "minimax-m3", "category": "mock", "perf": 0.84}
-{"provider": "ollama-cloud", "model": "minimax-m3", "category": "reasoning", "perf": 0.8}
-{"provider": "ollama-cloud", "model": "minimax-m3", "category": "refactor", "perf": 0.45}
-{"provider": "ollama-cloud", "model": "minimax-m3", "category": "review", "perf": 0.72}
-{"provider": "ollama-cloud", "model": "minimax-m3", "category": "schema", "perf": 0.75}
-{"provider": "ollama-cloud", "model": "minimax-m3", "category": "terminal", "perf": 0.72}
-{"provider": "ollama-cloud", "model": "minimax-m3", "category": "test", "perf": 0.72}
-{"provider": "ollama-cloud", "model": "minimax-m3", "category": "tool_use", "perf": 0.72}
-{"provider": "ollama-cloud", "model": "minimax-m3", "category": "ui_frontend", "perf": 0.45}
-{"provider": "ollama-cloud", "model": "minimax-m3", "category": "vision", "perf": 0.72}
-{"provider": "ollama-cloud", "model": "mistral-large-3:675b", "category": "agent_tick", "perf": 0.75}
-{"provider": "ollama-cloud", "model": "mistral-large-3:675b", "category": "debug", "perf": 0.5}
-{"provider": "ollama-cloud", "model": "mistral-large-3:675b", "category": "delegation", "perf": 0.75}
-{"provider": "ollama-cloud", "model": "mistral-large-3:675b", "category": "e2e_vision", "perf": 0.0}
-{"provider": "ollama-cloud", "model": "mistral-large-3:675b", "category": "guard", "perf": 0.8}
-{"provider": "ollama-cloud", "model": "mistral-large-3:675b", "category": "long_doc", "perf": 0.0}
-{"provider": "ollama-cloud", "model": "mistral-large-3:675b", "category": "mock", "perf": 0.8}
-{"provider": "ollama-cloud", "model": "mistral-large-3:675b", "category": "reasoning", "perf": 0.0}
-{"provider": "ollama-cloud", "model": "mistral-large-3:675b", "category": "review", "perf": 0.0}
-{"provider": "ollama-cloud", "model": "mistral-large-3:675b", "category": "schema", "perf": 0.5}
-{"provider": "ollama-cloud", "model": "nemotron-3-nano", "category": "agent_tick", "perf": 0.0}
-{"provider": "ollama-cloud", "model": "nemotron-3-nano", "category": "debug", "perf": 0.0}
-{"provider": "ollama-cloud", "model": "nemotron-3-nano", "category": "delegation", "perf": 0.0}
-{"provider": "ollama-cloud", "model": "nemotron-3-nano", "category": "e2e_vision", "perf": 0.0}
-{"provider": "ollama-cloud", "model": "nemotron-3-nano", "category": "guard", "perf": 0.6}
-{"provider": "ollama-cloud", "model": "nemotron-3-nano", "category": "long_doc", "perf": 0.0}
-{"provider": "ollama-cloud", "model": "nemotron-3-nano", "category": "mock", "perf": 0.6}
-{"provider": "ollama-cloud", "model": "nemotron-3-nano", "category": "reasoning", "perf": 0.0}
-{"provider": "ollama-cloud", "model": "nemotron-3-nano", "category": "review", "perf": 0.0}
-{"provider": "ollama-cloud", "model": "nemotron-3-nano", "category": "schema", "perf": 0.0}
-{"provider": "ollama-cloud", "model": "nemotron-3-ultra", "category": "agent_tick", "perf": 0.75}
-{"provider": "ollama-cloud", "model": "nemotron-3-ultra", "category": "debug", "perf": 0.5}
-{"provider": "ollama-cloud", "model": "nemotron-3-ultra", "category": "delegation", "perf": 0.75}
-{"provider": "ollama-cloud", "model": "nemotron-3-ultra", "category": "e2e_vision", "perf": 0.0}
-{"provider": "ollama-cloud", "model": "nemotron-3-ultra", "category": "guard", "perf": 0.8}
-{"provider": "ollama-cloud", "model": "nemotron-3-ultra", "category": "long_doc", "perf": 0.0}
-{"provider": "ollama-cloud", "model": "nemotron-3-ultra", "category": "mock", "perf": 0.78}
-{"provider": "ollama-cloud", "model": "nemotron-3-ultra", "category": "reasoning", "perf": 0.0}
-{"provider": "ollama-cloud", "model": "nemotron-3-ultra", "category": "review", "perf": 0.0}
-{"provider": "ollama-cloud", "model": "nemotron-3-ultra", "category": "schema", "perf": 0.5}
-{"provider": "openai-codex", "model": "gpt-5.6-luna", "category": "agent_tick", "perf": 0.75}
-{"provider": "openai-codex", "model": "gpt-5.6-luna", "category": "debug", "perf": 0.5}
-{"provider": "openai-codex", "model": "gpt-5.6-luna", "category": "delegation", "perf": 0.75}
-{"provider": "openai-codex", "model": "gpt-5.6-luna", "category": "e2e_vision", "perf": 1.0}
-{"provider": "openai-codex", "model": "gpt-5.6-luna", "category": "guard", "perf": 0.8}
-{"provider": "openai-codex", "model": "gpt-5.6-luna", "category": "long_doc", "perf": 0.55}
-{"provider": "openai-codex", "model": "gpt-5.6-luna", "category": "mock", "perf": 0.8}
-{"provider": "openai-codex", "model": "gpt-5.6-luna", "category": "reasoning", "perf": 0.65}
-{"provider": "openai-codex", "model": "gpt-5.6-luna", "category": "review", "perf": 0.72}
-{"provider": "openai-codex", "model": "gpt-5.6-luna", "category": "schema", "perf": 0.5}
-{"provider": "openai-codex", "model": "gpt-5.6-luna", "category": "terminal", "perf": 0.85}
-{"provider": "openai-codex", "model": "gpt-5.6-luna", "category": "test", "perf": 0.95}
-{"provider": "openai-codex", "model": "gpt-5.6-luna", "category": "vision", "perf": 0.95}
-{"provider": "openai-codex", "model": "gpt-5.6-sol", "category": "agent_tick", "perf": 0.75}
-{"provider": "openai-codex", "model": "gpt-5.6-sol", "category": "code_gen", "perf": 0.72}
-{"provider": "openai-codex", "model": "gpt-5.6-sol", "category": "debug", "perf": 0.9905}
-{"provider": "openai-codex", "model": "gpt-5.6-sol", "category": "delegation", "perf": 0.75}
-{"provider": "openai-codex", "model": "gpt-5.6-sol", "category": "e2e_vision", "perf": 0.7}
-{"provider": "openai-codex", "model": "gpt-5.6-sol", "category": "guard", "perf": 0.92}
-{"provider": "openai-codex", "model": "gpt-5.6-sol", "category": "long_doc", "perf": 0.8}
-{"provider": "openai-codex", "model": "gpt-5.6-sol", "category": "long_horizon", "perf": 0.85}
-{"provider": "openai-codex", "model": "gpt-5.6-sol", "category": "mechanical", "perf": 0.45}
-{"provider": "openai-codex", "model": "gpt-5.6-sol", "category": "mock", "perf": 0.86}
-{"provider": "openai-codex", "model": "gpt-5.6-sol", "category": "reasoning", "perf": 1.0}
-{"provider": "openai-codex", "model": "gpt-5.6-sol", "category": "review", "perf": 1.0}
-{"provider": "openai-codex", "model": "gpt-5.6-sol", "category": "schema", "perf": 0.5}
-{"provider": "openai-codex", "model": "gpt-5.6-sol", "category": "terminal", "perf": 0.95}
-{"provider": "openai-codex", "model": "gpt-5.6-terra", "category": "agent_tick", "perf": 0.25}
-{"provider": "openai-codex", "model": "gpt-5.6-terra", "category": "code_gen", "perf": 0.85}
-{"provider": "openai-codex", "model": "gpt-5.6-terra", "category": "debug", "perf": 0.75}
-{"provider": "openai-codex", "model": "gpt-5.6-terra", "category": "delegation", "perf": 0.25}
-{"provider": "openai-codex", "model": "gpt-5.6-terra", "category": "e2e_vision", "perf": 0.0}
-{"provider": "openai-codex", "model": "gpt-5.6-terra", "category": "guard", "perf": 0.88}
-{"provider": "openai-codex", "model": "gpt-5.6-terra", "category": "long_doc", "perf": 0.0}
-{"provider": "openai-codex", "model": "gpt-5.6-terra", "category": "mock", "perf": 0.82}
-{"provider": "openai-codex", "model": "gpt-5.6-terra", "category": "reasoning", "perf": 0.0}
-{"provider": "openai-codex", "model": "gpt-5.6-terra", "category": "review", "perf": 0.0}
-{"provider": "openai-codex", "model": "gpt-5.6-terra", "category": "schema", "perf": 0.5}
-{"provider": "openai-codex", "model": "gpt-5.6-terra", "category": "spec_docs", "perf": 0.95}
-{"provider": "openai-codex", "model": "gpt-5.6-terra", "category": "test", "perf": 0.85}
-{"provider": "opencode-go", "model": "deepseek-v4-flash", "category": "agent_tick", "perf": 0.75}
-{"provider": "opencode-go", "model": "deepseek-v4-flash", "category": "code_gen", "perf": 0.85}
-{"provider": "opencode-go", "model": "deepseek-v4-flash", "category": "debug", "perf": 0.75}
-{"provider": "opencode-go", "model": "deepseek-v4-flash", "category": "delegation", "perf": 0.75}
-{"provider": "opencode-go", "model": "deepseek-v4-flash", "category": "e2e_vision", "perf": 0.55}
-{"provider": "opencode-go", "model": "deepseek-v4-flash", "category": "guard", "perf": 0.88}
-{"provider": "opencode-go", "model": "deepseek-v4-flash", "category": "long_doc", "perf": 0.55}
-{"provider": "opencode-go", "model": "deepseek-v4-flash", "category": "mechanical", "perf": 0.72}
-{"provider": "opencode-go", "model": "deepseek-v4-flash", "category": "mock", "perf": 0.87}
-{"provider": "opencode-go", "model": "deepseek-v4-flash", "category": "reasoning", "perf": 0.7}
-{"provider": "opencode-go", "model": "deepseek-v4-flash", "category": "review", "perf": 0.6}
-{"provider": "opencode-go", "model": "deepseek-v4-flash", "category": "schema", "perf": 0.5}
-{"provider": "opencode-go", "model": "deepseek-v4-flash", "category": "spec_docs", "perf": 0.72}
-{"provider": "opencode-go", "model": "deepseek-v4-flash", "category": "terminal", "perf": 0.85}
-{"provider": "opencode-go", "model": "deepseek-v4-flash", "category": "test", "perf": 0.85}
-{"provider": "opencode-go", "model": "deepseek-v4-flash", "category": "tool_use", "perf": 0.85}
-{"provider": "opencode-go", "model": "deepseek-v4-flash", "category": "vision", "perf": 0.45}
-{"provider": "opencode-go", "model": "glm-5.2", "category": "agent_tick", "perf": 0.75}
-{"provider": "opencode-go", "model": "glm-5.2", "category": "code_gen", "perf": 0.85}
-{"provider": "opencode-go", "model": "glm-5.2", "category": "creative", "perf": 0.45}
-{"provider": "opencode-go", "model": "glm-5.2", "category": "debug", "perf": 1.0}
-{"provider": "opencode-go", "model": "glm-5.2", "category": "delegation", "perf": 0.75}
-{"provider": "opencode-go", "model": "glm-5.2", "category": "e2e_vision", "perf": 0.3}
-{"provider": "opencode-go", "model": "glm-5.2", "category": "guard", "perf": 0.86}
-{"provider": "opencode-go", "model": "glm-5.2", "category": "long_doc", "perf": 0.7}
-{"provider": "opencode-go", "model": "glm-5.2", "category": "mock", "perf": 0.8}
-{"provider": "opencode-go", "model": "glm-5.2", "category": "reasoning", "perf": 0.85}
-{"provider": "opencode-go", "model": "glm-5.2", "category": "refactor", "perf": 0.72}
-{"provider": "opencode-go", "model": "glm-5.2", "category": "review", "perf": 0.88}
-{"provider": "opencode-go", "model": "glm-5.2", "category": "schema", "perf": 0.5}
-{"provider": "opencode-go", "model": "glm-5.2", "category": "security", "perf": 0.85}
-{"provider": "opencode-go", "model": "glm-5.2", "category": "spec_docs", "perf": 0.72}
-{"provider": "opencode-go", "model": "glm-5.2", "category": "terminal", "perf": 0.85}
-{"provider": "opencode-go", "model": "glm-5.2", "category": "test", "perf": 0.72}
-{"provider": "opencode-go", "model": "glm-5.2", "category": "tool_use", "perf": 0.85}
-{"provider": "opencode-go", "model": "glm-5.2", "category": "ui_frontend", "perf": 0.72}
-{"provider": "opencode-go", "model": "glm-5.2", "category": "vision", "perf": 0.45}
-{"provider": "opencode-go", "model": "kimi-k2.7-code", "category": "agent_tick", "perf": 0.75}
-{"provider": "opencode-go", "model": "kimi-k2.7-code", "category": "debug", "perf": 0.75}
-{"provider": "opencode-go", "model": "kimi-k2.7-code", "category": "delegation", "perf": 0.75}
-{"provider": "opencode-go", "model": "kimi-k2.7-code", "category": "e2e_vision", "perf": 0.45}
-{"provider": "opencode-go", "model": "kimi-k2.7-code", "category": "guard", "perf": 0.86}
-{"provider": "opencode-go", "model": "kimi-k2.7-code", "category": "long_doc", "perf": 0.65}
-{"provider": "opencode-go", "model": "kimi-k2.7-code", "category": "mock", "perf": 0.84}
-{"provider": "opencode-go", "model": "kimi-k2.7-code", "category": "reasoning", "perf": 0.78}
-{"provider": "opencode-go", "model": "kimi-k2.7-code", "category": "review", "perf": 0.72}
-{"provider": "opencode-go", "model": "kimi-k2.7-code", "category": "schema", "perf": 0.5}
-{"provider": "opencode-go", "model": "kimi-k3", "category": "agent_tick", "perf": 0.9216}
-{"provider": "opencode-go", "model": "kimi-k3", "category": "code_gen", "perf": 0.72}
-{"provider": "opencode-go", "model": "kimi-k3", "category": "debug", "perf": 0.75}
-{"provider": "opencode-go", "model": "kimi-k3", "category": "delegation", "perf": 0.75}
-{"provider": "opencode-go", "model": "kimi-k3", "category": "e2e_vision", "perf": 0.75}
-{"provider": "opencode-go", "model": "kimi-k3", "category": "guard", "perf": 0.88}
-{"provider": "opencode-go", "model": "kimi-k3", "category": "long_doc", "perf": 1.0}
-{"provider": "opencode-go", "model": "kimi-k3", "category": "long_horizon", "perf": 0.85}
-{"provider": "opencode-go", "model": "kimi-k3", "category": "mock", "perf": 0.85}
-{"provider": "opencode-go", "model": "kimi-k3", "category": "reasoning", "perf": 0.88}
-{"provider": "opencode-go", "model": "kimi-k3", "category": "refactor", "perf": 0.72}
-{"provider": "opencode-go", "model": "kimi-k3", "category": "review", "perf": 0.85}
-{"provider": "opencode-go", "model": "kimi-k3", "category": "schema", "perf": 0.5}
-{"provider": "opencode-go", "model": "kimi-k3", "category": "test", "perf": 0.72}
-{"provider": "opencode-go", "model": "kimi-k3", "category": "tool_use", "perf": 0.85}
-{"provider": "opencode-go", "model": "kimi-k3", "category": "ui_frontend", "perf": 0.72}
-{"provider": "opencode-go", "model": "kimi-k3", "category": "vision", "perf": 0.72}
-{"provider": "opencode-go", "model": "mimo-v2.5", "category": "agent_tick", "perf": 0.75}
-{"provider": "opencode-go", "model": "mimo-v2.5", "category": "code_gen", "perf": 0.72}
-{"provider": "opencode-go", "model": "mimo-v2.5", "category": "debug", "perf": 0.75}
-{"provider": "opencode-go", "model": "mimo-v2.5", "category": "delegation", "perf": 0.75}
-{"provider": "opencode-go", "model": "mimo-v2.5", "category": "e2e_vision", "perf": 0.5}
-{"provider": "opencode-go", "model": "mimo-v2.5", "category": "guard", "perf": 0.88}
-{"provider": "opencode-go", "model": "mimo-v2.5", "category": "long_doc", "perf": 0.65}
-{"provider": "opencode-go", "model": "mimo-v2.5", "category": "mechanical", "perf": 0.72}
-{"provider": "opencode-go", "model": "mimo-v2.5", "category": "mock", "perf": 0.84}
-{"provider": "opencode-go", "model": "mimo-v2.5", "category": "reasoning", "perf": 0.75}
-{"provider": "opencode-go", "model": "mimo-v2.5", "category": "refactor", "perf": 0.72}
-{"provider": "opencode-go", "model": "mimo-v2.5", "category": "review", "perf": 0.7}
-{"provider": "opencode-go", "model": "mimo-v2.5", "category": "schema", "perf": 0.5}
-{"provider": "opencode-go", "model": "mimo-v2.5", "category": "terminal", "perf": 0.72}
-{"provider": "opencode-go", "model": "mimo-v2.5", "category": "test", "perf": 0.72}
-{"provider": "opencode-go", "model": "mimo-v2.5", "category": "tool_use", "perf": 0.85}
-{"provider": "opencode-go", "model": "qwen3.8-flash", "category": "agent_tick", "perf": 0.78}
-{"provider": "opencode-go", "model": "qwen3.8-flash", "category": "code_gen", "perf": 0.85}
-{"provider": "opencode-go", "model": "qwen3.8-flash", "category": "creative", "perf": 0.45}
-{"provider": "opencode-go", "model": "qwen3.8-flash", "category": "debug", "perf": 0.8}
-{"provider": "opencode-go", "model": "qwen3.8-flash", "category": "delegation", "perf": 0.78}
-{"provider": "opencode-go", "model": "qwen3.8-flash", "category": "e2e_vision", "perf": 0.6}
-{"provider": "opencode-go", "model": "qwen3.8-flash", "category": "guard", "perf": 0.75}
-{"provider": "opencode-go", "model": "qwen3.8-flash", "category": "long_doc", "perf": 0.65}
-{"provider": "opencode-go", "model": "qwen3.8-flash", "category": "long_horizon", "perf": 0.85}
-{"provider": "opencode-go", "model": "qwen3.8-flash", "category": "mock", "perf": 0.9}
-{"provider": "opencode-go", "model": "qwen3.8-flash", "category": "reasoning", "perf": 0.75}
-{"provider": "opencode-go", "model": "qwen3.8-flash", "category": "refactor", "perf": 0.72}
-{"provider": "opencode-go", "model": "qwen3.8-flash", "category": "review", "perf": 0.65}
-{"provider": "opencode-go", "model": "qwen3.8-flash", "category": "schema", "perf": 0.55}
-{"provider": "opencode-go", "model": "qwen3.8-flash", "category": "spec_docs", "perf": 0.72}
-{"provider": "opencode-go", "model": "qwen3.8-flash", "category": "terminal", "perf": 0.72}
-{"provider": "opencode-go", "model": "qwen3.8-flash", "category": "test", "perf": 0.72}
-{"provider": "opencode-go", "model": "qwen3.8-flash", "category": "tool_use", "perf": 0.72}
-{"provider": "opencode-go", "model": "qwen3.8-flash", "category": "vision", "perf": 0.72}
-{"provider": "opencode-go", "model": "qwen3.8-max", "category": "agent_tick", "perf": 0.78}
-{"provider": "opencode-go", "model": "qwen3.8-max", "category": "code_gen", "perf": 0.85}
-{"provider": "opencode-go", "model": "qwen3.8-max", "category": "debug", "perf": 0.78}
-{"provider": "opencode-go", "model": "qwen3.8-max", "category": "delegation", "perf": 0.78}
-{"provider": "opencode-go", "model": "qwen3.8-max", "category": "e2e_vision", "perf": 0.4}
-{"provider": "opencode-go", "model": "qwen3.8-max", "category": "guard", "perf": 0.72}
-{"provider": "opencode-go", "model": "qwen3.8-max", "category": "long_doc", "perf": 0.6}
-{"provider": "opencode-go", "model": "qwen3.8-max", "category": "long_horizon", "perf": 0.72}
-{"provider": "opencode-go", "model": "qwen3.8-max", "category": "mock", "perf": 0.75}
-{"provider": "opencode-go", "model": "qwen3.8-max", "category": "reasoning", "perf": 0.75}
-{"provider": "opencode-go", "model": "qwen3.8-max", "category": "review", "perf": 0.68}
-{"provider": "opencode-go", "model": "qwen3.8-max", "category": "schema", "perf": 0.75}
-{"provider": "stepfun", "model": "step-3.5-flash", "category": "agent_tick", "perf": 0.75}
-{"provider": "stepfun", "model": "step-3.5-flash", "category": "code_gen", "perf": 0.72}
-{"provider": "stepfun", "model": "step-3.5-flash", "category": "debug", "perf": 0.75}
-{"provider": "stepfun", "model": "step-3.5-flash", "category": "delegation", "perf": 0.75}
-{"provider": "stepfun", "model": "step-3.5-flash", "category": "e2e_vision", "perf": 0.3}
-{"provider": "stepfun", "model": "step-3.5-flash", "category": "guard", "perf": 0.8}
-{"provider": "stepfun", "model": "step-3.5-flash", "category": "long_doc", "perf": 0.5}
-{"provider": "stepfun", "model": "step-3.5-flash", "category": "long_horizon", "perf": 0.95}
-{"provider": "stepfun", "model": "step-3.5-flash", "category": "mock", "perf": 0.82}
-{"provider": "stepfun", "model": "step-3.5-flash", "category": "reasoning", "perf": 0.65}
-{"provider": "stepfun", "model": "step-3.5-flash", "category": "refactor", "perf": 0.72}
-{"provider": "stepfun", "model": "step-3.5-flash", "category": "review", "perf": 0.65}
-{"provider": "stepfun", "model": "step-3.5-flash", "category": "schema", "perf": 0.5}
-{"provider": "stepfun", "model": "step-3.5-flash", "category": "terminal", "perf": 0.95}
-{"provider": "stepfun", "model": "step-3.5-flash", "category": "test", "perf": 0.95}
-{"provider": "stepfun", "model": "step-3.5-flash", "category": "tool_use", "perf": 0.72}
-{"provider": "stepfun", "model": "step-3.5-flash", "category": "vision", "perf": 0.72}
-{"provider": "stepfun", "model": "step-3.7-flash", "category": "agent_tick", "perf": 0.25}
-{"provider": "stepfun", "model": "step-3.7-flash", "category": "code_gen", "perf": 0.72}
-{"provider": "stepfun", "model": "step-3.7-flash", "category": "debug", "perf": 0.75}
-{"provider": "stepfun", "model": "step-3.7-flash", "category": "delegation", "perf": 0.25}
-{"provider": "stepfun", "model": "step-3.7-flash", "category": "e2e_vision", "perf": 0.9721}
-{"provider": "stepfun", "model": "step-3.7-flash", "category": "guard", "perf": 0.88}
-{"provider": "stepfun", "model": "step-3.7-flash", "category": "long_doc", "perf": 0.55}
-{"provider": "stepfun", "model": "step-3.7-flash", "category": "long_horizon", "perf": 0.95}
-{"provider": "stepfun", "model": "step-3.7-flash", "category": "mock", "perf": 0.85}
-{"provider": "stepfun", "model": "step-3.7-flash", "category": "reasoning", "perf": 0.68}
-{"provider": "stepfun", "model": "step-3.7-flash", "category": "refactor", "perf": 0.72}
-{"provider": "stepfun", "model": "step-3.7-flash", "category": "review", "perf": 0.68}
-{"provider": "stepfun", "model": "step-3.7-flash", "category": "schema", "perf": 0.5}
-{"provider": "stepfun", "model": "step-3.7-flash", "category": "terminal", "perf": 0.95}
-{"provider": "stepfun", "model": "step-3.7-flash", "category": "test", "perf": 0.95}
-{"provider": "stepfun", "model": "step-3.7-flash", "category": "tool_use", "perf": 0.72}
-{"provider": "stepfun", "model": "step-3.7-flash", "category": "vision", "perf": 0.72}
-{"provider": "synthetic", "model": "glm-4.7-flash", "category": "agent_tick", "perf": 0.0}
-{"provider": "synthetic", "model": "glm-4.7-flash", "category": "debug", "perf": 0.0}
-{"provider": "synthetic", "model": "glm-4.7-flash", "category": "delegation", "perf": 0.0}
-{"provider": "synthetic", "model": "glm-4.7-flash", "category": "e2e_vision", "perf": 0.0}
-{"provider": "synthetic", "model": "glm-4.7-flash", "category": "guard", "perf": 0.72}
-{"provider": "synthetic", "model": "glm-4.7-flash", "category": "long_doc", "perf": 0.0}
-{"provider": "synthetic", "model": "glm-4.7-flash", "category": "mock", "perf": 0.6}
-{"provider": "synthetic", "model": "glm-4.7-flash", "category": "reasoning", "perf": 0.0}
-{"provider": "synthetic", "model": "glm-4.7-flash", "category": "review", "perf": 0.0}
-{"provider": "synthetic", "model": "glm-4.7-flash", "category": "schema", "perf": 0.0}
-{"provider": "synthetic", "model": "glm-5.2", "category": "agent_tick", "perf": 0.75}
-{"provider": "synthetic", "model": "glm-5.2", "category": "code_gen", "perf": 0.85}
-{"provider": "synthetic", "model": "glm-5.2", "category": "creative", "perf": 0.45}
-{"provider": "synthetic", "model": "glm-5.2", "category": "debug", "perf": 1.0}
-{"provider": "synthetic", "model": "glm-5.2", "category": "delegation", "perf": 0.75}
-{"provider": "synthetic", "model": "glm-5.2", "category": "e2e_vision", "perf": 0.3}
-{"provider": "synthetic", "model": "glm-5.2", "category": "guard", "perf": 0.86}
-{"provider": "synthetic", "model": "glm-5.2", "category": "long_doc", "perf": 0.7}
-{"provider": "synthetic", "model": "glm-5.2", "category": "mock", "perf": 0.8}
-{"provider": "synthetic", "model": "glm-5.2", "category": "reasoning", "perf": 0.85}
-{"provider": "synthetic", "model": "glm-5.2", "category": "refactor", "perf": 0.72}
-{"provider": "synthetic", "model": "glm-5.2", "category": "review", "perf": 0.88}
-{"provider": "synthetic", "model": "glm-5.2", "category": "schema", "perf": 0.5}
-{"provider": "synthetic", "model": "glm-5.2", "category": "security", "perf": 0.85}
-{"provider": "synthetic", "model": "glm-5.2", "category": "spec_docs", "perf": 0.72}
-{"provider": "synthetic", "model": "glm-5.2", "category": "terminal", "perf": 0.85}
-{"provider": "synthetic", "model": "glm-5.2", "category": "test", "perf": 0.72}
-{"provider": "synthetic", "model": "glm-5.2", "category": "tool_use", "perf": 0.85}
-{"provider": "synthetic", "model": "glm-5.2", "category": "ui_frontend", "perf": 0.72}
-{"provider": "synthetic", "model": "glm-5.2", "category": "vision", "perf": 0.45}
-{"provider": "synthetic", "model": "gpt-oss-120b", "category": "agent_tick", "perf": 0.75}
-{"provider": "synthetic", "model": "gpt-oss-120b", "category": "code_gen", "perf": 0.72}
-{"provider": "synthetic", "model": "gpt-oss-120b", "category": "debug", "perf": 0.75}
-{"provider": "synthetic", "model": "gpt-oss-120b", "category": "delegation", "perf": 0.72}
-{"provider": "synthetic", "model": "gpt-oss-120b", "category": "e2e_vision", "perf": 0.25}
-{"provider": "synthetic", "model": "gpt-oss-120b", "category": "guard", "perf": 0.8}
-{"provider": "synthetic", "model": "gpt-oss-120b", "category": "long_doc", "perf": 0.5}
-{"provider": "synthetic", "model": "gpt-oss-120b", "category": "mock", "perf": 0.85}
-{"provider": "synthetic", "model": "gpt-oss-120b", "category": "reasoning", "perf": 0.65}
-{"provider": "synthetic", "model": "gpt-oss-120b", "category": "refactor", "perf": 0.72}
-{"provider": "synthetic", "model": "gpt-oss-120b", "category": "review", "perf": 0.62}
-{"provider": "synthetic", "model": "gpt-oss-120b", "category": "schema", "perf": 0.65}
-{"provider": "synthetic", "model": "gpt-oss-120b", "category": "test", "perf": 0.72}
-{"provider": "synthetic", "model": "gpt-oss-120b", "category": "tool_use", "perf": 0.85}
-{"provider": "synthetic", "model": "kimi-k3", "category": "agent_tick", "perf": 0.9216}
-{"provider": "synthetic", "model": "kimi-k3", "category": "code_gen", "perf": 0.72}
-{"provider": "synthetic", "model": "kimi-k3", "category": "debug", "perf": 0.75}
-{"provider": "synthetic", "model": "kimi-k3", "category": "delegation", "perf": 0.75}
-{"provider": "synthetic", "model": "kimi-k3", "category": "e2e_vision", "perf": 0.75}
-{"provider": "synthetic", "model": "kimi-k3", "category": "guard", "perf": 0.88}
-{"provider": "synthetic", "model": "kimi-k3", "category": "long_doc", "perf": 1.0}
-{"provider": "synthetic", "model": "kimi-k3", "category": "long_horizon", "perf": 0.85}
-{"provider": "synthetic", "model": "kimi-k3", "category": "mock", "perf": 0.85}
-{"provider": "synthetic", "model": "kimi-k3", "category": "reasoning", "perf": 0.88}
-{"provider": "synthetic", "model": "kimi-k3", "category": "refactor", "perf": 0.72}
-{"provider": "synthetic", "model": "kimi-k3", "category": "review", "perf": 0.85}
-{"provider": "synthetic", "model": "kimi-k3", "category": "schema", "perf": 0.5}
-{"provider": "synthetic", "model": "kimi-k3", "category": "test", "perf": 0.72}
-{"provider": "synthetic", "model": "kimi-k3", "category": "tool_use", "perf": 0.85}
-{"provider": "synthetic", "model": "kimi-k3", "category": "ui_frontend", "perf": 0.72}
-{"provider": "synthetic", "model": "kimi-k3", "category": "vision", "perf": 0.72}
-{"provider": "synthetic", "model": "nemotron-3-super-120b", "category": "agent_tick", "perf": 0.0}
-{"provider": "synthetic", "model": "nemotron-3-super-120b", "category": "debug", "perf": 0.0}
-{"provider": "synthetic", "model": "nemotron-3-super-120b", "category": "delegation", "perf": 0.0}
-{"provider": "synthetic", "model": "nemotron-3-super-120b", "category": "e2e_vision", "perf": 0.0}
-{"provider": "synthetic", "model": "nemotron-3-super-120b", "category": "guard", "perf": 0.65}
-{"provider": "synthetic", "model": "nemotron-3-super-120b", "category": "long_doc", "perf": 0.0}
-{"provider": "synthetic", "model": "nemotron-3-super-120b", "category": "mock", "perf": 0.72}
-{"provider": "synthetic", "model": "nemotron-3-super-120b", "category": "reasoning", "perf": 0.0}
-{"provider": "synthetic", "model": "nemotron-3-super-120b", "category": "review", "perf": 0.0}
-{"provider": "synthetic", "model": "nemotron-3-super-120b", "category": "schema", "perf": 0.0}
-{"provider": "synthetic", "model": "qwen3.6-27b", "category": "agent_tick", "perf": 0.72}
-{"provider": "synthetic", "model": "qwen3.6-27b", "category": "debug", "perf": 0.7}
-{"provider": "synthetic", "model": "qwen3.6-27b", "category": "delegation", "perf": 0.72}
-{"provider": "synthetic", "model": "qwen3.6-27b", "category": "e2e_vision", "perf": 0.3}
-{"provider": "synthetic", "model": "qwen3.6-27b", "category": "guard", "perf": 0.7}
-{"provider": "synthetic", "model": "qwen3.6-27b", "category": "long_doc", "perf": 0.45}
-{"provider": "synthetic", "model": "qwen3.6-27b", "category": "mock", "perf": 0.85}
-{"provider": "synthetic", "model": "qwen3.6-27b", "category": "reasoning", "perf": 0.65}
-{"provider": "synthetic", "model": "qwen3.6-27b", "category": "review", "perf": 0.55}
-{"provider": "synthetic", "model": "qwen3.6-27b", "category": "schema", "perf": 0.65}
-{"provider": "zai-glm", "model": "glm-4.7", "category": "agent_tick", "perf": 0.25}
-{"provider": "zai-glm", "model": "glm-4.7", "category": "debug", "perf": 0.5}
-{"provider": "zai-glm", "model": "glm-4.7", "category": "delegation", "perf": 0.25}
-{"provider": "zai-glm", "model": "glm-4.7", "category": "e2e_vision", "perf": 0.25}
-{"provider": "zai-glm", "model": "glm-4.7", "category": "guard", "perf": 0.8}
-{"provider": "zai-glm", "model": "glm-4.7", "category": "long_doc", "perf": 0.55}
-{"provider": "zai-glm", "model": "glm-4.7", "category": "mock", "perf": 0.7}
-{"provider": "zai-glm", "model": "glm-4.7", "category": "reasoning", "perf": 0.65}
-{"provider": "zai-glm", "model": "glm-4.7", "category": "review", "perf": 0.65}
-{"provider": "zai-glm", "model": "glm-4.7", "category": "schema", "perf": 0.5}
-{"provider": "zai-glm", "model": "glm-5-turbo", "category": "agent_tick", "perf": 0.5}
-{"provider": "zai-glm", "model": "glm-5-turbo", "category": "debug", "perf": 0.5}
-{"provider": "zai-glm", "model": "glm-5-turbo", "category": "delegation", "perf": 0.5}
-{"provider": "zai-glm", "model": "glm-5-turbo", "category": "e2e_vision", "perf": 0.0}
-{"provider": "zai-glm", "model": "glm-5-turbo", "category": "guard", "perf": 0.78}
-{"provider": "zai-glm", "model": "glm-5-turbo", "category": "long_doc", "perf": 0.0}
-{"provider": "zai-glm", "model": "glm-5-turbo", "category": "mock", "perf": 0.72}
-{"provider": "zai-glm", "model": "glm-5-turbo", "category": "reasoning", "perf": 0.0}
-{"provider": "zai-glm", "model": "glm-5-turbo", "category": "review", "perf": 0.0}
-{"provider": "zai-glm", "model": "glm-5-turbo", "category": "schema", "perf": 0.5}
-{"provider": "zai-glm", "model": "glm-5.2", "category": "code_gen", "perf": 0.85}
-{"provider": "zai-glm", "model": "glm-5.2", "category": "creative", "perf": 0.45}
-{"provider": "zai-glm", "model": "glm-5.2", "category": "refactor", "perf": 0.72}
-{"provider": "zai-glm", "model": "glm-5.2", "category": "security", "perf": 0.85}
-{"provider": "zai-glm", "model": "glm-5.2", "category": "spec_docs", "perf": 0.72}
-{"provider": "zai-glm", "model": "glm-5.2", "category": "terminal", "perf": 0.85}
-{"provider": "zai-glm", "model": "glm-5.2", "category": "test", "perf": 0.72}
-{"provider": "zai-glm", "model": "glm-5.2", "category": "tool_use", "perf": 0.85}
-{"provider": "zai-glm", "model": "glm-5.2", "category": "ui_frontend", "perf": 0.72}
-{"provider": "zai-glm", "model": "glm-5.2", "category": "vision", "perf": 0.45}
-{"provider": "zai-glm", "model": "glm-5.3", "category": "agent_tick", "perf": 0.85}
-{"provider": "zai-glm", "model": "glm-5.3", "category": "code_gen", "perf": 0.85}
-{"provider": "zai-glm", "model": "glm-5.3", "category": "creative", "perf": 0.45}
-{"provider": "zai-glm", "model": "glm-5.3", "category": "debug", "perf": 0.85}
-{"provider": "zai-glm", "model": "glm-5.3", "category": "delegation", "perf": 0.85}
-{"provider": "zai-glm", "model": "glm-5.3", "category": "e2e_vision", "perf": 0.35}
-{"provider": "zai-glm", "model": "glm-5.3", "category": "guard", "perf": 0.8}
-{"provider": "zai-glm", "model": "glm-5.3", "category": "long_doc", "perf": 0.8296}
-{"provider": "zai-glm", "model": "glm-5.3", "category": "long_horizon", "perf": 0.85}
-{"provider": "zai-glm", "model": "glm-5.3", "category": "mock", "perf": 0.6}
-{"provider": "zai-glm", "model": "glm-5.3", "category": "reasoning", "perf": 0.9694}
-{"provider": "zai-glm", "model": "glm-5.3", "category": "refactor", "perf": 0.72}
-{"provider": "zai-glm", "model": "glm-5.3", "category": "review", "perf": 0.7111}
-{"provider": "zai-glm", "model": "glm-5.3", "category": "schema", "perf": 0.88}
-{"provider": "zai-glm", "model": "glm-5.3", "category": "security", "perf": 0.85}
-{"provider": "zai-glm", "model": "glm-5.3", "category": "terminal", "perf": 0.85}
-{"provider": "zai-glm", "model": "glm-5.3", "category": "test", "perf": 0.72}
-{"provider": "zai-glm", "model": "glm-5.3", "category": "vision", "perf": 0.45}
-{"provider": "zai-glm", "model": "glm-5.3-flash", "category": "agent_tick", "perf": 0.85}
-{"provider": "zai-glm", "model": "glm-5.3-flash", "category": "code_gen", "perf": 0.85}
-{"provider": "zai-glm", "model": "glm-5.3-flash", "category": "creative", "perf": 0.45}
-{"provider": "zai-glm", "model": "glm-5.3-flash", "category": "debug", "perf": 0.85}
-{"provider": "zai-glm", "model": "glm-5.3-flash", "category": "delegation", "perf": 0.85}
-{"provider": "zai-glm", "model": "glm-5.3-flash", "category": "e2e_vision", "perf": 0.35}
-{"provider": "zai-glm", "model": "glm-5.3-flash", "category": "guard", "perf": 0.8}
-{"provider": "zai-glm", "model": "glm-5.3-flash", "category": "long_doc", "perf": 0.83}
-{"provider": "zai-glm", "model": "glm-5.3-flash", "category": "long_horizon", "perf": 0.85}
-{"provider": "zai-glm", "model": "glm-5.3-flash", "category": "mock", "perf": 0.6}
-{"provider": "zai-glm", "model": "glm-5.3-flash", "category": "reasoning", "perf": 0.97}
-{"provider": "zai-glm", "model": "glm-5.3-flash", "category": "refactor", "perf": 0.85}
-{"provider": "zai-glm", "model": "glm-5.3-flash", "category": "review", "perf": 0.71}
-{"provider": "zai-glm", "model": "glm-5.3-flash", "category": "schema", "perf": 0.88}
-{"provider": "zai-glm", "model": "glm-5.3-flash", "category": "security", "perf": 0.85}
-{"provider": "zai-glm", "model": "glm-5.3-flash", "category": "spec_docs", "perf": 0.72}
-{"provider": "zai-glm", "model": "glm-5.3-flash", "category": "terminal", "perf": 0.85}
-{"provider": "zai-glm", "model": "glm-5.3-flash", "category": "test", "perf": 0.72}
-{"provider": "zai-glm", "model": "glm-5.3-flash", "category": "tool_use", "perf": 0.85}
-{"provider": "zai-glm", "model": "glm-5.3-flash", "category": "vision", "perf": 0.6}
-{"provider": "zai-glm", "model": "glm-5.3-flash-offpeak", "category": "agent_tick", "perf": 0.85}
-{"provider": "zai-glm", "model": "glm-5.3-flash-offpeak", "category": "debug", "perf": 0.85}
-{"provider": "zai-glm", "model": "glm-5.3-flash-offpeak", "category": "delegation", "perf": 0.85}
-{"provider": "zai-glm", "model": "glm-5.3-flash-offpeak", "category": "e2e_vision", "perf": 0.35}
-{"provider": "zai-glm", "model": "glm-5.3-flash-offpeak", "category": "guard", "perf": 0.8}
-{"provider": "zai-glm", "model": "glm-5.3-flash-offpeak", "category": "long_doc", "perf": 0.83}
-{"provider": "zai-glm", "model": "glm-5.3-flash-offpeak", "category": "mock", "perf": 0.6}
-{"provider": "zai-glm", "model": "glm-5.3-flash-offpeak", "category": "reasoning", "perf": 0.97}
-{"provider": "zai-glm", "model": "glm-5.3-flash-offpeak", "category": "review", "perf": 0.71}
-{"provider": "zai-glm", "model": "glm-5.3-flash-offpeak", "category": "schema", "perf": 0.88}
-{"provider": "zai-glm", "model": "glm-5.3-offpeak", "category": "agent_tick", "perf": 0.0}
-{"provider": "zai-glm", "model": "glm-5.3-offpeak", "category": "debug", "perf": 0.0}
-{"provider": "zai-glm", "model": "glm-5.3-offpeak", "category": "delegation", "perf": 0.0}
-{"provider": "zai-glm", "model": "glm-5.3-offpeak", "category": "e2e_vision", "perf": 0.0}
-{"provider": "zai-glm", "model": "glm-5.3-offpeak", "category": "guard", "perf": 0.8}
-{"provider": "zai-glm", "model": "glm-5.3-offpeak", "category": "long_doc", "perf": 0.0}
-{"provider": "zai-glm", "model": "glm-5.3-offpeak", "category": "mock", "perf": 0.6}
-{"provider": "zai-glm", "model": "glm-5.3-offpeak", "category": "reasoning", "perf": 0.0}
-{"provider": "zai-glm", "model": "glm-5.3-offpeak", "category": "review", "perf": 0.0}
-{"provider": "zai-glm", "model": "glm-5.3-offpeak", "category": "schema", "perf": 0.0}
+{"model": "deepseek-v4-flash", "category": "agent_tick", "perf": 0.75}
+{"model": "deepseek-v4-flash", "category": "code_gen", "perf": 0.85}
+{"model": "deepseek-v4-flash", "category": "debug", "perf": 0.75}
+{"model": "deepseek-v4-flash", "category": "delegation", "perf": 0.75}
+{"model": "deepseek-v4-flash", "category": "e2e_vision", "perf": 0.55}
+{"model": "deepseek-v4-flash", "category": "guard", "perf": 0.88}
+{"model": "deepseek-v4-flash", "category": "long_doc", "perf": 0.55}
+{"model": "deepseek-v4-flash", "category": "mechanical", "perf": 0.72}
+{"model": "deepseek-v4-flash", "category": "mock", "perf": 0.87}
+{"model": "deepseek-v4-flash", "category": "reasoning", "perf": 0.7}
+{"model": "deepseek-v4-flash", "category": "review", "perf": 0.6}
+{"model": "deepseek-v4-flash", "category": "schema", "perf": 0.5}
+{"model": "deepseek-v4-flash", "category": "spec_docs", "perf": 0.72}
+{"model": "deepseek-v4-flash", "category": "terminal", "perf": 0.85}
+{"model": "deepseek-v4-flash", "category": "test", "perf": 0.85}
+{"model": "deepseek-v4-flash", "category": "tool_use", "perf": 0.85}
+{"model": "deepseek-v4-flash", "category": "vision", "perf": 0.45}
+{"model": "deepseek-v4-flash:0731", "category": "agent_tick", "perf": 0.75}
+{"model": "deepseek-v4-flash:0731", "category": "code_gen", "perf": 0.85}
+{"model": "deepseek-v4-flash:0731", "category": "debug", "perf": 0.5}
+{"model": "deepseek-v4-flash:0731", "category": "delegation", "perf": 0.75}
+{"model": "deepseek-v4-flash:0731", "category": "e2e_vision", "perf": 0.4679}
+{"model": "deepseek-v4-flash:0731", "category": "guard", "perf": 0.88}
+{"model": "deepseek-v4-flash:0731", "category": "long_doc", "perf": 0.55}
+{"model": "deepseek-v4-flash:0731", "category": "mechanical", "perf": 0.72}
+{"model": "deepseek-v4-flash:0731", "category": "mock", "perf": 0.87}
+{"model": "deepseek-v4-flash:0731", "category": "reasoning", "perf": 0.7}
+{"model": "deepseek-v4-flash:0731", "category": "review", "perf": 0.6}
+{"model": "deepseek-v4-flash:0731", "category": "schema", "perf": 0.5}
+{"model": "deepseek-v4-flash:0731", "category": "spec_docs", "perf": 0.72}
+{"model": "deepseek-v4-flash:0731", "category": "terminal", "perf": 0.85}
+{"model": "deepseek-v4-flash:0731", "category": "test", "perf": 0.85}
+{"model": "deepseek-v4-flash:0731", "category": "tool_use", "perf": 0.85}
+{"model": "deepseek-v4-flash:0731", "category": "vision", "perf": 0.45}
+{"model": "deepseek-v4-pro", "category": "agent_tick", "perf": 0.5}
+{"model": "deepseek-v4-pro", "category": "code_gen", "perf": 0.85}
+{"model": "deepseek-v4-pro", "category": "debug", "perf": 0.5}
+{"model": "deepseek-v4-pro", "category": "delegation", "perf": 0.5}
+{"model": "deepseek-v4-pro", "category": "e2e_vision", "perf": 0.4}
+{"model": "deepseek-v4-pro", "category": "guard", "perf": 0.9}
+{"model": "deepseek-v4-pro", "category": "long_doc", "perf": 0.8}
+{"model": "deepseek-v4-pro", "category": "mock", "perf": 0.88}
+{"model": "deepseek-v4-pro", "category": "reasoning", "perf": 0.88}
+{"model": "deepseek-v4-pro", "category": "refactor", "perf": 0.85}
+{"model": "deepseek-v4-pro", "category": "review", "perf": 0.8}
+{"model": "deepseek-v4-pro", "category": "schema", "perf": 0.5}
+{"model": "deepseek-v4-pro", "category": "terminal", "perf": 0.85}
+{"model": "deepseek-v4-pro", "category": "test", "perf": 0.72}
+{"model": "deepseek-v4-pro", "category": "tool_use", "perf": 0.85}
+{"model": "deepseek-v4-pro", "category": "ui_frontend", "perf": 0.45}
+{"model": "deepseek-v4-pro", "category": "vision", "perf": 0.45}
+{"model": "gemma-4-31b", "category": "agent_tick", "perf": 0.75}
+{"model": "gemma-4-31b", "category": "debug", "perf": 0.75}
+{"model": "gemma-4-31b", "category": "delegation", "perf": 0.75}
+{"model": "gemma-4-31b", "category": "e2e_vision", "perf": 0.25}
+{"model": "gemma-4-31b", "category": "guard", "perf": 0.72}
+{"model": "gemma-4-31b", "category": "long_doc", "perf": 0.5}
+{"model": "gemma-4-31b", "category": "mock", "perf": 0.72}
+{"model": "gemma-4-31b", "category": "reasoning", "perf": 0.7}
+{"model": "gemma-4-31b", "category": "review", "perf": 0.62}
+{"model": "gemma-4-31b", "category": "schema", "perf": 0.5}
+{"model": "gemma-4:31b", "category": "agent_tick", "perf": 0.0}
+{"model": "gemma-4:31b", "category": "debug", "perf": 0.0}
+{"model": "gemma-4:31b", "category": "delegation", "perf": 0.0}
+{"model": "gemma-4:31b", "category": "e2e_vision", "perf": 0.0}
+{"model": "gemma-4:31b", "category": "guard", "perf": 0.72}
+{"model": "gemma-4:31b", "category": "long_doc", "perf": 0.0}
+{"model": "gemma-4:31b", "category": "mock", "perf": 0.72}
+{"model": "gemma-4:31b", "category": "reasoning", "perf": 0.0}
+{"model": "gemma-4:31b", "category": "review", "perf": 0.0}
+{"model": "gemma-4:31b", "category": "schema", "perf": 0.0}
+{"model": "glm-4.7", "category": "agent_tick", "perf": 0.25}
+{"model": "glm-4.7", "category": "debug", "perf": 0.5}
+{"model": "glm-4.7", "category": "delegation", "perf": 0.25}
+{"model": "glm-4.7", "category": "e2e_vision", "perf": 0.25}
+{"model": "glm-4.7", "category": "guard", "perf": 0.8}
+{"model": "glm-4.7", "category": "long_doc", "perf": 0.55}
+{"model": "glm-4.7", "category": "mock", "perf": 0.7}
+{"model": "glm-4.7", "category": "reasoning", "perf": 0.65}
+{"model": "glm-4.7", "category": "review", "perf": 0.65}
+{"model": "glm-4.7", "category": "schema", "perf": 0.5}
+{"model": "glm-4.7-flash", "category": "agent_tick", "perf": 0.0}
+{"model": "glm-4.7-flash", "category": "debug", "perf": 0.0}
+{"model": "glm-4.7-flash", "category": "delegation", "perf": 0.0}
+{"model": "glm-4.7-flash", "category": "e2e_vision", "perf": 0.0}
+{"model": "glm-4.7-flash", "category": "guard", "perf": 0.72}
+{"model": "glm-4.7-flash", "category": "long_doc", "perf": 0.0}
+{"model": "glm-4.7-flash", "category": "mock", "perf": 0.6}
+{"model": "glm-4.7-flash", "category": "reasoning", "perf": 0.0}
+{"model": "glm-4.7-flash", "category": "review", "perf": 0.0}
+{"model": "glm-4.7-flash", "category": "schema", "perf": 0.0}
+{"model": "glm-5-turbo", "category": "agent_tick", "perf": 0.5}
+{"model": "glm-5-turbo", "category": "debug", "perf": 0.5}
+{"model": "glm-5-turbo", "category": "delegation", "perf": 0.5}
+{"model": "glm-5-turbo", "category": "e2e_vision", "perf": 0.0}
+{"model": "glm-5-turbo", "category": "guard", "perf": 0.78}
+{"model": "glm-5-turbo", "category": "long_doc", "perf": 0.0}
+{"model": "glm-5-turbo", "category": "mock", "perf": 0.72}
+{"model": "glm-5-turbo", "category": "reasoning", "perf": 0.0}
+{"model": "glm-5-turbo", "category": "review", "perf": 0.0}
+{"model": "glm-5-turbo", "category": "schema", "perf": 0.5}
+{"model": "glm-5.2", "category": "agent_tick", "perf": 0.75}
+{"model": "glm-5.2", "category": "code_gen", "perf": 0.85}
+{"model": "glm-5.2", "category": "creative", "perf": 0.45}
+{"model": "glm-5.2", "category": "debug", "perf": 1.0}
+{"model": "glm-5.2", "category": "delegation", "perf": 0.75}
+{"model": "glm-5.2", "category": "e2e_vision", "perf": 0.3}
+{"model": "glm-5.2", "category": "guard", "perf": 0.86}
+{"model": "glm-5.2", "category": "long_doc", "perf": 0.7}
+{"model": "glm-5.2", "category": "mock", "perf": 0.8}
+{"model": "glm-5.2", "category": "reasoning", "perf": 0.85}
+{"model": "glm-5.2", "category": "refactor", "perf": 0.72}
+{"model": "glm-5.2", "category": "review", "perf": 0.88}
+{"model": "glm-5.2", "category": "schema", "perf": 0.5}
+{"model": "glm-5.2", "category": "security", "perf": 0.85}
+{"model": "glm-5.2", "category": "spec_docs", "perf": 0.72}
+{"model": "glm-5.2", "category": "terminal", "perf": 0.85}
+{"model": "glm-5.2", "category": "test", "perf": 0.72}
+{"model": "glm-5.2", "category": "tool_use", "perf": 0.85}
+{"model": "glm-5.2", "category": "ui_frontend", "perf": 0.72}
+{"model": "glm-5.2", "category": "vision", "perf": 0.45}
+{"model": "glm-5.2-short-fast", "category": "agent_tick", "perf": 0.5}
+{"model": "glm-5.2-short-fast", "category": "debug", "perf": 0.75}
+{"model": "glm-5.2-short-fast", "category": "delegation", "perf": 0.5}
+{"model": "glm-5.2-short-fast", "category": "e2e_vision", "perf": 0.0}
+{"model": "glm-5.2-short-fast", "category": "guard", "perf": 0.8}
+{"model": "glm-5.2-short-fast", "category": "long_doc", "perf": 0.0}
+{"model": "glm-5.2-short-fast", "category": "mock", "perf": 0.78}
+{"model": "glm-5.2-short-fast", "category": "reasoning", "perf": 0.0}
+{"model": "glm-5.2-short-fast", "category": "review", "perf": 0.0}
+{"model": "glm-5.2-short-fast", "category": "schema", "perf": 0.5}
+{"model": "glm-5.3", "category": "agent_tick", "perf": 0.85}
+{"model": "glm-5.3", "category": "code_gen", "perf": 0.85}
+{"model": "glm-5.3", "category": "creative", "perf": 0.45}
+{"model": "glm-5.3", "category": "debug", "perf": 0.85}
+{"model": "glm-5.3", "category": "delegation", "perf": 0.85}
+{"model": "glm-5.3", "category": "e2e_vision", "perf": 0.35}
+{"model": "glm-5.3", "category": "guard", "perf": 0.8}
+{"model": "glm-5.3", "category": "long_doc", "perf": 0.8296}
+{"model": "glm-5.3", "category": "long_horizon", "perf": 0.85}
+{"model": "glm-5.3", "category": "mock", "perf": 0.6}
+{"model": "glm-5.3", "category": "reasoning", "perf": 0.9694}
+{"model": "glm-5.3", "category": "refactor", "perf": 0.72}
+{"model": "glm-5.3", "category": "review", "perf": 0.7111}
+{"model": "glm-5.3", "category": "schema", "perf": 0.88}
+{"model": "glm-5.3", "category": "security", "perf": 0.85}
+{"model": "glm-5.3", "category": "terminal", "perf": 0.85}
+{"model": "glm-5.3", "category": "test", "perf": 0.72}
+{"model": "glm-5.3", "category": "vision", "perf": 0.45}
+{"model": "glm-5.3-flash", "category": "agent_tick", "perf": 0.85}
+{"model": "glm-5.3-flash", "category": "code_gen", "perf": 0.85}
+{"model": "glm-5.3-flash", "category": "creative", "perf": 0.45}
+{"model": "glm-5.3-flash", "category": "debug", "perf": 0.85}
+{"model": "glm-5.3-flash", "category": "delegation", "perf": 0.85}
+{"model": "glm-5.3-flash", "category": "e2e_vision", "perf": 0.35}
+{"model": "glm-5.3-flash", "category": "guard", "perf": 0.8}
+{"model": "glm-5.3-flash", "category": "long_doc", "perf": 0.83}
+{"model": "glm-5.3-flash", "category": "long_horizon", "perf": 0.85}
+{"model": "glm-5.3-flash", "category": "mock", "perf": 0.6}
+{"model": "glm-5.3-flash", "category": "reasoning", "perf": 0.97}
+{"model": "glm-5.3-flash", "category": "refactor", "perf": 0.85}
+{"model": "glm-5.3-flash", "category": "review", "perf": 0.71}
+{"model": "glm-5.3-flash", "category": "schema", "perf": 0.88}
+{"model": "glm-5.3-flash", "category": "security", "perf": 0.85}
+{"model": "glm-5.3-flash", "category": "spec_docs", "perf": 0.72}
+{"model": "glm-5.3-flash", "category": "terminal", "perf": 0.85}
+{"model": "glm-5.3-flash", "category": "test", "perf": 0.72}
+{"model": "glm-5.3-flash", "category": "tool_use", "perf": 0.85}
+{"model": "glm-5.3-flash", "category": "vision", "perf": 0.6}
+{"model": "glm-5.3-flash-offpeak", "category": "agent_tick", "perf": 0.85}
+{"model": "glm-5.3-flash-offpeak", "category": "debug", "perf": 0.85}
+{"model": "glm-5.3-flash-offpeak", "category": "delegation", "perf": 0.85}
+{"model": "glm-5.3-flash-offpeak", "category": "e2e_vision", "perf": 0.35}
+{"model": "glm-5.3-flash-offpeak", "category": "guard", "perf": 0.8}
+{"model": "glm-5.3-flash-offpeak", "category": "long_doc", "perf": 0.83}
+{"model": "glm-5.3-flash-offpeak", "category": "mock", "perf": 0.6}
+{"model": "glm-5.3-flash-offpeak", "category": "reasoning", "perf": 0.97}
+{"model": "glm-5.3-flash-offpeak", "category": "review", "perf": 0.71}
+{"model": "glm-5.3-flash-offpeak", "category": "schema", "perf": 0.88}
+{"model": "glm-5.3-offpeak", "category": "agent_tick", "perf": 0.0}
+{"model": "glm-5.3-offpeak", "category": "debug", "perf": 0.0}
+{"model": "glm-5.3-offpeak", "category": "delegation", "perf": 0.0}
+{"model": "glm-5.3-offpeak", "category": "e2e_vision", "perf": 0.0}
+{"model": "glm-5.3-offpeak", "category": "guard", "perf": 0.8}
+{"model": "glm-5.3-offpeak", "category": "long_doc", "perf": 0.0}
+{"model": "glm-5.3-offpeak", "category": "mock", "perf": 0.6}
+{"model": "glm-5.3-offpeak", "category": "reasoning", "perf": 0.0}
+{"model": "glm-5.3-offpeak", "category": "review", "perf": 0.0}
+{"model": "glm-5.3-offpeak", "category": "schema", "perf": 0.0}
+{"model": "gpt-5.6-luna", "category": "agent_tick", "perf": 0.75}
+{"model": "gpt-5.6-luna", "category": "debug", "perf": 0.5}
+{"model": "gpt-5.6-luna", "category": "delegation", "perf": 0.75}
+{"model": "gpt-5.6-luna", "category": "e2e_vision", "perf": 1.0}
+{"model": "gpt-5.6-luna", "category": "guard", "perf": 0.8}
+{"model": "gpt-5.6-luna", "category": "long_doc", "perf": 0.55}
+{"model": "gpt-5.6-luna", "category": "mock", "perf": 0.8}
+{"model": "gpt-5.6-luna", "category": "reasoning", "perf": 0.65}
+{"model": "gpt-5.6-luna", "category": "review", "perf": 0.72}
+{"model": "gpt-5.6-luna", "category": "schema", "perf": 0.5}
+{"model": "gpt-5.6-luna", "category": "terminal", "perf": 0.85}
+{"model": "gpt-5.6-luna", "category": "test", "perf": 0.95}
+{"model": "gpt-5.6-luna", "category": "vision", "perf": 0.95}
+{"model": "gpt-5.6-sol", "category": "agent_tick", "perf": 0.75}
+{"model": "gpt-5.6-sol", "category": "code_gen", "perf": 0.72}
+{"model": "gpt-5.6-sol", "category": "debug", "perf": 0.9905}
+{"model": "gpt-5.6-sol", "category": "delegation", "perf": 0.75}
+{"model": "gpt-5.6-sol", "category": "e2e_vision", "perf": 0.7}
+{"model": "gpt-5.6-sol", "category": "guard", "perf": 0.92}
+{"model": "gpt-5.6-sol", "category": "long_doc", "perf": 0.8}
+{"model": "gpt-5.6-sol", "category": "long_horizon", "perf": 0.85}
+{"model": "gpt-5.6-sol", "category": "mechanical", "perf": 0.45}
+{"model": "gpt-5.6-sol", "category": "mock", "perf": 0.86}
+{"model": "gpt-5.6-sol", "category": "reasoning", "perf": 1.0}
+{"model": "gpt-5.6-sol", "category": "review", "perf": 1.0}
+{"model": "gpt-5.6-sol", "category": "schema", "perf": 0.5}
+{"model": "gpt-5.6-sol", "category": "terminal", "perf": 0.95}
+{"model": "gpt-5.6-terra", "category": "agent_tick", "perf": 0.25}
+{"model": "gpt-5.6-terra", "category": "code_gen", "perf": 0.85}
+{"model": "gpt-5.6-terra", "category": "debug", "perf": 0.75}
+{"model": "gpt-5.6-terra", "category": "delegation", "perf": 0.25}
+{"model": "gpt-5.6-terra", "category": "e2e_vision", "perf": 0.0}
+{"model": "gpt-5.6-terra", "category": "guard", "perf": 0.88}
+{"model": "gpt-5.6-terra", "category": "long_doc", "perf": 0.0}
+{"model": "gpt-5.6-terra", "category": "mock", "perf": 0.82}
+{"model": "gpt-5.6-terra", "category": "reasoning", "perf": 0.0}
+{"model": "gpt-5.6-terra", "category": "review", "perf": 0.0}
+{"model": "gpt-5.6-terra", "category": "schema", "perf": 0.5}
+{"model": "gpt-5.6-terra", "category": "spec_docs", "perf": 0.95}
+{"model": "gpt-5.6-terra", "category": "test", "perf": 0.85}
+{"model": "gpt-oss-120b", "category": "agent_tick", "perf": 0.75}
+{"model": "gpt-oss-120b", "category": "code_gen", "perf": 0.72}
+{"model": "gpt-oss-120b", "category": "debug", "perf": 0.75}
+{"model": "gpt-oss-120b", "category": "delegation", "perf": 0.72}
+{"model": "gpt-oss-120b", "category": "e2e_vision", "perf": 0.25}
+{"model": "gpt-oss-120b", "category": "guard", "perf": 0.8}
+{"model": "gpt-oss-120b", "category": "long_doc", "perf": 0.5}
+{"model": "gpt-oss-120b", "category": "mock", "perf": 0.85}
+{"model": "gpt-oss-120b", "category": "reasoning", "perf": 0.65}
+{"model": "gpt-oss-120b", "category": "refactor", "perf": 0.72}
+{"model": "gpt-oss-120b", "category": "review", "perf": 0.62}
+{"model": "gpt-oss-120b", "category": "schema", "perf": 0.65}
+{"model": "gpt-oss-120b", "category": "test", "perf": 0.72}
+{"model": "gpt-oss-120b", "category": "tool_use", "perf": 0.85}
+{"model": "gpt-oss-20b", "category": "agent_tick", "perf": 0.0}
+{"model": "gpt-oss-20b", "category": "debug", "perf": 0.0}
+{"model": "gpt-oss-20b", "category": "delegation", "perf": 0.0}
+{"model": "gpt-oss-20b", "category": "e2e_vision", "perf": 0.0}
+{"model": "gpt-oss-20b", "category": "guard", "perf": 0.68}
+{"model": "gpt-oss-20b", "category": "long_doc", "perf": 0.0}
+{"model": "gpt-oss-20b", "category": "mock", "perf": 0.68}
+{"model": "gpt-oss-20b", "category": "reasoning", "perf": 0.0}
+{"model": "gpt-oss-20b", "category": "review", "perf": 0.0}
+{"model": "gpt-oss-20b", "category": "schema", "perf": 0.0}
+{"model": "gpt-oss:20b", "category": "agent_tick", "perf": 0.0}
+{"model": "gpt-oss:20b", "category": "debug", "perf": 0.75}
+{"model": "gpt-oss:20b", "category": "delegation", "perf": 0.0}
+{"model": "gpt-oss:20b", "category": "e2e_vision", "perf": 0.0}
+{"model": "gpt-oss:20b", "category": "guard", "perf": 0.68}
+{"model": "gpt-oss:20b", "category": "long_doc", "perf": 0.0}
+{"model": "gpt-oss:20b", "category": "mock", "perf": 0.7}
+{"model": "gpt-oss:20b", "category": "reasoning", "perf": 0.0}
+{"model": "gpt-oss:20b", "category": "review", "perf": 0.0}
+{"model": "gpt-oss:20b", "category": "schema", "perf": 0.5}
+{"model": "hy3", "category": "code_gen", "perf": 0.72}
+{"model": "hy3", "category": "mechanical", "perf": 0.72}
+{"model": "hy3", "category": "tool_use", "perf": 0.72}
+{"model": "hy3", "category": "ui_frontend", "perf": 0.85}
+{"model": "k3", "category": "agent_tick", "perf": 0.0}
+{"model": "k3", "category": "code_gen", "perf": 0.72}
+{"model": "k3", "category": "debug", "perf": 0.0}
+{"model": "k3", "category": "delegation", "perf": 0.0}
+{"model": "k3", "category": "e2e_vision", "perf": 0.0}
+{"model": "k3", "category": "guard", "perf": 0.85}
+{"model": "k3", "category": "long_doc", "perf": 0.0}
+{"model": "k3", "category": "long_horizon", "perf": 0.85}
+{"model": "k3", "category": "mock", "perf": 0.84}
+{"model": "k3", "category": "reasoning", "perf": 0.0}
+{"model": "k3", "category": "refactor", "perf": 0.72}
+{"model": "k3", "category": "review", "perf": 0.0}
+{"model": "k3", "category": "schema", "perf": 0.0}
+{"model": "k3", "category": "test", "perf": 0.72}
+{"model": "k3", "category": "tool_use", "perf": 0.85}
+{"model": "k3", "category": "ui_frontend", "perf": 0.72}
+{"model": "k3", "category": "vision", "perf": 0.72}
+{"model": "k3-256k", "category": "agent_tick", "perf": 0.75}
+{"model": "k3-256k", "category": "debug", "perf": 0.5}
+{"model": "k3-256k", "category": "delegation", "perf": 0.75}
+{"model": "k3-256k", "category": "e2e_vision", "perf": 0.0}
+{"model": "k3-256k", "category": "guard", "perf": 0.86}
+{"model": "k3-256k", "category": "long_doc", "perf": 0.0}
+{"model": "k3-256k", "category": "mock", "perf": 0.84}
+{"model": "k3-256k", "category": "reasoning", "perf": 0.0}
+{"model": "k3-256k", "category": "review", "perf": 0.0}
+{"model": "k3-256k", "category": "schema", "perf": 0.5}
+{"model": "kimi-k2.6", "category": "agent_tick", "perf": 0.75}
+{"model": "kimi-k2.6", "category": "debug", "perf": 0.75}
+{"model": "kimi-k2.6", "category": "delegation", "perf": 0.75}
+{"model": "kimi-k2.6", "category": "e2e_vision", "perf": 0.0}
+{"model": "kimi-k2.6", "category": "guard", "perf": 0.8}
+{"model": "kimi-k2.6", "category": "long_doc", "perf": 0.0}
+{"model": "kimi-k2.6", "category": "mock", "perf": 0.83}
+{"model": "kimi-k2.6", "category": "reasoning", "perf": 0.0}
+{"model": "kimi-k2.6", "category": "review", "perf": 0.0}
+{"model": "kimi-k2.6", "category": "schema", "perf": 0.5}
+{"model": "kimi-k2.7-code", "category": "agent_tick", "perf": 0.75}
+{"model": "kimi-k2.7-code", "category": "code_gen", "perf": 0.72}
+{"model": "kimi-k2.7-code", "category": "debug", "perf": 0.75}
+{"model": "kimi-k2.7-code", "category": "delegation", "perf": 0.75}
+{"model": "kimi-k2.7-code", "category": "e2e_vision", "perf": 0.45}
+{"model": "kimi-k2.7-code", "category": "guard", "perf": 0.86}
+{"model": "kimi-k2.7-code", "category": "long_doc", "perf": 0.65}
+{"model": "kimi-k2.7-code", "category": "long_horizon", "perf": 0.85}
+{"model": "kimi-k2.7-code", "category": "mock", "perf": 0.84}
+{"model": "kimi-k2.7-code", "category": "reasoning", "perf": 0.78}
+{"model": "kimi-k2.7-code", "category": "refactor", "perf": 0.72}
+{"model": "kimi-k2.7-code", "category": "review", "perf": 0.72}
+{"model": "kimi-k2.7-code", "category": "schema", "perf": 0.5}
+{"model": "kimi-k2.7-code", "category": "test", "perf": 0.72}
+{"model": "kimi-k2.7-code", "category": "tool_use", "perf": 0.85}
+{"model": "kimi-k2.7-code-fast", "category": "agent_tick", "perf": 0.0}
+{"model": "kimi-k2.7-code-fast", "category": "debug", "perf": 0.0}
+{"model": "kimi-k2.7-code-fast", "category": "delegation", "perf": 0.0}
+{"model": "kimi-k2.7-code-fast", "category": "e2e_vision", "perf": 0.0}
+{"model": "kimi-k2.7-code-fast", "category": "guard", "perf": 0.8}
+{"model": "kimi-k2.7-code-fast", "category": "long_doc", "perf": 0.0}
+{"model": "kimi-k2.7-code-fast", "category": "mock", "perf": 0.82}
+{"model": "kimi-k2.7-code-fast", "category": "reasoning", "perf": 0.0}
+{"model": "kimi-k2.7-code-fast", "category": "review", "perf": 0.0}
+{"model": "kimi-k2.7-code-fast", "category": "schema", "perf": 0.0}
+{"model": "kimi-k3", "category": "agent_tick", "perf": 0.9216}
+{"model": "kimi-k3", "category": "code_gen", "perf": 0.72}
+{"model": "kimi-k3", "category": "debug", "perf": 0.75}
+{"model": "kimi-k3", "category": "delegation", "perf": 0.75}
+{"model": "kimi-k3", "category": "e2e_vision", "perf": 0.75}
+{"model": "kimi-k3", "category": "guard", "perf": 0.88}
+{"model": "kimi-k3", "category": "long_doc", "perf": 1.0}
+{"model": "kimi-k3", "category": "long_horizon", "perf": 0.85}
+{"model": "kimi-k3", "category": "mock", "perf": 0.85}
+{"model": "kimi-k3", "category": "reasoning", "perf": 0.88}
+{"model": "kimi-k3", "category": "refactor", "perf": 0.72}
+{"model": "kimi-k3", "category": "review", "perf": 0.85}
+{"model": "kimi-k3", "category": "schema", "perf": 0.5}
+{"model": "kimi-k3", "category": "test", "perf": 0.72}
+{"model": "kimi-k3", "category": "tool_use", "perf": 0.85}
+{"model": "kimi-k3", "category": "ui_frontend", "perf": 0.72}
+{"model": "kimi-k3", "category": "vision", "perf": 0.72}
+{"model": "longcat-2.0", "category": "code_gen", "perf": 0.72}
+{"model": "longcat-2.0", "category": "creative", "perf": 0.85}
+{"model": "longcat-2.0", "category": "long_horizon", "perf": 0.72}
+{"model": "mimo-v2.5", "category": "agent_tick", "perf": 0.75}
+{"model": "mimo-v2.5", "category": "code_gen", "perf": 0.72}
+{"model": "mimo-v2.5", "category": "debug", "perf": 0.75}
+{"model": "mimo-v2.5", "category": "delegation", "perf": 0.75}
+{"model": "mimo-v2.5", "category": "e2e_vision", "perf": 0.5}
+{"model": "mimo-v2.5", "category": "guard", "perf": 0.88}
+{"model": "mimo-v2.5", "category": "long_doc", "perf": 0.65}
+{"model": "mimo-v2.5", "category": "mechanical", "perf": 0.72}
+{"model": "mimo-v2.5", "category": "mock", "perf": 0.84}
+{"model": "mimo-v2.5", "category": "reasoning", "perf": 0.75}
+{"model": "mimo-v2.5", "category": "refactor", "perf": 0.72}
+{"model": "mimo-v2.5", "category": "review", "perf": 0.7}
+{"model": "mimo-v2.5", "category": "schema", "perf": 0.5}
+{"model": "mimo-v2.5", "category": "terminal", "perf": 0.72}
+{"model": "mimo-v2.5", "category": "test", "perf": 0.72}
+{"model": "mimo-v2.5", "category": "tool_use", "perf": 0.85}
+{"model": "minimax-m2.7", "category": "agent_tick", "perf": 0.5}
+{"model": "minimax-m2.7", "category": "debug", "perf": 0.75}
+{"model": "minimax-m2.7", "category": "delegation", "perf": 0.5}
+{"model": "minimax-m2.7", "category": "e2e_vision", "perf": 0.5}
+{"model": "minimax-m2.7", "category": "guard", "perf": 0.8}
+{"model": "minimax-m2.7", "category": "long_doc", "perf": 0.72}
+{"model": "minimax-m2.7", "category": "mock", "perf": 0.82}
+{"model": "minimax-m2.7", "category": "reasoning", "perf": 0.72}
+{"model": "minimax-m2.7", "category": "review", "perf": 0.65}
+{"model": "minimax-m2.7", "category": "schema", "perf": 0.5}
+{"model": "minimax-m3", "category": "agent_tick", "perf": 0.5}
+{"model": "minimax-m3", "category": "code_gen", "perf": 0.85}
+{"model": "minimax-m3", "category": "debug", "perf": 0.75}
+{"model": "minimax-m3", "category": "delegation", "perf": 0.5}
+{"model": "minimax-m3", "category": "e2e_vision", "perf": 0.55}
+{"model": "minimax-m3", "category": "guard", "perf": 0.86}
+{"model": "minimax-m3", "category": "long_doc", "perf": 0.78}
+{"model": "minimax-m3", "category": "long_horizon", "perf": 0.85}
+{"model": "minimax-m3", "category": "mock", "perf": 0.84}
+{"model": "minimax-m3", "category": "reasoning", "perf": 0.8}
+{"model": "minimax-m3", "category": "refactor", "perf": 0.45}
+{"model": "minimax-m3", "category": "review", "perf": 0.72}
+{"model": "minimax-m3", "category": "schema", "perf": 0.75}
+{"model": "minimax-m3", "category": "terminal", "perf": 0.72}
+{"model": "minimax-m3", "category": "test", "perf": 0.72}
+{"model": "minimax-m3", "category": "tool_use", "perf": 0.72}
+{"model": "minimax-m3", "category": "ui_frontend", "perf": 0.45}
+{"model": "minimax-m3", "category": "vision", "perf": 0.72}
+{"model": "mistral-large-3:675b", "category": "agent_tick", "perf": 0.75}
+{"model": "mistral-large-3:675b", "category": "debug", "perf": 0.5}
+{"model": "mistral-large-3:675b", "category": "delegation", "perf": 0.75}
+{"model": "mistral-large-3:675b", "category": "e2e_vision", "perf": 0.0}
+{"model": "mistral-large-3:675b", "category": "guard", "perf": 0.8}
+{"model": "mistral-large-3:675b", "category": "long_doc", "perf": 0.0}
+{"model": "mistral-large-3:675b", "category": "mock", "perf": 0.8}
+{"model": "mistral-large-3:675b", "category": "reasoning", "perf": 0.0}
+{"model": "mistral-large-3:675b", "category": "review", "perf": 0.0}
+{"model": "mistral-large-3:675b", "category": "schema", "perf": 0.5}
+{"model": "nemotron-3-nano", "category": "agent_tick", "perf": 0.0}
+{"model": "nemotron-3-nano", "category": "debug", "perf": 0.0}
+{"model": "nemotron-3-nano", "category": "delegation", "perf": 0.0}
+{"model": "nemotron-3-nano", "category": "e2e_vision", "perf": 0.0}
+{"model": "nemotron-3-nano", "category": "guard", "perf": 0.6}
+{"model": "nemotron-3-nano", "category": "long_doc", "perf": 0.0}
+{"model": "nemotron-3-nano", "category": "mock", "perf": 0.6}
+{"model": "nemotron-3-nano", "category": "reasoning", "perf": 0.0}
+{"model": "nemotron-3-nano", "category": "review", "perf": 0.0}
+{"model": "nemotron-3-nano", "category": "schema", "perf": 0.0}
+{"model": "nemotron-3-super-120b", "category": "agent_tick", "perf": 0.0}
+{"model": "nemotron-3-super-120b", "category": "debug", "perf": 0.0}
+{"model": "nemotron-3-super-120b", "category": "delegation", "perf": 0.0}
+{"model": "nemotron-3-super-120b", "category": "e2e_vision", "perf": 0.0}
+{"model": "nemotron-3-super-120b", "category": "guard", "perf": 0.65}
+{"model": "nemotron-3-super-120b", "category": "long_doc", "perf": 0.0}
+{"model": "nemotron-3-super-120b", "category": "mock", "perf": 0.72}
+{"model": "nemotron-3-super-120b", "category": "reasoning", "perf": 0.0}
+{"model": "nemotron-3-super-120b", "category": "review", "perf": 0.0}
+{"model": "nemotron-3-super-120b", "category": "schema", "perf": 0.0}
+{"model": "nemotron-3-ultra", "category": "agent_tick", "perf": 0.75}
+{"model": "nemotron-3-ultra", "category": "debug", "perf": 0.5}
+{"model": "nemotron-3-ultra", "category": "delegation", "perf": 0.75}
+{"model": "nemotron-3-ultra", "category": "e2e_vision", "perf": 0.0}
+{"model": "nemotron-3-ultra", "category": "guard", "perf": 0.8}
+{"model": "nemotron-3-ultra", "category": "long_doc", "perf": 0.0}
+{"model": "nemotron-3-ultra", "category": "mock", "perf": 0.78}
+{"model": "nemotron-3-ultra", "category": "reasoning", "perf": 0.0}
+{"model": "nemotron-3-ultra", "category": "review", "perf": 0.0}
+{"model": "nemotron-3-ultra", "category": "schema", "perf": 0.5}
+{"model": "qwen3.6-27b", "category": "agent_tick", "perf": 0.72}
+{"model": "qwen3.6-27b", "category": "debug", "perf": 0.7}
+{"model": "qwen3.6-27b", "category": "delegation", "perf": 0.72}
+{"model": "qwen3.6-27b", "category": "e2e_vision", "perf": 0.3}
+{"model": "qwen3.6-27b", "category": "guard", "perf": 0.7}
+{"model": "qwen3.6-27b", "category": "long_doc", "perf": 0.45}
+{"model": "qwen3.6-27b", "category": "mechanical", "perf": 0.72}
+{"model": "qwen3.6-27b", "category": "mock", "perf": 0.85}
+{"model": "qwen3.6-27b", "category": "reasoning", "perf": 0.65}
+{"model": "qwen3.6-27b", "category": "review", "perf": 0.55}
+{"model": "qwen3.6-27b", "category": "schema", "perf": 0.65}
+{"model": "qwen3.6-35b", "category": "agent_tick", "perf": 0.0}
+{"model": "qwen3.6-35b", "category": "debug", "perf": 0.0}
+{"model": "qwen3.6-35b", "category": "delegation", "perf": 0.0}
+{"model": "qwen3.6-35b", "category": "e2e_vision", "perf": 0.0}
+{"model": "qwen3.6-35b", "category": "guard", "perf": 0.68}
+{"model": "qwen3.6-35b", "category": "long_doc", "perf": 0.0}
+{"model": "qwen3.6-35b", "category": "mock", "perf": 0.84}
+{"model": "qwen3.6-35b", "category": "reasoning", "perf": 0.0}
+{"model": "qwen3.6-35b", "category": "review", "perf": 0.0}
+{"model": "qwen3.6-35b", "category": "schema", "perf": 0.0}
+{"model": "qwen3.8-flash", "category": "agent_tick", "perf": 0.78}
+{"model": "qwen3.8-flash", "category": "code_gen", "perf": 0.85}
+{"model": "qwen3.8-flash", "category": "creative", "perf": 0.45}
+{"model": "qwen3.8-flash", "category": "debug", "perf": 0.8}
+{"model": "qwen3.8-flash", "category": "delegation", "perf": 0.78}
+{"model": "qwen3.8-flash", "category": "e2e_vision", "perf": 0.6}
+{"model": "qwen3.8-flash", "category": "guard", "perf": 0.75}
+{"model": "qwen3.8-flash", "category": "long_doc", "perf": 0.65}
+{"model": "qwen3.8-flash", "category": "long_horizon", "perf": 0.85}
+{"model": "qwen3.8-flash", "category": "mock", "perf": 0.9}
+{"model": "qwen3.8-flash", "category": "reasoning", "perf": 0.75}
+{"model": "qwen3.8-flash", "category": "refactor", "perf": 0.72}
+{"model": "qwen3.8-flash", "category": "review", "perf": 0.65}
+{"model": "qwen3.8-flash", "category": "schema", "perf": 0.55}
+{"model": "qwen3.8-flash", "category": "spec_docs", "perf": 0.72}
+{"model": "qwen3.8-flash", "category": "terminal", "perf": 0.72}
+{"model": "qwen3.8-flash", "category": "test", "perf": 0.72}
+{"model": "qwen3.8-flash", "category": "tool_use", "perf": 0.72}
+{"model": "qwen3.8-flash", "category": "vision", "perf": 0.72}
+{"model": "qwen3.8-max", "category": "agent_tick", "perf": 0.78}
+{"model": "qwen3.8-max", "category": "code_gen", "perf": 0.85}
+{"model": "qwen3.8-max", "category": "debug", "perf": 0.78}
+{"model": "qwen3.8-max", "category": "delegation", "perf": 0.78}
+{"model": "qwen3.8-max", "category": "e2e_vision", "perf": 0.4}
+{"model": "qwen3.8-max", "category": "guard", "perf": 0.72}
+{"model": "qwen3.8-max", "category": "long_doc", "perf": 0.6}
+{"model": "qwen3.8-max", "category": "long_horizon", "perf": 0.72}
+{"model": "qwen3.8-max", "category": "mock", "perf": 0.75}
+{"model": "qwen3.8-max", "category": "reasoning", "perf": 0.75}
+{"model": "qwen3.8-max", "category": "review", "perf": 0.68}
+{"model": "qwen3.8-max", "category": "schema", "perf": 0.75}
+{"model": "step-3.5-flash", "category": "agent_tick", "perf": 0.75}
+{"model": "step-3.5-flash", "category": "code_gen", "perf": 0.72}
+{"model": "step-3.5-flash", "category": "debug", "perf": 0.75}
+{"model": "step-3.5-flash", "category": "delegation", "perf": 0.75}
+{"model": "step-3.5-flash", "category": "e2e_vision", "perf": 0.3}
+{"model": "step-3.5-flash", "category": "guard", "perf": 0.8}
+{"model": "step-3.5-flash", "category": "long_doc", "perf": 0.5}
+{"model": "step-3.5-flash", "category": "long_horizon", "perf": 0.95}
+{"model": "step-3.5-flash", "category": "mock", "perf": 0.82}
+{"model": "step-3.5-flash", "category": "reasoning", "perf": 0.65}
+{"model": "step-3.5-flash", "category": "refactor", "perf": 0.72}
+{"model": "step-3.5-flash", "category": "review", "perf": 0.65}
+{"model": "step-3.5-flash", "category": "schema", "perf": 0.5}
+{"model": "step-3.5-flash", "category": "terminal", "perf": 0.95}
+{"model": "step-3.5-flash", "category": "test", "perf": 0.95}
+{"model": "step-3.5-flash", "category": "tool_use", "perf": 0.72}
+{"model": "step-3.5-flash", "category": "vision", "perf": 0.72}
+{"model": "step-3.7-flash", "category": "agent_tick", "perf": 0.25}
+{"model": "step-3.7-flash", "category": "code_gen", "perf": 0.72}
+{"model": "step-3.7-flash", "category": "debug", "perf": 0.75}
+{"model": "step-3.7-flash", "category": "delegation", "perf": 0.25}
+{"model": "step-3.7-flash", "category": "e2e_vision", "perf": 0.9721}
+{"model": "step-3.7-flash", "category": "guard", "perf": 0.88}
+{"model": "step-3.7-flash", "category": "long_doc", "perf": 0.55}
+{"model": "step-3.7-flash", "category": "long_horizon", "perf": 0.95}
+{"model": "step-3.7-flash", "category": "mock", "perf": 0.85}
+{"model": "step-3.7-flash", "category": "reasoning", "perf": 0.68}
+{"model": "step-3.7-flash", "category": "refactor", "perf": 0.72}
+{"model": "step-3.7-flash", "category": "review", "perf": 0.68}
+{"model": "step-3.7-flash", "category": "schema", "perf": 0.5}
+{"model": "step-3.7-flash", "category": "terminal", "perf": 0.95}
+{"model": "step-3.7-flash", "category": "test", "perf": 0.95}
+{"model": "step-3.7-flash", "category": "tool_use", "perf": 0.72}
+{"model": "step-3.7-flash", "category": "vision", "perf": 0.72}

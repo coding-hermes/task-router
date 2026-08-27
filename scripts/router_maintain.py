@@ -391,9 +391,9 @@ def step_export(dry_run):
             continue
         shutil.copyfile(rpath, tpath)
         copied.append(t)
-    # sidecar tables (model_catalog / model_notes / plan_terms) — text-only
+    # sidecar tables (model_catalog / model_notes / plan_terms / temporary_discounts) — text-only
     # metadata written by modelsdev/pricing/research agents; mirrored to ns.
-    for t in ('model_catalog', 'model_notes', 'plan_terms'):
+    for t in ('model_catalog', 'model_notes', 'plan_terms', 'temporary_discounts'):
         src = f'{DATA_DIR}/{t}.jsonl'
         if not os.path.exists(src):
             continue

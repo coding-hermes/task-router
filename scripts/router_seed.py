@@ -42,7 +42,8 @@ BASE_COLUMNS = {
                ('perf_delegation', 'DOUBLE'), ('perf_guard', 'DOUBLE'),
                ('perf_mock', 'DOUBLE'), ('perf_reasoning', 'DOUBLE'),
                ('valid_from', 'DATE'), ('valid_to', 'DATE'), ('archive', 'BOOLEAN'),
-               ('token_factor', 'DOUBLE')],
+               ('token_factor', 'DOUBLE'),
+               ('disabled', 'BOOLEAN'), ('disabled_reason', 'VARCHAR')],
     'benchmarks': [('model', 'VARCHAR'), ('category', 'VARCHAR'), ('score', 'DOUBLE'),
                    ('max_score', 'DOUBLE'), ('source', 'VARCHAR'), ('valid_from', 'DATE')],
     'archetypes': [('id', 'VARCHAR'), ('bar', 'DOUBLE'), ('skill_levels', 'VARCHAR'),
@@ -112,18 +113,23 @@ lv = [(-5,'-----','q01'),(-4,'----','q05'),(-3,'---','q10'),(-2,'--','q20'),(-1,
       (0,'0','q50'),(1,'+','q65'),(2,'++','q80'),(3,'+++','q90'),(4,'++++','q95'),(5,'+++++','q99')]
 con.executemany("INSERT INTO level_defs VALUES (?,?,?)", lv)
 
-# ---------- 2. model_perf: existing 10 cats from perf_* columns ---------------
+# ---------- 2. model_perf: metrics ONCE PER MODEL (Bane 2026-08-27) ----------
+# Evidence describes the MODEL (weights), not the provider lane. A model
+# served by N providers has ONE perf row per category; lanes inherit the same
+# tier. Per-provider lane disabling is an explicit opt-in (models.disabled +
+# disabled_reason), never the default.
 con.execute("DROP TABLE IF EXISTS model_perf")
 con.execute("""
 CREATE TABLE model_perf AS
-SELECT provider, model, replace(category,'perf_','') AS category, perf
-FROM (UNPIVOT (SELECT provider, model, perf_agent_tick, perf_long_doc, perf_debug, perf_schema,
+SELECT model, replace(category, 'perf_', '') AS category, max(perf) AS perf
+FROM (UNPIVOT (SELECT model, perf_agent_tick, perf_long_doc, perf_debug, perf_schema,
                       perf_e2e_vision, perf_review, perf_delegation, perf_guard, perf_mock, perf_reasoning
                FROM models WHERE valid_to IS NULL AND archive = false)
       ON perf_agent_tick, perf_long_doc, perf_debug, perf_schema,
          perf_e2e_vision, perf_review, perf_delegation, perf_guard, perf_mock, perf_reasoning
       INTO NAME category VALUE perf)
 WHERE perf IS NOT NULL
+GROUP BY model, category
 """)
 
 # ---------- 3. benchmark overlays for NEW categories --------------------------
@@ -362,34 +368,31 @@ def apply_quality_estimates():
     replaced - surveyed mid values are preserved. Returns rows updated."""
     n = 0
     for name, (g, m, ml) in QUALITY_ESTIMATES.items():
-        pairs = con.execute(
-            "SELECT provider, model FROM models WHERE model = ? AND valid_to IS NULL AND archive = false",
-            [name]).fetchall()
-        for prov, model in pairs:
-            for cat, v in (('guard', g), ('mock', m), ('multilingual', ml)):
-                if v is None:
-                    continue
-                cur = con.execute(
-                    "SELECT perf FROM model_perf WHERE provider=? AND model=? AND category=?",
-                    [prov, model, cat]).fetchone()
-                if not cur:
-                    continue
-                degenerate = (cat in ('guard', 'mock') and cur[0] in (0.0, 1.0)) or \
-                             (cat == 'multilingual' and abs(cur[0] - 0.50) < 0.001)
-                if degenerate:
-                    con.execute(
-                        "UPDATE model_perf SET perf=? WHERE provider=? AND model=? AND category=?",
-                        [v, prov, model, cat])
-                    n += 1
+        for cat, v in (('guard', g), ('mock', m), ('multilingual', ml)):
+            if v is None:
+                continue
+            cur = con.execute(
+                "SELECT perf FROM model_perf WHERE model=? AND category=?",
+                [name, cat]).fetchone()
+            if not cur:
+                continue
+            degenerate = (cat in ('guard', 'mock') and cur[0] in (0.0, 1.0)) or \
+                         (cat == 'multilingual' and abs(cur[0] - 0.50) < 0.001)
+            if degenerate:
+                con.execute(
+                    "UPDATE model_perf SET perf=? WHERE model=? AND category=?",
+                    [v, name, cat])
+                n += 1
     return n
 
 def seed_estimates():
-    """Insert profile-tag estimates for NEW categories (skip cats already in model_perf)."""
+    """Insert profile-tag estimates for NEW categories (skip cats already in model_perf).
+    Evidence is per MODEL — one row per (model, category), never per lane."""
     new_cats = set(CATS) - set(OLD)
-    # live models only — archived rows (e.g. opencode-go/ox-alpha-free) must not
-    # leak into model_perf via the neutral fill (TR-008)
-    valid_pairs = set(con.execute(
-        "SELECT provider, model FROM models WHERE valid_to IS NULL AND archive = false").fetchall())
+    # live models only — a model with no live lane (e.g. archived rows like
+    # opencode-go/ox-alpha-free) must not leak into model_perf (TR-008)
+    live_models = {r[0] for r in con.execute(
+        "SELECT DISTINCT model FROM models WHERE valid_to IS NULL AND archive = false").fetchall()}
     n = 0
     for pname, pairs in PROFILE_MODELS.items():
         tags = PROFILE_TAGS.get(pname, {})
@@ -398,16 +401,16 @@ def seed_estimates():
             for c in TAG2CAT.get(tag, []):
                 taglevels[c] = max(taglevels.get(c, 0), TAG2PERF.get(lvl, 0.60))
         for prov, model in pairs:
-            if (prov, model) not in valid_pairs:
+            if model not in live_models:
                 continue  # profile references a model the registry doesn't serve
             for c in new_cats:
                 v = taglevels.get(c)
                 if v is None:
                     continue
-                if con.execute("SELECT 1 FROM model_perf WHERE provider=? AND model=? AND category=?",
-                               [prov, model, c]).fetchone():
+                if con.execute("SELECT 1 FROM model_perf WHERE model=? AND category=?",
+                               [model, c]).fetchone():
                     continue
-                con.execute("INSERT INTO model_perf VALUES (?,?,?,?)", [prov, model, c, v])
+                con.execute("INSERT INTO model_perf VALUES (?,?,?)", [model, c, v])
                 n += 1
     # BLANK default (Bane 2026-08-27): a model with nothing set for a category
     # stays BLANK — no fabricated plus/minus, no 0.50 neutral fill. The resolver
@@ -419,16 +422,14 @@ def apply_overlay():
     """Benchmark overlay: set new-category perfs from benchmark rel scores (only where estimate is neutral 0.50)."""
     n = 0
     for model, cat, rel in overlay:
-        pairs = model_ids.get(model.lower().replace('cline-pass', 'clinepass').replace('ollama-cloud', 'ollama').replace('openai-codex', 'openai'), [])
-        if not pairs:
-            continue
-        for prov, m in pairs:
-            cur = con.execute("SELECT perf FROM model_perf WHERE provider=? AND model=? AND category=?",
-                              [prov, m, cat]).fetchone()
-            if cur and abs(cur[0] - 0.50) < 0.001:
-                con.execute("UPDATE model_perf SET perf=? WHERE provider=? AND model=? AND category=?",
-                            [rel, prov, m, cat])
-                n += 1
+        # benchmark names may differ in case from registry names (MiniMax-M3
+        # vs minimax-m3) — match case-insensitively
+        cur = con.execute("SELECT perf FROM model_perf WHERE lower(model)=? AND category=?",
+                          [model.lower(), cat]).fetchone()
+        if cur and abs(cur[0] - 0.50) < 0.001:
+            con.execute("UPDATE model_perf SET perf=? WHERE lower(model)=? AND category=?",
+                        [rel, model.lower(), cat])
+            n += 1
     return n
 
 seed_estimates()
@@ -436,16 +437,20 @@ apply_overlay()
 n_est = apply_quality_estimates()
 print('quality estimate rows updated (TR-002):', n_est)
 
-# dedupe: benchmark overlays may have inserted the same (provider, model, category) twice
+# dedupe: benchmark overlays may have inserted the same (model, category) twice
 con.execute("DROP TABLE IF EXISTS model_perf_dedup")
 con.execute("""
 CREATE TABLE model_perf_dedup AS
-SELECT provider, model, category, max(perf) AS perf FROM model_perf GROUP BY 1,2,3""")
+SELECT model, category, max(perf) AS perf FROM model_perf GROUP BY 1,2""")
 con.execute("DROP TABLE model_perf")
 con.execute("ALTER TABLE model_perf_dedup RENAME TO model_perf")
 
 # ---------- 5. category_levels + model_tier -----------------------------------
 con.execute("DROP TABLE IF EXISTS cat_q")
+# quantiles over UNIQUE models (dedupe lanes): the same weights served by N
+# providers must not count N times in the scale (2026-08-27: clinepass added
+# 6 lanes of deepseek-v4-flash -> duplicated evidence shifted tool_use q90 and
+# silently dropped the fleet's workhorses from tier 5 to 4).
 con.execute("""
 CREATE TABLE cat_q AS
 SELECT category,
@@ -455,7 +460,9 @@ SELECT category,
        quantile_cont(perf, 0.65) AS q65, quantile_cont(perf, 0.80) AS q80,
        quantile_cont(perf, 0.90) AS q90, quantile_cont(perf, 0.95) AS q95,
        quantile_cont(perf, 0.99) AS q99
-FROM model_perf GROUP BY category""")
+FROM (SELECT category, model, max(perf) AS perf
+      FROM model_perf GROUP BY category, model)
+GROUP BY category""")
 con.execute("DROP TABLE IF EXISTS category_levels")
 con.execute("""
 CREATE TABLE category_levels AS
@@ -466,10 +473,10 @@ JOIN (UNPIVOT cat_q ON q01, q05, q10, q20, q35, q50, q65, q80, q90, q95, q99
 con.execute("DROP TABLE IF EXISTS model_tier")
 con.execute("""
 CREATE TABLE model_tier AS
-SELECT mp.provider, mp.model, mp.category, mp.perf, max(cl.level) AS tier
+SELECT mp.model, mp.category, mp.perf, max(cl.level) AS tier
 FROM model_perf mp JOIN category_levels cl
   ON cl.category = mp.category AND cl.min_perf <= mp.perf
-GROUP BY mp.provider, mp.model, mp.category, mp.perf""")
+GROUP BY mp.model, mp.category, mp.perf""")
 # BLANK default (Bane 2026-08-27): models without a perf row in a category have
 # NO tier row — the resolver treats a missing tier as -1, never 0 and never
 # an inflated neutral.
@@ -490,9 +497,20 @@ con.execute("CREATE TABLE task_profile_requirements (task_id VARCHAR, category V
 # (AC3). See docs/category-data-quality.md.
 PROFILES = {
     'P0_FORE': ("Default foreman: board ops, audit, dispatch, gap-free reports",
-                {'agent_tick': -1, 'long_doc': -1, 'debug': -2, 'reasoning': -1,
-                 'delegation': -1, 'terminal': 0, 'tool_use': 0, 'guard': -3,
-                 'e2e_vision': -2, 'vision': -3, 'creative': -3, 'mock': -3}),
+                # 2026-08-27 Bane design: capabilities drive the chain — pass
+                # what the foreman task needs, router returns (model, provider)
+                # pairs that clear ALL bars, ordered by normalized price.
+                # Levels = min tier across the intended workhorse set
+                # {glm-5.3-flash, glm-5.2, deepseek-v4-flash:0731, kimi-k2.7-code,
+                # kimi-k3} per category (TR-002 recipe, honest -1-blank scale):
+                # excludes mimo-v2.5 (terminal -2), minimax-m3 / deepseek-v4-pro
+                # (agent_tick -1), gpt-oss (below bars); keeps the fleet's
+                # agentic workhorses in chain.
+                {'agent_tick': 2, 'tool_use': 5, 'delegation': 2,
+                 'reasoning': 0, 'long_doc': 0, 'debug': -2,
+                 'terminal': -1, 'review': -1, 'schema': 1, 'code_gen': -1,
+                 'creative': -3, 'vision': -3, 'e2e_vision': -2,
+                 'mock': -3, 'guard': -3}),
     'P5_VISION_E2E': ("Frontend E2E / visual QA",
                       {'e2e_vision': 1, 'vision': 1, 'terminal': 0, 'debug': -2,
                        'reasoning': -1, 'long_doc': 0, 'creative': -3}),
@@ -548,12 +566,12 @@ SELECT r.task_id, m.provider, m.model, m.normalized_price, m.token_factor, m.pla
 FROM models m
 JOIN task_profiles tp ON true
 JOIN (SELECT DISTINCT task_id FROM task_profile_requirements) r ON r.task_id = tp.id
-WHERE m.valid_to IS NULL AND m.archive = false
+WHERE m.valid_to IS NULL AND m.archive = false AND NOT m.disabled
   AND NOT EXISTS (
         SELECT 1 FROM task_profile_requirements rr
         WHERE rr.task_id = r.task_id
           AND NOT EXISTS (SELECT 1 FROM model_tier t
-                          WHERE t.provider = m.provider AND t.model = m.model
+                          WHERE t.model = m.model
                             AND t.category = rr.category AND t.tier >= rr.level))""")
 con.execute("""
 CREATE VIEW v_task_chain AS
@@ -564,7 +582,7 @@ SELECT task_id, provider, model, normalized_price, perf_sum, data_class,
 FROM (
   SELECT e.task_id, e.provider, e.model, e.normalized_price, e.token_factor, e.plan_tier, e.data_class,
          (SELECT sum(t.tier) FROM model_tier t
-          WHERE t.provider = e.provider AND t.model = e.model) AS perf_sum
+          WHERE t.model = e.model) AS perf_sum
   FROM v_task_eligible e
 ) WHERE normalized_price IS NOT NULL""")
 

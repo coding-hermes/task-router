@@ -122,7 +122,7 @@ def test_chain_invariants_per_profile(monkeypatch, tmp_path, pid):
     reqs = [(x["category"], x["level"])
             for x in tables["task_profile_requirements"] if x["task_id"] == pid]
     assert reqs, f"{pid}: profile must have requirements"
-    tier = {(t["provider"], t["model"], t["category"]): t["tier"]
+    tier = {(t["model"], t["category"]): t["tier"]
             for t in tables["model_tier"]}
     prices = {}
     for m in tables["models"]:
@@ -142,7 +142,7 @@ def test_chain_invariants_per_profile(monkeypatch, tmp_path, pid):
         # dominance: every requirement must be cleared — a tier row >= lvl,
         # OR (BLANK default, Bane 2026-08-27) no tier row with lvl <= -1
         for cat, lvl in reqs:
-            t = tier.get((e["provider"], e["model"], cat))
+            t = tier.get((e["model"], cat))
             if t is None:
                 assert lvl <= -1, f"{pid}: {pair} BLANK tier for {cat} cannot clear {lvl}"
             else:
@@ -158,7 +158,7 @@ def test_chain_invariants_per_profile(monkeypatch, tmp_path, pid):
 @pytest.mark.parametrize("pid,head", [
     ("P0_FORE", "ollama-cloud/deepseek-v4-flash"),
     ("P1_CODING", "opencode-go/mimo-v2.5"),
-    ("P2_AGENTIC", "ollama-cloud/kimi-k3"),
+    ("P2_AGENTIC", "ollama-cloud/kimi-k2.7-code"),
     ("P4_SECURITY", "ollama-cloud/glm-5.2"),
 ])
 def test_golden_fixed_point_heads(monkeypatch, tmp_path, pid, head):
@@ -258,7 +258,7 @@ def _mini_registry(models, reqs, profile_caps=None):
                     "token_factor": 1.0, "plan_tier": pt, "data_class": "zdr",
                     "valid_to": None, "archive": False}
                    for p, m, pr, pt in models],
-        "model_tier": [{"provider": p, "model": m, "category": c, "tier": 5}
+        "model_tier": [{"model": m, "category": c, "tier": 5}
                        for p, m, _, _ in models for c in cats],
         "task_profiles": [{"id": "TP", "title": "t", "created_at": None,
                            "max_consecutive_per_provider": None, "max_total_per_provider": None}],
@@ -301,30 +301,32 @@ def test_registry_integrity():
     core = {"providers", "models", "archetypes", "benchmarks", "projects",
             "level_defs", "category_levels", "model_perf", "model_tier",
             "task_profiles", "task_profile_requirements"}
-    sidecars = {"model_catalog", "model_notes", "plan_terms"}
+    sidecars = {"model_catalog", "model_notes", "plan_terms", "temporary_discounts"}
     assert core <= set(tables), f"missing core tables: {core - set(tables)}"
     assert set(tables) - core <= sidecars, f"unexpected tables: {set(tables) - core - sidecars}"
     models = tables["models"]
     active = [m for m in models if not m.get("archive") and m.get("valid_to") is None]
     assert len(models) >= 50
     assert len(active) >= 50
-    # model_perf: only EVIDENCED (provider, model, category) rows — BLANK
-    # default (Bane 2026-08-27): models with no data have NO perf/tier rows,
-    # resolved as -1 at chain time. No orphans, no fabricated cells.
+    # model_perf: only EVIDENCED (model, category) rows — metrics ONCE PER
+    # MODEL (Bane 2026-08-27), never per provider lane; BLANK default: models
+    # with no data have NO perf/tier rows, resolved as -1 at chain time.
     perfs = tables["model_perf"]
     cats_in_perf = {p["category"] for p in perfs}
     assert cats_in_perf <= ALL_CATS, cats_in_perf - ALL_CATS
     assert len(cats_in_perf) >= 20, f"only {len(cats_in_perf)} categories have evidence"
-    per_key = {(p["provider"], p["model"]) for p in perfs}
-    act_key = {(m["provider"], m["model"]) for m in active}
+    per_key = {p["model"] for p in perfs}
+    act_key = {m["model"] for m in active}
     assert per_key <= act_key, f"orphan perf rows: {per_key - act_key}"
     # every model with ANY evidence must have it consistently (no dup pairs)
-    assert len(perfs) == len({(p["provider"], p["model"], p["category"]) for p in perfs}), "dup perf cells"
-    # model_tier: only known pairs/categories, levels within -5..+5
+    assert len(perfs) == len({(p["model"], p["category"]) for p in perfs}), "dup perf cells"
+    # model_tier: only known models/categories, levels within -5..+5
     tier = tables["model_tier"]
-    assert all((t["provider"], t["model"]) in act_key for t in tier)
+    assert all(t["model"] in act_key for t in tier)
     assert all(t["category"] in ALL_CATS for t in tier)
     assert all(-5 <= t["tier"] <= 5 for t in tier)
+    # lane-disable feature: flag exists and defaults off
+    assert all(not m.get("disabled", False) for m in active), "disabled lanes must be explicit + rare"
     # profiles + requirements
     profs = {p["id"] for p in tables["task_profiles"]}
     assert len(profs) == 8

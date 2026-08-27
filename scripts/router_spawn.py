@@ -252,18 +252,23 @@ def _build_chain(tables, reqs, limit=15):
     view's tie-breaks). Returns rows [(hop, provider, model, price, dclass)].
     """
     models = tables.get('models') or []
+    # Evidence is per MODEL (Bane 2026-08-27): tiers keyed by model name only;
+    # every provider lane of the same weights inherits the same tier. A lane
+    # with a bad deployment is disabled EXPLICITLY via models.disabled.
     tiers = {}
     for r in tables.get('model_tier') or []:
-        tiers.setdefault((r.get('provider'), r.get('model')), {})[r.get('category')] = r.get('tier')
+        tiers.setdefault(r.get('model'), {})[r.get('category')] = r.get('tier')
     eligible = []
     for m in models:
         if m.get('archive') or m.get('valid_to') is not None:
             continue
+        if m.get('disabled'):
+            continue  # explicit per-provider lane disable (bad deployment)
         price = m.get('normalized_price')
         if price is None:
             continue
         prov, model = m.get('provider'), m.get('model')
-        mt = tiers.get((prov, model)) or {}
+        mt = tiers.get(model) or {}
         # BLANK default (Bane 2026-08-27): a missing tier = -1 (no data = slightly
         # below median — clears lenient bars, fails 0 and up). NEVER 0, never an
         # inflated neutral.

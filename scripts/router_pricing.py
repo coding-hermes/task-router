@@ -17,13 +17,23 @@ Sources of truth, in order:
        per_minute      -> normalized = rate_per_minute / tokens_per_minute * 1e6,
                           evidence 'normalized:sub-minute'
        official-points -> untouched (formula rows already carry the price)
-  3. Providers with UNKNOWN terms keep NULL prices and are reported as
+  2. flat_subscription — a fixed monthly/period fee buys INCLUDED models at a
+     usage multiplier vs the standard API rate (Cline Pass $9.99/mo, 2-5x usage
+     per docs.cline.bot). effective $/M = models.dev blended sticker / multiplier.
+     Models outside the included list are PAYG (unknown prices -> gap).
+  3. temporary_discounts.jsonl — active discounts applied on top of the base
+     price: {provider, model ('*' = provider-wide), discount_type
+     ('percent'|'free'), value, valid_from, valid_to (null = open), source, note}.
+     Expired rows (valid_to < today) are ignored; expiring rows are reported.
+     Evidence tag gains '+discount' and the discount window is stamped on the row.
+  4. Providers with UNKNOWN terms keep NULL prices and are reported as
      pricing-gaps — the research agent fills plan_terms.jsonl, the next run
      prices them (the self-improving loop).
 
 CLI: router_pricing.py [--dry-run] [--json]
 """
 import argparse
+import datetime
 import json
 import os
 import sys
@@ -55,6 +65,38 @@ def normalize(dry_run):
     models = _rows('models')
     terms = {t['provider']: t for t in _rows('plan_terms')}
     catalog = {(c['provider'], c['model']): c for c in _rows('model_catalog')}
+    discounts = _rows('temporary_discounts')
+    today = datetime.date.today().isoformat()
+
+    def active_discounts(provider, model):
+        """Yield discount rows currently in effect for (provider, model)."""
+        for d in discounts:
+            if d.get('provider') != provider:
+                continue
+            if d.get('model') not in ('*', model):
+                continue
+            vf = d.get('valid_from')
+            vt = d.get('valid_to')
+            if vf and vf > today:
+                continue
+            if vt and vt < today:
+                continue
+            yield d
+
+    def apply_discount(price, provider, model):
+        """Apply active discounts to a base price. Returns (effective, notes)."""
+        eff, notes = price, []
+        for d in active_discounts(provider, model):
+            typ, val = d.get('discount_type'), d.get('value')
+            if typ == 'free' or (typ == 'percent' and float(val) >= 1.0):
+                eff, notes = 0.0, ['free-lane']
+            elif typ == 'percent':
+                eff = eff * (1.0 - float(val))
+                notes.append(f"{float(val)*100:.0f}% off")
+            elif typ == 'absolute':
+                eff = max(0.0, eff - float(val))
+                notes.append(f"-${val}")
+        return round(eff, 4), notes
 
     priced, gaps = [], []
     for m in models:
@@ -92,11 +134,45 @@ def normalize(dry_run):
                 continue
             price = round(float(rate) / float(tpm) * 1e6, 4)
             evidence = 'normalized:sub-minute'
+        elif model == 'flat_subscription':
+            base_name = m['model'].replace(':free', '')
+            included = t.get('included_models') or []
+            if base_name not in included:
+                gaps.append((m['provider'], m['model'], 'outside flat-plan included list (PAYG)'))
+                continue
+            cost_in = (cat or {}).get('cost_input')
+            cost_out = (cat or {}).get('cost_output')
+            sticker_src = m['provider']
+            if cost_in is None or cost_out is None:
+                # same weights, other provider's models.dev sticker = the standard
+                # API rate the flat plan multiplies (docs.cline.bot "2-5x usage
+                # vs standard API rate")
+                for (cp, cm), cr in catalog.items():
+                    if cm == base_name and cr.get('cost_input') is not None and cr.get('cost_output') is not None:
+                        cost_in, cost_out = cr['cost_input'], cr['cost_output']
+                        sticker_src = cp
+                        break
+                else:
+                    gaps.append((m['provider'], m['model'], 'included but no sticker for lane math'))
+                    continue
+            mult = float(t.get('usage_multiplier') or 1.0)
+            price = round((float(cost_in) + float(cost_out)) / 2.0 / mult, 4)
+            evidence = f'normalized:flat-sub({mult:.1f}x lane)'
+            if sticker_src != m['provider']:
+                evidence += f' sticker@{sticker_src}'
         else:
             gaps.append((m['provider'], m['model'], f'unknown billing_model {model!r}'))
             continue
-        priced.append((m['provider'], m['model'], price, evidence))
-        m['normalized_price'] = price
+
+        # temporary discounts on top of the base price
+        eff, dnotes = apply_discount(price, m['provider'], m['model'])
+        if dnotes:
+            evidence = evidence + '+discount(' + ','.join(dnotes) + ')'
+            vt = [d.get('valid_to') for d in active_discounts(m['provider'], m['model']) if d.get('valid_to')]
+            if vt:
+                m['discount_valid_to'] = min(vt)
+        priced.append((m['provider'], m['model'], eff, evidence))
+        m['normalized_price'] = eff
         m['price_evidence'] = evidence
 
     if dry_run:

@@ -60,7 +60,7 @@ def assess(tables):
         bench_by.setdefault(b['model'], []).append(b)
     tier_by = {}
     for t in tier:
-        tier_by.setdefault((t['provider'], t['model']), []).append(t)
+        tier_by.setdefault(t['model'], []).append(t)
     cat_by = {(c['provider'], c['model']) for c in cat}
     notes_by = {(n['provider'], n['model']) for n in notes}
 
@@ -82,7 +82,7 @@ def assess(tables):
                                         'perf_reasoning')]
         if not any(v is not None for v in perf_cols):
             missing.append('perf')
-        n_tier = len(tier_by.get((p, name), []))
+        n_tier = len(tier_by.get(name, []))
         # tiers gap: < HALF the taxonomy evidenced (BLANK default -1 makes
         # <24 normal; <12 evidenced cats = genuinely thin — 2026-08-27)
         if n_tier < CATS // 2:

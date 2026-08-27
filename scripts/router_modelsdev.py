@@ -39,12 +39,12 @@ CACHE = os.environ.get('MODELSDEV_CACHE', os.path.expanduser('~/.chimera/models-
 MODELSDEV_URL = 'https://models.dev/api.json'
 UA = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36'}
 
-# our provider id -> models.dev provider id (None = reseller/custom, not on models.dev)
+# our provider id -> models.dev provider id (None = custom/private, not on models.dev)
 PROVIDER_MAP = {
     'ollama-cloud': 'ollama-cloud',
-    'opencode-go': None,      # reseller of glm/qwen/deepseek families
-    'clinepass': None,        # reseller (claude/glm/kimi/deepseek...)
-    'synthetic': None,        # custom aggregator
+    'opencode-go': 'opencode-go',  # IS on models.dev (31 models: hy3, mimo, qwen3.7...)
+    'clinepass': None,             # custom reseller lane (not on models.dev)
+    'synthetic': 'synthetic',      # IS on models.dev (8 hf: models)
     'zai-glm': 'zai',
     'neuralwatt': 'neuralwatt',
     'groq': 'groq',
@@ -54,7 +54,7 @@ PROVIDER_MAP = {
     'minimax': 'minimax',
     'stepfun': 'stepfun',
     'grok-build': 'xai',
-    'crof': None,             # custom reseller
+    'crof': 'crof',                # IS on models.dev (21 models)
 }
 
 # catalog-only filter: skip niche/audio/tiny models the fleet will never route

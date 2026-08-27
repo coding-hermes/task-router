@@ -51,7 +51,7 @@ def _mk_db(tmp_path, models):
         for cat in CATS:
             # tier high enough to clear any requirement we seed
             reg["tables"]["model_tier"].append(
-                {"provider": prov, "model": model, "category": cat, "tier": 5})
+                {"model": model, "category": cat, "tier": 5})
     reg["tables"]["task_profiles"].append({
         "id": "FIXPROF", "title": "fixture", "created_at": None,
         "max_consecutive_per_provider": None, "max_total_per_provider": None})

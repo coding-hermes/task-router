@@ -17,7 +17,10 @@ Calibration gotchas (TR-001, live-verified 2026-08-27):
 - Fast 401/403/400 on a ping = auth/endpoint/model misconfig (expired JWT,
   exhausted quota, wrong base_url/model id) — a calibrated result, not downtime.
   429 = real capacity pressure; 5xx = genuine provider issue.
-- clinepass model ids carry the cline-pass/ prefix (e.g. cline-pass/deepseek-v4-flash).
+- clinepass API-callable ids use the cline-pass/ prefix; the /api/v1/models list
+  shows org/model ids that are Cline-product-surface ONLY (403 on raw API).
+  Probe model = cline-pass/minimax-m3 (flat-plan included; the deepseek-v4-flash
+  lane returns flaky 500 "empty response content" — 2026-08-27). max_tokens > 1.
 - zai-glm base is https://api.z.ai/api/coding/paas/v4 (coding endpoint).
 - openai-codex authenticates with OPENAI_ACCESS_TOKEN (Bearer JWT), not an API key.
 """
@@ -47,7 +50,7 @@ def load_env():
 PROVIDERS = {
     'deepseek':        ('https://api.deepseek.com/v1', 'DEEPSEEK_API_KEY', 'deepseek-v4-flash'),
     'deepseek-foreman':('https://api.deepseek.com/v1', 'DEEPSEEK_FOREMAN_API_KEY', 'deepseek-v4-flash'),
-    'clinepass':       ('https://api.cline.bot/api/v1', 'CLINEPASS_API_KEY', 'cline-pass/deepseek-v4-flash'),
+    'clinepass':       ('https://api.cline.bot/api/v1', 'CLINEPASS_API_KEY', 'cline-pass/minimax-m3'),
     'ollama-cloud':    ('https://ollama.com/v1', 'OLLAMA_CLOUD_API_KEY', 'glm-5.2'),
     'kimi-for-coding': ('https://api.kimi.com/coding/v1', 'KIMI_API_KEY', 'kimi-for-coding'),
     'neuralwatt':      ('https://api.neuralwatt.com/v1', 'NEURALWATT_API_KEY', 'deepseek-v4-flash'),
@@ -77,7 +80,7 @@ def ping(base, key, model):
         return {'status': 'SKIP', 'error': 'no endpoint configured'}
     body = json.dumps({'model': model,
                        'messages': [{'role': 'user', 'content': 'ping'}],
-                       'max_tokens': 1, 'stream': False}).encode()
+                       'max_tokens': 16, 'stream': False}).encode()
     req = urllib.request.Request(base + '/chat/completions', data=body,
                                  headers={'Content-Type': 'application/json',
                                           'Authorization': f'Bearer {key}',
