@@ -426,6 +426,88 @@ def test_fallback_skipped_when_primary_chain_open(monkeypatch, tmp_path):
     assert not any("FALLBACK" in w for w in r["gate_reasons"])
 
 
+def test_subscription_normalized_beats_payg_sticker():
+    """SUBSCRIPTION-FIRST DOCTRINE (Bane, repeated 2026-08-27): the whole
+    point of a sub is the normalized price being CHEAPER than the PAYG
+    sticker — 'why get a sub if the price is going to be the same as the
+    on-demand payg, better off paying for what you need'. For every
+    flat_subscription provider, each active priced lane must be cheaper than
+    its blended PAYG sticker (catalog cost). If this fails, the multiplier
+    / pool assumption is wrong — redo the pricing, don't weaken the test."""
+    tables = _load_tables()
+    terms = {t["provider"]: t for t in tables["plan_terms"]
+             if t.get("billing_model") == "flat_subscription"}
+    assert terms, "no flat_subscription plan_terms rows — doctrine untested"
+    cat = {}
+    for c in tables.get("model_catalog") or []:
+        if c.get("cost_input") is not None and c.get("cost_output") is not None:
+            cat[(c.get("provider"), c.get("model"))] = (
+                (c["cost_input"] + c["cost_output"]) / 2.0)
+    checked = 0
+    for m in tables["models"]:
+        if m.get("archive") or m.get("valid_to") is not None or m.get("disabled"):
+            continue
+        if m["provider"] not in terms:
+            continue
+        price = m.get("normalized_price")
+        if price is None:
+            continue  # documented-gap lanes covered by the next test
+        sticker = cat.get((m["provider"], m["model"]))
+        if sticker is None:
+            continue
+        assert price < sticker, (
+            f"sub lane NOT cheaper than PAYG: {m['provider']}/{m['model']} "
+            f"normalized ${price} >= sticker ${sticker:.3f} — sub is pointless; "
+            f"fix the multiplier/pool assumption in plan_terms.jsonl")
+        checked += 1
+    assert checked >= 10, f"only {checked} sub lanes verified — doctrine under-tested"
+
+
+def test_unpriced_sub_lanes_are_documented_gaps():
+    """NULL on a sub provider is ONLY allowed as a DOCUMENTED gap (Bane
+    2026-08-27): every active unpriced lane of a flat_subscription provider
+    must have a model_notes row (provider-wide '*' or per-model) explaining
+    why — never a silent NULL pretending the sub doesn't exist."""
+    tables = _load_tables()
+    terms = {t["provider"] for t in tables["plan_terms"]
+             if t.get("billing_model") == "flat_subscription"}
+    notes = set()
+    for n in tables.get("model_notes") or []:
+        if n.get("model") == "*":
+            notes.add(n.get("provider"))
+        else:
+            notes.add((n.get("provider"), n.get("model")))
+    silent = []
+    for m in tables["models"]:
+        if m.get("archive") or m.get("valid_to") is not None or m.get("disabled"):
+            continue
+        if m["provider"] not in terms or m.get("normalized_price") is not None:
+            continue
+        if m["provider"] not in notes and (m["provider"], m["model"]) not in notes:
+            silent.append(f"{m['provider']}/{m['model']}")
+    assert not silent, (
+        f"silent NULL on sub providers — each needs a model_notes gap row: {silent}"
+    )
+
+
+def test_p0_fore_has_no_tool_use_bar():
+    """BANE 2026-08-27 (2nd correction, regime lock): tool_use REMOVED from
+    P0_FORE — tool-calling is table stakes in 2026; the foreman profile must
+    not gate on a cliff-artifact category. If this ever regresses, the
+    committed task_profile_requirements.jsonl was re-exported from a stale
+    seed run."""
+    tables = _load_tables()
+    p0 = [(r["category"], r["level"]) for r in tables["task_profile_requirements"]
+          if r["task_id"] == "P0_FORE"]
+    assert all(cat != "tool_use" for cat, _ in p0), (
+        "P0_FORE must NOT require tool_use (Bane 2nd correction) — re-seed "
+        "from current router_seed.py PROFILES"
+    )
+    # sanity: the profile still has its core bars (not accidentally emptied)
+    cats = {c for c, _ in p0}
+    assert {"agent_tick", "delegation", "reasoning", "schema"} <= cats
+
+
 # ------------------------------------------ fresh-clone stdlib fallback (TR-010) --
 
 def test_stdlib_fallback_when_registry_missing(monkeypatch, tmp_path):
