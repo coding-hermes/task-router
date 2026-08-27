@@ -10,6 +10,9 @@ set -uo pipefail
 cd /home/kara/task-router || exit 1
 PY="${PYTHON:-$HOME/.hermes/venvs/board/bin/python3}"
 
+echo "== learning memory (duckbrain task-router ns: doctrine + providers + lessons) =="
+"$PY" scripts/router_learn.py dump 2>&1 | grep -v "Cleared stale" | head -60
+echo
 echo "== clinepass API sync (catalog + plans + discounts) =="
 "$PY" scripts/router_clinepass.py sync 2>&1 | tail -6
 echo
