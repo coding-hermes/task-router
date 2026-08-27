@@ -242,7 +242,7 @@ def _load_registry():
         return {}
 
 
-def _build_chain(tables, reqs, limit=15):
+def _build_chain(tables, reqs, limit=30):
     """Replicates v_task_chain exactly, in pure python.
 
     reqs = [(category, level), ...] (profile requirements or ad-hoc).
@@ -287,7 +287,7 @@ def _build_chain(tables, reqs, limit=15):
             for i, m in enumerate(eligible[:limit])]
 
 
-def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=15):
+def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=30):
     tables = _load_registry()
     projects = {r.get('id'): r for r in tables.get('projects') or []}
     profiles = {r.get('id'): r for r in tables.get('task_profiles') or []}
