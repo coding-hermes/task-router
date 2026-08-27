@@ -133,10 +133,23 @@ def normalize(dry_run):
         elif model == 'per_request':
             cost = t.get('plan_cost'); reqs = t.get('requests'); tpr = t.get('tokens_per_request')
             if not (cost and reqs and tpr):
-                gaps.append((m['provider'], m['model'], 'incomplete per_request terms'))
-                continue
-            price = round(float(cost) / float(reqs) / float(tpr) * 1e6, 4)
-            evidence = 'normalized:sub-bucket'
+                # budget-unknown fallback (registry-maintenance.md design):
+                # blended estimate 0.96×sticker-in + 0.04×sticker-out — the
+                # sub-bucket proxy until per-model req rates are researched
+                ci, co = (cat or {}).get('cost_input'), (cat or {}).get('cost_output')
+                if ci is None or co is None:
+                    for (cp, cm), cr in catalog.items():
+                        if cm == m['model'] and cr.get('cost_input') is not None and cr.get('cost_output') is not None:
+                            ci, co = cr['cost_input'], cr['cost_output']
+                            break
+                    else:
+                        gaps.append((m['provider'], m['model'], 'no req-rate AND no sticker for blended est'))
+                        continue
+                price = round(0.96 * float(ci) + 0.04 * float(co), 4)
+                evidence = 'normalized:sub-bucket(blended est)'
+            else:
+                price = round(float(cost) / float(reqs) / float(tpr) * 1e6, 4)
+                evidence = 'normalized:sub-bucket'
         elif model == 'per_minute':
             rate = t.get('rate_per_minute'); tpm = t.get('tokens_per_minute')
             if not (rate and tpm):

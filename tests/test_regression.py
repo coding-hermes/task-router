@@ -129,7 +129,9 @@ def test_chain_invariants_per_profile(monkeypatch, tmp_path, pid):
         prices[f'{m["provider"]}/{m["model"]}'] = m["normalized_price"]
     plan = {}
     for m in tables["models"]:
-        plan[f'{m["provider"]}/{m["model"]}'] = m.get("plan_tier") or 0
+        # mirror _build_chain: NULL plan_tier sorts LAST (1<<30), never 0
+        pt = m.get("plan_tier")
+        plan[f'{m["provider"]}/{m["model"]}'] = pt if pt is not None else (1 << 30)
     seen = set()
     prev_key = None
     prev_hop = 0
