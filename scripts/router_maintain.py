@@ -391,6 +391,22 @@ def step_export(dry_run):
             continue
         shutil.copyfile(rpath, tpath)
         copied.append(t)
+    # sidecar tables (model_catalog / model_notes / plan_terms) — text-only
+    # metadata written by modelsdev/pricing/research agents; mirrored to ns.
+    for t in ('model_catalog', 'model_notes', 'plan_terms'):
+        src = f'{DATA_DIR}/{t}.jsonl'
+        if not os.path.exists(src):
+            continue
+        for ns in (ROUTING_NS, TASKROUTER_NS):
+            dst = f'{ns}/tables/{t}.jsonl'
+            if os.path.exists(dst) and open(src).read() == open(dst).read():
+                continue
+            if dry_run:
+                print(f'[export] DRY-RUN: would mirror {src} -> {dst}')
+            else:
+                os.makedirs(os.path.dirname(dst), exist_ok=True)
+                shutil.copyfile(src, dst)
+                copied.append(f'{t} (mirror)')
     if not dry_run:
         print(f'[export] synced {len(copied)} table file(s): in-repo data/tables + both namespaces')
 

@@ -139,11 +139,14 @@ def test_chain_invariants_per_profile(monkeypatch, tmp_path, pid):
         pair = _pair(e)
         assert pair not in seen, f"{pid}: duplicate pair {pair}"
         seen.add(pair)
-        # dominance: every requirement must be cleared
+        # dominance: every requirement must be cleared — a tier row >= lvl,
+        # OR (BLANK default, Bane 2026-08-27) no tier row with lvl <= -1
         for cat, lvl in reqs:
             t = tier.get((e["provider"], e["model"], cat))
-            assert t is not None, f"{pid}: {pair} missing tier for {cat}"
-            assert t >= lvl, f"{pid}: {pair} tier {t} < req {lvl} for {cat}"
+            if t is None:
+                assert lvl <= -1, f"{pid}: {pair} BLANK tier for {cat} cannot clear {lvl}"
+            else:
+                assert t >= lvl, f"{pid}: {pair} tier {t} < req {lvl} for {cat}"
         # order: (plan_tier, price) non-decreasing
         key = (plan[pair], prices[pair])
         if prev_key is not None:
@@ -153,9 +156,9 @@ def test_chain_invariants_per_profile(monkeypatch, tmp_path, pid):
 
 
 @pytest.mark.parametrize("pid,head", [
-    ("P0_FORE", "opencode-go/mimo-v2.5"),
+    ("P0_FORE", "ollama-cloud/deepseek-v4-flash"),
     ("P1_CODING", "opencode-go/mimo-v2.5"),
-    ("P2_AGENTIC", "opencode-go/mimo-v2.5"),
+    ("P2_AGENTIC", "ollama-cloud/kimi-k3"),
     ("P4_SECURITY", "ollama-cloud/glm-5.2"),
 ])
 def test_golden_fixed_point_heads(monkeypatch, tmp_path, pid, head):
@@ -295,21 +298,28 @@ def test_price_tie_breaks_deterministically_by_model(monkeypatch, tmp_path):
 
 def test_registry_integrity():
     tables = _load_tables()
-    assert set(tables) == {"providers", "models", "archetypes", "benchmarks", "projects",
-                           "level_defs", "category_levels", "model_perf", "model_tier",
-                           "task_profiles", "task_profile_requirements"}
+    core = {"providers", "models", "archetypes", "benchmarks", "projects",
+            "level_defs", "category_levels", "model_perf", "model_tier",
+            "task_profiles", "task_profile_requirements"}
+    sidecars = {"model_catalog", "model_notes", "plan_terms"}
+    assert core <= set(tables), f"missing core tables: {core - set(tables)}"
+    assert set(tables) - core <= sidecars, f"unexpected tables: {set(tables) - core - sidecars}"
     models = tables["models"]
     active = [m for m in models if not m.get("archive") and m.get("valid_to") is None]
     assert len(models) >= 50
     assert len(active) >= 50
-    # model_perf: every category × every active model (24 × N)
+    # model_perf: only EVIDENCED (provider, model, category) rows — BLANK
+    # default (Bane 2026-08-27): models with no data have NO perf/tier rows,
+    # resolved as -1 at chain time. No orphans, no fabricated cells.
     perfs = tables["model_perf"]
     cats_in_perf = {p["category"] for p in perfs}
-    assert cats_in_perf == ALL_CATS, cats_in_perf - ALL_CATS
+    assert cats_in_perf <= ALL_CATS, cats_in_perf - ALL_CATS
+    assert len(cats_in_perf) >= 20, f"only {len(cats_in_perf)} categories have evidence"
     per_key = {(p["provider"], p["model"]) for p in perfs}
     act_key = {(m["provider"], m["model"]) for m in active}
-    assert per_key == act_key, f"perf rows missing for {act_key - per_key} or orphans {per_key - act_key}"
-    assert len(perfs) == 24 * len(active)
+    assert per_key <= act_key, f"orphan perf rows: {per_key - act_key}"
+    # every model with ANY evidence must have it consistently (no dup pairs)
+    assert len(perfs) == len({(p["provider"], p["model"], p["category"]) for p in perfs}), "dup perf cells"
     # model_tier: only known pairs/categories, levels within -5..+5
     tier = tables["model_tier"]
     assert all((t["provider"], t["model"]) in act_key for t in tier)

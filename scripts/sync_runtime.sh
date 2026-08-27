@@ -22,7 +22,8 @@ LIVE_DIR="${HOME}/.hermes/scripts"
 mkdir -p "${LIVE_DIR}"
 
 # --- 1. symlinked tools (subprocess + manual consumers only) ---
-for f in router_spawn.py router_circuit.py router_ledger.py router_seed.py router_maintain.py; do
+for f in router_spawn.py router_circuit.py router_ledger.py router_seed.py router_maintain.py \
+         router_modelsdev.py router_gaps.py router_pricing.py; do
   target="${LIVE_DIR}/${f}"
   if [ -L "${target}" ] && [ "$(readlink "${target}")" = "${REPO_SCRIPTS}/${f}" ]; then
     echo "OK      ${f} -> symlink already correct"

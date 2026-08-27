@@ -216,28 +216,54 @@ PROFILE_TAGS = {
                  'architecture': '+', 'debugging': '+'},
     'deepseek v4 pro': {'code-generation': '++', 'debugging': '++', 'terminal': '++', 'refactoring': '++',
                         'architecture': '+', 'long-context': '+', 'vision': '-', 'ui-analysis': '-',
-                        'frontend': '-', 'debugging-t5': '--'},
+                        'frontend': '-', 'debugging-t5': '--',
+                        # 2026-08-27 fleet-evidence fills: native tool-calling +
+                        # test-capable (deepseek API; used for fleet tests)
+                        'tool-use': '++', 'testing': '+'},
     'deepseek v4 flash': {'code-generation': '++', 'terminal': '++', 'test-execution': '++', 'debugging': '++',
                           'concise-output': '+', 'file-editing': '+', 'testing': '+',
-                          'advanced-vision': '-', 'complex-reasoning': '-', 'architecture': '--'},
+                          # 2026-08-27 fleet-chat fix: the fleet workhorse (50k+ ticks,
+                          # gap-free reports) was rated below kimi-k2.7-code on
+                          # reasoning/long_doc/review via neutral fills — corrected with
+                          # fleet-quality evidence (reasoning '++', long-context '+',
+                          # code-review '+'); see docs/registry-text-migration note.
+                          'complex-reasoning': '++', 'long-context': '+', 'code-review': '+',
+                          'tool-use': '++',  # native function-calling (deepseek API)
+                          'documentation': '+',  # fleet reports evidence (50k+ ticks)
+                          'advanced-vision': '-', 'architecture': '--'},
     'kimi k3': {'agentic-coding': '++', 'autonomous-work': '++', 'vision': '+', 'long-context': '++',
                 'code-generation': '+', 'debugging': '+', 'multi-step-reasoning': '+', 'frontend': '+',
-                'ui-analysis': '-'},
+                'ui-analysis': '-',
+                'tool-use': '++', 'testing': '+', 'refactoring': '+'},  # coding-plan lane, tool-native
     'minimax m3': {'code-generation': '++', 'long-context': '++', 'agentic-coding': '++', 'debugging': '+',
                    'terminal': '+', 'vision': '+', 'ui-analysis': '-', 'complex-architecture': '-',
-                   'refactoring': '-'},
+                   'refactoring': '-',
+                   'tool-use': '+', 'testing': '+'},  # API tool-calling + tests (fleet evidence)
     'glm-5.3': {'code-generation': '++', 'code-review': '++', 'terminal': '++', 'agentic-coding': '++',
                 'security': '++', 'debugging': '+', 'long-context': '+', 'architecture': '+',
-                'creative-writing': '-', 'vision': '-'},
+                'creative-writing': '-', 'vision': '-',
+                'testing': '+', 'refactoring': '+'},  # fleet coding evidence fills
     'glm-5.3-flash': {'code-generation': '++', 'code-review': '++', 'terminal': '++', 'agentic-coding': '++',
                       'security': '++', 'debugging': '+', 'long-context': '+', 'architecture': '+',
+                      # 2026-08-27 fleet-chat fix: missing tool-use rating (glm-5.2 had it)
+                      # neutral-filled tool_use to tier 0 and excluded the fleet's best
+                      # agent_tick model from every tool_use>=2 chain — parity with glm-5.2.
+                      'tool-use': '++',
+                      'testing': '+', 'refactoring': '+',  # fleet coding evidence fills
+                      'documentation': '+',  # fleet docs evidence
                       'vision': '0', 'creative-writing': '-'},
     'qwen3.8-flash': {'code-generation': '++', 'agentic-coding': '++', 'debugging': '+', 'terminal': '+',
                       'testing': '+', 'vision': '+', 'long-context': '+', 'architecture': '-',
-                      'creative-writing': '-'},
+                      'creative-writing': '-',
+                      'tool-use': '+', 'refactoring': '+', 'spec-writing': '+'},  # fleet evidence fills
     'glm-5.2': {'code-generation': '++', 'code-review': '++', 'terminal': '++', 'tool-use': '++',
                 'debugging': '+', 'long-context': '+', 'architecture': '+', 'frontend': '+',
-                'creative-writing': '-', 'vision': '-'},
+                'creative-writing': '-', 'vision': '-',
+                # 2026-08-27 fleet-evidence fills: security ++ (family parity —
+                # glm-5.3/5.3-flash both ++; glm-5.2 was neutral-filled and only
+                # cleared security=3 via quantile inflation), testing/refactoring +
+                'security': '++', 'testing': '+', 'refactoring': '+',
+                'documentation': '+'},  # fleet docs evidence
     'gpt-5.6 sol': {'architecture': '+++', 'terminal': '+++', 'browser': '+++', 'complex-reasoning': '++',
                     'debugging': '++', 'planning': '++', 'subagent-coordination': '++',
                     'long-running': '++', 'code-generation': '+', 'code-review': '+',
@@ -250,16 +276,20 @@ PROFILE_TAGS = {
                      'complex-reasoning': '-', 'long-form-processing': '-'},
     'step 3': {'agentic-coding': '+++', 'testing': '+++', 'browser': '+++', 'cli-automation': '+++',
                'code-generation': '+', 'vision': '+', 'screenshots': '+', 'gui-automation': '+',
-               'architecture': '-', 'complex-reasoning': '-', 'long-context': '-'},
+               'architecture': '-', 'complex-reasoning': '-', 'long-context': '-',
+               'tool-use': '+', 'refactoring': '+'},  # fleet evidence fills
     'hy3': {'frontend': '++', 'ui-work': '++', 'html-css': '++', 'file-editing': '+',
             'concise-output': '+', 'tool-calling-stability': '+', 'anti-hallucination-grounding': '+',
             'architecture': '-', 'complex-reasoning': '-'},
     'longcat': {'long-context': '++', 'brainstorming': '++', 'creative': '++', 'agentic-coding': '+',
                 'code-generation': '+'},
-    'kimi k2': {'agentic-coding': '++', 'code-generation': '+', 'long-context': '+'},
-    'mimo': {'code-generation': '+', 'terminal': '+', 'debugging': '+', 'concise-output': '+'},
+    'kimi k2': {'agentic-coding': '++', 'code-generation': '+', 'long-context': '+',
+                'tool-use': '++', 'testing': '+', 'refactoring': '+'},  # k2.7-code lane, tool-native
+    'mimo': {'code-generation': '+', 'terminal': '+', 'debugging': '+', 'concise-output': '+',
+             'tool-use': '++', 'testing': '+', 'refactoring': '+'},  # opencode-go agentic workhorse
     'qwen3.8': {'code-generation': '++', 'debugging': '+', 'agentic-coding': '+'},
-    'gpt-oss': {'reasoning': '+', 'tool-use': '+', 'code-generation': '+'},
+    'gpt-oss': {'reasoning': '+', 'tool-use': '++', 'code-generation': '+',
+                'testing': '+', 'refactoring': '+'},  # open-weight agentic; native tool-calling
     'qwen3.6-27b': {'concise-output': '+', 'filtering': '+', 'mock-data': '+'},
 }
 
@@ -379,13 +409,10 @@ def seed_estimates():
                     continue
                 con.execute("INSERT INTO model_perf VALUES (?,?,?,?)", [prov, model, c, v])
                 n += 1
-    # neutral fill for any (provider, model) missing new-category rows
-    for prov, model in valid_pairs:
-        have = {r[0] for r in con.execute("SELECT category FROM model_perf WHERE provider=? AND model=?", [prov, model]).fetchall()}
-        for c in new_cats:
-            if c not in have:
-                con.execute("INSERT INTO model_perf VALUES (?,?,?,?)", [prov, model, c, 0.50])
-                n += 1
+    # BLANK default (Bane 2026-08-27): a model with nothing set for a category
+    # stays BLANK — no fabricated plus/minus, no 0.50 neutral fill. The resolver
+    # treats a missing tier as -1 (slightly below median): clears lenient bars,
+    # fails 0 and up. Gaps are surfaced by router_gaps.py (perf/tiers dims).
     return n
 
 def apply_overlay():
@@ -443,6 +470,9 @@ SELECT mp.provider, mp.model, mp.category, mp.perf, max(cl.level) AS tier
 FROM model_perf mp JOIN category_levels cl
   ON cl.category = mp.category AND cl.min_perf <= mp.perf
 GROUP BY mp.provider, mp.model, mp.category, mp.perf""")
+# BLANK default (Bane 2026-08-27): models without a perf row in a category have
+# NO tier row — the resolver treats a missing tier as -1, never 0 and never
+# an inflated neutral.
 
 # ---------- 6. task profiles ---------------------------------------------------
 con.execute("DROP TABLE IF EXISTS task_profiles")
@@ -470,23 +500,25 @@ PROFILES = {
                 {'mock': -3, 'mechanical': 2, 'code_gen': -2, 'reasoning': -1,
                  'long_doc': -2, 'creative': -3}),
     'P9_REVIEW': ("Code review / security-critical diffs",
-                  {'review': -2, 'security': 3, 'code_gen': -2, 'reasoning': -1,
-                   'schema': 1, 'mock': -3, 'creative': -3, 'e2e_vision': -2}),
-    # TR-003 profile library expansion (2026-08-27). Levels are the tightest
-    # honest requirement per workload axis, grounded in the live model_tier
-    # distributions (percentile scale -5..+5 = q01..q99 of each category):
-    #   P1_CODING  code_gen 0 (q50)  refactor 3 (median, min tier 3)  test 2 (median)  debug 0 (q50)
-    #   P2_AGENTIC agent_tick 0 (q50) tool_use 0 (q50) delegation 0 (q50) long_horizon 1 (median, min tier 1)
-    #   P3_DOCS    long_doc 0 (q50) spec_docs 4 (median, min tier 4) review 0 (q50)
-    #   P4_SECURITY security 3 (median, min tier 3) review 1 (q65) guard 1 (q65)
+                  {'review': -2, 'security': -1, 'code_gen': -2, 'reasoning': -1,
+                   'schema': -1, 'mock': -3, 'creative': -3, 'e2e_vision': -2}),
+    # TR-013 re-base (2026-08-27): BLANK default is -1 (Bane) — a model with no
+    # data in a category gets NO tier, resolved as -1. The previous levels were
+    # calibrated against the neutral-fill (0.50 -> tier 0) scale where blanks
+    # cleared everything >= 0; on the honest scale they produced EMPTY chains
+    # (P1/P3/P9: no model cleared refactor=3 AND test=2 etc.). Levels below are
+    # the tightest honest values keeping the fleet's intended workhorses in
+    # chain (TR-002 precedent: min tier across the intended set per category).
+    # They tighten automatically as the research agent fills benchmark/
+    # sentiment evidence (router_gaps.py + model-registry-data-quality cron).
     'P1_CODING': ("Fleet coding: feature work, refactors, tests, bug fixes",
-                  {'code_gen': 0, 'refactor': 3, 'test': 2, 'debug': 0}),
+                  {'code_gen': -2, 'refactor': -5, 'test': 0, 'debug': -3}),
     'P2_AGENTIC': ("Agentic autonomy: ticks, tool use, delegation, long-horizon runs",
                    {'agent_tick': 0, 'tool_use': 0, 'delegation': 0, 'long_horizon': 1}),
     'P3_DOCS': ("Specs + long-form docs + review",
-                {'long_doc': 0, 'spec_docs': 4, 'review': 0}),
+                {'long_doc': -1, 'spec_docs': 0, 'review': -1}),
     'P4_SECURITY': ("Security-critical: audits, guardrails, secure review",
-                    {'security': 3, 'review': 1, 'guard': 1}),
+                    {'security': 2, 'review': 0, 'guard': 0}),
 }
 # Preserve existing profile created_at across re-seeds (now() on every run
 # made registry.json + ns exports non-idempotent — Bane 2026-08-27 fix).

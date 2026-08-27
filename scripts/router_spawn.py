@@ -264,7 +264,10 @@ def _build_chain(tables, reqs, limit=15):
             continue
         prov, model = m.get('provider'), m.get('model')
         mt = tiers.get((prov, model)) or {}
-        if any((mt.get(cat) if mt.get(cat) is not None else -99) < lvl
+        # BLANK default (Bane 2026-08-27): a missing tier = -1 (no data = slightly
+        # below median — clears lenient bars, fails 0 and up). NEVER 0, never an
+        # inflated neutral.
+        if any((mt.get(cat) if mt.get(cat) is not None else -1) < lvl
                for cat, lvl in reqs):
             continue
         eligible.append(m)
