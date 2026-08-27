@@ -12,8 +12,9 @@ coding-hermes-scheduler board).
 
 ## Repo layout
 
-- `scripts/` — the runtime tools (canonical source; live installs live at
-  `~/.hermes/scripts/` — keep them in sync, see TR-004).
+- `scripts/` — the runtime tools (canonical source; live installs at
+  `~/.hermes/scripts/` — symlinks + one byte-identical copy, wired by
+  `scripts/sync_runtime.sh`, see TR-004).
 - `docs/` — integration spec, seed-date chains, namespace anatomy.
 - `.coding-hermes/board/` — JSONL workboard (canonical, git-tracked;
   `board.db`/`*.parquet` are untracked rebuildable caches).

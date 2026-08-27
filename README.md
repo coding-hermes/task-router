@@ -54,9 +54,21 @@ Seeded profiles: `P0_FORE` (default foreman), `P5_VISION_E2E`, `P7_MOCK`, `P9_RE
 `router_spawn.py` is **fail-open**: any error → `{"error": ...}` + exit 0. The
 scheduler must never be blocked by the router.
 
-**Runtime installs** (this host): the live copies the scheduler + cron call are
-`~/.hermes/scripts/`. This repo is the canonical source — keep them in sync
-(see board task TR-004 for the symlink wiring).
+**Runtime installs** (this host, wired TR-004): `repo/scripts/` is canonical;
+`~/.hermes/scripts/` consumes it in two topologies:
+
+- **Symlinks** — `router_spawn.py`, `router_circuit.py`, `router_ledger.py`,
+  `router_seed.py`. Consumers are the scheduler daemon (subprocess), foremen,
+  and manual CLI calls — they exec the canonical file directly.
+- **Byte-identical copy** — `provider_health_probe.py`. The Hermes cron runner
+  resolves symlinks and blocks any script whose real path falls outside
+  `~/.hermes/scripts/` ("Blocked: script path resolves outside the scripts
+  directory" — verified 2026-08-27), so the hourly `provider-health-probe`
+  cron needs a real file there.
+
+`scripts/sync_runtime.sh` (re)establishes this wiring: it relinks the four
+symlinks and re-copies the probe, verifying byte-identity with `cmp`. Run it
+after any edit to `scripts/` or after a fresh clone.
 
 ## Data & state
 
