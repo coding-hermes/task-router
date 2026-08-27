@@ -344,6 +344,38 @@ def test_registry_integrity():
     assert all((m.get("token_factor") or 1) > 0 for m in models)
 
 
+def test_plan_included_lanes_never_disabled():
+    """REGIME LOCK (Bane 2026-08-27, after flip-flop): a lane listed in a
+    provider's plan_terms included_models must NEVER be disabled. The plan
+    sweep disabled glm-5.3 + qwen3.8-max off a STALE 11-model plans-API list
+    while docs.cline.bot said 13 — cron re-enabled, and the flip-flop must
+    not recur. Also: the fallback list hardcoded in router_clinepass.py must
+    stay in sync with plan_terms (it's what re-seeds when the row is lost)."""
+    tables = _load_tables()
+    models = tables["models"]
+    terms = tables["plan_terms"]
+    for t in terms:
+        for mid in (t.get("included_models") or []):
+            lanes = [m for m in models if m["provider"] == t["provider"] and m["model"] == mid]
+            assert lanes, f"plan-included {t['provider']}/{mid} missing from registry"
+            assert all(
+                not m.get("disabled") for m in lanes
+            ), f"plan-included lane disabled: {t['provider']}/{mid} — sweep ran on stale plan list?"
+    # clinepass fallback list in the sync script must match the authoritative plan row
+    cp = next((t for t in terms if t["provider"] == "clinepass"), None)
+    if cp:
+        import re as _re
+        script = os.path.join(REPO, "scripts", "router_clinepass.py")
+        src = open(script).read()
+        m = _re.search(r"'included_models':\s*\[(.*?)\]", src, _re.S)
+        assert m, "router_clinepass.py fallback included_models not found"
+        fallback = _re.findall(r"'([^']+)'", m.group(1))
+        assert set(fallback) == set(cp["included_models"]), (
+            f"clinepass fallback list ({sorted(fallback)}) drifted from plan_terms "
+            f"({sorted(cp['included_models'])}) — update router_clinepass.py"
+        )
+
+
 # ------------------------------------------ fresh-clone stdlib fallback (TR-010) --
 
 def test_stdlib_fallback_when_registry_missing(monkeypatch, tmp_path):

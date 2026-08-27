@@ -131,10 +131,12 @@ def sync(dry_run):
         terms.append({
             'provider': 'clinepass', 'billing_model': 'flat_subscription',
             'plan_cost': 9.99, 'interval': 'monthly', 'usage_multiplier': 3.0,
-            'included_models': ['kimi-k3', 'glm-5.2', 'kimi-k2.6', 'kimi-k2.7-code',
+            # AUTHORITATIVE list: docs.cline.bot/getting-started/clinepass (13 models, 2026-08-27).
+            # The plans API list was STALE (11, missing glm-5.3 + qwen3.8-max) — never use it.
+            'included_models': ['glm-5.3', 'glm-5.2', 'kimi-k3', 'kimi-k2.7-code',
+                                'kimi-k2.6', 'deepseek-v4-pro', 'deepseek-v4-flash',
                                 'mimo-v2.5', 'mimo-v2.5-pro', 'minimax-m3',
-                                'qwen3.7-plus', 'qwen3.7-max', 'deepseek-v4-pro',
-                                'deepseek-v4-flash'],
+                                'qwen3.8-max', 'qwen3.7-max', 'qwen3.7-plus'],
             'note': 'Cline Pass $9.99/mo flat — 2-5x usage vs standard API rate (docs.cline.bot); '
                     'caps $1B/5h $2.5B/7d $5B/30d (usage-cost, effectively unlimited); plans API '
                     'carries features.discount=0.5 flag on monthly (promo? verify); non-included '
