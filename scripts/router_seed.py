@@ -33,7 +33,7 @@ CREATE TABLE model_perf AS
 SELECT provider, model, replace(category,'perf_','') AS category, perf
 FROM (UNPIVOT (SELECT provider, model, perf_agent_tick, perf_long_doc, perf_debug, perf_schema,
                       perf_e2e_vision, perf_review, perf_delegation, perf_guard, perf_mock, perf_reasoning
-               FROM models)
+               FROM models WHERE valid_to IS NULL AND archive = false)
       ON perf_agent_tick, perf_long_doc, perf_debug, perf_schema,
          perf_e2e_vision, perf_review, perf_delegation, perf_guard, perf_mock, perf_reasoning
       INTO NAME category VALUE perf)
@@ -180,7 +180,10 @@ PROFILE_TAGS = {
 def seed_estimates():
     """Insert profile-tag estimates for NEW categories (skip cats already in model_perf)."""
     new_cats = set(CATS) - set(OLD)
-    valid_pairs = set(con.execute("SELECT provider, model FROM models").fetchall())
+    # live models only — archived rows (e.g. opencode-go/ox-alpha-free) must not
+    # leak into model_perf via the neutral fill (TR-008)
+    valid_pairs = set(con.execute(
+        "SELECT provider, model FROM models WHERE valid_to IS NULL AND archive = false").fetchall())
     n = 0
     for pname, pairs in PROFILE_MODELS.items():
         tags = PROFILE_TAGS.get(pname, {})
