@@ -620,6 +620,19 @@ def _dump_registry():
                 rec[c] = v
             rows.append(rec)
         doc['tables'][t] = rows
+    # text-only sidecars copied straight from data/tables (no duckdb table):
+    # fallback_lanes is a data-file table (Bane 2026-08-27 — provider facts
+    # live in data, not code); it must ride along in registry.json so spawn's
+    # stdlib fallback path can resolve always-run lanes.
+    for t in ('fallback_lanes',):
+        src = os.path.join(DATA_DIR, f'{t}.jsonl')
+        rows = []
+        if os.path.exists(src):
+            for line in open(src):
+                line = line.strip()
+                if line:
+                    rows.append(json.loads(line))
+        doc['tables'][t] = rows
     with open(REGISTRY, 'w') as f:
         json.dump(doc, f, indent=1)
     print('wrote', REGISTRY, f'({os.path.getsize(REGISTRY) / 1024:.1f} KB)')

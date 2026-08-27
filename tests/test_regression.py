@@ -317,7 +317,7 @@ def test_registry_integrity():
             "level_defs", "category_levels", "model_perf", "model_tier",
             "task_profiles", "task_profile_requirements"}
     sidecars = {"model_catalog", "model_notes", "plan_terms", "temporary_discounts",
-                "provider_rules", "quality_estimates"}
+                "provider_rules", "quality_estimates", "fallback_lanes"}
     assert core <= set(tables), f"missing core tables: {core - set(tables)}"
     assert set(tables) - core <= sidecars, f"unexpected tables: {set(tables) - core - sidecars}"
     models = tables["models"]
@@ -386,6 +386,44 @@ def test_plan_included_lanes_never_disabled():
             f"{script_name} hardcodes a plan included_models list — provider "
             f"facts belong in plan_terms.jsonl, never in code"
         )
+
+
+def test_fallback_lane_fires_when_all_subs_down(monkeypatch, tmp_path):
+    """Bane 2026-08-27 (cron integration): crons must ALWAYS run. When every
+    eligible hop is gated/down, resolve() falls back to the designated
+    always-run lane (deepseek-v4 + cron key) — never a None chain. The
+    fallback must (a) clear the profile bars, (b) be priced, (c) be open."""
+    tables = _load_tables()
+    provs = _open_providers(tables)
+    # gate EVERY provider except deepseek
+    for p in provs:
+        if p != "deepseek":
+            provs[p] = {"status": "gated", "reason": "sim-down"}
+    state = _state_dir(tmp_path, providers=provs)
+    monkeypatch.setattr(router_spawn, "MR", str(state))
+    r = _resolve(monkeypatch, tmp_path, tables, project="coding-hermes-scheduler")
+    assert r["head"] is not None, "fallback must fire — crons always run"
+    assert r["head"]["provider"] == "deepseek"
+    assert r["head"]["model"] == "deepseek-v4-flash"
+    assert r["head"].get("fallback") is True
+    assert r["head"].get("key_env") == "DEEPSEEK_CRON_KEY"
+    assert any("FALLBACK" in w for w in r["gate_reasons"])
+    # fallback lane must exist in the registry table
+    fbs = tables.get("fallback_lanes") or []
+    assert any(f.get("provider") == "deepseek" and f.get("model") == "deepseek-v4-flash"
+               for f in fbs), "fallback_lanes table missing deepseek-v4-flash lane"
+
+
+def test_fallback_skipped_when_primary_chain_open(monkeypatch, tmp_path):
+    """The fallback must NOT fire when subs are healthy — cheap providers
+    first, deepseek only as the last resort."""
+    tables = _load_tables()
+    state = _state_dir(tmp_path, providers=_open_providers(tables))
+    monkeypatch.setattr(router_spawn, "MR", str(state))
+    r = _resolve(monkeypatch, tmp_path, tables, project="coding-hermes-scheduler")
+    assert r["head"] is not None
+    assert r["head"].get("fallback") is None, "primary chain open — fallback must not fire"
+    assert not any("FALLBACK" in w for w in r["gate_reasons"])
 
 
 # ------------------------------------------ fresh-clone stdlib fallback (TR-010) --

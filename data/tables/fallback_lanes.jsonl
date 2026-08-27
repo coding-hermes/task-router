@@ -1,0 +1,1 @@
+{"provider": "deepseek", "model": "deepseek-v4-flash", "order": 1, "key_env": "DEEPSEEK_CRON_KEY", "note": "PAYG last resort — cron-key lane, always available (Bane 2026-08-27): crons ALWAYS run, cheap providers first, deepseek-v4 as the guaranteed fallback hop", "valid_from": "2026-08-27", "valid_to": null}

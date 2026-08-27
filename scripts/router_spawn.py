@@ -287,6 +287,51 @@ def _build_chain(tables, reqs, limit=30):
             for i, m in enumerate(eligible[:limit])]
 
 
+def _resolve_fallback(tables, qs, hs, cs, reqs, limit=30):
+    """FALLBACK LANES (Bane 2026-08-27): when the primary chain is fully
+    gated/down, resolve the always-run lanes from data/tables/fallback_lanes.jsonl
+    (registry table `fallback_lanes`: {provider, model, order, key_env, note}).
+    A fallback lane must (a) exist as an active priced lane in the registry,
+    (b) clear the profile's requirement bars, (c) not be quota-gated or DOWN
+    itself. Ordered by `order` ASC; returns the same hop shape as _build_chain."""
+    lanes = sorted(tables.get('fallback_lanes') or [],
+                   key=lambda r: (r.get('order') or 1 << 30))
+    tiers = {}
+    for r in tables.get('model_tier') or []:
+        tiers.setdefault(r.get('model'), {})[r.get('category')] = r.get('tier')
+    by_lane = {}
+    for m in tables.get('models') or []:
+        by_lane[(m.get('provider'), m.get('model'))] = m
+    out = []
+    for f in lanes:
+        key = (f.get('provider'), f.get('model'))
+        m = by_lane.get(key)
+        if m is None:
+            continue  # lane doesn't exist in registry — gap, not a fabrication
+        if m.get('archive') or m.get('valid_to') is not None or m.get('disabled'):
+            continue
+        if m.get('normalized_price') is None:
+            continue
+        mt = tiers.get(f.get('model')) or {}
+        if any((mt.get(cat) if mt.get(cat) is not None else -1) < lvl
+               for cat, lvl in reqs):
+            continue  # fallback must still clear the profile bars
+        q = qs.get(f.get('provider')) or {}
+        if q.get('status') != 'open':
+            continue  # fallback itself gated — genuinely nothing available
+        h = hs.get(f.get('provider')) or {}
+        if h.get('status') == 'DOWN':
+            continue
+        out.append({'hop': len(out) + 1, 'provider': f.get('provider'),
+                    'model': f.get('model'),
+                    'usd_1m': round(float(m.get('normalized_price')), 4),
+                    'data_class': m.get('data_class'),
+                    'fallback': True, 'key_env': f.get('key_env')})
+        if len(out) >= limit:
+            break
+    return out
+
+
 def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=30):
     tables = _load_registry()
     projects = {r.get('id'): r for r in tables.get('projects') or []}
@@ -381,6 +426,20 @@ def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=30
                      caps['max_total_per_provider'])
 
     head = out_chain[0] if out_chain else None
+
+    # --- 4.5 FALLBACK LANES (Bane 2026-08-27): crons must ALWAYS run ---------
+    # When every eligible hop is gated/down, fall back to the designated
+    # always-available lanes (deepseek-v4 + cron key). Cheap subs first,
+    # deepseek as the guaranteed last hop — never a None chain for a cron.
+    if not head:
+        fb = _resolve_fallback(tables, qs, hs, cs, reqs, limit=limit)
+        if fb:
+            head = fb[0]
+            out_chain = fb
+            reasons.append(
+                f'FALLBACK: all {len(exclusions)} eligible hops gated — using '
+                f'{head["provider"]}/{head["model"]} (always-run lane)')
+
     return {'project': project, 'profile': pid, 'resolved_at': now,
             'head': head, 'chain': out_chain, 'exclusions': exclusions,
             'gate_reasons': reasons,
