@@ -13,6 +13,9 @@ PY="${PYTHON:-$HOME/.hermes/venvs/board/bin/python3}"
 echo "== clinepass API sync (catalog + plans + discounts) =="
 "$PY" scripts/router_clinepass.py sync 2>&1 | tail -6
 echo
+echo "== plan sweep (disable PAYG-outside-flat-plan lanes) =="
+"$PY" scripts/router_plan_sweep.py --apply 2>&1 | tail -3
+echo
 echo "== models.dev sync =="
 "$PY" scripts/router_modelsdev.py sync 2>&1 | tail -12
 echo

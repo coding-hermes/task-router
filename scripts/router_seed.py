@@ -124,7 +124,8 @@ CREATE TABLE model_perf AS
 SELECT model, replace(category, 'perf_', '') AS category, max(perf) AS perf
 FROM (UNPIVOT (SELECT model, perf_agent_tick, perf_long_doc, perf_debug, perf_schema,
                       perf_e2e_vision, perf_review, perf_delegation, perf_guard, perf_mock, perf_reasoning
-               FROM models WHERE valid_to IS NULL AND archive = false)
+               FROM models WHERE valid_to IS NULL AND archive = false
+                            AND (disabled IS NULL OR NOT disabled))
       ON perf_agent_tick, perf_long_doc, perf_debug, perf_schema,
          perf_e2e_vision, perf_review, perf_delegation, perf_guard, perf_mock, perf_reasoning
       INTO NAME category VALUE perf)
@@ -566,7 +567,8 @@ SELECT r.task_id, m.provider, m.model, m.normalized_price, m.token_factor, m.pla
 FROM models m
 JOIN task_profiles tp ON true
 JOIN (SELECT DISTINCT task_id FROM task_profile_requirements) r ON r.task_id = tp.id
-WHERE m.valid_to IS NULL AND m.archive = false AND NOT m.disabled
+WHERE m.valid_to IS NULL AND m.archive = false
+  AND (m.disabled IS NULL OR NOT m.disabled)
   AND NOT EXISTS (
         SELECT 1 FROM task_profile_requirements rr
         WHERE rr.task_id = r.task_id

@@ -66,8 +66,8 @@ def assess(tables):
 
     per = []
     for m in models:
-        if m.get('archive') or m.get('valid_to'):
-            continue
+        if m.get('archive') or m.get('valid_to') or m.get('disabled'):
+            continue  # disabled = intentional exclusion (plan sweep / quality)
         p, name = m['provider'], m['model']
         missing = []
         if m.get('normalized_price') in (None, 0):

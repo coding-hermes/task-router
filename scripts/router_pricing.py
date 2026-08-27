@@ -100,14 +100,24 @@ def normalize(dry_run):
 
     priced, gaps = [], []
     for m in models:
-        if m.get('archive') or m.get('valid_to'):
-            continue
-        if m.get('normalized_price') not in (None, 0):
-            continue  # already priced (evidence preserved)
+        if m.get('archive') or m.get('valid_to') or m.get('disabled'):
+            continue  # disabled = intentional exclusion (plan sweep / quality)
         t = terms.get(m['provider'])
         if not t:
+            if m.get('normalized_price') is not None:
+                continue  # already priced, no terms needed
             gaps.append((m['provider'], m['model'], 'no plan_terms row'))
             continue
+        # STALE FLAT REPRICE (Bane 2026-08-27): in-plan lanes whose price
+        # comes from the sticker era (estimate/clinepass-api — before the flat
+        # plan was known) must carry the subscription economics, not the old
+        # box price. Protected evidence (normalized:*/official formula/or-spot)
+        # is never touched.
+        stale_flat = (t.get('billing_model') == 'flat_subscription'
+                      and m.get('normalized_price') not in (None, 0)
+                      and not (m.get('price_evidence') or '').startswith('normalized:'))
+        if m.get('normalized_price') not in (None, 0) and not stale_flat:
+            continue  # already priced (evidence preserved)
         model = t.get('billing_model')
         if model == 'official-points':
             gaps.append((m['provider'], m['model'], 'official-points (manual formula row)'))
@@ -138,28 +148,36 @@ def normalize(dry_run):
             base_name = m['model'].replace(':free', '')
             included = t.get('included_models') or []
             if base_name not in included:
-                gaps.append((m['provider'], m['model'], 'outside flat-plan included list (PAYG)'))
-                continue
-            cost_in = (cat or {}).get('cost_input')
-            cost_out = (cat or {}).get('cost_output')
-            sticker_src = m['provider']
-            if cost_in is None or cost_out is None:
-                # same weights, other provider's models.dev sticker = the standard
-                # API rate the flat plan multiplies (docs.cline.bot "2-5x usage
-                # vs standard API rate")
-                for (cp, cm), cr in catalog.items():
-                    if cm == base_name and cr.get('cost_input') is not None and cr.get('cost_output') is not None:
-                        cost_in, cost_out = cr['cost_input'], cr['cost_output']
-                        sticker_src = cp
-                        break
+                # non-included lane: priced ONLY if a temporary discount makes
+                # it worth routing (free promo lanes) — otherwise PAYG gap
+                if any(True for d in active_discounts(m['provider'], m['model'])
+                       if d.get('discount_type') == 'free'):
+                    price, evidence = 0.0, 'temporary free lane'
                 else:
-                    gaps.append((m['provider'], m['model'], 'included but no sticker for lane math'))
+                    gaps.append((m['provider'], m['model'], 'outside flat-plan included list (PAYG)'))
                     continue
-            mult = float(t.get('usage_multiplier') or 1.0)
-            price = round((float(cost_in) + float(cost_out)) / 2.0 / mult, 4)
-            evidence = f'normalized:flat-sub({mult:.1f}x lane)'
-            if sticker_src != m['provider']:
-                evidence += f' sticker@{sticker_src}'
+                cat = None
+            else:
+                cost_in = (cat or {}).get('cost_input')
+                cost_out = (cat or {}).get('cost_output')
+                sticker_src = m['provider']
+                if cost_in is None or cost_out is None:
+                    # same weights, other provider's models.dev sticker = the standard
+                    # API rate the flat plan multiplies (docs.cline.bot "2-5x usage
+                    # vs standard API rate")
+                    for (cp, cm), cr in catalog.items():
+                        if cm == base_name and cr.get('cost_input') is not None and cr.get('cost_output') is not None:
+                            cost_in, cost_out = cr['cost_input'], cr['cost_output']
+                            sticker_src = cp
+                            break
+                    else:
+                        gaps.append((m['provider'], m['model'], 'included but no sticker for lane math'))
+                        continue
+                mult = float(t.get('usage_multiplier') or 1.0)
+                price = round((float(cost_in) + float(cost_out)) / 2.0 / mult, 4)
+                evidence = f'normalized:flat-sub({mult:.1f}x lane)'
+                if sticker_src != m['provider']:
+                    evidence += f' sticker@{sticker_src}'
         else:
             gaps.append((m['provider'], m['model'], f'unknown billing_model {model!r}'))
             continue

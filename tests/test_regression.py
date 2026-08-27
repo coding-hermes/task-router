@@ -325,8 +325,10 @@ def test_registry_integrity():
     assert all(t["model"] in act_key for t in tier)
     assert all(t["category"] in ALL_CATS for t in tier)
     assert all(-5 <= t["tier"] <= 5 for t in tier)
-    # lane-disable feature: flag exists and defaults off
-    assert all(not m.get("disabled", False) for m in active), "disabled lanes must be explicit + rare"
+    # lane-disable feature: explicit + reason required; spawn skips them
+    disabled = [m for m in models if m.get("disabled")]
+    assert all(m.get("disabled_reason") for m in disabled), "disabled lanes must carry a reason"
+    assert len(disabled) < len(active), "disabled lanes must never outnumber active lanes"
     # profiles + requirements
     profs = {p["id"] for p in tables["task_profiles"]}
     assert len(profs) == 8
