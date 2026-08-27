@@ -5,8 +5,9 @@
 # The live installs the scheduler + cron call live at ~/.hermes/scripts/.
 # Two topologies exist, by consumer:
 #   1. SYMLINKS — router_spawn.py, router_circuit.py, router_ledger.py,
-#      router_seed.py. Consumers: scheduler daemon subprocess, foremen, manual
-#      CLI calls. No path guard — symlinks exec the canonical file directly.
+#      router_seed.py, router_maintain.py. Consumers: scheduler daemon
+#      subprocess, foremen, manual CLI calls. No path guard — symlinks exec
+#      the canonical file directly.
 #   2. BYTE-IDENTICAL COPY — provider_health_probe.py. The Hermes cron runner
 #      resolves symlinks and BLOCKS any script whose real path falls outside
 #      ~/.hermes/scripts/ ("Blocked: script path resolves outside the scripts
@@ -21,7 +22,7 @@ LIVE_DIR="${HOME}/.hermes/scripts"
 mkdir -p "${LIVE_DIR}"
 
 # --- 1. symlinked tools (subprocess + manual consumers only) ---
-for f in router_spawn.py router_circuit.py router_ledger.py router_seed.py; do
+for f in router_spawn.py router_circuit.py router_ledger.py router_seed.py router_maintain.py; do
   target="${LIVE_DIR}/${f}"
   if [ -L "${target}" ] && [ "$(readlink "${target}")" = "${REPO_SCRIPTS}/${f}" ]; then
     echo "OK      ${f} -> symlink already correct"
