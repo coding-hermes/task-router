@@ -1,7 +1,9 @@
 """Smoke suite for the task-router runtime tools.
 
-Skips wholesale when duckdb is not importable in the running interpreter (the
-scripts are duckdb clients; without it there is nothing to test).
+The scripts are pure-JSON clients (registry.json + state JSON files) — no
+duckdb required. Tests run against the repo's live registry.json (the default
+path the scheduler's SCHEDULER_ROUTER_CMD uses), which is exactly what the
+resolver reads in production.
 """
 import json
 import os
@@ -9,8 +11,6 @@ import subprocess
 import sys
 
 import pytest
-
-pytest.importorskip("duckdb")
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SCRIPTS = os.path.join(REPO, "scripts")

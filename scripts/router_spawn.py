@@ -42,9 +42,14 @@ max_total_per_provider, model_concurrency_limit, overrides}}
 Exit 0 always (fail-open: on any error prints {"error": ...} and exits 0) — the
 scheduler must NEVER be blocked by the router.
 """
-import duckdb, json, os, sys, argparse, datetime
+import json, os, sys, argparse, datetime
 
-DB = os.environ.get('ROUTING_DB', '/home/kara/reports-repo/routing.duckdb')
+# Text registry (Bane 2026-08-27): the live store is a gitignored JSON file in
+# the task-router repo — NOT a binary duckdb. Env-overridable for hermetic
+# tests. registry.json is produced by router_seed.py (version 3: {"version",
+# "generated_at", "tables": {name: [row...]}}).
+REGISTRY = os.environ.get('ROUTING_REGISTRY',
+                          '/home/kara/task-router/registry.json')
 # State dir (quota/health/circuit/ledger). Env-overridable so tests are hermetic
 # and ops can point at a scratch dir; default identical to the historical path.
 MR = os.environ.get('ROUTER_STATE_DIR', os.path.expanduser('~/.hermes/model-router'))
@@ -121,12 +126,12 @@ def ledger_in_flight(state_dir):
         return {}
 
 
-def _effective_caps(con, qdoc, pid):
+def _effective_caps(profiles, qdoc, pid):
     """Effective two-knob diversity caps + per-model concurrency default.
 
     Per-profile task_profiles columns beat the global 'diversity' defaults in
     quota-state.json; NULL/absent everywhere = unbounded (None). Pre-TR-007
-    schemas (columns or table missing) degrade to the globals — fail-open.
+    schemas degrade to the globals — fail-open.
     """
     diversity = qdoc.get('diversity') or {}
     if not isinstance(diversity, dict):
@@ -135,14 +140,10 @@ def _effective_caps(con, qdoc, pid):
     g_tot = diversity.get('max_total_per_provider')
     p_cons = p_tot = None
     if pid:
-        try:
-            row = con.execute(
-                'SELECT max_consecutive_per_provider, max_total_per_provider '
-                'FROM task_profiles WHERE id=?', [pid]).fetchone()
-            if row:
-                p_cons, p_tot = row[0], row[1]
-        except Exception:
-            pass  # old schema / no table: global defaults apply
+        row = profiles.get(pid)
+        if row:
+            p_cons = row.get('max_consecutive_per_provider')
+            p_tot = row.get('max_total_per_provider')
     cons = p_cons if p_cons is not None else g_cons
     tot = p_tot if p_tot is not None else g_tot
     return {
@@ -208,58 +209,92 @@ def _prune_diversity(out_chain, exclusions, reasons, cons_cap, tot_cap):
     out_chain[:] = survivors
 
 
+def _load_registry():
+    """registry.json → {tables: {name: [row...]}}; any error → {} (fail-open)."""
+    try:
+        with open(REGISTRY) as f:
+            doc = json.load(f)
+        return doc.get('tables') or {}
+    except Exception:
+        return {}
+
+
+def _build_chain(tables, reqs, limit=15):
+    """Replicates v_task_chain exactly, in pure python.
+
+    reqs = [(category, level), ...] (profile requirements or ad-hoc).
+    Eligible = active models (valid_to null, not archived, priced) with a
+    tier >= level for EVERY requirement. Order: plan_tier ASC,
+    normalized_price * token_factor ASC, model ASC, provider ASC (the SQL
+    view's tie-breaks). Returns rows [(hop, provider, model, price, dclass)].
+    """
+    models = tables.get('models') or []
+    tiers = {}
+    for r in tables.get('model_tier') or []:
+        tiers.setdefault((r.get('provider'), r.get('model')), {})[r.get('category')] = r.get('tier')
+    eligible = []
+    for m in models:
+        if m.get('archive') or m.get('valid_to') is not None:
+            continue
+        price = m.get('normalized_price')
+        if price is None:
+            continue
+        prov, model = m.get('provider'), m.get('model')
+        mt = tiers.get((prov, model)) or {}
+        if any((mt.get(cat) if mt.get(cat) is not None else -99) < lvl
+               for cat, lvl in reqs):
+            continue
+        eligible.append(m)
+    eligible.sort(key=lambda m: (
+        m.get('plan_tier') if m.get('plan_tier') is not None else 1 << 30,
+        (m.get('normalized_price') or 0.0) * (m.get('token_factor') or 1.0),
+        m.get('model') or '',
+        m.get('provider') or '',
+    ))
+    return [(i + 1, m.get('provider'), m.get('model'),
+             m.get('normalized_price'), m.get('data_class'))
+            for i, m in enumerate(eligible[:limit])]
+
+
 def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=15):
-    con = duckdb.connect(DB, read_only=True)
+    tables = _load_registry()
+    projects = {r.get('id'): r for r in tables.get('projects') or []}
+    profiles = {r.get('id'): r for r in tables.get('task_profiles') or []}
+    reqs_rows = tables.get('task_profile_requirements') or []
+    reqs_by_profile = {}
+    for r in reqs_rows:
+        reqs_by_profile.setdefault(r.get('task_id'), []).append(
+            (r.get('category'), r.get('level')))
     # --- 1. project → profile -------------------------------------------------
     pid = profile_id
     if adhoc:
         pid = None
-        con.execute("CREATE TEMP TABLE _adhoc (task_id VARCHAR, category VARCHAR, level INTEGER)")
+        reqs = []
         for kv in adhoc:
             for part in kv.split():  # tolerate 'a=1 b=2' arriving as one arg
                 cat, _, lvl = part.partition('=')
-                con.execute("INSERT INTO _adhoc VALUES ('_adhoc',?,?)", [cat.strip(), int(lvl)])
-        req_table = '_adhoc'
+                reqs.append((cat.strip(), int(lvl)))
     elif project:
-        row = con.execute("SELECT profile, sensitivity FROM projects WHERE id=?", [project]).fetchone()
+        row = projects.get(project)
         if row is None:
-            con.close()
             return {'error': f'project {project} not in registry'}
-        pid = row[0] or 'P0_FORE'
-        req_table = 'task_profile_requirements'
+        pid = row.get('profile') or 'P0_FORE'
+        reqs = reqs_by_profile.get(pid, [])
     else:
-        req_table = 'task_profile_requirements'
+        reqs = reqs_by_profile.get(pid or 'P0_FORE', [])
     if not pid and not adhoc:
         pid = 'P0_FORE'
 
     # --- 2. chain from the registry -------------------------------------------
-    if adhoc:
-        # ad-hoc profile: eligibility against model_tier directly (temp req table)
-        chain = con.execute("""
-            SELECT hop, provider, model, normalized_price, data_class FROM (
-              SELECT row_number() OVER (ORDER BY plan_tier ASC, (normalized_price * token_factor) ASC) AS hop,
-                     provider, model, normalized_price, data_class
-              FROM models m
-              WHERE m.valid_to IS NULL AND m.archive = false
-                AND normalized_price IS NOT NULL
-                AND NOT EXISTS (
-                    SELECT 1 FROM _adhoc r
-                    WHERE NOT EXISTS (SELECT 1 FROM model_tier t
-                                      WHERE t.provider = m.provider AND t.model = m.model
-                                        AND t.category = r.category AND t.tier >= r.level)))
-            ORDER BY hop LIMIT ?""", [limit]).fetchall()
-    else:
-        chain = con.execute("""
-            SELECT hop, provider, model, normalized_price, data_class
-            FROM v_task_chain WHERE task_id=? ORDER BY hop LIMIT ?""", [pid, limit]).fetchall()
+    # Profiles with NO requirement rows resolve to an empty chain — identical
+    # to v_task_eligible (its task list comes from DISTINCT requirements).
+    chain = _build_chain(tables, reqs, limit=limit) if reqs else []
 
     # --- 2.5 settings: diversity caps + per-profile overrides ------------------
-    # (resolved while the connection is open; pre-TR-007 DBs degrade to globals)
     qdoc = load_json(f'{MR}/quota-state.json', {})
     if not isinstance(qdoc, dict):
         qdoc = {}
-    caps = _effective_caps(con, qdoc, pid)
-    con.close()
+    caps = _effective_caps(profiles, qdoc, pid)
     if not chain:
         return {'error': 'no chain — profile has no eligible models', 'profile': pid}
 
@@ -333,11 +368,16 @@ def main():
     args = ap.parse_args()
 
     if args.list_profiles:
-        con = duckdb.connect(DB, read_only=True)
-        for r in con.execute("SELECT id, title FROM task_profiles ORDER BY 1").fetchall():
-            reqs = con.execute("SELECT category, level FROM task_profile_requirements WHERE task_id=? ORDER BY level DESC, category", [r[0]]).fetchall()
-            rs = ' '.join(f"{c}={'+'*l if l>0 else ('-'*-l if l<0 else '0')}" for c, l in reqs)
-            print(f'{r[0]:<10} {r[1]}')
+        tables = _load_registry()
+        profs = {r.get('id'): r for r in tables.get('task_profiles') or []}
+        reqs = {}
+        for r in tables.get('task_profile_requirements') or []:
+            reqs.setdefault(r.get('task_id'), []).append(
+                (r.get('category'), r.get('level')))
+        for pid in sorted(profs):
+            rq = sorted(reqs.get(pid, []), key=lambda x: (-x[1], x[0]))
+            rs = ' '.join(f"{c}={'+'*l if l>0 else ('-'*-l if l<0 else '0')}" for c, l in rq)
+            print(f'{pid:<10} {profs[pid].get("title", "")}')
             print(f'           {rs}')
         return
 

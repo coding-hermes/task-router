@@ -42,9 +42,31 @@ import shutil
 import subprocess
 import sys
 
-import duckdb
+import duckdb  # noqa: F401  (kept for the seed subprocess's in-memory engine; maintain itself is pure JSON)
+import tempfile
 
-DB = os.environ.get('ROUTING_DB', '/home/kara/reports-repo/routing.duckdb')
+# Text registry (Bane 2026-08-27): live store = gitignored JSON in the repo,
+# NOT a binary duckdb. ROUTING_REGISTRY override = scratch copies for tests.
+REGISTRY = os.environ.get('ROUTING_REGISTRY', '/home/kara/task-router/registry.json')
+REGISTRY_DEFAULT = os.environ.get('ROUTING_REGISTRY_DEFAULT', '/home/kara/task-router/registry.json')
+
+
+def _load_doc():
+    """registry.json → full doc; missing/corrupt → None (callers fail-open)."""
+    try:
+        with open(REGISTRY) as f:
+            return json.load(f)
+    except Exception:
+        return None
+
+
+def _save_doc(doc):
+    """Atomic write of registry.json (tmp + rename — never a torn file)."""
+    fd, tmp = tempfile.mkstemp(dir=os.path.dirname(REGISTRY), suffix='.tmp')
+    with os.fdopen(fd, 'w') as f:
+        json.dump(doc, f, indent=1)
+    os.replace(tmp, REGISTRY)
+
 BOARD_PY = os.path.expanduser('~/.hermes/venvs/board/bin/python3')
 SPOT_CHECK = os.path.expanduser(
     '~/.hermes/skills/mlops/model-intelligence/scripts/or-family-spot-check.py')
@@ -198,17 +220,21 @@ def compute_price(provider, model, row_evidence, prices):
     return None, 'skipped (no mapping): provider %s is sub-plan/non-OR' % provider
 
 
-def load_live_rows(con):
-    return con.execute("""
-        SELECT provider, model, normalized_price, price_evidence FROM models
-        WHERE valid_to IS NULL AND archive = false ORDER BY provider, model
-    """).fetchall()
+def load_live_rows(doc):
+    """models rows from registry.json: [(provider, model, price, evidence)]. """
+    out = []
+    for m in (doc.get('tables') or {}).get('models') or []:
+        if m.get('valid_to') is None and not m.get('archive'):
+            out.append((m.get('provider'), m.get('model'),
+                        m.get('normalized_price'), m.get('price_evidence')))
+    out.sort(key=lambda r: (r[0], r[1]))
+    return out
 
 
-def collect_reprice_plan(prices):
+def collect_reprice_plan(prices, doc):
     """Diff spot-check against live rows. Returns list of update dicts."""
     plan = []
-    for prov, mdl, cur, ev in load_live_rows(DUCK_CON):
+    for prov, mdl, cur, ev in load_live_rows(doc):
         row_ev = {'normalized_price': cur, 'price_evidence': ev}
         new, why = compute_price(prov, mdl, row_ev, prices)
         if new is None:
@@ -221,17 +247,18 @@ def collect_reprice_plan(prices):
     return plan
 
 
-def apply_reprice(plan, today):
-    con = duckdb.connect(DB)
+def apply_reprice(plan, today, doc):
+    """Update registry.json models rows in place; returns count applied."""
     n = 0
     for u in plan:
         if u.get('changed') and u.get('new') is not None:
-            con.execute(
-                "UPDATE models SET normalized_price=?, price_evidence=? "
-                "WHERE provider=? AND model=? AND valid_to IS NULL AND archive=false",
-                [u['new'], 'or-spot-%s' % today, u['provider'], u['model']])
-            n += 1
-    con.close()
+            for m in (doc.get('tables') or {}).get('models') or []:
+                if (m.get('provider') == u['provider'] and m.get('model') == u['model']
+                        and m.get('valid_to') is None and not m.get('archive')):
+                    m['normalized_price'] = u['new']
+                    m['price_evidence'] = f'or-spot-{today}'
+                    n += 1
+                    break
     return n
 
 
@@ -251,9 +278,10 @@ def report_reprice(plan, dry_run):
 
 
 def step_reprice(dry_run):
-    global DUCK_CON
-    if DUCK_CON is None:
-        DUCK_CON = duckdb.connect(DB, read_only=True)
+    doc = _load_doc()
+    if doc is None:
+        print('[reprice] WARNING: registry.json missing/unreadable — skipping reprice (fail-open)', file=sys.stderr)
+        return
     prices, err = run_spot_check(dry_run=dry_run)
     today = _today()
     if err:
@@ -261,35 +289,32 @@ def step_reprice(dry_run):
         print('[reprice] fail-open: continuing with existing prices')
         return
     try:
-        plan = collect_reprice_plan(prices)
+        plan = collect_reprice_plan(prices, doc)
         report_reprice(plan, dry_run=dry_run)
     except Exception as e:  # noqa: BLE001 — fail-open, never block the loop
         print(f'[reprice] WARNING: reprice failed ({e}) — fail-open continuing',
               file=sys.stderr)
         return
     if dry_run:
-        print("[reprice] would run: UPDATE models SET normalized_price=?, price_evidence='or-spot-%s'" % today)
+        print(f"[reprice] would update registry.json models: normalized_price + price_evidence='or-spot-{today}'")
         return
-    # DuckDB forbids a read-only + read-write connection to the same file in
-    # one process — drop the plan connection before applying.
-    if DUCK_CON is not None:
-        DUCK_CON.close()
-        DUCK_CON = None
     try:
-        n = apply_reprice(plan, today)
+        n = apply_reprice(plan, today, doc)
+        if n:
+            _save_doc(doc)
     except Exception as e:  # noqa: BLE001 — fail-open, never block the loop
         print(f'[reprice] WARNING: reprice failed ({e}) — fail-open continuing',
               file=sys.stderr)
         return
-    print(f"[reprice] applied {n} UPDATE(s)")
+    print(f"[reprice] applied {n} UPDATE(s) to registry.json")
 
 
 def step_seed(dry_run):
     env = dict(os.environ)
-    if DB != os.environ.get('ROUTING_DB_DEFAULT', '/home/kara/reports-repo/routing.duckdb'):
-        env['ROUTING_DB'] = DB
+    if REGISTRY != REGISTRY_DEFAULT:
+        env['ROUTING_REGISTRY'] = REGISTRY
     else:
-        env.pop('ROUTING_DB', None)
+        env.pop('ROUTING_REGISTRY', None)
     if dry_run:
         print('[seed] DRY-RUN: would run:', BOARD_PY, SEED_SCRIPT)
         print('[seed] would rebuild derived tables:',
@@ -304,16 +329,24 @@ def step_seed(dry_run):
     print('[seed] ok')
 
 
-def _table_rows(con, table):
-    cols = [d[0] for d in con.execute(f'SELECT * FROM {table} LIMIT 0').description]
-    for row in con.execute(f'SELECT * FROM {table} ORDER BY 1').fetchall():
-        yield json.dumps(row, default=str)
+def _table_rows(doc, table):
+    """registry.json table → array-per-line JSONL (ns export format).
+
+    Sorted by the first column — matches the old SQL export's ORDER BY 1 so
+    regenerated ns files stay byte-stable (no gratuitous diffs).
+    """
+    rows = sorted((doc.get('tables') or {}).get(table) or [],
+                  key=lambda r: str(r.get(next(iter(r), '')) or ''))
+    for r in rows:
+        yield json.dumps([r.get(c) for c in r], default=str)
 
 
 def write_table(path, table):
-    con = duckdb.connect(DB, read_only=True)
-    lines = list(_table_rows(con, table))
-    con.close()
+    doc = _load_doc()
+    if doc is None:
+        print(f'[export] WARNING: registry.json missing — cannot export {table}', file=sys.stderr)
+        return 0
+    lines = list(_table_rows(doc, table))
     with open(path, 'w') as f:
         for ln in lines:
             f.write(ln + '\n')
@@ -348,8 +381,12 @@ def _fmt_profile_level(cat, lvl):
     return f'{cat}={sym}'
 
 
-def build_snapshot_text(con):
+def build_snapshot_text():
     """Render the chains snapshot mirroring docs/chains-2026-08-27.md format."""
+    from router_spawn import _load_registry, _build_chain
+    tables = _load_registry()
+    if not tables:
+        return None
     title = f'# Chains snapshot — {_iso_now()}'
     lines = [
         title,
@@ -357,19 +394,19 @@ def build_snapshot_text(con):
         'Eligibility: model must clear EVERY category requirement of the profile (tier >= level).',
         'Order: plan_tier ASC, effective $/M ASC, model/provider tie-break. Health/circuit/quota exclusions NOT applied here (see state/).',
     ]
-    profs = con.execute('SELECT id, title FROM task_profiles ORDER BY id').fetchall()
-    for pid, title_ in profs:
+    profs = {r.get('id'): r for r in tables.get('task_profiles') or []}
+    reqs = {}
+    for r in tables.get('task_profile_requirements') or []:
+        reqs.setdefault(r.get('task_id'), []).append((r.get('category'), r.get('level')))
+    for pid in sorted(profs):
+        title_ = profs[pid].get('title', '')
         lines.append('')
         lines.append(f'## {pid} — {title_}')
-        reqs = con.execute(
-            'SELECT category, level FROM task_profile_requirements WHERE task_id=? ORDER BY level DESC, category',
-            [pid]).fetchall()
-        rs = ' '.join(_fmt_profile_level(c, l) for c, l in reqs)
+        rq = sorted(reqs.get(pid, []), key=lambda x: (-x[1], x[0]))
+        rs = ' '.join(_fmt_profile_level(c, l) for c, l in rq)
         lines.append(f'profile: {rs}')
-        hops = con.execute("""
-            SELECT hop, normalized_price, provider, model FROM v_task_chain
-            WHERE task_id=? ORDER BY hop""", [pid]).fetchall()
-        for h, price, prov, model in hops:
+        hops = _build_chain(tables, reqs.get(pid, []), limit=200)
+        for h, prov, model, price, _dc in hops:
             lines.append(f'  {h}. $ {price:.3f}/M  {prov}/{model}')
     return '\n'.join(lines) + '\n'
 
@@ -382,9 +419,10 @@ def step_snapshot(dry_run):
         print(f'[snapshot] DRY-RUN: would write {ns_path}')
         print(f'[snapshot] DRY-RUN: would copy  {doc_path}')
         return
-    con = duckdb.connect(DB, read_only=True)
-    text = build_snapshot_text(con)
-    con.close()
+    text = build_snapshot_text()
+    if text is None:
+        print('[snapshot] WARNING: registry.json missing — snapshot skipped', file=sys.stderr)
+        return
     os.makedirs(os.path.dirname(ns_path), exist_ok=True)
     with open(ns_path, 'w') as f:
         f.write(text)
@@ -450,8 +488,6 @@ STEPS = ['reprice', 'seed', 'export', 'snapshot', 'commit']
 
 
 def main(argv=None):
-    global DUCK_CON
-    DUCK_CON = None
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument('--dry-run', action='store_true',
                     help='print what would change; write nothing')
@@ -459,12 +495,8 @@ def main(argv=None):
     args = ap.parse_args(argv)
 
     steps = STEPS if 'all' in args.step else args.step
-    try:
-        for s in steps:
-            getattr(sys.modules[__name__], f'step_{s}')(args.dry_run)
-    finally:
-        if DUCK_CON is not None:
-            DUCK_CON.close()
+    for s in steps:
+        getattr(sys.modules[__name__], f'step_{s}')(args.dry_run)
     return 0
 
 

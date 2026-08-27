@@ -10,11 +10,70 @@
 Exports tables to the routing namespace JSONL. Run: board venv python."""
 import duckdb, json, shutil, os, subprocess, datetime
 
-# ROUTING_DB override lets maintenance/tests point the whole loop (seed +
-# exports) at a scratch DB copy — same pattern as router_spawn.py (TR-005).
-DB = os.environ.get('ROUTING_DB', '/home/kara/reports-repo/routing.duckdb')
+# Text registry (Bane 2026-08-27): the live store is a gitignored JSON file in
+# the task-router repo — NOT a binary duckdb. The seed computes against an
+# IN-MEMORY duckdb (engine only, nothing persisted as binary) and writes
+# registry.json. ROUTING_REGISTRY override lets maintenance/tests point the
+# whole loop at a scratch copy — same pattern as router_spawn.py (TR-005).
+REGISTRY = os.environ.get('ROUTING_REGISTRY', '/home/kara/task-router/registry.json')
 NS = '/home/kara/duckbrain/namespaces/routing'
-con = duckdb.connect(DB)
+
+# Base tables come from the committed namespace JSONL (array-per-line, column
+# order = duckdb DESCRIBE order) — or from an existing registry.json when the
+# ns copy is stale. Types are explicit so the derivation SQL behaves exactly
+# as it did against the file DB.
+BASE_COLUMNS = {
+    'providers': [('id', 'VARCHAR'), ('plan', 'VARCHAR'), ('quota_unit', 'VARCHAR'),
+                  ('windows', 'VARCHAR'), ('concurrency', 'INTEGER'),
+                  ('tos_class', 'VARCHAR'), ('data_class', 'VARCHAR'),
+                  ('valid_from', 'DATE'), ('valid_to', 'DATE'), ('archive', 'BOOLEAN')],
+    'models': [('provider', 'VARCHAR'), ('model', 'VARCHAR'),
+               ('normalized_price', 'DOUBLE'), ('price_evidence', 'VARCHAR'),
+               ('data_class', 'VARCHAR'), ('plan_tier', 'INTEGER'),
+               ('perf_agent_tick', 'DOUBLE'), ('perf_long_doc', 'DOUBLE'),
+               ('perf_debug', 'DOUBLE'), ('perf_schema', 'DOUBLE'),
+               ('perf_e2e_vision', 'DOUBLE'), ('perf_review', 'DOUBLE'),
+               ('perf_delegation', 'DOUBLE'), ('perf_guard', 'DOUBLE'),
+               ('perf_mock', 'DOUBLE'), ('perf_reasoning', 'DOUBLE'),
+               ('valid_from', 'DATE'), ('valid_to', 'DATE'), ('archive', 'BOOLEAN'),
+               ('token_factor', 'DOUBLE')],
+    'benchmarks': [('model', 'VARCHAR'), ('category', 'VARCHAR'), ('score', 'DOUBLE'),
+                   ('max_score', 'DOUBLE'), ('source', 'VARCHAR'), ('valid_from', 'DATE')],
+    'archetypes': [('id', 'VARCHAR'), ('bar', 'DOUBLE'), ('skill_levels', 'VARCHAR'),
+                   ('notes', 'VARCHAR')],
+    'projects': [('id', 'VARCHAR'), ('sensitivity', 'VARCHAR'), ('board_type', 'VARCHAR'),
+                 ('stack', 'VARCHAR'), ('profile', 'VARCHAR')],
+}
+
+
+def _load_base_rows(name):
+    """Base-table rows from registry.json (preferred) or ns tables JSONL."""
+    try:
+        with open(REGISTRY) as f:
+            doc = json.load(f)
+        rows = (doc.get('tables') or {}).get(name)
+        if rows:
+            cols = [c[0] for c in BASE_COLUMNS[name]]
+            return [tuple(r.get(c) for c in cols) for r in rows]
+    except Exception:
+        pass
+    path = f'{NS}/tables/{name}.jsonl'
+    out = []
+    with open(path) as f:
+        for line in f:
+            line = line.strip()
+            if line:
+                out.append(tuple(json.loads(line)))
+    return out
+
+
+con = duckdb.connect(':memory:')
+for t, cols in BASE_COLUMNS.items():
+    rows = _load_base_rows(t)
+    con.execute(f"CREATE TABLE {t} ({', '.join(f'{n} {ty}' for n, ty in cols)})")
+    if rows:
+        con.executemany(f"INSERT INTO {t} VALUES ({','.join('?' * len(cols))})", rows)
+    print(f'loaded {t:<12} {len(rows):>3} rows')
 
 CATS = ['agent_tick','long_doc','debug','schema','e2e_vision','review','delegation',
         'guard','mock','reasoning','code_gen','refactor','terminal','mechanical','test',
@@ -405,11 +464,22 @@ PROFILES = {
     'P4_SECURITY': ("Security-critical: audits, guardrails, secure review",
                     {'security': 3, 'review': 1, 'guard': 1}),
 }
+# Preserve existing profile created_at across re-seeds (now() on every run
+# made registry.json + ns exports non-idempotent — Bane 2026-08-27 fix).
+_existing_ts = {}
+try:
+    with open(REGISTRY) as f:
+        _d = json.load(f)
+    for _r in (_d.get('tables') or {}).get('task_profiles') or []:
+        _existing_ts[_r.get('id')] = _r.get('created_at')
+except Exception:
+    pass
 for pid, (title, reqs) in PROFILES.items():
     # explicit column list: the two TR-007 diversity columns stay NULL for the
     # seeded profiles (no overrides → global defaults apply; existing behavior)
-    con.execute("INSERT INTO task_profiles (id, title, created_at) VALUES (?, ?, now())",
-                [pid, title])
+    ts = _existing_ts.get(pid) or datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
+    con.execute("INSERT INTO task_profiles (id, title, created_at) VALUES (?, ?, CAST(? AS TIMESTAMP))",
+                [pid, title, ts])
     for c, lvl in reqs.items():
         con.execute("INSERT INTO task_profile_requirements VALUES (?,?,?)", [pid, c, lvl])
 
@@ -451,7 +521,35 @@ for r in con.execute("""
     SELECT category, count(*) FROM model_perf GROUP BY 1 ORDER BY 1""").fetchall():
     print(' ', r)
 
-# ---------- 8. export to namespace + commit ------------------------------------
+# ---------- 8. write the text registry + export to namespace ------------------
+ALL_TABLES = ['providers', 'models', 'archetypes', 'benchmarks', 'projects',
+              'level_defs', 'category_levels', 'model_perf', 'model_tier',
+              'task_profiles', 'task_profile_requirements']
+def _dump_registry():
+    doc = {'version': 3,
+           'generated_at': datetime.datetime.now(datetime.timezone.utc).isoformat(timespec='seconds'),
+           'source': 'router_seed.py (in-memory duckdb engine)',
+           'tables': {}}
+    for t in ALL_TABLES:
+        cols = [c[0] for c in con.execute(f'DESCRIBE {t}').fetchall()]
+        # Full-column ORDER BY — deterministic row order (matches the ns
+        # export convention) so registry.json is byte-stable across runs.
+        order = ', '.join(str(i + 1) for i in range(len(cols)))
+        rows = []
+        for r in con.execute(f'SELECT * FROM {t} ORDER BY {order}').fetchall():
+            rec = {}
+            for c, v in zip(cols, r):
+                if isinstance(v, (datetime.datetime, datetime.date)):
+                    v = v.isoformat()
+                elif v is not None and not isinstance(v, (int, float, bool)):
+                    v = str(v)
+                rec[c] = v
+            rows.append(rec)
+        doc['tables'][t] = rows
+    with open(REGISTRY, 'w') as f:
+        json.dump(doc, f, indent=1)
+    print('wrote', REGISTRY, f'({os.path.getsize(REGISTRY) / 1024:.1f} KB)')
+
 os.makedirs(f'{NS}/tables', exist_ok=True)
 for t in ['level_defs', 'model_perf', 'category_levels', 'model_tier',
           'task_profiles', 'task_profile_requirements']:
@@ -459,3 +557,4 @@ for t in ['level_defs', 'model_perf', 'category_levels', 'model_tier',
         for row in con.execute(f'SELECT * FROM {t} ORDER BY 1').fetchall():
             f.write(json.dumps(row, default=str) + '\n')
 print('exported tables to', NS)
+_dump_registry()

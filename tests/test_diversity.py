@@ -1,9 +1,10 @@
 """TR-007 diversity + concurrency-aware chain resolution — hermetic unit tests.
 
-Never touches the real registry or real state: the fixture DB is a tmp_path
-duckdb and the state dir is a tmp_path dir; router_spawn.DB / MR are
-monkeypatched before every resolve() call. A missing-file state read degrades
-to "no state" (fail-open), exactly like production when nothing is configured.
+Never touches the real registry or real state: the fixture registry is a
+tmp_path registry.json and the state dir is a tmp_path dir; router_spawn's
+REGISTRY / MR are monkeypatched before every resolve() call. A missing-file
+state read degrades to "no state" (fail-open), exactly like production when
+nothing is configured.
 """
 import datetime
 import json
@@ -12,8 +13,6 @@ import os
 import sys
 
 import pytest
-
-pytest.importorskip("duckdb")
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                                 "scripts"))
@@ -26,67 +25,46 @@ CATS = ("agent_tick", "debug")  # categories used by the fixture profile reqs
 
 
 def _mk_db(tmp_path, models):
-    """Build a mini registry: models / model_tier / task_profiles /
-    task_profile_requirements / v_task_chain, faithful to router_seed.py's SQL.
+    """Build a mini text registry (registry.json): models / model_tier /
+    task_profiles / task_profile_requirements / projects, faithful to
+    router_seed.py's output shape.
 
     models: list of (provider, model, price) — token_factor 1.0, plan_tier 0,
     all eligible for profile FIXPROF (tier >= level for every requirement).
     """
-    import duckdb
-    db = str(tmp_path / "routing.duckdb")
-    con = duckdb.connect(db)
-    con.execute("CREATE TABLE models (provider VARCHAR, model VARCHAR, "
-                "normalized_price DOUBLE, token_factor DOUBLE, plan_tier INTEGER, "
-                "data_class VARCHAR, valid_to TIMESTAMP, archive BOOLEAN)")
-    con.execute("CREATE TABLE model_tier (provider VARCHAR, model VARCHAR, "
-                "category VARCHAR, tier INTEGER)")
+    reg = {
+        "version": 3,
+        "generated_at": "fixture",
+        "tables": {
+            "models": [],
+            "model_tier": [],
+            "task_profiles": [],
+            "task_profile_requirements": [],
+            "projects": [],
+        },
+    }
     for prov, model, price in models:
-        con.execute("INSERT INTO models VALUES (?, ?, ?, ?, ?, ?, NULL, false)",
-                    [prov, model, price, 1.0, 0, "zdr"])
+        reg["tables"]["models"].append({
+            "provider": prov, "model": model, "normalized_price": price,
+            "token_factor": 1.0, "plan_tier": 0, "data_class": "zdr",
+            "valid_to": None, "archive": False})
         for cat in CATS:
             # tier high enough to clear any requirement we seed
-            con.execute("INSERT INTO model_tier VALUES (?, ?, ?, ?)",
-                        [prov, model, cat, 5])
-    con.execute("CREATE TABLE task_profiles (id VARCHAR PRIMARY KEY, title VARCHAR, "
-                "created_at TIMESTAMP, max_consecutive_per_provider INTEGER, "
-                "max_total_per_provider INTEGER)")
-    con.execute("CREATE TABLE task_profile_requirements (task_id VARCHAR, "
-                "category VARCHAR, level INTEGER, PRIMARY KEY (task_id, category))")
-    now = datetime.datetime.now()
-    con.execute("INSERT INTO task_profiles VALUES ('FIXPROF', 'fixture', ?, NULL, NULL)",
-                [now])
-    con.execute("CREATE TABLE projects (id VARCHAR PRIMARY KEY, profile VARCHAR, "
-                "sensitivity VARCHAR)")
-    con.execute("INSERT INTO projects VALUES ('fixproj', 'FIXPROF', NULL)")
-    con.execute("INSERT INTO task_profile_requirements VALUES ('FIXPROF', 'agent_tick', 1)")
-    con.execute("INSERT INTO task_profile_requirements VALUES ('FIXPROF', 'debug', 1)")
-    # faithful copy of router_seed.py's v_task_chain view
-    con.execute("""
-        CREATE VIEW v_task_chain AS
-        SELECT task_id, provider, model, normalized_price, perf_sum, data_class,
-               row_number() OVER (PARTITION BY task_id ORDER BY plan_tier ASC,
-                                  (normalized_price * token_factor) ASC) AS hop
-        FROM (
-          SELECT e.task_id, e.provider, e.model, e.normalized_price,
-                 e.token_factor, e.plan_tier, e.data_class,
-                 (SELECT sum(t.tier) FROM model_tier t
-                  WHERE t.provider = e.provider AND t.model = e.model) AS perf_sum
-          FROM (SELECT r.task_id, m.provider, m.model, m.normalized_price,
-                       m.token_factor, m.plan_tier, m.data_class
-                FROM models m
-                JOIN task_profiles tp ON true
-                JOIN (SELECT DISTINCT task_id FROM task_profile_requirements) r ON true
-                WHERE m.valid_to IS NULL AND m.archive = false
-                  AND NOT EXISTS (
-                        SELECT 1 FROM task_profile_requirements rr
-                        WHERE rr.task_id = r.task_id
-                          AND NOT EXISTS (SELECT 1 FROM model_tier t
-                                          WHERE t.provider = m.provider AND t.model = m.model
-                                            AND t.category = rr.category AND t.tier >= rr.level))
-               ) e
-        ) WHERE normalized_price IS NOT NULL""")
-    con.close()
-    return db
+            reg["tables"]["model_tier"].append(
+                {"provider": prov, "model": model, "category": cat, "tier": 5})
+    reg["tables"]["task_profiles"].append({
+        "id": "FIXPROF", "title": "fixture", "created_at": None,
+        "max_consecutive_per_provider": None, "max_total_per_provider": None})
+    reg["tables"]["projects"].append(
+        {"id": "fixproj", "profile": "FIXPROF", "sensitivity": None})
+    reg["tables"]["task_profile_requirements"] = [
+        {"task_id": "FIXPROF", "category": "agent_tick", "level": 1},
+        {"task_id": "FIXPROF", "category": "debug", "level": 1},
+    ]
+    path = str(tmp_path / "registry.json")
+    with open(path, "w") as f:
+        json.dump(reg, f)
+    return path
 
 
 def _state_dir(tmp_path, providers=None, diversity=None, models=None,
@@ -118,7 +96,7 @@ def _started(pair, ts=None, tid="tr-x", outcome="started"):
 
 
 def _resolve(monkeypatch, tmp_path, db, state, project="fixproj"):
-    monkeypatch.setattr(router_spawn, "DB", db)
+    monkeypatch.setattr(router_spawn, "REGISTRY", db)
     monkeypatch.setattr(router_spawn, "MR", state)
     return router_spawn.resolve(project=project)
 
@@ -253,9 +231,13 @@ def test_both_caps_compound(monkeypatch, tmp_path):
 def test_profile_override_beats_global(monkeypatch, tmp_path):
     """AC4: global consecutive=5 would keep everything; profile says 1 → drop."""
     db = _mk_db(tmp_path, MODELS3)
-    con = __import__("duckdb").connect(db)
-    con.execute("UPDATE task_profiles SET max_consecutive_per_provider=1 WHERE id='FIXPROF'")
-    con.close()
+    with open(db) as f:
+        reg = json.load(f)
+    for p in reg["tables"]["task_profiles"]:
+        if p["id"] == "FIXPROF":
+            p["max_consecutive_per_provider"] = 1
+    with open(db, "w") as f:
+        json.dump(reg, f)
     state = _state_dir(tmp_path, providers=_open_providers(),
                        diversity={"max_consecutive_per_provider": 5})
     r = _resolve(monkeypatch, tmp_path, db, state)
