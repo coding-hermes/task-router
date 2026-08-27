@@ -287,23 +287,36 @@ def _build_chain(tables, reqs, limit=30):
             for i, m in enumerate(eligible[:limit])]
 
 
-def _resolve_fallback(tables, qs, hs, cs, reqs, limit=30):
+def _resolve_fallback(tables, qs, hs, cs, reqs, limit=30, profile_id=None):
     """FALLBACK LANES (Bane 2026-08-27): when the primary chain is fully
     gated/down, resolve the always-run lanes from data/tables/fallback_lanes.jsonl
-    (registry table `fallback_lanes`: {provider, model, order, key_env, note}).
+    (registry table `fallback_lanes`: {provider, model, order, key_env, profiles?}).
     A fallback lane must (a) exist as an active priced lane in the registry,
-    (b) clear the profile's requirement bars, (c) not be quota-gated or DOWN
-    itself. Ordered by `order` ASC; returns the same hop shape as _build_chain."""
+    (b) not be quota-gated or DOWN itself. **Fallback lanes BYPASS the profile
+    bars** (Bane: "this way they always run") — they are the curated
+    last-resort list; when everything else is dead, running the deepseek cron
+    lane beats not running at all.
+    `profiles` field (optional list) RESTRICTS a lane to specific profiles
+    (e.g. the vision-exp lane serves only P5_VISION_E2E so a text model never
+    handles vision E2E); absent = generic lane for all profiles. Profile-
+    specific matching lanes resolve BEFORE generic lanes (curated for the
+    task beats the default), each ordered by `order` ASC."""
     lanes = sorted(tables.get('fallback_lanes') or [],
                    key=lambda r: (r.get('order') or 1 << 30))
-    tiers = {}
-    for r in tables.get('model_tier') or []:
-        tiers.setdefault(r.get('model'), {})[r.get('category')] = r.get('tier')
     by_lane = {}
     for m in tables.get('models') or []:
         by_lane[(m.get('provider'), m.get('model'))] = m
-    out = []
+    generic, specific = [], []
     for f in lanes:
+        profs = f.get('profiles') or []
+        if profs:
+            if profile_id and profile_id in profs:
+                specific.append(f)  # curated for THIS profile
+        else:
+            generic.append(f)  # default lane, all profiles
+    ordered = specific + generic  # curated-for-this-profile first, then default
+    out = []
+    for f in ordered:
         key = (f.get('provider'), f.get('model'))
         m = by_lane.get(key)
         if m is None:
@@ -312,10 +325,6 @@ def _resolve_fallback(tables, qs, hs, cs, reqs, limit=30):
             continue
         if m.get('normalized_price') is None:
             continue
-        mt = tiers.get(f.get('model')) or {}
-        if any((mt.get(cat) if mt.get(cat) is not None else -1) < lvl
-               for cat, lvl in reqs):
-            continue  # fallback must still clear the profile bars
         q = qs.get(f.get('provider')) or {}
         if q.get('status') != 'open':
             continue  # fallback itself gated — genuinely nothing available
@@ -432,7 +441,8 @@ def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=30
     # always-available lanes (deepseek-v4 + cron key). Cheap subs first,
     # deepseek as the guaranteed last hop — never a None chain for a cron.
     if not head:
-        fb = _resolve_fallback(tables, qs, hs, cs, reqs, limit=limit)
+        fb = _resolve_fallback(tables, qs, hs, cs, reqs, limit=limit,
+                               profile_id=pid)
         if fb:
             head = fb[0]
             out_chain = fb

@@ -511,7 +511,12 @@ PROFILES = {
                  'creative': -3, 'vision': -3, 'e2e_vision': -2,
                  'mock': -3, 'guard': -3}),
     'P5_VISION_E2E': ("Frontend E2E / visual QA",
-                      {'e2e_vision': 1, 'vision': 1, 'terminal': 0, 'debug': -2,
+                      # 2026-08-27 audit: vision evidence is sparse (26.8% lane
+                      # coverage) and deepseek-v4-flash sits at vision -2 —
+                      # vision=1 made the always-run fallback impossible.
+                      # -1 = minimum; the deepseek vision-exp lane (fallback
+                      # order 2) clears it; tightens as vision evidence fills.
+                      {'e2e_vision': -1, 'vision': -1, 'terminal': 0, 'debug': -2,
                        'reasoning': -1, 'long_doc': 0, 'creative': -3}),
     'P7_MOCK': ("Mock data / test-loop driving",
                 {'mock': -3, 'mechanical': 2, 'code_gen': -2, 'reasoning': -1,
@@ -531,11 +536,21 @@ PROFILES = {
     'P1_CODING': ("Fleet coding: feature work, refactors, tests, bug fixes",
                   {'code_gen': -2, 'refactor': -5, 'test': 0, 'debug': -3}),
     'P2_AGENTIC': ("Agentic autonomy: ticks, tool use, delegation, long-horizon runs",
-                   {'agent_tick': 0, 'tool_use': 0, 'delegation': 0, 'long_horizon': 1}),
+                   # 2026-08-27 audit: long_horizon data is SPARSE (18.8% lane
+                   # coverage) — a +1 bar there was a de-facto model filter that
+                   # ALSO excluded deepseek-v4-flash (the always-run fallback).
+                   # -1 = honest minimum (blank clears); tightens automatically
+                   # as the research cron fills long_horizon evidence.
+                   {'agent_tick': 0, 'tool_use': 0, 'delegation': 0, 'long_horizon': -1}),
     'P3_DOCS': ("Specs + long-form docs + review",
                 {'long_doc': -1, 'spec_docs': 0, 'review': -1}),
     'P4_SECURITY': ("Security-critical: audits, guardrails, secure review",
-                    {'security': 2, 'review': 0, 'guard': 0}),
+                    # 2026-08-27 audit: security evidence covers only 8% of
+                    # lanes (GLM family) — security=2 was a de-facto GLM-only
+                    # filter that excluded deepseek-v4-flash (always-run
+                    # fallback). -1 = minimum; tightens as security evidence
+                    # fills. review=0 -> -1 for the same reason.
+                    {'security': -1, 'review': -1, 'guard': 0}),
     # P6_DEFAULT (Bane 2026-08-27): the ONE default chain for the bulk of cron
     # work — syncs, monitors, reports, infra, research feeds. Most crons
     # (71/147 duckbrain-sync + monitors + infra) share this chain; specialized

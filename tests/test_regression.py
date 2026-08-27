@@ -160,8 +160,12 @@ def test_chain_invariants_per_profile(monkeypatch, tmp_path, pid):
 @pytest.mark.parametrize("pid,head", [
     ("P0_FORE", "ollama-cloud/deepseek-v4-flash"),
     ("P1_CODING", "opencode-go/mimo-v2.5"),
-    ("P2_AGENTIC", "ollama-cloud/kimi-k2.7-code"),
-    ("P4_SECURITY", "ollama-cloud/glm-5.2"),
+    # 2026-08-27 audit re-base: P2 long_horizon=1→-1, P4 security=2→-1 (sparse
+    # categories were de-facto GLM-only filters and broke the deepseek always-run
+    # fallback). New heads are the honest-minimum chains — cheaper models
+    # (mimo-v2.5 $0.013) now eligible. Updated deliberately with the audit.
+    ("P2_AGENTIC", "opencode-go/mimo-v2.5"),
+    ("P4_SECURITY", "opencode-go/mimo-v2.5"),
 ])
 def test_golden_fixed_point_heads(monkeypatch, tmp_path, pid, head):
     """Known heads as of 2026-08-27 (intentional reprice/new-model changes must
