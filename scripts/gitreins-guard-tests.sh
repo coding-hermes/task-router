@@ -16,9 +16,8 @@ if ! "$PY" -c "import pytest" >/dev/null 2>&1; then
   echo "SKIP: pytest not importable in $PY — guard tests deferred."
   exit 0
 fi
-if ! "$PY" -c "import duckdb" >/dev/null 2>&1; then
-  echo "SKIP: duckdb not importable in $PY — smoke suite self-skips; guard tests deferred."
-fi
+# NOTE (TR-009/010): the suite is pure-JSON now — no duckdb import needed by
+# the scripts or the tests. The old duckdb skip was removed 2026-08-27.
 
 "$PY" -m pytest -q tests/ -x
 RC=$?

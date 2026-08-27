@@ -1,0 +1,42 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install test deps
+        run: pip install --quiet pytest
+
+      - name: Full test suite (pure JSON — no duckdb needed)
+        run: python3 -m pytest -q tests/ -p no:cacheprovider
+
+      - name: Guard test command (gitreins parity)
+        run: bash scripts/gitreins-guard-tests.sh
+
+      - name: Fresh-clone resolve smoke (stdlib)
+        run: |
+          python3 scripts/router_spawn.py coding-hermes-scheduler --format json | python3 -c "import json,sys; d=json.load(sys.stdin); assert d['head'] is not None, 'empty head'; print('head:', d['head']['provider'] + '/' + d['head']['model'], d['head']['usd_1m'])"
+          python3 scripts/router_spawn.py --list-profiles | grep -q P0_FORE && echo "profiles ok"
+
+      - name: Registry integrity
+        run: |
+          python3 - <<'EOF'
+          import glob
+          tables = {f.split('/')[-1][:-6]: sum(1 for l in open(f) if l.strip()) for f in glob.glob('data/tables/*.jsonl')}
+          assert tables['models'] >= 50, tables
+          assert tables['model_perf'] >= 1000, tables
+          assert tables['task_profiles'] >= 8, tables
+          print('data/tables ok:', {k: v for k, v in sorted(tables.items())})
+          EOF
