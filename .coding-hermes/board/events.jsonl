@@ -1,0 +1,2 @@
+{"id":1,"timestamp":"2026-08-27 05:45:00.000000","event_type":"board_init","task_id":null,"actor":"hermes-kickoff","detail":"task-router project board created (repo github.com/coding-hermes/task-router, DuckBrain ns task-router)","tick_number":null}
+{"id":2,"timestamp":"2026-08-27 05:45:00.000000","event_type":"task_created","task_id":null,"actor":"hermes-kickoff","detail":"{\"source\":\"bootstrap 2026-08-27\",\"tasks\":[\"TR-001\",\"TR-002\",\"TR-003\",\"TR-004\",\"TR-005\",\"TR-006\"]}","tick_number":null}

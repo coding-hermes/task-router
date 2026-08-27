@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.coding-hermes/board/*.db
+.coding-hermes/board/*.parquet
+.coding-hermes/board/wal/
+.coding-hermes/board/snapshots/
+.gitreins/tasks.yaml
+.gitreins/history/
+.gitreins/verdicts/

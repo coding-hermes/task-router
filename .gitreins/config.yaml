@@ -1,0 +1,22 @@
+guards:
+  secrets: true
+  lint: false
+  tests: true
+  test_mode: diff
+  test_command: ./scripts/gitreins-guard-tests.sh
+  static_analysis: false
+evaluator:
+  model: deepseek-v4-flash
+  max_iterations: 25
+  max_time: "5m"
+  max_input_tokens: "0.1M"
+  static_analysis_diagnostics: false
+defaults:
+  model: deepseek-v4-flash
+  check_for_updates: false
+history:
+  enabled: true
+  storage: git
+  max_verdicts: 1000
+pipeline:
+  stages: []
