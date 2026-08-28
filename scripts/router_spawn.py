@@ -291,21 +291,25 @@ def _resolve_fallback(tables, qs, hs, cs, reqs, limit=30, profile_id=None):
     """FALLBACK LANES (Bane 2026-08-27): when the primary chain is fully
     gated/down, resolve the always-run lanes from data/tables/fallback_lanes.jsonl
     (registry table `fallback_lanes`: {provider, model, order, key_env, profiles?}).
-    A fallback lane must (a) exist as an active priced lane in the registry,
-    (b) not be quota-gated or DOWN itself. **Fallback lanes BYPASS the profile
-    bars** (Bane: "this way they always run") — they are the curated
-    last-resort list; when everything else is dead, running the deepseek cron
-    lane beats not running at all.
-    `profiles` field (optional list) RESTRICTS a lane to specific profiles
-    (e.g. the vision-exp lane serves only P5_VISION_E2E so a text model never
-    handles vision E2E); absent = generic lane for all profiles. Profile-
-    specific matching lanes resolve BEFORE generic lanes (curated for the
-    task beats the default), each ordered by `order` ASC."""
+
+    This is a DEGRADED path, not a normal chain (gpt-5.6-sol review 2026-08-27):
+    - fallback lanes may serve a profile they don't fully clear — but that is
+      REPORTED, never silent: each hop carries `requirements_unmet` and the
+      resolve response sets `degraded_fallback=true` when it fires.
+    - the same gates as the primary chain apply: quota GATED, health DOWN/SLOW,
+      circuit OPEN, model-level health, and the lane must exist/be priced.
+    - `profiles` field (optional) restricts a lane to specific profiles (e.g.
+      the vision-exp lane serves only P5_VISION_E2E so a text model never
+      handles vision E2E); absent = generic lane for all profiles.
+    - profile-specific matching lanes resolve BEFORE generic lanes."""
     lanes = sorted(tables.get('fallback_lanes') or [],
                    key=lambda r: (r.get('order') or 1 << 30))
     by_lane = {}
     for m in tables.get('models') or []:
         by_lane[(m.get('provider'), m.get('model'))] = m
+    tiers = {}
+    for r in tables.get('model_tier') or []:
+        tiers.setdefault(r.get('model'), {})[r.get('category')] = r.get('tier')
     generic, specific = [], []
     for f in lanes:
         profs = f.get('profiles') or []
@@ -325,17 +329,29 @@ def _resolve_fallback(tables, qs, hs, cs, reqs, limit=30, profile_id=None):
             continue
         if m.get('normalized_price') is None:
             continue
+        # ---- gates, same as the primary chain ----
         q = qs.get(f.get('provider')) or {}
         if q.get('status') != 'open':
-            continue  # fallback itself gated — genuinely nothing available
-        h = hs.get(f.get('provider')) or {}
-        if h.get('status') == 'DOWN':
             continue
+        h = hs.get(f.get('provider')) or {}
+        if h.get('status') in ('DOWN', 'SLOW'):
+            continue
+        mm = (h.get('models') or {}).get(f.get('model')) or {}
+        if mm.get('status') in ('DOWN', 'SLOW'):
+            continue
+        if (cs.get((f.get('provider'), f.get('model'))) or
+                cs.get(f'{f.get("provider")}/{f.get("model")}')):
+            continue  # circuit OPEN for this exact pair
+        mt = tiers.get(f.get('model')) or {}
+        unmet = [(c, lvl, mt.get(c) if mt.get(c) is not None else -1)
+                 for c, lvl in reqs
+                 if (mt.get(c) if mt.get(c) is not None else -1) < lvl]
         out.append({'hop': len(out) + 1, 'provider': f.get('provider'),
                     'model': f.get('model'),
                     'usd_1m': round(float(m.get('normalized_price')), 4),
                     'data_class': m.get('data_class'),
-                    'fallback': True, 'key_env': f.get('key_env')})
+                    'fallback': True, 'key_env': f.get('key_env'),
+                    'requirements_unmet': unmet})
         if len(out) >= limit:
             break
     return out
@@ -413,6 +429,14 @@ def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=30
             why.append(f'health DOWN ({h.get("ts", "?")})')
         elif h.get('status') == 'SLOW':
             why.append(f'health SLOW ({h.get("latency_ms")}ms)')
+        # model-level health (probe v2 writes providers.<p>.models.<m>.status;
+        # gpt-5.6-sol review 2026-08-27: the router previously ignored it and
+        # routed onto 22 DOWN pairs)
+        hm = (h.get('models') or {}).get(model) or {}
+        if hm.get('status') == 'DOWN':
+            why.append(f'model DOWN ({hm.get("ts", "?")})')
+        elif hm.get('status') == 'SLOW':
+            why.append(f'model SLOW ({hm.get("latency_ms")}ms)')
         c = cs.get(f'{prov}/{model}')
         if c and c.get('open_until') and c['open_until'] > now:
             why.append(f'circuit OPEN until {c["open_until"]} ({c.get("failures", 0)} failures)')
@@ -440,19 +464,24 @@ def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=30
     # When every eligible hop is gated/down, fall back to the designated
     # always-available lanes (deepseek-v4 + cron key). Cheap subs first,
     # deepseek as the guaranteed last hop — never a None chain for a cron.
+    fb_used = []
     if not head:
         fb = _resolve_fallback(tables, qs, hs, cs, reqs, limit=limit,
                                profile_id=pid)
         if fb:
+            fb_used = fb
             head = fb[0]
             out_chain = fb
             reasons.append(
                 f'FALLBACK: all {len(exclusions)} eligible hops gated — using '
-                f'{head["provider"]}/{head["model"]} (always-run lane)')
+                f'{head["provider"]}/{head["model"]} (always-run lane; '
+                f'DEGRADED — requirements_unmet: '
+                f'{[(c, lvl, have) for c, lvl, have in head.get("requirements_unmet", [])]})')
 
     return {'project': project, 'profile': pid, 'resolved_at': now,
             'head': head, 'chain': out_chain, 'exclusions': exclusions,
             'gate_reasons': reasons,
+            'degraded_fallback': bool(fb_used),
             'gate': 'OPEN' if head else ('NO-OPEN-HOP' if out_chain or exclusions else 'NO-CHAIN'),
             'settings': caps}
 

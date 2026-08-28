@@ -160,12 +160,12 @@ def test_chain_invariants_per_profile(monkeypatch, tmp_path, pid):
 @pytest.mark.parametrize("pid,head", [
     ("P0_FORE", "ollama-cloud/deepseek-v4-flash"),
     ("P1_CODING", "opencode-go/mimo-v2.5"),
-    # 2026-08-27 audit re-base: P2 long_horizon=1→-1, P4 security=2→-1 (sparse
-    # categories were de-facto GLM-only filters and broke the deepseek always-run
-    # fallback). New heads are the honest-minimum chains — cheaper models
-    # (mimo-v2.5 $0.013) now eligible. Updated deliberately with the audit.
-    ("P2_AGENTIC", "opencode-go/mimo-v2.5"),
-    ("P4_SECURITY", "opencode-go/mimo-v2.5"),
+    # Capability-grounded heads (gpt-5.6-sol review 2026-08-27: do NOT tune
+    # normal eligibility to accommodate the emergency fallback — fallback is a
+    # degraded path that reports requirements_unmet). P2/P4 head on models with
+    # real long_horizon/security evidence.
+    ("P2_AGENTIC", "ollama-cloud/kimi-k2.7-code"),
+    ("P4_SECURITY", "ollama-cloud/glm-5.2"),
 ])
 def test_golden_fixed_point_heads(monkeypatch, tmp_path, pid, head):
     """Known heads as of 2026-08-27 (intentional reprice/new-model changes must
@@ -412,7 +412,7 @@ def test_fallback_lane_fires_when_all_subs_down(monkeypatch, tmp_path):
     assert r["head"]["provider"] == "deepseek"
     assert r["head"]["model"] == "deepseek-v4-flash"
     assert r["head"].get("fallback") is True
-    assert r["head"].get("key_env") == "DEEPSEEK_CRON_KEY"
+    assert r["head"].get("key_env") == "DEEPSEEK_PAYG_DUCKBRAIN_KEY"
     assert any("FALLBACK" in w for w in r["gate_reasons"])
     # fallback lane must exist in the registry table
     fbs = tables.get("fallback_lanes") or []
@@ -547,9 +547,16 @@ def test_seed_is_idempotent(tmp_path):
     ns = tmp_path / "ns"
     env.update({"ROUTING_REGISTRY": str(reg), "ROUTING_DATA_DIR": str(data),
                 "ROUTING_NS": str(ns)})
-    for _ in range(2):
-        p = subprocess.run([sys.executable, seed], capture_output=True, text=True, env=env, timeout=180)
-        assert p.returncode == 0, p.stderr[-500:]
+    # snapshot run 1 BEFORE run 2 (gpt-5.6-sol review 2026-08-27: the old test
+    # loaded the same final file into both a and b — a tautology)
+    p = subprocess.run([sys.executable, seed], capture_output=True, text=True, env=env, timeout=180)
+    assert p.returncode == 0, p.stderr[-500:]
     a = json.load(open(reg))
+    p = subprocess.run([sys.executable, seed], capture_output=True, text=True, env=env, timeout=180)
+    assert p.returncode == 0, p.stderr[-500:]
     b = json.load(open(reg))
     assert a["tables"] == b["tables"], "seed is not idempotent — tables differ between runs"
+    # generated_at must be the ONLY byte-level difference
+    a["generated_at"] = b["generated_at"] = None
+    assert json.dumps(a, sort_keys=True) == json.dumps(b, sort_keys=True), \
+        "seed output differs beyond generated_at"

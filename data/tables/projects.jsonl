@@ -6,6 +6,7 @@
 {"id": "chimera-v2", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "coding-hermes-scheduler", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P1_CODING"}
 {"id": "consensus", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
+{"id": "crier", "sensitivity": null, "board_type": null, "stack": null, "profile": "P6_DEFAULT"}
 {"id": "deepseek-dashboard", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "dexdat-core", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "dexdat-memory", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
@@ -20,6 +21,7 @@
 {"id": "heading", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "helios", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "helix", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
+{"id": "hermes-canopy", "sensitivity": null, "board_type": null, "stack": null, "profile": "P6_DEFAULT"}
 {"id": "hermes-dagger", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "hermes4friends-infra", "sensitivity": "proprietary", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "hivemind-work", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P2_AGENTIC"}
@@ -28,6 +30,7 @@
 {"id": "mafia-ai-benchmark", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "muster", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "musterflow", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
+{"id": "my-project", "sensitivity": null, "board_type": null, "stack": null, "profile": "P6_DEFAULT"}
 {"id": "off-by-one", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "rabbit-hole", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "rethinkdb", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}

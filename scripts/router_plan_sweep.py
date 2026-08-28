@@ -81,7 +81,14 @@ def sweep(apply=False):
         if p in disc_wide or (p, name) in disc_models:
             continue  # provider-wide or lane discount = covered
         bare = name.replace(':free', '')
-        included = flat[p].get('included_models') or []
+        included = flat[p].get('included_models')
+        if included is None:
+            # usage-bucket / no-list plan (e.g. ollama-cloud Max $100/mo):
+            # NOT "zero models included" — the plan has no fixed model list,
+            # so the list-based sweep must SKIP this provider entirely
+            # (found by gpt-5.6-sol review 2026-08-27: `or []` would have
+            # disabled all 16 active Ollama lanes incl. the P0/P6 head).
+            continue
         if bare in included:
             continue  # flat-plan member — keep
         reason = (f'PAYG outside {p} flat plan — expensive vs flat lane; '

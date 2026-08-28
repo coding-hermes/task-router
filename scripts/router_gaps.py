@@ -131,7 +131,9 @@ def main(argv=None):
               'full tiers, sentiment evidence and notes')
         return 0
     for x in per:
-        price = f"${x['price']:.4f}" if x['price'] not in (None, 0) else 'NULL'
+        # real 0.0 prices (free lanes) must render as $0.0000 — only None is
+        # NULL (gpt-5.6-sol review 2026-08-27)
+        price = f"${x['price']:.4f}" if x['price'] is not None else 'NULL'
         print(f"  {x['provider'] + '/' + x['model']:<46} price={price:<10} "
               f"missing({x['n_missing']}): {', '.join(x['missing'])}")
     return 0
