@@ -35,6 +35,8 @@ BASE_COLUMNS = {
                   ('valid_from', 'DATE'), ('valid_to', 'DATE'), ('archive', 'BOOLEAN')],
     'models': [('provider', 'VARCHAR'), ('model', 'VARCHAR'),
                ('normalized_price', 'DOUBLE'), ('price_evidence', 'VARCHAR'),
+               ('public_price', 'DOUBLE'), ('public_in_per_m', 'DOUBLE'),
+               ('public_out_per_m', 'DOUBLE'),
                ('data_class', 'VARCHAR'), ('plan_tier', 'INTEGER'),
                ('perf_agent_tick', 'DOUBLE'), ('perf_long_doc', 'DOUBLE'),
                ('perf_debug', 'DOUBLE'), ('perf_schema', 'DOUBLE'),

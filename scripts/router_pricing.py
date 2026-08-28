@@ -98,6 +98,55 @@ def normalize(dry_run):
                 notes.append(f"-${val}")
         return round(eff, 4), notes
 
+    def public_from_sticker(cost_in, cost_out):
+        """Public $/M prices from a models.dev-style sticker (list price).
+
+        Returns (in_per_m, out_per_m, blended) or None when no input sticker.
+        Blended = 0.96*in + 0.04*out — the same input-dominant mix the
+        sub-bucket estimator uses (agent ticks are ~96%+ input tokens).
+        """
+        if cost_in is None:
+            return None
+        ci = float(cost_in)
+        co = float(cost_out) if cost_out is not None else ci
+        return round(ci, 4), round(co, 4), round(0.96 * ci + 0.04 * co, 4)
+
+    def fill_public_price(m, cost_in, cost_out):
+        """Stamp PUBLIC (sticker) prices on a model row unless already present.
+
+        Bane 2026-08-27: cost reporting ("what did it cost to build feature X")
+        quotes the provider's PUBLIC list price. normalized_price stays the
+        internal effective $/M used for chain ordering; these columns are what
+        router_spawn.py exposes as usd_1m / in_per_m / out_per_m. Never
+        overwrite an existing fill (idempotent across runs).
+        """
+        got = public_from_sticker(cost_in, cost_out)
+        if got is None:
+            return False
+        pub_in, pub_out, pub_blend = got
+        if m.get('public_in_per_m') is None:
+            m['public_in_per_m'] = pub_in
+        if m.get('public_out_per_m') is None:
+            m['public_out_per_m'] = pub_out
+        if m.get('public_price') is None:
+            m['public_price'] = pub_blend
+        return True
+
+    # --- 0. PUBLIC PRICE FILL (Bane 2026-08-27) ------------------------------
+    # Stamp every row that has a models.dev catalog sticker with its PUBLIC
+    # list price, whether or not it is already normalized-priced. The
+    # scheduler's cost reporting consumes these (provider-aware, sticker-true)
+    # instead of the hardcoded map; normalized_price keeps driving ordering.
+    filled_public = 0
+    for m in models:
+        if m.get('archive') or m.get('valid_to') or m.get('disabled'):
+            continue
+        cat = catalog.get((m['provider'], m['model']))
+        if cat and fill_public_price(m, cat.get('cost_input'), cat.get('cost_output')):
+            filled_public += 1
+    if filled_public:
+        print(f'public-price fill: {filled_public} rows stamped from models.dev sticker')
+
     priced, gaps = [], []
     for m in models:
         if m.get('archive') or m.get('valid_to') or m.get('disabled'):
@@ -130,6 +179,7 @@ def normalize(dry_run):
                 continue
             price = round(float(cost_in), 4)
             evidence = 'normalized:payg-sticker'
+            fill_public_price(m, cost_in, (cat or {}).get('cost_output'))
         elif model == 'per_request':
             cost = t.get('plan_cost'); reqs = t.get('requests'); tpr = t.get('tokens_per_request')
             if not (cost and reqs and tpr):
@@ -147,9 +197,11 @@ def normalize(dry_run):
                         continue
                 price = round(0.96 * float(ci) + 0.04 * float(co), 4)
                 evidence = 'normalized:sub-bucket(blended est)'
+                fill_public_price(m, ci, co)
             else:
                 price = round(float(cost) / float(reqs) / float(tpr) * 1e6, 4)
                 evidence = 'normalized:sub-bucket'
+                fill_public_price(m, (cat or {}).get('cost_input'), (cat or {}).get('cost_output'))
         elif model == 'per_minute':
             rate = t.get('rate_per_minute'); tpm = t.get('tokens_per_minute')
             if not (rate and tpm):
@@ -191,6 +243,7 @@ def normalize(dry_run):
                 evidence = f'normalized:flat-sub({mult:.1f}x lane)'
                 if sticker_src != m['provider']:
                     evidence += f' sticker@{sticker_src}'
+                fill_public_price(m, cost_in, cost_out)
         else:
             gaps.append((m['provider'], m['model'], f'unknown billing_model {model!r}'))
             continue
@@ -214,7 +267,7 @@ def normalize(dry_run):
         print(f'DRY-RUN: {len(priced)} would price, {len(gaps)} remain gaps')
         return 0
 
-    if priced:
+    if priced or filled_public:
         _write('models', models)
     for p, name, price, ev in priced:
         print(f'  ~ {p}/{name} -> ${price:.4f} ({ev})')

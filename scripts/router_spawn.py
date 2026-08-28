@@ -282,9 +282,27 @@ def _build_chain(tables, reqs, limit=30):
         m.get('model') or '',
         m.get('provider') or '',
     ))
+    # 6th element = the full model row, so callers can expose PUBLIC prices
+    # (usd_1m/in_per_m/out_per_m) without a second lookup.
     return [(i + 1, m.get('provider'), m.get('model'),
-             m.get('normalized_price'), m.get('data_class'))
+             m.get('normalized_price'), m.get('data_class'), m)
             for i, m in enumerate(eligible[:limit])]
+
+
+def _pub_prices(m):
+    """Public-price triplet for a model row: (usd_1m, in_per_m, out_per_m).
+
+    Bane 2026-08-27: cost reporting ("what did it cost to build feature X")
+    quotes the provider's PUBLIC list price, not the internal normalized rate.
+    usd_1m = public blended price when known, else the normalized effective
+    rate (fail-open — a priced lane never reports None). in/out are the
+    public per-1M split; None when only a blended price is known. Chain
+    ORDERING still uses normalized_price — public prices are for reporting.
+    """
+    pub = m.get('public_price')
+    if pub is None:
+        pub = m.get('normalized_price')
+    return pub, m.get('public_in_per_m'), m.get('public_out_per_m')
 
 
 def _resolve_fallback(tables, qs, hs, cs, reqs, limit=30, profile_id=None):
@@ -348,7 +366,8 @@ def _resolve_fallback(tables, qs, hs, cs, reqs, limit=30, profile_id=None):
                  if (mt.get(c) if mt.get(c) is not None else -1) < lvl]
         out.append({'hop': len(out) + 1, 'provider': f.get('provider'),
                     'model': f.get('model'),
-                    'usd_1m': round(float(m.get('normalized_price')), 4),
+                    'usd_1m': round(float(_pub_prices(m)[0]), 4),
+                    'in_per_m': _pub_prices(m)[1], 'out_per_m': _pub_prices(m)[2],
                     'data_class': m.get('data_class'),
                     'fallback': True, 'key_env': f.get('key_env'),
                     'requirements_unmet': unmet})
@@ -415,7 +434,7 @@ def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=30
     now = datetime.datetime.now(datetime.timezone.utc).isoformat(timespec='seconds')
 
     out_chain, exclusions, reasons = [], [], []
-    for hop, prov, model, price, dc in chain:
+    for hop, prov, model, price, dc, mrow in chain:
         why = []
         q = qs.get(prov, {})
         if not isinstance(q, dict):
@@ -449,8 +468,10 @@ def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=30
             exclusions.append({'hop': hop, 'provider': prov, 'model': model, 'why': why})
             reasons.append(f'hop {hop} {prov}/{model}: ' + '; '.join(why))
         else:
+            pub_usd, pub_in, pub_out = _pub_prices(mrow)
             out_chain.append({'hop': hop, 'provider': prov, 'model': model,
-                              'usd_1m': round(float(price), 4) if price is not None else None,
+                              'usd_1m': round(float(pub_usd), 4) if pub_usd is not None else None,
+                              'in_per_m': pub_in, 'out_per_m': pub_out,
                               'data_class': dc})
 
     # --- 4. diversity pruning: two-knob caps on the survivor chain -------------
