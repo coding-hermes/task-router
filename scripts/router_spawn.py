@@ -263,19 +263,31 @@ def _validate_adhoc(adhoc, tables):
     return reqs, None
 
 
-def _load_registry():
-    """registry.json → {tables: {name: [row...]}}; any error → {} (fail-open).
+def _load_registry_with_meta():
+    """(tables, source, fallback_used, warning) — registry.json, else data/tables.
 
-    Fallback (fresh clone, no registry.json yet): read the committed
-    data/tables/*.jsonl (same keyed-record format) directly — the project is
-    usable with stdlib python only, no seed run required.
+    TR-025: resolve output must SAY where its data came from. registry.json
+    missing/corrupt/empty → committed data/tables/*.jsonl (same keyed-record
+    format, fresh-clone stdlib usability unchanged) with source='data/tables',
+    fallback_used=True, and a warning naming the registry failure. Both
+    unreadable → empty tables with a warning stating the gap — fail-open
+    preserved, never fabricated data, never a silent pass.
     """
     try:
         with open(REGISTRY) as f:
             doc = json.load(f)
-        return doc.get('tables') or {}
-    except Exception:
-        pass
+        tables = doc.get('tables') if isinstance(doc, dict) else None
+        if isinstance(tables, dict) and tables:
+            return tables, 'registry.json', False, None
+        if not isinstance(doc, dict):
+            err = 'registry.json present but not an object (corrupt)'
+        else:
+            err = ('registry.json present but empty tables key '
+                   '(corrupt or unseeded)')
+    except FileNotFoundError:
+        err = 'registry.json missing'
+    except Exception as e:  # noqa: BLE001 — fail-open: any read error is visible, never fatal
+        err = f'registry.json unreadable: {type(e).__name__}: {e}'
     try:
         tables = {}
         for fn in sorted(os.listdir(DATA_DIR)):
@@ -288,9 +300,25 @@ def _load_registry():
                         if line:
                             rows.append(json.loads(line))
                 tables[name] = rows
-        return tables if tables else {}
-    except Exception:
-        return {}
+        if tables:
+            return tables, 'data/tables', True, \
+                f'{err} — using committed data/tables fallback'
+        return {}, 'data/tables', True, \
+            f'{err} AND data/tables unreadable/empty — empty registry (fail-open)'
+    except Exception as e:  # noqa: BLE001 — fail-open, visible
+        return {}, 'data/tables', True, \
+            f'{err} AND data/tables unreadable: {type(e).__name__}: {e} ' \
+            '— empty registry (fail-open)'
+
+
+def _load_registry():
+    """registry.json → {tables: {name: [row...]}}; any error → {} (fail-open).
+
+    Bare-tables shim over _load_registry_with_meta() — kept for callers that
+    only need the tables (router_maintain.py); resolve() uses the meta form so
+    its output can report source + fallback_used.
+    """
+    return _load_registry_with_meta()[0]
 
 
 def _build_chain(tables, reqs, limit=30):
@@ -428,7 +456,8 @@ def _resolve_fallback(tables, qs, hs, cs, reqs, limit=30, profile_id=None):
 
 
 def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=30):
-    tables = _load_registry()
+    tables, src, fb, warn = _load_registry_with_meta()
+    warnings = [warn] if warn else []
     projects = {r.get('id'): r for r in tables.get('projects') or []}
     profiles = {r.get('id'): r for r in tables.get('task_profiles') or []}
     reqs_rows = tables.get('task_profile_requirements') or []
@@ -463,6 +492,18 @@ def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=30
     chain = _build_chain(tables, reqs, limit=limit) if reqs else []
 
     # --- 2.5 settings: diversity caps + per-profile overrides ------------------
+    # TR-025 gates_loaded: presence of each state file is reported LOUDLY —
+    # a missing file never silently passes (DATA>CODE: missing fact = visible
+    # gap), and gate BEHAVIOR is unchanged (absent != open, fail-open sacred).
+    # load_json() itself is blind to absence (default {} on any error), so
+    # presence is checked explicitly here; a present-but-unparseable file
+    # counts as loaded (the parse outcome surfaces through the gates).
+    def _present(name):
+        try:
+            return os.path.isfile(os.path.join(MR, name))
+        except Exception:  # noqa: BLE001 — visibility only, never raise
+            return False
+
     qdoc = load_json(f'{MR}/quota-state.json', {})
     if not isinstance(qdoc, dict):
         qdoc = {}
@@ -483,6 +524,7 @@ def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=30
     hs = load_json(f'{MR}/health-state.json', {}).get('providers', {}) if use_health else {}
     cs = load_json(f'{MR}/circuit-state.json', {}).get('pairs', {})
     inflight = ledger_in_flight(MR)  # fail-open: {} on any error
+    ledger_present = _present('ledger.jsonl')
     now = datetime.datetime.now(datetime.timezone.utc).isoformat(timespec='seconds')
 
     out_chain, exclusions, reasons = [], [], []
@@ -555,6 +597,18 @@ def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=30
             'head': head, 'chain': out_chain, 'exclusions': exclusions,
             'gate_reasons': reasons,
             'degraded_fallback': bool(fb_used),
+            # TR-025 runtime visibility: WHERE the data came from + which
+            # gate-state files were actually present. Additive only — gate
+            # behavior and fail-open are untouched.
+            'source': src,
+            'fallback_used': bool(fb),
+            'gates_loaded': {
+                'health': bool(_present('health-state.json')),
+                'circuit': bool(_present('circuit-state.json')),
+                'quota': bool(_present('quota-state.json')),
+                'ledger_rows': len(inflight),
+            },
+            'warnings': warnings,
             'gate': 'OPEN' if head else ('NO-OPEN-HOP' if out_chain or exclusions else 'NO-CHAIN'),
             'settings': caps}
 
