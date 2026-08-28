@@ -101,7 +101,31 @@ CREDIT_ENDPOINTS = {
     'minimax':    ('https://api.minimax.io/v1/query/balance', 'MINIMAX_API_KEY'),
 }
 
-UP_LIKE = ('OK', 'SLOW')
+UP_LIKE = ('OK', 'SLOW', 'OVERLOADED')
+
+# Verified id corrections (2026-08-28, live-tested 200): the registry catalog
+# carries scraped ids missing provider prefixes; the probe retries the corrected
+# id before declaring a model DOWN — "models I know are up" stay up.
+ID_NORMALIZE = {
+    ('groq', 'gpt-oss-120b'): 'openai/gpt-oss-120b',
+    ('groq', 'gpt-oss-20b'): 'openai/gpt-oss-20b',
+    ('groq', 'qwen3.6-27b'): 'qwen/qwen3.6-27b',
+    ('zai-glm', 'glm-5.3-flash-offpeak'): 'glm-5.3-flash',
+    ('zai-glm', 'glm-5.3-offpeak'): 'glm-5.3',
+    ('synthetic', 'gpt-oss-120b'): 'hf:openai/gpt-oss-120b',
+    ('synthetic', 'qwen3.6-27b'): 'hf:Qwen/Qwen3.6-27B',
+}
+
+# Verified junk rows (provider never serves this model id — 401 ModelError /
+# catalog scrape artifacts). Excluded from probing, not counted as down.
+EXCLUDE_MODELS = {
+    ('opencode-go', 'gpt-5.6-luna'): 'not served by opencode-go (401 ModelError, verified 08-28)',
+    ('opencode-go', 'cline-pass/deepseek-v4-flash'): 'not served by opencode-go (401 ModelError, verified 08-28)',
+    ('opencode-go', 'muse-spark-1.2-contributor'): 'not served by opencode-go (401, verified 08-28)',
+    ('opencode-go', 'qwen3.8-flash'): 'not served by opencode-go (401, verified 08-28)',
+}
+
+PING_SPACING_S = 0.15  # gentle: never blast a provider (Bane 08-28)
 
 
 def build_probe_set():
@@ -160,6 +184,9 @@ def ping(base, key, model, params=None):
             return {'status': 'SLOW' if ms > SLOW_MS else 'OK', 'latency_ms': ms}
     except urllib.error.HTTPError as e:
         ms = int((time.time() - t0) * 1000)
+        if e.code == 503:
+            # model exists but is temporarily overloaded — NOT a down (Bane 08-28)
+            return {'status': 'OVERLOADED', 'error': 'HTTP 503 (overloaded)', 'latency_ms': ms}
         return {'status': 'DOWN', 'error': f'HTTP {e.code}', 'latency_ms': ms}
     except Exception as e:
         ms = int((time.time() - t0) * 1000)
@@ -210,17 +237,21 @@ def check_credits(prov, env):
 
 
 def aggregate(models):
-    """models: {model: {status,...}} -> (status, stats)"""
-    st = [m['status'] for m in models.values()]
-    ok = st.count('OK'); slow = st.count('SLOW'); down = st.count('DOWN')
+    """models: {model: {status,...}} -> (status, stats). EXCLUDED rows don't
+    count toward totals. Provider DOWN only when EVERY probed model is down —
+    a single up/overloaded model keeps the provider OK (Bane 08-28)."""
+    st = [m['status'] for m in models.values() if m['status'] != 'EXCLUDED']
+    ok = st.count('OK'); slow = st.count('SLOW'); ov = st.count('OVERLOADED'); down = st.count('DOWN')
     total = len(st)
-    if ok or slow:
-        status = 'OK' if ok else 'SLOW'
-    elif down:
+    if total and down == total:
         status = 'DOWN'
+    elif ok or ov:
+        status = 'OK'
+    elif slow:
+        status = 'SLOW'
     else:
         status = 'SKIP'
-    return status, {'ok': ok, 'slow': slow, 'down': down, 'total': total}
+    return status, {'ok': ok, 'slow': slow, 'overloaded': ov, 'down': down, 'total': total}
 
 
 def main():
@@ -255,12 +286,24 @@ def main():
                              'credits': {'source': 'none'}, 'ts': ts}
             continue
         models = {}
-        for base, key_env, model in lanes:
+        for i, (base, key_env, model) in enumerate(lanes):
+            if (prov, model) in EXCLUDE_MODELS:
+                models[model] = {'status': 'EXCLUDED', 'latency_ms': None,
+                                 'error': EXCLUDE_MODELS[(prov, model)]}
+                continue
             k = env.get(key_env, key)
             params = PROBE_PARAMS.get(prov)
             r = ping(base, k, model, params)
+            if r['status'] == 'DOWN' and (prov, model) in ID_NORMALIZE:
+                alt = ID_NORMALIZE[(prov, model)]
+                r2 = ping(base, k, alt, params)
+                if r2['status'] in ('OK', 'SLOW', 'OVERLOADED'):
+                    r2['note'] = f'id corrected: {model} → {alt}'
+                    r = r2
             models[model] = {'status': r['status'], 'latency_ms': r.get('latency_ms'),
-                             'error': r.get('error')}
+                             'error': r.get('error'), 'note': r.get('note')}
+            if i < len(lanes) - 1:
+                time.sleep(PING_SPACING_S)
         status, stats = aggregate(models)
         dflt = models.get(lanes[0][2], next(iter(models.values())))
         entry = {'status': status, 'model': lanes[0][2],
@@ -292,9 +335,10 @@ def main():
         st = r.get('model_stats')
         if st and st['down'] > 0:
             down_models = [m for m, mm in r.get('models', {}).items() if mm['status'] == 'DOWN'][:3]
-            errs = {mm['error'] for mm in r.get('models', {}).values() if mm.get('error')}
+            errs = {mm['error'] for mm in r.get('models', {}).values() if mm.get('error') and mm['status'] != 'EXCLUDED'}
             err = next(iter(errs)) if errs else ''
-            degraded.append(f"{prov} {st['ok']}/{st['total']} up ({', '.join(down_models)}{'…' if st['down'] > 3 else ''}{(' — ' + err) if err else ''})")
+            extra = f", {st['overloaded']} overloaded" if st.get('overloaded') else ''
+            degraded.append(f"{prov} {st['ok']}/{st['total']} up ({', '.join(down_models)}{'…' if st['down'] > 3 else ''}{extra}{(' — ' + err) if err else ''})")
         elif r.get('status') == 'NO_KEY':
             degraded.append(f"{prov} NO_KEY")
     if alerts:
