@@ -17,8 +17,12 @@ What it does (idempotent):
         — plan_terms.jsonl row for clinepass (flat_subscription) if missing
         — temporary_discounts.jsonl rows for the :free lanes (free until
           revoked) if missing
-  --dry-run  print, write nothing
-  --commit   git commit + push the task-router repo
+  --dry-run  print, write nothing. Mutually exclusive with --commit/--push
+             (TR-028: a dry run must NEVER touch git).
+  --commit   git commit ONLY the 4 data files this sync owns (never a
+             whole-tree add — TR-028: -A can sweep unrelated concurrent work).
+             Uses the repo's real identity + the standard co-author trailer.
+  --push     push origin <branch>; implies --commit.
 
 Stdlib only. Repo-relative paths. Key: CLINEPASS_API_KEY in ~/.hermes/.env.
 """
@@ -27,6 +31,7 @@ import datetime
 import json
 import os
 import subprocess
+import sys
 import urllib.request
 
 _REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -166,20 +171,81 @@ def sync(dry_run):
     return 0
 
 
+CO_AUTHOR = "Alexis Okuwa <wojonstech@gmail.com>"
+# Files this sync owns — the ONLY paths ever staged (TR-028: never a
+# whole-tree add, which can sweep unrelated concurrent work).
+SYNC_FILES = ['data/tables/models.jsonl', 'data/tables/model_catalog.jsonl',
+              'data/tables/plan_terms.jsonl', 'data/tables/temporary_discounts.jsonl']
+
+
+def _git(*args, check=False):
+    p = subprocess.run(['git', '-C', _REPO, *args], capture_output=True, text=True)
+    if check and p.returncode != 0:
+        raise RuntimeError(f'git {" ".join(args)} failed: {(p.stderr or p.stdout).strip()[:400]}')
+    return p
+
+
+def _branch():
+    p = _git('symbolic-ref', '--short', 'HEAD')
+    return p.stdout.strip() or 'main'
+
+
+def commit_and_push(do_push):
+    """Stage ONLY the sync-owned files, commit with repo identity + co-author,
+    push when requested. Returns 0 on success, non-zero on failure."""
+    try:
+        # stage the 4 owned paths explicitly — never a whole-tree add
+        _git('add', '--', *SYNC_FILES, check=True)
+        # only the sync-owned files may be committed — intersect the staged
+        # set with SYNC_FILES so a pre-staged unrelated file can never ride along
+        staged = _git('diff', '--cached', '--name-only')
+        owned = [ln.strip() for ln in staged.stdout.splitlines() if ln.strip()]
+        owned = [p for p in owned if p in SYNC_FILES]
+        if not owned:
+            print('nothing to commit — no changes staged')
+            return 0
+        # commit with explicit pathspec — even if the user had OTHER files
+        # staged beforehand, only the sync-owned paths enter this commit
+        msg = f'chore(data): clinepass catalog sync\n\nCo-authored-by: {CO_AUTHOR}'
+        p = _git('commit', '-m', msg, '--', *owned)
+        if p.returncode != 0:
+            print(f'commit failed: {(p.stderr or p.stdout).strip()[:400]}', file=sys.stderr)
+            return 1
+        first = (p.stdout or '').splitlines()
+        print(f'committed: {first[0] if first else "ok"}')
+        if do_push:
+            _git('push', 'origin', _branch(), check=True)
+            print('pushed origin', _branch())
+        return 0
+    except RuntimeError as e:
+        print(f'git error: {e}', file=sys.stderr)
+        return 1
+    except OSError as e:
+        print(f'git error: {e}', file=sys.stderr)
+        return 1
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument('action', choices=['sync'])
     ap.add_argument('--dry-run', action='store_true')
     ap.add_argument('--commit', action='store_true')
+    ap.add_argument('--push', action='store_true')
     args = ap.parse_args(argv)
-    rc = sync(args.dry_run)
-    if rc == 0 and args.commit:
-        subprocess.run(['git', 'add', '-A'], cwd=_REPO, check=True)
-        subprocess.run(['git', 'commit', '-m',
-                        'chore(data): clinepass catalog sync',
-                        '--author', 'Hermes <hermes@localhost>'], cwd=_REPO)
-        subprocess.run(['git', 'push', 'origin', 'main'], cwd=_REPO, check=True)
-    return rc
+    if args.dry_run and (args.commit or args.push):
+        ap.error('--dry-run is mutually exclusive with --commit/--push (a dry '
+                 'run must never touch git)')
+    do_commit = args.commit or args.push  # --push implies --commit
+    try:
+        rc = sync(args.dry_run)
+    except Exception as e:  # noqa: BLE001 — propagate as non-zero, never fake success
+        print(f'sync failed: {e}', file=sys.stderr)
+        return 1
+    if rc != 0:
+        return rc
+    if do_commit and not args.dry_run:
+        return commit_and_push(do_push=args.push)
+    return 0
 
 
 if __name__ == '__main__':

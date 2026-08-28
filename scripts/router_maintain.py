@@ -51,8 +51,10 @@ import tempfile
 _HERE = os.path.dirname(os.path.realpath(__file__))
 _REPO = os.path.dirname(_HERE)
 REGISTRY = os.environ.get('ROUTING_REGISTRY', os.path.join(_REPO, 'registry.json'))
-REGISTRY_DEFAULT = os.environ.get('ROUTING_REGISTRY_DEFAULT', REGISTRY)
 DATA_DIR = os.environ.get('ROUTING_DATA_DIR', os.path.join(_REPO, 'data', 'tables'))
+# Snapshot docs copy target — env-overridable so tests never write the real
+# repo docs/ dir (TR-028 hermetic-probe doctrine).
+DOCS_DIR = os.environ.get('ROUTING_DOCS_DIR', os.path.join(_REPO, 'docs'))
 
 
 def _load_doc():
@@ -71,9 +73,12 @@ def _save_doc(doc):
         json.dump(doc, f, indent=1)
     os.replace(tmp, REGISTRY)
 
-BOARD_PY = os.path.expanduser('~/.hermes/venvs/board/bin/python3')
-SPOT_CHECK = os.path.expanduser(
-    '~/.hermes/skills/mlops/model-intelligence/scripts/or-family-spot-check.py')
+BOARD_PY = os.environ.get('ROUTING_BOARD_PY',
+                          os.path.expanduser('~/.hermes/venvs/board/bin/python3'))
+SPOT_CHECK = os.environ.get(
+    'ROUTING_SPOT_CHECK',
+    os.path.expanduser(
+        '~/.hermes/skills/mlops/model-intelligence/scripts/or-family-spot-check.py'))
 SEED_SCRIPT = os.path.join(_REPO, 'scripts', 'router_seed.py')
 ROUTING_NS = os.environ.get('ROUTING_NS', '/home/kara/duckbrain/namespaces/routing')
 TASKROUTER_NS = os.environ.get('TASKROUTER_NS', '/home/kara/duckbrain/namespaces/task-router')
@@ -266,6 +271,49 @@ def apply_reprice(plan, today, doc):
     return n
 
 
+def _sync_reprice_to_data(doc):
+    """Mirror repriced models rows into data/tables/models.jsonl.
+
+    TR-028 (reprice-survival): router_seed.py consumes the COMMITTED
+    data/tables/models.jsonl as its primary source (fresh-clone path) and
+    rewrites registry.json from it — a reprice that only touches registry.json
+    was silently reverted on the next seed. Merging the changed rows into the
+    data file keeps the two stores consistent so repricing survives the
+    maintain-all flow. Rows are merged by (provider, model) — untouched rows
+    are preserved byte-for-byte (no gratuitous churn).
+    """
+    path = os.path.join(DATA_DIR, 'models.jsonl')
+    if not os.path.exists(path):
+        print('[reprice] WARNING: data/tables/models.jsonl missing — '
+              'cannot mirror reprice into committed data (seed would revert it)',
+              file=sys.stderr)
+        return 0
+    live = {m.get('provider'): {} for m in (doc.get('tables') or {}).get('models') or []}
+    for m in (doc.get('tables') or {}).get('models') or []:
+        live.setdefault(m.get('provider'), {})[m.get('model')] = m
+    merged = 0
+    changed_rows = []
+    for line in open(path):
+        line = line.strip()
+        if not line:
+            continue
+        row = json.loads(line)
+        new = live.get(row.get('provider'), {}).get(row.get('model'))
+        if new is not None:
+            # carry the repriced fields onto the committed row
+            for k in ('normalized_price', 'price_evidence'):
+                row[k] = new.get(k)
+            changed_rows.append(json.dumps(row, ensure_ascii=False))
+            merged += 1
+        else:
+            changed_rows.append(line)
+    with open(path + '.tmp', 'w') as f:
+        for ln in changed_rows:
+            f.write(ln + '\n')
+    os.replace(path + '.tmp', path)
+    return merged
+
+
 def report_reprice(plan, dry_run):
     updated = [u for u in plan if u.get('changed')]
     skipped = [u for u in plan if u.get('new') is None]
@@ -306,6 +354,10 @@ def step_reprice(dry_run):
         n = apply_reprice(plan, today, doc)
         if n:
             _save_doc(doc)
+            # TR-028: mirror into committed data so the seed (which consumes
+            # data/tables FIRST) does not revert the reprice.
+            merged = _sync_reprice_to_data(doc)
+            print(f'[reprice] mirrored {merged} row(s) into {DATA_DIR}/models.jsonl')
     except Exception as e:  # noqa: BLE001 — fail-open, never block the loop
         print(f'[reprice] WARNING: reprice failed ({e}) — fail-open continuing',
               file=sys.stderr)
@@ -315,22 +367,25 @@ def step_reprice(dry_run):
 
 def step_seed(dry_run):
     env = dict(os.environ)
-    if REGISTRY != REGISTRY_DEFAULT:
-        env['ROUTING_REGISTRY'] = REGISTRY
-    else:
-        env.pop('ROUTING_REGISTRY', None)
+    # TR-028 (env isolation): ALWAYS hand the resolved REGISTRY to the child.
+    # The old REGISTRY_DEFAULT trap made REGISTRY == REGISTRY_DEFAULT whenever
+    # ROUTING_REGISTRY was set, so step_seed popped ROUTING_REGISTRY and the
+    # child seed silently resolved to the LIVE registry — a scratch run could
+    # write production state. Explicit pass-through honors every override.
+    env['ROUTING_REGISTRY'] = REGISTRY
     if dry_run:
         print('[seed] DRY-RUN: would run:', BOARD_PY, SEED_SCRIPT)
         print('[seed] would rebuild derived tables:',
               ', '.join(DERIVED_TABLES), '+ views v_task_eligible/v_task_chain')
-        return
+        return 0
     print('[seed] running router_seed.py ...')
     p = subprocess.run([BOARD_PY, SEED_SCRIPT], cwd=REPO, env=env)
     if p.returncode != 0:
         print(f'[seed] FAILED (exit {p.returncode}) — ABORTING maintenance run',
               file=sys.stderr)
-        sys.exit(p.returncode or 1)
+        return p.returncode or 1
     print('[seed] ok')
+    return 0
 
 
 def _table_rows(doc, table):
@@ -368,6 +423,7 @@ def write_table(path, table):
 def step_export(dry_run):
     copied = []
     doc = _load_doc()
+    failed = []
     for t in BASE_TABLES:
         dpath = f'{DATA_DIR}/{t}.jsonl'
         rpath = f'{ROUTING_NS}/tables/{t}.jsonl'
@@ -376,21 +432,27 @@ def step_export(dry_run):
             print(f'[export] DRY-RUN: would export {t} -> data/tables, {ROUTING_NS}, {TASKROUTER_NS}')
             continue
         os.makedirs(DATA_DIR, exist_ok=True)
-        if doc is not None:
-            with open(dpath, 'w') as f:
-                for ln in _data_rows(doc, t):
-                    f.write(ln + '\n')
-        write_table(rpath, t)
-        shutil.copyfile(rpath, tpath)
-        copied.append(t)
+        try:
+            if doc is not None:
+                with open(dpath, 'w') as f:
+                    for ln in _data_rows(doc, t):
+                        f.write(ln + '\n')
+            write_table(rpath, t)
+            shutil.copyfile(rpath, tpath)
+            copied.append(t)
+        except OSError as e:
+            failed.append(f'{t}: {e}')
     for t in DERIVED_TABLES:
         rpath = f'{ROUTING_NS}/tables/{t}.jsonl'
         tpath = f'{TASKROUTER_NS}/tables/{t}.jsonl'
         if dry_run:
             print(f'[export] DRY-RUN: would copy {rpath} -> {tpath}')
             continue
-        shutil.copyfile(rpath, tpath)
-        copied.append(t)
+        try:
+            shutil.copyfile(rpath, tpath)
+            copied.append(t)
+        except OSError as e:
+            failed.append(f'{t}: {e}')
     # sidecar tables (model_catalog / model_notes / plan_terms / temporary_discounts / provider_rules / fallback_lanes) — text-only
     # metadata written by modelsdev/pricing/research agents; mirrored to ns.
     for t in ('model_catalog', 'model_notes', 'plan_terms', 'temporary_discounts',
@@ -405,11 +467,19 @@ def step_export(dry_run):
             if dry_run:
                 print(f'[export] DRY-RUN: would mirror {src} -> {dst}')
             else:
-                os.makedirs(os.path.dirname(dst), exist_ok=True)
-                shutil.copyfile(src, dst)
-                copied.append(f'{t} (mirror)')
+                try:
+                    os.makedirs(os.path.dirname(dst), exist_ok=True)
+                    shutil.copyfile(src, dst)
+                    copied.append(f'{t} (mirror)')
+                except OSError as e:
+                    failed.append(f'{t} (mirror): {e}')
     if not dry_run:
         print(f'[export] synced {len(copied)} table file(s): in-repo data/tables + both namespaces')
+    if failed:
+        for f_ in failed:
+            print(f'[export] FAILED: {f_}', file=sys.stderr)
+        return 1
+    return 0
 
 
 def _fmt_profile_level(cat, lvl):
@@ -442,7 +512,7 @@ def build_snapshot_text():
         rs = ' '.join(_fmt_profile_level(c, l) for c, l in rq)
         lines.append(f'profile: {rs}')
         hops = _build_chain(tables, reqs.get(pid, []), limit=200)
-        for h, prov, model, price, _dc in hops:
+        for h, prov, model, price, _dc, _row in hops:
             lines.append(f'  {h}. $ {price:.3f}/M  {prov}/{model}')
     return '\n'.join(lines) + '\n'
 
@@ -450,23 +520,33 @@ def build_snapshot_text():
 def step_snapshot(dry_run):
     date = _today()
     ns_path = f'{TASKROUTER_NS}/chains/{date}.md'
-    doc_path = f'{REPO}/docs/chains-{date}.md'
+    doc_path = f'{DOCS_DIR}/chains-{date}.md'
     if dry_run:
         print(f'[snapshot] DRY-RUN: would write {ns_path}')
         print(f'[snapshot] DRY-RUN: would copy  {doc_path}')
-        return
-    text = build_snapshot_text()
+        return 0
+    try:
+        text = build_snapshot_text()
+    except Exception as e:  # noqa: BLE001 — TR-028: propagate, don't mask
+        print(f'[snapshot] FAILED: {e}', file=sys.stderr)
+        return 1
     if text is None:
         print('[snapshot] WARNING: registry.json missing — snapshot skipped', file=sys.stderr)
-        return
-    os.makedirs(os.path.dirname(ns_path), exist_ok=True)
-    with open(ns_path, 'w') as f:
-        f.write(text)
-    with open(doc_path, 'w') as f:
-        f.write(text)
+        return 1
+    try:
+        os.makedirs(os.path.dirname(ns_path), exist_ok=True)
+        with open(ns_path, 'w') as f:
+            f.write(text)
+        os.makedirs(DOCS_DIR, exist_ok=True)
+        with open(doc_path, 'w') as f:
+            f.write(text)
+    except OSError as e:
+        print(f'[snapshot] FAILED writing snapshot: {e}', file=sys.stderr)
+        return 1
     hops_total = sum(1 for ln in text.splitlines() if ln.startswith('  ') and '$' in ln)
     print(f'[snapshot] wrote {ns_path} ({hops_total} hops)')
     print(f'[snapshot] copied to {doc_path}')
+    return 0
 
 
 def _git(repo, *args):
@@ -495,7 +575,8 @@ def step_commit(dry_run):
                 any_changes = True
     if not any_changes:
         print('[commit] nothing to commit')
-        return
+        return 0
+    failed = False
     for repo, args, label in cmds:
         full = ['git', '-C', repo] + args
         if dry_run:
@@ -507,6 +588,7 @@ def step_commit(dry_run):
         if p.returncode != 0:
             print(f'[commit] git {" ".join(args)} failed in {repo}: {err}',
                   file=sys.stderr)
+            failed = True
         elif args[0] == 'commit':
             # git commit reports "nothing to commit" via stderr + rc=1
             if out and out != '':
@@ -518,6 +600,7 @@ def step_commit(dry_run):
                 print(f'[commit] {repo}: committed')
         else:
             print(f'[commit] staged {label}')
+    return 1 if failed else 0
 
 
 STEPS = ['reprice', 'seed', 'export', 'snapshot', 'commit']
@@ -532,7 +615,11 @@ def main(argv=None):
 
     steps = STEPS if 'all' in args.step else args.step
     for s in steps:
-        getattr(sys.modules[__name__], f'step_{s}')(args.dry_run)
+        rc = getattr(sys.modules[__name__], f'step_{s}')(args.dry_run)
+        if rc:
+            print(f'[maintain] step {s} FAILED (exit {rc}) — aborting remaining steps',
+                  file=sys.stderr)
+            return rc
     return 0
 
 
