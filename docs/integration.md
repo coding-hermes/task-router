@@ -63,6 +63,36 @@ identical to pre-TR-007:
 - Every routed call should get a ledger row (schema v2 subset — fields present
   only when known; never fabricated).
 
+## Ledger status: NOT WIRED (TR-026 decision, 2026-08-28)
+
+**The spawn ledger is not wired. Concurrency accounting is INACTIVE.** The
+scheduler does not call `router_ledger.py start/end` around spawns, so
+`ledger.jsonl` has zero trace rows, `ledger_in_flight()` returns `{}`, and the
+TR-007 `'model busy'` gate can never fire. The TR-007 diversity/concurrency
+knobs (`max_consecutive_per_provider`, `max_total_per_provider`, per-model
+concurrency limits) are a **no-op for concurrency** until wiring lands — they
+still apply for diversity pruning, but nothing is ever skipped as `'model
+busy'`.
+
+**Decision (path B — visible disable):** wiring the ledger into the spawn path
+requires calling start/end from the scheduler's spawn flow (spawn.go has the
+tick-ID plumbing; integration is tracked on the coding-hermes-scheduler board
+as TASK-ROUTER-002 call side). task-router must not touch scheduler Go code
+(AGENTS.md), so this repo implements the loud-disable alternative instead:
+
+- `router_ledger.py status` reports `"wired": false` (+ WARNING line) when
+  zero trace rows exist, and `"wired": true` once a trace lands.
+- `router_spawn.py` resolve output emits a `spawn ledger NOT WIRED` warning
+  and `gates_loaded.ledger: false` whenever the ledger file has no rows, so
+  every resolve consumer sees the concurrency gate is inactive.
+- `gates_loaded.ledger_rows` still reports live in-flight counts — 0 until
+  wired (TR-025 added the field; TR-026 adds the `ledger` wired flag).
+
+**To wire (scheduler side, tracked there):** call `router_ledger.py start`
+before each routed spawn, capture the trace_id, call `end` when the spawn
+settles; `router_ledger.py status` then flips to `wired: true` automatically
+and the `'model busy'` gate starts enforcing per-model concurrency limits.
+
 ## Verification
 - Tick spawns show the resolved model/provider in scheduler.log.
 - Force a failure on a head pair → next spawn hops to chain hop 2; breaker file shows the open entry.

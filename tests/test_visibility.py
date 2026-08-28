@@ -1,10 +1,15 @@
-"""TR-025 regression battery — runtime visibility (source + gates_loaded).
+"""TR-025/TR-026 regression battery — runtime visibility (source + gates_loaded).
 
 Locks in: resolve output SAYS where its data came from (registry.json vs
 data/tables fallback), missing gate-state files are reported loudly in
 gates_loaded (never a silent pass), and fail-open behavior is untouched
 (corrupt registry still resolves from committed data/tables; missing state
 files still behave as absent gates, not fabricated defaults).
+
+TR-026 adds the ledger wired-flag: an empty/absent ledger (the scheduler does
+not call router_ledger.py start/end yet) must be reported as
+gates_loaded.ledger=false + a 'spawn ledger NOT WIRED' warning — the TR-007
+'model busy' concurrency gate is visibly inactive, never silently dead.
 
 The 2 pre-existing failures (P9_REVIEW invariants + fallback lane, TR-029)
 are unrelated and deliberately NOT touched here.
@@ -106,7 +111,8 @@ def test_healthy_path_source_registry_json(monkeypatch, tmp_path):
     # registry with a marker model and confirm it is NOT in the chain
     # (proves the registry copy was actually loaded)
     assert r["gates_loaded"] == {
-        "health": True, "circuit": True, "quota": True, "ledger_rows": 1}
+        "health": True, "circuit": True, "quota": True,
+        "ledger": True, "ledger_rows": 1}
 
 
 def test_healthy_path_marker_proves_registry_loaded(monkeypatch, tmp_path):
@@ -176,6 +182,7 @@ def test_missing_health_state_reported_false(monkeypatch, tmp_path):
     assert r["gates_loaded"]["health"] is False
     assert r["gates_loaded"]["circuit"] is True
     assert r["gates_loaded"]["quota"] is True
+    assert r["gates_loaded"]["ledger"] is True  # ledger fixture has a trace
     assert r["gates_loaded"]["ledger_rows"] == 1
     # behavior unchanged: a missing health file must NOT fabricate a DOWN
     # gate — the chain still resolves to the healthy head
@@ -193,10 +200,76 @@ def test_missing_all_state_files_reported(monkeypatch, tmp_path):
     r = _resolve(monkeypatch, tmp_path, tables, state_dir=state)
     assert "error" not in r, r.get("error")
     assert r["gates_loaded"] == {
-        "health": False, "circuit": False, "quota": False, "ledger_rows": 0}
+        "health": False, "circuit": False, "quota": False,
+        "ledger": False, "ledger_rows": 0}
     # quota-state absent → every provider quota-gated (absent != open, the
     # pre-existing fail-closed CI semantics) → head None is CORRECT here;
     # the point of TR-025 is that the missing files are visible, not that
     # they change behavior
     assert r["head"] is None
     assert r["gate"] in ("NO-OPEN-HOP", "NO-CHAIN")
+
+
+# --------------------------------------------------- ledger wired flag (TR-026) ---
+
+def test_empty_ledger_reports_unwired_loudly(monkeypatch, tmp_path):
+    """A present-but-EMPTY ledger.jsonl (the exact 0-byte unwired state) →
+    gates_loaded.ledger=false, ledger_rows=0, and a 'spawn ledger NOT WIRED'
+    warning. Concurrency accounting is visibly inactive — never a silent pass.
+    Gate BEHAVIOR is unchanged (no rows → nothing busy → full chain)."""
+    tables = _load_tables()
+    d = tmp_path / "state"
+    d.mkdir(exist_ok=True)
+    (d / "quota-state.json").write_text(
+        json.dumps({"providers": _open_providers(tables)}))
+    (d / "health-state.json").write_text(json.dumps({"providers": {}}))
+    (d / "circuit-state.json").write_text(json.dumps({"pairs": {}}))
+    (d / "ledger.jsonl").write_text("")  # 0 bytes — the live unwired state
+    r = _resolve(monkeypatch, tmp_path, tables, state_dir=str(d))
+    assert "error" not in r, r.get("error")
+    assert r["gates_loaded"]["ledger"] is False
+    assert r["gates_loaded"]["ledger_rows"] == 0
+    assert any("NOT WIRED" in w for w in r["warnings"]), r["warnings"]
+    assert any("model busy" in w for w in r["warnings"]), r["warnings"]
+    # behavior unchanged: an empty ledger must NOT fabricate busy models
+    assert r["head"] is not None
+    assert not any("model busy" in g for g in r["gate_reasons"])
+
+
+def test_missing_ledger_file_reports_unwired(monkeypatch, tmp_path):
+    """No ledger.jsonl at all → same unwired visibility (wired=false + warning)."""
+    tables = _load_tables()
+    d = tmp_path / "state"
+    d.mkdir(exist_ok=True)
+    (d / "quota-state.json").write_text(
+        json.dumps({"providers": _open_providers(tables)}))
+    (d / "health-state.json").write_text(json.dumps({"providers": {}}))
+    (d / "circuit-state.json").write_text(json.dumps({"pairs": {}}))
+    # no ledger.jsonl
+    r = _resolve(monkeypatch, tmp_path, tables, state_dir=str(d))
+    assert "error" not in r, r.get("error")
+    assert r["gates_loaded"]["ledger"] is False
+    assert r["gates_loaded"]["ledger_rows"] == 0
+    assert any("NOT WIRED" in w for w in r["warnings"]), r["warnings"]
+
+
+def test_ledger_with_trace_reports_wired(monkeypatch, tmp_path):
+    """Once a trace lands (start/end wired), ledger=false flips to true and the
+    warning disappears — the flag tracks the data feed, never a config file."""
+    tables = _load_tables()
+    d = tmp_path / "state"
+    d.mkdir(exist_ok=True)
+    (d / "quota-state.json").write_text(
+        json.dumps({"providers": _open_providers(tables)}))
+    (d / "health-state.json").write_text(json.dumps({"providers": {}}))
+    (d / "circuit-state.json").write_text(json.dumps({"pairs": {}}))
+    import datetime
+    fresh = datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds")
+    (d / "ledger.jsonl").write_text(
+        '{"trace_id": "t1", "provider": "prov-a", "model": "a1", '
+        f'"outcome": "started", "ts": "{fresh}"}}\n')
+    r = _resolve(monkeypatch, tmp_path, tables, state_dir=str(d))
+    assert "error" not in r, r.get("error")
+    assert r["gates_loaded"]["ledger"] is True
+    assert r["gates_loaded"]["ledger_rows"] == 1
+    assert not any("NOT WIRED" in w for w in r["warnings"]), r["warnings"]

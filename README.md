@@ -24,7 +24,7 @@ Scale = **per-category percentiles**, not absolute scores: `−5`→q01 … `0`�
 | `registry.json` | gitignored live store (v3), rebuilt by the seed — NOT committed |
 | `scripts/router_spawn.py` | THE runtime lookup — project → profile → chain → gates → head (pure python; works from a fresh clone with stdlib only) |
 | `scripts/router_circuit.py` | circuit-breaker state per (provider, model), exp backoff 5m→1h |
-| `scripts/router_ledger.py` | spawn ledger start/end/status — per-model in-flight counts (TR-007) |
+| `scripts/router_ledger.py` | spawn ledger start/end/status — per-model in-flight counts (TR-007). **NOT WIRED** (TR-026): `status` reports `wired:false` until the scheduler calls start/end around spawns — concurrency accounting is inactive by design, loudly |
 | `scripts/provider_health_probe.py` | hourly provider pings (cron: provider-health-probe) |
 | `scripts/router_seed.py` | rebuild the 24-category layer into registry.json + data/tables (in-memory engine) |
 | `scripts/router_maintain.py` | maintenance loop: reprice → seed → export → snapshot → commit (TR-005) |
@@ -96,7 +96,7 @@ after any edit to `scripts/` or after a fresh clone.
 - **Registry (DuckDB)**: `~/reports-repo/routing.duckdb` (`ROUTING_DB` env override)
 - **Git-tracked tables + seed script**: `~/duckbrain/namespaces/routing/` (tables/, scripts/)
 - **Thread-facing namespace**: `~/duckbrain/namespaces/task-router/` (README, tables/, state/, chains/, docs/)
-- **Live state**: `~/.hermes/model-router/` (health-state.json, health.jsonl, circuit-state.json, quota-state.json, snapshot.json, ledger.jsonl)
+- **Live state**: `~/.hermes/model-router/` (health-state.json, health.jsonl, circuit-state.json, quota-state.json, snapshot.json, ledger.jsonl — **ledger.jsonl is NOT WIRED** as of TR-026: 0 trace rows until the scheduler calls start/end; `router_ledger.py status` says `wired:false`, resolve output warns + `gates_loaded.ledger:false`)
 
 ## Quality gates
 

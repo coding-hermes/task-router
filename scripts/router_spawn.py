@@ -80,6 +80,23 @@ def _parse_utc(ts):
         return None
 
 
+def ledger_has_traces(state_dir):
+    """True when ledger.jsonl exists AND holds at least one non-empty line.
+
+    Visibility only (TR-026): a file that exists but has zero rows has never
+    received a start/end call — the spawn ledger is not wired. Never raises
+    (fail-open) — same policy as ledger_in_flight.
+    """
+    try:
+        with open(os.path.join(state_dir, 'ledger.jsonl')) as f:
+            for line in f:
+                if line.strip():
+                    return True
+        return False
+    except Exception:
+        return False
+
+
 def ledger_in_flight(state_dir):
     """{(provider, model): in_flight_count} derived from the spawn ledger.
 
@@ -524,7 +541,18 @@ def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=30
     hs = load_json(f'{MR}/health-state.json', {}).get('providers', {}) if use_health else {}
     cs = load_json(f'{MR}/circuit-state.json', {}).get('pairs', {})
     inflight = ledger_in_flight(MR)  # fail-open: {} on any error
-    ledger_present = _present('ledger.jsonl')
+    ledger_wired = ledger_has_traces(MR)  # rows exist ⇒ start/end calls land
+    if not ledger_wired:
+        # TR-026 visible disable: the spawn ledger is NOT wired by the
+        # scheduler yet (TASK-ROUTER-002 call side). Concurrency knobs are a
+        # no-op until it is — say so LOUDLY instead of silently passing.
+        warnings.append(
+            'spawn ledger NOT WIRED: ledger.jsonl has no trace rows — the '
+            "'model busy' concurrency gate cannot fire; TR-007 knobs are "
+            'inactive until the scheduler calls router_ledger.py start/end '
+            'around spawns (cross-repo: coding-hermes-scheduler '
+            'TASK-ROUTER-002 call side)'
+        )
     now = datetime.datetime.now(datetime.timezone.utc).isoformat(timespec='seconds')
 
     out_chain, exclusions, reasons = [], [], []
@@ -606,6 +634,12 @@ def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=30
                 'health': bool(_present('health-state.json')),
                 'circuit': bool(_present('circuit-state.json')),
                 'quota': bool(_present('quota-state.json')),
+                # TR-026: wired = ledger file exists WITH trace rows. An
+                # empty ledger means start/end is never called — the
+                # 'model busy' gate cannot fire. Emitted loudly (warning
+                # above + gates_loaded.ledger=false) until the scheduler
+                # wires the spawn path.
+                'ledger': ledger_wired,
                 'ledger_rows': len(inflight),
             },
             'warnings': warnings,

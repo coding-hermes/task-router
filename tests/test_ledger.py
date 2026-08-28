@@ -96,6 +96,7 @@ def test_status_inflight_and_last_outcome_text(tmp_path):
     st = _run(tmp_path, "status")
     assert st.returncode == 0
     assert "prov-a/m1" in st.stdout and "in_flight=1" in st.stdout
+    assert "WARNING" not in st.stdout  # wired: traces exist → no warning
 
     _run(tmp_path, "end", "--trace-id", tid, "--outcome", "success",
          "--latency-ms", "10")
@@ -113,6 +114,11 @@ def test_status_json_parses(tmp_path):
     assert pairs["prov-a/m1"]["in_flight"] == 1
     assert pairs["prov-b/m2"]["in_flight"] == 1
     assert data["stale_after_minutes"] == 30
+    # TR-026: a trace exists → the ledger is wired
+    assert data["wired"] is True
+    assert data["rows"] == 2
+    assert data["started_open"] == 2
+    assert data["terminal"] == 0
 
 
 def test_status_provider_filter(tmp_path):
@@ -132,6 +138,27 @@ def test_status_empty_or_missing_file_exit0(tmp_path):
                        capture_output=True, text=True, env=env, timeout=30)
     assert p.returncode == 0
     data = json.loads(p.stdout)
+    assert data["pairs"] == []
+    # TR-026: zero traces → explicitly NOT wired (never a silent empty)
+    assert data["wired"] is False
+    assert data["rows"] == 0
+    assert data["started_open"] == 0
+    assert data["terminal"] == 0
+
+
+def test_status_empty_file_reports_unwired_loudly(tmp_path):
+    # TR-026: a present-but-EMPTY ledger (file created, never written) is the
+    # exact unwired state — status must say wired:false + WARNING, so any
+    # consumer knows concurrency accounting is not active.
+    (tmp_path / "ledger.jsonl").write_text("")
+    p = _run(tmp_path, "status")
+    assert p.returncode == 0
+    assert "NOT WIRED" in p.stdout
+    assert "model busy" in p.stdout
+    pj = _run(tmp_path, "status", "--json")
+    data = json.loads(pj.stdout)
+    assert data["wired"] is False
+    assert data["rows"] == 0
     assert data["pairs"] == []
 
 

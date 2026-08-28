@@ -208,7 +208,22 @@ def cmd_status(args):
     if provider:
         prefix = provider.rstrip("/") + "/"
         pairs = [p for p in pairs if p.startswith(prefix)]
+    # TR-026 visible disable: zero traces = the ledger exists but start/end is
+    # never called (scheduler not wired). wired=false tells any consumer that
+    # concurrency accounting is NOT active — a missing data feed is a visible
+    # gap, never a silent empty.
+    n_traces = len(last)
+    n_terminal = sum(
+        1 for rec in last.values() if rec.get("outcome") in OUTCOMES
+    )
+    wired = n_traces > 0
     result = {
+        "wired": wired,
+        "rows": n_traces,
+        "started_open": sum(
+            1 for rec in last.values() if rec.get("outcome") == "started"
+        ),
+        "terminal": n_terminal,
         "stale_after_minutes": STALE_MS // 60000,
         "pairs": [
             {
@@ -222,6 +237,11 @@ def cmd_status(args):
     if args.json:
         print(json.dumps(result, indent=1))
     else:
+        if not wired:
+            print("WARNING: ledger NOT WIRED — no trace rows found; the")
+            print("  'model busy' concurrency gate cannot fire (TR-026).")
+            print("  Until the scheduler calls router_ledger.py start/end")
+            print("  around spawns, concurrency accounting is inactive.")
         print(f"in-flight (stale >{STALE_MS // 60000}m ignored):")
         if not pairs:
             print("  (no traces recorded)")
