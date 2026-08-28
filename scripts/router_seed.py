@@ -50,6 +50,12 @@ BASE_COLUMNS = {
                    ('notes', 'VARCHAR')],
     'projects': [('id', 'VARCHAR'), ('sensitivity', 'VARCHAR'), ('board_type', 'VARCHAR'),
                  ('stack', 'VARCHAR'), ('profile', 'VARCHAR')],
+    'task_profiles': [('id', 'VARCHAR'), ('title', 'VARCHAR'),
+                      ('created_at', 'VARCHAR'),
+                      ('max_consecutive_per_provider', 'INTEGER'),
+                      ('max_total_per_provider', 'INTEGER')],
+    'task_profile_requirements': [('task_id', 'VARCHAR'), ('category', 'VARCHAR'),
+                                  ('level', 'INTEGER')],
 }
 
 
@@ -477,6 +483,13 @@ con.execute("CREATE TABLE task_profile_requirements (task_id VARCHAR, category V
 # profile below uses the tightest honest level that keeps its pre-TR-002
 # chain membership -> heads, ordering and scheduler behavior unchanged
 # (AC3). See docs/category-data-quality.md.
+#
+# DATA-DRIVEN SOURCE (Bane 2026-08-27): the live profiles come from the
+# committed data rows in data/tables/task_profiles.jsonl +
+# task_profile_requirements.jsonl — loaded exactly like every other table
+# below. Adding a profile = append data rows + re-run the seed (NO code
+# edit). This dict is ONLY a bootstrap fallback for a fresh clone whose data
+# files are empty; it must mirror the data rows for new profiles.
 PROFILES = {
     'P0_FORE': ("Default foreman: board ops, audit, dispatch, gap-free reports",
                 # 2026-08-27 Bane design: capabilities drive the chain — pass
@@ -572,14 +585,31 @@ try:
         _existing_ts[_r.get('id')] = _r.get('created_at')
 except Exception:
     pass
-for pid, (title, reqs) in PROFILES.items():
-    # explicit column list: the two TR-007 diversity columns stay NULL for the
-    # seeded profiles (no overrides → global defaults apply; existing behavior)
-    ts = _existing_ts.get(pid) or datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
-    con.execute("INSERT INTO task_profiles (id, title, created_at) VALUES (?, ?, CAST(? AS TIMESTAMP))",
-                [pid, title, ts])
-    for c, lvl in reqs.items():
-        con.execute("INSERT INTO task_profile_requirements VALUES (?,?,?)", [pid, c, lvl])
+# DATA-DRIVEN (Bane 2026-08-27): load profiles from the committed data rows
+# first; the PROFILES dict is only a fresh-clone bootstrap.
+_prof_rows = _load_base_rows('task_profiles')
+_req_rows = _load_base_rows('task_profile_requirements')
+if _prof_rows and _req_rows:
+    for pid, title, ts, mcp, mtp in _prof_rows:
+        con.execute("INSERT INTO task_profiles (id, title, created_at, "
+                    "max_consecutive_per_provider, max_total_per_provider) "
+                    "VALUES (?, ?, CAST(? AS TIMESTAMP), ?, ?)",
+                    [pid, title, ts, mcp, mtp])
+    for tid, cat, lvl in _req_rows:
+        con.execute("INSERT INTO task_profile_requirements VALUES (?,?,?)",
+                    [tid, cat, lvl])
+    _src = f'data rows ({len(_prof_rows)} profiles, {len(_req_rows)} reqs)'
+else:
+    for pid, (title, reqs) in PROFILES.items():
+        # explicit column list: the two TR-007 diversity columns stay NULL for the
+        # seeded profiles (no overrides → global defaults apply; existing behavior)
+        ts = _existing_ts.get(pid) or datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
+        con.execute("INSERT INTO task_profiles (id, title, created_at) VALUES (?, ?, CAST(? AS TIMESTAMP))",
+                    [pid, title, ts])
+        for c, lvl in reqs.items():
+            con.execute("INSERT INTO task_profile_requirements VALUES (?,?,?)", [pid, c, lvl])
+    _src = 'PROFILES dict (bootstrap fallback)'
+print(f'seeded task profiles from {_src}')
 
 # ---------- 7. views -----------------------------------------------------------
 con.execute("DROP VIEW IF EXISTS v_task_eligible")
