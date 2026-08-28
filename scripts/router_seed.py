@@ -550,6 +550,17 @@ PROFILES = {
                    {'agent_tick': 0, 'delegation': 0, 'code_gen': -2,
                     'reasoning': -1, 'long_doc': -1, 'schema': -1,
                     'terminal': -1, 'tool_use': -1}),
+    # P8_SYNC (Bane 2026-08-27): the sync lane — DuckBrain read/write summaries
+    # ONLY. Cheaper than P6_DEFAULT: syncs never delegate (delegation -1),
+    # never write code, and only need curl-grade terminal (terminal -3 admits
+    # mimo-v2.5@opencode-go $0.013 — tool_use 5, agent_tick 2 — 2.5x cheaper
+    # than the P6 head deepseek-v4-flash $0.033). agent_tick 0 + schema -1
+    # stay as safety floors: the sync still runs an agent loop and must write
+    # DuckBrain-valid domains.
+    'P8_SYNC': ("Sync lane: DuckBrain read/write summaries only — no delegation, no code, curl-grade terminal",
+                {'agent_tick': 0, 'delegation': -1, 'code_gen': -2,
+                 'reasoning': -1, 'long_doc': -1, 'schema': -1,
+                 'terminal': -3, 'tool_use': -1}),
 }
 # Preserve existing profile created_at across re-seeds (now() on every run
 # made registry.json + ns exports non-idempotent — Bane 2026-08-27 fix).
