@@ -212,6 +212,57 @@ def _prune_diversity(out_chain, exclusions, reasons, cons_cap, tot_cap):
     out_chain[:] = survivors
 
 
+def _validate_adhoc(adhoc, tables):
+    """Validate --profile-req requirements (TR-023). Returns (reqs, error).
+
+    Honest input validation: a typo'd category or out-of-range level must be
+    a visible error (code INVALID_REQUIREMENT, retryable false), never a
+    silently-weakened requirement. Syntax (int level, 'cat=level' shape) is
+    always enforced; category membership and the -5..+5 scale come from DATA
+    (category_levels.jsonl / level_defs.jsonl). Missing data degrades to
+    syntax-only validation — fail-open, never a traceback.
+    """
+    known = {r.get('category') for r in (tables.get('category_levels') or [])
+             if r.get('category')}
+    lv = {r.get('level') for r in (tables.get('level_defs') or [])
+          if r.get('level') is not None}
+    lo, hi = (min(lv), max(lv)) if lv else (-5, 5)
+    reqs = []
+    for kv in adhoc:
+        parts = str(kv).split()  # tolerate 'a=1 b=2' arriving as one arg
+        if not parts:
+            return None, {'error': f'invalid requirement {kv!r}: '
+                           'expected category=level',
+                           'code': 'INVALID_REQUIREMENT', 'retryable': False}
+        for part in parts:
+            cat, sep, lvl = part.partition('=')
+            cat = cat.strip()
+            if not sep:
+                return None, {'error': f'invalid requirement {part!r}: '
+                               'expected category=level',
+                               'code': 'INVALID_REQUIREMENT', 'retryable': False}
+            if not cat:
+                return None, {'error': f'invalid requirement {part!r}: '
+                               'empty category',
+                               'code': 'INVALID_REQUIREMENT', 'retryable': False}
+            if known and cat not in known:
+                return None, {'error': f'unknown category {cat!r} '
+                               f'(known: {", ".join(sorted(known))})',
+                               'code': 'INVALID_REQUIREMENT', 'retryable': False}
+            try:
+                level = int(lvl)
+            except ValueError:
+                return None, {'error': f'invalid level {lvl!r} for {cat}: '
+                               f'must be an integer in {lo}..{hi}',
+                               'code': 'INVALID_REQUIREMENT', 'retryable': False}
+            if not (lo <= level <= hi):
+                return None, {'error': f'level {level} out of range for {cat}: '
+                               f'must be in {lo}..{hi}',
+                               'code': 'INVALID_REQUIREMENT', 'retryable': False}
+            reqs.append((cat, level))
+    return reqs, None
+
+
 def _load_registry():
     """registry.json → {tables: {name: [row...]}}; any error → {} (fail-open).
 
@@ -389,11 +440,9 @@ def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=30
     pid = profile_id
     if adhoc:
         pid = None
-        reqs = []
-        for kv in adhoc:
-            for part in kv.split():  # tolerate 'a=1 b=2' arriving as one arg
-                cat, _, lvl = part.partition('=')
-                reqs.append((cat.strip(), int(lvl)))
+        reqs, err = _validate_adhoc(adhoc, tables)
+        if err:
+            return err
     elif project:
         row = projects.get(project)
         if row is None:
@@ -404,6 +453,9 @@ def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=30
         reqs = reqs_by_profile.get(pid or 'P0_FORE', [])
     if not pid and not adhoc:
         pid = 'P0_FORE'
+    if pid and pid not in profiles:
+        return {'error': f'profile {pid} not in registry',
+                'code': 'PROFILE_NOT_FOUND', 'retryable': False}
 
     # --- 2. chain from the registry -------------------------------------------
     # Profiles with NO requirement rows resolve to an empty chain — identical
@@ -535,10 +587,20 @@ def main():
         ap.print_usage()
         return
 
+    if args.project and args.profile_id:
+        print(f"WARNING: both --profile {args.profile_id} and project "
+              f"{args.project} given — resolving via project "
+              f"(project profile wins)", file=sys.stderr)
+
     r = resolve(project=args.project, profile_id=args.profile_id,
                 adhoc=args.adhoc, use_health=not args.no_health)
     if args.format == 'json':
         print(json.dumps(r, indent=1))
+        return
+    if r.get('error'):
+        print(f'ERROR: {r["error"]}')
+        if r.get('code'):
+            print(f'code={r.get("code")}  retryable={r.get("retryable")}')
         return
     print(f'▶ {r.get("project", r.get("profile"))}  profile={r.get("profile")}  gate={r.get("gate")}')
     h = r.get('head')

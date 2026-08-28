@@ -49,7 +49,12 @@ def _write(name, rows):
     os.replace(path + '.tmp', path)
 
 
-def sweep(apply=False):
+def _msg(*parts):
+    """Human-facing prose → stderr, keeping stdout pure for --json."""
+    print(*parts, file=sys.stderr)
+
+
+def sweep(apply=False, quiet=False):
     today = datetime.date.today().isoformat()
     models = _rows('models')
     terms = _rows('plan_terms')
@@ -57,7 +62,8 @@ def sweep(apply=False):
 
     flat = {t['provider']: t for t in terms if t.get('billing_model') == 'flat_subscription'}
     if not flat:
-        print('no flat_subscription providers — nothing to sweep')
+        if not quiet:
+            _msg('no flat_subscription providers — nothing to sweep')
         return [], 0
 
     # active discount coverage: model-level rows valid today (valid_to null = open)
@@ -97,7 +103,8 @@ def sweep(apply=False):
         to_disable.append({'provider': p, 'model': name, 'reason': reason})
 
     if not to_disable:
-        print(f'sweep: nothing to disable for {sorted(flat)}')
+        if not quiet:
+            _msg(f'sweep: nothing to disable for {sorted(flat)}')
         return [], 0
 
     if apply:
@@ -108,17 +115,19 @@ def sweep(apply=False):
                 row['disabled'] = True
                 row['disabled_reason'] = d['reason']
         _write('models', models)
-        print(f'sweep --apply: disabled {len(to_disable)} lanes')
+        if not quiet:
+            _msg(f'sweep --apply: disabled {len(to_disable)} lanes')
     else:
-        provs = {}
-        for d in to_disable:
-            provs[d['provider']] = provs.get(d['provider'], 0) + 1
-        print(f'sweep DRY-RUN: would disable {len(to_disable)} lanes: ' +
-              ', '.join(f'{p}={n}' for p, n in sorted(provs.items())))
-        for d in to_disable[:8]:
-            print(f'  - {d["provider"]}/{d["model"]}')
-        if len(to_disable) > 8:
-            print(f'  ... and {len(to_disable) - 8} more')
+        if not quiet:
+            provs = {}
+            for d in to_disable:
+                provs[d['provider']] = provs.get(d['provider'], 0) + 1
+            _msg(f'sweep DRY-RUN: would disable {len(to_disable)} lanes: ' +
+                 ', '.join(f'{p}={n}' for p, n in sorted(provs.items())))
+            for d in to_disable[:8]:
+                _msg(f'  - {d["provider"]}/{d["model"]}')
+            if len(to_disable) > 8:
+                _msg(f'  ... and {len(to_disable) - 8} more')
     return to_disable, len(to_disable)
 
 
@@ -127,7 +136,7 @@ def main(argv=None):
     ap.add_argument('--apply', action='store_true', help='write the disables (default: report only)')
     ap.add_argument('--json', action='store_true')
     args = ap.parse_args(argv)
-    disables, n = sweep(apply=args.apply)
+    disables, n = sweep(apply=args.apply, quiet=args.json)
     if args.json:
         print(json.dumps({'disabled': n,
                           'lanes': [{'provider': d['provider'], 'model': d['model']}

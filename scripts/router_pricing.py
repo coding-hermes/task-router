@@ -61,7 +61,7 @@ def _write(name, rows):
     os.replace(path + '.tmp', path)
 
 
-def normalize(dry_run):
+def normalize(dry_run, quiet=False):
     models = _rows('models')
     terms = {t['provider']: t for t in _rows('plan_terms')}
     catalog = {(c['provider'], c['model']): c for c in _rows('model_catalog')}
@@ -144,7 +144,7 @@ def normalize(dry_run):
         cat = catalog.get((m['provider'], m['model']))
         if cat and fill_public_price(m, cat.get('cost_input'), cat.get('cost_output')):
             filled_public += 1
-    if filled_public:
+    if filled_public and not quiet:
         print(f'public-price fill: {filled_public} rows stamped from models.dev sticker')
 
     priced, gaps = [], []
@@ -260,21 +260,25 @@ def normalize(dry_run):
         m['price_evidence'] = evidence
 
     if dry_run:
+        if not quiet:
+            for p, name, price, ev in priced:
+                print(f'  ~ {p}/{name} -> ${price:.4f} ({ev})')
+            for p, name, why in gaps:
+                print(f'  ! {p}/{name}: {why}')
+            print(f'DRY-RUN: {len(priced)} would price, {len(gaps)} remain gaps')
+        return {'dry_run': True, 'priced': priced, 'gaps': gaps,
+                'filled_public': filled_public}
+
+    if priced or filled_public:
+        _write('models', models)
+    if not quiet:
         for p, name, price, ev in priced:
             print(f'  ~ {p}/{name} -> ${price:.4f} ({ev})')
         for p, name, why in gaps:
             print(f'  ! {p}/{name}: {why}')
-        print(f'DRY-RUN: {len(priced)} would price, {len(gaps)} remain gaps')
-        return 0
-
-    if priced or filled_public:
-        _write('models', models)
-    for p, name, price, ev in priced:
-        print(f'  ~ {p}/{name} -> ${price:.4f} ({ev})')
-    for p, name, why in gaps:
-        print(f'  ! {p}/{name}: {why}')
-    print(f'normalized pricing: {len(priced)} priced, {len(gaps)} gaps remain')
-    return 0
+        print(f'normalized pricing: {len(priced)} priced, {len(gaps)} gaps remain')
+    return {'dry_run': False, 'priced': priced, 'gaps': gaps,
+            'filled_public': filled_public}
 
 
 def main(argv=None):
@@ -282,7 +286,17 @@ def main(argv=None):
     ap.add_argument('--dry-run', action='store_true')
     ap.add_argument('--json', action='store_true')
     args = ap.parse_args(argv)
-    return normalize(args.dry_run)
+    res = normalize(args.dry_run, quiet=args.json)
+    if args.json:
+        print(json.dumps({
+            'dry_run': res['dry_run'],
+            'filled_public': res['filled_public'],
+            'priced': [{'provider': p, 'model': m, 'price': pr, 'evidence': ev}
+                       for p, m, pr, ev in res['priced']],
+            'gaps': [{'provider': p, 'model': m, 'reason': why}
+                     for p, m, why in res['gaps']],
+        }, indent=1))
+    return 0
 
 
 if __name__ == '__main__':
