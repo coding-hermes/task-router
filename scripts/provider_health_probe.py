@@ -273,7 +273,7 @@ def main():
         if p_status:  # alert only on aggregate transitions between known states
             p_up, now_up = p_status in UP_LIKE, status in UP_LIKE
             if p_up and not now_up:
-                alerts.append(f'⚠️ {prov} DOWN ({stats["down"]}/{stats["total"]} models up): '
+                alerts.append(f'⚠️ {prov} DOWN ({stats["ok"]}/{stats["total"]} models up, {stats["down"]} down): '
                               f'{dflt.get("error")} — was {p_status}')
             elif (not p_up) and now_up:
                 alerts.append(f'✅ {prov} back UP ({stats["ok"]} models, {dflt.get("latency_ms")}ms)')
