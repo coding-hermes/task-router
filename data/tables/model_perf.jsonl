@@ -191,6 +191,16 @@
 {"model": "gpt-oss:20b", "category": "reasoning", "perf": 0.0}
 {"model": "gpt-oss:20b", "category": "review", "perf": 0.0}
 {"model": "gpt-oss:20b", "category": "schema", "perf": 0.5}
+{"model": "grok-4.5", "category": "agent_tick", "perf": 0.75}
+{"model": "grok-4.5", "category": "code_gen", "perf": 0.72}
+{"model": "grok-4.5", "category": "debug", "perf": 0.75}
+{"model": "grok-4.5", "category": "delegation", "perf": 0.75}
+{"model": "grok-4.5", "category": "guard", "perf": 1.0}
+{"model": "grok-4.5", "category": "mock", "perf": 1.0}
+{"model": "grok-4.5", "category": "refactor", "perf": 0.72}
+{"model": "grok-4.5", "category": "schema", "perf": 0.75}
+{"model": "grok-4.5", "category": "terminal", "perf": 0.85}
+{"model": "grok-4.5", "category": "tool_use", "perf": 0.72}
 {"model": "hf:Qwen/Qwen3.6-27B", "category": "agent_tick", "perf": 0.72}
 {"model": "hf:Qwen/Qwen3.6-27B", "category": "debug", "perf": 0.7}
 {"model": "hf:Qwen/Qwen3.6-27B", "category": "delegation", "perf": 0.72}

@@ -213,7 +213,7 @@ PROFILE_MODELS = {
     'gpt-5.6 luna': [('openai-codex', 'gpt-5.6-luna')],
     'step 3': [('stepfun', 'step-3.7-flash'), ('stepfun', 'step-3.5-flash')],
     'grok 4.6': [],  # not in registry models yet
-    'grok 4.5': [],
+    'grok 4.5': [('grok-build', 'grok-4.5'), ('opencode-go', 'grok-4.5')],
     'grok 4.20': [],
     'hy3': [('opencode-go', 'hy3')],
     'longcat': [('opencode-go', 'longcat-2.0')],
@@ -306,6 +306,13 @@ PROFILE_TAGS = {
     'gpt-oss': {'reasoning': '+', 'tool-use': '++', 'code-generation': '+',
                 'testing': '+', 'refactoring': '+'},  # open-weight agentic; native tool-calling
     'qwen3.6-27b': {'concise-output': '+', 'filtering': '+', 'mock-data': '+'},
+    # 2026-08-28: grok-4.5 profile (was [] — no perf rows -> never routable).
+    # Tags from xAI system card + fleet battery: Terminal-Bench 2.1 83.3 (++),
+    # SWE-bench Pro 64.7 / DeepSWE 1.0 62.0 (+), battery T1-TOOL 3/4 tool-use (+);
+    # long_horizon left BLANK on purpose (DeepSWE 1.1 53, SWE Marathon discipline
+    # complaints) — benchmark rows document it, BLANK default keeps it honest.
+    'grok 4.5': {'terminal': '++', 'code-generation': '+', 'refactoring': '+',
+                 'tool-use': '+'},
 }
 
 # ---------- 4b. TR-002: quality estimates for degenerate categories ----------
