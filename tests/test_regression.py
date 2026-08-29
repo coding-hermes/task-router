@@ -412,45 +412,49 @@ def test_fallback_lane_fires_when_all_subs_down(monkeypatch, tmp_path):
     (plan_tier=1 PAYG fallback hop — AGENTS.md doctrine "it appears where
     price ranks it"), so gating all subs on P1_CODING resolves deepseek as a
     REGULAR hop (no fallback flag) — the degraded path only fires when the
-    normal chain is empty. P4_SECURITY exercises the true fallback."""
+    normal chain is empty. P4_SECURITY exercises the true fallback.
+    Provider key: fa753fb renamed the PAYG lane deepseek -> deepseek-foreman
+    (foreman key sk-39950) so tick fallback never bills the main chat key;
+    the fallback_lanes table follows (2026-08-29)."""
     tables = _load_tables()
     provs = _open_providers(tables)
-    # gate EVERY provider except deepseek
+    # gate EVERY provider except deepseek-foreman (the PAYG lane provider)
     for p in provs:
-        if p != "deepseek":
+        if p != "deepseek-foreman":
             provs[p] = {"status": "gated", "reason": "sim-down"}
     state = _state_dir(tmp_path, providers=provs)
     monkeypatch.setattr(router_spawn, "MR", str(state))
     r = _resolve(monkeypatch, tmp_path, tables, profile="P4_SECURITY")
     assert r["head"] is not None, "fallback must fire — crons always run"
-    assert r["head"]["provider"] == "deepseek"
+    assert r["head"]["provider"] == "deepseek-foreman"
     assert r["head"]["model"] == "deepseek-v4-flash"
     assert r["head"].get("fallback") is True
-    assert r["head"].get("key_env") == "DEEPSEEK_PAYG_DUCKBRAIN_KEY"
+    assert r["head"].get("key_env") == "DEEPSEEK_FOREMAN_API_KEY"
     assert r["degraded_fallback"] is True
     assert r["head"].get("requirements_unmet"), \
         "degraded path must report requirements_unmet — never silent"
     assert any("FALLBACK" in w for w in r["gate_reasons"])
     # fallback lane must exist in the registry table
     fbs = tables.get("fallback_lanes") or []
-    assert any(f.get("provider") == "deepseek" and f.get("model") == "deepseek-v4-flash"
+    assert any(f.get("provider") == "deepseek-foreman" and f.get("model") == "deepseek-v4-flash"
                for f in fbs), "fallback_lanes table missing deepseek-v4-flash lane"
 
 
 def test_fallback_not_needed_when_deepseek_is_normal_hop(monkeypatch, tmp_path):
     """DeepSeek is a normal PAYG chain member (plan_tier=1, AGENTS.md). When
     all subs are down but deepseek clears the profile bars, resolve() hands
-    out deepseek as a REGULAR hop — the degraded fallback must NOT fire."""
+    out deepseek as a REGULAR hop — the degraded fallback must NOT fire.
+    Provider key: deepseek-foreman post-fa753fb rename (2026-08-28/29)."""
     tables = _load_tables()
     provs = _open_providers(tables)
     for p in provs:
-        if p != "deepseek":
+        if p != "deepseek-foreman":
             provs[p] = {"status": "gated", "reason": "sim-down"}
     state = _state_dir(tmp_path, providers=provs)
     monkeypatch.setattr(router_spawn, "MR", str(state))
     r = _resolve(monkeypatch, tmp_path, tables, project="coding-hermes-scheduler")
     assert r["head"] is not None, "crons always run — deepseek serves"
-    assert r["head"]["provider"] == "deepseek"
+    assert r["head"]["provider"] == "deepseek-foreman"
     assert r["head"]["model"] == "deepseek-v4-flash"
     assert r["degraded_fallback"] is False
     assert r["head"].get("fallback") is None

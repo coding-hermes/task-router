@@ -1,39 +1,40 @@
-{"model": "deepseek-v4-pro", "guard": 0.90, "mock": 0.88, "multilingual": 0.92, "note": "chinese-first agentic coding family"}
-{"model": "deepseek-v4-flash", "guard": 0.88, "mock": 0.87, "multilingual": 0.90, "note": "chinese-first agentic coding family"}
-{"model": "deepseek-v4-flash:0731", "guard": 0.88, "mock": 0.87, "multilingual": 0.90, "note": "same model, pinned snapshot"}
+{"model": "deepseek-v4-pro", "guard": 0.9, "mock": 0.88, "multilingual": 0.92, "note": "chinese-first agentic coding family"}
+{"model": "deepseek-v4-flash", "guard": 0.88, "mock": 0.87, "multilingual": 0.9, "note": "chinese-first agentic coding family"}
+{"model": "deepseek-v4-flash:0731", "guard": 0.88, "mock": 0.87, "multilingual": 0.9, "note": "same model, pinned snapshot"}
 {"model": "kimi-k3", "guard": 0.88, "mock": 0.85, "multilingual": 0.88, "note": "chinese-first agentic coding family"}
 {"model": "k3", "guard": 0.85, "mock": 0.84, "multilingual": 0.88, "note": "kimi-for-coding K3 == Kimi K3"}
 {"model": "k3-256k", "guard": 0.86, "mock": 0.84, "multilingual": 0.88, "note": "kimi-for-coding 256k variant"}
 {"model": "kimi-k2.7-code", "guard": 0.86, "mock": 0.84, "multilingual": 0.86, "note": "chinese-first agentic coding family"}
-{"model": "kimi-k2.7-code-fast", "guard": 0.80, "mock": 0.82, "multilingual": 0.86, "note": "fast variant of k2.7-code"}
-{"model": "kimi-k2.6", "guard": 0.80, "mock": 0.83, "multilingual": 0.86, "note": "chinese-first agentic coding family"}
+{"model": "kimi-k2.7-code-fast", "guard": 0.8, "mock": 0.82, "multilingual": 0.86, "note": "fast variant of k2.7-code"}
+{"model": "kimi-k2.6", "guard": 0.8, "mock": 0.83, "multilingual": 0.86, "note": "chinese-first agentic coding family"}
 {"model": "minimax-m3", "guard": 0.86, "mock": 0.84, "multilingual": 0.88, "note": "chinese-first agentic coding family"}
-{"model": "minimax-m2.7", "guard": 0.80, "mock": 0.82, "multilingual": 0.86, "note": "chinese-first agentic coding family"}
+{"model": "minimax-m2.7", "guard": 0.8, "mock": 0.82, "multilingual": 0.86, "note": "chinese-first agentic coding family"}
 {"model": "step-3.7-flash", "guard": 0.88, "mock": 0.85, "multilingual": 0.87, "note": "chinese-first agentic coding family"}
-{"model": "step-3.5-flash", "guard": 0.80, "mock": 0.82, "multilingual": 0.86, "note": "chinese-first agentic coding family"}
+{"model": "step-3.5-flash", "guard": 0.8, "mock": 0.82, "multilingual": 0.86, "note": "chinese-first agentic coding family"}
 {"model": "mimo-v2.5", "guard": 0.88, "mock": 0.84, "multilingual": 0.87, "note": "chinese-first agentic coding family"}
-{"model": "glm-5.2", "guard": 0.86, "mock": 0.80, "multilingual": 0.86, "note": "chinese-first agentic coding family"}
-{"model": "glm-5.2-short-fast", "guard": 0.80, "mock": 0.78, "multilingual": 0.85, "note": "chinese-first agentic coding family"}
-{"model": "glm-5.3", "guard": 0.80, "mock": 0.60, "multilingual": 0.90, "note": "guard/mock surveyed (0.80/0.60)"}
-{"model": "glm-5.3-flash", "guard": 0.80, "mock": 0.60, "multilingual": 0.88, "note": "guard/mock surveyed (0.80/0.60)"}
-{"model": "glm-5.3-flash-offpeak", "guard": 0.80, "mock": 0.60, "multilingual": 0.88, "note": "offpeak twin of glm-5.3-flash"}
-{"model": "glm-5.3-offpeak", "guard": 0.80, "mock": 0.60, "multilingual": 0.88, "note": "offpeak twin of glm-5.3"}
-{"model": "glm-4.7", "guard": 0.80, "mock": 0.70, "multilingual": 0.85, "note": "chinese-first agentic coding family"}
-{"model": "glm-4.7-flash", "guard": 0.72, "mock": 0.60, "multilingual": 0.72, "note": "flash variant of glm-4.7"}
+{"model": "glm-5.2", "guard": 0.86, "mock": 0.8, "multilingual": 0.86, "note": "chinese-first agentic coding family"}
+{"model": "glm-5.2-short-fast", "guard": 0.8, "mock": 0.78, "multilingual": 0.85, "note": "chinese-first agentic coding family"}
+{"model": "glm-5.3", "guard": 0.8, "mock": 0.6, "multilingual": 0.9, "note": "guard/mock surveyed (0.80/0.60)"}
+{"model": "glm-5.3-flash", "guard": 0.8, "mock": 0.6, "multilingual": 0.88, "note": "guard/mock surveyed (0.80/0.60)"}
+{"model": "glm-5.3-flash-offpeak", "guard": 0.8, "mock": 0.6, "multilingual": 0.88, "note": "offpeak twin of glm-5.3-flash"}
+{"model": "glm-5.3-offpeak", "guard": 0.8, "mock": 0.6, "multilingual": 0.88, "note": "offpeak twin of glm-5.3"}
+{"model": "glm-4.7", "guard": 0.8, "mock": 0.7, "multilingual": 0.85, "note": "chinese-first agentic coding family"}
+{"model": "glm-4.7-flash", "guard": 0.72, "mock": 0.6, "multilingual": 0.72, "note": "flash variant of glm-4.7"}
 {"model": "glm-5-turbo", "guard": 0.78, "mock": 0.72, "multilingual": 0.82, "note": "chinese-first agentic coding family"}
 {"model": "qwen3.8-max", "guard": null, "mock": null, "multilingual": 0.92, "note": "guard/mock surveyed (0.72/0.75)"}
-{"model": "qwen3.8-flash", "guard": null, "mock": null, "multilingual": 0.90, "note": "guard/mock surveyed (0.75/0.90)"}
+{"model": "qwen3.8-flash", "guard": null, "mock": null, "multilingual": 0.9, "note": "guard/mock surveyed (0.75/0.90)"}
 {"model": "qwen3.6-27b", "guard": null, "mock": null, "multilingual": 0.88, "note": "guard/mock surveyed (0.70/0.85)"}
 {"model": "qwen3.6-35b", "guard": 0.68, "mock": 0.84, "multilingual": 0.88, "note": "chinese-first agentic coding family"}
 {"model": "gpt-5.6-sol", "guard": 0.92, "mock": 0.86, "multilingual": 0.82, "note": "western flagship"}
 {"model": "gpt-5.6-terra", "guard": 0.88, "mock": 0.82, "multilingual": 0.82, "note": "western flagship"}
-{"model": "gpt-5.6-luna", "guard": 0.80, "mock": 0.80, "multilingual": 0.82, "note": "western flagship"}
-{"model": "gpt-oss-120b", "guard": null, "mock": null, "multilingual": 0.80, "note": "guard/mock surveyed (0.80/0.85)"}
-{"model": "gpt-oss:20b", "guard": 0.68, "mock": 0.70, "multilingual": 0.68, "note": "ollama-cloud naming"}
+{"model": "gpt-5.6-luna", "guard": 0.8, "mock": 0.8, "multilingual": 0.82, "note": "western flagship"}
+{"model": "gpt-oss-120b", "guard": null, "mock": null, "multilingual": 0.8, "note": "guard/mock surveyed (0.80/0.85)"}
+{"model": "gpt-oss:20b", "guard": 0.68, "mock": 0.7, "multilingual": 0.68, "note": "ollama-cloud naming"}
 {"model": "gpt-oss-20b", "guard": 0.68, "mock": 0.68, "multilingual": 0.68, "note": "groq naming of the same model"}
-{"model": "mistral-large-3:675b", "guard": 0.80, "mock": 0.80, "multilingual": 0.80, "note": "western flagship"}
-{"model": "nemotron-3-ultra", "guard": 0.80, "mock": 0.78, "multilingual": 0.78, "note": "nvidia family"}
+{"model": "mistral-large-3:675b", "guard": 0.8, "mock": 0.8, "multilingual": 0.8, "note": "western flagship"}
+{"model": "nemotron-3-ultra", "guard": 0.8, "mock": 0.78, "multilingual": 0.78, "note": "nvidia family"}
 {"model": "nemotron-3-super-120b", "guard": 0.65, "mock": 0.72, "multilingual": 0.78, "note": "nvidia family"}
-{"model": "nemotron-3-nano", "guard": 0.60, "mock": 0.60, "multilingual": 0.62, "note": "nvidia family"}
+{"model": "nemotron-3-nano", "guard": 0.6, "mock": 0.6, "multilingual": 0.62, "note": "nvidia family"}
 {"model": "gemma-4:31b", "guard": 0.72, "mock": 0.72, "multilingual": 0.76, "note": "ollama-cloud naming"}
 {"model": "gemma-4-31b", "guard": 0.72, "mock": 0.72, "multilingual": 0.76, "note": "neuralwatt naming"}
+{"model": "hy3", "guard": 0.8, "mock": 0.82, "multilingual": 0.82, "note": "tencent hy3-preview 295B A21B — surveyed 2026-08-29 from agentic coding evidence (SWE-bench Verified 74.4, WideSearch 70.2)"}
