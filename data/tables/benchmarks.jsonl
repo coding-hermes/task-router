@@ -271,6 +271,7 @@
 {"model": "grok-4.3", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
 {"model": "grok-4.5", "category": "agent-tick", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
 {"model": "grok-4.5", "category": "agent_tick", "score": 0.62, "max_score": 1.0, "source": "DeepSWE 1.0 research-bench-2026-08-28", "valid_from": "2026-08-28"}
+{"model": "grok-4.5", "category": "code_gen", "score": 0.29, "max_score": 1.0, "source": "SWE Marathon resolve pass@1 (official) research-bench-2026-08-30", "valid_from": "2026-08-30"}
 {"model": "grok-4.5", "category": "code_gen", "score": 0.647, "max_score": 1.0, "source": "SWE-bench Pro research-bench-2026-08-28", "valid_from": "2026-08-28"}
 {"model": "grok-4.5", "category": "debug", "score": 3.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
 {"model": "grok-4.5", "category": "debug", "score": 3.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
@@ -395,6 +396,7 @@
 {"model": "minimax-m2.7", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
 {"model": "minimax-m2.7", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
 {"model": "minimax-m3", "category": "agent-tick", "score": 2.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "minimax-m3", "category": "code_gen", "score": 0.5, "max_score": 1.0, "source": "SWE-bench Pro >50% (vendor-run, independent pending) research-bench-2026-08-30", "valid_from": "2026-08-30"}
 {"model": "minimax-m3", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
 {"model": "minimax-m3", "category": "debug", "score": 3.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
 {"model": "minimax-m3", "category": "delegation", "score": 2.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
@@ -505,11 +507,13 @@
 {"model": "step-3.5-flash", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
 {"model": "step-3.5-flash", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
 {"model": "step-3.7-flash", "category": "agent-tick", "score": 1.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "step-3.7-flash", "category": "code_gen", "score": 0.563, "max_score": 1.0, "source": "SWE-bench Pro (independent, flowtivity DGX Spark) research-bench-2026-08-30", "valid_from": "2026-08-30"}
 {"model": "step-3.7-flash", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
 {"model": "step-3.7-flash", "category": "debug", "score": 3.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
 {"model": "step-3.7-flash", "category": "delegation", "score": 1.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
 {"model": "step-3.7-flash", "category": "e2e-vision", "score": 75.82, "max_score": 78.0, "source": "BrowseComp multimodal (vendor)", "valid_from": null}
 {"model": "step-3.7-flash", "category": "guard", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "step-3.7-flash", "category": "long_horizon", "score": 0.6187, "max_score": 1.0, "source": "Android Daily (vendor) research-bench-2026-08-30", "valid_from": "2026-08-30"}
 {"model": "step-3.7-flash", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
 {"model": "step-3.7-flash", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
 {"model": "step-3.7-flash", "category": "sentiment", "score": 0.58, "max_score": 1.0, "source": "research-bench-2026-08-28", "valid_from": "2026-08-28"}

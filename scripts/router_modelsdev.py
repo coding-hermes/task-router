@@ -176,7 +176,11 @@ def main(argv=None):
     def write_rows(path, rows):
         with open(path + '.tmp', 'w') as f:
             for r in rows:
-                f.write(json.dumps(r) + '\n')
+                # ensure_ascii=False matches the repo convention
+                # (router_maintain.py _data_rows) — literal UTF-8 keeps the
+                # diff clean; ensure_ascii=True escaped em-dashes and rewrote
+                # every row on each sync (969-line noise diffs).
+                f.write(json.dumps(r, ensure_ascii=False) + '\n')
         os.replace(path + '.tmp', path)
 
     if cat_new or args.action == 'fetch':

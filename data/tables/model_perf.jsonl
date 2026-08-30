@@ -241,6 +241,16 @@
 {"model": "hf:zai-org/GLM-5.2", "category": "reasoning", "perf": 0.85}
 {"model": "hf:zai-org/GLM-5.2", "category": "review", "perf": 0.88}
 {"model": "hf:zai-org/GLM-5.2", "category": "schema", "perf": 0.5}
+{"model": "hf:zai-org/GLM-5.3-Flash", "category": "agent_tick", "perf": 0.85}
+{"model": "hf:zai-org/GLM-5.3-Flash", "category": "debug", "perf": 0.85}
+{"model": "hf:zai-org/GLM-5.3-Flash", "category": "delegation", "perf": 0.85}
+{"model": "hf:zai-org/GLM-5.3-Flash", "category": "e2e_vision", "perf": 0.35}
+{"model": "hf:zai-org/GLM-5.3-Flash", "category": "guard", "perf": 0.8}
+{"model": "hf:zai-org/GLM-5.3-Flash", "category": "long_doc", "perf": 0.83}
+{"model": "hf:zai-org/GLM-5.3-Flash", "category": "mock", "perf": 0.6}
+{"model": "hf:zai-org/GLM-5.3-Flash", "category": "reasoning", "perf": 0.97}
+{"model": "hf:zai-org/GLM-5.3-Flash", "category": "review", "perf": 0.71}
+{"model": "hf:zai-org/GLM-5.3-Flash", "category": "schema", "perf": 0.88}
 {"model": "hy3", "category": "agent_tick", "perf": 0.75}
 {"model": "hy3", "category": "code_gen", "perf": 0.72}
 {"model": "hy3", "category": "debug", "perf": 0.7}

@@ -162,14 +162,22 @@ def normalize(dry_run, quiet=False):
         # plan was known) must carry the subscription economics, not the old
         # box price. Protected evidence (normalized:*/official formula/or-spot)
         # is never touched.
+        # NOTE (2026-08-30): only applies to plans WITH an included_models
+        # list. Usage-bucket flat plans (ollama-cloud: no per-model included
+        # list — the flat fee buys a bucket) keep their researched estimate
+        # prices; there is no in-plan/PAYG distinction to reprice against.
         stale_flat = (t.get('billing_model') == 'flat_subscription'
+                      and t.get('included_models')
                       and m.get('normalized_price') not in (None, 0)
                       and not (m.get('price_evidence') or '').startswith('normalized:'))
         if m.get('normalized_price') not in (None, 0) and not stale_flat:
             continue  # already priced (evidence preserved)
         model = t.get('billing_model')
-        if model == 'official-points':
-            gaps.append((m['provider'], m['model'], 'official-points (manual formula row)'))
+        if model in ('official-points', 'subscription'):
+            # manual-formula models: lanes carry researched prices already
+            # (official formula / official+estimate); unpriced lanes stay
+            # documented gaps (kimi aliases are plan aliases, not models).
+            gaps.append((m['provider'], m['model'], f'{model} (manual formula row)'))
             continue
         cat = catalog.get((m['provider'], m['model']))
         if model == 'per_token':
@@ -212,6 +220,14 @@ def normalize(dry_run, quiet=False):
         elif model == 'flat_subscription':
             base_name = m['model'].replace(':free', '')
             included = t.get('included_models') or []
+            if not included:
+                # usage-bucket flat plan (ollama-cloud): the flat fee buys a
+                # usage bucket, no per-model included list exists. Unpriced
+                # lanes stay NULL (documented gap — per-model rate unpublished
+                # on the provider's JS-rendered pages) — never a PAYG label.
+                if m.get('normalized_price') is None:
+                    gaps.append((m['provider'], m['model'], 'bucket plan — no included list; per-model rate unpublished'))
+                continue
             if base_name not in included:
                 # non-included lane: priced ONLY if a temporary discount makes
                 # it worth routing (free promo lanes) — otherwise PAYG gap

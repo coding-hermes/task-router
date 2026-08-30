@@ -62,7 +62,15 @@ def assess(tables):
     for t in tier:
         tier_by.setdefault(t['model'], []).append(t)
     cat_by = {(c['provider'], c['model']) for c in cat}
+    cat_by_lower = {(c['provider'], c['model'].lower()) for c in cat}
+    # provider-wide '*' notes cover ALL lanes of that provider (the same
+    # semantics the regression test test_unpriced_sub_lanes_are_documented_gaps
+    # uses) — a per-lane notes flag must not fire when a '*' row exists
     notes_by = {(n['provider'], n['model']) for n in notes}
+    prov_notes = {n['provider'] for n in notes if n.get('model') == '*'}
+
+    def has_note(p, name):
+        return (p, name) in notes_by or p in prov_notes
 
     per = []
     for m in models:
@@ -76,7 +84,7 @@ def assess(tables):
         if m.get('normalized_price') is None or (
                 m.get('normalized_price') == 0 and not ev):
             missing.append('price')
-        if (p, name) not in cat_by:
+        if (p, name) not in cat_by and (p, name.lower()) not in cat_by_lower:
             missing.append('catalog')
         if not bench_by.get(name):
             missing.append('benchmark')
@@ -93,7 +101,7 @@ def assess(tables):
             missing.append(f'tiers({n_tier}/{CATS})')
         if not any(b.get('category') == 'sentiment' for b in bench_by.get(name, [])):
             missing.append('sentiment')
-        if (p, name) not in notes_by:
+        if not has_note(p, name):
             missing.append('notes')
         price = m.get('normalized_price')
         per.append({'provider': p, 'model': name, 'price': price,
