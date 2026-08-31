@@ -220,6 +220,9 @@ PROFILE_MODELS = {
     'nemotron': [],
     'kimi k2': [('clinepass', 'kimi-k2.7-code')],
     'mimo': [('opencode-go', 'mimo-v2.5'), ('clinepass', 'mimo-v2.5')],
+    'mimo-v2.5-pro': [('opencode-go', 'mimo-v2.5-pro'), ('clinepass', 'mimo-v2.5-pro')],
+    'hy4-preview': [('opencode-go', 'hy4-preview')],
+    'qwen3.7-max': [('opencode-go', 'qwen3.7-max'), ('clinepass', 'qwen3.7-max')],
     'qwen3.8': [('opencode-go', 'qwen3.8-max')],
     'gpt-oss': [('groq', 'gpt-oss-120b'), ('synthetic', 'gpt-oss-120b')],
     'qwen3.6-27b': [('groq', 'qwen3.6-27b')],
@@ -297,11 +300,27 @@ PROFILE_TAGS = {
             'concise-output': '+', 'tool-calling-stability': '+', 'anti-hallucination-grounding': '+',
             'architecture': '-', 'complex-reasoning': '-'},
     'longcat': {'long-context': '++', 'brainstorming': '++', 'creative': '++', 'agentic-coding': '+',
-                'code-generation': '+'},
+                'code-generation': '++', 'terminal': '+'},  # 2026-08-31: SWE-Pro 59.5/TB 70.8 (vendor)
     'kimi k2': {'agentic-coding': '++', 'code-generation': '+', 'long-context': '+',
                 'tool-use': '++', 'testing': '+', 'refactoring': '+'},  # k2.7-code lane, tool-native
     'mimo': {'code-generation': '+', 'terminal': '+', 'debugging': '+', 'concise-output': '+',
              'tool-use': '++', 'testing': '+', 'refactoring': '+'},  # opencode-go agentic workhorse
+    # 2026-08-31 research (research-bench-2026-08-31): mimo-v2.5-pro (Xiaomi) —
+    # TB 2.0 68.4 (vs MiniMax M2.7 57), coding avg 57.2, frontier coding at
+    # 40-60% fewer tokens (r/LLMDevs).
+    'mimo-v2.5-pro': {'code-generation': '++', 'terminal': '++', 'debugging': '+',
+                      'concise-output': '+', 'tool-use': '++', 'testing': '+', 'refactoring': '+'},
+    # 2026-08-31 research: hy4-preview = Tencent Hy4 770B MoE — SWE-bench
+    # Multilingual 82.9 (vs GLM-5.3 81.3 / K3 80.8), TB 2.1 85.4, DeepSWE 64.3,
+    # GPQA 92.3. Top-tier open model, preview stage.
+    'hy4-preview': {'code-generation': '++', 'terminal': '++', 'agentic-coding': '++',
+                    'debugging': '+', 'long-context': '+', 'architecture': '+',
+                    'complex-reasoning': '+', 'testing': '+', 'refactoring': '+'},
+    # 2026-08-31 research: qwen3.7-max — SWE-bench Pro 60.6 (launch-best), SWE-V
+    # 80.4, TB 2.0 69.7, GPQA 92.4, 1M ctx native extended thinking.
+    'qwen3.7-max': {'code-generation': '++', 'terminal': '++', 'agentic-coding': '++',
+                    'debugging': '+', 'long-context': '++', 'architecture': '+',
+                    'complex-reasoning': '++', 'testing': '+', 'refactoring': '+'},
     'qwen3.8': {'code-generation': '++', 'debugging': '+', 'agentic-coding': '+'},
     'gpt-oss': {'reasoning': '+', 'tool-use': '++', 'code-generation': '+',
                 'testing': '+', 'refactoring': '+'},  # open-weight agentic; native tool-calling

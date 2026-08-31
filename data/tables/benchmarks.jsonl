@@ -310,6 +310,11 @@
 {"model": "hy3", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
 {"model": "hy3", "category": "sentiment", "score": 0.7, "max_score": 1.0, "source": "research-sent-2026-08-27", "valid_from": "2026-08-27"}
 {"model": "hy3", "category": "terminal", "score": 0.544, "max_score": 1.0, "source": "Terminal-Bench 2.0 (vendor) research-bench-2026-08-29", "valid_from": "2026-08-29"}
+{"model": "hy4-preview", "category": "code_gen", "score": 0.829, "max_score": 1.0, "source": "SWE-bench Multilingual (vendor) research-bench-2026-08-31", "valid_from": "2026-08-31"}
+{"model": "hy4-preview", "category": "long_horizon", "score": 0.643, "max_score": 1.0, "source": "DeepSWE (vendor) research-bench-2026-08-31", "valid_from": "2026-08-31"}
+{"model": "hy4-preview", "category": "reasoning", "score": 0.923, "max_score": 1.0, "source": "GPQA Diamond (vendor) research-bench-2026-08-31", "valid_from": "2026-08-31"}
+{"model": "hy4-preview", "category": "sentiment", "score": 0.78, "max_score": 1.0, "source": "research-sent-2026-08-31", "valid_from": "2026-08-31"}
+{"model": "hy4-preview", "category": "terminal", "score": 0.854, "max_score": 1.0, "source": "Terminal-Bench 2.1 (vendor) research-bench-2026-08-31", "valid_from": "2026-08-31"}
 {"model": "k3-256k", "category": "agent-tick", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
 {"model": "k3-256k", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
 {"model": "k3-256k", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
@@ -373,6 +378,9 @@
 {"model": "kimi-k3", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
 {"model": "kimi-k3", "category": "sentiment", "score": 0.8, "max_score": 1.0, "source": "research-sent-2026-08-27", "valid_from": "2026-08-27"}
 {"model": "kimi-k3", "category": "terminal", "score": 0.883, "max_score": 1.0, "source": "Terminal-Bench 2.1 (vendor) research-bench-2026-08-29", "valid_from": "2026-08-29"}
+{"model": "longcat-2.0", "category": "code_gen", "score": 0.595, "max_score": 1.0, "source": "SWE-bench Pro (vendor) research-bench-2026-08-31", "valid_from": "2026-08-31"}
+{"model": "longcat-2.0", "category": "sentiment", "score": 0.62, "max_score": 1.0, "source": "research-sent-2026-08-31", "valid_from": "2026-08-31"}
+{"model": "longcat-2.0", "category": "terminal", "score": 0.708, "max_score": 1.0, "source": "Terminal-Bench (vendor) research-bench-2026-08-31", "valid_from": "2026-08-31"}
 {"model": "mimo-v2.5", "category": "agent-tick", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
 {"model": "mimo-v2.5", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
 {"model": "mimo-v2.5", "category": "debug", "score": 3.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
@@ -381,6 +389,9 @@
 {"model": "mimo-v2.5", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
 {"model": "mimo-v2.5", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
 {"model": "mimo-v2.5", "category": "sentiment", "score": 0.6, "max_score": 1.0, "source": "research-sent-2026-08-27", "valid_from": "2026-08-27"}
+{"model": "mimo-v2.5-pro", "category": "code_gen", "score": 0.572, "max_score": 1.0, "source": "BenchLM coding average research-bench-2026-08-31", "valid_from": "2026-08-31"}
+{"model": "mimo-v2.5-pro", "category": "sentiment", "score": 0.75, "max_score": 1.0, "source": "research-sent-2026-08-31", "valid_from": "2026-08-31"}
+{"model": "mimo-v2.5-pro", "category": "terminal", "score": 0.684, "max_score": 1.0, "source": "Terminal-Bench 2.0 (BenchLM) research-bench-2026-08-31", "valid_from": "2026-08-31"}
 {"model": "minimax-m2.5", "category": "agent-tick", "score": 2.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
 {"model": "minimax-m2.5", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
 {"model": "minimax-m2.5", "category": "debug", "score": 3.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
@@ -483,6 +494,11 @@
 {"model": "qwen3.6-plus", "category": "guard", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
 {"model": "qwen3.6-plus", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
 {"model": "qwen3.6-plus", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "qwen3.7-max", "category": "code_gen", "score": 0.606, "max_score": 1.0, "source": "SWE-bench Pro (vendor) research-bench-2026-08-31", "valid_from": "2026-08-31"}
+{"model": "qwen3.7-max", "category": "code_gen", "score": 0.804, "max_score": 1.0, "source": "SWE-bench Verified (vendor) research-bench-2026-08-31", "valid_from": "2026-08-31"}
+{"model": "qwen3.7-max", "category": "reasoning", "score": 0.924, "max_score": 1.0, "source": "GPQA Diamond (vendor) research-bench-2026-08-31", "valid_from": "2026-08-31"}
+{"model": "qwen3.7-max", "category": "sentiment", "score": 0.8, "max_score": 1.0, "source": "research-sent-2026-08-31", "valid_from": "2026-08-31"}
+{"model": "qwen3.7-max", "category": "terminal", "score": 0.697, "max_score": 1.0, "source": "Terminal-Bench 2.0 (vendor) research-bench-2026-08-31", "valid_from": "2026-08-31"}
 {"model": "qwen3.7-plus", "category": "agent-tick", "score": 2.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
 {"model": "qwen3.7-plus", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
 {"model": "qwen3.7-plus", "category": "debug", "score": 3.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
