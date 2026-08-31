@@ -1,0 +1,14 @@
+{"provider": "clinepass", "model": "deepseek-v4-flash", "error": "HTTP 400", "candidate": null, "ts": "2026-08-31T23:00:49+00:00", "source": "auto", "action": "fix-not-working (agent)"}
+{"provider": "clinepass", "model": "deepseek-v4-pro", "error": "HTTP 400", "candidate": null, "ts": "2026-08-31T23:00:49+00:00", "source": "auto", "action": "fix-not-working (agent)"}
+{"provider": "clinepass", "model": "glm-5.2", "error": "HTTP 400", "candidate": null, "ts": "2026-08-31T23:00:49+00:00", "source": "auto", "action": "fix-not-working (agent)"}
+{"provider": "clinepass", "model": "glm-5.3", "error": "HTTP 400", "candidate": null, "ts": "2026-08-31T20:00:18+00:00", "source": "auto", "action": "fix-not-working (agent)"}
+{"provider": "clinepass", "model": "kimi-k2.6", "error": "HTTP 400", "candidate": null, "ts": "2026-08-31T23:00:49+00:00", "source": "auto", "action": "fix-not-working (agent)"}
+{"provider": "clinepass", "model": "kimi-k2.7-code", "error": "HTTP 400", "candidate": null, "ts": "2026-08-31T23:00:49+00:00", "source": "auto", "action": "fix-not-working (agent)"}
+{"provider": "clinepass", "model": "mimo-v2.5", "error": "HTTP 400", "candidate": null, "ts": "2026-08-31T23:00:49+00:00", "source": "auto", "action": "fix-not-working (agent)"}
+{"provider": "clinepass", "model": "mimo-v2.5-pro", "error": "HTTP 400", "candidate": null, "ts": "2026-08-31T23:00:49+00:00", "source": "auto", "action": "fix-not-working (agent)"}
+{"provider": "clinepass", "model": "minimax-m3", "error": "HTTP 400", "candidate": null, "ts": "2026-08-31T20:00:18+00:00", "source": "auto", "action": "fix-not-working (agent)"}
+{"provider": "clinepass", "model": "qwen3.7-plus", "error": "HTTP 400", "candidate": null, "ts": "2026-08-31T20:00:18+00:00", "source": "auto", "action": "fix-not-working (agent)"}
+{"provider": "grok-build", "model": "grok-4.20-multi-agent-0309", "error": "HTTP 400", "candidate": null, "ts": "2026-08-31T23:13:27+00:00", "source": "auto", "action": "verify (catalog serves id \u2014 likely transient/auth)"}
+{"provider": "nvidia", "model": "nvidia/nemotron-3-super-120b-a12b", "error": "HTTP 404", "candidate": null, "ts": "2026-08-31T23:13:27+00:00", "source": "auto", "action": "verify (catalog serves id \u2014 likely transient/auth)"}
+{"provider": "openrouter", "model": "deepseek/deepseek-v4-flash", "error": "HTTP 404", "candidate": null, "ts": "2026-08-31T23:13:27+00:00", "source": "auto", "action": "verify (catalog serves id \u2014 likely transient/auth)"}
+{"provider": "synthetic", "model": "hf:Qwen/Qwen3.6-27B", "error": "HTTP 404", "candidate": null, "ts": "2026-08-31T23:00:49+00:00", "source": "auto", "action": "fix-not-working (agent)"}

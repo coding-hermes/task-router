@@ -29,5 +29,8 @@ echo
 echo "== normalized pricing (subscription-aware) =="
 "$PY" scripts/router_pricing.py
 echo
+echo "== probe 404 scan + auto-fix (health.jsonl -> probe_fixes/probe_gaps) =="
+"$PY" scripts/router_probefix.py
+echo
 echo "== gap report (JSON — full output, never truncated) =="
 "$PY" scripts/router_gaps.py --json

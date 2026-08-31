@@ -1,0 +1,18 @@
+{"provider": "groq", "model": "gpt-oss-120b", "fix_to": "openai/gpt-oss-120b", "reason": "registry catalog id missing provider prefix", "ts": "2026-08-28", "source": "verified"}
+{"provider": "groq", "model": "gpt-oss-20b", "fix_to": "openai/gpt-oss-20b", "reason": "registry catalog id missing provider prefix", "ts": "2026-08-28", "source": "verified"}
+{"provider": "groq", "model": "qwen3.6-27b", "fix_to": "qwen/qwen3.6-27b", "reason": "registry catalog id missing provider prefix", "ts": "2026-08-28", "source": "verified"}
+{"provider": "zai-glm", "model": "glm-5.3-flash-offpeak", "fix_to": "glm-5.3-flash", "reason": "offpeak variant not served; base id serves both", "ts": "2026-08-28", "source": "verified"}
+{"provider": "zai-glm", "model": "glm-5.3-offpeak", "fix_to": "glm-5.3", "reason": "offpeak variant not served; base id serves both", "ts": "2026-08-28", "source": "verified"}
+{"provider": "synthetic", "model": "gpt-oss-120b", "fix_to": "hf:openai/gpt-oss-120b", "reason": "synthetic serves hf:-prefixed ids", "ts": "2026-08-28", "source": "verified"}
+{"provider": "synthetic", "model": "qwen3.6-27b", "fix_to": "hf:Qwen/Qwen3.8-27B", "reason": "upstream renamed 3.6 -> 3.8 (live /models 08-31)", "ts": "2026-08-31", "source": "verified"}
+{"provider": "clinepass", "model": "mimo-v2.5", "fix_to": "xiaomi/mimo-v2.5", "reason": "clinepass serves vendor-prefixed ids (GET /models 08-31, 424 ids)", "ts": "2026-08-31", "source": "verified"}
+{"provider": "clinepass", "model": "minimax-m3", "fix_to": "minimax/minimax-m3", "reason": "clinepass serves vendor-prefixed ids (GET /models 08-31)", "ts": "2026-08-31", "source": "verified"}
+{"provider": "clinepass", "model": "deepseek-v4-flash", "fix_to": "deepseek/deepseek-v4-flash", "reason": "clinepass serves vendor-prefixed ids (GET /models 08-31)", "ts": "2026-08-31", "source": "verified"}
+{"provider": "clinepass", "model": "deepseek-v4-pro", "fix_to": "deepseek/deepseek-v4-pro", "reason": "clinepass serves vendor-prefixed ids (GET /models 08-31)", "ts": "2026-08-31", "source": "verified"}
+{"provider": "clinepass", "model": "qwen3.7-plus", "fix_to": "qwen/qwen3.7-plus", "reason": "clinepass serves vendor-prefixed ids (GET /models 08-31)", "ts": "2026-08-31", "source": "verified"}
+{"provider": "clinepass", "model": "kimi-k2.6", "fix_to": "moonshotai/kimi-k2.6", "reason": "clinepass serves vendor-prefixed ids (GET /models 08-31)", "ts": "2026-08-31", "source": "verified"}
+{"provider": "clinepass", "model": "kimi-k2.7-code", "fix_to": "moonshotai/kimi-k2.7-code", "reason": "clinepass serves vendor-prefixed ids (GET /models 08-31)", "ts": "2026-08-31", "source": "verified"}
+{"provider": "clinepass", "model": "mimo-v2.5-pro", "fix_to": "xiaomi/mimo-v2.5-pro", "reason": "clinepass serves vendor-prefixed ids (GET /models 08-31)", "ts": "2026-08-31", "source": "verified"}
+{"provider": "clinepass", "model": "glm-5.2", "fix_to": "z-ai/glm-5.2", "reason": "clinepass serves vendor-prefixed ids (GET /models 08-31)", "ts": "2026-08-31", "source": "verified"}
+{"provider": "clinepass", "model": "glm-5.3", "fix_to": "z-ai/glm-5.3", "reason": "clinepass serves vendor-prefixed ids (GET /models 08-31)", "ts": "2026-08-31", "source": "verified"}
+{"provider": "synthetic", "model": "hf:Qwen/Qwen3.6-27B", "fix_to": "hf:Qwen/Qwen3.8-27B", "reason": "auto-fixed on HTTP 404 \u2014 hf:Qwen/Qwen3.8-27B matched in live /models (version rename)", "ts": "2026-08-31T23:00:49+00:00", "source": "auto"}

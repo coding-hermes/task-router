@@ -1,0 +1,5 @@
+{"provider": "opencode-go", "model": "gpt-5.6-luna", "reason": "not served by opencode-go (401 ModelError, verified 08-28)", "ts": "2026-08-28", "source": "verified"}
+{"provider": "opencode-go", "model": "cline-pass/deepseek-v4-flash", "reason": "not served by opencode-go (401 ModelError, verified 08-28)", "ts": "2026-08-28", "source": "verified"}
+{"provider": "opencode-go", "model": "muse-spark-1.2-contributor", "reason": "not served by opencode-go (401 ModelError, verified 08-28)", "ts": "2026-08-28", "source": "verified"}
+{"provider": "opencode-go", "model": "qwen3.8-flash", "reason": "not served by opencode-go (401 ModelError, verified 08-28)", "ts": "2026-08-28", "source": "verified"}
+{"provider": "grok-build", "model": "grok-4.20-multi-agent-0309", "reason": "multi-agent orchestration model rejects plain chat ping (HTTP 400, verified 08-31)", "ts": "2026-08-31", "source": "verified"}

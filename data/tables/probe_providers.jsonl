@@ -1,0 +1,21 @@
+{"id": "deepseek", "base_url": "https://api.deepseek.com/v1", "key_env": "DEEPSEEK_API_KEY", "default_model": "deepseek-v4-flash", "enabled": true, "note": "primary PAYG lane"}
+{"id": "deepseek-foreman", "base_url": "https://api.deepseek.com/v1", "key_env": "DEEPSEEK_FOREMAN_API_KEY", "default_model": "deepseek-v4-flash", "enabled": true, "note": "foreman-dedicated PAYG key"}
+{"id": "deepseek-duckbrain-sync", "base_url": "https://api.deepseek.com/v1", "key_env": "DEEPSEEK_DUCKBRAIN_SYNC_API_KEY", "default_model": "deepseek-v4-flash", "enabled": true, "note": "duckbrain-sync PAYG key (config custom_providers)"}
+{"id": "clinepass", "base_url": "https://api.cline.bot/api/v1", "key_env": "CLINEPASS_API_KEY", "default_model": "cline-pass/deepseek-v4-flash", "enabled": true, "note": "flat-plan reseller; ids served vendor-prefixed (deepseek/..., xiaomi/...)"}
+{"id": "ollama-cloud", "base_url": "https://ollama.com/v1", "key_env": "OLLAMA_CLOUD_API_KEY", "default_model": "deepseek-v4-flash:0731", "enabled": true, "note": "subscription lane"}
+{"id": "opencode-go", "base_url": "https://opencode.ai/zen/go/v1", "key_env": "OPENCODE_GO_API_KEY", "default_model": "glm-5.3-flash", "enabled": true, "note": "subscription lane"}
+{"id": "kimi-for-coding", "base_url": "https://api.kimi.com/coding/v1", "key_env": "KIMI_API_KEY", "default_model": "kimi-for-coding", "enabled": true, "note": "coding endpoint; weekly quota"}
+{"id": "kimi", "base_url": "https://api.moonshot.cn/v1", "key_env": "KIMI_API_KEY", "default_model": "kimi-k3", "enabled": true, "note": "moonshot china endpoint (config custom_providers) \u2014 401: KIMI_API_KEY is the kimi.com coding key, not a moonshot.cn key"}
+{"id": "neuralwatt", "base_url": "https://api.neuralwatt.com/v1", "key_env": "NEURALWATT_API_KEY", "default_model": "deepseek-v4-flash", "enabled": true, "note": "subscription lane"}
+{"id": "zai-glm", "base_url": "https://api.z.ai/api/coding/paas/v4", "key_env": "ZAI_API_KEY", "default_model": "glm-5.2", "enabled": true, "note": "coding endpoint"}
+{"id": "groq", "base_url": "https://api.groq.com/openai/v1", "key_env": "GROQ_API_KEY", "default_model": "qwen/qwen3.6-27b", "enabled": true, "note": "Cloudflare-fronted (needs real UA)"}
+{"id": "xai", "base_url": "https://api.x.ai/v1", "key_env": "XAI_API_KEY", "default_model": "grok-4.5", "enabled": true, "note": "standard lane"}
+{"id": "grok-build", "base_url": "https://api.x.ai/v1", "key_env": "XAI_API_KEY", "default_model": "grok-4.20-0309-reasoning", "enabled": true, "note": "xai flat-sub lane (grok-build pricing)"}
+{"id": "openai-codex", "base_url": "https://api.openai.com/v1", "key_env": "OPENAI_API_KEY", "default_model": "gpt-5.6-luna", "enabled": true, "note": "sk-svcac service key; gpt-5.6 rejects max_tokens"}
+{"id": "stepfun", "base_url": "https://api.stepfun.ai/step_plan/v1", "key_env": "STEPFUN_STEP_PLAN_KEY", "default_model": "step-3.7-flash", "enabled": true, "note": "step plan key"}
+{"id": "minimax", "base_url": "https://api.minimax.io/v1", "key_env": "MINIMAX_API_KEY", "default_model": "MiniMax-M3", "enabled": true, "note": ""}
+{"id": "synthetic", "base_url": "https://api.synthetic.new/v1", "key_env": "SYNTHETIC_API_KEY", "default_model": "syn:small:text", "enabled": true, "note": "hf: prefixed ids"}
+{"id": "crof", "base_url": "https://crof.ai/v1", "key_env": "CROF_API_KEY", "default_model": "deepseek-v4-flash", "enabled": true, "note": "config custom_providers; bare ids"}
+{"id": "openrouter", "base_url": "https://openrouter.ai/api/v1", "key_env": "OPENROUTER_API_KEY", "default_model": "deepseek/deepseek-v4-flash", "enabled": true, "note": "aggregator \u2014 404 \"No endpoints matching guardrail restrictions\" for ALL models (privacy settings exclude endpoints, verified 08-31); fix in openrouter.ai/settings/privacy"}
+{"id": "gemini", "base_url": "https://generativelanguage.googleapis.com/v1beta/openai", "key_env": "GEMINI_API_KEY", "default_model": "gemini-3.5-flash", "enabled": true, "note": "google OpenAI-compat endpoint"}
+{"id": "nvidia", "base_url": "https://integrate.api.nvidia.com/v1", "key_env": "NVIDIA_API_KEY", "default_model": "nvidia/nemotron-3-super-120b-a12b", "enabled": true, "note": "config custom_providers \u2014 404 \"Function not found for account\" (key has no model access, verified 08-31); account org must subscribe"}
