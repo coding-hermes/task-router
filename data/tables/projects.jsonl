@@ -81,6 +81,7 @@
 {"id": "speclang-sync", "sensitivity": "open", "board_type": "", "stack": "", "profile": "P8_SYNC"}
 {"id": "task-router", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P2_AGENTIC"}
 {"id": "task-router-sync", "sensitivity": "open", "board_type": "", "stack": "", "profile": "P8_SYNC"}
+{"id": "temple-runner", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "temple-runner-sync", "sensitivity": "open", "board_type": "", "stack": "", "profile": "P8_SYNC"}
 {"id": "temporal-vector-index-sync", "sensitivity": "open", "board_type": "", "stack": "", "profile": "P8_SYNC"}
 {"id": "terminal-jail", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
