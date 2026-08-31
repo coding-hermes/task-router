@@ -17,7 +17,7 @@
 {"id": "coding-hermes-sync", "sensitivity": "open", "board_type": "", "stack": "", "profile": "P8_SYNC"}
 {"id": "consensus", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "consensus-sync", "sensitivity": "open", "board_type": "", "stack": "", "profile": "P8_SYNC"}
-{"id": "crier", "sensitivity": null, "board_type": null, "stack": null, "profile": "P6_DEFAULT"}
+{"id": "crier", "sensitivity": null, "board_type": null, "stack": null, "profile": "P0_FORE"}
 {"id": "crier-sync", "sensitivity": "open", "board_type": "", "stack": "", "profile": "P8_SYNC"}
 {"id": "dagger-sync", "sensitivity": "open", "board_type": "", "stack": "", "profile": "P8_SYNC"}
 {"id": "deepseek-dashboard", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
@@ -49,7 +49,7 @@
 {"id": "helix", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "helix-sync", "sensitivity": "open", "board_type": "", "stack": "", "profile": "P8_SYNC"}
 {"id": "hermes-agent-sync", "sensitivity": "open", "board_type": "", "stack": "", "profile": "P8_SYNC"}
-{"id": "hermes-canopy", "sensitivity": null, "board_type": null, "stack": null, "profile": "P6_DEFAULT"}
+{"id": "hermes-canopy", "sensitivity": null, "board_type": null, "stack": null, "profile": "P0_FORE"}
 {"id": "hermes-canopy-sync", "sensitivity": "open", "board_type": "", "stack": "", "profile": "P8_SYNC"}
 {"id": "hermes-dagger", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "hermes4friends-infra", "sensitivity": "proprietary", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
@@ -66,7 +66,7 @@
 {"id": "muster-sync", "sensitivity": "open", "board_type": "", "stack": "", "profile": "P8_SYNC"}
 {"id": "musterflow", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "musterflow-sync", "sensitivity": "open", "board_type": "", "stack": "", "profile": "P8_SYNC"}
-{"id": "my-project", "sensitivity": null, "board_type": null, "stack": null, "profile": "P6_DEFAULT"}
+{"id": "my-project", "sensitivity": null, "board_type": null, "stack": null, "profile": "P0_FORE"}
 {"id": "mythos-sync", "sensitivity": "open", "board_type": "", "stack": "", "profile": "P8_SYNC"}
 {"id": "off-by-one", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "off-by-one-sync", "sensitivity": "open", "board_type": "", "stack": "", "profile": "P8_SYNC"}
