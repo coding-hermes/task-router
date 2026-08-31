@@ -434,23 +434,71 @@ def seed_estimates():
     return n
 
 def apply_overlay():
-    """Benchmark overlay: set new-category perfs from benchmark rel scores (only where estimate is neutral 0.50)."""
-    n = 0
+    """Benchmark overlay: set new-category perfs from benchmark rel scores.
+
+    Two behaviors (Bane 2026-08-31 catalog fix):
+    1. INSERT when the model has NO perf row for the category — real battery
+       evidence (battery-T1-TOOL etc.) must never be dropped just because a
+       profile-tag estimate didn't pre-create a row. Before this fix, models
+       outside PROFILE_MODELS with T1-TOOL benchmark rows (gemma-4-31b,
+       gpt-5.6-luna/sol/terra, kimi-for-coding, k3-256k, hy3, ...) had their
+       tool_use evidence silently discarded -> tier -1, excluded from chains.
+    2. UPDATE when the existing estimate is neutral 0.50 (measured score wins
+       over the neutral fill; non-neutral tag estimates are preserved).
+    """
+    n_ins = n_upd = 0
     for model, cat, rel in overlay:
-        # benchmark names may differ in case from registry names (MiniMax-M3
-        # vs minimax-m3) — match case-insensitively
         cur = con.execute("SELECT perf FROM model_perf WHERE lower(model)=? AND category=?",
                           [model.lower(), cat]).fetchone()
-        if cur and abs(cur[0] - 0.50) < 0.001:
+        if cur is None:
+            con.execute("INSERT INTO model_perf VALUES (?,?,?)", [model, cat, rel])
+            n_ins += 1
+        elif abs(cur[0] - 0.50) < 0.001:
             con.execute("UPDATE model_perf SET perf=? WHERE lower(model)=? AND category=?",
                         [rel, model.lower(), cat])
-            n += 1
-    return n
+            n_upd += 1
+    if n_ins or n_upd:
+        print(f'overlay: {n_ins} inserted, {n_upd} neutral-updated')
+    return n_ins + n_upd
 
 seed_estimates()
 apply_overlay()
 n_est = apply_quality_estimates()
 print('quality estimate rows updated (TR-002):', n_est)
+
+# ---------- 4c. variant aliases: inherit base-model perfs (Bane 2026-08-31) --
+# data/tables/model_aliases.jsonl maps serving-lane variants / HF mirrors to
+# their base weights. A variant with NO evidence in a category inherits the
+# base's perf (never overrides existing rows). Data policy documented in
+# docs/category-data-quality.md ("aliases/variants inherit the sibling value").
+def apply_aliases():
+    path = os.path.join(DATA_DIR, 'model_aliases.jsonl')
+    n = 0
+    if not os.path.exists(path):
+        return n
+    aliases = []
+    for line in open(path):
+        line = line.strip()
+        if line:
+            aliases.append(json.loads(line))
+    for a in aliases:
+        var, base = a['model'], a['inherits']
+        base_cats = con.execute(
+            "SELECT category, perf FROM model_perf WHERE lower(model)=?", [base.lower()]).fetchall()
+        if not base_cats:
+            print(f'  alias: {var} -> {base} (base has no perf rows, skipped)')
+            continue
+        for cat, perf in base_cats:
+            if con.execute("SELECT 1 FROM model_perf WHERE lower(model)=? AND category=?",
+                           [var.lower(), cat]).fetchone():
+                continue
+            con.execute("INSERT INTO model_perf VALUES (?,?,?)", [var, cat, perf])
+            n += 1
+    if n:
+        print(f'aliases: {len(aliases)} variants, {n} inherited perfs')
+    return n
+
+apply_aliases()
 
 # dedupe: benchmark overlays may have inserted the same (model, category) twice
 con.execute("DROP TABLE IF EXISTS model_perf_dedup")
@@ -462,10 +510,26 @@ con.execute("ALTER TABLE model_perf_dedup RENAME TO model_perf")
 
 # ---------- 5. category_levels + model_tier -----------------------------------
 con.execute("DROP TABLE IF EXISTS cat_q")
-# quantiles over UNIQUE models (dedupe lanes): the same weights served by N
-# providers must not count N times in the scale (2026-08-27: clinepass added
-# 6 lanes of deepseek-v4-flash -> duplicated evidence shifted tool_use q90 and
-# silently dropped the fleet's workhorses from tier 5 to 4).
+# quantiles over UNIQUE WEIGHTS (dedupe lanes AND alias variants): the same
+# weights served by N providers or N variant names (glm-5.2 + glm-5.2-flex +
+# glm-5.2-fast ...) must not count N times in the scale. 2026-08-27: clinepass
+# added 6 lanes of deepseek-v4-flash -> duplicated evidence shifted tool_use
+# q90 and dropped the fleet's workhorses from tier 5 to 4. 2026-08-31: alias
+# inheritance (model_aliases.jsonl) reintroduced the same inflation via variant
+# names — the scale now groups by the alias FAMILY (base model), so a variant
+# inherits its base's tier without skewing the percentiles.
+if os.path.exists(os.path.join(DATA_DIR, 'model_aliases.jsonl')):
+    con.execute("DROP TABLE IF EXISTS alias_family")
+    con.execute("CREATE TABLE alias_family (variant VARCHAR, base VARCHAR)")
+    fam_rows = [tuple(json.loads(l).values())[:2] for l in open(os.path.join(DATA_DIR, 'model_aliases.jsonl')) if l.strip()]
+    # normalize: variant/base keys are registry model names (may differ in case)
+    con.executemany("INSERT INTO alias_family VALUES (?,?)",
+                    [(v.lower(), b.lower()) for v, b in fam_rows])
+    family_expr = "COALESCE(af.base, mp.model) AS family"
+    family_join = "LEFT JOIN alias_family af ON lower(mp.model) = af.variant"
+else:
+    family_expr = "mp.model AS family"
+    family_join = ""
 con.execute("""
 CREATE TABLE cat_q AS
 SELECT category,
@@ -475,8 +539,10 @@ SELECT category,
        quantile_cont(perf, 0.65) AS q65, quantile_cont(perf, 0.80) AS q80,
        quantile_cont(perf, 0.90) AS q90, quantile_cont(perf, 0.95) AS q95,
        quantile_cont(perf, 0.99) AS q99
-FROM (SELECT category, model, max(perf) AS perf
-      FROM model_perf GROUP BY category, model)
+FROM (SELECT category, family, max(perf) AS perf
+      FROM (SELECT mp.category, """ + family_expr + """, mp.perf
+            FROM model_perf mp """ + family_join + """)
+      GROUP BY category, family)
 GROUP BY category""")
 con.execute("DROP TABLE IF EXISTS category_levels")
 con.execute("""

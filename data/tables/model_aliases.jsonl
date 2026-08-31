@@ -1,0 +1,20 @@
+{"model": "deepseek-v4-flash-flex", "inherits": "deepseek-v4-flash", "note": "flex lane = same weights, cheaper serving (neuralwatt)"}
+{"model": "glm-5.2-fast", "inherits": "glm-5.2", "note": "5.2 family variant (speed lane), same weights"}
+{"model": "glm-5.2-flex", "inherits": "glm-5.2", "note": "5.2 family variant (flex lane), same weights"}
+{"model": "glm-5.2-short", "inherits": "glm-5.2", "note": "5.2 family variant (short ctx), same weights"}
+{"model": "glm-5.2-short-fast", "inherits": "glm-5.2", "note": "5.2 family variant (short+fast), same weights"}
+{"model": "glm-5.2-short-fast-flex", "inherits": "glm-5.2", "note": "5.2 family variant, same weights"}
+{"model": "glm-5.2-short-flex", "inherits": "glm-5.2", "note": "5.2 family variant, same weights"}
+{"model": "kimi-k2.6-fast", "inherits": "kimi-k2.6", "note": "K2.6 speed lane, same weights"}
+{"model": "kimi-k2.6-flex", "inherits": "kimi-k2.6", "note": "K2.6 flex lane, same weights"}
+{"model": "kimi-k2.7-code-flex", "inherits": "kimi-k2.7-code", "note": "K2.7-Code flex lane, same weights"}
+{"model": "kimi-k3-fast", "inherits": "kimi-k3", "note": "K3 speed lane, same weights"}
+{"model": "kimi-k3-flex", "inherits": "kimi-k3", "note": "K3 flex lane, same weights"}
+{"model": "qwen3.6-35b-fast", "inherits": "qwen3.6-35b", "note": "Qwen3.6-35B speed lane, same weights"}
+{"model": "gemma-4:31b", "inherits": "gemma-4-31b", "note": "name normalization (documented in quality-estimates policy)"}
+{"model": "hf:zai-org/GLM-5.2", "inherits": "glm-5.2", "note": "HF mirror of GLM-5.2 weights"}
+{"model": "hf:zai-org/GLM-5.3-Flash", "inherits": "glm-5.3-flash", "note": "HF mirror of GLM-5.3-Flash weights"}
+{"model": "hf:moonshotai/Kimi-K3", "inherits": "kimi-k3", "note": "HF mirror of Kimi K3 weights"}
+{"model": "hf:openai/gpt-oss-120b", "inherits": "gpt-oss:120b", "note": "HF mirror of gpt-oss-120b weights (dash/colon name normalization)"}
+{"model": "hf:Qwen/Qwen3.6-27B", "inherits": "qwen3.6-27b", "note": "HF mirror of Qwen3.6-27B weights"}
+{"model": "hf:nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-NVFP4", "inherits": "nemotron-3-super", "note": "HF mirror of Nemotron-3-Super weights"}
