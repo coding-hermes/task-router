@@ -6,6 +6,7 @@
 {"id": "asce", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "asce-sync", "sensitivity": "open", "board_type": "", "stack": "", "profile": "P8_SYNC"}
 {"id": "axiom-sync", "sensitivity": "open", "board_type": "", "stack": "", "profile": "P8_SYNC"}
+{"id": "bankai", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "bankai-sync", "sensitivity": "open", "board_type": "", "stack": "", "profile": "P8_SYNC"}
 {"id": "blog-sync", "sensitivity": "open", "board_type": "", "stack": "", "profile": "P8_SYNC"}
 {"id": "bunker", "sensitivity": "proprietary", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
@@ -29,6 +30,7 @@
 {"id": "duckbrain", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "duckbrain-sync", "sensitivity": "open", "board_type": "", "stack": "", "profile": "P8_SYNC"}
 {"id": "eduos-sync", "sensitivity": "open", "board_type": "", "stack": "", "profile": "P8_SYNC"}
+{"id": "eduos.dexdat.com.co", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "escalation-doctrine", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "escalation-doctrine-sync", "sensitivity": "open", "board_type": "", "stack": "", "profile": "P8_SYNC"}
 {"id": "frontiers-ghost-sync", "sensitivity": "open", "board_type": "", "stack": "", "profile": "P8_SYNC"}
