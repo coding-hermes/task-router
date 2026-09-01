@@ -23,7 +23,7 @@ implements; router ops owns the tools + data.
 - Breaker cooldowns: 5m, double per consecutive failure, cap 1h (router_circuit.py).
 - Max 1 spawn attempt per hop per tick.
 
-## Diversity + concurrency (TR-007, Bane design 2026-08-27)
+## Diversity + concurrency (TR-007 design, 2026-08-27)
 
 Two diversity knobs prune the price-ordered eligible chain AFTER gates; both are
 global defaults with per-profile overrides, and no caps configured = output

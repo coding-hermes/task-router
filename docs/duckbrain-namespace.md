@@ -1,6 +1,6 @@
 # task-router — DuckBrain namespace
 
-The deterministic task router (Bane + router ops, 2026-08-26). A task declares
+The deterministic task router. A task declares
 its capability profile (+/- per category, -5..+5); the database finds every
 model that clears ALL requirements; the chain = those models sorted by
 effective price; provider gates (quota / health / circuit) filter at resolve

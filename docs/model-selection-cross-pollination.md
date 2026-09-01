@@ -1,16 +1,13 @@
-# Model selection & provider understanding — cross-pollination from Chimera
+# Model selection and provider understanding
 
-Study notes (2026-08-27, Bane directive) mapping Chimera v2's model-selection
-machinery onto the task-router. Chimera = `~/chimera-v2` (github.com/
-totalwindupflightsystems/chimera), skills `development/chimera` +
-`development/chimera-development`. These are IDEAS to keep in mind — the
-task-router's core semantics (dominance rule, percentile scale, price-ordered
-chains, fail-open) stay as designed; anything below is an extension candidate.
+Study notes (2026-08-27) mapping a reference model-selection implementation
+onto task-router. These are extension candidates only: task-router's core
+semantics (dominance rule, percentile scale, price-ordered chains, and
+fail-open resolution) remain the contract.
 
 ## Selection architecture ideas
 
-1. **Diversity = two knobs, applied as pruning — never a hard cap** (Bane's
-   design, 2026-08-27):
+1. **Diversity = two knobs, applied as pruning — never a hard cap**:
    - `max_consecutive_per_provider` — how many hops in a ROW may come from one
      provider (protects against provider-level rate limits / shared quota /
      concurrency ceilings — some providers enforce concurrency limits).
@@ -20,8 +17,8 @@ chains, fail-open) stay as designed; anything below is an extension candidate.
      walking the price-ordered eligible chain and dropping violators (each
      with a reason), NOT by pre-filtering the provider out. Price order among
      survivors is preserved.
-2. **Concurrency is per-MODEL, not per-provider** (Bane's correction — the
-   reason the cap must not be a hard "one per provider"):
+2. **Concurrency is per-MODEL, not per-provider** (the reason the cap must not
+   be a hard "one per provider"):
    - A model can be overloaded at its provider while the NEXT model from that
      same provider is clear and ready to go. Some providers give one
      concurrent request per model — if the single slot is taken by something
@@ -31,32 +28,31 @@ chains, fail-open) stay as designed; anything below is an extension candidate.
    - Pitfall this prevents: naive "1 model per provider" + per-model
      concurrency 1 = the whole (cheap) provider vanishes whenever its one
      slot is busy, even though a cheaper sibling model is free.
-   - Signal source: the spawn ledger (`~/.hermes/model-router/ledger.jsonl`,
-     schema v2 EXISTS but is unwired — ledger is 0 bytes). Every routed call
+   - Signal source: the deployment-configured spawn ledger. Every routed call
      logs requested_pair / served_pair / chain_hop / outcome / latency —
      in-flight counts per (provider, model) + per-hop fallback rates derive
      from it. `quota-state.json` already has provider-level
      `concurrency_free`; extend the concept to the model level.
 2. **Cost-weighted effectiveness with a sensitivity knob**:
    `effectiveness = quality / (cost ^ price_sensitivity)`, where 0.0 = pure
-   quality, 1.0 = pure bang-for-buck (Chimera `selector.py`, per-call
+   quality and 1.0 = pure bang-for-buck (a reference selector's per-call
    override). Task-router sorts by price after dominance filtering; a
    per-profile `price_sensitivity` would let premium profiles (security
    review) prefer quality over the cheapest healthy hop. Do NOT replace the
    dominance rule — blend only among eligible models.
-3. **Parent-path fallback**: Chimera's 32-path tree falls back to parent
+3. **Parent-path fallback**: a reference selector's 32-path tree falls back to parent
    paths when the exact leaf isn't scored. Task-router's 24 flat categories
    have no hierarchy; sparse categories (guard/mock/multilingual — TR-002)
    could get a parent-axis fallback (coding / reasoning / agentic /
    perception / language) so models with only a parent-axis signal are still
    comparable.
-4. **Keyword → category lexicon** (Chimera `PATH_PATTERNS`, 5 categories:
+4. **Keyword → category lexicon** (a reference selector's pattern table, 5 categories:
    code/reasoning/analysis/design/audit, regex keyword tables). Reusable as a
    seed lexicon for ad-hoc profile inference from task text in the 24-category
    space. `references/selector-module.md` has the full keyword tables.
 5. **Budget-tier boost** (+15% for budget tier) ≈ task-router's `plan_tier`
    primary sort key — already covered, no action.
-6. **Per-model enabled/disabled flag** (Chimera `enabled: bool`) ≈ registry's
+6. **Per-model enabled/disabled flag** (a reference selector's `enabled: bool`) ≈ registry's
    `archive`/`valid_to` — already covered.
 
 ## Provider understanding (feeds TR-001 calibration + probe design)
@@ -73,7 +69,7 @@ chains, fail-open) stay as designed; anything below is an extension candidate.
 9. **Auth ≠ inference**: a key can pass `/models` (200) and still fail chat
    (Z.AI coding-plan vs main-endpoint 429 balance). Probe must do a real chat
    completion; classify 429 (balance/capacity) separately from 401/403/400
-   (misconfig — task-router skill's existing rule, confirmed by Chimera).
+   (misconfiguration — confirmed by reference testing).
 10. **Endpoint/version mismatches look like outages**: Google v1beta serves
     only gemini-2.5 (gemini-3.x are Vertex/OpenRouter-only → 404 on direct
     ping); Z.AI coding plan = `api.z.ai/api/coding/paas/v4` (quota-reset), main
@@ -83,16 +79,14 @@ chains, fail-open) stay as designed; anything below is an extension candidate.
 11. **Routing changes latency class**: DeepSeek via OpenRouter ≈ 125s vs
     direct ≈ seconds. SLOW thresholds must know the intended route per
     provider, or healthy direct routes get misclassified.
-12. **Key inventory (from Chimera 2026-07-05 + current health-state)**:
-    DeepSeek/OpenRouter/OpenAI/xAI/Gemini valid; Z.AI coding-plan works;
-    ANTHROPIC absent from `~/.hermes/.env`. Current probe: 8/14 DOWN with
-    fast auth errors (401/403/400) — config work, not outages: clinepass 500,
-    kimi-for-coding 403, opencode-go 403, groq 403, openai-codex 401, stepfun
-    401, minimax 401, synthetic 400.
+12. **Credentials and health reports are deployment data**: never publish key
+    inventory, account status, live balances, or provider-specific health
+    results. A probe result must distinguish a credential or endpoint
+    misconfiguration from an availability incident without exposing either.
 
 ## Catalog discipline
 
-13. **Verify before adding a model** (Chimera model-catalog-maintenance):
+13. **Verify before adding a model**:
     OpenRouter page exists; provider release announcement; pricing available;
     not a duplicate naming; no "coming soon" / pulled models (Claude Mythos 5
     launched Jun 9, pulled Jun 12). Apply to every model_perf seed — TR-002.
@@ -100,13 +94,14 @@ chains, fail-open) stay as designed; anything below is an extension candidate.
     providers, $/MTok; cache 24h; entry field is `cost.input`/`cost.output`,
     divide by 1000 → $/1k). Task-router's `normalized_price` could sync from
     it; `openrouter.ai/api/v1/models?sort=top-weekly` for production ranking.
-15. **Canonical-copy sync**: Chimera keeps chimera.yaml/example/docker in
-    sync after every catalog change — the task-router analog is routing ns
+15. **Canonical-copy sync**: a reference implementation keeps its runtime,
+    example, and container artifacts in sync after every catalog change — the
+    task-router analog is routing ns
     tables ↔ task-router ns tables ↔ repo (TR-004/TR-005 scope).
 
 ## Resilience
 
-16. **CLOSED→OPEN→HALF_OPEN breaker** (Chimera `circuit_breaker.py`):
+16. **CLOSED→OPEN→HALF_OPEN breaker** (reference circuit-breaker design):
     task-router's circuit is OPEN/closed with exp backoff but no HALF_OPEN
     probe — it waits for manual `record-success` or expiry. Candidate for
     TR-006: after cooldown expiry, admit one probe request; success closes,
@@ -114,10 +109,10 @@ chains, fail-open) stay as designed; anything below is an extension candidate.
 
 ## Alignment guardrails
 
-- Task-router percentiles (−5..+5 → q01..q99) are NOT Chimera's absolute
+- Task-router percentiles (−5..+5 → q01..q99) are NOT an absolute
   0-100 scores — the percentile scale stays (flat absolute thresholds were
   proven wrong in skewed categories).
-- Chimera's dispatcher picks models by blended score; task-router's dominance
+- A blended-score dispatcher picks models by blended score; task-router's dominance
   filter + price order stays the contract. Extensions only.
 - PAYG-as-legitimate-fallback and subs-first doctrine stay (both systems
   agree price ranks within eligibility).

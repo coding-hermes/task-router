@@ -9,7 +9,7 @@ writes the daily chains snapshot, and commits.
 One command runs the whole cadence:
 
 ```bash
-cd /home/kara/task-router && ~/.hermes/venvs/board/bin/python3 scripts/router_maintain.py all
+cd task-router && ~/.hermes/venvs/board/bin/python3 scripts/router_maintain.py all
 ```
 
 Add `--dry-run` to preview: it prints exactly what would change (price diffs,
@@ -28,7 +28,7 @@ Step order: **reprice → seed → export → snapshot → commit**.
 
 ## 2. Pricing formulas
 
-Bane's empirical rules, as implemented in `scripts/router_maintain.py`.
+Project pricing rules, as implemented in `scripts/router_maintain.py`.
 
 ### deepseek
 
@@ -83,10 +83,9 @@ of the matching id.
 
 ### Spot-check source
 
-`~/.hermes/skills/mlops/model-intelligence/scripts/or-family-spot-check.py`
-(families: deepseek, glm, qwen, gpt-5.6), authenticated with
-`OPENROUTER_API_KEY` from `~/.hermes/.env`. Intraday OR prices can move ±50% —
-the daily reprice is the freshness mechanism.
+The optional spot-check helper configured by `ROUTING_SPOT_CHECK` queries public
+pricing sources using a locally supplied `OPENROUTER_API_KEY`. Intraday prices
+can move materially, so the daily reprice is the freshness mechanism.
 
 ## 3. Namespace export + commit
 
@@ -107,17 +106,20 @@ For weeks where running the full loop is unnecessary but the chains record must
 exist:
 
 ```bash
-cd /home/kara/task-router && ~/.hermes/venvs/board/bin/python3 scripts/router_maintain.py snapshot && git -C /home/kara/duckbrain/namespaces/task-router add chains/ && git -C /home/kara/duckbrain/namespaces/task-router commit -m 'router-maintain: $(date +%F) — chains snapshot' && git -C /home/kara/duckbrain/namespaces/task-router push s3daily
+cd task-router
+~/.hermes/venvs/board/bin/python3 scripts/router_maintain.py snapshot
 ```
 
-Decision (AC2): documented operator one-liner, no cron created — cheap,
-explicit, avoids cron-context push complexity. Use the shell date substitution
-`$(date +%F)` in the commit message as shown.
+Commit or publish any optional namespace mirror through its own documented
+repository workflow. The router maintenance command does not push this source
+repository.
+
+Decision (AC2): a documented operator command, not a cron, keeps snapshot
+creation explicit and avoids cron-context publish complexity.
 
 ## 5. Quota policy review
 
-State file: `~/duckbrain/namespaces/task-router/state/quota-state.json`
-(last updated 2026-08-24).
+State file: the deployment-configured `quota-state.json`.
 
 GATED entries as of 2026-08-27:
 
