@@ -95,6 +95,7 @@
 {"model": "deepseek-v4-flash", "category": "guard", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
 {"model": "deepseek-v4-flash", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
 {"model": "deepseek-v4-flash", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "deepseek-v4-flash", "category": "sentiment", "score": 0.55, "max_score": 1.0, "source": "research-bench-2026-09-01", "valid_from": "2026-09-01"}
 {"model": "deepseek-v4-flash", "category": "sentiment", "score": 0.72, "max_score": 1.0, "source": "research-bench-2026-08-27", "valid_from": "2026-08-27"}
 {"model": "deepseek-v4-flash", "category": "terminal", "score": 0.827, "max_score": 1.0, "source": "Terminal-Bench research-bench-2026-08-27", "valid_from": "2026-08-27"}
 {"model": "deepseek-v4-flash-vision-exp", "category": "agent-tick", "score": 2.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
@@ -376,6 +377,7 @@
 {"model": "kimi-k3", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
 {"model": "kimi-k3", "category": "reasoning", "score": 0.935, "max_score": 1.0, "source": "GPQA Diamond (vendor) research-bench-2026-08-29", "valid_from": "2026-08-29"}
 {"model": "kimi-k3", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "kimi-k3", "category": "sentiment", "score": 0.7, "max_score": 1.0, "source": "research-bench-2026-09-01", "valid_from": "2026-09-01"}
 {"model": "kimi-k3", "category": "sentiment", "score": 0.8, "max_score": 1.0, "source": "research-sent-2026-08-27", "valid_from": "2026-08-27"}
 {"model": "kimi-k3", "category": "terminal", "score": 0.883, "max_score": 1.0, "source": "Terminal-Bench 2.1 (vendor) research-bench-2026-08-29", "valid_from": "2026-08-29"}
 {"model": "longcat-2.0", "category": "code_gen", "score": 0.595, "max_score": 1.0, "source": "SWE-bench Pro (vendor) research-bench-2026-08-31", "valid_from": "2026-08-31"}
