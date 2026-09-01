@@ -8,7 +8,7 @@
   + P1_CODING / P2_AGENTIC / P3_DOCS / P4_SECURITY (TR-003, 2026-08-27)
 - views: v_task_eligible, v_task_chain
 Exports tables to the routing namespace JSONL. Run: board venv python."""
-import duckdb, json, shutil, os, subprocess, datetime
+import duckdb, json, shutil, os, subprocess, datetime, sys
 
 # Text registry (Bane 2026-08-27): the live store is a gitignored JSON file in
 # the task-router repo — NOT a binary duckdb. The seed computes against an
@@ -23,6 +23,24 @@ DATA_DIR = os.environ.get('ROUTING_DATA_DIR', os.path.join(_REPO, 'data', 'table
 # The DuckBrain namespace is the S3-backed MIRROR — absent on a fresh clone;
 # the seed still runs (it just skips the ns export step).
 NS = os.environ.get('ROUTING_NS', '/home/kara/duckbrain/namespaces/routing')
+
+# TR-029: --help must be safe and exit 0 with ZERO file writes. The full seed
+# body is module-level (legacy shape); intercept --help before any table loads
+# or writes. The bottom-of-file argparse wrapper handles other args.
+if '--help' in sys.argv or '-h' in sys.argv:
+    import argparse as _argparse
+    _ap = _argparse.ArgumentParser(description='Seed the task-router routing registry')
+    _ap.print_help()
+    raise SystemExit(0)
+
+# Top-level --help must also skip the bottom argparse wrapper and the full seed.
+# Remove help flags from argv so the bottom argparse.parse_args() does not
+# re-trigger help after the seed body has already run (which would write files).
+# This keeps both `python router_seed.py --help` and `python router_seed.py`
+# behaving correctly without restructuring the legacy module-level seed body.
+for _flag in ('--help', '-h'):
+    if _flag in sys.argv:
+        sys.argv.remove(_flag)
 
 # Base tables come from the committed namespace JSONL (array-per-line, column
 # order = duckdb DESCRIBE order) — or from an existing registry.json when the
@@ -819,4 +837,10 @@ if __name__ == '__main__':
     # TR-029: --help must be safe and print help without running the seed.
     # The full --only/--no-write ergonomics are TR-031; here we add only the
     # minimal argparse wrapper so -h / --help exits before any file writes.
+    # The top-level module already intercepts --help / -h before imports run,
+    # so this block is effectively a no-op placeholder for future CLI args.
     ap.parse_args()
+
+
+# The previous bottom-of-module "print('seed complete')" was removed when the
+# argparse wrapper was added; the script ends after the top-level seed body.

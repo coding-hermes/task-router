@@ -7,7 +7,7 @@
 set -uo pipefail
 cd "$(dirname "$0")/.."
 
-PY="${PYTHON:-python3}"
+PY="${PYTHON:-/home/kara/.hermes/venvs/board/bin/python3}"
 if [ ! -d tests ]; then
   echo "SKIP: no tests/ dir — guard tests deferred."
   exit 0
