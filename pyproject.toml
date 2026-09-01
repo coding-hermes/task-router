@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "task-router"
+version = "0.1.0"
+description = "Deterministic task router CLI for the coding-hermes fleet — wraps the scripts/ tools behind one `router` entry point with a configurable data home."
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+authors = [{name = "Bane", email = "wojonstech@gmail.com"}]
+# stdlib only — scripts/ tools must run in the bare board venv.
+
+[project.scripts]
+router = "task_router.cli:main"
+
+[tool.setuptools]
+# Package ONLY task_router/ — scripts/ stay repo-relative runtime tools,
+# dispatched in place (runpy) so the installed CLI always tracks the repo.
+packages = ["task_router"]
