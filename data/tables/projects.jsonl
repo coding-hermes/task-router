@@ -70,6 +70,7 @@
 {"id": "mythos-sync", "sensitivity": "open", "board_type": "", "stack": "", "profile": "P8_SYNC"}
 {"id": "off-by-one", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "off-by-one-sync", "sensitivity": "open", "board_type": "", "stack": "", "profile": "P8_SYNC"}
+{"id": "qa", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P9_REVIEW"}
 {"id": "rabbit-hole", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "rabbit-hole-sync", "sensitivity": "open", "board_type": "", "stack": "", "profile": "P8_SYNC"}
 {"id": "reports-sync", "sensitivity": "open", "board_type": "", "stack": "", "profile": "P8_SYNC"}
@@ -79,6 +80,7 @@
 {"id": "ring-runner-sync", "sensitivity": "open", "board_type": "", "stack": "", "profile": "P8_SYNC"}
 {"id": "speclang", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P9_REVIEW"}
 {"id": "speclang-sync", "sensitivity": "open", "board_type": "", "stack": "", "profile": "P8_SYNC"}
+{"id": "stand-in-pm", "sensitivity": "open", "board_type": "", "stack": "", "profile": "P8_SYNC"}
 {"id": "task-router", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P2_AGENTIC"}
 {"id": "task-router-sync", "sensitivity": "open", "board_type": "", "stack": "", "profile": "P8_SYNC"}
 {"id": "temple-runner", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
@@ -93,5 +95,3 @@
 {"id": "warpfs", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "warpfs-sync", "sensitivity": "open", "board_type": "", "stack": "", "profile": "P8_SYNC"}
 {"id": "wojons-mythos", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
-{"id": "qa", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P9_REVIEW"}
-{"id": "stand-in-pm", "sensitivity": "open", "board_type": "", "stack": "", "profile": "P8_SYNC"}
