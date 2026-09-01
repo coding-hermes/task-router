@@ -121,6 +121,19 @@ def test_circuit_concurrency_no_corruption(tmp_path):
     assert "test-provider/model-2" in pairs
 
 
+def _seed_scratch_registry(tmp_path, reg):
+    """registry.json is gitignored live state - derive it in CI via seed."""
+    src = os.path.join(REPO, "registry.json")
+    if os.path.isfile(src):
+        reg.write_text(open(src).read())
+        return
+    import subprocess
+    env = dict(os.environ, ROUTING_REGISTRY=str(reg))
+    subprocess.run([sys.executable, os.path.join(REPO, "scripts", "router_seed.py")],
+                   capture_output=True, text=True, env=env, cwd=REPO, timeout=240)
+    assert reg.exists(), "seed failed to produce scratch registry.json"
+
+
 def test_reprice_dry_run_does_not_change_heads(tmp_path):
     """Dry-run reprice against a scratch registry leaves fixed-profile heads alone."""
     reg = tmp_path / "registry.json"
@@ -131,7 +144,7 @@ def test_reprice_dry_run_does_not_change_heads(tmp_path):
         if fn.endswith(".jsonl"):
             src = os.path.join(REPO, "data", "tables", fn)
             (data_dir / fn).write_text(open(src).read())
-    reg.write_text(open(os.path.join(REPO, "registry.json")).read())
+    _seed_scratch_registry(tmp_path, reg)
 
     # deterministic no-op spot-check (returns no parsable prices -> fail-open)
     noop_spot = tmp_path / "noop_spot.py"
@@ -164,7 +177,7 @@ def test_snapshot_one_liner_produces_file(tmp_path):
     """The documented snapshot one-liner writes a valid chains snapshot file."""
     reg = tmp_path / "registry.json"
     docs_dir = tmp_path / "docs"
-    reg.write_text(open(os.path.join(REPO, "registry.json")).read())
+    _seed_scratch_registry(tmp_path, reg)
     env = {
         "ROUTING_REGISTRY": str(reg),
         "ROUTING_DOCS_DIR": str(docs_dir),

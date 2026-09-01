@@ -26,7 +26,9 @@ def _run(argv, env=None, timeout=30):
 def _repo_watched_files():
     d = os.path.join(REPO, "data", "tables")
     files = [os.path.join(d, f) for f in sorted(os.listdir(d)) if f.endswith(".jsonl")]
-    files.append(os.path.join(REPO, "registry.json"))
+    reg = os.path.join(REPO, "registry.json")
+    if os.path.isfile(reg):  # gitignored live state — absent on fresh clones/CI
+        files.append(reg)
     return files
 
 
