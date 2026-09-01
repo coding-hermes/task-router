@@ -35,7 +35,11 @@ def _hermetic_env(tmp_path):
     state = tmp_path / "state"
     state.mkdir(exist_ok=True)
     return {"ROUTING_DATA_DIR": str(data), "ROUTER_STATE_DIR": str(state),
-            "ROUTING_REGISTRY": str(tmp_path / "registry.json")}
+            "ROUTING_REGISTRY": str(tmp_path / "registry.json"),
+            # router_seed needs duckdb; CI installs pytest only (pure-JSON
+            # suite) — route the child through the seed's stdlib fallback
+            "ROUTER_SEED_PYTHON": PY,
+            "ROUTING_BOARD_PY": PY}
 
 
 def _write_jsonl(path, rows):
