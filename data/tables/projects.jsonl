@@ -93,3 +93,5 @@
 {"id": "warpfs", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "warpfs-sync", "sensitivity": "open", "board_type": "", "stack": "", "profile": "P8_SYNC"}
 {"id": "wojons-mythos", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
+{"id": "qa", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P9_REVIEW"}
+{"id": "stand-in-pm", "sensitivity": "open", "board_type": "", "stack": "", "profile": "P8_SYNC"}
