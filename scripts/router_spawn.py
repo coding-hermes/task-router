@@ -86,14 +86,17 @@ def _parse_utc(ts):
 
 
 def ledger_has_traces(state_dir):
-    """True when ledger.jsonl exists AND holds at least one non-empty line.
+    """True when the spawn ledger exists AND holds at least one non-empty line.
 
+    Path resolution: LEDGER_FILE env (the router_ledger.py shared contract)
+    wins; otherwise <state_dir>/ledger.jsonl.
     Visibility only (TR-026): a file that exists but has zero rows has never
     received a start/end call — the spawn ledger is not wired. Never raises
     (fail-open) — same policy as ledger_in_flight.
     """
+    path = os.environ.get('LEDGER_FILE') or os.path.join(state_dir, 'ledger.jsonl')
     try:
-        with open(os.path.join(state_dir, 'ledger.jsonl')) as f:
+        with open(path) as f:
             for line in f:
                 if line.strip():
                     return True
@@ -114,7 +117,9 @@ def ledger_in_flight(state_dir):
     """
     try:
         last = {}
-        with open(os.path.join(state_dir, 'ledger.jsonl')) as f:
+        # LEDGER_FILE env (router_ledger.py shared contract) wins over state_dir
+        _lpath = os.environ.get('LEDGER_FILE') or os.path.join(state_dir, 'ledger.jsonl')
+        with open(_lpath) as f:
             for line in f:
                 line = line.strip()
                 if not line:
@@ -663,8 +668,16 @@ def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=30
     models_cfg = qdoc.get('models') or {}
     if not isinstance(models_cfg, dict):
         models_cfg = {}
-    hs = load_json(f'{MR}/health-state.json', {}).get('providers', {}) if use_health else {}
-    cs = load_json(f'{MR}/circuit-state.json', {}).get('pairs', {})
+    hsrc = load_json(f'{MR}/health-state.json', {}) if use_health else {}
+    hs = hsrc.get('providers', {}) if use_health else {}
+    cstate = load_json(f'{MR}/circuit-state.json', {})
+    cs = cstate.get('pairs', {})
+    # TR-014 provider-level breakers (v2 section; absent = {} = no provider gates)
+    _v2 = cstate.get('v2') if isinstance(cstate.get('v2'), dict) else {}
+    cprov = _v2.get('provider_breakers') if isinstance(_v2.get('provider_breakers'), dict) else {}
+    # TR-032 soft concurrency gate: default OFF (quota-state.json knob).
+    # ON adds the per-model busy-count exclusion below; OFF never rejects.
+    soft_gate_on = bool(qdoc.get('soft_gate'))
     inflight = ledger_in_flight(MR)  # fail-open: {} on any error
     ledger_wired = ledger_has_traces(MR)  # rows exist ⇒ start/end calls land
     if not ledger_wired:
@@ -706,7 +719,12 @@ def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=30
         c = cs.get(f'{prov}/{model}')
         if c and c.get('open_until') and c['open_until'] > now:
             why.append(f'circuit OPEN until {c["open_until"]} ({c.get("failures", 0)} failures)')
-        mlim = _model_limit(models_cfg, diversity, prov, model)
+        # TR-014: provider-level breaker (api_down/out_of_credit across models)
+        pb = cprov.get(prov)
+        if isinstance(pb, dict) and pb.get('open_until') and pb['open_until'] > now:
+            why.append(f'circuit OPEN (provider-level, {pb.get("class", "api_down")}) '
+                       f'until {pb["open_until"]} ({pb.get("failures", 0)} failures)')
+        mlim = _model_limit(models_cfg, diversity, prov, model) if soft_gate_on else None
         if mlim is not None:
             nf = inflight.get((prov, model), 0)
             if nf >= mlim:

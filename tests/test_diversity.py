@@ -75,6 +75,9 @@ def _state_dir(tmp_path, providers=None, diversity=None, models=None,
     if diversity is not None:
         qdoc["diversity"] = diversity
     if models is not None:
+        # TR-032: the busy-limit gate is opt-in now (soft_gate knob, default
+        # OFF). Fixtures that configure per-model limits want it ON.
+        qdoc["soft_gate"] = True
         qdoc["models"] = models
     (d / "quota-state.json").write_text(json.dumps(qdoc))
     hdoc = {"providers": health if health is not None else {}}
