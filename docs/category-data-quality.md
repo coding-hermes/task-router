@@ -92,3 +92,34 @@ previously DuckDB returned arbitrary tie order run-to-run.
   unchanged (same chains, same heads).
 - Guard/mock/multilingual estimates should be replaced by real benchmark data
   when available (tracked as follow-up; see TR-003 profile work).
+
+## 2026-09-01 — the deepseek review-0.60 incident (stale estimate → silent head loss)
+
+What happened: ollama-cloud/deepseek-v4-flash:0731 ($0.033) vanished from every
+P0_FORE chain. Cause chain: (1) `perf_review: 0.6` was born in the TR-010
+migration (08-27 10:00) as a NEUTRAL-family fill and never corrected — the
+documented 08-27 fleet-evidence correction (code-review '+') lives in
+PROFILE_TAGS, but that function only fills NEW categories, so for OLD columns
+(review/reasoning/long_doc) it is dead code; (2) the 08-29..08-31 evidence
+slices added strong-review families (glm-5.2 0.88, kimi-k3 0.85), which pushed
+the review q10 boundary 0.60→0.61; (3) 0.60 < 0.61 → review tier -2 < required
+-1 → filtered in _build_chain BEFORE the gate stage → invisible (no exclusion
+row, no gate_reason). glm-5.2 ($0.05 unsourced ollama-cloud estimate) took the
+head by default.
+
+Fixes shipped:
+- data: deepseek-v4-flash review 0.60→0.72, reasoning 0.70→0.85,
+  long_doc 0.55→0.72 on all 7 live lanes (the documented 08-27 values).
+- seed overlay (apply_overlay): measured benchmark scores now beat ANY lower
+  estimate, not just the 0.50 neutral — estimates lose to evidence.
+- spawn ROUTER-MISS: every profile-requirement filter now prints
+  `ROUTER-MISS: <provider>/<model> fails <cat>>=<lvl> (tier=N)` to stderr —
+  a head-losing filter is visible in minutes, never silent again.
+
+Lessons for the daily data-quality agent:
+1. Corrections to OLD-category perfs must land in data/tables/models.jsonl
+   rows directly — PROFILE_TAGS cannot carry them.
+2. Unsourced price estimates (price_evidence: "estimate") should be probed —
+   the $0.05 glm-5.2 estimate outranked sticker-priced lanes for a day.
+3. After every evidence slice, diff the HEAD of the big profiles
+   (P0_FORE/P8_SYNC): `router_spawn.py <p> --format json | jq .head`.

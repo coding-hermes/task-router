@@ -547,6 +547,17 @@ def apply_overlay():
             con.execute("UPDATE model_perf SET perf=? WHERE lower(model)=? AND category=?",
                         [rel, model.lower(), cat])
             n_upd += 1
+        elif cur[0] < rel:
+            # Bane 2026-09-01: a measured benchmark score beats ANY estimate —
+            # not just the neutral 0.50 fill. The 0.50-only rule let a stale
+            # pre-correction fill (deepseek-v4-flash review 0.60, born in the
+            # TR-010 migration and never corrected by the documented 08-27
+            # fleet-evidence pass) block real evidence AND, when the review
+            # q10 boundary moved 0.60→0.61, silently exclude the fleet
+            # workhorse from every P0_FORE chain. Estimates lose to evidence.
+            con.execute("UPDATE model_perf SET perf=? WHERE lower(model)=? AND category=?",
+                        [rel, model.lower(), cat])
+            n_upd += 1
     if n_ins or n_upd:
         print(f'overlay: {n_ins} inserted, {n_upd} neutral-updated')
     return n_ins + n_upd

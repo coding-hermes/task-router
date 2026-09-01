@@ -477,8 +477,22 @@ def _build_chain(tables, reqs, limit=30):
         # BLANK default (Bane 2026-08-27): a missing tier = -1 (no data = slightly
         # below median — clears lenient bars, fails 0 and up). NEVER 0, never an
         # inflated neutral.
-        if any((mt.get(cat) if mt.get(cat) is not None else -1) < lvl
-               for cat, lvl in reqs):
+        misses = [(cat, lvl, mt.get(cat))
+                  for cat, lvl in reqs
+                  if (mt.get(cat) if mt.get(cat) is not None else -1) < lvl]
+        if misses:
+            # ROUTER-MISS (Bane 2026-09-01): profile-requirement failures are
+            # filtered BEFORE the gate stage, so they never appear in
+            # exclusions/gate_reasons — a head model can vanish from the chain
+            # with zero trace (proven: deepseek-v4-flash review 0.60 vs a q10
+            # boundary that moved to 0.61). Surface every miss on stdout as a
+            # ROUTER-MISS line; fail-open — never blocks the resolve.
+            try:
+                for cat, lvl, tier in misses:
+                    print(f"ROUTER-MISS: {prov}/{model} fails {cat}>={lvl} "
+                          f"(tier={tier})", file=sys.stderr)
+            except Exception:
+                pass
             continue
         eligible.append(m)
     eligible.sort(key=lambda m: (
