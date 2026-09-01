@@ -159,6 +159,13 @@ def test_preview_matches_real_resolve(data_dir):
                  "ROUTING_REGISTRY": str(REPO / "registry.json")},
         ).stdout
         d = json.loads(direct)
+        # CI has no gate-state dir — the resolver fail-closes to an empty
+        # head (by design). The preview-parity assertion only makes sense
+        # when a head resolved at all.
+        if d.get("head") is None or web.get("head") is None:
+            assert d.get("head") == web.get("head"), (
+                "spawn and web preview disagree on fail-closed emptiness")
+            return
         assert (d["head"]["provider"], d["head"]["model"], str(d["head"]["usd_1m"])) == \
                (web["head"]["provider"], web["head"]["model"], str(web["head"]["usd_1m"]))
         assert len(d["chain"]) == len(web["hops"])

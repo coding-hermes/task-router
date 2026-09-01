@@ -185,6 +185,9 @@ def test_snapshot_one_liner_produces_file(tmp_path):
     env = {
         "ROUTING_REGISTRY": str(reg),
         "ROUTING_DOCS_DIR": str(docs_dir),
+        # maintain touches the ns dirs (status keys) — keep it off /home/kara
+        "ROUTING_NS": str(tmp_path / "routing-ns"),
+        "TASKROUTER_NS": str(tmp_path / "taskrouter-ns"),
     }
     proc = _run(("router_maintain.py", "snapshot"), env=env, timeout=60)
     assert proc.returncode == 0, f"snapshot failed: {proc.stderr[:400]}"
