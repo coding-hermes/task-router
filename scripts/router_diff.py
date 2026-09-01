@@ -36,7 +36,7 @@ DOCS_DIR = os.environ.get('ROUTING_DOCS_DIR', os.path.join(_REPO, 'docs'))
 _HEAD_RE = re.compile(r'^##\s+(\S+)\b')
 # "  12. $ 0.284/M  opencode-go/kimi-k2.7-code"
 _HOP_RE = re.compile(
-    r'^\s+(\d+)\.\s+\$\s*([0-9]+(?:\.[0-9]+)?)\s*/M\s+(\S+?)/(\S+)\s*$')
+    r'^\s+(\d+)\.\s+\$\s*([0-9]+(?:\.[0-9]+)?)\s*/M\s+(\S+?)/(\S+?)(?:\s+ctx=\S+)?\s*$')
 
 
 def snapshot_path(date):

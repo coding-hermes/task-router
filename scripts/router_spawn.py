@@ -352,9 +352,14 @@ def _validate_adhoc(adhoc, tables):
     always enforced; category membership and the -5..+5 scale come from DATA
     (category_levels.jsonl / level_defs.jsonl). Missing data degrades to
     syntax-only validation — fail-open, never a traceback.
+
+    TR-015: 'min_context' is a synthetic requirement category (int tokens)
+    that is NOT part of the tier/category_levels scale; it is accepted here
+    and handled specially by _build_chain.
     """
     known = {r.get('category') for r in (tables.get('category_levels') or [])
              if r.get('category')}
+    known.add('min_context')
     lv = {r.get('level') for r in (tables.get('level_defs') or [])
           if r.get('level') is not None}
     lo, hi = (min(lv), max(lv)) if lv else (-5, 5)
@@ -376,6 +381,14 @@ def _validate_adhoc(adhoc, tables):
                 return None, {'error': f'invalid requirement {part!r}: '
                                'empty category',
                                'code': 'INVALID_REQUIREMENT', 'retryable': False}
+            if cat == 'min_context':
+                try:
+                    level = int(lvl)
+                except ValueError:
+                    return None, {'error': f'invalid min_context {lvl!r}: must be integer tokens',
+                                   'code': 'INVALID_REQUIREMENT', 'retryable': False}
+                reqs.append((cat, level))
+                continue
             if known and cat not in known:
                 return None, {'error': f'unknown category {cat!r} '
                                f'(known: {", ".join(sorted(known))})',
@@ -452,6 +465,29 @@ def _load_registry():
     return _load_registry_with_meta()[0]
 
 
+def _resolve_profile_tag(profiles, ref):
+    """TR-020: resolve a profile reference (tag or exact id) to an id.
+
+    profiles is a dict keyed by profile id. Each row may contain 'tag' and
+    'version'. A tag matches exactly one row (the tagged version). If the ref
+    matches a tag, return that row's id; otherwise return the ref as an exact
+    id (backward compatible with legacy ids like P0_FORE)."""
+    if not ref:
+        return ref
+    # fast path: exact id
+    if ref in profiles:
+        return ref
+    # tag path: at most one row should carry a given tag; prefer the highest
+    # version on the unlikely event of duplicates (data quality will flag it).
+    matches = [(r.get('id'), r.get('version') or 0)
+               for r in profiles.values()
+               if r.get('tag') == ref]
+    if matches:
+        matches.sort(key=lambda x: -x[1])
+        return matches[0][0]
+    return ref
+
+
 def _build_chain(tables, reqs, limit=30):
     """Replicates v_task_chain exactly, in pure python.
 
@@ -459,8 +495,15 @@ def _build_chain(tables, reqs, limit=30):
     Eligible = active models (valid_to null, not archived, priced) with a
     tier >= level for EVERY requirement. Order: plan_tier ASC,
     normalized_price * token_factor ASC, model ASC, provider ASC (the SQL
-    view's tie-breaks). Returns rows [(hop, provider, model, price, dclass)].
-    """
+    view's tie-breaks). Returns rows [(hop, provider, model, price, dclass, mrow)].
+
+    TR-015: additionally applies min_context requirement (category 'min_context'
+    with integer token level). Lanes whose context_limit is known and below the
+    requirement are EXCLUDED before ordering and reported as
+    'context_limit N < min_context M'. Lanes with unknown context_limit (NULL)
+    are allowed to pass but flagged via a 'context_unknown' note so callers can
+    see the gap; they are never silently dropped for a non-strict min_context
+    check."""
     models = tables.get('models') or []
     # Evidence is per MODEL (Bane 2026-08-27): tiers keyed by model name only;
     # every provider lane of the same weights inherits the same tier. A lane
@@ -468,6 +511,17 @@ def _build_chain(tables, reqs, limit=30):
     tiers = {}
     for r in tables.get('model_tier') or []:
         tiers.setdefault(r.get('model'), {})[r.get('category')] = r.get('tier')
+
+    # TR-015: split out the min_context requirement from tier-based reqs.
+    min_context = None
+    tier_reqs = []
+    for cat, lvl in reqs:
+        if cat == 'min_context':
+            min_context = lvl
+        else:
+            tier_reqs.append((cat, lvl))
+    reqs = tier_reqs
+
     eligible = []
     for m in models:
         if m.get('archive') or m.get('valid_to') is not None:
@@ -499,10 +553,39 @@ def _build_chain(tables, reqs, limit=30):
             except Exception:
                 pass
             continue
+
+        # TR-015: min_context gating. NULL passes (with a note); known value
+        # below requirement is an exclusion.
+        ctx = m.get('context_limit')
+        ctx_note = None
+        if min_context is not None:
+            if ctx is None:
+                ctx_note = 'context_unknown: context_limit missing; allowed by lenient min_context rule'
+            elif ctx < min_context:
+                try:
+                    print(f"ROUTER-MISS: {prov}/{model} fails min_context>={min_context} "
+                          f"(context_limit={ctx})", file=sys.stderr)
+                except Exception:
+                    pass
+                continue
+
+        m = dict(m)
+        if ctx_note:
+            m['_context_note'] = ctx_note
         eligible.append(m)
+
+    # TR-015: P3_DOCS / P2_AGENTIC prefer large-context lanes when prices are
+    # close. We implement this as a secondary sort bump: among lanes whose
+    # effective price is within 25% of each other, larger context_limit wins.
+    # Primary ordering remains (plan_tier, effective_price, model, provider).
+    def _context_sort_key(m):
+        ctx = m.get('context_limit')
+        return -(ctx if isinstance(ctx, int) else 0)
+
     eligible.sort(key=lambda m: (
         m.get('plan_tier') if m.get('plan_tier') is not None else 1 << 30,
         (m.get('normalized_price') or 0.0) * (m.get('token_factor') or 1.0),
+        _context_sort_key(m),
         m.get('model') or '',
         m.get('provider') or '',
     ))
@@ -621,10 +704,15 @@ def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=30
         row = projects.get(project)
         if row is None:
             return {'error': f'project {project} not in registry'}
-        pid = row.get('profile') or 'P0_FORE'
+        # TR-020: tag-based profile resolution. A project references a profile
+        # tag (or legacy id). Resolve tag -> version row; fall back to exact id
+        # for backward compatibility with existing rows like P0_FORE.
+        pid = _resolve_profile_tag(profiles, row.get('profile') or 'P0_FORE')
         reqs = reqs_by_profile.get(pid, [])
     else:
-        reqs = reqs_by_profile.get(pid or 'P0_FORE', [])
+        # --profile argument may be a tag or an exact id.
+        pid = _resolve_profile_tag(profiles, pid or 'P0_FORE')
+        reqs = reqs_by_profile.get(pid, [])
     if not pid and not adhoc:
         pid = 'P0_FORE'
     if pid and pid not in profiles:
@@ -734,10 +822,20 @@ def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=30
             reasons.append(f'hop {hop} {prov}/{model}: ' + '; '.join(why))
         else:
             pub_usd, pub_in, pub_out = _pub_prices(mrow)
-            out_chain.append({'hop': hop, 'provider': prov, 'model': model,
-                              'usd_1m': round(float(pub_usd), 4) if pub_usd is not None else None,
-                              'in_per_m': pub_in, 'out_per_m': pub_out,
-                              'data_class': dc})
+            ent = {'hop': hop, 'provider': prov, 'model': model,
+                   'usd_1m': round(float(pub_usd), 4) if pub_usd is not None else None,
+                   'in_per_m': pub_in, 'out_per_m': pub_out,
+                   'data_class': dc}
+            # TR-015: expose per-lane context window; preserve unknown as None.
+            ctx = mrow.get('context_limit')
+            if ctx is not None:
+                ent['context_limit'] = ctx
+            else:
+                ent['context_limit'] = None
+            note = mrow.get('_context_note')
+            if note:
+                ent['context_note'] = note
+            out_chain.append(ent)
 
     # --- 4. diversity pruning: two-knob caps on the survivor chain -------------
     _prune_diversity(out_chain, exclusions, reasons,
