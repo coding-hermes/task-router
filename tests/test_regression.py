@@ -368,7 +368,9 @@ def test_registry_integrity():
                 "provider_rules", "quality_estimates", "fallback_lanes",
                 # Probe v3 data-driven provider tables (commit 2c3e064)
                 "probe_providers", "probe_fixes", "probe_excludes", "probe_gaps",
-                "model_aliases"}
+                "model_aliases",
+                # TR-019 external provider-name mapping rules (2026-09-01)
+                "provider_mappings"}
     assert core <= set(tables), f"missing core tables: {core - set(tables)}"
     assert set(tables) - core <= sidecars, f"unexpected tables: {set(tables) - core - sidecars}"
     models = tables["models"]

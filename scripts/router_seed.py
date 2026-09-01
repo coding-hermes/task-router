@@ -188,6 +188,78 @@ model_ids = {}
 for p, m in con.execute("SELECT DISTINCT provider, model FROM models").fetchall():
     model_ids.setdefault(m.lower().replace('-pass', '').replace('-cloud', ''), []).append((p, m))
 
+# ---------- 3b. TR-019: external provider-name mapping (data-driven) ----------
+# data/tables/provider_mappings.jsonl rules ({pattern, match, replacement,
+# direction}) applied when reconciling EXTERNAL provider names (renamed /
+# prefixed / string-replaced lanes) to canonical registry rows, so a renamed
+# provider still resolves. First match wins; missing row = visible gap (same
+# data policy as quality_estimates — facts live in data, never in code).
+def load_mappings():
+    path = os.path.join(DATA_DIR, 'provider_mappings.jsonl')
+    rules = []
+    if not os.path.exists(path):
+        return rules
+    for line in open(path):
+        line = line.strip()
+        if line:
+            rules.append(json.loads(line))
+    return rules
+
+
+def map_provider_name(name, mappings):
+    """First-match-wins through the rules -> (mapped_name, rule_or_None)."""
+    import re as _re
+    for rule in mappings:
+        if rule.get('direction') not in (None, 'external->registry'):
+            continue
+        m = (rule.get('match') or 'prefix').lower()
+        pat = rule.get('pattern') or ''
+        rep = rule.get('replacement')
+        if rep is None:
+            rep = ''
+        hit = False
+        if m == 'prefix':
+            hit = name.startswith(pat)
+        elif m == 'literal':
+            hit = pat in name
+        elif m == 'regex':
+            try:
+                hit = _re.search(pat, name) is not None
+            except _re.error:
+                hit = False
+        if not hit:
+            continue
+        if m == 'prefix':
+            return name[len(pat):], rule
+        if m == 'literal':
+            return name.replace(pat, rep), rule
+        mt = _re.search(pat, name)
+        try:
+            return (mt.expand(rep) if mt else name), rule
+        except _re.error:
+            return name, rule
+    return name, None
+
+
+MAPPINGS = load_mappings()
+if MAPPINGS:
+    print(f'provider mappings: {len(MAPPINGS)} rule(s) loaded (TR-019)')
+    # reconciliation: every models.jsonl lane whose provider id only exists via
+    # a mapping rule keeps resolving to its canonical registry provider.
+    _lane_ids = {r[0] for r in
+                 con.execute("SELECT DISTINCT provider FROM models").fetchall()}
+    _canon = {r[0] for r in con.execute("SELECT id FROM providers").fetchall()}
+    for _pid in sorted(_lane_ids):
+        if _pid in _canon:
+            continue
+        _mapped, _rule = map_provider_name(_pid, MAPPINGS)
+        if _rule is not None and _mapped in _canon:
+            print(f'  mapping: external lane {_pid!r} -> canonical provider {_mapped!r} '
+                  f'(rule {_rule.get("id")})')
+        else:
+            print(f'  GAP: lane provider {_pid!r} not in providers.jsonl and no '
+                  f'provider_mappings rule resolves it (visible gap, never silent)')
+
 # ---------- 4. profile-tag estimates for the 14 new categories ----------------
 TAG2CAT = {
     'code-generation': ['code_gen'], 'debugging': ['debug'], 'refactoring': ['refactor'],
