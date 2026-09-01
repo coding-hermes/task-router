@@ -14,3 +14,8 @@ data/metrics.jsonl
 
 # live registry state — gitignored text store (Bane 2026-08-27)
 registry.json
+
+# python build artifacts (TR-016 installable package)
+*.egg-info/
+build/
+dist/
