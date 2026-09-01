@@ -427,6 +427,28 @@ def clear(provider=None, model=None, all_=False):
 
 
 def main(argv=None):
+    argv = list(sys.argv[1:] if argv is None else argv)
+    # Python 3.11 argparse interleave bug (fixed in 3.12): a trailing
+    # nargs='*' positional after an interspersed optional ('record-failure
+    # p m --class X "reason words"') errors with "unrecognized arguments".
+    # Pre-move optional pairs to the END of record-failure argv so positionals
+    # stay contiguous on every interpreter (Bane 2026-09-01, CI 3.11 vs local
+    # 3.13 divergence).
+    if argv and argv[0] == 'record-failure':
+        opts, rest = [], []
+        i = 1
+        while i < len(argv):
+            if argv[i] == '--class':
+                opts.extend(argv[i:i + 2])
+                i += 2
+            elif argv[i].startswith('--'):
+                opts.append(argv[i])
+                i += 1
+            else:
+                rest.append(argv[i])
+                i += 1
+        argv = ['record-failure'] + rest + opts
+
     parser = argparse.ArgumentParser(
         prog='router_circuit.py',
         description='Circuit-breaker state for (provider, model) pairs. '
