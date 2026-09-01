@@ -811,3 +811,12 @@ for _t, _rows in _doc['tables'].items():
         for _r in _rows:
             f.write(json.dumps(_r, ensure_ascii=False) + '\n')
 print('synced data/tables ->', DATA_DIR)
+
+
+if __name__ == '__main__':
+    import argparse
+    ap = argparse.ArgumentParser(description='Seed the task-router routing registry')
+    # TR-029: --help must be safe and print help without running the seed.
+    # The full --only/--no-write ergonomics are TR-031; here we add only the
+    # minimal argparse wrapper so -h / --help exits before any file writes.
+    ap.parse_args()

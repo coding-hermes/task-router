@@ -364,7 +364,13 @@ def fmt_provider_block(prov, entry):
     return lines
 
 
-def main():
+def main(config_path=None, only_providers=None, output_path=None):
+    # Backwards compatibility: old callers pass no arguments; argparse callers
+    # pass the parsed values. Unset values keep the module defaults.
+    if output_path:
+        global HEALTH_STATE, HEALTH_JSONL
+        HEALTH_STATE = output_path
+        HEALTH_JSONL = output_path.rsplit('.', 1)[0] + '.jsonl' if '.' in output_path else output_path + '.jsonl'
     env = load_env()
     os.makedirs(MR, exist_ok=True)
     ts = datetime.datetime.now(datetime.timezone.utc).isoformat(timespec='seconds')
@@ -375,6 +381,8 @@ def main():
     prev_provs = prev.get('providers', {})
 
     providers = load_providers()
+    if only_providers:
+        providers = {p: v for p, v in providers.items() if p in only_providers}
     if not providers:
         print('⚠️  no probe_providers.jsonl — nothing probed (data file missing at '
               f'{DATA_DIR}); refusing to fabricate a provider list')
@@ -486,4 +494,13 @@ def main():
 
 
 if __name__ == '__main__':
-    raise SystemExit(main())
+    import argparse
+    ap = argparse.ArgumentParser(description='Provider health probe (fast, no side effects with --help)')
+    # TR-029: --help must be safe and print help without live-probing.
+    # The full --dry-run / --no-write ergonomics are TR-031; here we add only the
+    # minimal argparse wrapper so -h / --help exits before any network call.
+    ap.add_argument('--config', default='config/probe_config.yaml')
+    ap.add_argument('--providers', nargs='+')
+    ap.add_argument('--output', default='state/health-state.json')
+    args = ap.parse_args()
+    raise SystemExit(main(args.config, args.providers, args.output))
