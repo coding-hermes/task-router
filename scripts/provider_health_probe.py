@@ -54,13 +54,15 @@ Calibration gotchas (TR-001, live-verified 2026-08-27/08-31):
 - Timeout ≠ down: nemotron-3-ultra ~28s, kimi k3-256k ~10s first token —
   thinking models (Bane 08-31).
 """
-import json, os, socket, time, datetime, urllib.request, urllib.error
+import json, os, socket, sys, time, datetime, urllib.request, urllib.error
 
-MR = os.path.expanduser('~/.hermes/model-router')
+# Env-overridable paths (same convention as router_spawn.py) so calibration runs
+# and tests can be hermetic; defaults are byte-identical to the historical paths.
+MR = os.environ.get('ROUTER_STATE_DIR', os.path.expanduser('~/.hermes/model-router'))
 HEALTH_JSONL = f'{MR}/health.jsonl'
 HEALTH_STATE = f'{MR}/health-state.json'
-REGISTRY = os.path.expanduser('~/task-router/registry.json')
-DATA_DIR = os.path.expanduser('~/task-router/data/tables')
+REGISTRY = os.environ.get('ROUTING_REGISTRY', os.path.expanduser('~/task-router/registry.json'))
+DATA_DIR = os.environ.get('ROUTING_DATA_DIR', os.path.expanduser('~/task-router/data/tables'))
 TIMEOUT_S = 8        # fast path
 LONG_TIMEOUT_S = 60  # slow path — thinking models
 SLOW_MS = 10000
@@ -364,15 +366,18 @@ def fmt_provider_block(prov, entry):
     return lines
 
 
-def main(config_path=None, only_providers=None, output_path=None):
+def main(config_path=None, only_providers=None, output_path=None, write=True):
     # Backwards compatibility: old callers pass no arguments; argparse callers
     # pass the parsed values. Unset values keep the module defaults.
+    # write=False (--no-write/--dry-run, TR-031): probes run and the report
+    # prints, but NO state/calibration file is created or modified.
     if output_path:
         global HEALTH_STATE, HEALTH_JSONL
         HEALTH_STATE = output_path
         HEALTH_JSONL = output_path.rsplit('.', 1)[0] + '.jsonl' if '.' in output_path else output_path + '.jsonl'
     env = load_env()
-    os.makedirs(MR, exist_ok=True)
+    if write:
+        os.makedirs(MR, exist_ok=True)
     ts = datetime.datetime.now(datetime.timezone.utc).isoformat(timespec='seconds')
     try:
         prev = json.load(open(HEALTH_STATE))
@@ -445,12 +450,13 @@ def main(config_path=None, only_providers=None, output_path=None):
                               f'{dflt.get("latency_ms")}ms)')
 
     state = {'updated': ts, 'probe_version': 3, 'providers': results}
-    tmp = HEALTH_STATE + '.tmp'
-    with open(tmp, 'w') as f:
-        json.dump(state, f, indent=1)
-    os.replace(tmp, HEALTH_STATE)
-    with open(HEALTH_JSONL, 'a') as f:
-        f.write(json.dumps({'ts': ts, 'probe_version': 3, 'providers': results}) + '\n')
+    if write:
+        tmp = HEALTH_STATE + '.tmp'
+        with open(tmp, 'w') as f:
+            json.dump(state, f, indent=1)
+        os.replace(tmp, HEALTH_STATE)
+        with open(HEALTH_JSONL, 'a') as f:
+            f.write(json.dumps({'ts': ts, 'probe_version': 3, 'providers': results}) + '\n')
 
     # ---- report: transitions, then full formatted listing --------------------
     out = []
@@ -489,6 +495,10 @@ def main(config_path=None, only_providers=None, output_path=None):
         out.append(f'⚪ UNPROBED ({len(unprobed)})')
         for p, r in unprobed:
             out.extend(fmt_provider_block(p, r))
+    if not write:
+        out.append('')
+        out.append('(--no-write: probes ran but nothing was written — '
+                   'health-state.json / health.jsonl untouched)')
     print('\n'.join(out))
     return 0
 
@@ -497,10 +507,30 @@ if __name__ == '__main__':
     import argparse
     ap = argparse.ArgumentParser(description='Provider health probe (fast, no side effects with --help)')
     # TR-029: --help must be safe and print help without live-probing.
-    # The full --dry-run / --no-write ergonomics are TR-031; here we add only the
-    # minimal argparse wrapper so -h / --help exits before any network call.
+    # TR-031: --only / --no-write(--dry-run) calibration ergonomics.
     ap.add_argument('--config', default='config/probe_config.yaml')
     ap.add_argument('--providers', nargs='+')
     ap.add_argument('--output', default='state/health-state.json')
+    ap.add_argument('--only', metavar='PROVIDER[,PROVIDER...]',
+                    help='restrict the run to these provider ids (comma-separated, '
+                         'case-insensitive); unknown id -> clear error, exit 2')
+    ap.add_argument('--no-write', '--dry-run', dest='no_write', action='store_true',
+                    help='run all probes and print the report but write nothing '
+                         '(no health-state.json / health.jsonl writes)')
     args = ap.parse_args()
-    raise SystemExit(main(args.config, args.providers, args.output))
+
+    only = None
+    if args.only:
+        requested = [n.strip() for n in args.only.split(',') if n.strip()]
+        known = {p.lower(): p for p in load_providers()}
+        unknown = [n for n in requested if n.lower() not in known]
+        if unknown:
+            print(f"error: unknown provider(s): {', '.join(unknown)}", file=sys.stderr)
+            print('known providers: ' +
+                  (', '.join(sorted(known.values())) or
+                   f'(none loaded — check {DATA_DIR}/probe_providers.jsonl)'),
+                  file=sys.stderr)
+            raise SystemExit(2)
+        only = sorted({known[n.lower()] for n in requested})
+    merged = sorted(set(args.providers or []) | set(only or [])) or None
+    raise SystemExit(main(args.config, merged, args.output, write=not args.no_write))
