@@ -474,17 +474,17 @@ def _resolve_profile_tag(profiles, ref):
     id (backward compatible with legacy ids like P0_FORE)."""
     if not ref:
         return ref
-    # fast path: exact id
-    if ref in profiles:
-        return ref
-    # tag path: at most one row should carry a given tag; prefer the highest
-    # version on the unlikely event of duplicates (data quality will flag it).
+    # tag path: a tag takes precedence over an id collision so that retagging
+    # an existing id changes resolution without renaming project rows.
     matches = [(r.get('id'), r.get('version') or 0)
                for r in profiles.values()
                if r.get('tag') == ref]
     if matches:
         matches.sort(key=lambda x: -x[1])
         return matches[0][0]
+    # fall back to exact id
+    if ref in profiles:
+        return ref
     return ref
 
 

@@ -64,7 +64,9 @@ BASE_COLUMNS = {
                ('valid_from', 'DATE'), ('valid_to', 'DATE'), ('archive', 'BOOLEAN'),
                ('token_factor', 'DOUBLE'),
                ('disabled', 'BOOLEAN'), ('disabled_reason', 'VARCHAR'),
-               ('context_limit', 'BIGINT')],
+               ('context_limit', 'BIGINT'),
+               ('api_type', 'VARCHAR'), ('vision', 'BOOLEAN'),
+               ('thinking', 'BOOLEAN')],
     'benchmarks': [('model', 'VARCHAR'), ('category', 'VARCHAR'), ('score', 'DOUBLE'),
                    ('max_score', 'DOUBLE'), ('source', 'VARCHAR'), ('valid_from', 'DATE')],
     'archetypes': [('id', 'VARCHAR'), ('bar', 'DOUBLE'), ('skill_levels', 'VARCHAR'),
@@ -74,7 +76,8 @@ BASE_COLUMNS = {
     'task_profiles': [('id', 'VARCHAR'), ('title', 'VARCHAR'),
                       ('created_at', 'VARCHAR'),
                       ('max_consecutive_per_provider', 'INTEGER'),
-                      ('max_total_per_provider', 'INTEGER')],
+                      ('max_total_per_provider', 'INTEGER'),
+                      ('version', 'INTEGER'), ('tag', 'VARCHAR')],
     'task_profile_requirements': [('task_id', 'VARCHAR'), ('category', 'VARCHAR'),
                                   ('level', 'INTEGER')],
 }
@@ -668,7 +671,8 @@ GROUP BY mp.model, mp.category, mp.perf""")
 con.execute("DROP TABLE IF EXISTS task_profiles")
 con.execute("DROP TABLE IF EXISTS task_profile_requirements")
 con.execute("CREATE TABLE task_profiles (id VARCHAR PRIMARY KEY, title VARCHAR, created_at TIMESTAMP, "
-            "max_consecutive_per_provider INTEGER, max_total_per_provider INTEGER)")
+    "max_consecutive_per_provider INTEGER, max_total_per_provider INTEGER, "
+    "version INTEGER, tag VARCHAR)")
 con.execute("CREATE TABLE task_profile_requirements (task_id VARCHAR, category VARCHAR, level INTEGER, PRIMARY KEY (task_id, category))")
 
 # Profile levels re-based to the FIXED percentile scale (TR-002, 2026-08-27):
@@ -785,11 +789,12 @@ except Exception:
 _prof_rows = _load_base_rows('task_profiles')
 _req_rows = _load_base_rows('task_profile_requirements')
 if _prof_rows and _req_rows:
-    for pid, title, ts, mcp, mtp in _prof_rows:
+    for pid, title, ts, mcp, mtp, version, tag in _prof_rows:
         con.execute("INSERT INTO task_profiles (id, title, created_at, "
-                    "max_consecutive_per_provider, max_total_per_provider) "
-                    "VALUES (?, ?, CAST(? AS TIMESTAMP), ?, ?)",
-                    [pid, title, ts, mcp, mtp])
+                    "max_consecutive_per_provider, max_total_per_provider, "
+                    "version, tag) "
+                    "VALUES (?, ?, CAST(? AS TIMESTAMP), ?, ?, ?, ?)",
+                    [pid, title, ts, mcp, mtp, version, tag])
     for tid, cat, lvl in _req_rows:
         con.execute("INSERT INTO task_profile_requirements VALUES (?,?,?)",
                     [tid, cat, lvl])
@@ -799,8 +804,9 @@ else:
         # explicit column list: the two TR-007 diversity columns stay NULL for the
         # seeded profiles (no overrides → global defaults apply; existing behavior)
         ts = _existing_ts.get(pid) or datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
-        con.execute("INSERT INTO task_profiles (id, title, created_at) VALUES (?, ?, CAST(? AS TIMESTAMP))",
-                    [pid, title, ts])
+        con.execute("INSERT INTO task_profiles (id, title, created_at, version, tag) "
+                    "VALUES (?, ?, CAST(? AS TIMESTAMP), 1, ?)",
+                    [pid, title, ts, pid])
         for c, lvl in reqs.items():
             con.execute("INSERT INTO task_profile_requirements VALUES (?,?,?)", [pid, c, lvl])
     _src = 'PROFILES dict (bootstrap fallback)'
