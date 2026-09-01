@@ -10,6 +10,7 @@ Covers:
 """
 
 import importlib
+import json
 import os
 import subprocess
 import sys
@@ -113,15 +114,18 @@ def test_helpers_follow_env_changes_lazily(tmp_path, monkeypatch):
 EXPECTED_COMMANDS = {
     "spawn", "circuit", "gaps", "ledger", "maintain", "modelsdev",
     "pricing", "plan-sweep", "learn", "seed", "probe", "clinepass",
-    "probefix",
+    "probefix", "validate", "metrics", "status", "estimate", "diff",
+    "web", "server",
 }
 
 
 def test_subcommand_list_non_empty_and_complete():
     assert cli.COMMANDS, "COMMANDS must not be empty"
     assert set(cli.COMMANDS) == EXPECTED_COMMANDS
-    assert "validate" in cli.RESERVED
-    assert "validate" not in cli.COMMANDS
+    # validate graduated from reserved stub to the real router_validate.py
+    # (dogfood 2026-09-01); nothing is reserved anymore.
+    assert cli.RESERVED == ()
+    assert "validate" in cli.COMMANDS
 
 
 def test_every_command_maps_to_an_existing_script():
@@ -148,10 +152,18 @@ def test_top_level_help_lists_every_subcommand(capsys):
         assert name in out
 
 
-def test_reserved_validate_is_a_usage_error(capsys):
-    assert cli.main(["validate"]) == 2
-    err = capsys.readouterr().err
-    assert "reserved" in err
+def test_validate_dispatches_to_real_validator(capsys):
+    """validate is no longer a reserved stub: it dispatches to
+    scripts/router_validate.py, prints its pure-JSON report, and returns the
+    validator's own exit code (0 = valid, 1 = issues — in a bare test env
+    there is no registry, so 1 is the CORRECT result; either way the stub is
+    gone). (dogfood fix 2026-09-01)"""
+    rc = cli.main(["validate", "--json"])
+    assert rc in (0, 1)
+    out = capsys.readouterr().out
+    parsed = json.loads(out)  # raises unless pure JSON
+    assert parsed.get("valid") in (True, False)
+    assert isinstance(parsed.get("checks"), list)
 
 
 def test_subcommand_help_passes_through_to_script_argparse(capsys):

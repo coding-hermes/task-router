@@ -70,8 +70,15 @@ COMMANDS = {
     "probe":      "provider_health_probe.py",
     "clinepass":  "router_clinepass.py",
     "probefix":   "router_probefix.py",
+    "validate":   "router_validate.py",
+    "metrics":    "router_metrics.py",
+    "status":     "router_status.py",
+    "estimate":   "router_estimate.py",
+    "diff":       "router_diff.py",
+    "web":        "router_web.py",
+    "server":     "router_server.py",
 }
-RESERVED = ("validate",)
+RESERVED = ()
 
 # Scripts whose failure must NEVER block a caller (scheduler doctrine):
 # they print their own error payload and exit 0 (or we coerce them to 0).
@@ -85,6 +92,7 @@ def _home_env_exports():
     """Env-var map derived from the current data home (called per dispatch)."""
     home = paths.resolve_data_home(create=True)
     state_dir = os.path.dirname(paths.circuit_state_path())  # == home
+    _bootstrap_state_dir(state_dir)
     return {
         "spawn": {
             "ROUTING_REGISTRY": paths.registry_path(),
@@ -122,6 +130,41 @@ def _apply_env_exports(cmd, exports):
     """setdefault every mapping in exports[cmd] into os.environ."""
     for var, value in exports.get(cmd, {}).items():
         os.environ.setdefault(var, value)
+
+
+def _bootstrap_state_dir(state_dir):
+    """First-run bootstrap (dogfood 2026-09-01): create a starter
+    quota-state.json in a EMPTY state dir with every provider from the repo's
+    data table explicitly OPEN.
+
+    Spawn's fail-closed semantics are untouched: absent file = everything
+    gated (deliberate fleet safety). The CLI instead makes first-run honest —
+    the operator gets a visible, editable file declaring the default policy
+    rather than a silent zero-chain surprise. Never overwrites an existing
+    file; any error is non-fatal (the underlying script still runs).
+    """
+    qpath = os.path.join(state_dir, 'quota-state.json')
+    if os.path.exists(qpath):
+        return
+    try:
+        import json as _json
+        provs = {}
+        table = os.path.join(REPO, 'data', 'tables', 'providers.jsonl')
+        with open(table, encoding='utf-8') as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                row = _json.loads(line)
+                pid = row.get('id')
+                if pid:
+                    provs[pid] = {'status': 'open'}
+        doc = {'updated': 'bootstrap', 'providers': provs,
+               'note': 'first-run bootstrap: all providers OPEN; edit to gate'}
+        with open(qpath, 'w', encoding='utf-8') as f:
+            _json.dump(doc, f, indent=1)
+    except Exception as e:  # noqa: BLE001 — bootstrap is best-effort
+        print(f"router: state bootstrap skipped: {e}", file=sys.stderr)
 
 
 def dispatch(cmd, argv):
@@ -210,7 +253,13 @@ def _make_parser():
         "probe":      "provider health probe (manual calibration run)",
         "clinepass":  "Cline Pass plan lane diagnostics",
         "probefix":   "resolve 404/400 model ids from probe logs",
-        "validate":   "reserved (contract validator, not implemented yet)",
+        "validate":   "registry/schema/state/profile integrity check (--json, exit 1 on issues)",
+        "metrics":    "usage metrics: top providers/models/pairs, per-profile, since-window",
+        "status":     "one-command overview: registry, gates, circuit, gaps (json|text)",
+        "estimate":   "cost estimate for a project's chain at given token volumes",
+        "diff":       "chain snapshot diff between two dates (head moves, price deltas)",
+        "web":        "local web UI: settings editor + live resolve preview (:9093)",
+        "server":     "OpenAPI API server + MCP bridge (read-only | edit with API key)",
     }
     for name in sorted(COMMANDS):
         # add_help=False: `router <cmd> --help` must pass through to the
