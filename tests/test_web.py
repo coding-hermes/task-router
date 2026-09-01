@@ -7,6 +7,7 @@ copy of data/tables so the committed tables stay byte-identical.
 import contextlib
 import json
 import os
+import sys
 from pathlib import Path
 import shutil
 import socket
@@ -18,7 +19,11 @@ import urllib.request
 import pytest
 
 REPO = Path(__file__).resolve().parents[1]
-PY = "/home/kara/.hermes/venvs/board/bin/python3"
+PY = (
+    "/home/kara/.hermes/venvs/board/bin/python3"
+    if os.path.exists("/home/kara/.hermes/venvs/board/bin/python3")
+    else sys.executable  # CI / fresh clone: no Bane-host venv
+)
 WEB = REPO / "scripts" / "router_web.py"
 
 

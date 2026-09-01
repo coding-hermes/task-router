@@ -6,11 +6,16 @@ connection refused in milliseconds) — no real network, no repo writes.
 """
 import json
 import os
+import sys
 import subprocess
 import time
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-PY = "/home/kara/.hermes/venvs/board/bin/python3"
+PY = (
+    "/home/kara/.hermes/venvs/board/bin/python3"
+    if os.path.exists("/home/kara/.hermes/venvs/board/bin/python3")
+    else sys.executable  # CI / fresh clone: no Bane-host venv
+)
 PROBE = os.path.join(REPO, "scripts", "provider_health_probe.py")
 SEED = os.path.join(REPO, "scripts", "router_seed.py")
 

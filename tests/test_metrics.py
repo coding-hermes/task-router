@@ -11,7 +11,11 @@ import sys
 import pytest
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-PY = "/home/kara/.hermes/venvs/board/bin/python3"
+PY = (
+    "/home/kara/.hermes/venvs/board/bin/python3"
+    if os.path.exists("/home/kara/.hermes/venvs/board/bin/python3")
+    else sys.executable  # CI / fresh clone: no Bane-host venv
+)
 SPAWN = os.path.join(REPO, "scripts", "router_spawn.py")
 METRICS = os.path.join(REPO, "scripts", "router_metrics.py")
 
