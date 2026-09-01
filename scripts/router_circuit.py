@@ -12,13 +12,25 @@ State semantics (documented, TR-024):
             excluded; the breaker has cooled down and the pair is eligible
             again. Cooling entries are retained for audit until cleared.
 
+Circuit breaker v2 (TR-014):
+  Failures carry a class: api_down, out_of_credit, quota_window, overload.
+  Provider-level breakers open when a provider records >=3 failures of a
+  HARD class (api_down or out_of_credit) across ANY of its models within the
+  class cooldown window.  A provider-level open excludes ALL lanes of that
+  provider, with a longer cooldown than model-level breakers.
+  Model-level breakers for overload/quota_window open only the (provider,
+  model) pair with a short cooldown (TR-032 soft-gate support).
+  Backward-compatible: old state files without the "v2" section keep working;
+  new state adds {"v2": {"provider_breakers": {...}, "classes": {...}}} while
+  leaving legacy pair entries untouched.
+
 Concurrency (TR-027 hardening):
   Every read-modify-write (record-failure / record-success / clear) runs under
   an advisory flock (fcntl.flock LOCK_EX) on a `circuit-state.json.lock`
   sibling. Choice: BLOCKING lock, documented — the critical section is
   sub-millisecond to low-millisecond (load JSON -> mutate -> write temp ->
-  os.replace), and the kernel releases the lock automatically on process
-  death, so a crashed holder can never deadlock a waiter. The scheduler path
+  os.replace), and the kernel releases the lock automatically on process death,
+  so a crashed holder can never deadlock a waiter. The scheduler path
   is fire-and-forget: the worst case is a brief block, never a deadlock, and
   never a partial write. FAIL-OPEN: on any unexpected error the command exits
   1 with a clean message (the Go scheduler treats nonzero as "not recorded"
@@ -28,15 +40,16 @@ Concurrency (TR-027 hardening):
   `STATE + '.tmp'` single-path rename was a lost-update + FileNotFoundError
   race (Sol's 40-process probe: 7 events silently lost).
 
-Pruning (TR-027):
+Pruning (TR-027 / TR-014):
   Expired pairs (open_until in the past) are pruned on EVERY WRITE. Status is
   deliberately read-only (TR-024 contract: status --json lists cooling pairs)
   — a stale entry lives until the next write, which happens on every
   scheduler record call. The pair being written is never pruned first
   (re-failure after natural cooldown continues the streak).
+  Provider breakers are pruned the same way when their open_until expires.
 
-CLI (argparse, TR-027):
-  record-failure <provider> <model> [reason...]
+CLI (argparse, TR-027 / TR-014):
+  record-failure <provider> <model> [--class CLASS] [reason...]
   record-success <provider> <model>
   status [provider] [--json]
   clear <provider> <model> | --all
@@ -60,13 +73,41 @@ STATE = os.path.join(os.environ.get('ROUTER_STATE_DIR',
 BASE_COOLDOWN_S = 300   # 5m
 MAX_COOLDOWN_S = 3600   # 1h
 
+# TR-014: failure-class taxonomy + cooldowns.  Hard classes can open a
+# provider-level breaker; soft classes (overload / quota_window) only ever
+# open the specific (provider, model) pair.
+HARD_CLASSES = frozenset(('api_down', 'out_of_credit'))
+SOFT_CLASSES = frozenset(('overload', 'quota_window'))
+CLASSES = frozenset(HARD_CLASSES | SOFT_CLASSES)
+CLASS_COOLDOWN_S = {
+    'overload': 120,        # 2m  — model-level soft gate
+    'quota_window': 300,    # 5m  — model-level rate-window gate
+    'api_down': 1800,       # 30m — provider-level hard failure
+    'out_of_credit': 14400, # 4h  — provider-level hard failure
+}
+# Optional per-class override via JSON dict in env.  Invalid JSON is ignored
+# (fail-open: defaults keep working).
+_ENV_OVERRIDE = os.environ.get('ROUTING_CIRCUIT_COOLDOWN_JSON')
+if _ENV_OVERRIDE:
+    try:
+        _OVERRIDE = json.loads(_ENV_OVERRIDE)
+        if isinstance(_OVERRIDE, dict):
+            CLASS_COOLDOWN_S = dict(CLASS_COOLDOWN_S)
+            for k, v in _OVERRIDE.items():
+                if k in CLASS_COOLDOWN_S and isinstance(v, (int, float)):
+                    CLASS_COOLDOWN_S[k] = int(v)
+    except Exception:
+        pass
+PROVIDER_FAILURE_THRESHOLD = 3
+
 
 def load():
     """Read the state file. Tolerant: missing/corrupt -> fresh state."""
     try:
         return json.load(open(STATE))
     except Exception:
-        return {'version': 1, 'pairs': {}}
+        return {'version': 1, 'pairs': {}, 'v2': {'provider_breakers': {},
+                                                   'classes': {}}}
 
 
 def _fsync_dir(path):
@@ -118,39 +159,147 @@ def now_iso():
     return datetime.datetime.now(datetime.timezone.utc).isoformat(timespec='seconds')
 
 
-def _prune_expired(st, now, keep=None):
-    """Remove cooling pairs whose open_until is in the past.
+def _parse_utc(ts):
+    """Best-effort ISO-8601 -> aware UTC datetime; None on any failure."""
+    try:
+        dt = datetime.datetime.fromisoformat(str(ts))
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=datetime.timezone.utc)
+        return dt.astimezone(datetime.timezone.utc)
+    except Exception:
+        return None
 
-    keep: key that must survive pruning (the pair being written — its streak
-    continues across a natural cooldown).
+
+def _is_open(entry, now_iso_str):
+    """True when an entry (pair or provider breaker) is still open."""
+    ou = entry.get('open_until')
+    if not ou:
+        return False
+    return ou > now_iso_str
+
+
+def _prune_expired(st, now, keep_pair=None):
+    """Remove cooling pairs and provider breakers whose open_until is past.
+
+    keep_pair: key that must survive pruning (the pair being written — its
+    streak continues across a natural cooldown).
     """
-    pairs = st['pairs']
-    for k in [k for k in pairs if k != keep]:
-        ou = pairs[k].get('open_until')
-        if ou and ou < now:
+    pairs = st.setdefault('pairs', {})
+    for k in [k for k in pairs if k != keep_pair]:
+        if not _is_open(pairs[k], now):
             del pairs[k]
+    v2 = st.setdefault('v2', {})
+    prov = v2.setdefault('provider_breakers', {})
+    for k in list(prov.keys()):
+        if not _is_open(prov[k], now):
+            del prov[k]
 
 
-def record_failure(provider, model, reason=''):
+def _ensure_v2(st):
+    """Return a v2 block, initializing it if absent."""
+    if 'v2' not in st or not isinstance(st['v2'], dict):
+        st['v2'] = {'provider_breakers': {}, 'classes': {}}
+    v2 = st['v2']
+    if 'provider_breakers' not in v2 or not isinstance(v2['provider_breakers'], dict):
+        v2['provider_breakers'] = {}
+    if 'classes' not in v2 or not isinstance(v2['classes'], dict):
+        v2['classes'] = {}
+    return v2
+
+
+def _record_class(v2, provider, model, fclass, now):
+    """Append a class event under v2.classes.<provider>.<model>."""
+    classes = v2.setdefault('classes', {})
+    prov_classes = classes.setdefault(provider, {})
+    mod_classes = prov_classes.setdefault(model, [])
+    if not isinstance(mod_classes, list):
+        mod_classes = []
+    mod_classes.append({'class': fclass, 'ts': now})
+    prov_classes[model] = mod_classes
+
+
+def _provider_failures_in_window(v2, provider, fclass, now, window_s):
+    """Count recent class events for provider across all models."""
+    classes = v2.get('classes') or {}
+    prov_classes = classes.get(provider) or {}
+    if not isinstance(prov_classes, dict):
+        return 0
+    cutoff = (_parse_utc(now) - datetime.timedelta(seconds=window_s)).isoformat()
+    count = 0
+    for model, evs in prov_classes.items():
+        if not isinstance(evs, list):
+            continue
+        for ev in evs:
+            if isinstance(ev, dict) and ev.get('class') == fclass and ev.get('ts', '') >= cutoff:
+                count += 1
+    return count
+
+
+def _open_provider_breaker(st, provider, fclass, now):
+    """Open (or extend) the provider-level breaker for a hard class."""
+    v2 = _ensure_v2(st)
+    prov = v2.setdefault('provider_breakers', {})
+    cd = CLASS_COOLDOWN_S.get(fclass, BASE_COOLDOWN_S)
+    open_until = (_parse_utc(now) + datetime.timedelta(seconds=cd)).isoformat()
+    prov[provider] = {
+        'class': fclass,
+        'open_until': open_until,
+        'opened_at': now,
+        'cooldown_s': cd,
+    }
+    return cd, open_until
+
+
+def record_failure(provider, model, reason='', fclass='api_down'):
+    """Record a failure for (provider, model) with class fclass.
+
+    For hard classes (api_down/out_of_credit) the provider-level breaker opens
+    when >=3 failures of the same class occur within the class cooldown window
+    across any model of that provider.  Soft classes (overload/quota_window)
+    only open the specific (provider, model) pair with a short cooldown.
+    """
+    fclass = (fclass or 'api_down').lower()
+    if fclass not in CLASSES:
+        # Unknown class falls back to today's api_down behavior (fail-open).
+        fclass = 'api_down'
     key = f'{provider}/{model}'
     lf = _acquire_lock()
     try:
         st = load()
         now = now_iso()
-        _prune_expired(st, now, keep=key)
+        _prune_expired(st, now, keep_pair=key)
+        _ensure_v2(st)
         c = st['pairs'].setdefault(key, {'failures': 0, 'open_until': None,
-                                         'last_failure': None, 'reason': ''})
+                                         'last_failure': None, 'reason': '',
+                                         'class': fclass})
         c['failures'] = c.get('failures', 0) + 1
-        cd = min(BASE_COOLDOWN_S * (2 ** (c['failures'] - 1)), MAX_COOLDOWN_S)
-        c['open_until'] = (datetime.datetime.now(datetime.timezone.utc) +
-                           datetime.timedelta(seconds=cd)).isoformat(timespec='seconds')
+        c['class'] = fclass
+        cd = CLASS_COOLDOWN_S.get(fclass)
+        if cd is None:
+            cd = min(BASE_COOLDOWN_S * (2 ** (c['failures'] - 1)), MAX_COOLDOWN_S)
+        c['open_until'] = (_parse_utc(now) + datetime.timedelta(seconds=cd)).isoformat()
         c['last_failure'] = now
+        c['cooldown_s'] = cd
         if reason:
             c['reason'] = reason
+        _record_class(st['v2'], provider, model, fclass, now)
+
+        # Provider-level breaker for hard classes.
+        if fclass in HARD_CLASSES:
+            window_s = cd
+            recent = _provider_failures_in_window(st['v2'], provider, fclass, now, window_s)
+            if recent >= PROVIDER_FAILURE_THRESHOLD:
+                pcd, p_open = _open_provider_breaker(st, provider, fclass, now)
+                save(st)
+                print(f'OPEN {key} class={fclass} — {c["failures"]} consecutive failures, '
+                      f'cooldown {cd}s, open until {c["open_until"]}; '
+                      f'PROVIDER BREAKER {provider} class={fclass} open until {p_open}')
+                return 0
         save(st)
     finally:
         lf.close()
-    print(f'OPEN {key} — {c["failures"]} consecutive failures, cooldown {cd}s, open until {c["open_until"]}')
+    print(f'OPEN {key} class={fclass} — {c["failures"]} consecutive failures, '
+          f'cooldown {cd}s, open until {c["open_until"]}')
     return 0
 
 
@@ -162,8 +311,16 @@ def record_success(provider, model):
         _prune_expired(st, now_iso())
         if key in st['pairs']:
             prev = st['pairs'].pop(key)
-            print(f'CLOSED {key} — was open until {prev.get("open_until")} ({prev.get("failures")} failures)')
+            # Also clear provider breaker for this provider if the success is
+            # recorded on the last open model of that provider.  Conservative:
+            # remove provider breaker immediately on any success for the pair
+            # that helped open it — the provider has recovered.
+            v2 = _ensure_v2(st)
+            prov = v2.get('provider_breakers') or {}
+            if provider in prov:
+                del prov[provider]
             save(st)
+            print(f'CLOSED {key} — was open until {prev.get("open_until")} ({prev.get("failures")} failures)')
         else:
             print(f'{key} already closed')
     finally:
@@ -178,25 +335,70 @@ def status(provider=None, as_json=False):
     st = load()
     now = now_iso()
     pairs = st['pairs']
+    v2 = _ensure_v2(st)
+    provider_breakers = v2.get('provider_breakers', {})
     if provider:
         pairs = {k: v for k, v in pairs.items() if k.startswith(provider + '/')}
+        provider_breakers = {k: v for k, v in provider_breakers.items() if k == provider}
     if as_json:
-        print(json.dumps({
-            'pairs': [{'pair': k, 'state': 'OPEN' if (v.get('open_until') and v['open_until'] > now)
-                       else 'cooling',
+        out = {
+            'pairs': [{'pair': k, 'state': 'OPEN' if _is_open(v, now) else 'cooling',
                        'failures': v.get('failures', 0),
                        'open_until': v.get('open_until'),
-                       'reason': v.get('reason', '')}
+                       'reason': v.get('reason', ''),
+                       'class': v.get('class', 'api_down')}
                       for k, v in sorted(pairs.items())],
-        }, indent=1))
+            'provider_breakers': [{'provider': k,
+                                   'state': 'OPEN' if _is_open(v, now) else 'cooling',
+                                   'class': v.get('class', ''),
+                                   'open_until': v.get('open_until'),
+                                   'opened_at': v.get('opened_at'),
+                                   'cooldown_s': v.get('cooldown_s')}
+                                  for k, v in sorted(provider_breakers.items())],
+            'class_counts': _class_counts(st, provider),
+        }
+        print(json.dumps(out, indent=1))
         return 0
-    if not pairs:
+    printed = False
+    if pairs:
+        for key, c in sorted(pairs.items()):
+            state = 'OPEN' if _is_open(c, now) else 'cooling'
+            print(f'{key:<42} {state:<8} class={c.get("class", "api_down"):<14} '
+                  f'failures={c.get("failures", 0)} open_until={c.get("open_until")} {c.get("reason", "")}')
+            printed = True
+    if provider_breakers:
+        print('--- provider-level breakers ---')
+        for key, c in sorted(provider_breakers.items()):
+            state = 'OPEN' if _is_open(c, now) else 'cooling'
+            print(f'{key:<42} {state:<8} class={c.get("class", ""):<14} '
+                  f'open_until={c.get("open_until")} cooldown_s={c.get("cooldown_s")}')
+            printed = True
+    if not printed:
         print('no open/recorded circuits')
-        return 0
-    for key, c in sorted(pairs.items()):
-        state = 'OPEN' if c.get('open_until') and c['open_until'] > now else 'cooling'
-        print(f'{key:<42} {state:<8} failures={c.get("failures", 0)} open_until={c.get("open_until")} {c.get("reason", "")}')
     return 0
+
+
+def _class_counts(st, provider=None):
+    """Return {class: count} across all recorded events (or one provider)."""
+    v2 = st.get('v2') or {}
+    classes = v2.get('classes') or {}
+    if not isinstance(classes, dict):
+        return {}
+    counts = {}
+    provs = [provider] if provider else list(classes.keys())
+    for prov in provs:
+        if prov not in classes:
+            continue
+        modmap = classes[prov]
+        if not isinstance(modmap, dict):
+            continue
+        for evs in modmap.values():
+            if not isinstance(evs, list):
+                continue
+            for ev in evs:
+                if isinstance(ev, dict) and ev.get('class'):
+                    counts[ev['class']] = counts.get(ev['class'], 0) + 1
+    return counts
 
 
 def clear(provider=None, model=None, all_=False):
@@ -206,6 +408,9 @@ def clear(provider=None, model=None, all_=False):
         _prune_expired(st, now_iso())
         if all_:
             st['pairs'] = {}
+            v2 = _ensure_v2(st)
+            v2['provider_breakers'] = {}
+            v2['classes'] = {}
             save(st)
             print('cleared all circuits')
             return 0
@@ -231,10 +436,13 @@ def main(argv=None):
     pf = sub.add_parser('record-failure', help='open (or extend) the circuit for a pair')
     pf.add_argument('provider')
     pf.add_argument('model')
+    pf.add_argument('--class', dest='fclass', default='api_down',
+                    choices=sorted(CLASSES),
+                    help='failure class (default: api_down)')
     pf.add_argument('reason', nargs='*', default='',
                     help='optional failure reason (multiple words are joined)')
     pf.set_defaults(func=lambda a: record_failure(a.provider, a.model,
-                                                  ' '.join(a.reason)))
+                                                  ' '.join(a.reason), fclass=a.fclass))
 
     ps = sub.add_parser('record-success', help='close the circuit for a pair')
     ps.add_argument('provider')
