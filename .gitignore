@@ -10,6 +10,7 @@ __pycache__/
 .gitreins/history/
 .gitreins/verdicts/
 dagger.db*
+data/metrics.jsonl
 
 # live registry state — gitignored text store (Bane 2026-08-27)
 registry.json

@@ -42,7 +42,7 @@ max_total_per_provider, model_concurrency_limit, overrides}}
 Exit 0 always (fail-open: on any error prints {"error": ...} and exits 0) — the
 scheduler must NEVER be blocked by the router.
 """
-import json, os, sys, argparse, datetime
+import json, os, sys, argparse, datetime, contextlib
 
 # Text registry (Bane 2026-08-27): the live store is a gitignored JSON file in
 # the task-router repo — NOT a binary duckdb. Env-overridable for hermetic
@@ -56,6 +56,11 @@ DATA_DIR = os.environ.get('ROUTING_DATA_DIR', os.path.join(_REPO, 'data', 'table
 # State dir (quota/health/circuit/ledger). Env-overridable so tests are hermetic
 # and ops can point at a scratch dir; default identical to the historical path.
 MR = os.environ.get('ROUTER_STATE_DIR', os.path.expanduser('~/.hermes/model-router'))
+
+# Metrics file location (TR-021).  TASK_ROUTER_HOME wins for container/hermetic
+# isolation; otherwise repo-local data/metrics.jsonl (gitignored runtime state).
+_METRICS_HOME = os.environ.get('TASK_ROUTER_HOME')
+METRICS_FILE = os.path.join(_METRICS_HOME, 'metrics.jsonl') if _METRICS_HOME else os.path.join(_REPO, 'data', 'metrics.jsonl')
 
 # A 'started' ledger row older than this is stale (crashed without `end`) and
 # does not count as in-flight.
@@ -227,6 +232,110 @@ def _prune_diversity(out_chain, exclusions, reasons, cons_cap, tot_cap):
         else:
             survivors.append(ent)
     out_chain[:] = survivors
+
+
+def _metrics_path():
+    """Return metrics file path; env-overridable for tests."""
+    env = os.environ.get('TASK_ROUTER_HOME')
+    if env:
+        return os.path.join(env, 'metrics.jsonl')
+    return METRICS_FILE
+
+
+def _routing_env_names():
+    """Names of ROUTING_* / ROUTER_* / TASK_ROUTER_* env vars present (no values)."""
+    return sorted(k for k in os.environ if k.startswith(('ROUTING_', 'ROUTER_', 'TASK_ROUTER_')))
+
+
+def _append_metrics(rows, result):
+    """Append one row per chain hop to the metrics JSONL file (TR-021).
+
+    rows is the list of tuples as produced by _build_chain (each tuple is
+    (hop, provider, model, price, data_class, model_row)).  result is the
+    resolve output dict.  outcome per hop: 'resolved' if the hop survived
+    gates, 'excluded' if it appears in result['exclusions'], 'error' if
+    result has an 'error' key (one error row, chain_length=0, order=0).
+
+    This function swallows ALL its own errors silently: stdout and exit code of
+    router_spawn.py must remain identical to today's.
+    """
+    try:
+        path = _metrics_path()
+        d = os.path.dirname(path)
+        if d:
+            os.makedirs(d, exist_ok=True)
+        ts = datetime.datetime.now(datetime.timezone.utc).isoformat(timespec='seconds')
+        project = result.get('project')
+        profile = result.get('profile')
+        gates = result.get('gates_loaded') or {}
+        src = result.get('source')
+        if isinstance(src, str):
+            src = os.path.basename(src)
+        snapshot = {
+            'registry_source': src,
+            'gates_loaded': gates,
+            'chain_length': len(result.get('chain') or []),
+            'routing_env_vars': _routing_env_names(),
+        }
+        error_obj = result.get('error')
+        lines = []
+        if error_obj:
+            err_text = error_obj
+            if isinstance(error_obj, dict):
+                err_text = error_obj.get('error') or json.dumps(error_obj)
+            lines.append({
+                'ts': ts,
+                'project': project,
+                'profile': profile,
+                'provider': None,
+                'model': None,
+                'order': 0,
+                'price_usd_per_m': None,
+                'outcome': 'error',
+                'exclusion_reason': str(err_text),
+                'config_snapshot': snapshot,
+            })
+        else:
+            excluded_map = {}
+            for ex in (result.get('exclusions') or []):
+                excluded_map[ex.get('hop')] = ex
+            chain_by_hop = {c.get('hop'): c for c in (result.get('chain') or [])}
+            for ent in (rows or []):
+                hop, prov, model, price, dc, mrow = ent
+                ex = excluded_map.get(hop)
+                if ex is not None and ex.get('provider') == prov and ex.get('model') == model:
+                    outcome = 'excluded'
+                    why = ex.get('why') or []
+                    if isinstance(why, list):
+                        reason = '; '.join('; '.join(w) if isinstance(w, list) else str(w) for w in why)
+                    else:
+                        reason = str(why)
+                    if not reason:
+                        reason = None
+                else:
+                    outcome = 'resolved'
+                    reason = None
+                # price per hop: prefer the public/effective price used by the chain output
+                price_used = chain_by_hop.get(hop, {}).get('usd_1m')
+                if price_used is None:
+                    price_used = round(float(price), 4) if price is not None else None
+                lines.append({
+                    'ts': ts,
+                    'project': project,
+                    'profile': profile,
+                    'provider': prov,
+                    'model': model,
+                    'order': hop,
+                    'price_usd_per_m': price_used,
+                    'outcome': outcome,
+                    'exclusion_reason': reason,
+                    'config_snapshot': snapshot,
+                })
+        with open(path, 'a') as f:
+            for row in lines:
+                f.write(json.dumps(row) + '\n')
+    except Exception:
+        pass
 
 
 def _validate_adhoc(adhoc, tables):
@@ -506,7 +615,9 @@ def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=30
     # --- 2. chain from the registry -------------------------------------------
     # Profiles with NO requirement rows resolve to an empty chain — identical
     # to v_task_eligible (its task list comes from DISTINCT requirements).
-    chain = _build_chain(tables, reqs, limit=limit) if reqs else []
+    chain_rows = _build_chain(tables, reqs, limit=limit) if reqs else []
+    # TR-021: keep the raw price-ordered eligible list for metrics before gates.
+    chain = list(chain_rows)
 
     # --- 2.5 settings: diversity caps + per-profile overrides ------------------
     # TR-025 gates_loaded: presence of each state file is reported LOUDLY —
@@ -644,7 +755,11 @@ def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=30
             },
             'warnings': warnings,
             'gate': 'OPEN' if head else ('NO-OPEN-HOP' if out_chain or exclusions else 'NO-CHAIN'),
-            'settings': caps}
+            'settings': caps,
+            # TR-021: carry the raw chain rows to the metrics hook without
+            # recomputing.  This key is intentionally NOT part of the public
+            # contract and is stripped before JSON serialization in main().
+            '_chain_rows': chain_rows}
 
 def main():
     ap = argparse.ArgumentParser(description='Task router — resolve chain for project/profile')
@@ -682,6 +797,14 @@ def main():
 
     r = resolve(project=args.project, profile_id=args.profile_id,
                 adhoc=args.adhoc, use_health=not args.no_health)
+    # TR-021: metrics append is best-effort; any failure is swallowed so
+    # router_spawn stdout + exit code stay identical.  Strip the internal
+    # _chain_rows helper key before serialization.
+    try:
+        _append_metrics(r.get('_chain_rows'), r)
+    except Exception:
+        pass
+    r.pop('_chain_rows', None)
     if args.format == 'json':
         print(json.dumps(r, indent=1))
         return
