@@ -97,6 +97,10 @@ PROBE_PARAMS = {
     'deepseek-foreman':        {'max_tokens': 16, 'thinking': {'type': 'disabled'}},
     'deepseek-duckbrain-sync': {'max_tokens': 16, 'thinking': {'type': 'disabled'}},
     'minimax':                 {'max_tokens': 16, 'thinking': {'type': 'disabled'}},
+    # Meta Muse: reasoning model — a 16-token ping returns null content (burned
+    # 31 reasoning tokens on a pong, verified live 2026-09-01). Generous cap so
+    # content survives the reasoning split; no thinking-disable param exists.
+    'meta-model':              {'max_tokens': 300},
 }
 
 UP_LIKE = ('OK', 'SLOW', 'OVERLOADED', 'TIMEOUT')
