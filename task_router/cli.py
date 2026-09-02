@@ -176,42 +176,49 @@ def dispatch(cmd, argv):
 
 def main(argv=None):
     argv = list(sys.argv[1:] if argv is None else argv)
-    parser = _build_parser()
-    args, extra = parser.parse_known_args(argv)
-
-    if args.command is None:
-        parser.print_help()
+    # No argparse subparsers for the passthrough: argparse.REMAINDER drops the
+    # value of any option that STARTS a subcommand invocation ('router spawn
+    # --profile-req reasoning=5 ...' lost 'reasoning=5' on every interpreter,
+    # 2026-09-01 dogfood find). Dispatch argv[1:] verbatim instead; the
+    # underlying script's argparse owns full validation (help passthrough).
+    if not argv:
+        _print_help()
         return 2
-    if args.command in RESERVED:
-        print(f"router: '{args.command}' is reserved (no implementation yet)",
+    cmd = argv[0]
+    if cmd in ("-h", "--help"):
+        _print_help()
+        # argparse convention: --help raises SystemExit(0). The 2026-09-01
+        # passthrough rewrite (dispatch argv verbatim) returned 0 without
+        # raising, breaking test_top_level_help_lists_every_subcommand and any
+        # caller using the argparse idiom (pytest.raises(SystemExit)).
+        raise SystemExit(0)
+    if cmd not in COMMANDS:
+        print(f"router: unknown command {cmd!r} (see 'router --help')",
               file=sys.stderr)
         return 2
-
-    # Unknown extra args are passed through verbatim — the underlying
-    # script's argparse owns full validation (help passthrough included).
-    cmd_argv = (args.cmd_args or []) + extra
+    cmd_argv = argv[1:]
     exports = _home_env_exports()
     # Exports are PER-DISPATCH: snapshot the vars we will touch and restore
     # them in `finally`, so one long-lived process can dispatch many
     # subcommands without earlier exports leaking into later ones.
-    touched = exports.get(args.command, {})
+    touched = exports.get(cmd, {})
     saved = {k: os.environ.get(k) for k in touched}
-    _apply_env_exports(args.command, exports)
+    _apply_env_exports(cmd, exports)
     try:
-        dispatch(args.command, cmd_argv)
+        dispatch(cmd, cmd_argv)
         rc = 0
     except SystemExit as e:
         # Scripts raise SystemExit for argparse usage errors (--help -> 0).
         code = e.code if isinstance(e.code, int) else 0 if e.code is None else 1
-        if args.command in FAIL_OPEN and code not in (0,):
-            print(f"router: {args.command} exited {code} — fail-open "
+        if cmd in FAIL_OPEN and code not in (0,):
+            print(f"router: {cmd} exited {code} — fail-open "
                   f"(coerced to 0)", file=sys.stderr)
             rc = 0
         else:
             rc = code
     except Exception as e:  # noqa: BLE001 — never crash the wrapper
         print(f"router: dispatch failed: {e}", file=sys.stderr)
-        rc = 0 if args.command in FAIL_OPEN else 1
+        rc = 0 if cmd in FAIL_OPEN else 1
     finally:
         for k, v in saved.items():
             if v is None:
@@ -221,25 +228,17 @@ def main(argv=None):
     return rc
 
 
-def _build_parser():
-    parser = _make_parser()
-    return parser
-
-
-def _make_parser():
-    import argparse
-
-    parser = argparse.ArgumentParser(
-        prog="router",
-        description="task-router CLI — deterministic model routing for the "
-                    "coding-hermes fleet. Each subcommand runs the matching "
-                    "scripts/router_<name>.py tool with data-home env "
-                    "overrides applied.",
-        epilog="Data home: $TASK_ROUTER_HOME > $XDG_DATA_HOME/task-router > "
-               "~/.local/share/task-router (see task_router.paths).",
-    )
-    sub = parser.add_subparsers(dest="command", metavar="COMMAND")
-    help_texts = {
+def _print_help():
+    """Manual help (no argparse subparsers since 2026-09-01 — see main())."""
+    print("usage: router [-h] COMMAND [args...]")
+    print()
+    print("task-router CLI — deterministic model routing for the coding-hermes fleet.")
+    print("Each subcommand runs the matching scripts/router_<name>.py tool with")
+    print("data-home env overrides applied. `router <cmd> --help` passes through to")
+    print("the underlying tool's own argparse.")
+    print()
+    print("COMMAND")
+    texts = {
         "spawn":      "resolve a task/profile to a model chain (fail-open JSON/text)",
         "circuit":    "circuit-breaker state for (provider, model) pairs",
         "gaps":       "registry coverage gap report",
@@ -262,15 +261,11 @@ def _make_parser():
         "server":     "OpenAPI API server + MCP bridge (read-only | edit with API key)",
     }
     for name in sorted(COMMANDS):
-        # add_help=False: `router <cmd> --help` must pass through to the
-        # underlying script's argparse (AC5), not be swallowed by a stub.
-        sp = sub.add_parser(name, help=help_texts.get(name, ""),
-                            add_help=False)
-        sp.add_argument("cmd_args", nargs=argparse.REMAINDER,
-                        help=argparse.SUPPRESS)
-    for name in RESERVED:
-        sub.add_parser(name, help=help_texts.get(name, ""))
-    return parser
+        pad = " " * (12 - len(name))
+        print(f"  {name}{pad}{texts.get(name, '')}")
+    print()
+    print("Data home: $TASK_ROUTER_HOME > $XDG_DATA_HOME/task-router > "
+          "~/.local/share/task-router (see task_router.paths).")
 
 
 if __name__ == "__main__":
