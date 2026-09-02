@@ -401,9 +401,14 @@ class RouterApplication:
                     project = project[0] if project else None
                 if not project:
                     return 400, {"error": "project query parameter is required"}
-                return 200, _subprocess_json(
-                    "router_spawn.py", [project, "--format", "json"]
-                )
+                argv = [project, "--format", "json"]
+                # Training-data opt-in (Bane 2026-09-01): default OFF. Pass
+                # ?allow_training=1 to include lanes whose terms train on
+                # prompts/completions (e.g. muse-spark-1.2-contributor).
+                at = query.get("allow_training")
+                if at and (isinstance(at, str) and at not in ("0", "false", "no")):
+                    argv.append("--allow-training")
+                return 200, _subprocess_json("router_spawn.py", argv)
             if path == "/profiles":
                 return 200, {"profiles": _read_jsonl("task_profiles")}
             if path == "/providers":

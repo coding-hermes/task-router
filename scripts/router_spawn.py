@@ -683,7 +683,8 @@ def _resolve_fallback(tables, qs, hs, cs, reqs, limit=30, profile_id=None):
     return out
 
 
-def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=30):
+def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=30,
+            allow_training=False):
     tables, src, fb, warn = _load_registry_with_meta()
     warnings = [warn] if warn else []
     projects = {r.get('id'): r for r in tables.get('projects') or []}
@@ -768,6 +769,13 @@ def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=30
     soft_gate_on = bool(qdoc.get('soft_gate'))
     inflight = ledger_in_flight(MR)  # fail-open: {} on any error
     ledger_wired = ledger_has_traces(MR)  # rows exist ⇒ start/end calls land
+    # Training-data opt-in (Bane 2026-09-01): default EXCLUDES lanes whose
+    # provider/model terms train on your prompts/completions. Opt in via
+    # quota-state.json knob allow_training: true, or per-call
+    # allow_training=1 (CLI flag / server query param) — for projects like
+    # 9router/rethinkdb where open-source work makes training a fair trade
+    # for contributor-tier pricing.
+    allow_training = bool(qdoc.get('allow_training')) or allow_training
     if not ledger_wired:
         # TR-026 visible disable: the spawn ledger is NOT wired by the
         # scheduler yet (TASK-ROUTER-002 call side). Concurrency knobs are a
@@ -781,8 +789,13 @@ def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=30
         )
     now = datetime.datetime.now(datetime.timezone.utc).isoformat(timespec='seconds')
 
+    # Training gate (Bane 2026-09-01): provider facts live in the providers
+    # table (trains_on_hosted); index once for the per-hop check below.
+    provs_by_id = {r.get('id'): r for r in (tables.get('providers') or [])}
+
     out_chain, exclusions, reasons = [], [], []
     for hop, prov, model, price, dc, mrow in chain:
+        prov_row = provs_by_id.get(prov) or {}
         why = []
         q = qs.get(prov, {})
         if not isinstance(q, dict):
@@ -817,6 +830,19 @@ def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=30
             nf = inflight.get((prov, model), 0)
             if nf >= mlim:
                 why.append(f'model busy ({nf} in-flight >= limit {mlim})')
+        # Training-data gate (Bane 2026-09-01): excluded UNLESS the caller
+        # opted in. A lane trains when the MODEL is a global trainer
+        # (training_model_level — e.g. any *-contributor checkpoint, every
+        # provider/proxy) OR this PROVIDER trains on what it hosts
+        # (training_provider_level / providers.trains_on_hosted).
+        if not allow_training:
+            mrow_t = mrow if isinstance(mrow, dict) else {}
+            trains = bool(mrow_t.get('training_model_level')) or \
+                bool(mrow_t.get('training_provider_level')) or \
+                bool(prov_row.get('trains_on_hosted'))
+            if trains:
+                why.append('training on prompts/completions (opt in with '
+                           'allow_training to include)')
         if why:
             exclusions.append({'hop': hop, 'provider': prov, 'model': model, 'why': why})
             reasons.append(f'hop {hop} {prov}/{model}: ' + '; '.join(why))
@@ -900,6 +926,9 @@ def main():
     ap.add_argument('--explain', action='store_true')
     ap.add_argument('--format', choices=['json', 'text'], default='json')
     ap.add_argument('--no-health', action='store_true')
+    ap.add_argument('--allow-training', action='store_true',
+                    help='include lanes whose terms train on prompts/completions '
+                         '(default: excluded; e.g. muse-spark-1.2-contributor)')
     args = ap.parse_args()
 
     if args.list_profiles:
@@ -926,7 +955,8 @@ def main():
               f"(project profile wins)", file=sys.stderr)
 
     r = resolve(project=args.project, profile_id=args.profile_id,
-                adhoc=args.adhoc, use_health=not args.no_health)
+                adhoc=args.adhoc, use_health=not args.no_health,
+                allow_training=args.allow_training)
     # TR-021: metrics append is best-effort; any failure is swallowed so
     # router_spawn stdout + exit code stay identical.  Strip the internal
     # _chain_rows helper key before serialization.
