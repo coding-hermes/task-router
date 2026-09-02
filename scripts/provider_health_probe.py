@@ -83,9 +83,20 @@ CREDIT_ENDPOINTS = {
 
 # Per-provider body overrides: gpt-5.6 AND clinepass deepseek models reject
 # `max_tokens` (use max_completion_tokens, min 16) — verified 2026-08-27/08-31.
+# `thinking: {"type": "disabled"}` kills hidden-reasoning token burn on probe
+# pings (Bane 09-01: "thinking off on as many models as possible"). Proven live
+# 09-01: deepseek + minimax return 200 with real content (vs. 16 thinking tokens
+# + empty content before). zai-glm accepted the param but STILL thought (reas=16,
+# empty content) — deliberately NOT set. clinepass 500s regardless — untouched.
+# NOTE: a non-empty entry REPLACES the default {'max_tokens': 16} in _req(),
+# so every entry must carry its own token cap.
 PROBE_PARAMS = {
     'openai-codex': {'max_completion_tokens': 16},
     'clinepass':    {'max_completion_tokens': 16},
+    'deepseek':                {'max_tokens': 16, 'thinking': {'type': 'disabled'}},
+    'deepseek-foreman':        {'max_tokens': 16, 'thinking': {'type': 'disabled'}},
+    'deepseek-duckbrain-sync': {'max_tokens': 16, 'thinking': {'type': 'disabled'}},
+    'minimax':                 {'max_tokens': 16, 'thinking': {'type': 'disabled'}},
 }
 
 UP_LIKE = ('OK', 'SLOW', 'OVERLOADED', 'TIMEOUT')
