@@ -17,6 +17,8 @@
 {"id": "bankai", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "bankai-sync", "sensitivity": "open", "board_type": "", "stack": "", "profile": "P8_SYNC"}
 {"id": "blog-sync", "sensitivity": "open", "board_type": "", "stack": "", "profile": "P8_SYNC"}
+{"id": "boardctl", "sensitivity": "open", "board_type": "jsonl", "stack": "go", "profile": "P0_FORE"}
+{"id": "boardctl-sync", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
 {"id": "bunker", "sensitivity": "proprietary", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "bunker-dogfood", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
 {"id": "bunker-qa", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P9_REVIEW"}
@@ -50,6 +52,7 @@
 {"id": "dexdat-memory-dogfood", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
 {"id": "dexdat-memory-qa", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P9_REVIEW"}
 {"id": "dexdat-memory-sync", "sensitivity": "open", "board_type": "", "stack": "", "profile": "P8_SYNC"}
+{"id": "doc-writer", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P3_DOCS"}
 {"id": "duckbrain", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "duckbrain-pm", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
 {"id": "duckbrain-sync", "sensitivity": "open", "board_type": "", "stack": "", "profile": "P8_SYNC"}
@@ -143,6 +146,7 @@
 {"id": "rabbit-hole-dogfood", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
 {"id": "rabbit-hole-qa", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P9_REVIEW"}
 {"id": "rabbit-hole-sync", "sensitivity": "open", "board_type": "", "stack": "", "profile": "P8_SYNC"}
+{"id": "release-engineer", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P2_AGENTIC"}
 {"id": "reports-sync", "sensitivity": "open", "board_type": "", "stack": "", "profile": "P8_SYNC"}
 {"id": "rethinkdb", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "rethinkdb-dogfood", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
