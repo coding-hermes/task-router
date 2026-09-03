@@ -168,11 +168,12 @@
 {"model": "glm-5.2", "category": "code_gen", "score": 0.621, "max_score": 1.0, "source": "SWE-bench Pro (vendor) research-bench-2026-08-29", "valid_from": "2026-08-29"}
 {"model": "glm-5.2", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
 {"model": "glm-5.2", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
-{"model": "glm-5.2", "category": "debug", "score": 62.9, "max_score": 62.9, "source": "SWE-rebench v2 (pass@5 81.1)", "valid_from": null}
+{"model": "glm-5.2", "category": "debug", "score": 62.9, "max_score": 100.0, "source": "SWE-rebench v2 (pass@5 81.1)", "valid_from": "2026-09-03"}
 {"model": "glm-5.2", "category": "delegation", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
 {"model": "glm-5.2", "category": "guard", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
 {"model": "glm-5.2", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
 {"model": "glm-5.2", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "glm-5.2", "category": "sentiment", "score": 0.72, "max_score": 1.0, "source": "research-bench-2026-09-03", "valid_from": "2026-09-03"}
 {"model": "glm-5.2", "category": "sentiment", "score": 0.75, "max_score": 1.0, "source": "research-sent-2026-08-27", "valid_from": "2026-08-27"}
 {"model": "glm-5.2-short-fast", "category": "agent-tick", "score": 2.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
 {"model": "glm-5.2-short-fast", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
@@ -263,6 +264,7 @@
 {"model": "grok-4.20-0309-reasoning", "category": "guard", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
 {"model": "grok-4.20-0309-reasoning", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
 {"model": "grok-4.20-0309-reasoning", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "grok-4.20-multi-agent-0309", "category": "guard", "score": 0.83, "max_score": 1.0, "source": "research-bench-2026-09-03 (IFBench 83 1st place)", "valid_from": "2026-09-03"}
 {"model": "grok-4.3", "category": "agent-tick", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
 {"model": "grok-4.3", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
 {"model": "grok-4.3", "category": "debug", "score": 3.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
@@ -508,6 +510,8 @@
 {"model": "qwen3.7-plus", "category": "guard", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
 {"model": "qwen3.7-plus", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
 {"model": "qwen3.7-plus", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "qwen3.8-27b", "category": "code_gen", "score": 0.88, "max_score": 1.0, "source": "research-bench-2026-09-03 (llmcompare 10-task judged, orcarouter)", "valid_from": "2026-09-03"}
+{"model": "qwen3.8-27b", "category": "sentiment", "score": 0.68, "max_score": 1.0, "source": "research-bench-2026-09-03 (excellent but default-overthinks — simonw; arena #1-open I2WD/#9 CodeArena WebDev)", "valid_from": "2026-09-03"}
 {"model": "qwen3.8-flash", "category": "agent_tick", "score": 0.739, "max_score": 1.0, "source": "CoWorkBench research-bench-2026-08-27", "valid_from": "2026-08-27"}
 {"model": "qwen3.8-flash", "category": "code_gen", "score": 0.587, "max_score": 1.0, "source": "DeepSWE research-bench-2026-08-27", "valid_from": "2026-08-27"}
 {"model": "qwen3.8-flash", "category": "code_gen", "score": 0.625, "max_score": 1.0, "source": "SWE-bench Pro research-bench-2026-08-27", "valid_from": "2026-08-27"}

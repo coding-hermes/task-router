@@ -19,7 +19,7 @@
 {"category": "code_gen", "level": 2, "label": "++", "min_perf": 0.8499999999999999}
 {"category": "code_gen", "level": 3, "label": "+++", "min_perf": 0.85}
 {"category": "code_gen", "level": 4, "label": "++++", "min_perf": 0.8499999999999999}
-{"category": "code_gen", "level": 5, "label": "+++++", "min_perf": 0.9935135135135135}
+{"category": "code_gen", "level": 5, "label": "+++++", "min_perf": 0.8949475357710641}
 {"category": "creative", "level": -5, "label": "-----", "min_perf": 0.45}
 {"category": "creative", "level": -4, "label": "----", "min_perf": 0.45000000000000007}
 {"category": "creative", "level": -3, "label": "---", "min_perf": 0.45000000000000007}

@@ -147,7 +147,7 @@
 {"model": "glm-5.1", "category": "refactor", "perf": 0.5, "tier": 1}
 {"model": "glm-5.1", "category": "tool_use", "perf": 0.75, "tier": 2}
 {"model": "glm-5.2", "category": "agent_tick", "perf": 0.75, "tier": 2}
-{"model": "glm-5.2", "category": "code_gen", "perf": 1.0, "tier": 5}
+{"model": "glm-5.2", "category": "code_gen", "perf": 0.85, "tier": 4}
 {"model": "glm-5.2", "category": "creative", "perf": 0.45, "tier": 0}
 {"model": "glm-5.2", "category": "debug", "perf": 1.0, "tier": 5}
 {"model": "glm-5.2", "category": "delegation", "perf": 0.75, "tier": 3}
@@ -167,7 +167,7 @@
 {"model": "glm-5.2", "category": "ui_frontend", "perf": 0.72, "tier": 2}
 {"model": "glm-5.2", "category": "vision", "perf": 0.45, "tier": -2}
 {"model": "glm-5.2-fast", "category": "agent_tick", "perf": 0.75, "tier": 2}
-{"model": "glm-5.2-fast", "category": "code_gen", "perf": 1.0, "tier": 5}
+{"model": "glm-5.2-fast", "category": "code_gen", "perf": 0.85, "tier": 4}
 {"model": "glm-5.2-fast", "category": "creative", "perf": 0.45, "tier": 0}
 {"model": "glm-5.2-fast", "category": "debug", "perf": 1.0, "tier": 5}
 {"model": "glm-5.2-fast", "category": "delegation", "perf": 0.75, "tier": 3}
@@ -187,7 +187,7 @@
 {"model": "glm-5.2-fast", "category": "ui_frontend", "perf": 0.72, "tier": 2}
 {"model": "glm-5.2-fast", "category": "vision", "perf": 0.45, "tier": -2}
 {"model": "glm-5.2-flex", "category": "agent_tick", "perf": 0.75, "tier": 2}
-{"model": "glm-5.2-flex", "category": "code_gen", "perf": 1.0, "tier": 5}
+{"model": "glm-5.2-flex", "category": "code_gen", "perf": 0.85, "tier": 4}
 {"model": "glm-5.2-flex", "category": "creative", "perf": 0.45, "tier": 0}
 {"model": "glm-5.2-flex", "category": "debug", "perf": 1.0, "tier": 5}
 {"model": "glm-5.2-flex", "category": "delegation", "perf": 0.75, "tier": 3}
@@ -207,7 +207,7 @@
 {"model": "glm-5.2-flex", "category": "ui_frontend", "perf": 0.72, "tier": 2}
 {"model": "glm-5.2-flex", "category": "vision", "perf": 0.45, "tier": -2}
 {"model": "glm-5.2-short", "category": "agent_tick", "perf": 0.75, "tier": 2}
-{"model": "glm-5.2-short", "category": "code_gen", "perf": 1.0, "tier": 5}
+{"model": "glm-5.2-short", "category": "code_gen", "perf": 0.85, "tier": 4}
 {"model": "glm-5.2-short", "category": "creative", "perf": 0.45, "tier": 0}
 {"model": "glm-5.2-short", "category": "debug", "perf": 1.0, "tier": 5}
 {"model": "glm-5.2-short", "category": "delegation", "perf": 0.75, "tier": 3}
@@ -247,7 +247,7 @@
 {"model": "glm-5.2-short-fast", "category": "ui_frontend", "perf": 0.72, "tier": 2}
 {"model": "glm-5.2-short-fast", "category": "vision", "perf": 0.45, "tier": -2}
 {"model": "glm-5.2-short-fast-flex", "category": "agent_tick", "perf": 0.75, "tier": 2}
-{"model": "glm-5.2-short-fast-flex", "category": "code_gen", "perf": 1.0, "tier": 5}
+{"model": "glm-5.2-short-fast-flex", "category": "code_gen", "perf": 0.85, "tier": 4}
 {"model": "glm-5.2-short-fast-flex", "category": "creative", "perf": 0.45, "tier": 0}
 {"model": "glm-5.2-short-fast-flex", "category": "debug", "perf": 1.0, "tier": 5}
 {"model": "glm-5.2-short-fast-flex", "category": "delegation", "perf": 0.75, "tier": 3}
@@ -267,7 +267,7 @@
 {"model": "glm-5.2-short-fast-flex", "category": "ui_frontend", "perf": 0.72, "tier": 2}
 {"model": "glm-5.2-short-fast-flex", "category": "vision", "perf": 0.45, "tier": -2}
 {"model": "glm-5.2-short-flex", "category": "agent_tick", "perf": 0.75, "tier": 2}
-{"model": "glm-5.2-short-flex", "category": "code_gen", "perf": 1.0, "tier": 5}
+{"model": "glm-5.2-short-flex", "category": "code_gen", "perf": 0.85, "tier": 4}
 {"model": "glm-5.2-short-flex", "category": "creative", "perf": 0.45, "tier": 0}
 {"model": "glm-5.2-short-flex", "category": "debug", "perf": 1.0, "tier": 5}
 {"model": "glm-5.2-short-flex", "category": "delegation", "perf": 0.75, "tier": 3}
@@ -345,7 +345,7 @@
 {"model": "gpt-5.6-luna", "category": "tool_use", "perf": 0.75, "tier": 2}
 {"model": "gpt-5.6-luna", "category": "vision", "perf": 1.0, "tier": 5}
 {"model": "gpt-5.6-sol", "category": "agent_tick", "perf": 0.75, "tier": 2}
-{"model": "gpt-5.6-sol", "category": "code_gen", "perf": 0.9904610492845787, "tier": 4}
+{"model": "gpt-5.6-sol", "category": "code_gen", "perf": 0.9904610492845787, "tier": 5}
 {"model": "gpt-5.6-sol", "category": "debug", "perf": 0.9905, "tier": 4}
 {"model": "gpt-5.6-sol", "category": "delegation", "perf": 0.75, "tier": 3}
 {"model": "gpt-5.6-sol", "category": "e2e_vision", "perf": 0.7, "tier": 2}
@@ -467,7 +467,7 @@
 {"model": "hf:openai/gpt-oss-120b", "category": "schema", "perf": 0.65, "tier": 2}
 {"model": "hf:openai/gpt-oss-120b", "category": "tool_use", "perf": 0.25, "tier": -4}
 {"model": "hf:zai-org/GLM-5.2", "category": "agent_tick", "perf": 0.75, "tier": 2}
-{"model": "hf:zai-org/GLM-5.2", "category": "code_gen", "perf": 1.0, "tier": 5}
+{"model": "hf:zai-org/GLM-5.2", "category": "code_gen", "perf": 0.85, "tier": 4}
 {"model": "hf:zai-org/GLM-5.2", "category": "creative", "perf": 0.45, "tier": 0}
 {"model": "hf:zai-org/GLM-5.2", "category": "debug", "perf": 1.0, "tier": 5}
 {"model": "hf:zai-org/GLM-5.2", "category": "delegation", "perf": 0.75, "tier": 3}
