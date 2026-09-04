@@ -169,6 +169,13 @@ GROUP BY model, category
 # ---------- 3. benchmark overlays for NEW categories --------------------------
 # source substring -> new category (rel score reused from benchmarks table)
 BENCH_OVERLAY = {
+    # 2026-09-04 (model-registry-data-quality cron): 'GPQA' added — 10 GPQA
+    # Diamond rows in benchmarks.jsonl sat INERT (category=research, no source
+    # pattern) so measured reasoning evidence never reached model_perf. Same
+    # evidence-trap class as the deepseek review-0.60 incident: evidence
+    # exists in a table but no mechanism carries it into the derivation.
+    # GPQA Diamond is an absolute % scale (max 100) — rel = score/100.
+    'GPQA': ['reasoning'],
     'AIME26': ['math'],
     'Terminal-Bench': ['terminal'],
     'battery-T1-TOOL': ['tool_use'],

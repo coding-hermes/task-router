@@ -355,7 +355,7 @@
 {"model": "gpt-5.6-sol", "category": "long_horizon", "perf": 0.85}
 {"model": "gpt-5.6-sol", "category": "mechanical", "perf": 0.45}
 {"model": "gpt-5.6-sol", "category": "mock", "perf": 0.86}
-{"model": "gpt-5.6-sol", "category": "reasoning", "perf": 1.0}
+{"model": "gpt-5.6-sol", "category": "reasoning", "perf": 0.9490000000000001}
 {"model": "gpt-5.6-sol", "category": "refactor", "perf": 0.5}
 {"model": "gpt-5.6-sol", "category": "review", "perf": 1.0}
 {"model": "gpt-5.6-sol", "category": "schema", "perf": 0.5}
@@ -417,6 +417,7 @@
 {"model": "grok-4.5", "category": "terminal", "perf": 0.85}
 {"model": "grok-4.5", "category": "tool_use", "perf": 0.75}
 {"model": "grok-4.6", "category": "code_gen", "perf": 0.75}
+{"model": "grok-4.6", "category": "reasoning", "perf": 0.9490000000000001}
 {"model": "grok-4.6", "category": "refactor", "perf": 0.5}
 {"model": "grok-4.6", "category": "terminal", "perf": 1.0}
 {"model": "grok-4.6", "category": "tool_use", "perf": 0.75}
@@ -453,6 +454,7 @@
 {"model": "hf:moonshotai/Kimi-K3", "category": "ui_frontend", "perf": 0.72}
 {"model": "hf:moonshotai/Kimi-K3", "category": "vision", "perf": 0.72}
 {"model": "hf:nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-NVFP4", "category": "code_gen", "perf": 0.75}
+{"model": "hf:nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-NVFP4", "category": "reasoning", "perf": 0.8}
 {"model": "hf:nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-NVFP4", "category": "refactor", "perf": 0.5}
 {"model": "hf:nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-NVFP4", "category": "spec_docs", "perf": 0.85375}
 {"model": "hf:nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-NVFP4", "category": "tool_use", "perf": 0.75}
@@ -527,6 +529,7 @@
 {"model": "hy3", "category": "ui_frontend", "perf": 0.85}
 {"model": "hy4-preview", "category": "code_gen", "perf": 0.85}
 {"model": "hy4-preview", "category": "long_horizon", "perf": 0.85}
+{"model": "hy4-preview", "category": "reasoning", "perf": 0.923}
 {"model": "hy4-preview", "category": "refactor", "perf": 0.72}
 {"model": "hy4-preview", "category": "terminal", "perf": 0.854}
 {"model": "hy4-preview", "category": "test", "perf": 0.72}
@@ -657,7 +660,7 @@
 {"model": "kimi-k3", "category": "long_doc", "perf": 1.0}
 {"model": "kimi-k3", "category": "long_horizon", "perf": 0.85}
 {"model": "kimi-k3", "category": "mock", "perf": 0.85}
-{"model": "kimi-k3", "category": "reasoning", "perf": 0.88}
+{"model": "kimi-k3", "category": "reasoning", "perf": 0.935}
 {"model": "kimi-k3", "category": "refactor", "perf": 0.72}
 {"model": "kimi-k3", "category": "review", "perf": 0.85}
 {"model": "kimi-k3", "category": "schema", "perf": 0.5}
@@ -675,7 +678,7 @@
 {"model": "kimi-k3-fast", "category": "long_doc", "perf": 1.0}
 {"model": "kimi-k3-fast", "category": "long_horizon", "perf": 0.85}
 {"model": "kimi-k3-fast", "category": "mock", "perf": 0.85}
-{"model": "kimi-k3-fast", "category": "reasoning", "perf": 0.88}
+{"model": "kimi-k3-fast", "category": "reasoning", "perf": 0.935}
 {"model": "kimi-k3-fast", "category": "refactor", "perf": 0.72}
 {"model": "kimi-k3-fast", "category": "review", "perf": 0.85}
 {"model": "kimi-k3-fast", "category": "schema", "perf": 0.5}
@@ -693,7 +696,7 @@
 {"model": "kimi-k3-flex", "category": "long_doc", "perf": 1.0}
 {"model": "kimi-k3-flex", "category": "long_horizon", "perf": 0.85}
 {"model": "kimi-k3-flex", "category": "mock", "perf": 0.85}
-{"model": "kimi-k3-flex", "category": "reasoning", "perf": 0.88}
+{"model": "kimi-k3-flex", "category": "reasoning", "perf": 0.935}
 {"model": "kimi-k3-flex", "category": "refactor", "perf": 0.72}
 {"model": "kimi-k3-flex", "category": "review", "perf": 0.85}
 {"model": "kimi-k3-flex", "category": "schema", "perf": 0.5}
@@ -807,6 +810,7 @@
 {"model": "nemotron-3-nano:30b", "category": "refactor", "perf": 0.5}
 {"model": "nemotron-3-nano:30b", "category": "tool_use", "perf": 0.75}
 {"model": "nemotron-3-super", "category": "code_gen", "perf": 0.75}
+{"model": "nemotron-3-super", "category": "reasoning", "perf": 0.8}
 {"model": "nemotron-3-super", "category": "refactor", "perf": 0.5}
 {"model": "nemotron-3-super", "category": "spec_docs", "perf": 0.85375}
 {"model": "nemotron-3-super", "category": "tool_use", "perf": 0.75}
@@ -863,6 +867,7 @@
 {"model": "qwen3.5-397b-a17b", "category": "refactor", "perf": 0.25}
 {"model": "qwen3.5-397b-a17b", "category": "tool_use", "perf": 0.5}
 {"model": "qwen3.5:397b", "category": "math", "perf": 1.0}
+{"model": "qwen3.5:397b", "category": "reasoning", "perf": 0.884}
 {"model": "qwen3.5:397b", "category": "spec_docs", "perf": 1.0}
 {"model": "qwen3.6-27b", "category": "mechanical", "perf": 0.72}
 {"model": "qwen3.6-35b", "category": "agent_tick", "perf": 0.0}
@@ -893,6 +898,7 @@
 {"model": "qwen3.6-plus", "category": "tool_use", "perf": 0.75}
 {"model": "qwen3.7-max", "category": "code_gen", "perf": 0.85}
 {"model": "qwen3.7-max", "category": "long_horizon", "perf": 0.85}
+{"model": "qwen3.7-max", "category": "reasoning", "perf": 0.924}
 {"model": "qwen3.7-max", "category": "refactor", "perf": 0.72}
 {"model": "qwen3.7-max", "category": "terminal", "perf": 0.85}
 {"model": "qwen3.7-max", "category": "test", "perf": 0.72}
@@ -902,6 +908,7 @@
 {"model": "qwen3.8-flash", "category": "code_gen", "perf": 0.85}
 {"model": "qwen3.8-flash", "category": "creative", "perf": 0.45}
 {"model": "qwen3.8-flash", "category": "long_horizon", "perf": 0.85}
+{"model": "qwen3.8-flash", "category": "reasoning", "perf": 0.917}
 {"model": "qwen3.8-flash", "category": "refactor", "perf": 0.72}
 {"model": "qwen3.8-flash", "category": "spec_docs", "perf": 0.72}
 {"model": "qwen3.8-flash", "category": "terminal", "perf": 0.72}
