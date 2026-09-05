@@ -187,6 +187,11 @@ BENCH_OVERLAY = {
     '106 hard browser tasks': ['vision'],
     'ExploitBench': ['security'],
     'BenchLM': ['spec_docs'],
+    # 2026-09-05 (model-registry-data-quality cron): 'MCP Atlas' added — the
+    # minimax-m3 MCP Atlas tool-use row (74.2, VENDOR-REPORTED) would sit INERT
+    # without a source pattern here (same evidence-present/mechanism-missing
+    # class as the 09-04 GPQA fix). Absolute % scale -> max_score=100 at entry.
+    'MCP Atlas': ['tool_use'],
 }
 overlay = []  # (provider, model, category, rel_score)
 for src, cats in BENCH_OVERLAY.items():
