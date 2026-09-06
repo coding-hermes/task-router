@@ -287,14 +287,17 @@
 {"model": "grok-4.5", "category": "sentiment", "score": 0.72, "max_score": 1.0, "source": "research-bench-2026-08-28", "valid_from": "2026-08-28"}
 {"model": "grok-4.5", "category": "terminal", "score": 0.833, "max_score": 1.0, "source": "Terminal-Bench 2.1 research-bench-2026-08-28", "valid_from": "2026-08-28"}
 {"model": "grok-4.6", "category": "agent-tick", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
-{"model": "grok-4.6", "category": "agent-tick", "score": 88.0, "max_score": 88.0, "source": "Terminal-Bench v2.1", "valid_from": null}
+{"model": "grok-4.6", "category": "agent-tick", "score": 88.0, "max_score": 100.0, "source": "Terminal-Bench v2.1 (max_score 88->100 overflow repair 2026-09-06: absolute % scale must carry true max; was 88/88 rel=1.0 tier-5 overflow class, glm-5.2 09-03 precedent)", "valid_from": null}
+{"model": "grok-4.6", "category": "code_gen", "score": 0.613, "max_score": 1.0, "source": "FrontierCode v1.1 Extended High (vendor, VENDOR-REPORTED) research-bench-2026-09-06", "valid_from": "2026-09-06"}
 {"model": "grok-4.6", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
 {"model": "grok-4.6", "category": "debug", "score": 3.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
 {"model": "grok-4.6", "category": "delegation", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
 {"model": "grok-4.6", "category": "guard", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "grok-4.6", "category": "long_horizon", "score": 0.659, "max_score": 1.0, "source": "DeepSWE v1.1 High (vendor, VENDOR-REPORTED) research-bench-2026-09-06", "valid_from": "2026-09-06"}
 {"model": "grok-4.6", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
-{"model": "grok-4.6", "category": "reasoning", "score": 94.9, "max_score": 100.0, "source": "GPQA-D", "valid_from": null}
 {"model": "grok-4.6", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "grok-4.6", "category": "sentiment", "score": 0.86, "max_score": 1.0, "source": "research-bench-2026-09-06", "valid_from": "2026-09-06"}
+{"model": "grok-4.6", "category": "terminal", "score": 0.26, "max_score": 1.0, "source": "Terminal-Bench v3.0 High (vendor, VENDOR-REPORTED) research-bench-2026-09-06", "valid_from": "2026-09-06"}
 {"model": "grok-build-0.1", "category": "agent-tick", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
 {"model": "grok-build-0.1", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
 {"model": "grok-build-0.1", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
@@ -533,6 +536,7 @@
 {"model": "qwen3.8-flash", "category": "reasoning", "score": 0.917, "max_score": 1.0, "source": "GPQA research-bench-2026-08-27", "valid_from": "2026-08-27"}
 {"model": "qwen3.8-flash", "category": "sentiment", "score": 0.75, "max_score": 1.0, "source": "research-bench-2026-08-27", "valid_from": "2026-08-27"}
 {"model": "qwen3.8-flash", "category": "tool_use", "score": 0.735, "max_score": 1.0, "source": "Toolathlon research-bench-2026-08-27", "valid_from": "2026-08-27"}
+{"model": "qwen3.8-max", "category": "sentiment", "score": 0.78, "max_score": 1.0, "source": "research-bench-2026-09-06", "valid_from": "2026-09-06"}
 {"model": "step-3.5-flash", "category": "agent-tick", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
 {"model": "step-3.5-flash", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
 {"model": "step-3.5-flash", "category": "debug", "score": 3.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}

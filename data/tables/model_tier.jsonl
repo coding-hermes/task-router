@@ -353,12 +353,12 @@
 {"model": "gpt-5.6-sol", "category": "long_doc", "perf": 0.8, "tier": 1}
 {"model": "gpt-5.6-sol", "category": "long_horizon", "perf": 0.85, "tier": 2}
 {"model": "gpt-5.6-sol", "category": "mock", "perf": 0.86, "tier": 2}
-{"model": "gpt-5.6-sol", "category": "reasoning", "perf": 0.9490000000000001, "tier": 4}
+{"model": "gpt-5.6-sol", "category": "reasoning", "perf": 0.9490000000000001, "tier": 3}
 {"model": "gpt-5.6-sol", "category": "refactor", "perf": 0.5, "tier": 1}
 {"model": "gpt-5.6-sol", "category": "review", "perf": 1.0, "tier": 5}
 {"model": "gpt-5.6-sol", "category": "schema", "perf": 0.5, "tier": 1}
 {"model": "gpt-5.6-sol", "category": "security", "perf": 1.0, "tier": 5}
-{"model": "gpt-5.6-sol", "category": "terminal", "perf": 0.95, "tier": 4}
+{"model": "gpt-5.6-sol", "category": "terminal", "perf": 0.95, "tier": 5}
 {"model": "gpt-5.6-sol", "category": "tool_use", "perf": 0.75, "tier": 2}
 {"model": "gpt-5.6-terra", "category": "agent_tick", "perf": 0.25, "tier": -3}
 {"model": "gpt-5.6-terra", "category": "code_gen", "perf": 0.85, "tier": 4}
@@ -414,9 +414,8 @@
 {"model": "grok-4.5", "category": "terminal", "perf": 0.85, "tier": 0}
 {"model": "grok-4.5", "category": "tool_use", "perf": 0.75, "tier": 2}
 {"model": "grok-4.6", "category": "code_gen", "perf": 0.75, "tier": 1}
-{"model": "grok-4.6", "category": "reasoning", "perf": 0.9490000000000001, "tier": 4}
 {"model": "grok-4.6", "category": "refactor", "perf": 0.5, "tier": 1}
-{"model": "grok-4.6", "category": "terminal", "perf": 1.0, "tier": 5}
+{"model": "grok-4.6", "category": "terminal", "perf": 0.88, "tier": 2}
 {"model": "grok-4.6", "category": "tool_use", "perf": 0.75, "tier": 2}
 {"model": "grok-build-0.1", "category": "code_gen", "perf": 0.5, "tier": -1}
 {"model": "grok-build-0.1", "category": "refactor", "perf": 0.5, "tier": 1}
@@ -938,7 +937,7 @@
 {"model": "step-3.5-flash", "category": "refactor", "perf": 0.72, "tier": 3}
 {"model": "step-3.5-flash", "category": "review", "perf": 0.65, "tier": -1}
 {"model": "step-3.5-flash", "category": "schema", "perf": 0.5, "tier": 1}
-{"model": "step-3.5-flash", "category": "terminal", "perf": 0.95, "tier": 4}
+{"model": "step-3.5-flash", "category": "terminal", "perf": 0.95, "tier": 5}
 {"model": "step-3.5-flash", "category": "test", "perf": 0.95, "tier": 5}
 {"model": "step-3.5-flash", "category": "tool_use", "perf": 0.75, "tier": 2}
 {"model": "step-3.5-flash", "category": "vision", "perf": 0.72, "tier": 2}
@@ -955,7 +954,7 @@
 {"model": "step-3.7-flash", "category": "refactor", "perf": 0.72, "tier": 3}
 {"model": "step-3.7-flash", "category": "review", "perf": 0.68, "tier": -1}
 {"model": "step-3.7-flash", "category": "schema", "perf": 0.5, "tier": 1}
-{"model": "step-3.7-flash", "category": "terminal", "perf": 0.95, "tier": 4}
+{"model": "step-3.7-flash", "category": "terminal", "perf": 0.95, "tier": 5}
 {"model": "step-3.7-flash", "category": "test", "perf": 0.95, "tier": 5}
 {"model": "step-3.7-flash", "category": "tool_use", "perf": 0.72, "tier": -1}
 {"model": "step-3.7-flash", "category": "vision", "perf": 0.972051282051282, "tier": 3}

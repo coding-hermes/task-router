@@ -417,9 +417,8 @@
 {"model": "grok-4.5", "category": "terminal", "perf": 0.85}
 {"model": "grok-4.5", "category": "tool_use", "perf": 0.75}
 {"model": "grok-4.6", "category": "code_gen", "perf": 0.75}
-{"model": "grok-4.6", "category": "reasoning", "perf": 0.9490000000000001}
 {"model": "grok-4.6", "category": "refactor", "perf": 0.5}
-{"model": "grok-4.6", "category": "terminal", "perf": 1.0}
+{"model": "grok-4.6", "category": "terminal", "perf": 0.88}
 {"model": "grok-4.6", "category": "tool_use", "perf": 0.75}
 {"model": "grok-build-0.1", "category": "code_gen", "perf": 0.5}
 {"model": "grok-build-0.1", "category": "refactor", "perf": 0.5}
