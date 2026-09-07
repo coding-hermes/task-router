@@ -389,8 +389,14 @@ def _apply_writes(summary, models, verbose=True):
             print(f'wrote model_catalog.jsonl ({len(catalog)} rows)')
     if adds:
         for our_id, mname, meta, note in adds:
+            # PROBE-DRIFT-001 sibling fix (2026-09-07): new rows MUST carry the
+            # FULL canonical column set — a short template (no context_limit /
+            # disabled / public_price / ...) broke the schema AC
+            # test_models_jsonl_carries_context_limit on the next sync.
             models.append({'provider': our_id, 'model': mname,
                            'normalized_price': None, 'price_evidence': 'models.dev-catalog',
+                           'public_price': None, 'public_in_per_m': None,
+                           'public_out_per_m': None,
                            'data_class': 'zdr', 'plan_tier': None,
                            'perf_agent_tick': None, 'perf_long_doc': None,
                            'perf_debug': None, 'perf_schema': None,
@@ -398,7 +404,14 @@ def _apply_writes(summary, models, verbose=True):
                            'perf_delegation': None, 'perf_guard': None,
                            'perf_mock': None, 'perf_reasoning': None,
                            'valid_from': None, 'valid_to': None,
-                           'archive': False, 'token_factor': 1.0})
+                           'archive': False, 'token_factor': 1.0,
+                           'disabled': None, 'disabled_reason': None,
+                           'context_limit': (meta.get('limit') or {}).get('context'),
+                           'api_type': 'openai-chat',
+                           'vision': meta.get('vision'),
+                           'thinking': meta.get('reasoning'),
+                           'training_model_level': False,
+                           'training_provider_level': False})
         _write_rows(os.path.join(DATA_DIR, 'models.jsonl'), models)
         wrote_models = True
         n_added = len(adds)

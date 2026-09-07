@@ -96,6 +96,7 @@
 {"model": "deepseek-v4-flash", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
 {"model": "deepseek-v4-flash", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
 {"model": "deepseek-v4-flash", "category": "sentiment", "score": 0.55, "max_score": 1.0, "source": "research-bench-2026-09-01", "valid_from": "2026-09-01"}
+{"model": "deepseek-v4-flash", "category": "sentiment", "score": 0.6, "max_score": 1.0, "source": "research-bench-2026-09-07", "valid_from": "2026-09-07"}
 {"model": "deepseek-v4-flash", "category": "sentiment", "score": 0.72, "max_score": 1.0, "source": "research-bench-2026-08-27", "valid_from": "2026-08-27"}
 {"model": "deepseek-v4-flash", "category": "terminal", "score": 0.827, "max_score": 1.0, "source": "Terminal-Bench research-bench-2026-08-27", "valid_from": "2026-08-27"}
 {"model": "deepseek-v4-flash-vision-exp", "category": "agent-tick", "score": 2.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
@@ -127,6 +128,7 @@
 {"model": "deepseek-v4-pro", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
 {"model": "deepseek-v4-pro", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
 {"model": "deepseek-v4-pro", "category": "sentiment", "score": 0.62, "max_score": 1.0, "source": "research-bench-2026-08-28", "valid_from": "2026-08-28"}
+{"model": "deepseek-v4-pro", "category": "sentiment", "score": 0.7, "max_score": 1.0, "source": "research-bench-2026-09-07", "valid_from": "2026-09-07"}
 {"model": "deepseek-v4-pro", "category": "terminal", "score": 0.721, "max_score": 1.0, "source": "Terminal-Bench 2.1 research-bench-2026-08-28", "valid_from": "2026-08-28"}
 {"model": "deepseek-v4-pro-0813", "category": "agent-tick", "score": 1.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
 {"model": "deepseek-v4-pro-0813", "category": "debug", "score": 1.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
@@ -209,6 +211,7 @@
 {"model": "gpt-5.5", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
 {"model": "gpt-5.5", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
 {"model": "gpt-5.6-luna", "category": "agent-tick", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "gpt-5.6-luna", "category": "agent_tick", "score": 0.746, "max_score": 1.0, "source": "AA Coding Agent Index research-bench-2026-09-07", "valid_from": "2026-09-07"}
 {"model": "gpt-5.6-luna", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
 {"model": "gpt-5.6-luna", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
 {"model": "gpt-5.6-luna", "category": "delegation", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
@@ -218,6 +221,7 @@
 {"model": "gpt-5.6-luna", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
 {"model": "gpt-5.6-luna", "category": "sentiment", "score": 0.75, "max_score": 1.0, "source": "research-bench-2026-08-28", "valid_from": "2026-08-28"}
 {"model": "gpt-5.6-sol", "category": "agent-tick", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "gpt-5.6-sol", "category": "agent_tick", "score": 0.8, "max_score": 1.0, "source": "AA Coding Agent Index research-bench-2026-09-07", "valid_from": "2026-09-07"}
 {"model": "gpt-5.6-sol", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
 {"model": "gpt-5.6-sol", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
 {"model": "gpt-5.6-sol", "category": "debug", "score": 62.3, "max_score": 62.9, "source": "SWE-rebench v2", "valid_from": null}
@@ -230,6 +234,7 @@
 {"model": "gpt-5.6-sol", "category": "sentiment", "score": 0.82, "max_score": 1.0, "source": "research-bench-2026-08-28", "valid_from": "2026-08-28"}
 {"model": "gpt-5.6-sol", "category": "sentiment", "score": 0.88, "max_score": 1.0, "source": "research-bench-2026-09-05", "valid_from": "2026-09-05"}
 {"model": "gpt-5.6-terra", "category": "agent-tick", "score": 1.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "gpt-5.6-terra", "category": "agent_tick", "score": 0.774, "max_score": 1.0, "source": "AA Coding Agent Index research-bench-2026-09-07", "valid_from": "2026-09-07"}
 {"model": "gpt-5.6-terra", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
 {"model": "gpt-5.6-terra", "category": "debug", "score": 3.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
 {"model": "gpt-5.6-terra", "category": "delegation", "score": 1.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}

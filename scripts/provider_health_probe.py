@@ -92,7 +92,7 @@ CREDIT_ENDPOINTS = {
 # so every entry must carry its own token cap.
 PROBE_PARAMS = {
     'openai-codex': {'max_completion_tokens': 16},
-    'clinepass':    {'max_completion_tokens': 16},
+    # clinepass moved below: 300-token pings (reasoning lanes 500 on 16 tokens).
     'deepseek':                {'max_tokens': 16, 'thinking': {'type': 'disabled'}},
     'deepseek-foreman':        {'max_tokens': 16, 'thinking': {'type': 'disabled'}},
     'deepseek-duckbrain-sync': {'max_tokens': 16, 'thinking': {'type': 'disabled'}},
@@ -101,6 +101,14 @@ PROBE_PARAMS = {
     # 31 reasoning tokens on a pong, verified live 2026-09-01). Generous cap so
     # content survives the reasoning split; no thinking-disable param exists.
     'meta-model':              {'max_tokens': 300},
+    # clinepass reasoning lanes: a 16-token ping burns the completion budget on
+    # hidden reasoning -> HTTP 500 "empty response content". Live-probed
+    # 2026-09-07: max_completion_tokens=300 flips glm-5.2/mimo-v2.5 to HTTP 200
+    # (content null = reasoning absorbed the ping, lane healthy). deepseek-v4
+    # lanes 200 even at 16 (they tolerate both budgets). This is why the
+    # cline-pass/<bare> id fixes sat STUCK in probe_gaps since 09-05: ids were
+    # right, the probe's own budget was the blocker.
+    'clinepass':               {'max_completion_tokens': 300},
 }
 
 UP_LIKE = ('OK', 'SLOW', 'OVERLOADED', 'TIMEOUT')
@@ -143,6 +151,28 @@ def load_providers():
             if row.get('enabled', True) and row.get('id') and row.get('base_url') and row.get('key_env'):
                 provs[row['id']] = (row['base_url'], row['key_env'], row.get('default_model'))
     return provs
+
+
+def load_provider_headers():
+    """probe_providers.jsonl 'headers' field -> {id: {header: value}}.
+    DATA > CODE: provider contract requirements (e.g. opencode-go's
+    x-opencode-session, required since 2026-09) live in the data file, never
+    hardcoded here. Values may carry credentials — never log them."""
+    out = {}
+    path = os.path.join(DATA_DIR, 'probe_providers.jsonl')
+    if os.path.exists(path):
+        for line in open(path):
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                row = json.loads(line)
+            except Exception:
+                continue
+            h = row.get('headers')
+            if isinstance(h, dict) and h and row.get('id'):
+                out[row['id']] = {str(k): str(v) for k, v in h.items()}
+    return out
 
 
 def load_fix_rows():
@@ -205,7 +235,7 @@ def build_probe_set(providers):
     return out
 
 
-def _req(base, key, model, params, timeout):
+def _req(base, key, model, params, timeout, extra_headers=None):
     body = {'model': model,
             'messages': [{'role': 'user', 'content': 'ping'}],
             'stream': False}
@@ -213,7 +243,7 @@ def _req(base, key, model, params, timeout):
     req = urllib.request.Request(base + '/chat/completions', data=json.dumps(body).encode(),
                                  headers={'Content-Type': 'application/json',
                                           'Authorization': f'Bearer {key}',
-                                          'User-Agent': UA})
+                                          'User-Agent': UA, **(extra_headers or {})})
     t0 = time.time()
     try:
         with urllib.request.urlopen(req, timeout=timeout) as r:
@@ -228,10 +258,10 @@ def _req(base, key, model, params, timeout):
         return {'status': 'ERR', 'error': msg[:120], 'latency_ms': int((time.time() - t0) * 1000)}
 
 
-def ping(base, key, model, params=None):
+def ping(base, key, model, params=None, extra_headers=None):
     if not base:
         return {'status': 'SKIP', 'error': 'no endpoint configured'}
-    r = _req(base, key, model, params, TIMEOUT_S)
+    r = _req(base, key, model, params, TIMEOUT_S, extra_headers)
     if r['status'] == 'OK':
         return {'status': 'SLOW' if r['latency_ms'] > SLOW_MS else 'OK', 'latency_ms': r['latency_ms']}
     if r['status'] == 'HTTPERR':
@@ -239,7 +269,7 @@ def ping(base, key, model, params=None):
             return {'status': 'OVERLOADED', 'error': 'HTTP 503 (overloaded)', 'latency_ms': r['latency_ms']}
         if r['code'] >= 500:
             # one retry — 5xx is transient capacity, not an outage (Bane 08-28/08-31)
-            r2 = _req(base, key, model, params, TIMEOUT_S)
+            r2 = _req(base, key, model, params, TIMEOUT_S, extra_headers)
             if r2['status'] == 'OK':
                 return {'status': 'SLOW' if r2['latency_ms'] > SLOW_MS else 'OK',
                         'latency_ms': r2['latency_ms'], 'note': f'ok on 5xx retry (first HTTP {r["code"]})'}
@@ -251,7 +281,7 @@ def ping(base, key, model, params=None):
         return {'status': 'DOWN', 'error': f'HTTP {r["code"]}', 'latency_ms': r['latency_ms']}
     if r['status'] == 'TIMEOUT_ERR':
         # thinking models need a long rope — retry once at LONG_TIMEOUT_S (Bane 08-31)
-        r2 = _req(base, key, model, params, LONG_TIMEOUT_S)
+        r2 = _req(base, key, model, params, LONG_TIMEOUT_S, extra_headers)
         if r2['status'] == 'OK':
             return {'status': 'SLOW', 'latency_ms': r2['latency_ms'],
                     'note': f'thinking — answered in {r2["latency_ms"]}ms (first attempt timed out at {TIMEOUT_S}s)'}
@@ -386,7 +416,11 @@ def main(config_path=None, only_providers=None, output_path=None, write=True):
     # pass the parsed values. Unset values keep the module defaults.
     # write=False (--no-write/--dry-run, TR-031): probes run and the report
     # prints, but NO state/calibration file is created or modified.
-    if output_path:
+    # PROBE-DRIFT-001 (2026-09-07): a CUSTOM --output relocates both files
+    # (calibration runs). The canonical default must NOT rebind — the append
+    # target stays ~/.hermes/model-router/health.jsonl, which is what every
+    # consumer (router_probefix.py, quota gates) reads.
+    if output_path and output_path != os.path.join(MR, 'health-state.json'):
         global HEALTH_STATE, HEALTH_JSONL
         HEALTH_STATE = output_path
         HEALTH_JSONL = output_path.rsplit('.', 1)[0] + '.jsonl' if '.' in output_path else output_path + '.jsonl'
@@ -408,6 +442,7 @@ def main(config_path=None, only_providers=None, output_path=None, write=True):
               f'{DATA_DIR}); refusing to fabricate a provider list')
         return 1
     fixes, excludes = load_fix_rows()
+    prov_headers = load_provider_headers()
     probe_set = build_probe_set(providers)
     results, alerts = {}, []
     wall_start = time.time()
@@ -431,10 +466,10 @@ def main(config_path=None, only_providers=None, output_path=None, write=True):
                                  'error': excludes[(prov, model)]['reason']}
                 continue
             params = PROBE_PARAMS.get(prov)
-            r = ping(base, key, model, params)
+            r = ping(base, key, model, params, prov_headers.get(prov))
             if r['status'] == 'DOWN' and (prov, model) in fixes:
                 alt = fixes[(prov, model)]['fix_to']
-                r2 = ping(base, key, alt, params)
+                r2 = ping(base, key, alt, params, prov_headers.get(prov))
                 if r2['status'] in ('OK', 'SLOW', 'OVERLOADED', 'TIMEOUT'):
                     r2['note'] = (r2.get('note') + '; ' if r2.get('note') else '') + \
                                  f'id corrected: {model} → {alt}'
@@ -523,9 +558,14 @@ if __name__ == '__main__':
     ap = argparse.ArgumentParser(description='Provider health probe (fast, no side effects with --help)')
     # TR-029: --help must be safe and print help without live-probing.
     # TR-031: --only / --no-write(--dry-run) calibration ergonomics.
-    ap.add_argument('--config', default='config/probe_config.yaml')
+    ap.add_argument('--config', default=None)
     ap.add_argument('--providers', nargs='+')
-    ap.add_argument('--output', default='state/health-state.json')
+    # PROBE-DRIFT-001 (2026-09-07): defaults MUST be absolute — a relative
+    # default made the hourly cron write health-state.json relative to its CWD
+    # (~/.hermes/state/, ~/.hermes/scripts/state/) while every consumer reads
+    # the canonical ~/.hermes/model-router/health.jsonl. Verified by destination
+    # coverage, never cron status.
+    ap.add_argument('--output', default=os.path.join(MR, 'health-state.json'))
     ap.add_argument('--only', metavar='PROVIDER[,PROVIDER...]',
                     help='restrict the run to these provider ids (comma-separated, '
                          'case-insensitive); unknown id -> clear error, exit 2')

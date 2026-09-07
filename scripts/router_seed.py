@@ -192,6 +192,11 @@ BENCH_OVERLAY = {
     # without a source pattern here (same evidence-present/mechanism-missing
     # class as the 09-04 GPQA fix). Absolute % scale -> max_score=100 at entry.
     'MCP Atlas': ['tool_use'],
+    # 2026-09-07 (model-router-refresh cron): 'AA Coding Agent Index' added —
+    # Artificial Analysis coding-agent composite (0-100 scale) for the codex
+    # trio; without a pattern here the rows sit INERT (GPQA/MCP-Atlas class).
+    # Absolute 100-point scale -> rel = score/100.
+    'AA Coding Agent Index': ['agent_tick'],
 }
 overlay = []  # (provider, model, category, rel_score)
 for src, cats in BENCH_OVERLAY.items():
