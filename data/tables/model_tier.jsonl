@@ -344,7 +344,7 @@
 {"model": "gpt-5.6-luna", "category": "test", "perf": 0.95, "tier": 5}
 {"model": "gpt-5.6-luna", "category": "tool_use", "perf": 0.75, "tier": 2}
 {"model": "gpt-5.6-luna", "category": "vision", "perf": 1.0, "tier": 5}
-{"model": "gpt-5.6-sol", "category": "agent_tick", "perf": 0.75, "tier": 2}
+{"model": "gpt-5.6-sol", "category": "agent_tick", "perf": 0.8, "tier": 2}
 {"model": "gpt-5.6-sol", "category": "code_gen", "perf": 0.9904610492845787, "tier": 5}
 {"model": "gpt-5.6-sol", "category": "debug", "perf": 0.9905, "tier": 4}
 {"model": "gpt-5.6-sol", "category": "delegation", "perf": 0.75, "tier": 3}
@@ -360,7 +360,7 @@
 {"model": "gpt-5.6-sol", "category": "security", "perf": 1.0, "tier": 5}
 {"model": "gpt-5.6-sol", "category": "terminal", "perf": 0.95, "tier": 5}
 {"model": "gpt-5.6-sol", "category": "tool_use", "perf": 0.75, "tier": 2}
-{"model": "gpt-5.6-terra", "category": "agent_tick", "perf": 0.25, "tier": -3}
+{"model": "gpt-5.6-terra", "category": "agent_tick", "perf": 0.774, "tier": 2}
 {"model": "gpt-5.6-terra", "category": "code_gen", "perf": 0.85, "tier": 4}
 {"model": "gpt-5.6-terra", "category": "debug", "perf": 0.75, "tier": 2}
 {"model": "gpt-5.6-terra", "category": "delegation", "perf": 0.25, "tier": -3}
@@ -653,7 +653,7 @@
 {"model": "kimi-k3", "category": "delegation", "perf": 0.75, "tier": 3}
 {"model": "kimi-k3", "category": "e2e_vision", "perf": 0.75, "tier": 3}
 {"model": "kimi-k3", "category": "guard", "perf": 0.88, "tier": 2}
-{"model": "kimi-k3", "category": "long_doc", "perf": 1.0, "tier": 5}
+{"model": "kimi-k3", "category": "long_doc", "perf": 0.912, "tier": 3}
 {"model": "kimi-k3", "category": "long_horizon", "perf": 0.85, "tier": 2}
 {"model": "kimi-k3", "category": "mock", "perf": 0.85, "tier": 2}
 {"model": "kimi-k3", "category": "reasoning", "perf": 0.935, "tier": 3}
@@ -672,7 +672,7 @@
 {"model": "kimi-k3-fast", "category": "delegation", "perf": 0.75, "tier": 3}
 {"model": "kimi-k3-fast", "category": "e2e_vision", "perf": 0.75, "tier": 3}
 {"model": "kimi-k3-fast", "category": "guard", "perf": 0.88, "tier": 2}
-{"model": "kimi-k3-fast", "category": "long_doc", "perf": 1.0, "tier": 5}
+{"model": "kimi-k3-fast", "category": "long_doc", "perf": 0.912, "tier": 3}
 {"model": "kimi-k3-fast", "category": "long_horizon", "perf": 0.85, "tier": 2}
 {"model": "kimi-k3-fast", "category": "mock", "perf": 0.85, "tier": 2}
 {"model": "kimi-k3-fast", "category": "reasoning", "perf": 0.935, "tier": 3}
@@ -691,7 +691,7 @@
 {"model": "kimi-k3-flex", "category": "delegation", "perf": 0.75, "tier": 3}
 {"model": "kimi-k3-flex", "category": "e2e_vision", "perf": 0.75, "tier": 3}
 {"model": "kimi-k3-flex", "category": "guard", "perf": 0.88, "tier": 2}
-{"model": "kimi-k3-flex", "category": "long_doc", "perf": 1.0, "tier": 5}
+{"model": "kimi-k3-flex", "category": "long_doc", "perf": 0.912, "tier": 3}
 {"model": "kimi-k3-flex", "category": "long_horizon", "perf": 0.85, "tier": 2}
 {"model": "kimi-k3-flex", "category": "mock", "perf": 0.85, "tier": 2}
 {"model": "kimi-k3-flex", "category": "reasoning", "perf": 0.935, "tier": 3}

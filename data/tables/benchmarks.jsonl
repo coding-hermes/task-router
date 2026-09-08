@@ -177,6 +177,7 @@
 {"model": "glm-5.2", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
 {"model": "glm-5.2", "category": "sentiment", "score": 0.72, "max_score": 1.0, "source": "research-bench-2026-09-03", "valid_from": "2026-09-03"}
 {"model": "glm-5.2", "category": "sentiment", "score": 0.75, "max_score": 1.0, "source": "research-sent-2026-08-27", "valid_from": "2026-08-27"}
+{"model": "glm-5.2", "category": "terminal", "score": 81.0, "max_score": 100.0, "source": "Terminal-Bench 2.1 81.0 (official HF card via emergent.sh roundup; true % scale) research-bench-2026-09-08", "valid_from": "2026-09-08"}
 {"model": "glm-5.2-short-fast", "category": "agent-tick", "score": 2.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
 {"model": "glm-5.2-short-fast", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
 {"model": "glm-5.2-short-fast", "category": "debug", "score": 3.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
@@ -184,7 +185,7 @@
 {"model": "glm-5.2-short-fast", "category": "guard", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
 {"model": "glm-5.2-short-fast", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
 {"model": "glm-5.2-short-fast", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
-{"model": "glm-5.3", "category": "long-doc", "score": 75.0, "max_score": 90.4, "source": "BrowseComp-class (vendor, ~0.83 rel)", "valid_from": null}
+{"model": "glm-5.3", "category": "long-doc", "score": 75.0, "max_score": 100.0, "source": "BrowseComp-class (vendor, ~0.83 rel) | denominator repair 2026-09-08: best-known-denominator 90.4 -> true scale 100 (rel 0.83->0.75; provenance class, grok-4.6 09-06 precedent)", "valid_from": null}
 {"model": "glm-5.3", "category": "reasoning", "score": 92.0, "max_score": 100.0, "source": "GPQA-D (vendor)", "valid_from": null}
 {"model": "glm-5.3", "category": "review", "score": 54.4, "max_score": 76.5, "source": "ExploitBench (independent)", "valid_from": null}
 {"model": "glm-5.3", "category": "security", "score": 0.544, "max_score": 1.0, "source": "ExploitBench research-bench-2026-08-27", "valid_from": "2026-08-27"}
@@ -289,6 +290,7 @@
 {"model": "grok-4.5", "category": "long_horizon", "score": 0.53, "max_score": 1.0, "source": "DeepSWE 1.1 research-bench-2026-08-28", "valid_from": "2026-08-28"}
 {"model": "grok-4.5", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
 {"model": "grok-4.5", "category": "schema", "score": 3.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "grok-4.5", "category": "sentiment", "score": 0.52, "max_score": 1.0, "source": "AA-measured hallucination 54% vs 25% (grok-4.3) + SWE-bench Pro ~15pt gap vs TB-tier peers, offset by GDPVal+ wins + 60% token efficiency research-bench-2026-09-08", "valid_from": "2026-09-08"}
 {"model": "grok-4.5", "category": "sentiment", "score": 0.72, "max_score": 1.0, "source": "research-bench-2026-08-28", "valid_from": "2026-08-28"}
 {"model": "grok-4.5", "category": "terminal", "score": 0.833, "max_score": 1.0, "source": "Terminal-Bench 2.1 research-bench-2026-08-28", "valid_from": "2026-08-28"}
 {"model": "grok-4.6", "category": "agent-tick", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
@@ -388,7 +390,8 @@
 {"model": "kimi-k3", "category": "debug", "score": 3.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
 {"model": "kimi-k3", "category": "delegation", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
 {"model": "kimi-k3", "category": "guard", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
-{"model": "kimi-k3", "category": "long-doc", "score": 90.4, "max_score": 90.4, "source": "BrowseComp @1M (vendor)", "valid_from": null}
+{"model": "kimi-k3", "category": "long-doc", "score": 90.4, "max_score": 100.0, "source": "BrowseComp @1M (vendor) | overflow repair 2026-09-08: absolute % scale must carry true max 100 (was 90.4/90.4 rel=1.0 tier-5 overflow class; glm-5.2 09-03 + grok-4.6 09-06 precedent)", "valid_from": null}
+{"model": "kimi-k3", "category": "long-doc", "score": 91.2, "max_score": 100.0, "source": "BrowseComp 91.2 (kili-technology + techsy, independent of moonshot @1M 90.4; true % scale) research-bench-2026-09-08", "valid_from": "2026-09-08"}
 {"model": "kimi-k3", "category": "long_horizon", "score": 0.675, "max_score": 1.0, "source": "DeepSWE (vendor) research-bench-2026-08-29", "valid_from": "2026-08-29"}
 {"model": "kimi-k3", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
 {"model": "kimi-k3", "category": "reasoning", "score": 0.935, "max_score": 1.0, "source": "GPQA Diamond (vendor) research-bench-2026-08-29", "valid_from": "2026-08-29"}

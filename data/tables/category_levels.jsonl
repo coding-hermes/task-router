@@ -6,7 +6,7 @@
 {"category": "agent_tick", "level": 0, "label": "0", "min_perf": 0.75}
 {"category": "agent_tick", "level": 1, "label": "+", "min_perf": 0.75}
 {"category": "agent_tick", "level": 2, "label": "++", "min_perf": 0.75}
-{"category": "agent_tick", "level": 3, "label": "+++", "min_perf": 0.815}
+{"category": "agent_tick", "level": 3, "label": "+++", "min_perf": 0.825}
 {"category": "agent_tick", "level": 4, "label": "++++", "min_perf": 0.8678999999999999}
 {"category": "agent_tick", "level": 5, "label": "+++++", "min_perf": 0.9216}
 {"category": "code_gen", "level": -5, "label": "-----", "min_perf": 0.5}
