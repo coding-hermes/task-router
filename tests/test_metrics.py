@@ -3,6 +3,7 @@
 Hermetic: every test uses tmp_path / env monkeypatch; the real
 ~/.hermes/model-router ledger and the repo data/metrics.jsonl are never touched.
 """
+import datetime
 import json
 import os
 import subprocess
@@ -198,13 +199,18 @@ def test_metrics_profile_filter(tmp_path, monkeypatch):
 def test_metrics_since_window(tmp_path, monkeypatch):
     reg = _seed_registry(tmp_path)
     metrics_file = tmp_path / "metrics.jsonl"
-    now = "2026-09-01T12:00:00+00:00"
+    # Wall-clock-relative (hardcoded 2026-09-01 decayed once the calendar
+    # passed 09-08T12:00Z — the "recent" row fell outside --since 7d).
+    old_ts = (datetime.datetime.now(datetime.timezone.utc) -
+              datetime.timedelta(days=20)).isoformat(timespec="seconds")
+    recent_ts = (datetime.datetime.now(datetime.timezone.utc) -
+                 datetime.timedelta(days=1)).isoformat(timespec="seconds")
     # Seed one old row and one recent row
-    old = {"ts": "2026-08-20T12:00:00+00:00", "project": "x", "profile": "P0_FORE",
+    old = {"ts": old_ts, "project": "x", "profile": "P0_FORE",
            "provider": "p", "model": "m", "order": 1, "price_usd_per_m": 1.0,
            "outcome": "resolved", "exclusion_reason": None,
            "config_snapshot": {}}
-    recent = {"ts": now, "project": "x", "profile": "P0_FORE",
+    recent = {"ts": recent_ts, "project": "x", "profile": "P0_FORE",
               "provider": "p", "model": "m", "order": 1, "price_usd_per_m": 1.0,
               "outcome": "resolved", "exclusion_reason": None,
               "config_snapshot": {}}

@@ -322,6 +322,7 @@
 {"model": "hy3", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
 {"model": "hy3", "category": "reasoning", "score": 0.702, "max_score": 1.0, "source": "WideSearch (vendor) research-bench-2026-08-29", "valid_from": "2026-08-29"}
 {"model": "hy3", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "hy3", "category": "sentiment", "score": 0.6, "max_score": 1.0, "source": "research-bench-2026-09-09: benchlm Hy3-preview 43.8/100 #174/226 (agentic #76); vendor update relays SWE-bench Pro 46.0->57.9 + Terminal Bench 58.0->71.7 (explainx/medium, scale-ambiguous — NOT overlaid); HF card touts ClawEval/WildClawBench practicality; community sees a real agentic coder but mid-pack overall rank", "valid_from": "2026-09-09"}
 {"model": "hy3", "category": "sentiment", "score": 0.7, "max_score": 1.0, "source": "research-sent-2026-08-27", "valid_from": "2026-08-27"}
 {"model": "hy3", "category": "terminal", "score": 0.544, "max_score": 1.0, "source": "Terminal-Bench 2.0 (vendor) research-bench-2026-08-29", "valid_from": "2026-08-29"}
 {"model": "hy4-preview", "category": "code_gen", "score": 0.657, "max_score": 1.0, "source": "SWE-Bench Pro (vendor, VENDOR-REPORTED) research-bench-2026-09-04", "valid_from": "2026-09-04"}
@@ -438,6 +439,7 @@
 {"model": "minimax-m3", "category": "guard", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
 {"model": "minimax-m3", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
 {"model": "minimax-m3", "category": "schema", "score": 3.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "minimax-m3", "category": "sentiment", "score": 0.75, "max_score": 1.0, "source": "research-bench-2026-09-09: ZAKA agentic-workflow eval \"results are complicated\" (SWE-bench Pro 59.0 vendor-reported, pending independent); benchlm agentic-tool #106/151 43.2/100 mid-pack; wiegold \"strong coder, strong agent\"; techmymoney found long-ctx+price useful for house-style training; open-weight 1M-ctx multimodal value play consensus — slight cool from 0.78 on agentic noise", "valid_from": "2026-09-09"}
 {"model": "minimax-m3", "category": "sentiment", "score": 0.78, "max_score": 1.0, "source": "research-bench-2026-09-05", "valid_from": "2026-09-05"}
 {"model": "minimax-m3", "category": "sentiment", "score": 0.8, "max_score": 1.0, "source": "research-bench-2026-08-27", "valid_from": "2026-08-27"}
 {"model": "minimax-m3", "category": "spec_docs", "score": 68.17, "max_score": 100.0, "source": "BenchLM composite benchlm.ai 2026-09-05 (rank #27/231, 22 rows)", "valid_from": "2026-09-05"}
@@ -564,6 +566,7 @@
 {"model": "step-3.7-flash", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
 {"model": "step-3.7-flash", "category": "sentiment", "score": 0.58, "max_score": 1.0, "source": "research-bench-2026-08-28", "valid_from": "2026-08-28"}
 {"model": "step-3.7-flash", "category": "sentiment", "score": 0.62, "max_score": 1.0, "source": "research-bench-2026-09-05", "valid_from": "2026-09-05"}
+{"model": "step-3.7-flash", "category": "sentiment", "score": 0.72, "max_score": 1.0, "source": "research-bench-2026-09-09: ClawEval-1.1 67.1 leader confirmed (HF card: next best 59.8) AND first-hand flowtivity DGX Spark run (100% tool-call success, SWE-bench Pro 56.3, ClawEval 67.1) — independent replication of the 08-28 row; designforonline #26/303 agentic; high execution reliability consensus", "valid_from": "2026-09-09"}
 {"model": "step-3.7-flash", "category": "terminal", "score": 59.55, "max_score": 100.0, "source": "Terminal-Bench 2.1 stepfun-vendor-2026-09-05", "valid_from": "2026-09-05"}
 {"model": "step-3.7-flash", "category": "tool_use", "score": 0.671, "max_score": 1.0, "source": "ClawEval-1.1 research-bench-2026-08-28", "valid_from": "2026-08-28"}
 {"model": "syn:large:text", "category": "agent-tick", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
