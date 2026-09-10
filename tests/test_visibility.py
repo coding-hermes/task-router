@@ -273,3 +273,93 @@ def test_ledger_with_trace_reports_wired(monkeypatch, tmp_path):
     assert r["gates_loaded"]["ledger"] is True
     assert r["gates_loaded"]["ledger_rows"] == 1
     assert not any("NOT WIRED" in w for w in r["warnings"]), r["warnings"]
+
+
+
+# -------------------------------------------------------- TR-033 quiet mode ---
+
+def _open_providers(tables):
+    """All registry providers open — zero gate interference."""
+    return {r["id"]: {"status": "open"} for r in tables["providers"]}
+
+
+def test_quiet_flag_suppresses_router_miss_stderr(monkeypatch, tmp_path, capsys):
+    """Default mode emits ROUTER-MISS on stderr for unmet requirements;
+    ROUTER_SPAWN_QUIET=1 suppresses it while JSON stdout stays identical."""
+    tables = _load_tables()
+    monkeypatch.setattr(router_spawn, "REGISTRY", _write_registry(tmp_path, tables))
+    state_dir = _state_dir(tmp_path, quota=True, health=True, circuit=True,
+                           ledger=False,  # empty ledger so the TR-026 warning fires
+                           providers=_open_providers(tables))
+    monkeypatch.setattr(router_spawn, "MR", state_dir)
+
+    # Force an ad-hoc requirement that almost every model fails so ROUTER-MISS
+    # lines definitely appear.
+    r = router_spawn.resolve(project=None, profile_id=None,
+                             adhoc=["reasoning=5"])
+    captured = capsys.readouterr()
+    assert "ROUTER-MISS:" in captured.err
+    assert "WARNING: spawn ledger NOT WIRED" in captured.err
+    # The resolve may return an error (no chain), but stdout should still be empty
+    # here because resolve() returns a dict; the caller (main) serializes it.
+    # We call resolve() directly, so no stdout. Test quiet equivalence on stderr.
+
+    # Now enable quiet mode
+    monkeypatch.setenv("ROUTER_SPAWN_QUIET", "1")
+    r2 = router_spawn.resolve(project=None, profile_id=None,
+                              adhoc=["reasoning=5"])
+    captured2 = capsys.readouterr()
+    assert "ROUTER-MISS:" not in captured2.err
+    assert "WARNING: spawn ledger NOT WIRED" not in captured2.err
+    assert captured2.err == ""
+    # Results identical (except timestamps)
+    r.pop("resolved_at", None)
+    r2.pop("resolved_at", None)
+    assert r == r2
+
+
+def test_quiet_env_var_alone_suppresses_stderr(monkeypatch, tmp_path, capsys):
+    """ROUTER_SPAWN_QUIET=1 without CLI --quiet is sufficient."""
+    tables = _load_tables()
+    monkeypatch.setattr(router_spawn, "REGISTRY", _write_registry(tmp_path, tables))
+    state_dir = _state_dir(tmp_path, quota=True, health=True, circuit=True,
+                           ledger=False, providers=_open_providers(tables))
+    monkeypatch.setattr(router_spawn, "MR", state_dir)
+    monkeypatch.setenv("ROUTER_SPAWN_QUIET", "1")
+
+    r = router_spawn.resolve(project="coding-hermes-scheduler")
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert captured.err == ""
+    assert r.get("head")
+
+
+def test_cli_quiet_flag_sets_env_and_suppresses_stderr(tmp_path):
+    """The --quiet CLI flag exercises the argparse branch that sets
+    ROUTER_SPAWN_QUIET=1 and suppresses stderr telemetry."""
+    import subprocess
+    tables = _load_tables()
+    reg = _write_registry(tmp_path, tables)
+    state_dir = _state_dir(tmp_path, quota=True, health=True, circuit=True,
+                           ledger=False,
+                           providers={r["id"]: {"status": "open"}
+                                      for r in tables["providers"]})
+    env = os.environ.copy()
+    env["ROUTING_REGISTRY"] = reg
+    env["ROUTER_STATE_DIR"] = state_dir
+    env.pop("ROUTER_SPAWN_QUIET", None)
+
+    loud = subprocess.run(
+        [sys.executable, "-m", "scripts.router_spawn", "coding-hermes-scheduler",
+         "--format", "json"],
+        capture_output=True, text=True, cwd=REPO, env=env)
+    assert loud.returncode == 0
+    assert "ROUTER-MISS:" in loud.stderr or "WARNING: spawn ledger NOT WIRED" in loud.stderr
+
+    quiet = subprocess.run(
+        [sys.executable, "-m", "scripts.router_spawn", "coding-hermes-scheduler",
+         "--format", "json", "--quiet"],
+        capture_output=True, text=True, cwd=REPO, env=env)
+    assert quiet.returncode == 0
+    assert quiet.stderr == ""
+    assert json.loads(quiet.stdout)  # valid JSON

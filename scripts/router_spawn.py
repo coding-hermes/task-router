@@ -44,6 +44,21 @@ scheduler must NEVER be blocked by the router.
 """
 import json, os, sys, argparse, datetime, contextlib
 
+
+# TR-033: --quiet / ROUTER_SPAWN_QUIET=1 suppresses stderr telemetry.  Default
+# is LOUD so ROUTER-MISS analysis keeps getting data.  Checked once per process.
+def _quiet():
+    return os.environ.get('ROUTER_SPAWN_QUIET', '') in ('1', 'true', 'yes')
+
+
+def _err(msg):
+    """Write a diagnostic line to stderr unless quiet mode is enabled."""
+    if not _quiet():
+        try:
+            print(msg, file=sys.stderr)
+        except Exception:
+            pass
+
 # Text registry (Bane 2026-08-27): the live store is a gitignored JSON file in
 # the task-router repo — NOT a binary duckdb. Env-overridable for hermetic
 # tests. registry.json is produced by router_seed.py (version 3: {"version",
@@ -548,8 +563,8 @@ def _build_chain(tables, reqs, limit=30):
             # ROUTER-MISS line; fail-open — never blocks the resolve.
             try:
                 for cat, lvl, tier in misses:
-                    print(f"ROUTER-MISS: {prov}/{model} fails {cat}>={lvl} "
-                          f"(tier={tier})", file=sys.stderr)
+                    _err(f"ROUTER-MISS: {prov}/{model} fails {cat}>={lvl} "
+                         f"(tier={tier})")
             except Exception:
                 pass
             continue
@@ -562,11 +577,8 @@ def _build_chain(tables, reqs, limit=30):
             if ctx is None:
                 ctx_note = 'context_unknown: context_limit missing; allowed by lenient min_context rule'
             elif ctx < min_context:
-                try:
-                    print(f"ROUTER-MISS: {prov}/{model} fails min_context>={min_context} "
-                          f"(context_limit={ctx})", file=sys.stderr)
-                except Exception:
-                    pass
+                _err(f"ROUTER-MISS: {prov}/{model} fails min_context>={min_context} "
+                     f"(context_limit={ctx})")
                 continue
 
         m = dict(m)
@@ -787,6 +799,7 @@ def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=30
             'around spawns (cross-repo: coding-hermes-scheduler '
             'TASK-ROUTER-002 call side)'
         )
+        _err('WARNING: spawn ledger NOT WIRED — model busy gate cannot fire')
     now = datetime.datetime.now(datetime.timezone.utc).isoformat(timespec='seconds')
 
     # Training gate (Bane 2026-09-01): provider facts live in the providers
@@ -929,7 +942,15 @@ def main():
     ap.add_argument('--allow-training', action='store_true',
                     help='include lanes whose terms train on prompts/completions '
                          '(default: excluded; e.g. muse-spark-1.2-contributor)')
+    ap.add_argument('--quiet', action='store_true',
+                    help='suppress stderr telemetry (ROUTER-MISS, warnings); '
+                         'env ROUTER_SPAWN_QUIET=1 also works')
     args = ap.parse_args()
+
+    # TR-033: --quiet takes precedence; set the env so the rest of the code
+    # observes a single source of truth.
+    if args.quiet:
+        os.environ['ROUTER_SPAWN_QUIET'] = '1'
 
     if args.list_profiles:
         tables = _load_registry()
@@ -950,9 +971,9 @@ def main():
         return
 
     if args.project and args.profile_id:
-        print(f"WARNING: both --profile {args.profile_id} and project "
-              f"{args.project} given — resolving via project "
-              f"(project profile wins)", file=sys.stderr)
+        _err(f"WARNING: both --profile {args.profile_id} and project "
+             f"{args.project} given — resolving via project "
+             f"(project profile wins)")
 
     r = resolve(project=args.project, profile_id=args.profile_id,
                 adhoc=args.adhoc, use_health=not args.no_health,
