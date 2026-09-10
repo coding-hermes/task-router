@@ -1,20 +1,26 @@
 #!/usr/bin/env python3
 """Fleet cooldown policy — matches supervisor skill + Bane directives.
 
-Cooldown matrix (Bane 2026-08-07 — THREE speeds):
-  - 900s  (15m)  — PRIORITY. If a project is at 900s, LEAVE IT THERE.
-                   Nothing in this script lowers or raises 900.
-  - 7200s (2h)   — DEFAULT baseline for the fleet.
-  - 43200s (12h) — COMPLETED (no real work; NEVER-DONE perpetual tasks
-                   are fine at this tier).
+Cooldown matrix (Bane 2026-09-09 — 6h baseline, NO sub-6h pins):
+  - 3600s (1h)  — FAST. Operator-designated only; the fleet-wide re-pin
+                   moved every project to 21600 (Bane: "we are just
+                   lighting money on fire this way" at 900/3600).
+  - 21600s (6h) — DEFAULT baseline for the fleet.
+  - 43200s (12h) — COMPLETED (no real work) / elevated anti-flood pins.
 
-Correction rules (Bane 2026-08-07):
-  1. Any project BELOW 900s (e.g. 600) → RAISED back to 900s.
-  2. Project at 900s → untouched, always.
-  3. Project above 7200s WITH real work (pending board items or open
-     stand-in gaps) → moved back to 7200s (2h) — not 900s.
-  4. Project at 7200s with no work at all → promoted to 43200s (12h,
-     completed tier). Promotions are the only other allowed increase.
+Correction rules (Bane 2026-09-09, supersede 2026-08-07):
+  1. Any live cooldown BELOW the fast tier (3600) → wake residue, NOT
+     intent: REVERT to the fleet.toml pin (now always >= 21600), or the
+     fast tier when no pin exists. The old "leave 900 alone" hard-skip
+     fossilized stand-in wake-PUTs as operator intent — removed.
+  2. Project at 3600 with pin == 3600 → operator fast tier, untouched.
+  3. Project above 21600 WITH real work → REDUCE to 21600 (6h default).
+  4. Project below 21600 with pin != own pin → RAISE to 21600 (default).
+  Promotions to 43200 on empty boards are the only other allowed increase.
+  Every policy PUT also re-snapshots cooldown_floor_s = cooldown_s (the
+  adaptive progress path resets cooldown to the floor; a stale sub-6h
+  floor re-poisons the pin on the project's next committing tick —
+  proven 2026-09-09: h3 ran 900s against a 43200 pin for 2 days).
 
 Usage: python3 fleet-cooldown-policy.py [--apply]
 """
@@ -167,6 +173,16 @@ def api_get(path):
         return json.loads(r.read())
 
 def api_put(path, body):
+    # Every cooldown PUT re-snapshots the adaptive floor to the new pin.
+    # The adaptive progress path resets cooldown_s to cooldown_floor_s on
+    # any committing tick, and the loader only re-snapshots the floor on a
+    # false→true adaptive transition — so a stale floor below the new pin
+    # silently re-poisons the pin on the project's next tick (proven
+    # 2026-09-09: h3 enforced 900s against a 43200 pin for 2 days via a
+    # fossilized floor; helios/mafia carried the same 900 floors).
+    if 'cooldown_s' in body:
+        body = dict(body)
+        body.setdefault('cooldown_floor_s', body['cooldown_s'])
     req = urllib.request.Request(
         API + path, data=json.dumps(body).encode(),
         headers={'Content-Type': 'application/json'}, method='PUT')
@@ -190,12 +206,16 @@ def main():
             workdir = workdir[6:]
         cooldown = p.get('cooldown_s', p.get('cooldown_s', 0))
         pin = fleet_pins.get(name)
-        # HARD GUARD: a fleet.toml pin of 900 is operator intent (Bane hot
-        # tier) — skip ALL evaluation for it. No rule, no wake-revert, no
-        # race can move it. (Proven 2026-08-09: hermes-canopy 900→7200 during
-        # an apply — evaluation raced a concurrent board write.)
-        if pin == TARGET_ACTIVE:
-            print(f"{name:32s} {'-':8s} {cooldown:10d} {cooldown:8d} ok (operator 900 pin — hard-skipped)")
+        # BELOW-FAST LIVE VALUE = wake residue, NOT operator intent
+        # (Bane 2026-09-09: fleet re-pinned to 6h — "we are just lighting
+        # money on fire this way" at 900/3600 pins). The old 900 hard-skip
+        # fossilized stand-in wake-PUTs as "operator intent". Now: any live
+        # cooldown BELOW the fast tier (3600) falls through to the REVERT
+        # rules below (pin wins, else fast tier). Only a pin that IS the
+        # fast tier itself (or one of the two Bane 7200 killer projects) is
+        # honored. (floor re-snapshot rides along via api_put below.)
+        if pin == TARGET_ACTIVE or name in OPERATOR_7200 or fleet_pins.get(name) == 7200:
+            print(f"{name:32s} {'-':8s} {cooldown:10d} {cooldown:8d} ok (operator fast pin — hard-skipped)")
             continue
         # ELEVATED-PIN GUARD (SCHED-GAP-012): a fleet.toml pin above the
         # 7200 default is operator intent (h3=21600 anti-flood, warpfs=43200
@@ -230,8 +250,17 @@ def main():
         target = cooldown  # default: no change
 
         if cooldown < TARGET_ACTIVE:
-            target = TARGET_ACTIVE
-            action = f"RAISE {cooldown}→{TARGET_ACTIVE} (below minimum floor)"
+            # Bane 2026-09-09: NO sub-6h pins fleet-wide — "we are just
+            # lighting money on fire this way". A below-fast live cooldown
+            # is wake residue, not intent: revert to the operator pin
+            # (fleet.toml, which is >= TARGET_ACTIVE post-2026-09-09), or
+            # the fast tier only when no pin exists.
+            if pin is not None and pin >= TARGET_ACTIVE:
+                target = pin
+                action = f"REVERT {cooldown}→{pin} (below-fast residue; operator pin={pin})"
+            else:
+                target = TARGET_ACTIVE
+                action = f"RAISE {cooldown}→{TARGET_ACTIVE} (below minimum floor)"
             if apply:
                 api_put(f"/api/v1/projects/{name}", {"cooldown_s": target})
                 action += " ✓"
@@ -417,8 +446,14 @@ def write_fleet_pins(projects, namespaces=None):
         if ns:
             out.append(f'namespace_id = "{ns}"')
         # SCHED-GAP-1 arming: foreman lane only, explicit 8x ceiling.
+        # cooldown_floor_s is emitted EXPLICITLY = the pin: the loader
+        # defaults an absent floor to the pin-at-enable-time, so regens
+        # without the key could drift the floor away from the pin (the
+        # 2026-09-09 h3 fossil: floor=900 vs pin=43200 → 2 days of 15-min
+        # ticks). Floor == pin here keeps restart re-pins converged.
         if ns in ADAPTIVE_LANES:
             out.append('adaptive_cooldown = true')
+            out.append(f'cooldown_floor_s = {cooldown}')
             out.append(f'cooldown_ceiling_s = {cooldown * ADAPTIVE_CEILING_MULTIPLIER}')
         if p.get('deliver', p.get('Deliver')):
             out.append(f'deliver = "{p.get("deliver", p.get("Deliver", ""))}"')
