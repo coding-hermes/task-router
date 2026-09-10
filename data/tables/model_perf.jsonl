@@ -103,6 +103,7 @@
 {"model": "deepseek-v4-pro", "category": "refactor", "perf": 0.85}
 {"model": "deepseek-v4-pro", "category": "review", "perf": 0.8}
 {"model": "deepseek-v4-pro", "category": "schema", "perf": 0.5}
+{"model": "deepseek-v4-pro", "category": "spec_docs", "perf": 0.7}
 {"model": "deepseek-v4-pro", "category": "terminal", "perf": 0.85}
 {"model": "deepseek-v4-pro", "category": "test", "perf": 0.72}
 {"model": "deepseek-v4-pro", "category": "tool_use", "perf": 0.85}
@@ -345,7 +346,7 @@
 {"model": "gpt-5.6-luna", "category": "test", "perf": 0.95}
 {"model": "gpt-5.6-luna", "category": "tool_use", "perf": 0.75}
 {"model": "gpt-5.6-luna", "category": "vision", "perf": 1.0}
-{"model": "gpt-5.6-sol", "category": "agent_tick", "perf": 0.8}
+{"model": "gpt-5.6-sol", "category": "agent_tick", "perf": 0.88}
 {"model": "gpt-5.6-sol", "category": "code_gen", "perf": 0.9904610492845787}
 {"model": "gpt-5.6-sol", "category": "debug", "perf": 0.9905}
 {"model": "gpt-5.6-sol", "category": "delegation", "perf": 0.75}

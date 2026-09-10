@@ -129,6 +129,7 @@
 {"model": "deepseek-v4-pro", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
 {"model": "deepseek-v4-pro", "category": "sentiment", "score": 0.62, "max_score": 1.0, "source": "research-bench-2026-08-28", "valid_from": "2026-08-28"}
 {"model": "deepseek-v4-pro", "category": "sentiment", "score": 0.7, "max_score": 1.0, "source": "research-bench-2026-09-07", "valid_from": "2026-09-07"}
+{"model": "deepseek-v4-pro", "category": "sentiment", "score": 0.7, "max_score": 1.0, "source": "research-bench-2026-09-10: webscraft migration analysis — SWE-bench gap Flash vs Pro only 1.6pts but Terminal-Bench 2.0 gap 11pts: Pro's edge is autonomous terminal/agentic work, not static codegen (where Flash at 0.0795 repriced wins economically). BenchLM #32/231 overall, reasoning #13. Supports keeping v4-pro as the agentic-deepseek hop while flash serves volume.", "valid_from": "2026-09-10"}
 {"model": "deepseek-v4-pro", "category": "terminal", "score": 0.721, "max_score": 1.0, "source": "Terminal-Bench 2.1 research-bench-2026-08-28", "valid_from": "2026-08-28"}
 {"model": "deepseek-v4-pro-0813", "category": "agent-tick", "score": 1.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
 {"model": "deepseek-v4-pro-0813", "category": "debug", "score": 1.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
@@ -221,6 +222,7 @@
 {"model": "gpt-5.6-luna", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
 {"model": "gpt-5.6-luna", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
 {"model": "gpt-5.6-luna", "category": "sentiment", "score": 0.75, "max_score": 1.0, "source": "research-bench-2026-08-28", "valid_from": "2026-08-28"}
+{"model": "gpt-5.6-luna", "category": "sentiment", "score": 0.8, "max_score": 1.0, "source": "research-bench-2026-09-10: coderabbit tier guide — 'Luna is the tier to watch for top-of-funnel agent work' (cheap first pass that reduces load before Terra/Sol escalation; key = low reasoning). r/codex first-hand: very reliable, excellent at catching subtle state bugs, slower. OpenAI upgraded Codex CLI auto-review 5.4->Luna (vellum). Capability ceiling below Terra/Sol — escalation-tier workhorse, not premium reasoning.", "valid_from": "2026-09-10"}
 {"model": "gpt-5.6-sol", "category": "agent-tick", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
 {"model": "gpt-5.6-sol", "category": "agent_tick", "score": 0.8, "max_score": 1.0, "source": "AA Coding Agent Index research-bench-2026-09-07", "valid_from": "2026-09-07"}
 {"model": "gpt-5.6-sol", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
@@ -234,6 +236,7 @@
 {"model": "gpt-5.6-sol", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
 {"model": "gpt-5.6-sol", "category": "sentiment", "score": 0.82, "max_score": 1.0, "source": "research-bench-2026-08-28", "valid_from": "2026-08-28"}
 {"model": "gpt-5.6-sol", "category": "sentiment", "score": 0.88, "max_score": 1.0, "source": "research-bench-2026-09-05", "valid_from": "2026-09-05"}
+{"model": "gpt-5.6-sol", "category": "sentiment", "score": 0.88, "max_score": 1.0, "source": "research-bench-2026-09-10: standing confirmed (AA Coding Agent Index 80, leads all three evals; kingy.ai model specs 1.05M ctx/128K out). NEW FACT: OpenAI model page says Sol promo pricing holds 'at least through November 21, 2026' (yottalabs roundup) — normalized sub price $0.4 is promo-dependent; re-check lane economics on/after Nov 21. Community: deepest analysis but slowest/most exhaustive (r/codex multi-model bench).", "valid_from": "2026-09-10"}
 {"model": "gpt-5.6-terra", "category": "agent-tick", "score": 1.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
 {"model": "gpt-5.6-terra", "category": "agent_tick", "score": 0.774, "max_score": 1.0, "source": "AA Coding Agent Index research-bench-2026-09-07", "valid_from": "2026-09-07"}
 {"model": "gpt-5.6-terra", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
@@ -243,6 +246,7 @@
 {"model": "gpt-5.6-terra", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
 {"model": "gpt-5.6-terra", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
 {"model": "gpt-5.6-terra", "category": "sentiment", "score": 0.78, "max_score": 1.0, "source": "research-bench-2026-08-28", "valid_from": "2026-08-28"}
+{"model": "gpt-5.6-terra", "category": "sentiment", "score": 0.82, "max_score": 1.0, "source": "research-bench-2026-09-10: r/codex multi-model coding-agent bench (sol/terra/luna/flash-3.7) — Terra performed BEST first-hand; vellum: Terra/Sonnet-5 traded near-parity during Sonnet intro window, Terra cheaper after Aug 31. Confirms 08-28 0.78 standing; small bump not a regime shift.", "valid_from": "2026-09-10"}
 {"model": "gpt-oss:120b", "category": "agent-tick", "score": 1.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
 {"model": "gpt-oss:120b", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
 {"model": "gpt-oss:120b", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}

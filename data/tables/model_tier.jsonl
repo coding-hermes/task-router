@@ -103,6 +103,7 @@
 {"model": "deepseek-v4-pro", "category": "refactor", "perf": 0.85, "tier": 5}
 {"model": "deepseek-v4-pro", "category": "review", "perf": 0.8, "tier": 2}
 {"model": "deepseek-v4-pro", "category": "schema", "perf": 0.5, "tier": 1}
+{"model": "deepseek-v4-pro", "category": "spec_docs", "perf": 0.7, "tier": -3}
 {"model": "deepseek-v4-pro", "category": "terminal", "perf": 0.85, "tier": 0}
 {"model": "deepseek-v4-pro", "category": "test", "perf": 0.72, "tier": 1}
 {"model": "deepseek-v4-pro", "category": "tool_use", "perf": 0.85, "tier": 4}
@@ -344,7 +345,7 @@
 {"model": "gpt-5.6-luna", "category": "test", "perf": 0.95, "tier": 5}
 {"model": "gpt-5.6-luna", "category": "tool_use", "perf": 0.75, "tier": 2}
 {"model": "gpt-5.6-luna", "category": "vision", "perf": 1.0, "tier": 5}
-{"model": "gpt-5.6-sol", "category": "agent_tick", "perf": 0.8, "tier": 2}
+{"model": "gpt-5.6-sol", "category": "agent_tick", "perf": 0.88, "tier": 3}
 {"model": "gpt-5.6-sol", "category": "code_gen", "perf": 0.9904610492845787, "tier": 5}
 {"model": "gpt-5.6-sol", "category": "debug", "perf": 0.9905, "tier": 4}
 {"model": "gpt-5.6-sol", "category": "delegation", "perf": 0.75, "tier": 3}
@@ -727,7 +728,7 @@
 {"model": "mimo-v2.5-pro", "category": "code_gen", "perf": 0.85, "tier": 4}
 {"model": "mimo-v2.5-pro", "category": "mechanical", "perf": 0.72, "tier": 5}
 {"model": "mimo-v2.5-pro", "category": "refactor", "perf": 0.72, "tier": 3}
-{"model": "mimo-v2.5-pro", "category": "spec_docs", "perf": 0.684, "tier": -3}
+{"model": "mimo-v2.5-pro", "category": "spec_docs", "perf": 0.684, "tier": -4}
 {"model": "mimo-v2.5-pro", "category": "terminal", "perf": 0.85, "tier": 0}
 {"model": "mimo-v2.5-pro", "category": "test", "perf": 0.72, "tier": 1}
 {"model": "mimo-v2.5-pro", "category": "tool_use", "perf": 0.85, "tier": 4}
