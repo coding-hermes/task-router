@@ -45,6 +45,18 @@ import sys
 import duckdb  # noqa: F401  (kept for the seed subprocess's in-memory engine; maintain itself is pure JSON)
 import tempfile
 
+# TR-034: pricing formulas live in scripts/pricing/ — this module dispatches
+# to them (see compute_price) and re-exports find_or_id from the shared
+# helpers for its existing callers.
+_SCRIPTS_DIR = os.path.dirname(os.path.realpath(__file__))
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
+
+from pricing import BY_PROVIDER  # noqa: E402
+from pricing import estimate as _pricing_estimate  # noqa: E402
+from pricing import helpers as _pricing_helpers  # noqa: E402
+
+
 # Text registry (Bane 2026-08-27): live store = gitignored JSON in the repo,
 # NOT a binary duckdb. ROUTING_REGISTRY override = scratch copies for tests.
 # Repo-relative defaults: the project is self-contained (clone → use).
@@ -104,8 +116,10 @@ NON_REPRICABLE_PROVIDERS = {
     'zai-glm',
 }
 
-OPENCODE_BLENDED_IN = 0.96          # budget unknown → blended estimate weights
-OPENCODE_BLENDED_OUT = 0.04
+# TR-034: blended-estimate weights are canonical in pricing.helpers; the
+# module-level names below are kept as aliases for existing readers.
+OPENCODE_BLENDED_IN = _pricing_helpers.BLENDED_IN          # 0.96
+OPENCODE_BLENDED_OUT = _pricing_helpers.BLENDED_OUT        # 0.04
 
 
 def _iso_now():
@@ -168,20 +182,14 @@ def run_spot_check(dry_run=False):
 def find_or_id(model_name, prices):
     """Map a registry model name to an OpenRouter id from the spot-check output.
 
-    EXACT leaf match wins first (e.g. 'deepseek-v4-pro' must NOT be priced
+    TR-034: the implementation lives in pricing.helpers (shared with the
+    per-provider pricing modules); this wrapper re-exports it so existing
+    callers (and tests that inspect this module) keep working.
+    Exact leaf match wins first (e.g. 'deepseek-v4-pro' must NOT be priced
     from the longer leaf 'deepseek-v4-pro-0813'); longest-prefix fallback
     only when no exact leaf exists.
     """
-    m = (model_name or '').lower()
-    for mid in prices:
-        if mid.split('/')[1].lower() == m:
-            return mid
-    # fallback: longest matching family token wins (e.g. glm-5.3-flash over glm-5.3)
-    cands = [(len(mid), mid) for mid in prices
-             if mid.split('/')[1].lower().startswith(m)]
-    if cands:
-        return max(cands)[1]
-    return None
+    return _pricing_helpers.find_or_id(model_name, prices)
 
 
 def compute_price(provider, model, row_evidence, prices):
@@ -189,43 +197,33 @@ def compute_price(provider, model, row_evidence, prices):
 
     Returns (new_price, method) or (None, skip_reason).
 
+    TR-034: the per-provider formulas live in scripts/pricing/ — this is the
+    dispatch point. deepseek/opencode-go use their dedicated modules; every
+    other provider falls through to the evidence-guarded generic
+    estimate-row module (which itself refuses rows whose provider is in
+    NON_REPRICABLE_PROVIDERS — the sub-plan/non-OR guard is preserved).
+
     zai-glm rows are NEVER touched here: they are STATIC official points/M
     × $0.03 (off-peak half), carried in the DB rows themselves — OR glm
     prices are USD per 1M tokens, not zai credit points.
     """
-    ev = (row_evidence.get('price_evidence') or '')
     prov = (provider or '').lower()
-    mdl = (model or '').lower()
+    row = {'provider': provider, 'model': model, 'price_evidence': row_evidence.get('price_evidence')}
+    ctx = {'spot_prices': prices, 'today': _today(),
+           'non_repricable': {p.lower() for p in NON_REPRICABLE_PROVIDERS}}
 
-    if prov == 'deepseek':
-        # PAYG tariff == the OR in-price of the EXACT matching deepseek model.
-        ent = prices.get(find_or_id(mdl, prices))
-        if ent and ent['in'] is not None:
-            return ent['in'], 'deepseek: OR in-price'
-        return None, 'skipped (no mapping): no OR in-price for deepseek'
+    mod = BY_PROVIDER.get(prov)
+    if mod is not None:
+        new, method, reason = mod.price(row, None, {}, _pricing_helpers, ctx)
+        if new is not None:
+            return new, method
+        return None, (method or reason)
 
-    if prov == 'opencode-go':
-        # $12/5h ÷ req-per-5h ÷ 31,250 tokens/req; budget unknown → blended:
-        # 0.96 × in-price + 0.04 × out-price.
-        oid = find_or_id(mdl, prices)
-        if oid is None:
-            return None, 'skipped (no mapping): no OR id matched'
-        ent = prices[oid]
-        if ent['in'] is None:
-            return None, 'skipped (no mapping): OR in-price missing for %s' % oid
-        blended = round(OPENCODE_BLENDED_IN * ent['in'] + OPENCODE_BLENDED_OUT * (ent['out'] or 0.0), 6)
-        return blended, 'opencode-go: blended 0.96·in + 0.04·out of %s' % oid
-
-    # openrouter-backed estimate rows: only when evidence says 'estimate'.
-    if 'estimate' in ev.lower() and prov not in NON_REPRICABLE_PROVIDERS:
-        oid = find_or_id(mdl, prices)
-        if oid is None:
-            return None, 'skipped (no mapping): no OR id matched'
-        ent = prices[oid]
-        if ent['in'] is None:
-            return None, 'skipped (no mapping): OR in-price missing for %s' % oid
-        return ent['in'], 'estimate-row: OR in-price of %s' % oid
-
+    new, method, reason = _pricing_estimate.price(row, None, {}, _pricing_helpers, ctx)
+    if new is not None:
+        return new, method
+    if reason:
+        return None, reason
     return None, 'skipped (no mapping): provider %s is sub-plan/non-OR' % provider
 
 

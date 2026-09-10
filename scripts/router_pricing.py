@@ -9,26 +9,32 @@ normalized_price × token_factor — garbage in = wrong routing.
 Sources of truth, in order:
   1. Existing evidence rows are PRESERVED ('official formula', 'or-spot-*',
      'official+estimate', 'measured+estimate', 'estimate') — never overwritten.
-  2. plan_terms.jsonl declares each provider's billing model:
+  2. plan_terms.jsonl declares each provider's billing model; the math lives
+     in scripts/pricing/<billing_model>.py (TR-034), dispatched via
+     scripts/pricing/__init__.py BY_BILLING_MODEL:
        per_token       -> normalized = sticker cost_in (models.dev catalog),
                           evidence 'normalized:payg-sticker'
        per_request     -> normalized = plan_cost / requests / tokens_per_request * 1e6,
-                          evidence 'normalized:sub-bucket'
+                          evidence 'normalized:sub-bucket' (blended-estimate
+                          fallback when the bucket budget is unknown)
        per_minute      -> normalized = rate_per_minute / tokens_per_minute * 1e6,
                           evidence 'normalized:sub-minute'
-       official-points -> untouched (formula rows already carry the price)
   2. flat_subscription — a fixed monthly/period fee buys INCLUDED models at a
      usage multiplier vs the standard API rate (Cline Pass $9.99/mo, 2-5x usage
      per docs.cline.bot). effective $/M = models.dev blended sticker / multiplier.
      Models outside the included list are PAYG (unknown prices -> gap).
   3. temporary_discounts.jsonl — active discounts applied on top of the base
-     price: {provider, model ('*' = provider-wide), discount_type
-     ('percent'|'free'), value, valid_from, valid_to (null = open), source, note}.
-     Expired rows (valid_to < today) are ignored; expiring rows are reported.
-     Evidence tag gains '+discount' and the discount window is stamped on the row.
+     price (math in scripts/pricing/helpers.py): {provider, model ('*' =
+     provider-wide), discount_type ('percent'|'free'), value, valid_from,
+     valid_to (null = open), source, note}. Expired rows (valid_to < today)
+     are ignored; expiring rows are reported. Evidence tag gains '+discount'
+     and the discount window is stamped on the row.
   4. Providers with UNKNOWN terms keep NULL prices and are reported as
      pricing-gaps — the research agent fills plan_terms.jsonl, the next run
      prices them (the self-improving loop).
+
+This module is the thin entrypoint (CLI + orchestration); every pricing
+formula lives in scripts/pricing/ (TR-034).
 
 CLI: router_pricing.py [--dry-run] [--json]
 """
@@ -37,6 +43,16 @@ import datetime
 import json
 import os
 import sys
+
+# realpath (not abspath): the live install at ~/.hermes/scripts/router_pricing.py
+# is a SYMLINK into this repo — the pricing package import must anchor to the
+# real script location regardless of the caller's cwd.
+_HERE = os.path.dirname(os.path.realpath(__file__))
+if _HERE not in sys.path:
+    sys.path.insert(0, _HERE)
+
+from pricing import BY_BILLING_MODEL, MANUAL_FORMULA_MODELS  # noqa: E402
+from pricing import helpers as pricing_helpers  # noqa: E402
 
 _REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.environ.get('ROUTING_DATA_DIR', os.path.join(_REPO, 'data', 'tables'))
@@ -68,70 +84,6 @@ def normalize(dry_run, quiet=False):
     discounts = _rows('temporary_discounts')
     today = datetime.date.today().isoformat()
 
-    def active_discounts(provider, model):
-        """Yield discount rows currently in effect for (provider, model)."""
-        for d in discounts:
-            if d.get('provider') != provider:
-                continue
-            if d.get('model') not in ('*', model):
-                continue
-            vf = d.get('valid_from')
-            vt = d.get('valid_to')
-            if vf and vf > today:
-                continue
-            if vt and vt < today:
-                continue
-            yield d
-
-    def apply_discount(price, provider, model):
-        """Apply active discounts to a base price. Returns (effective, notes)."""
-        eff, notes = price, []
-        for d in active_discounts(provider, model):
-            typ, val = d.get('discount_type'), d.get('value')
-            if typ == 'free' or (typ == 'percent' and float(val) >= 1.0):
-                eff, notes = 0.0, ['free-lane']
-            elif typ == 'percent':
-                eff = eff * (1.0 - float(val))
-                notes.append(f"{float(val)*100:.0f}% off")
-            elif typ == 'absolute':
-                eff = max(0.0, eff - float(val))
-                notes.append(f"-${val}")
-        return round(eff, 4), notes
-
-    def public_from_sticker(cost_in, cost_out):
-        """Public $/M prices from a models.dev-style sticker (list price).
-
-        Returns (in_per_m, out_per_m, blended) or None when no input sticker.
-        Blended = 0.96*in + 0.04*out — the same input-dominant mix the
-        sub-bucket estimator uses (agent ticks are ~96%+ input tokens).
-        """
-        if cost_in is None:
-            return None
-        ci = float(cost_in)
-        co = float(cost_out) if cost_out is not None else ci
-        return round(ci, 4), round(co, 4), round(0.96 * ci + 0.04 * co, 4)
-
-    def fill_public_price(m, cost_in, cost_out):
-        """Stamp PUBLIC (sticker) prices on a model row unless already present.
-
-        Bane 2026-08-27: cost reporting ("what did it cost to build feature X")
-        quotes the provider's PUBLIC list price. normalized_price stays the
-        internal effective $/M used for chain ordering; these columns are what
-        router_spawn.py exposes as usd_1m / in_per_m / out_per_m. Never
-        overwrite an existing fill (idempotent across runs).
-        """
-        got = public_from_sticker(cost_in, cost_out)
-        if got is None:
-            return False
-        pub_in, pub_out, pub_blend = got
-        if m.get('public_in_per_m') is None:
-            m['public_in_per_m'] = pub_in
-        if m.get('public_out_per_m') is None:
-            m['public_out_per_m'] = pub_out
-        if m.get('public_price') is None:
-            m['public_price'] = pub_blend
-        return True
-
     # --- 0. PUBLIC PRICE FILL (Bane 2026-08-27) ------------------------------
     # Stamp every row that has a models.dev catalog sticker with its PUBLIC
     # list price, whether or not it is already normalized-priced. The
@@ -142,7 +94,8 @@ def normalize(dry_run, quiet=False):
         if m.get('archive') or m.get('valid_to') or m.get('disabled'):
             continue
         cat = catalog.get((m['provider'], m['model']))
-        if cat and fill_public_price(m, cat.get('cost_input'), cat.get('cost_output')):
+        if cat and pricing_helpers.fill_public_price(
+                m, cat.get('cost_input'), cat.get('cost_output')):
             filled_public += 1
     if filled_public and not quiet:
         print(f'public-price fill: {filled_public} rows stamped from models.dev sticker')
@@ -173,102 +126,33 @@ def normalize(dry_run, quiet=False):
         if m.get('normalized_price') not in (None, 0) and not stale_flat:
             continue  # already priced (evidence preserved)
         model = t.get('billing_model')
-        if model in ('official-points', 'subscription'):
+        mod = BY_BILLING_MODEL.get(model)
+        if mod is None:
+            gaps.append((m['provider'], m['model'], f'unknown billing_model {model!r}'))
+            continue
+        if model in MANUAL_FORMULA_MODELS:
             # manual-formula models: lanes carry researched prices already
             # (official formula / official+estimate); unpriced lanes stay
             # documented gaps (kimi aliases are plan aliases, not models).
-            gaps.append((m['provider'], m['model'], f'{model} (manual formula row)'))
+            gaps.append((m['provider'], m['model'], mod.price(m, t, catalog, pricing_helpers,
+                                                              {'discounts': discounts, 'today': today})[2]))
             continue
-        cat = catalog.get((m['provider'], m['model']))
-        if model == 'per_token':
-            cost_in = (cat or {}).get('cost_input')
-            if cost_in is None:
-                gaps.append((m['provider'], m['model'], 'no models.dev sticker'))
-                continue
-            price = round(float(cost_in), 4)
-            evidence = 'normalized:payg-sticker'
-            fill_public_price(m, cost_in, (cat or {}).get('cost_output'))
-        elif model == 'per_request':
-            cost = t.get('plan_cost'); reqs = t.get('requests'); tpr = t.get('tokens_per_request')
-            if not (cost and reqs and tpr):
-                # budget-unknown fallback (registry-maintenance.md design):
-                # blended estimate 0.96×sticker-in + 0.04×sticker-out — the
-                # sub-bucket proxy until per-model req rates are researched
-                ci, co = (cat or {}).get('cost_input'), (cat or {}).get('cost_output')
-                if ci is None or co is None:
-                    for (cp, cm), cr in catalog.items():
-                        if cm == m['model'] and cr.get('cost_input') is not None and cr.get('cost_output') is not None:
-                            ci, co = cr['cost_input'], cr['cost_output']
-                            break
-                    else:
-                        gaps.append((m['provider'], m['model'], 'no req-rate AND no sticker for blended est'))
-                        continue
-                price = round(0.96 * float(ci) + 0.04 * float(co), 4)
-                evidence = 'normalized:sub-bucket(blended est)'
-                fill_public_price(m, ci, co)
-            else:
-                price = round(float(cost) / float(reqs) / float(tpr) * 1e6, 4)
-                evidence = 'normalized:sub-bucket'
-                fill_public_price(m, (cat or {}).get('cost_input'), (cat or {}).get('cost_output'))
-        elif model == 'per_minute':
-            rate = t.get('rate_per_minute'); tpm = t.get('tokens_per_minute')
-            if not (rate and tpm):
-                gaps.append((m['provider'], m['model'], 'incomplete per_minute terms'))
-                continue
-            price = round(float(rate) / float(tpm) * 1e6, 4)
-            evidence = 'normalized:sub-minute'
-        elif model == 'flat_subscription':
-            base_name = m['model'].replace(':free', '')
-            included = t.get('included_models') or []
-            if not included:
-                # usage-bucket flat plan (ollama-cloud): the flat fee buys a
-                # usage bucket, no per-model included list exists. Unpriced
-                # lanes stay NULL (documented gap — per-model rate unpublished
-                # on the provider's JS-rendered pages) — never a PAYG label.
-                if m.get('normalized_price') is None:
-                    gaps.append((m['provider'], m['model'], 'bucket plan — no included list; per-model rate unpublished'))
-                continue
-            if base_name not in included:
-                # non-included lane: priced ONLY if a temporary discount makes
-                # it worth routing (free promo lanes) — otherwise PAYG gap
-                if any(True for d in active_discounts(m['provider'], m['model'])
-                       if d.get('discount_type') == 'free'):
-                    price, evidence = 0.0, 'temporary free lane'
-                else:
-                    gaps.append((m['provider'], m['model'], 'outside flat-plan included list (PAYG)'))
-                    continue
-                cat = None
-            else:
-                cost_in = (cat or {}).get('cost_input')
-                cost_out = (cat or {}).get('cost_output')
-                sticker_src = m['provider']
-                if cost_in is None or cost_out is None:
-                    # same weights, other provider's models.dev sticker = the standard
-                    # API rate the flat plan multiplies (docs.cline.bot "2-5x usage
-                    # vs standard API rate")
-                    for (cp, cm), cr in catalog.items():
-                        if cm == base_name and cr.get('cost_input') is not None and cr.get('cost_output') is not None:
-                            cost_in, cost_out = cr['cost_input'], cr['cost_output']
-                            sticker_src = cp
-                            break
-                    else:
-                        gaps.append((m['provider'], m['model'], 'included but no sticker for lane math'))
-                        continue
-                mult = float(t.get('usage_multiplier') or 1.0)
-                price = round((float(cost_in) + float(cost_out)) / 2.0 / mult, 4)
-                evidence = f'normalized:flat-sub({mult:.1f}x lane)'
-                if sticker_src != m['provider']:
-                    evidence += f' sticker@{sticker_src}'
-                fill_public_price(m, cost_in, cost_out)
-        else:
-            gaps.append((m['provider'], m['model'], f'unknown billing_model {model!r}'))
+        price, evidence, reason = mod.price(
+            m, t, catalog, pricing_helpers, {'discounts': discounts, 'today': today})
+        if price is None:
+            if reason:
+                gaps.append((m['provider'], m['model'], reason))
             continue
 
         # temporary discounts on top of the base price
-        eff, dnotes = apply_discount(price, m['provider'], m['model'])
+        eff, dnotes = pricing_helpers.apply_discount(price, m['provider'], m['model'],
+                                                     discounts, today)
         if dnotes:
             evidence = evidence + '+discount(' + ','.join(dnotes) + ')'
-            vt = [d.get('valid_to') for d in active_discounts(m['provider'], m['model']) if d.get('valid_to')]
+            vt = [d.get('valid_to') for d in
+                  pricing_helpers.active_discounts(m['provider'], m['model'],
+                                                   discounts, today)
+                  if d.get('valid_to')]
             if vt:
                 m['discount_valid_to'] = min(vt)
         priced.append((m['provider'], m['model'], eff, evidence))
