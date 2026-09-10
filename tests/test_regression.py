@@ -695,3 +695,21 @@ def test_seed_is_idempotent(tmp_path):
     a["generated_at"] = b["generated_at"] = None
     assert json.dumps(a, sort_keys=True) == json.dumps(b, sort_keys=True), \
         "seed output differs beyond generated_at"
+
+
+def test_chain_default_limit_covers_registry():
+    """2026-09-10 RCA: opencode-go-2 (24 cheap lanes) pushed deepseek-foreman to
+    position 34/74 — past the old default cap of 30 — so the 'deepseek serves as
+    a normal hop' test broke and degraded_fallback fired spuriously. The default
+    chain cap must always exceed the eligible lane count, else the tail of the
+    price-sorted universe silently vanishes from every resolve."""
+    tables = _load_tables()
+    reqs = {}
+    for q in tables["task_profile_requirements"]:
+        reqs.setdefault(q["task_id"], []).append((q["category"], q["level"]))
+    chain = router_spawn._build_chain(tables, reqs.get("P1_CODING", []), limit=10 ** 6)
+    assert len(chain) < router_spawn._build_chain.__defaults__[0], (
+        f"eligible lanes ({len(chain)}) reached the default chain cap — "
+        "cheap new provider lanes can now silently drop deepseek and other "
+        "tail hops from resolve(); raise the default limit"
+    )
