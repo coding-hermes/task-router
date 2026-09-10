@@ -181,13 +181,13 @@ def test_chain_invariants_per_profile(monkeypatch, tmp_path, pid):
     # real long_horizon/security evidence.
     ("P2_AGENTIC", "ollama-cloud/kimi-k2.7-code"),
     # Bane 2026-08-31: P4_SECURITY requires security >= 2. Only gpt-5.6-sol
-    # clears that bar. The prod mirror marks openai-codex DOWN, so the only
-    # surviving path is the designated always-run fallback lane
-    # deepseek-foreman/deepseek-v4-flash. It is correctly emitted as a DEGRADED
-    # fallback with requirements_unmet, never as a normal eligibility hop.
-    # The fallback behavior is also tested explicitly by
-    # test_fallback_lane_fires_when_all_subs_down.
-    ("P4_SECURITY", "deepseek-foreman/deepseek-v4-flash"),
+    # clears that bar. 2026-09-10: commandcode provider added (Provider API,
+    # no-markup, open in the prod mirror) — its gpt-5.6-sol lane clears
+    # security>=2, so P4_SECURITY now resolves to a REAL head instead of the
+    # degraded deepseek-foreman fallback. openai-codex remains DOWN in the
+    # mirror (health), commandcode picks the chain head at $5 vs codex $0.4.
+    # Degraded fallback still covered by test_fallback_lane_fires_when_all_subs_down.
+    ("P4_SECURITY", "commandcode/gpt-5.6-sol"),
 ])
 def test_golden_fixed_point_heads(monkeypatch, tmp_path, pid, head):
     """Known heads as of 2026-08-27 (intentional reprice/new-model changes must
