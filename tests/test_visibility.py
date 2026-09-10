@@ -363,3 +363,74 @@ def test_cli_quiet_flag_sets_env_and_suppresses_stderr(tmp_path):
     assert quiet.returncode == 0
     assert quiet.stderr == ""
     assert json.loads(quiet.stdout)  # valid JSON
+
+
+def _quiet_env(tmp_path, tables, state_dir):
+    """Hermetic subprocess env for the TR-033 CLI tests: registry + state dir
+    pointed at the fixtures, metrics isolated into tmp (TASK_ROUTER_HOME,
+    same convention as test_cli_paths), ROUTER_SPAWN_QUIET scrubbed so the
+    default (loud) behavior is what a fresh embedder would see."""
+    env = os.environ.copy()
+    env["ROUTING_REGISTRY"] = _write_registry(tmp_path, tables)
+    env["ROUTER_STATE_DIR"] = state_dir
+    env["TASK_ROUTER_HOME"] = str(tmp_path / "metrics-home")
+    env.pop("ROUTER_SPAWN_QUIET", None)
+    return env
+
+
+def _spawn_proc(env, *extra):
+    import subprocess
+    return subprocess.run(
+        [sys.executable, "-m", "scripts.router_spawn",
+         "coding-hermes-scheduler", "--format", "json", *extra],
+        capture_output=True, text=True, cwd=REPO, env=env, timeout=60)
+
+
+def test_quiet_stdout_identical_to_loud(tmp_path):
+    """Criterion: --quiet must produce IDENTICAL JSON stdout — stderr silence
+    alone is not enough. Loud run emits ROUTER-MISS telemetry (default ON);
+    quiet run has empty stderr; parsed JSON is equal modulo resolved_at."""
+    tables = _load_tables()
+    state_dir = _state_dir(tmp_path, quota=True, health=True, circuit=True,
+                           ledger=False, providers=_open_providers(tables))
+    env = _quiet_env(tmp_path, tables, state_dir)
+
+    loud = _spawn_proc(env)
+    assert loud.returncode == 0, loud.stderr
+    assert "ROUTER-MISS:" in loud.stderr  # default: telemetry ON
+
+    quiet = _spawn_proc(env, "--quiet")
+    assert quiet.returncode == 0, quiet.stderr
+    assert quiet.stderr == ""  # telemetry suppressed
+    loud_doc = json.loads(loud.stdout)
+    quiet_doc = json.loads(quiet.stdout)
+    loud_doc.pop("resolved_at", None)
+    quiet_doc.pop("resolved_at", None)
+    assert loud_doc == quiet_doc
+
+
+def test_quiet_fail_open_error_json_on_stdout(tmp_path):
+    """Fail-open contract under quiet: an error resolve (unknown project)
+    still exits 0 and prints {"error": ...} on stdout; stderr stays empty.
+    Loud and quiet stdout are identical (quiet silences telemetry, never the
+    JSON contract)."""
+    tables = _load_tables()
+    state_dir = _state_dir(tmp_path, quota=True, health=True, circuit=True,
+                           ledger=False, providers=_open_providers(tables))
+    env = _quiet_env(tmp_path, tables, state_dir)
+
+    import subprocess
+    args = [sys.executable, "-m", "scripts.router_spawn",
+            "no-such-project-xyz", "--format", "json"]
+
+    loud = subprocess.run(args, capture_output=True, text=True,
+                          cwd=REPO, env=env, timeout=60)
+    quiet = subprocess.run(args + ["--quiet"], capture_output=True, text=True,
+                           cwd=REPO, env=env, timeout=60)
+    assert loud.returncode == 0  # fail-open: exit 0 on error
+    assert quiet.returncode == 0
+    assert quiet.stderr == ""
+    loud_doc = json.loads(loud.stdout)
+    quiet_doc = json.loads(quiet.stdout)
+    assert "error" in loud_doc and "no-such-project-xyz" in loud_doc["error"]
+    assert loud_doc == quiet_doc
