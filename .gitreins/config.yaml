@@ -9,7 +9,7 @@ evaluator:
   model: deepseek-v4-flash
   max_iterations: 200
   max_time: "20m"
-  max_input_tokens: "4M"
+  max_input_tokens: "12M"
   static_analysis_diagnostics: false
 defaults:
   model: deepseek-v4-flash
