@@ -157,6 +157,30 @@ def _parse_spot_output(text):
     return out
 
 
+def _plan_terms_for(provider):
+    """plan_terms row for a provider ({} when absent) — read-only.
+
+    TR-036: per-provider reprice modules (opencode_go today) may consume the
+    provider's plan terms (per-model req rates researched 2026-09-11 into
+    data/tables/plan_terms.jsonl). Fail-open: any read problem -> {} so the
+    module falls back to its legacy estimate path.
+    """
+    try:
+        path = os.path.join(DATA_DIR, 'plan_terms.jsonl')
+        with open(path) as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                r = json.loads(line)
+                if r.get('provider') == provider:
+                    return r
+    except Exception as e:
+        print(f'[reprice] WARNING: plan_terms lookup failed for {provider}: {e}',
+              file=sys.stderr)
+    return {}
+
+
 def run_spot_check(dry_run=False):
     """Shell out to the OR spot-check tool. Returns ({or_id: prices}, err|None).
 
@@ -205,7 +229,7 @@ def compute_price(provider, model, row_evidence, prices):
 
     zai-glm rows are NEVER touched here: they are STATIC official points/M
     × $0.03 (off-peak half), carried in the DB rows themselves — OR glm
-    prices are USD per 1M tokens, not zai credit points.
+    prices are USD per 1M tokens, not credit points.
     """
     prov = (provider or '').lower()
     row = {'provider': provider, 'model': model, 'price_evidence': row_evidence.get('price_evidence')}
@@ -214,7 +238,8 @@ def compute_price(provider, model, row_evidence, prices):
 
     mod = BY_PROVIDER.get(prov)
     if mod is not None:
-        new, method, reason = mod.price(row, None, {}, _pricing_helpers, ctx)
+        terms = _plan_terms_for(provider)
+        new, method, reason = mod.price(row, terms, {}, _pricing_helpers, ctx)
         if new is not None:
             return new, method
         return None, (method or reason)
@@ -255,7 +280,13 @@ def collect_reprice_plan(prices, doc):
 
 
 def apply_reprice(plan, today, doc):
-    """Update registry.json models rows in place; returns count applied."""
+    """Update registry.json models rows in place; returns count applied.
+
+    TR-036: rows whose method is NOT an OR spot read (the opencode-go
+    request-rate lanes) keep the engine's own evidence tag — stamping
+    'or-spot-<date>' over 'opencode-go: sub-bucket …' would misattribute a
+    plan-bucket price to OpenRouter.
+    """
     n = 0
     for u in plan:
         if u.get('changed') and u.get('new') is not None:
@@ -263,7 +294,9 @@ def apply_reprice(plan, today, doc):
                 if (m.get('provider') == u['provider'] and m.get('model') == u['model']
                         and m.get('valid_to') is None and not m.get('archive')):
                     m['normalized_price'] = u['new']
-                    m['price_evidence'] = f'or-spot-{today}'
+                    why = u.get('why') or ''
+                    m['price_evidence'] = (why if why.startswith('opencode-go:')
+                                           else f'or-spot-{today}')
                     n += 1
                     break
     return n
