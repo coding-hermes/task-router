@@ -34,6 +34,16 @@
 {"model": "deepseek-ai/DeepSeek-V4-Flash", "category": "code_gen", "perf": 0.5}
 {"model": "deepseek-ai/DeepSeek-V4-Flash", "category": "refactor", "perf": 0.5}
 {"model": "deepseek-ai/DeepSeek-V4-Flash", "category": "tool_use", "perf": 0.5}
+{"model": "deepseek-flash", "category": "agent_tick", "perf": 0.75}
+{"model": "deepseek-flash", "category": "debug", "perf": 0.75}
+{"model": "deepseek-flash", "category": "delegation", "perf": 0.75}
+{"model": "deepseek-flash", "category": "e2e_vision", "perf": 0.55}
+{"model": "deepseek-flash", "category": "guard", "perf": 1.0}
+{"model": "deepseek-flash", "category": "long_doc", "perf": 0.72}
+{"model": "deepseek-flash", "category": "mock", "perf": 1.0}
+{"model": "deepseek-flash", "category": "reasoning", "perf": 0.85}
+{"model": "deepseek-flash", "category": "review", "perf": 0.72}
+{"model": "deepseek-flash", "category": "schema", "perf": 0.5}
 {"model": "deepseek-v4-flash", "category": "agent_tick", "perf": 0.75}
 {"model": "deepseek-v4-flash", "category": "code_gen", "perf": 0.85}
 {"model": "deepseek-v4-flash", "category": "debug", "perf": 0.75}
