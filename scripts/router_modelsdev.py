@@ -49,6 +49,12 @@ What it does:
                 * NEW models not in models.jsonl -> ADDED as rows with
                   normalized_price NULL + price_evidence 'models.dev-catalog'
                   (gaps flagged; reprice spot-check or research fills prices)
+                * EXISTING models present in BOTH the registry and the catalog
+                  -> capability refresh on the live rows: context_limit /
+                  vision / thinking filled when null, overwritten when the
+                  catalog differs (catalog = live source of truth, TR-035).
+                  Retired rows (valid_to set / archive true) and ALL
+                  price/plan fields are NEVER touched in this path.
                 * models in the DB that models.dev doesn't list -> reported
                   as reseller-only suspects (opencode-go/clinepass/crof lanes
                   are NOT on models.dev — they resell underlying providers)
@@ -260,6 +266,10 @@ def run_sync(api, models, catalog, mappings, include_all=False, dry_run=False):
 
     adds, cat_new = [], 0
     touched, skipped, unmapped = [], [], []
+    # TR-035 lane 1: capability refresh on EXISTING registry rows (context_limit
+    # / vision / thinking) + per-change evidence for the weekly research lane.
+    refreshed = {'context_limit': 0, 'vision': 0, 'thinking': 0}
+    refreshed_rows = []
 
     # TR-019 pre-pass: EXTERNAL payload names -> our registry ids via the
     # mapping rules (file order, first match wins) BEFORE any table matching.
@@ -336,9 +346,40 @@ def run_sync(api, models, catalog, mappings, include_all=False, dry_run=False):
                 else:
                     note = 'catalog-only'
                 adds.append((our_id, mname, meta, note))
-            # else: present — PRICING is the router_pricing.py engine's job
-            # (normalized, subscription-aware); never set prices from bare
-            # models.dev stickers here.
+            else:
+                # TR-035 lane 1: model present in BOTH the registry and the
+                # catalog -> refresh capability metadata on the EXISTING row.
+                # Capability-only: price/plan/lifecycle fields (normalized_price,
+                # price_evidence, public_price, public_in_per_m, public_out_per_m,
+                # data_class, plan_tier, token_factor, disabled, disabled_reason,
+                # valid_from, valid_to, archive) are NEVER touched in this path —
+                # pricing stays the router_pricing.py engine's job (normalized,
+                # subscription-aware; never set prices from bare models.dev
+                # stickers here). Rules: fill when our value is null, overwrite
+                # when the catalog differs; skip retired rows (valid_to/archive)
+                # and fields the catalog does not carry (never overwrite a known
+                # value with null).
+                ctx = (meta.get('limit') or {}).get('context')
+                cat_fields = {}
+                if ctx:
+                    cat_fields['context_limit'] = ctx
+                if meta.get('vision') is not None:
+                    cat_fields['vision'] = meta.get('vision')
+                if meta.get('reasoning') is not None:
+                    cat_fields['thinking'] = meta.get('reasoning')
+                for row in models:
+                    if row.get('provider') != our_id or row.get('model') != mname:
+                        continue
+                    if row.get('valid_to') or row.get('archive'):
+                        continue  # retired rows are frozen
+                    for field, new in cat_fields.items():
+                        old = row.get(field)
+                        if old == new:
+                            continue
+                        row[field] = new
+                        refreshed[field] = refreshed.get(field, 0) + 1
+                        refreshed_rows.append({'provider': our_id, 'model': mname,
+                                               'field': field, 'old': old, 'new': new})
 
     return {
         'providers_on_modelsdev': len(payload_keys),
@@ -347,6 +388,8 @@ def run_sync(api, models, catalog, mappings, include_all=False, dry_run=False):
         'skipped_providers': skipped,
         'unmapped_providers': unmapped,
         'catalog_new': cat_new,
+        'refreshed': refreshed,
+        'refreshed_rows': refreshed_rows,
         'new_models': [{'provider': p, 'model': m, 'note': note}
                        for p, m, _meta, note in adds],
         'adds': adds,           # internal (meta kept for the write path)
@@ -378,8 +421,11 @@ def _write_rows(path, rows):
 def _apply_writes(summary, models, verbose=True):
     """Write model_catalog.jsonl / models.jsonl from a run_sync summary.
     Atomic-ish tmp+rename, per repo convention. Returns (wrote_catalog,
-    wrote_models, n_added)."""
+    wrote_models, n_added). TR-035: models.jsonl is written when there are
+    capability refreshes on existing rows too — not only when there are adds
+    (run_sync already mutated the rows in place)."""
     adds, catalog = summary['adds'], summary['catalog']
+    refreshed_rows = summary.get('refreshed_rows') or []
     wrote_cat = wrote_models = False
     n_added = 0
     if summary['catalog_new']:
@@ -387,7 +433,7 @@ def _apply_writes(summary, models, verbose=True):
         wrote_cat = True
         if verbose:
             print(f'wrote model_catalog.jsonl ({len(catalog)} rows)')
-    if adds:
+    if adds or refreshed_rows:
         for our_id, mname, meta, note in adds:
             # PROBE-DRIFT-001 sibling fix (2026-09-07): new rows MUST carry the
             # FULL canonical column set — a short template (no context_limit /
@@ -416,7 +462,11 @@ def _apply_writes(summary, models, verbose=True):
         wrote_models = True
         n_added = len(adds)
         if verbose:
-            print(f'added {n_added} models to models.jsonl (price NULL -> pricing gap)')
+            if n_added:
+                print(f'added {n_added} models to models.jsonl (price NULL -> pricing gap)')
+            if refreshed_rows:
+                print(f'refreshed {len(refreshed_rows)} capability fields on existing '
+                      f'rows (context_limit/vision/thinking)')
     return wrote_cat, wrote_models, n_added
 
 
@@ -432,6 +482,12 @@ def _print_human(summary):
     print(f"NEW models not in registry ({len(summary['new_models'])}):")
     for r in summary['new_models']:
         print(f"  + {r['provider']}/{r['model']}  [{r['note']}]")
+    ref = summary.get('refreshed') or {}
+    if any(ref.values()):
+        print(f"capability refresh on existing rows: {sum(ref.values())} field updates")
+        for r in summary['refreshed_rows']:
+            print(f"  ~ {r['provider']}/{r['model']}  {r['field']}: "
+                  f"{r['old']!r} -> {r['new']!r}")
     print('PRICING NOTE: normalized prices are the router_pricing.py engine\'s job')
     print('(subscription-aware) — models.dev stickers are catalog reference only.')
 
