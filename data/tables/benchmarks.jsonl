@@ -99,6 +99,9 @@
 {"model": "deepseek-flash", "category": "sentiment", "score": 0.6, "max_score": 1.0, "source": "research-bench-2026-09-07", "valid_from": "2026-09-07"}
 {"model": "deepseek-flash", "category": "sentiment", "score": 0.72, "max_score": 1.0, "source": "research-bench-2026-08-27", "valid_from": "2026-08-27"}
 {"model": "deepseek-flash", "category": "terminal", "score": 0.827, "max_score": 1.0, "source": "Terminal-Bench research-bench-2026-08-27", "valid_from": "2026-08-27"}
+{"model": "deepseek-v4-flash", "category": "code_gen", "score": 0.79, "max_score": 1.0, "source": "SWE-bench Verified 79.0% (vendor, zenmux.ai roundup) research-bench-2026-09-11", "valid_from": "2026-09-11"}
+{"model": "deepseek-v4-flash", "category": "long_horizon", "score": 0.544, "max_score": 1.0, "source": "DeepSWE 54.4 (0731 post-training re-run on identical weights, regolo.ai roundup) research-bench-2026-09-11 — post-training gain, NOT architectural; treat as 0731-generation evidence", "valid_from": "2026-09-11"}
+{"model": "deepseek-v4-flash", "category": "sentiment", "score": 0.7, "max_score": 1.0, "source": "research-bench-2026-09-11: batch/default-pipeline consensus (morphllm); AA Intelligence 35 vs Pro-0813 36 — within 1pt; terminal/agentic gap vs Pro corroborated", "valid_from": "2026-09-11"}
 {"model": "deepseek-v4-flash-vision-exp", "category": "agent-tick", "score": 2.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
 {"model": "deepseek-v4-flash-vision-exp", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
 {"model": "deepseek-v4-flash-vision-exp", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
