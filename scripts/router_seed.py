@@ -313,7 +313,10 @@ PROFILE_MODELS = {
     'glm-5.3-flash': [('zai-glm', 'glm-5.3-flash')],
     'qwen3.8-flash': [('opencode-go', 'qwen3.8-flash')],
     'deepseek v4 pro': [('deepseek', 'deepseek-v4-pro'), ('ollama-cloud', 'deepseek-v4-pro')],
-    'deepseek v4 flash': [('deepseek', 'deepseek-v4-flash'), ('ollama-cloud', 'deepseek-v4-flash:0731'), ('clinepass', 'deepseek-v4-flash'),
+    'deepseek v4 flash': [('deepseek', 'deepseek-flash'),           # renamed 2026-09-10 (provider lineup)
+                          ('deepseek-foreman', 'deepseek-flash'),   # renamed 2026-09-10 (TR-035)
+                          ('deepseek-duckbrain-sync', 'deepseek-flash'),
+                          ('ollama-cloud', 'deepseek-v4-flash:0731'), ('clinepass', 'deepseek-v4-flash'),
                           ('opencode-go', 'deepseek-v4-flash')],
     'kimi k3': [('kimi-for-coding', 'k3'), ('ollama-cloud', 'kimi-k3'), ('clinepass', 'kimi-k3'),
                 ('synthetic', 'kimi-k3'), ('neuralwatt', 'kimi-k3'), ('opencode-go', 'kimi-k3')],

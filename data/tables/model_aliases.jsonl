@@ -18,3 +18,4 @@
 {"model": "hf:openai/gpt-oss-120b", "inherits": "gpt-oss:120b", "note": "HF mirror of gpt-oss-120b weights (dash/colon name normalization)"}
 {"model": "hf:Qwen/Qwen3.6-27B", "inherits": "qwen3.6-27b", "note": "HF mirror of Qwen3.6-27B weights"}
 {"model": "hf:nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-NVFP4", "inherits": "nemotron-3-super", "note": "HF mirror of Nemotron-3-Super weights"}
+{"model": "deepseek-v4-flash", "inherits": "deepseek-flash", "note": "DeepSeek renamed the lineup 2026-09-10 (live GET /v1/models lists deepseek-flash + deepseek-v4-pro); the old id still answers but is unlisted — keep it resolving"}
