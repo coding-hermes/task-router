@@ -114,7 +114,7 @@ def _run_maintain(env, *args):
                           env=env, timeout=240)
 
 
-def _reg_price(reg, provider="deepseek", model="deepseek-v4-flash"):
+def _reg_price(reg, provider="deepseek", model="deepseek-flash"):
     doc = json.load(open(reg))
     for m in doc["tables"]["models"]:
         if m.get("provider") == provider and m.get("model") == model \
@@ -141,7 +141,7 @@ def test_reprice_survives_seed_full_maintain_flow(scratch):
     data_rows = [json.loads(l) for l in open(scratch["data"] / "models.jsonl")
                  if l.strip()]
     ds = [r for r in data_rows if r.get("provider") == "deepseek"
-          and r.get("model") == "deepseek-v4-flash"
+          and r.get("model") == "deepseek-flash"
           and r.get("valid_to") is None and not r.get("archive")]
     assert ds and ds[0]["normalized_price"] == float(NEW_PRICE), \
         "data/tables/models.jsonl was not reprice-mirrored — seed source stale"

@@ -294,6 +294,23 @@ def test_deepseek_reprice_exact_id():
     assert why == "skipped (no mapping): no OR in-price for deepseek"
 
 
+def test_find_or_id_resolves_registry_alias_to_or_leaf():
+    """TR-038: a provider rename changes OUR canonical id while OpenRouter
+    keeps publishing the old leaf. find_or_id must resolve the canonical id
+    through data/tables/model_aliases.jsonl (variant -> canonical) BEFORE the
+    longest-prefix fallback, and exact matches must still win."""
+    prices = {
+        "deepseek/deepseek-v4-flash": {"in": 0.0886, "out": 0.2},
+        "deepseek/deepseek-v4-flash-vision-exp": {"in": 0.99, "out": 1.99},
+    }
+    # canonical id (provider rename) -> resolved via the alias table
+    assert ph.find_or_id("deepseek-flash", prices) == "deepseek/deepseek-v4-flash"
+    # an id that IS an OR leaf still matches exactly
+    assert ph.find_or_id("deepseek-v4-flash", prices) == "deepseek/deepseek-v4-flash"
+    # no alias, no leaf -> still None (no fabrication)
+    assert ph.find_or_id("totally-unknown-model", prices) is None
+
+
 def test_opencode_go_reprice_blended():
     from pricing import opencode_go
     prices = {"deepseek/deepseek-v4-flash": {"in": 0.0886, "out": 0.2}}
@@ -435,20 +452,21 @@ def test_maintain_refactor_behavior_unchanged(tmp_path):
 
     ma, mb = _models(reg_a), _models(reg_b)
     assert ma == mb, "two identical scratch runs disagree — nondeterministic flow"
-    # formula spot-checks on the merged rows (the engine applied the fake spot)
-    assert ma[("deepseek", "deepseek-v4-flash")] == (0.1234, "or-spot-"
-                                                     + __import__("datetime").date.today().isoformat())
+    # formula spot-checks on the merged rows (the engine applied the fake spot).
+    # The registry follows the PROVIDER's 2026-09-10 rename (deepseek-flash);
+    # OpenRouter still publishes the old leaf deepseek/deepseek-v4-flash, which
+    # find_or_id resolves through model_aliases.jsonl (TR-038).
+    assert ma[("deepseek", "deepseek-flash")] == (0.1234, "or-spot-"
+                                                  + __import__("datetime").date.today().isoformat())
     # zai-glm is NON_REPRICABLE: untouched by the 9.99 OR row
     zai = [v for k, v in ma.items() if k[0] == "zai-glm" and k[1] == "glm-5.3"]
     assert zai and zai[0][1] and zai[0][1].startswith("official")
     assert zai[0][0] != 9.99
 
     # committed-data mirror: the reprice must land in data/tables too
-    row = [json.loads(l) for l in open(data_a / "models.jsonl")
-           if '"deepseek-v4-flash"' in l and '"deepseek"' in l
-           and '"valid_to": null' in l]
-    row = [r for r in row if r.get("provider") == "deepseek"
-           and r.get("model") == "deepseek-v4-flash"]
+    row = [r for r in (json.loads(l) for l in open(data_a / "models.jsonl") if l.strip())
+           if r.get("provider") == "deepseek" and r.get("model") == "deepseek-flash"
+           and r.get("valid_to") is None]
     assert row and row[0]["normalized_price"] == 0.1234
     assert row[0]["price_evidence"].startswith("or-spot-")
 

@@ -24,6 +24,38 @@ Every formula here is Bane's empirical rule from docs/registry-maintenance.md:
 BLENDED_IN = 0.96
 BLENDED_OUT = 0.04
 
+import json as _json
+import os as _os
+
+# Reverse alias map (canonical id -> [variant ids]) from
+# data/tables/model_aliases.jsonl, loaded lazily and cached. The file is the
+# repo's single source for renamed/aliased model ids; ROUTING_DATA_DIR keeps
+# hermetic tests pointing at their scratch copy.
+_ALIAS_REVERSE = None
+
+
+def _alias_variants(model_name):
+    """Variant ids registered as resolving to `model_name` (may be empty)."""
+    global _ALIAS_REVERSE
+    if _ALIAS_REVERSE is None:
+        _ALIAS_REVERSE = {}
+        data_dir = _os.environ.get('ROUTING_DATA_DIR') or _os.path.join(
+            _os.path.dirname(_os.path.dirname(_os.path.dirname(
+                _os.path.abspath(__file__)))), 'data', 'tables')
+        try:
+            with open(_os.path.join(data_dir, 'model_aliases.jsonl')) as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    r = _json.loads(line)
+                    if r.get('model') and r.get('inherits'):
+                        _ALIAS_REVERSE.setdefault(str(r['inherits']).lower(),
+                                                  []).append(str(r['model']).lower())
+        except Exception:
+            pass
+    return _ALIAS_REVERSE.get((model_name or '').lower(), [])
+
 
 def active_discounts(provider, model, discounts, today):
     """Yield discount rows currently in effect for (provider, model).
@@ -112,11 +144,23 @@ def find_or_id(model_name, prices):
     from the longer leaf 'deepseek-v4-pro-0813'); longest-prefix fallback
     only when no exact leaf exists. Canonical home is here (TR-034);
     router_maintain re-exports the same function for its callers.
+
+    ALIAS PASS (TR-038): when the provider renames a model, the registry
+    follows the provider (e.g. DeepSeek's 2026-09-10 lineup rename
+    deepseek-v4-flash -> deepseek-flash) while OpenRouter keeps publishing the
+    OLD leaf. The reverse map from data/tables/model_aliases.jsonl
+    (variant -> canonical) is therefore consulted BEFORE the prefix fallback:
+    a variant registered against this canonical id is a legitimate same-model
+    OR leaf. Exact matches still win, and prefix matching is unchanged.
     """
     m = (model_name or '').lower()
     for mid in prices:
         if mid.split('/')[1].lower() == m:
             return mid
+    for var in _alias_variants(m):
+        for mid in prices:
+            if mid.split('/')[1].lower() == var:
+                return mid
     # fallback: longest matching family token wins (e.g. glm-5.3-flash over glm-5.3)
     cands = [(len(mid), mid) for mid in prices
              if mid.split('/')[1].lower().startswith(m)]
