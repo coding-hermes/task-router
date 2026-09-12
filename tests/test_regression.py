@@ -249,8 +249,23 @@ def test_absent_state_is_fail_closed_all_excluded(monkeypatch, tmp_path):
         if f.get("profiles") and "P6_DEFAULT" not in f.get("profiles")
     }
     relevant = [e for e in r["exclusions"] if _pair(e) not in fb_only]
-    assert len(relevant) == n_eligible, (
-        f"fail-closed must gate ALL {n_eligible} eligible hops, got {len(relevant)}"
+    # The open chain is post-diversity-cap (max_consecutive/max_total per
+    # provider), so its length can sit BELOW the eligible set. Compare against
+    # the uncapped eligible set instead: fail-closed must gate every eligible
+    # hop, and the open chain must be a subset of what got gated.
+    reqs = {}
+    for q in tables["task_profile_requirements"]:
+        reqs.setdefault(q["task_id"], []).append((q["category"], q["level"]))
+    profile_id = next((p.get("profile") for p in tables["projects"]
+                       if p.get("id") == "coding-hermes-scheduler"), "P1_CODING")
+    eligible = {f'{row[1]}/{row[2]}' for row in router_spawn._build_chain(
+        tables, reqs.get(profile_id, []), limit=10 ** 6)} - fb_only
+    excluded_pairs = {_pair(e) for e in relevant}
+    assert len(relevant) >= len(eligible), (
+        f"fail-closed must gate ALL {len(eligible)} eligible hops, got {len(relevant)}"
+    )
+    assert (open_pairs - fb_only) <= excluded_pairs, (
+        f"open-chain hops not gated under absent state: {(open_pairs - fb_only) - excluded_pairs}"
     )
     gated = {e["provider"] for e in r["exclusions"]}
     # deepseek-duckbrain-sync is a fallback-only provider not in the main

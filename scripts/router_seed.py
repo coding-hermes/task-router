@@ -494,6 +494,58 @@ def _load_quality_estimates():
 
 QUALITY_ESTIMATES = _load_quality_estimates()
 
+def _load_category_estimates():
+    """TR-039: category-agnostic estimates from the SAME data file.
+
+    quality_estimates.jsonl is model-keyed; besides the legacy guard/mock/
+    multilingual keys it may carry ANY category key (e.g. "test") as a
+    documented neutral fill for a lane with no benchmark evidence. Facts live
+    in data, never in code — this loader is what makes that true for new
+    categories. Returns {model: {category: value}} (legacy keys excluded —
+    apply_quality_estimates owns their degenerate-replace semantics)."""
+    path = os.path.join(DATA_DIR, 'quality_estimates.jsonl')
+    out = {}
+    if not os.path.exists(path):
+        return out
+    for line in open(path):
+        line = line.strip()
+        if not line:
+            continue
+        r = json.loads(line)
+        cats = {k: v for k, v in r.items()
+                if k not in ('model', 'note', 'source') and v is not None
+                and k not in ('guard', 'mock', 'multilingual')}
+        if cats:
+            out[r['model']] = cats
+    return out
+
+
+CATEGORY_ESTIMATES = _load_category_estimates()
+
+def apply_category_estimates():
+    """Insert documented estimates for categories that have NO perf row yet.
+
+    Only inserts for names that are live registry lanes (a name with no lane
+    cannot carry a tier row, so an estimate for it would be noise). Existing
+    rows are never overwritten here: measured benchmark evidence wins
+    (apply_overlay), and a variant inheriting its base's measured perf must not
+    be shadowed by an estimate (alias inheritance skips existing rows)."""
+    n = 0
+    for name, cats in CATEGORY_ESTIMATES.items():
+        for cat, v in cats.items():
+            cur = con.execute(
+                "SELECT perf FROM model_perf WHERE model=? AND category=?",
+                [name, cat]).fetchone()
+            if cur:
+                continue
+            if not con.execute("SELECT 1 FROM models WHERE model=? LIMIT 1",
+                               [name]).fetchone():
+                continue
+            con.execute("INSERT INTO model_perf VALUES (?,?,?)",
+                        [name, cat, float(v)])
+            n += 1
+    return n
+
 def apply_quality_estimates():
     """TR-002: replace degenerate guard/mock/multilingual perfs with documented
     estimates. Only values in {0.0, 1.0} (guard/mock) or 0.50 (multilingual) are
@@ -593,6 +645,8 @@ seed_estimates()
 apply_overlay()
 n_est = apply_quality_estimates()
 print('quality estimate rows updated (TR-002):', n_est)
+n_cat_est = apply_category_estimates()
+print('category estimate rows inserted (TR-039):', n_cat_est)
 
 # ---------- 4c. variant aliases: inherit base-model perfs (Bane 2026-08-31) --
 # data/tables/model_aliases.jsonl maps serving-lane variants / HF mirrors to

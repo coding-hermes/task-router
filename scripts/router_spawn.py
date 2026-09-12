@@ -44,6 +44,15 @@ scheduler must NEVER be blocked by the router.
 """
 import json, os, sys, argparse, datetime, contextlib
 
+# Chain truncation cap (default). 2026-09-10 RCA: a cap below the eligible lane
+# count silently drops the price-sorted TAIL from every resolve (deepseek-foreman
+# fell past position 34/74 → spurious degraded_fallback). 2026-09-12 TR-039:
+# vendor-prefixed lanes (commandcode/aws-bedrock/fireworks-ai) gained tier rows,
+# eligible P1_CODING lanes went ~94 → ~260, so the cap moved 96 → 320 with
+# headroom. tests/test_regression.py::test_chain_default_limit_covers_registry
+# asserts eligible < this value — raise it whenever the registry outgrows it.
+DEFAULT_CHAIN_LIMIT = 320
+
 
 # TR-033: --quiet / ROUTER_SPAWN_QUIET=1 suppresses stderr telemetry.  Default
 # is LOUD so ROUTER-MISS analysis keeps getting data.  Checked once per process.
@@ -503,7 +512,7 @@ def _resolve_profile_tag(profiles, ref):
     return ref
 
 
-def _build_chain(tables, reqs, limit=96):
+def _build_chain(tables, reqs, limit=DEFAULT_CHAIN_LIMIT):
     """Replicates v_task_chain exactly, in pure python.
 
     reqs = [(category, level), ...] (profile requirements or ad-hoc).
@@ -624,7 +633,7 @@ def _pub_prices(m):
     return pub, m.get('public_in_per_m'), m.get('public_out_per_m')
 
 
-def _resolve_fallback(tables, qs, hs, cs, reqs, limit=96, profile_id=None):
+def _resolve_fallback(tables, qs, hs, cs, reqs, limit=DEFAULT_CHAIN_LIMIT, profile_id=None):
     """FALLBACK LANES (Bane 2026-08-27): when the primary chain is fully
     gated/down, resolve the always-run lanes from data/tables/fallback_lanes.jsonl
     (registry table `fallback_lanes`: {provider, model, order, key_env, profiles?}).
@@ -695,7 +704,7 @@ def _resolve_fallback(tables, qs, hs, cs, reqs, limit=96, profile_id=None):
     return out
 
 
-def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=96,
+def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=DEFAULT_CHAIN_LIMIT,
             allow_training=False):
     tables, src, fb, warn = _load_registry_with_meta()
     warnings = [warn] if warn else []

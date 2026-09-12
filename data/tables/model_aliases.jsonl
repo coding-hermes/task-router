@@ -19,3 +19,140 @@
 {"model": "hf:Qwen/Qwen3.6-27B", "inherits": "qwen3.6-27b", "note": "HF mirror of Qwen3.6-27B weights"}
 {"model": "hf:nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-NVFP4", "inherits": "nemotron-3-super", "note": "HF mirror of Nemotron-3-Super weights"}
 {"model": "deepseek-v4-flash", "inherits": "deepseek-flash", "note": "DeepSeek renamed the lineup 2026-09-10 (live GET /v1/models lists deepseek-flash + deepseek-v4-pro); the old id still answers but is unlisted — keep it resolving"}
+{"model": "MiniMaxAI/MiniMax-M2.5", "inherits": "minimax-m2.5", "note": "commandcode vendor-prefixed MiniMax id"}
+{"model": "MiniMaxAI/MiniMax-M2.7", "inherits": "minimax-m2.7", "note": "commandcode vendor-prefixed MiniMax id"}
+{"model": "MiniMaxAI/MiniMax-M3", "inherits": "minimax-m3", "note": "commandcode vendor-prefixed MiniMax id"}
+{"model": "Qwen/Qwen3.6-Max-Preview", "inherits": "qwen3.6-max-preview", "note": "commandcode vendor-prefixed Qwen id (preview, unscored)"}
+{"model": "Qwen/Qwen3.6-Plus", "inherits": "qwen3.6-plus", "note": "commandcode vendor-prefixed Qwen id"}
+{"model": "Qwen/Qwen3.7-Flash", "inherits": "qwen3.7-flash", "note": "commandcode vendor-prefixed Qwen id"}
+{"model": "Qwen/Qwen3.7-Max", "inherits": "qwen3.7-max", "note": "commandcode vendor-prefixed Qwen id"}
+{"model": "Qwen/Qwen3.7-Plus", "inherits": "qwen3.7-plus", "note": "commandcode vendor-prefixed Qwen id"}
+{"model": "qwen/qwen3.8-27b", "inherits": "qwen3.8-27b", "note": "commandcode vendor-prefixed Qwen id"}
+{"model": "Qwen/Qwen3.8-27B", "inherits": "qwen3.8-27b", "note": "commandcode vendor-prefixed Qwen id"}
+{"model": "Qwen/Qwen3.8-Flash", "inherits": "qwen3.8-flash", "note": "commandcode vendor-prefixed Qwen id"}
+{"model": "Qwen/Qwen3.8-Max", "inherits": "qwen3.8-max", "note": "commandcode vendor-prefixed Qwen id"}
+{"model": "Qwen/Qwen3.8-Max-0902", "inherits": "qwen3.8-max", "note": "pinned snapshot of qwen3.8-max (same weights, 0902 build)"}
+{"model": "claude-haiku-4-5-20251001", "inherits": "claude-haiku-4-5", "note": "snapshot id -> canonical claude-haiku-4-5"}
+{"model": "deepseek/deepseek-v4-flash", "inherits": "deepseek-v4-flash", "note": "commandcode vendor-prefixed DeepSeek id"}
+{"model": "deepseek/deepseek-v4-flash-fast", "inherits": "deepseek-v4-flash", "note": "speed serving lane, same weights"}
+{"model": "deepseek/deepseek-v4-flash-vision-exp", "inherits": "deepseek-v4-flash-vision-exp", "note": "commandcode vendor-prefixed id"}
+{"model": "deepseek/deepseek-v4-pro", "inherits": "deepseek-v4-pro", "note": "commandcode vendor-prefixed DeepSeek id"}
+{"model": "deepseek/deepseek-v4.1-flash", "inherits": "deepseek-v4.1-flash", "note": "commandcode vendor-prefixed id"}
+{"model": "google/gemini-3.1-flash-lite", "inherits": "gemini-3.1-flash-lite", "note": "commandcode vendor-prefixed Gemini id"}
+{"model": "google/gemini-3.5-flash", "inherits": "gemini-3.5-flash", "note": "commandcode vendor-prefixed Gemini id"}
+{"model": "google/gemini-3.5-flash-lite", "inherits": "gemini-3.5-flash-lite", "note": "commandcode vendor-prefixed Gemini id"}
+{"model": "google/gemini-3.6-flash", "inherits": "gemini-3.6-flash", "note": "commandcode vendor-prefixed Gemini id"}
+{"model": "google/gemini-3.7-flash", "inherits": "gemini-3.7-flash", "note": "commandcode vendor-prefixed Gemini id"}
+{"model": "google/gemini-3.8-flash", "inherits": "gemini-3.8-flash", "note": "commandcode vendor-prefixed Gemini id"}
+{"model": "inclusionai/ling-3.0-flash-sante:free", "inherits": "ling-3.0-flash-sante", "note": ":free promo flag, same model"}
+{"model": "meituan/LongCat-2.0:free", "inherits": "longcat-2.0", "note": ":free promo flag, same model"}
+{"model": "meta/muse-spark-1.1", "inherits": "muse-spark-1.1", "note": "commandcode vendor-prefixed id"}
+{"model": "meta/muse-spark-1.2", "inherits": "muse-spark-1.2", "note": "commandcode vendor-prefixed id"}
+{"model": "meta/muse-spark-1.2-contributor", "inherits": "muse-spark-1.2-contributor", "note": "commandcode vendor-prefixed id"}
+{"model": "meta/muse-spark-1.3", "inherits": "muse-spark-1.3", "note": "commandcode vendor-prefixed id"}
+{"model": "meta/muse-spark-1.3-contributor", "inherits": "muse-spark-1.3-contributor", "note": "commandcode vendor-prefixed id"}
+{"model": "moonshotai/Kimi-K2.5", "inherits": "kimi-k2.5", "note": "commandcode vendor-prefixed Moonshot id"}
+{"model": "moonshotai/Kimi-K2.6", "inherits": "kimi-k2.6", "note": "commandcode vendor-prefixed Moonshot id"}
+{"model": "moonshotai/Kimi-K2.7-Code", "inherits": "kimi-k2.7-code", "note": "commandcode vendor-prefixed Moonshot id"}
+{"model": "moonshotai/Kimi-K2.7-Code-Highspeed", "inherits": "kimi-for-coding-highspeed", "note": "highspeed serving tier = kimi-for-coding-highspeed"}
+{"model": "moonshotai/Kimi-K3", "inherits": "kimi-k3", "note": "commandcode vendor-prefixed Moonshot id"}
+{"model": "nvidia/nemotron-3-ultra-550b-a55b", "inherits": "nemotron-3-ultra", "note": "vendor-prefixed id w/ MoE shape suffix"}
+{"model": "poolside/laguna-s-2.1-free", "inherits": "laguna-s-2.1", "note": ":free promo flag, same model"}
+{"model": "sakana/fugu-ultra", "inherits": "fugu-ultra", "note": "commandcode vendor-prefixed id"}
+{"model": "stepfun/Step-3.5-Flash", "inherits": "step-3.5-flash", "note": "commandcode vendor-prefixed StepFun id"}
+{"model": "stepfun/Step-3.7-Flash", "inherits": "step-3.7-flash", "note": "commandcode vendor-prefixed StepFun id"}
+{"model": "tencent/hy3-paid", "inherits": "hy3", "note": "paid flag, same model"}
+{"model": "tencent/hy4-preview", "inherits": "hy4-preview", "note": "commandcode vendor-prefixed Tencent id"}
+{"model": "thinkingmachines/inkling", "inherits": "inkling", "note": "commandcode vendor-prefixed id"}
+{"model": "thinkingmachines/inkling-small", "inherits": "inkling-small", "note": "commandcode vendor-prefixed id"}
+{"model": "xai/grok-4.5", "inherits": "grok-4.5", "note": "commandcode vendor-prefixed xAI id"}
+{"model": "xai/grok-4.6", "inherits": "grok-4.6", "note": "commandcode vendor-prefixed xAI id"}
+{"model": "xiaomi/mimo-v2.5", "inherits": "mimo-v2.5", "note": "commandcode vendor-prefixed Xiaomi id"}
+{"model": "xiaomi/mimo-v2.5-pro", "inherits": "mimo-v2.5-pro", "note": "commandcode vendor-prefixed Xiaomi id"}
+{"model": "z-ai/glm-5.3-flash", "inherits": "glm-5.3-flash", "note": "commandcode vendor-prefixed Z.ai id"}
+{"model": "zai-org/GLM-5", "inherits": "glm-5", "note": "HF-org-prefixed id"}
+{"model": "zai-org/GLM-5.1", "inherits": "glm-5.1", "note": "HF-org-prefixed id"}
+{"model": "zai-org/GLM-5.2", "inherits": "glm-5.2", "note": "HF-org-prefixed id"}
+{"model": "zai-org/GLM-5.2-Fast", "inherits": "glm-5.2", "note": "speed serving lane, same weights"}
+{"model": "zai-org/GLM-5.3", "inherits": "glm-5.3", "note": "HF-org-prefixed id"}
+{"model": "amazon.nova-2-lite-v1:0", "inherits": "amazon.nova-2-lite", "note": "bedrock version suffix stripped"}
+{"model": "amazon.nova-lite-v1:0", "inherits": "amazon.nova-lite", "note": "bedrock version suffix stripped"}
+{"model": "amazon.nova-micro-v1:0", "inherits": "amazon.nova-micro", "note": "bedrock version suffix stripped"}
+{"model": "amazon.nova-pro-v1:0", "inherits": "amazon.nova-pro", "note": "bedrock version suffix stripped"}
+{"model": "ca.amazon.nova-lite-v1:0", "inherits": "amazon.nova-lite", "note": "ca. regional endpoint, same model"}
+{"model": "jp.amazon.nova-2-lite-v1:0", "inherits": "amazon.nova-2-lite", "note": "jp. regional endpoint, same model"}
+{"model": "anthropic.claude-fable-5", "inherits": "claude-fable-5", "note": "bedrock vendor-prefixed Anthropic id"}
+{"model": "anthropic.claude-fable-5-1", "inherits": "claude-fable-5-1", "note": "bedrock vendor-prefixed Anthropic id"}
+{"model": "anthropic.claude-haiku-4-5-20251001-v1:0", "inherits": "claude-haiku-4-5", "note": "bedrock vendor+snapshot id -> canonical"}
+{"model": "anthropic.claude-opus-4-1-20250805-v1:0", "inherits": "claude-opus-4-1", "note": "bedrock vendor+snapshot id -> canonical"}
+{"model": "anthropic.claude-opus-4-5-20251101-v1:0", "inherits": "claude-opus-4-5", "note": "bedrock vendor+snapshot id -> canonical"}
+{"model": "anthropic.claude-opus-4-6-v1", "inherits": "claude-opus-4-6", "note": "bedrock vendor-prefixed id"}
+{"model": "anthropic.claude-opus-4-7", "inherits": "claude-opus-4-7", "note": "bedrock vendor-prefixed id"}
+{"model": "anthropic.claude-opus-4-8", "inherits": "claude-opus-4-8", "note": "bedrock vendor-prefixed id"}
+{"model": "anthropic.claude-opus-5", "inherits": "claude-opus-5", "note": "bedrock vendor-prefixed id"}
+{"model": "anthropic.claude-sonnet-4-5-20250929-v1:0", "inherits": "claude-sonnet-4-5", "note": "bedrock vendor+snapshot id -> canonical"}
+{"model": "anthropic.claude-sonnet-4-6", "inherits": "claude-sonnet-4-6", "note": "bedrock vendor-prefixed id"}
+{"model": "anthropic.claude-sonnet-5", "inherits": "claude-sonnet-5", "note": "bedrock vendor-prefixed id"}
+{"model": "jp.anthropic.claude-haiku-4-5-20251001-v1:0", "inherits": "claude-haiku-4-5", "note": "jp. regional endpoint, same model"}
+{"model": "jp.anthropic.claude-opus-4-7", "inherits": "claude-opus-4-7", "note": "jp. regional endpoint, same model"}
+{"model": "jp.anthropic.claude-opus-4-8", "inherits": "claude-opus-4-8", "note": "jp. regional endpoint, same model"}
+{"model": "jp.anthropic.claude-opus-5", "inherits": "claude-opus-5", "note": "jp. regional endpoint, same model"}
+{"model": "jp.anthropic.claude-sonnet-4-5-20250929-v1:0", "inherits": "claude-sonnet-4-5", "note": "jp. regional endpoint, same model"}
+{"model": "jp.anthropic.claude-sonnet-4-6", "inherits": "claude-sonnet-4-6", "note": "jp. regional endpoint, same model"}
+{"model": "jp.anthropic.claude-sonnet-5", "inherits": "claude-sonnet-5", "note": "jp. regional endpoint, same model"}
+{"model": "deepseek.r1-v1:0", "inherits": "deepseek-r1", "note": "bedrock vendor-prefixed DeepSeek id"}
+{"model": "deepseek.v3-v1:0", "inherits": "deepseek-v3", "note": "bedrock vendor-prefixed DeepSeek id"}
+{"model": "deepseek.v3.2", "inherits": "deepseek-v3.2", "note": "bedrock vendor-prefixed DeepSeek id"}
+{"model": "meta.llama4-maverick-17b-instruct-v1:0", "inherits": "llama4-maverick-17b-instruct", "note": "bedrock vendor-prefixed Meta id"}
+{"model": "meta.llama4-scout-17b-instruct-v1:0", "inherits": "llama4-scout-17b-instruct", "note": "bedrock vendor-prefixed Meta id"}
+{"model": "moonshot.kimi-k2-thinking", "inherits": "kimi-k2-thinking", "note": "bedrock vendor-prefixed Moonshot id"}
+{"model": "moonshotai.kimi-k2.5", "inherits": "kimi-k2.5", "note": "bedrock org-prefixed Moonshot id"}
+{"model": "openai.gpt-oss-120b", "inherits": "gpt-oss:120b", "note": "bedrock vendor-prefixed id (matches hf: mirror precedent)"}
+{"model": "openai.gpt-oss-120b-1:0", "inherits": "gpt-oss:120b", "note": "bedrock vendor+version id"}
+{"model": "openai.gpt-oss-20b", "inherits": "gpt-oss:20b", "note": "bedrock vendor-prefixed id"}
+{"model": "openai.gpt-oss-20b-1:0", "inherits": "gpt-oss:20b", "note": "bedrock vendor+version id"}
+{"model": "openai.gpt-oss-safeguard-120b", "inherits": "gpt-oss-safeguard-120b", "note": "safeguard variant = distinct weights, own canonical"}
+{"model": "openai.gpt-oss-safeguard-20b", "inherits": "gpt-oss-safeguard-20b", "note": "safeguard variant = distinct weights, own canonical"}
+{"model": "us-gov.openai.gpt-oss-120b-1:0", "inherits": "gpt-oss:120b", "note": "us-gov regional endpoint, same model"}
+{"model": "us-gov.openai.gpt-oss-20b-1:0", "inherits": "gpt-oss:20b", "note": "us-gov regional endpoint, same model"}
+{"model": "qwen.qwen3-235b-a22b-2507-v1:0", "inherits": "qwen3-235b-a22b-2507", "note": "bedrock vendor-prefixed Qwen id"}
+{"model": "qwen.qwen3-32b-v1:0", "inherits": "qwen3-32b", "note": "bedrock vendor-prefixed Qwen id"}
+{"model": "qwen.qwen3-coder-30b-a3b-v1:0", "inherits": "qwen3-coder-30b-a3b", "note": "bedrock vendor-prefixed Qwen id"}
+{"model": "qwen.qwen3-coder-480b-a35b-v1:0", "inherits": "qwen3-coder-480b-a35b", "note": "bedrock vendor-prefixed Qwen id"}
+{"model": "qwen.qwen3-coder-next", "inherits": "qwen3-coder-next", "note": "bedrock vendor-prefixed Qwen id"}
+{"model": "qwen.qwen3-next-80b-a3b", "inherits": "qwen3-next-80b-a3b", "note": "bedrock vendor-prefixed Qwen id"}
+{"model": "qwen.qwen3-vl-235b-a22b", "inherits": "qwen3-vl-235b-a22b", "note": "bedrock vendor-prefixed Qwen id"}
+{"model": "zai.glm-4.7", "inherits": "glm-4.7", "note": "bedrock vendor-prefixed Z.ai id"}
+{"model": "zai.glm-4.7-flash", "inherits": "glm-4.7-flash", "note": "bedrock vendor-prefixed Z.ai id"}
+{"model": "zai.glm-5", "inherits": "glm-5", "note": "bedrock vendor-prefixed Z.ai id"}
+{"model": "accounts/fireworks/models/deepseek-v4-flash-0731", "inherits": "deepseek-v4-flash:0731", "note": "fireworks prefixed id -> pinned snapshot name"}
+{"model": "accounts/fireworks/models/deepseek-v4-flash-vision-exp", "inherits": "deepseek-v4-flash-vision-exp", "note": "fireworks prefixed id"}
+{"model": "accounts/fireworks/models/deepseek-v4-pro-0813", "inherits": "deepseek-v4-pro-0813", "note": "fireworks prefixed id"}
+{"model": "accounts/fireworks/models/deepseek-v4p1-flash", "inherits": "deepseek-v4.1-flash", "note": "fireworks p1 spelling -> canonical"}
+{"model": "accounts/fireworks/models/glm-5p2", "inherits": "glm-5.2", "note": "fireworks p-spelling -> canonical"}
+{"model": "accounts/fireworks/models/glm-5p3", "inherits": "glm-5.3", "note": "fireworks p-spelling -> canonical"}
+{"model": "accounts/fireworks/models/glm-5p3-flash", "inherits": "glm-5.3-flash", "note": "fireworks p-spelling -> canonical"}
+{"model": "accounts/fireworks/models/gpt-oss-120b", "inherits": "gpt-oss:120b", "note": "fireworks prefixed id"}
+{"model": "accounts/fireworks/models/inkling", "inherits": "inkling", "note": "fireworks prefixed id"}
+{"model": "accounts/fireworks/models/kimi-k2p6", "inherits": "kimi-k2.6", "note": "fireworks p-spelling -> canonical"}
+{"model": "accounts/fireworks/models/kimi-k2p7-code", "inherits": "kimi-k2.7-code", "note": "fireworks p-spelling -> canonical"}
+{"model": "accounts/fireworks/models/kimi-k3", "inherits": "kimi-k3", "note": "fireworks prefixed id"}
+{"model": "accounts/fireworks/models/minimax-m3", "inherits": "minimax-m3", "note": "fireworks prefixed id"}
+{"model": "accounts/fireworks/models/mistral-large-3-fp8", "inherits": "mistral-large-3:675b", "note": "FP8 serving quant of Mistral Large 3"}
+{"model": "accounts/fireworks/models/muse-glimmer-30b", "inherits": "muse-glimmer-30b", "note": "fireworks prefixed id"}
+{"model": "accounts/fireworks/models/nemotron-3-ultra-nvfp4", "inherits": "nemotron-3-ultra", "note": "NVFP4 serving quant of Nemotron-3-Ultra"}
+{"model": "accounts/fireworks/models/nemotron-lightning-3p5-30b-a3b", "inherits": "nemotron-3-5-lightning-30b-a3b", "note": "fireworks prefixed id -> bare lane name"}
+{"model": "accounts/fireworks/models/qwen3p7-plus", "inherits": "qwen3.7-plus", "note": "fireworks p-spelling -> canonical"}
+{"model": "accounts/fireworks/models/qwen3p8-2p4t-a95b", "inherits": "qwen3p8-2p4t-a95b", "note": "fireworks prefixed id (MoE shape in name, own canonical)"}
+{"model": "accounts/fireworks/models/qwen3p8-max", "inherits": "qwen3.8-max", "note": "fireworks p-spelling -> canonical"}
+{"model": "accounts/fireworks/routers/glm-5p2-fast", "inherits": "glm-5.2", "note": "fireworks router speed tier, same weights"}
+{"model": "accounts/fireworks/routers/glm-5p3-fast", "inherits": "glm-5.3", "note": "fireworks router speed tier, same weights"}
+{"model": "accounts/fireworks/routers/kimi-k3-fast", "inherits": "kimi-k3", "note": "fireworks router speed tier, same weights"}
+{"model": "glm-5-2", "inherits": "glm-5.2", "note": "fireworks dash-spelling -> canonical"}
+{"model": "glm-5-3", "inherits": "glm-5.3", "note": "fireworks dash-spelling -> canonical"}
+{"model": "glm-5-3-flash", "inherits": "glm-5.3-flash", "note": "fireworks dash-spelling -> canonical"}
+{"model": "kimi-k2-6", "inherits": "kimi-k2.6", "note": "fireworks dash-spelling -> canonical"}
+{"model": "kimi-k2-7-code", "inherits": "kimi-k2.7-code", "note": "fireworks dash-spelling -> canonical"}
+{"model": "deepseek-v4-1-flash", "inherits": "deepseek-v4.1-flash", "note": "fireworks dash-spelling -> canonical"}
+{"model": "deepseek-v4-flash-0731", "inherits": "deepseek-v4-flash:0731", "note": "fireworks snapshot spelling -> canonical"}
+{"model": "qwen3-7-plus", "inherits": "qwen3.7-plus", "note": "fireworks dash-spelling -> canonical"}
