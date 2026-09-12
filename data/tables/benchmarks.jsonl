@@ -320,7 +320,9 @@
 {"model": "grok-build-0.1", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
 {"model": "grok-build-0.1", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
 {"model": "hy3", "category": "agent-tick", "score": 2.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "hy3", "category": "code_gen", "score": 0.579, "max_score": 1.0, "source": "SWE-bench Pro (vendor, MarkTechPost release coverage) research-bench-2026-09-12", "valid_from": "2026-09-12"}
 {"model": "hy3", "category": "code_gen", "score": 0.744, "max_score": 1.0, "source": "SWE-bench Verified (vendor) research-bench-2026-08-29", "valid_from": "2026-08-29"}
+{"model": "hy3", "category": "code_gen", "score": 0.758, "max_score": 1.0, "source": "SWE-bench Multilingual (vendor) research-bench-2026-09-12", "valid_from": "2026-09-12"}
 {"model": "hy3", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
 {"model": "hy3", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
 {"model": "hy3", "category": "delegation", "score": 2.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
