@@ -1,0 +1,5 @@
+# Task-router dogfood log
+
+| date | verdict | promise | top findings | install_seconds | time-to-first-success | notes |
+|---|---|---|---|---|---|---|
+| 2026-09-12 | SHIPPABLE | A user resolves a task to a price-ordered, gate-filtered model chain via `pip install -e .` + `router spawn --format json`, state under a configurable data home, fail-open runtime | 1) ROUTER-MISS telemetry ~1004 lines/resolve, 724 tier=None — TR-039 "down to 0" does not reproduce (TR-043). 2) 7 subcommands ignore the data home; server/CLI heads disagreed (TR-044). 3) Quickstart `router seed` fails without undocumented duckdb; ROUTING_NS not exported → scratch seed stomps live DuckBrain ns (TR-045) | 3 (control) / 5 (bunker fresh install, Python 3.13, no toolchains) | ~4 min (clone→install→first resolve; seed adds 6s once duckdb installed) | bunker=las-bunker-03 agent=b6b57895 smoke=ok; circuit loop E2E PASS; API 403/15 paths ok; web 200; 290 tests green 220s; foreman NOT woken (cooldown 21600 already active, board has live work) |
