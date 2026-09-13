@@ -192,8 +192,8 @@
 {"category": "spec_docs", "level": -1, "label": "-", "min_perf": 0.72}
 {"category": "spec_docs", "level": 0, "label": "0", "min_perf": 0.72}
 {"category": "spec_docs", "level": 1, "label": "+", "min_perf": 0.72}
-{"category": "spec_docs", "level": 2, "label": "++", "min_perf": 0.8118500000000002}
-{"category": "spec_docs", "level": 3, "label": "+++", "min_perf": 0.9307500000000001}
+{"category": "spec_docs", "level": 2, "label": "++", "min_perf": 0.8575}
+{"category": "spec_docs", "level": 3, "label": "+++", "min_perf": 0.932}
 {"category": "spec_docs", "level": 4, "label": "++++", "min_perf": 0.9699999999999999}
 {"category": "spec_docs", "level": 5, "label": "+++++", "min_perf": 0.994}
 {"category": "terminal", "level": -5, "label": "-----", "min_perf": 0.58272}

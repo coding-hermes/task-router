@@ -159,13 +159,27 @@ def load_mappings(data_dir=None):
 
 def map_provider_name(name, mappings):
     """Map an external name through the rules (FILE ORDER, FIRST MATCH WINS).
-    Returns (mapped_name, rule_or_None). No match -> (name, None)."""
+    Returns (mapped_name, rule_or_None). No match -> (name, None).
+    Rules with direction 'modelsdev-silence' (TR-045) are SKIPPED here —
+    they mark external providers as known-unmapped, they do not rewrite ids."""
     for rule in mappings:
+        if rule.get('direction') == 'modelsdev-silence':
+            continue
         if rule.get('direction') not in (None, 'external->registry'):
             continue  # only this direction is defined today
         if _rule_matches(rule, name):
             return _rule_apply(rule, name), rule
     return name, None
+
+
+def is_silenced_external(name, mappings):
+    """TR-045: True when a provider_mappings.jsonl rule with direction
+    'modelsdev-silence' matches the external id — a known-unmapped models.dev
+    provider (data-driven silence, never silent code)."""
+    for rule in mappings:
+        if rule.get('direction') == 'modelsdev-silence' and _rule_matches(rule, name):
+            return True
+    return False
 
 
 def resolve_external_provider(external_id, mappings, provider_ids):
@@ -265,7 +279,7 @@ def run_sync(api, models, catalog, mappings, include_all=False, dry_run=False):
     payload_keys = sorted(k for k in payload if k != '_fetched_at')
 
     adds, cat_new = [], 0
-    touched, skipped, unmapped = [], [], []
+    touched, skipped, unmapped, silenced = [], [], [], []
     # TR-035 lane 1: capability refresh on EXISTING registry rows (context_limit
     # / vision / thinking) + per-change evidence for the weekly research lane.
     refreshed = {'context_limit': 0, 'vision': 0, 'thinking': 0}
@@ -289,6 +303,11 @@ def run_sync(api, models, catalog, mappings, include_all=False, dry_run=False):
         elif mapped in alias_targets:
             # consumed by the pre-TR-019 default alias table — not a gap
             continue
+        elif is_silenced_external(ext, mappings):
+            # TR-045: known-unmapped via provider_mappings.jsonl silence rule
+            # (data-driven, auditable in report --json) — not a gap.
+            silenced.append({'external': ext, 'note': 'known-unmapped '
+                             '(provider_mappings.jsonl modelsdev-silence rule)'})
         else:
             unmapped.append({'external': ext, 'mapped_to': mapped,
                              'note': 'no mapping rule resolves it to a providers.jsonl '
@@ -387,6 +406,7 @@ def run_sync(api, models, catalog, mappings, include_all=False, dry_run=False):
         'touched_providers': touched,
         'skipped_providers': skipped,
         'unmapped_providers': unmapped,
+        'silenced_providers': silenced,
         'catalog_new': cat_new,
         'refreshed': refreshed,
         'refreshed_rows': refreshed_rows,
@@ -478,6 +498,9 @@ def _print_human(summary):
         print(f"  skip {s['provider']}: {s['reason']}")
     for u in summary['unmapped_providers']:
         print(f"  UNMAPPED {u['external']} (mapped: {u.get('mapped_to')}): {u['note']}")
+    n_sil = len(summary.get('silenced_providers') or [])
+    if n_sil:
+        print(f"  silenced known-unmapped (TR-045, provider_mappings.jsonl): {n_sil}")
     print(f"catalog metadata: {summary['catalog_new']} new rows (model_catalog.jsonl)")
     print(f"NEW models not in registry ({len(summary['new_models'])}):")
     for r in summary['new_models']:

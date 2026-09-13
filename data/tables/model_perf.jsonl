@@ -211,7 +211,7 @@
 {"model": "accounts/fireworks/models/kimi-k3", "category": "refactor", "perf": 0.72}
 {"model": "accounts/fireworks/models/kimi-k3", "category": "review", "perf": 0.85}
 {"model": "accounts/fireworks/models/kimi-k3", "category": "schema", "perf": 0.5}
-{"model": "accounts/fireworks/models/kimi-k3", "category": "spec_docs", "perf": 0.7490000000000001}
+{"model": "accounts/fireworks/models/kimi-k3", "category": "spec_docs", "perf": 0.86}
 {"model": "accounts/fireworks/models/kimi-k3", "category": "terminal", "perf": 0.921590909090909}
 {"model": "accounts/fireworks/models/kimi-k3", "category": "test", "perf": 0.72}
 {"model": "accounts/fireworks/models/kimi-k3", "category": "tool_use", "perf": 0.85}
@@ -334,7 +334,7 @@
 {"model": "accounts/fireworks/routers/kimi-k3-fast", "category": "refactor", "perf": 0.72}
 {"model": "accounts/fireworks/routers/kimi-k3-fast", "category": "review", "perf": 0.85}
 {"model": "accounts/fireworks/routers/kimi-k3-fast", "category": "schema", "perf": 0.5}
-{"model": "accounts/fireworks/routers/kimi-k3-fast", "category": "spec_docs", "perf": 0.7490000000000001}
+{"model": "accounts/fireworks/routers/kimi-k3-fast", "category": "spec_docs", "perf": 0.86}
 {"model": "accounts/fireworks/routers/kimi-k3-fast", "category": "terminal", "perf": 0.921590909090909}
 {"model": "accounts/fireworks/routers/kimi-k3-fast", "category": "test", "perf": 0.72}
 {"model": "accounts/fireworks/routers/kimi-k3-fast", "category": "tool_use", "perf": 0.85}
@@ -968,7 +968,7 @@
 {"model": "hf:moonshotai/Kimi-K3", "category": "refactor", "perf": 0.72}
 {"model": "hf:moonshotai/Kimi-K3", "category": "review", "perf": 0.85}
 {"model": "hf:moonshotai/Kimi-K3", "category": "schema", "perf": 0.5}
-{"model": "hf:moonshotai/Kimi-K3", "category": "spec_docs", "perf": 0.7490000000000001}
+{"model": "hf:moonshotai/Kimi-K3", "category": "spec_docs", "perf": 0.86}
 {"model": "hf:moonshotai/Kimi-K3", "category": "terminal", "perf": 0.921590909090909}
 {"model": "hf:moonshotai/Kimi-K3", "category": "test", "perf": 0.72}
 {"model": "hf:moonshotai/Kimi-K3", "category": "tool_use", "perf": 0.85}
@@ -1229,7 +1229,7 @@
 {"model": "kimi-k3", "category": "refactor", "perf": 0.72}
 {"model": "kimi-k3", "category": "review", "perf": 0.85}
 {"model": "kimi-k3", "category": "schema", "perf": 0.5}
-{"model": "kimi-k3", "category": "spec_docs", "perf": 0.7490000000000001}
+{"model": "kimi-k3", "category": "spec_docs", "perf": 0.86}
 {"model": "kimi-k3", "category": "terminal", "perf": 0.921590909090909}
 {"model": "kimi-k3", "category": "test", "perf": 0.72}
 {"model": "kimi-k3", "category": "tool_use", "perf": 0.85}
@@ -1248,7 +1248,7 @@
 {"model": "kimi-k3-fast", "category": "refactor", "perf": 0.72}
 {"model": "kimi-k3-fast", "category": "review", "perf": 0.85}
 {"model": "kimi-k3-fast", "category": "schema", "perf": 0.5}
-{"model": "kimi-k3-fast", "category": "spec_docs", "perf": 0.7490000000000001}
+{"model": "kimi-k3-fast", "category": "spec_docs", "perf": 0.86}
 {"model": "kimi-k3-fast", "category": "terminal", "perf": 0.921590909090909}
 {"model": "kimi-k3-fast", "category": "test", "perf": 0.72}
 {"model": "kimi-k3-fast", "category": "tool_use", "perf": 0.85}
@@ -1267,7 +1267,7 @@
 {"model": "kimi-k3-flex", "category": "refactor", "perf": 0.72}
 {"model": "kimi-k3-flex", "category": "review", "perf": 0.85}
 {"model": "kimi-k3-flex", "category": "schema", "perf": 0.5}
-{"model": "kimi-k3-flex", "category": "spec_docs", "perf": 0.7490000000000001}
+{"model": "kimi-k3-flex", "category": "spec_docs", "perf": 0.86}
 {"model": "kimi-k3-flex", "category": "terminal", "perf": 0.921590909090909}
 {"model": "kimi-k3-flex", "category": "test", "perf": 0.72}
 {"model": "kimi-k3-flex", "category": "tool_use", "perf": 0.85}
@@ -1445,7 +1445,7 @@
 {"model": "moonshotai/Kimi-K3", "category": "refactor", "perf": 0.72}
 {"model": "moonshotai/Kimi-K3", "category": "review", "perf": 0.85}
 {"model": "moonshotai/Kimi-K3", "category": "schema", "perf": 0.5}
-{"model": "moonshotai/Kimi-K3", "category": "spec_docs", "perf": 0.7490000000000001}
+{"model": "moonshotai/Kimi-K3", "category": "spec_docs", "perf": 0.86}
 {"model": "moonshotai/Kimi-K3", "category": "terminal", "perf": 0.921590909090909}
 {"model": "moonshotai/Kimi-K3", "category": "test", "perf": 0.72}
 {"model": "moonshotai/Kimi-K3", "category": "tool_use", "perf": 0.85}

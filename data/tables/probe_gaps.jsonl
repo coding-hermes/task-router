@@ -69,3 +69,4 @@
 {"provider": "opencode-go", "model": "deepseek-v4.1-flash", "error": "HTTP 400", "candidate": null, "ts": "2026-09-11T16:00:33+00:00", "source": "auto", "action": "verify (catalog serves id \u2014 likely transient/auth)"}
 {"provider": "opencode-go", "model": "qwen3.7-plus", "error": "HTTP 400", "candidate": null, "ts": "2026-09-11T16:00:33+00:00", "source": "auto", "action": "verify (catalog serves id \u2014 likely transient/auth)"}
 {"provider": "synthetic", "model": "hf:zai-org/GLM-5.2", "error": "HTTP 404", "candidate": null, "ts": "2026-09-12T10:00:47+00:00", "source": "auto", "action": "verify (catalog serves id \u2014 likely transient/auth)"}
+{"provider": "clinepass", "model": "ling-3.0-flash-vl:free", "error": "HTTP 400", "candidate": null, "ts": "2026-09-13T10:00:53+00:00", "source": "auto", "action": "fix-not-working (agent)"}

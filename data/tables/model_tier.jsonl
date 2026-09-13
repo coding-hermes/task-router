@@ -210,7 +210,7 @@
 {"model": "accounts/fireworks/models/kimi-k3", "category": "refactor", "perf": 0.72, "tier": 3}
 {"model": "accounts/fireworks/models/kimi-k3", "category": "review", "perf": 0.85, "tier": 2}
 {"model": "accounts/fireworks/models/kimi-k3", "category": "schema", "perf": 0.5, "tier": 1}
-{"model": "accounts/fireworks/models/kimi-k3", "category": "spec_docs", "perf": 0.7490000000000001, "tier": 1}
+{"model": "accounts/fireworks/models/kimi-k3", "category": "spec_docs", "perf": 0.86, "tier": 2}
 {"model": "accounts/fireworks/models/kimi-k3", "category": "terminal", "perf": 0.921590909090909, "tier": 2}
 {"model": "accounts/fireworks/models/kimi-k3", "category": "test", "perf": 0.72, "tier": 3}
 {"model": "accounts/fireworks/models/kimi-k3", "category": "tool_use", "perf": 0.85, "tier": 5}
@@ -332,7 +332,7 @@
 {"model": "accounts/fireworks/routers/kimi-k3-fast", "category": "refactor", "perf": 0.72, "tier": 3}
 {"model": "accounts/fireworks/routers/kimi-k3-fast", "category": "review", "perf": 0.85, "tier": 2}
 {"model": "accounts/fireworks/routers/kimi-k3-fast", "category": "schema", "perf": 0.5, "tier": 1}
-{"model": "accounts/fireworks/routers/kimi-k3-fast", "category": "spec_docs", "perf": 0.7490000000000001, "tier": 1}
+{"model": "accounts/fireworks/routers/kimi-k3-fast", "category": "spec_docs", "perf": 0.86, "tier": 2}
 {"model": "accounts/fireworks/routers/kimi-k3-fast", "category": "terminal", "perf": 0.921590909090909, "tier": 2}
 {"model": "accounts/fireworks/routers/kimi-k3-fast", "category": "test", "perf": 0.72, "tier": 3}
 {"model": "accounts/fireworks/routers/kimi-k3-fast", "category": "tool_use", "perf": 0.85, "tier": 5}
@@ -963,7 +963,7 @@
 {"model": "hf:moonshotai/Kimi-K3", "category": "refactor", "perf": 0.72, "tier": 3}
 {"model": "hf:moonshotai/Kimi-K3", "category": "review", "perf": 0.85, "tier": 2}
 {"model": "hf:moonshotai/Kimi-K3", "category": "schema", "perf": 0.5, "tier": 1}
-{"model": "hf:moonshotai/Kimi-K3", "category": "spec_docs", "perf": 0.7490000000000001, "tier": 1}
+{"model": "hf:moonshotai/Kimi-K3", "category": "spec_docs", "perf": 0.86, "tier": 2}
 {"model": "hf:moonshotai/Kimi-K3", "category": "terminal", "perf": 0.921590909090909, "tier": 2}
 {"model": "hf:moonshotai/Kimi-K3", "category": "test", "perf": 0.72, "tier": 3}
 {"model": "hf:moonshotai/Kimi-K3", "category": "tool_use", "perf": 0.85, "tier": 5}
@@ -972,7 +972,7 @@
 {"model": "hf:nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-NVFP4", "category": "code_gen", "perf": 0.75, "tier": 1}
 {"model": "hf:nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-NVFP4", "category": "reasoning", "perf": 0.8, "tier": 0}
 {"model": "hf:nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-NVFP4", "category": "refactor", "perf": 0.5, "tier": 1}
-{"model": "hf:nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-NVFP4", "category": "spec_docs", "perf": 0.85375, "tier": 2}
+{"model": "hf:nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-NVFP4", "category": "spec_docs", "perf": 0.85375, "tier": 1}
 {"model": "hf:nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-NVFP4", "category": "tool_use", "perf": 0.75, "tier": 2}
 {"model": "hf:openai/gpt-oss-120b", "category": "agent_tick", "perf": 0.75, "tier": 1}
 {"model": "hf:openai/gpt-oss-120b", "category": "code_gen", "perf": 0.5, "tier": -1}
@@ -1223,7 +1223,7 @@
 {"model": "kimi-k3", "category": "refactor", "perf": 0.72, "tier": 3}
 {"model": "kimi-k3", "category": "review", "perf": 0.85, "tier": 2}
 {"model": "kimi-k3", "category": "schema", "perf": 0.5, "tier": 1}
-{"model": "kimi-k3", "category": "spec_docs", "perf": 0.7490000000000001, "tier": 1}
+{"model": "kimi-k3", "category": "spec_docs", "perf": 0.86, "tier": 2}
 {"model": "kimi-k3", "category": "terminal", "perf": 0.921590909090909, "tier": 2}
 {"model": "kimi-k3", "category": "test", "perf": 0.72, "tier": 3}
 {"model": "kimi-k3", "category": "tool_use", "perf": 0.85, "tier": 5}
@@ -1242,7 +1242,7 @@
 {"model": "kimi-k3-fast", "category": "refactor", "perf": 0.72, "tier": 3}
 {"model": "kimi-k3-fast", "category": "review", "perf": 0.85, "tier": 2}
 {"model": "kimi-k3-fast", "category": "schema", "perf": 0.5, "tier": 1}
-{"model": "kimi-k3-fast", "category": "spec_docs", "perf": 0.7490000000000001, "tier": 1}
+{"model": "kimi-k3-fast", "category": "spec_docs", "perf": 0.86, "tier": 2}
 {"model": "kimi-k3-fast", "category": "terminal", "perf": 0.921590909090909, "tier": 2}
 {"model": "kimi-k3-fast", "category": "test", "perf": 0.72, "tier": 3}
 {"model": "kimi-k3-fast", "category": "tool_use", "perf": 0.85, "tier": 5}
@@ -1261,7 +1261,7 @@
 {"model": "kimi-k3-flex", "category": "refactor", "perf": 0.72, "tier": 3}
 {"model": "kimi-k3-flex", "category": "review", "perf": 0.85, "tier": 2}
 {"model": "kimi-k3-flex", "category": "schema", "perf": 0.5, "tier": 1}
-{"model": "kimi-k3-flex", "category": "spec_docs", "perf": 0.7490000000000001, "tier": 1}
+{"model": "kimi-k3-flex", "category": "spec_docs", "perf": 0.86, "tier": 2}
 {"model": "kimi-k3-flex", "category": "terminal", "perf": 0.921590909090909, "tier": 2}
 {"model": "kimi-k3-flex", "category": "test", "perf": 0.72, "tier": 3}
 {"model": "kimi-k3-flex", "category": "tool_use", "perf": 0.85, "tier": 5}
@@ -1438,7 +1438,7 @@
 {"model": "moonshotai/Kimi-K3", "category": "refactor", "perf": 0.72, "tier": 3}
 {"model": "moonshotai/Kimi-K3", "category": "review", "perf": 0.85, "tier": 2}
 {"model": "moonshotai/Kimi-K3", "category": "schema", "perf": 0.5, "tier": 1}
-{"model": "moonshotai/Kimi-K3", "category": "spec_docs", "perf": 0.7490000000000001, "tier": 1}
+{"model": "moonshotai/Kimi-K3", "category": "spec_docs", "perf": 0.86, "tier": 2}
 {"model": "moonshotai/Kimi-K3", "category": "terminal", "perf": 0.921590909090909, "tier": 2}
 {"model": "moonshotai/Kimi-K3", "category": "test", "perf": 0.72, "tier": 3}
 {"model": "moonshotai/Kimi-K3", "category": "tool_use", "perf": 0.85, "tier": 5}
@@ -1484,7 +1484,7 @@
 {"model": "nemotron-3-super", "category": "code_gen", "perf": 0.75, "tier": 1}
 {"model": "nemotron-3-super", "category": "reasoning", "perf": 0.8, "tier": 0}
 {"model": "nemotron-3-super", "category": "refactor", "perf": 0.5, "tier": 1}
-{"model": "nemotron-3-super", "category": "spec_docs", "perf": 0.85375, "tier": 2}
+{"model": "nemotron-3-super", "category": "spec_docs", "perf": 0.85375, "tier": 1}
 {"model": "nemotron-3-super", "category": "tool_use", "perf": 0.75, "tier": 2}
 {"model": "nemotron-3-ultra", "category": "agent_tick", "perf": 0.75, "tier": 1}
 {"model": "nemotron-3-ultra", "category": "code_gen", "perf": 0.5, "tier": -1}
