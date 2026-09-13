@@ -173,13 +173,13 @@ def test_chain_invariants_per_profile(monkeypatch, tmp_path, pid):
     # Bane 2026-08-31 ROUTER DOCTRINE: P0_FORE head = ollama-cloud/deepseek-v4-flash:0731.
     # The deepseek-v4-flash alias (unqualified) drifted after the :0731 revision
     # became the explicit default for the fleet foreman path.
-    ("P0_FORE", "ollama-cloud/deepseek-v4-flash:0731"),
+    ("P0_FORE", "ollama-cloud/kimi-k3"),  # 2026-09-13: ollama deepseek lanes temp-disabled (TR-042, billing 402 + rotation waste) -> kimi-for-coding k3 takes head at $0 in-sub
     ("P1_CODING", "opencode-go/mimo-v2.5"),
     # Capability-grounded heads (gpt-5.6-sol review 2026-08-27: do NOT tune
     # normal eligibility to accommodate the emergency fallback — fallback is a
     # degraded path that reports requirements_unmet). P2/P4 head on models with
     # real long_horizon/security evidence.
-    ("P2_AGENTIC", "ollama-cloud/kimi-k2.7-code"),
+    ("P2_AGENTIC", "ollama-cloud/kimi-k3"),  # 2026-09-13: TR-042 deepseek disable -> kimi sub head
     # Bane 2026-08-31: P4_SECURITY requires security >= 2. Only gpt-5.6-sol
     # clears that bar. 2026-09-10: commandcode provider added (Provider API,
     # no-markup, open in the prod mirror) — its gpt-5.6-sol lane clears
