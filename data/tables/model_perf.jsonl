@@ -943,6 +943,7 @@
 {"model": "grok-4.5", "category": "mock", "perf": 1.0}
 {"model": "grok-4.5", "category": "refactor", "perf": 0.75}
 {"model": "grok-4.5", "category": "schema", "perf": 0.75}
+{"model": "grok-4.5", "category": "spec_docs", "perf": 0.6809999999999999}
 {"model": "grok-4.5", "category": "terminal", "perf": 0.85}
 {"model": "grok-4.5", "category": "test", "perf": 0.72}
 {"model": "grok-4.5", "category": "tool_use", "perf": 0.75}
@@ -1802,6 +1803,7 @@
 {"model": "xai/grok-4.5", "category": "mock", "perf": 1.0}
 {"model": "xai/grok-4.5", "category": "refactor", "perf": 0.75}
 {"model": "xai/grok-4.5", "category": "schema", "perf": 0.75}
+{"model": "xai/grok-4.5", "category": "spec_docs", "perf": 0.6809999999999999}
 {"model": "xai/grok-4.5", "category": "terminal", "perf": 0.85}
 {"model": "xai/grok-4.5", "category": "test", "perf": 0.72}
 {"model": "xai/grok-4.5", "category": "tool_use", "perf": 0.75}

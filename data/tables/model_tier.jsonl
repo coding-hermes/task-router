@@ -30,6 +30,7 @@
 {"model": "MiniMaxAI/MiniMax-M3", "category": "refactor", "perf": 0.75, "tier": 4}
 {"model": "MiniMaxAI/MiniMax-M3", "category": "review", "perf": 0.72, "tier": 1}
 {"model": "MiniMaxAI/MiniMax-M3", "category": "schema", "perf": 0.75, "tier": 3}
+{"model": "MiniMaxAI/MiniMax-M3", "category": "spec_docs", "perf": 0.6817, "tier": -4}
 {"model": "MiniMaxAI/MiniMax-M3", "category": "terminal", "perf": 0.72, "tier": -3}
 {"model": "MiniMaxAI/MiniMax-M3", "category": "test", "perf": 0.72, "tier": 3}
 {"model": "MiniMaxAI/MiniMax-M3", "category": "tool_use", "perf": 0.742, "tier": -1}
@@ -229,6 +230,7 @@
 {"model": "accounts/fireworks/models/minimax-m3", "category": "refactor", "perf": 0.75, "tier": 4}
 {"model": "accounts/fireworks/models/minimax-m3", "category": "review", "perf": 0.72, "tier": 1}
 {"model": "accounts/fireworks/models/minimax-m3", "category": "schema", "perf": 0.75, "tier": 3}
+{"model": "accounts/fireworks/models/minimax-m3", "category": "spec_docs", "perf": 0.6817, "tier": -4}
 {"model": "accounts/fireworks/models/minimax-m3", "category": "terminal", "perf": 0.72, "tier": -3}
 {"model": "accounts/fireworks/models/minimax-m3", "category": "test", "perf": 0.72, "tier": 3}
 {"model": "accounts/fireworks/models/minimax-m3", "category": "tool_use", "perf": 0.742, "tier": -1}
@@ -486,7 +488,7 @@
 {"model": "deepseek-v4-pro", "category": "refactor", "perf": 0.85, "tier": 5}
 {"model": "deepseek-v4-pro", "category": "review", "perf": 0.8, "tier": 2}
 {"model": "deepseek-v4-pro", "category": "schema", "perf": 0.5, "tier": 1}
-{"model": "deepseek-v4-pro", "category": "spec_docs", "perf": 0.7, "tier": -3}
+{"model": "deepseek-v4-pro", "category": "spec_docs", "perf": 0.7, "tier": -2}
 {"model": "deepseek-v4-pro", "category": "terminal", "perf": 0.85, "tier": 0}
 {"model": "deepseek-v4-pro", "category": "test", "perf": 0.72, "tier": 3}
 {"model": "deepseek-v4-pro", "category": "tool_use", "perf": 0.85, "tier": 5}
@@ -552,7 +554,7 @@
 {"model": "deepseek/deepseek-v4-pro", "category": "refactor", "perf": 0.85, "tier": 5}
 {"model": "deepseek/deepseek-v4-pro", "category": "review", "perf": 0.8, "tier": 2}
 {"model": "deepseek/deepseek-v4-pro", "category": "schema", "perf": 0.5, "tier": 1}
-{"model": "deepseek/deepseek-v4-pro", "category": "spec_docs", "perf": 0.7, "tier": -3}
+{"model": "deepseek/deepseek-v4-pro", "category": "spec_docs", "perf": 0.7, "tier": -2}
 {"model": "deepseek/deepseek-v4-pro", "category": "terminal", "perf": 0.85, "tier": 0}
 {"model": "deepseek/deepseek-v4-pro", "category": "test", "perf": 0.72, "tier": 3}
 {"model": "deepseek/deepseek-v4-pro", "category": "tool_use", "perf": 0.85, "tier": 5}
@@ -1331,7 +1333,7 @@
 {"model": "mimo-v2.5-pro", "category": "code_gen", "perf": 0.85, "tier": 4}
 {"model": "mimo-v2.5-pro", "category": "mechanical", "perf": 0.72, "tier": 5}
 {"model": "mimo-v2.5-pro", "category": "refactor", "perf": 0.72, "tier": 3}
-{"model": "mimo-v2.5-pro", "category": "spec_docs", "perf": 0.684, "tier": -4}
+{"model": "mimo-v2.5-pro", "category": "spec_docs", "perf": 0.684, "tier": -3}
 {"model": "mimo-v2.5-pro", "category": "terminal", "perf": 0.85, "tier": 0}
 {"model": "mimo-v2.5-pro", "category": "test", "perf": 0.72, "tier": 3}
 {"model": "mimo-v2.5-pro", "category": "tool_use", "perf": 0.85, "tier": 5}
@@ -1365,6 +1367,7 @@
 {"model": "minimax-m3", "category": "refactor", "perf": 0.75, "tier": 4}
 {"model": "minimax-m3", "category": "review", "perf": 0.72, "tier": 1}
 {"model": "minimax-m3", "category": "schema", "perf": 0.75, "tier": 3}
+{"model": "minimax-m3", "category": "spec_docs", "perf": 0.6817, "tier": -4}
 {"model": "minimax-m3", "category": "terminal", "perf": 0.72, "tier": -3}
 {"model": "minimax-m3", "category": "test", "perf": 0.72, "tier": 3}
 {"model": "minimax-m3", "category": "tool_use", "perf": 0.742, "tier": -1}
@@ -1816,7 +1819,7 @@
 {"model": "xiaomi/mimo-v2.5-pro", "category": "code_gen", "perf": 0.85, "tier": 4}
 {"model": "xiaomi/mimo-v2.5-pro", "category": "mechanical", "perf": 0.72, "tier": 5}
 {"model": "xiaomi/mimo-v2.5-pro", "category": "refactor", "perf": 0.72, "tier": 3}
-{"model": "xiaomi/mimo-v2.5-pro", "category": "spec_docs", "perf": 0.684, "tier": -4}
+{"model": "xiaomi/mimo-v2.5-pro", "category": "spec_docs", "perf": 0.684, "tier": -3}
 {"model": "xiaomi/mimo-v2.5-pro", "category": "terminal", "perf": 0.85, "tier": 0}
 {"model": "xiaomi/mimo-v2.5-pro", "category": "test", "perf": 0.72, "tier": 3}
 {"model": "xiaomi/mimo-v2.5-pro", "category": "tool_use", "perf": 0.85, "tier": 5}
