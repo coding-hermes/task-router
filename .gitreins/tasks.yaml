@@ -1,0 +1,189 @@
+tasks:
+- id: TR-001
+  title: "Provider health calibration \u2014 8/14 providers pending key/endpoint calibration"
+  criteria:
+  - 'provider_health_probe.py runs clean and ~/.hermes/model-router/health-state.json
+    reports a real status for 14/14 configured providers: each previously-uncalibrated
+    provider (clinepass, kimi-for-coding, opencode-go, groq, openai-codex, stepfun,
+    minimax, synthetic) is OK/DOWN/SLOW with a real ping result or explicitly marked
+    unsupported with a reason in the probe config; base_url and probe model entries
+    match ~/.hermes/config.yaml ground truth (stepfun=https://api.stepfun.ai/step_plan/v1,
+    minimax=https://api.minimax.io/v1, opencode-go uses a supported model id like
+    glm-5.3-flash); repo script synced byte-identical to ~/.hermes/scripts/provider_health_probe.py;
+    smoke suite passes via ~/.hermes/venvs/board/bin/python3 -m pytest -q tests/'
+  status: complete
+  created_at: '2026-08-27T05:35:59.345612+00:00'
+  completed_at: '2026-08-27T05:48:42.995615+00:00'
+- id: TR-007
+  title: "Diversity + concurrency-aware chain resolution \u2014 two-knob caps + per-model\
+    \ busy skip"
+  criteria:
+  - resolve() applies max_consecutive_per_provider and max_total_per_provider as pruning
+    on the price-ordered eligible chain (global defaults from quota-state.json diversity
+    key + per-profile overrides from task_profiles columns), reporting each dropped
+    hop with an explicit reason; price order preserved among survivors
+  - A model at its concurrency limit is skipped individually with a 'model busy' reason
+    while other models from the same provider remain in the chain
+  - scripts/router_ledger.py exists with start/end/status commands writing schema-v2-subset
+    rows to ledger.jsonl; router_spawn.py derives per-(provider,model) in-flight counts
+    from the ledger (30min stale cutoff)
+  - 'tests/test_diversity.py + tests/test_ledger.py cover: busy-model skip keeps siblings;
+    consecutive cap drops 3rd-in-row; total cap drops overflow; per-profile override
+    beats global default; price order preserved; no-caps behavior unchanged'
+  - router_spawn.py remains fail-open (exit 0, JSON output) and outputs identical
+    head/chain when no caps are configured; seed re-run adds nullable diversity columns
+    to task_profiles without altering seeded profile requirements
+  status: complete
+  created_at: '2026-08-27T06:26:25.738507+00:00'
+  completed_at: '2026-08-27T06:29:19.442035+00:00'
+- id: TR-025
+  title: "Runtime visibility \u2014 source + gates_loaded in resolve output"
+  criteria:
+  - 'Resolve JSON output gains a ''source'' field: ''registry.json'' when tables loaded
+    from registry.json, ''data/tables'' when the committed fallback was used'
+  - Resolve JSON output gains 'fallback_used' (true when the data/tables fallback
+    fired) and a non-empty 'warnings' list naming the registry failure
+  - Resolve JSON output gains 'gates_loaded' with keys health, circuit, quota (booleans
+    = state file present in the state dir) and ledger_rows (int, from ledger_in_flight)
+  - 'Deleting health-state.json from the state dir makes gates_loaded.health false
+    and does NOT change gate behavior (fail-open preserved: resolution still succeeds,
+    absent health != DOWN)'
+  - Corrupt registry.json still resolves (fail-open) with source=data/tables, fallback_used=true
+    and a warning
+  status: complete
+  created_at: '2026-08-28T05:17:28.482223+00:00'
+  completed_at: '2026-08-28T05:17:32.805268+00:00'
+- id: tr-026-ledger
+  title: Ledger wiring or visible disable (TR-026)
+  criteria:
+  - 'scripts/router_ledger.py status --json reports wired:false + rows:0 + started_open:0
+    when the ledger file is empty or missing, and wired:true once a trace row exists
+    (verified by tests/test_ledger.py: test_status_empty_or_missing_file_exit0, test_status_empty_file_reports_unwired_loudly,
+    test_status_json_parses asserting wired:true)'
+  - 'router_spawn.py resolve() output emits a ''spawn ledger NOT WIRED'' warning and
+    gates_loaded.ledger=false whenever ledger.jsonl has no trace rows (gates_loaded.ledger_rows
+    still emitted); a ledger WITH a fresh started row flips ledger to true and drops
+    the warning (tests/test_visibility.py: test_empty_ledger_reports_unwired_loudly,
+    test_missing_ledger_file_reports_unwired, test_ledger_with_trace_reports_wired)'
+  - 'docs/integration.md documents the TR-026 decision: path B visible-disable chosen
+    because wiring requires scheduler Go code (coding-hermes-scheduler TASK-ROUTER-002
+    call side, spawn.go tick-ID plumbing) which task-router must not touch per AGENTS.md;
+    README.md marks router_ledger.py NOT WIRED'
+  - Full test suite passes with only the 2 pre-existing TR-029 failures untouched
+    (P9_REVIEW + fallback lane); gitreins guard Tier 1 PASS (secrets + tests)
+  status: complete
+  created_at: '2026-08-28T05:34:21.293877+00:00'
+  completed_at: '2026-08-28T05:34:26.057270+00:00'
+- id: TR-033
+  title: Add --quiet flag to router_spawn.py
+  criteria:
+  - router_spawn.py accepts a --quiet CLI flag
+  - When --quiet is passed, ROUTER-MISS and other telemetry lines are not written
+    to stderr
+  - Env ROUTER_SPAWN_QUIET=1 also enables quiet mode
+  - JSON on stdout, exit 0, fail-open behavior is unchanged
+  - Tests cover both CLI flag and env var quiet modes
+  status: complete
+  created_at: '2026-09-10T05:05:09.731668+00:00'
+  completed_at: '2026-09-10T05:15:50.386670+00:00'
+- id: TR-034
+  title: "Per-provider pricing modules \u2014 one script per provider for subscription\
+    \ math"
+  criteria:
+  - Refactor subscription pricing math into scripts/pricing/<provider>.py modules
+    with common helpers, behavior-identical reprice, and green test/guard battery
+  status: complete
+  created_at: '2026-09-10T12:11:23.894160+00:00'
+  completed_at: '2026-09-10T12:48:50.750860+00:00'
+- id: TR-035
+  title: "TR-035 weekly research lane 1/3 \u2014 model catalog freshness: live-verified\
+    \ per-lane drift check + catalog-driven refresh of context/capability fields on\
+    \ existing rows"
+  criteria:
+  - Every enabled lane in data/tables/providers.jsonl is checked against a live source
+    (models.dev api.json and/or that lane's GET /v1/models using its own key from
+    probe_providers.jsonl); the resulting evidence report lists per-lane live model
+    counts, additions and removals, plus the fetch timestamp and source URL.
+  - router_modelsdev.py sync refreshes context_limit, vision and thinking on EXISTING
+    data/tables/models.jsonl rows from the models.dev catalog (fill-when-null plus
+    change-detection), covered by tests proving a previously-null context_limit is
+    populated, a changed context value is updated, and prices/normalized_price are
+    never touched by this path.
+  - Any model the live source no longer lists is marked removed via valid_to/archive
+    instead of being deleted, and any renamed id gets a model_aliases.jsonl row so
+    the old id still resolves.
+  - 'The generated-tables path is respected end to end: router_modelsdev.py sync/seed
+    regenerates data/tables from seed inputs (no hand-edited table rows), pytest tests/
+    passes, and gitreins guard is green.'
+  status: complete
+  created_at: '2026-09-11T02:06:39.863606+00:00'
+  completed_at: '2026-09-11T02:44:58.166474+00:00'
+- id: TR-036
+  title: 'Weekly research lane 2/3: provider plan-terms verification + open pricing
+    gaps'
+  criteria:
+  - plan_terms.jsonl/providers.jsonl verified against live provider sources with evidence
+    URLs (or explicit no-change-verified), known open pricing gaps attacked (ollama-cloud
+    per-model $/M, opencode-go req-per-5h, synthetic pack economics, kimi-for-coding
+    credit refresh, clinepass discount flag), updates land via generated path (seed
+    -> export -> both ns repos committed + pushed s3daily), pytest + gitreins guard
+    green, origin/main pushed
+  status: complete
+  created_at: '2026-09-11T11:05:13.786871+00:00'
+  completed_at: '2026-09-11T12:43:27.362891+00:00'
+- id: TR-037
+  title: Weekly research lane 3/3 (rankings + misc)
+  criteria:
+  - Benchmark freshness checked, chain-head sanity via router_spawn for 2 projects,
+    discount window sweep, evidence freshness refresh for or-spot rows >30d, fallback_lanes
+    sane; findings + evidence in closeout or explicit no-change verified rows
+  status: complete
+  created_at: '2026-09-11T19:16:18.508921+00:00'
+  completed_at: '2026-09-11T20:07:45.623412+00:00'
+- id: TR-039
+  title: Derive model_tier rows for commandcode + aws-bedrock + fireworks-ai
+  criteria:
+  - 'router_spawn resolve emits ~200 ROUTER-MISS lines; after fix: commandcode/aws-bedrock/fireworks-ai
+    MISS count = 0, keyless providers stay fail-closed via quota gates (not tier absence),
+    regression test asserts seed derives tier rows for these providers'
+  status: complete
+  created_at: '2026-09-12T12:19:37.568339+00:00'
+  completed_at: '2026-09-12T13:39:41.818172+00:00'
+- id: QA-TASK-ROUTER-1
+  title: "bunker-las-02 port-range pool sized to 1 \u2014 second spawn exhausts pool"
+  criteria:
+  - 'bunkerd on bunker-las-02 has port_range_end widened from 30100 to 30999 (pool:
+    1 range to 10 ranges); daemon restarted and healthy; live agent bunker-kara-lair
+    unaffected; a fresh agent spawn against bunker2 succeeds while 30000 is held'
+  status: complete
+  created_at: '2026-09-12T19:55:20.641264+00:00'
+  completed_at: '2026-09-12T20:02:21.115975+00:00'
+- id: TR-041
+  title: Deploy GAP-070 durable agent registry to bunker-las-02
+  criteria:
+  - bunker-las-02 runs bunkerd v0.1.4 with the registry enabled and reconciliation
+    mode adopt; kara-lair survives the restart (adopted, port reservation restored);
+    spawn+destroy E2E smoke passes live; rollback binary retained.
+  status: complete
+  created_at: '2026-09-13T11:21:23.666717+00:00'
+  completed_at: '2026-09-13T11:27:03.254655+00:00'
+- id: TR-046b
+  title: "Fix gitreins Tier 2 evaluator 401 \u2014 GITREINS_LLM_* env not inherited\
+    \ by clean sessions"
+  criteria:
+  - Judge invocations from clean shells (cron ticks, spawned workers) reach the configured
+    base_url from ~/.hermes/.env instead of the api.openai.com fallback; live task
+    complete returns a real verdict (no 401)
+  status: complete
+  created_at: '2026-09-13T18:25:04.840394+00:00'
+  completed_at: '2026-09-13T18:50:31.542878+00:00'
+- id: TR-040
+  title: Decide fate of orphaned agent bunker-kara-lair on bunker-las-02
+  criteria:
+  - docs/decisions/tr-040-kara-lair-fate.md committed; records live evidence from
+    bunker-las-02 (container, image, processes, docker images/disk); verdict reapable=true|false
+    with one-line basis; recommended action with concrete commands for the reap path;
+    notes whether preserving requires bunkerd code changes or is a manual path
+  status: complete
+  created_at: '2026-09-14T00:56:57.079150+00:00'
+  completed_at: '2026-09-14T01:12:19.671725+00:00'
