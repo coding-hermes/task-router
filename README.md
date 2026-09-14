@@ -260,7 +260,7 @@ operational tools — review `--help` and use `--dry-run` where available.
 | `LEDGER_FILE` | ledger, spawn | Exact ledger JSONL path (shared contract). |
 | `ROUTER_EDIT_API_KEY` | server, web | Edit-mode API key; unset = read-only. |
 | `ROUTING_CIRCUIT_COOLDOWN_JSON` | circuit | JSON patch overriding per-class cooldown seconds. |
-| `ROUTING_NS`, `TASKROUTER_NS` | seed, maintain | Optional namespace mirrors. Under the `router` CLI, `ROUTING_NS` defaults to `<data home>/ns/routing` for `seed` (set it explicitly to export into a real DuckBrain namespace). |
+| `ROUTING_NS`, `TASKROUTER_NS` | seed, maintain | Optional namespace mirrors. Under the `router` CLI, `ROUTING_NS` defaults to `<data home>/ns/routing` for `seed` (set it explicitly to export into a real DuckBrain namespace). Direct `router_seed.py` runs with `ROUTING_NS` unset are mirror-safe (TR-048): they resolve to the data-home scratch ns (or skip the ns export on a fresh clone); the fleet mirror needs `ROUTING_ALLOW_FLEET_MIRROR=1`. |
 | `ROUTING_DOCS_DIR` | maintain | Output directory for chain snapshots. |
 | `MODELSDEV_CACHE` | modelsdev, probefix | Cache path for models.dev input. |
 
@@ -300,6 +300,16 @@ never by hand:
 python3 scripts/router_seed.py
 router spawn my-project --format json
 ```
+
+**Direct seed invocation is mirror-safe (TR-048):** with `ROUTING_NS` unset,
+`python3 scripts/router_seed.py` never writes the fleet DuckBrain mirror —
+the ns export goes to `<data home>/scratch/ns/routing` when a DuckBrain ns
+exists, and to `<duckbrain home>/namespaces/routing` on a fresh clone
+(absent → the export step is skipped with a visible `ns mirror absent`
+line). Writing the live mirror directly is an explicit opt-in:
+`ROUTING_ALLOW_FLEET_MIRROR=1` (path override: `ROUTING_FLEET_MIRROR`), or
+just set `ROUTING_NS`. `router seed` (CLI) and `router_maintain.py` always
+set `ROUTING_NS` themselves, so sanctioned workflows are unaffected.
 
 Design notes: [scheduler integration](docs/integration.md),
 [registry maintenance](docs/registry-maintenance.md),

@@ -1,0 +1,11 @@
+{
+ "command": "python3 scripts/router_seed.py (cwd=repo, no ROUTING_NS, no overrides)",
+ "returncode": 0,
+ "write_count": 19,
+ "mirror_writes": [],
+ "mirror_sha_before_after_identical": true,
+ "mirror_tables_hashed": 17,
+ "resolved_ns_line": [
+  "exported tables to /home/kara/.local/share/task-router/scratch/ns/routing"
+ ]
+}

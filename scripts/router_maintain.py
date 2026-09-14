@@ -5,6 +5,8 @@ One entrypoint for the whole maintenance cadence:
 
   reprice   — OpenRouter spot-check → recompute normalized_price for repricable rows
   seed      — rebuild derived tables via router_seed.py (mandatory; failure ABORTS)
+              pins the child's ROUTING_NS to this process's resolved mirror
+              (TR-048: a bare direct seed no longer defaults to the mirror)
   export    — base tables (providers, models, archetypes, projects, benchmarks)
               routing ns → task-router ns; sync the 6 seed-derived tables as well
   snapshot  — chains/<YYYY-MM-DD>.md from v_task_chain (+ dated copy in docs/)
@@ -98,6 +100,12 @@ REPO = _REPO
 
 # Base tables exported to BOTH namespaces by `export`.
 BASE_TABLES = ['archetypes', 'benchmarks', 'models', 'projects', 'providers']
+
+# TR-048: ns the seed child actually wrote (set by step_seed). `export` reads
+# DERIVED tables from here so `maintain all` never confuses a pinned seed
+# target with the scratch fallback used by a BARE seed (see step_export).
+_SEEDED_NS = None
+
 # Derived tables written to the routing ns by router_seed.py and mirrored into
 # the task-router ns by `export` (previously a manual copy step).
 DERIVED_TABLES = ['category_levels', 'level_defs', 'model_perf', 'model_tier',
@@ -404,6 +412,14 @@ def step_seed(dry_run):
     # child seed silently resolved to the LIVE registry — a scratch run could
     # write production state. Explicit pass-through honors every override.
     env['ROUTING_REGISTRY'] = REGISTRY
+    # TR-048 (companion pin): the child seed no longer falls back to the fleet
+    # mirror when ROUTING_NS is unset (direct-invocation guard). Maintain's
+    # `export` step copies DERIVED tables from ROUTING_NS, so the seed child
+    # must write exactly where this process resolved its own mirror — pin it
+    # (setdefault: an operator who exported ROUTING_NS explicitly still wins).
+    env.setdefault('ROUTING_NS', ROUTING_NS)
+    global _SEEDED_NS
+    _SEEDED_NS = env['ROUTING_NS']
     if dry_run:
         print('[seed] DRY-RUN: would run:', BOARD_PY, SEED_SCRIPT)
         print('[seed] would rebuild derived tables:',
@@ -474,7 +490,12 @@ def step_export(dry_run):
         except OSError as e:
             failed.append(f'{t}: {e}')
     for t in DERIVED_TABLES:
-        rpath = f'{ROUTING_NS}/tables/{t}.jsonl'
+        # TR-048: read derived tables from the ns the seed child actually
+        # wrote. A BARE seed no longer falls back to this process's fleet
+        # mirror (direct-invocation guard), so `maintain export` without a
+        # preceding in-process seed step would otherwise copy STALE mirror
+        # rows forever. `maintain all` sets _SEEDED_NS == ROUTING_NS.
+        rpath = f'{_SEEDED_NS or ROUTING_NS}/tables/{t}.jsonl'
         tpath = f'{TASKROUTER_NS}/tables/{t}.jsonl'
         if dry_run:
             print(f'[export] DRY-RUN: would copy {rpath} -> {tpath}')

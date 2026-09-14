@@ -20,9 +20,44 @@ _HERE = os.path.dirname(os.path.realpath(__file__))
 _REPO = os.path.dirname(_HERE)
 REGISTRY = os.environ.get('ROUTING_REGISTRY', os.path.join(_REPO, 'registry.json'))
 DATA_DIR = os.environ.get('ROUTING_DATA_DIR', os.path.join(_REPO, 'data', 'tables'))
-# The DuckBrain namespace is the S3-backed MIRROR — absent on a fresh clone;
-# the seed still runs (it just skips the ns export step).
-NS = os.environ.get('ROUTING_NS', '/home/kara/duckbrain/namespaces/routing')
+
+# ---- TR-048: direct-invocation NS guard (script layer of the TR-045 CLI guard)
+# The DuckBrain namespace is the S3-backed FLEET MIRROR. When ROUTING_NS is
+# unset, a bare `python3 scripts/router_seed.py` must NOT silently resolve to
+# the live mirror (a sibling tick proved the CLI-layer-only TR-045 guard was
+# bypassable). Resolution order when ROUTING_NS is unset:
+#   1. ROUTING_ALLOW_FLEET_MIRROR=1 AND the mirror path exists -> the fleet
+#      mirror (explicit opt-in restores the legacy write-through; production
+#      `router_maintain.py` and the `router` CLI always set ROUTING_NS, so
+#      they never rely on this).
+#   2. The data-home scratch ns (<data home>/scratch/ns/routing) when a prior
+#      scratch run OR a real DuckBrain ns exists — keeps repeated bare runs
+#      self-contained and redirects Bane's-box bare runs away from the mirror.
+#      Data home: TASK_ROUTER_HOME > XDG_DATA_HOME > ~/.local/share/task-router
+#      (same precedence as task_router/paths.py).
+#   3. Otherwise (fresh clone: nothing exists anywhere) the DuckBrain-home ns
+#      (ROUTING_DUCKBRAIN_HOME or ~/duckbrain/namespaces/routing) — absent on
+#      a fresh clone, so the seed prints 'ns mirror absent' and writes nothing.
+_FLEET_MIRROR_NS = '/home/kara/duckbrain/namespaces/routing'
+_dh = (os.environ.get('TASK_ROUTER_HOME')
+       or (os.path.join(os.environ['XDG_DATA_HOME'], 'task-router')
+           if os.environ.get('XDG_DATA_HOME')
+           else os.path.join(os.path.expanduser('~'), '.local', 'share', 'task-router')))
+_scratch_ns = os.path.join(_dh, 'scratch', 'ns', 'routing')
+_duckbrain_home = (os.environ.get('ROUTING_DUCKBRAIN_HOME')
+                   or os.path.join(os.path.expanduser('~'), 'duckbrain'))
+_default_ns = os.path.join(_duckbrain_home, 'namespaces', 'routing')
+_mirror = os.environ.get('ROUTING_FLEET_MIRROR', _FLEET_MIRROR_NS)
+NS = os.environ.get('ROUTING_NS') or (
+    _mirror if (os.environ.get('ROUTING_ALLOW_FLEET_MIRROR') == '1'
+                and os.path.isdir(_mirror))
+    else (_scratch_ns if (os.path.isdir(_scratch_ns) or os.path.isdir(_default_ns))
+          else _default_ns))
+# True when the unset-NS default was redirected away from the mirror on a box
+# that HAS a real DuckBrain ns — the export step then creates the scratch ns
+# (opt-in style: never done at import time, TR-029 keeps --help write-free).
+_NS_REDIRECTED = (not os.environ.get('ROUTING_NS')
+                  and NS == _scratch_ns and os.path.isdir(_default_ns))
 
 # TR-029: --help must be safe and exit 0 with ZERO file writes. The full seed
 # body is module-level (legacy shape); intercept --help before any table loads
@@ -972,7 +1007,9 @@ def _dump_registry():
 
 # ns mirror export (arrays) — only when the DuckBrain namespace exists; a
 # fresh clone has no ns and that's fine (data/tables/ is the committed source).
-if os.path.isdir(NS):
+# TR-048: a redirected unset-NS run (_NS_REDIRECTED) creates its scratch ns
+# here so repeated bare runs land in the same self-contained place.
+if os.path.isdir(NS) or _NS_REDIRECTED:
     os.makedirs(f'{NS}/tables', exist_ok=True)
     for t in ['level_defs', 'model_perf', 'category_levels', 'model_tier',
               'task_profiles', 'task_profile_requirements']:
