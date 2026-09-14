@@ -252,6 +252,46 @@ def test_spawn_exports_point_into_data_home(tmp_path, monkeypatch):
 
 
 # --------------------------------------------------------------------------
+# TR-045: seed must not export into the fleet DuckBrain mirror
+# --------------------------------------------------------------------------
+
+def test_seed_export_targets_data_home_not_fleet_mirror(tmp_path, monkeypatch):
+    """A data-home `router seed` must never write the live DuckBrain mirror.
+
+    scripts/router_seed.py line 25 defaults ROUTING_NS to the hardcoded
+    /home/kara/duckbrain/namespaces/routing (the S3-backed fleet mirror), so
+    before TR-045 the CLI exported only ROUTING_REGISTRY/ROUTING_DATA_DIR and
+    a scratch/data-home seed exported its tables straight into the live
+    mirror. The CLI now derives ROUTING_NS under the resolved data home.
+    """
+    home = str(tmp_path / "dh")
+    monkeypatch.setenv("TASK_ROUTER_HOME", home)
+    monkeypatch.delenv("ROUTING_NS", raising=False)
+    exports = cli._home_env_exports()["seed"]
+    assert "ROUTING_NS" in exports, "seed export map lost the TR-045 ns guard"
+    assert exports["ROUTING_NS"] == os.path.join(home, "ns", "routing")
+    # the derived ns lives under the data home, i.e. never the fleet mirror
+    assert os.path.commonpath([exports["ROUTING_NS"], home]) == home
+    assert not exports["ROUTING_NS"].startswith("/home/kara/duckbrain")
+
+
+def test_seed_export_applied_to_env_keeps_operator_override(tmp_path,
+                                                            monkeypatch):
+    """The mechanism behind the guard: applied to a scratch env, seed's
+    ROUTING_NS resolves under the data home — and an explicit operator
+    ROUTING_NS still wins (setdefault, never clobber)."""
+    home = str(tmp_path / "dh")
+    monkeypatch.setenv("TASK_ROUTER_HOME", home)
+    monkeypatch.delenv("ROUTING_NS", raising=False)
+    cli._apply_env_exports("seed", cli._home_env_exports())
+    assert os.environ["ROUTING_NS"] == os.path.join(home, "ns", "routing")
+    # explicit override is preserved, not overridden
+    monkeypatch.setenv("ROUTING_NS", "/explicit/scratch/ns")
+    cli._apply_env_exports("seed", cli._home_env_exports())
+    assert os.environ["ROUTING_NS"] == "/explicit/scratch/ns"
+
+
+# --------------------------------------------------------------------------
 # end-to-end dispatch smoke (real subcommand, hermetic home)
 # --------------------------------------------------------------------------
 

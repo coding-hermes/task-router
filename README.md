@@ -31,15 +31,27 @@ cd task-router
 # Install the CLI (Python 3.11+; stdlib-only runtime).
 pip install -e .
 
+# `router seed` is the one command that needs a third-party package: duckdb
+# (used as an in-memory engine — nothing binary is persisted). Every other
+# subcommand runs on the stdlib alone.
+pip install duckdb          # or: uv pip install duckdb
+
 # Resolve a configured project to its gated, price-ordered chain.
 router spawn my-project --format json
 
 # One-command overview of registry, gates, circuit, and gaps.
 router status
 
-# Run the test suite (251 tests).
+# Run the test suite (293 tests). The suite imports duckdb too, so run it with
+# an interpreter that has duckdb — the board venv on the fleet hosts:
+#   ~/.hermes/venvs/board/bin/python3 -m pytest -q tests/
 python3 -m pytest -q tests/
 ```
+
+Skipping the `duckdb` step is not fatal: only `router seed` fails, and it fails
+loudly (`router: dispatch failed: No module named 'duckdb'`) instead of writing
+a partial registry; the test suite needs it too (see above). Every other
+subcommand works without it.
 
 On first run the CLI creates a data home and bootstraps a starter state file
 (`quota-state.json`) with every provider explicitly **open** — you get a
@@ -221,7 +233,7 @@ for repo-relative use.
 | `router circuit` | Circuit breakers: `record-failure` (`--class`), `record-success`, `status`, `clear` |
 | `router ledger` | Spawn lifecycle: `start`, `end`, `status` (in-flight counts, trace ids) |
 | `router metrics` | Usage counters: `--top-providers`, `--top-models`, `--top-pairs`, `--profile`, `--since`, `--json` |
-| `router seed` | Rebuild `registry.json` from committed tables |
+| `router seed` | Rebuild `registry.json` from committed tables (requires `duckdb`; derives `ROUTING_NS` under the data home) |
 | `router modelsdev` | models.dev sync: `fetch`, `sync` (`--all` to include disabled; `--dry-run`), `mappings` |
 | `router pricing` | Price table diagnostics (`--json`, `--dry-run`) |
 | `router gaps` | Registry data-quality gaps (`--json`, `--lacking`, `--top`) |
@@ -248,7 +260,7 @@ operational tools — review `--help` and use `--dry-run` where available.
 | `LEDGER_FILE` | ledger, spawn | Exact ledger JSONL path (shared contract). |
 | `ROUTER_EDIT_API_KEY` | server, web | Edit-mode API key; unset = read-only. |
 | `ROUTING_CIRCUIT_COOLDOWN_JSON` | circuit | JSON patch overriding per-class cooldown seconds. |
-| `ROUTING_NS`, `TASKROUTER_NS` | seed, maintain | Optional namespace mirrors. |
+| `ROUTING_NS`, `TASKROUTER_NS` | seed, maintain | Optional namespace mirrors. Under the `router` CLI, `ROUTING_NS` defaults to `<data home>/ns/routing` for `seed` (set it explicitly to export into a real DuckBrain namespace). |
 | `ROUTING_DOCS_DIR` | maintain | Output directory for chain snapshots. |
 | `MODELSDEV_CACHE` | modelsdev, probefix | Cache path for models.dev input. |
 

@@ -21,7 +21,10 @@ Full hook map (grep 'os.environ.get' across scripts/, TR-016 audit):
   router_circuit.py           ROUTER_STATE_DIR
   router_ledger.py            LEDGER_FILE
   router_maintain.py          ROUTING_REGISTRY, ROUTING_DATA_DIR
-  router_seed.py              ROUTING_REGISTRY, ROUTING_DATA_DIR
+  router_seed.py              ROUTING_REGISTRY, ROUTING_DATA_DIR,
+                              ROUTING_NS (data-home ns dir — keeps a
+                              data-home seed out of the fleet duckbrain
+                              mirror; TR-045)
   router_gaps.py              ROUTING_DATA_DIR
   router_pricing.py           ROUTING_DATA_DIR
   router_modelsdev.py         ROUTING_DATA_DIR (MODELSDEV_CACHE left as-is:
@@ -110,8 +113,15 @@ def _home_env_exports():
             "ROUTING_DATA_DIR": os.path.join(REPO, "data", "tables"),
         },
         "seed": {
+            # ROUTING_NS guard (TR-045): router_seed.py falls back to the live
+            # DuckBrain mirror (/home/kara/duckbrain/namespaces/routing) when
+            # ROUTING_NS is unset, so a data-home `router seed` would export
+            # INTO the fleet mirror. Deriving it under the data home keeps
+            # scratch/data-home seeds self-contained; an operator who exports
+            # ROUTING_NS explicitly still wins (setdefault semantics).
             "ROUTING_REGISTRY": paths.registry_path(),
             "ROUTING_DATA_DIR": os.path.join(REPO, "data", "tables"),
+            "ROUTING_NS": os.path.join(home, "ns", "routing"),
         },
         "gaps":   {"ROUTING_DATA_DIR": os.path.join(REPO, "data", "tables")},
         "pricing": {"ROUTING_DATA_DIR": os.path.join(REPO, "data", "tables")},
