@@ -178,11 +178,15 @@
 {"model": "glm-5.2", "category": "debug", "score": 62.9, "max_score": 100.0, "source": "SWE-rebench v2 (pass@5 81.1)", "valid_from": "2026-09-03"}
 {"model": "glm-5.2", "category": "delegation", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
 {"model": "glm-5.2", "category": "guard", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "glm-5.2", "category": "math", "score": 99.2, "max_score": 100.0, "source": "AIME 2026 99.2 (bitsminds review roundup, vendor figures relayed) research-bench-2026-09-15", "valid_from": "2026-09-15"}
 {"model": "glm-5.2", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "glm-5.2", "category": "reasoning", "score": 91.2, "max_score": 100.0, "source": "GPQA Diamond 91.2 (bitsminds review roundup, vendor figures relayed) research-bench-2026-09-15", "valid_from": "2026-09-15"}
 {"model": "glm-5.2", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
 {"model": "glm-5.2", "category": "sentiment", "score": 0.72, "max_score": 1.0, "source": "research-bench-2026-09-03", "valid_from": "2026-09-03"}
 {"model": "glm-5.2", "category": "sentiment", "score": 0.75, "max_score": 1.0, "source": "research-sent-2026-08-27", "valid_from": "2026-08-27"}
+{"model": "glm-5.2", "category": "spec_docs", "score": 68.1, "max_score": 100.0, "source": "BenchLM composite benchlm.ai 2026-09-15 (rank #26/232, 25 rows; strongest category Coding #19) research-bench-2026-09-15", "valid_from": "2026-09-15"}
 {"model": "glm-5.2", "category": "terminal", "score": 81.0, "max_score": 100.0, "source": "Terminal-Bench 2.1 81.0 (official HF card via emergent.sh roundup; true % scale) research-bench-2026-09-08", "valid_from": "2026-09-08"}
+{"model": "glm-5.2", "category": "tool_use", "score": 77.0, "max_score": 100.0, "source": "MCP-Atlas 77.0 (technology.org roundup; ahead of gpt-5.5 75.3, ~tied with opus-4.8 77.8) research-bench-2026-09-15", "valid_from": "2026-09-15"}
 {"model": "glm-5.2-short-fast", "category": "agent-tick", "score": 2.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
 {"model": "glm-5.2-short-fast", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
 {"model": "glm-5.2-short-fast", "category": "debug", "score": 3.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
@@ -345,7 +349,9 @@
 {"model": "hy4-preview", "category": "reasoning", "score": 0.923, "max_score": 1.0, "source": "GPQA Diamond (vendor) research-bench-2026-08-31", "valid_from": "2026-08-31"}
 {"model": "hy4-preview", "category": "reasoning", "score": 0.923, "max_score": 1.0, "source": "GPQA Diamond (vendor, VENDOR-REPORTED) research-bench-2026-09-04", "valid_from": "2026-09-04"}
 {"model": "hy4-preview", "category": "sentiment", "score": 0.75, "max_score": 1.0, "source": "community r/opencodeCLI: ~on par w/ GLM-5.3 + Kimi K3, slight edge in blind eng evals research-sent-2026-09-04", "valid_from": "2026-09-04"}
+{"model": "hy4-preview", "category": "sentiment", "score": 0.75, "max_score": 1.0, "source": "research-bench-2026-09-15: standing re-confirmed — vendor Hy4 numbers corroborated by eesel/aitoolsreview/thelec roundups (SWE-multilingual 82.9 vs Hy3 75.8, TB2 85.4, DeepSWE 64.3, GPQA-D 92.3; K3-level perf at ~30% size per thelec); r/singularity reports a post-preview update shipped (unmeasured). No first-hand agent evidence yet -> keep 0.75, refresh-of-record only.", "valid_from": "2026-09-15"}
 {"model": "hy4-preview", "category": "sentiment", "score": 0.78, "max_score": 1.0, "source": "research-sent-2026-08-31", "valid_from": "2026-08-31"}
+{"model": "hy4-preview", "category": "spec_docs", "score": 61.2, "max_score": 100.0, "source": "BenchLM composite benchlm.ai 2026-09-15 (rank #56/232, 28 rows; strongest category Coding #24) research-bench-2026-09-15", "valid_from": "2026-09-15"}
 {"model": "hy4-preview", "category": "terminal", "score": 0.854, "max_score": 1.0, "source": "Terminal-Bench 2.1 (vendor) research-bench-2026-08-31", "valid_from": "2026-08-31"}
 {"model": "hy4-preview", "category": "terminal", "score": 0.854, "max_score": 1.0, "source": "Terminal-Bench 2.1 (vendor, VENDOR-REPORTED) research-bench-2026-09-04", "valid_from": "2026-09-04"}
 {"model": "k3-256k", "category": "agent-tick", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}

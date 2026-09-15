@@ -212,3 +212,4 @@
 {"model": "deepseek-v4-1-flash", "test": 0.72, "note": "TR-039 neutral test fill — vendor lane with no test-category evidence; baseline estimate, replaced by measured evidence when it exists"}
 {"model": "kimi-k2-6", "test": 0.72, "note": "TR-039 neutral test fill — vendor lane with no test-category evidence; baseline estimate, replaced by measured evidence when it exists"}
 {"model": "qwen3-7-plus", "test": 0.72, "note": "TR-039 neutral test fill — vendor lane with no test-category evidence; baseline estimate, replaced by measured evidence when it exists"}
+{"model": "accounts/fireworks/models/mistral-large-3-fp8", "test": 0.72, "note": "TR-039 neutral test fill — vendor lane with no test-category evidence; baseline estimate, replaced by measured evidence when it exists. Added 2026-09-15 when the lane first got priced (was the one undocumented NULL)."}

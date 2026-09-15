@@ -30,7 +30,7 @@
 {"model": "MiniMaxAI/MiniMax-M3", "category": "refactor", "perf": 0.75, "tier": 4}
 {"model": "MiniMaxAI/MiniMax-M3", "category": "review", "perf": 0.72, "tier": 1}
 {"model": "MiniMaxAI/MiniMax-M3", "category": "schema", "perf": 0.75, "tier": 3}
-{"model": "MiniMaxAI/MiniMax-M3", "category": "spec_docs", "perf": 0.6817, "tier": -4}
+{"model": "MiniMaxAI/MiniMax-M3", "category": "spec_docs", "perf": 0.6817, "tier": -3}
 {"model": "MiniMaxAI/MiniMax-M3", "category": "terminal", "perf": 0.72, "tier": -3}
 {"model": "MiniMaxAI/MiniMax-M3", "category": "test", "perf": 0.72, "tier": 3}
 {"model": "MiniMaxAI/MiniMax-M3", "category": "tool_use", "perf": 0.742, "tier": -1}
@@ -115,7 +115,7 @@
 {"model": "accounts/fireworks/models/glm-5p2", "category": "guard", "perf": 0.86, "tier": 1}
 {"model": "accounts/fireworks/models/glm-5p2", "category": "long_doc", "perf": 0.7, "tier": 0}
 {"model": "accounts/fireworks/models/glm-5p2", "category": "mock", "perf": 0.8, "tier": -2}
-{"model": "accounts/fireworks/models/glm-5p2", "category": "reasoning", "perf": 0.85, "tier": 1}
+{"model": "accounts/fireworks/models/glm-5p2", "category": "reasoning", "perf": 0.912, "tier": 2}
 {"model": "accounts/fireworks/models/glm-5p2", "category": "refactor", "perf": 0.72, "tier": 3}
 {"model": "accounts/fireworks/models/glm-5p2", "category": "review", "perf": 0.88, "tier": 4}
 {"model": "accounts/fireworks/models/glm-5p2", "category": "schema", "perf": 0.5, "tier": 1}
@@ -230,7 +230,7 @@
 {"model": "accounts/fireworks/models/minimax-m3", "category": "refactor", "perf": 0.75, "tier": 4}
 {"model": "accounts/fireworks/models/minimax-m3", "category": "review", "perf": 0.72, "tier": 1}
 {"model": "accounts/fireworks/models/minimax-m3", "category": "schema", "perf": 0.75, "tier": 3}
-{"model": "accounts/fireworks/models/minimax-m3", "category": "spec_docs", "perf": 0.6817, "tier": -4}
+{"model": "accounts/fireworks/models/minimax-m3", "category": "spec_docs", "perf": 0.6817, "tier": -3}
 {"model": "accounts/fireworks/models/minimax-m3", "category": "terminal", "perf": 0.72, "tier": -3}
 {"model": "accounts/fireworks/models/minimax-m3", "category": "test", "perf": 0.72, "tier": 3}
 {"model": "accounts/fireworks/models/minimax-m3", "category": "tool_use", "perf": 0.742, "tier": -1}
@@ -248,6 +248,7 @@
 {"model": "accounts/fireworks/models/mistral-large-3-fp8", "category": "refactor", "perf": 0.5, "tier": 1}
 {"model": "accounts/fireworks/models/mistral-large-3-fp8", "category": "review", "perf": 0.0, "tier": -2}
 {"model": "accounts/fireworks/models/mistral-large-3-fp8", "category": "schema", "perf": 0.5, "tier": 1}
+{"model": "accounts/fireworks/models/mistral-large-3-fp8", "category": "test", "perf": 0.72, "tier": 3}
 {"model": "accounts/fireworks/models/mistral-large-3-fp8", "category": "tool_use", "perf": 0.75, "tier": 2}
 {"model": "accounts/fireworks/models/muse-glimmer-30b", "category": "test", "perf": 0.72, "tier": 3}
 {"model": "accounts/fireworks/models/nemotron-3-ultra-nvfp4", "category": "agent_tick", "perf": 0.75, "tier": 1}
@@ -292,7 +293,7 @@
 {"model": "accounts/fireworks/routers/glm-5p2-fast", "category": "guard", "perf": 0.86, "tier": 1}
 {"model": "accounts/fireworks/routers/glm-5p2-fast", "category": "long_doc", "perf": 0.7, "tier": 0}
 {"model": "accounts/fireworks/routers/glm-5p2-fast", "category": "mock", "perf": 0.8, "tier": -2}
-{"model": "accounts/fireworks/routers/glm-5p2-fast", "category": "reasoning", "perf": 0.85, "tier": 1}
+{"model": "accounts/fireworks/routers/glm-5p2-fast", "category": "reasoning", "perf": 0.912, "tier": 2}
 {"model": "accounts/fireworks/routers/glm-5p2-fast", "category": "refactor", "perf": 0.72, "tier": 3}
 {"model": "accounts/fireworks/routers/glm-5p2-fast", "category": "review", "perf": 0.88, "tier": 4}
 {"model": "accounts/fireworks/routers/glm-5p2-fast", "category": "schema", "perf": 0.5, "tier": 1}
@@ -607,7 +608,7 @@
 {"model": "glm-5-2", "category": "guard", "perf": 0.86, "tier": 1}
 {"model": "glm-5-2", "category": "long_doc", "perf": 0.7, "tier": 0}
 {"model": "glm-5-2", "category": "mock", "perf": 0.8, "tier": -2}
-{"model": "glm-5-2", "category": "reasoning", "perf": 0.85, "tier": 1}
+{"model": "glm-5-2", "category": "reasoning", "perf": 0.912, "tier": 2}
 {"model": "glm-5-2", "category": "refactor", "perf": 0.72, "tier": 3}
 {"model": "glm-5-2", "category": "review", "perf": 0.88, "tier": 4}
 {"model": "glm-5-2", "category": "schema", "perf": 0.5, "tier": 1}
@@ -672,7 +673,7 @@
 {"model": "glm-5.2", "category": "guard", "perf": 0.86, "tier": 1}
 {"model": "glm-5.2", "category": "long_doc", "perf": 0.7, "tier": 0}
 {"model": "glm-5.2", "category": "mock", "perf": 0.8, "tier": -2}
-{"model": "glm-5.2", "category": "reasoning", "perf": 0.85, "tier": 1}
+{"model": "glm-5.2", "category": "reasoning", "perf": 0.912, "tier": 2}
 {"model": "glm-5.2", "category": "refactor", "perf": 0.72, "tier": 3}
 {"model": "glm-5.2", "category": "review", "perf": 0.88, "tier": 4}
 {"model": "glm-5.2", "category": "schema", "perf": 0.5, "tier": 1}
@@ -692,7 +693,7 @@
 {"model": "glm-5.2-fast", "category": "guard", "perf": 0.86, "tier": 1}
 {"model": "glm-5.2-fast", "category": "long_doc", "perf": 0.7, "tier": 0}
 {"model": "glm-5.2-fast", "category": "mock", "perf": 0.8, "tier": -2}
-{"model": "glm-5.2-fast", "category": "reasoning", "perf": 0.85, "tier": 1}
+{"model": "glm-5.2-fast", "category": "reasoning", "perf": 0.912, "tier": 2}
 {"model": "glm-5.2-fast", "category": "refactor", "perf": 0.72, "tier": 3}
 {"model": "glm-5.2-fast", "category": "review", "perf": 0.88, "tier": 4}
 {"model": "glm-5.2-fast", "category": "schema", "perf": 0.5, "tier": 1}
@@ -712,7 +713,7 @@
 {"model": "glm-5.2-flex", "category": "guard", "perf": 0.86, "tier": 1}
 {"model": "glm-5.2-flex", "category": "long_doc", "perf": 0.7, "tier": 0}
 {"model": "glm-5.2-flex", "category": "mock", "perf": 0.8, "tier": -2}
-{"model": "glm-5.2-flex", "category": "reasoning", "perf": 0.85, "tier": 1}
+{"model": "glm-5.2-flex", "category": "reasoning", "perf": 0.912, "tier": 2}
 {"model": "glm-5.2-flex", "category": "refactor", "perf": 0.72, "tier": 3}
 {"model": "glm-5.2-flex", "category": "review", "perf": 0.88, "tier": 4}
 {"model": "glm-5.2-flex", "category": "schema", "perf": 0.5, "tier": 1}
@@ -732,7 +733,7 @@
 {"model": "glm-5.2-short", "category": "guard", "perf": 0.86, "tier": 1}
 {"model": "glm-5.2-short", "category": "long_doc", "perf": 0.7, "tier": 0}
 {"model": "glm-5.2-short", "category": "mock", "perf": 0.8, "tier": -2}
-{"model": "glm-5.2-short", "category": "reasoning", "perf": 0.85, "tier": 1}
+{"model": "glm-5.2-short", "category": "reasoning", "perf": 0.912, "tier": 2}
 {"model": "glm-5.2-short", "category": "refactor", "perf": 0.72, "tier": 3}
 {"model": "glm-5.2-short", "category": "review", "perf": 0.88, "tier": 4}
 {"model": "glm-5.2-short", "category": "schema", "perf": 0.5, "tier": 1}
@@ -772,7 +773,7 @@
 {"model": "glm-5.2-short-fast-flex", "category": "guard", "perf": 0.86, "tier": 1}
 {"model": "glm-5.2-short-fast-flex", "category": "long_doc", "perf": 0.7, "tier": 0}
 {"model": "glm-5.2-short-fast-flex", "category": "mock", "perf": 0.8, "tier": -2}
-{"model": "glm-5.2-short-fast-flex", "category": "reasoning", "perf": 0.85, "tier": 1}
+{"model": "glm-5.2-short-fast-flex", "category": "reasoning", "perf": 0.912, "tier": 2}
 {"model": "glm-5.2-short-fast-flex", "category": "refactor", "perf": 0.72, "tier": 3}
 {"model": "glm-5.2-short-fast-flex", "category": "review", "perf": 0.88, "tier": 4}
 {"model": "glm-5.2-short-fast-flex", "category": "schema", "perf": 0.5, "tier": 1}
@@ -792,7 +793,7 @@
 {"model": "glm-5.2-short-flex", "category": "guard", "perf": 0.86, "tier": 1}
 {"model": "glm-5.2-short-flex", "category": "long_doc", "perf": 0.7, "tier": 0}
 {"model": "glm-5.2-short-flex", "category": "mock", "perf": 0.8, "tier": -2}
-{"model": "glm-5.2-short-flex", "category": "reasoning", "perf": 0.85, "tier": 1}
+{"model": "glm-5.2-short-flex", "category": "reasoning", "perf": 0.912, "tier": 2}
 {"model": "glm-5.2-short-flex", "category": "refactor", "perf": 0.72, "tier": 3}
 {"model": "glm-5.2-short-flex", "category": "review", "perf": 0.88, "tier": 4}
 {"model": "glm-5.2-short-flex", "category": "schema", "perf": 0.5, "tier": 1}
@@ -940,6 +941,7 @@
 {"model": "grok-4.5", "category": "mock", "perf": 1.0, "tier": 5}
 {"model": "grok-4.5", "category": "refactor", "perf": 0.75, "tier": 4}
 {"model": "grok-4.5", "category": "schema", "perf": 0.75, "tier": 3}
+{"model": "grok-4.5", "category": "spec_docs", "perf": 0.6809999999999999, "tier": -4}
 {"model": "grok-4.5", "category": "terminal", "perf": 0.85, "tier": 0}
 {"model": "grok-4.5", "category": "test", "perf": 0.72, "tier": 3}
 {"model": "grok-4.5", "category": "tool_use", "perf": 0.75, "tier": 2}
@@ -1333,7 +1335,7 @@
 {"model": "mimo-v2.5-pro", "category": "code_gen", "perf": 0.85, "tier": 4}
 {"model": "mimo-v2.5-pro", "category": "mechanical", "perf": 0.72, "tier": 5}
 {"model": "mimo-v2.5-pro", "category": "refactor", "perf": 0.72, "tier": 3}
-{"model": "mimo-v2.5-pro", "category": "spec_docs", "perf": 0.684, "tier": -3}
+{"model": "mimo-v2.5-pro", "category": "spec_docs", "perf": 0.684, "tier": -2}
 {"model": "mimo-v2.5-pro", "category": "terminal", "perf": 0.85, "tier": 0}
 {"model": "mimo-v2.5-pro", "category": "test", "perf": 0.72, "tier": 3}
 {"model": "mimo-v2.5-pro", "category": "tool_use", "perf": 0.85, "tier": 5}
@@ -1367,7 +1369,7 @@
 {"model": "minimax-m3", "category": "refactor", "perf": 0.75, "tier": 4}
 {"model": "minimax-m3", "category": "review", "perf": 0.72, "tier": 1}
 {"model": "minimax-m3", "category": "schema", "perf": 0.75, "tier": 3}
-{"model": "minimax-m3", "category": "spec_docs", "perf": 0.6817, "tier": -4}
+{"model": "minimax-m3", "category": "spec_docs", "perf": 0.6817, "tier": -3}
 {"model": "minimax-m3", "category": "terminal", "perf": 0.72, "tier": -3}
 {"model": "minimax-m3", "category": "test", "perf": 0.72, "tier": 3}
 {"model": "minimax-m3", "category": "tool_use", "perf": 0.742, "tier": -1}
@@ -1607,7 +1609,7 @@
 {"model": "qwen3.5-397b-a17b", "category": "refactor", "perf": 0.25, "tier": -5}
 {"model": "qwen3.5-397b-a17b", "category": "tool_use", "perf": 0.5, "tier": -2}
 {"model": "qwen3.5:397b", "category": "math", "perf": 1.0, "tier": 5}
-{"model": "qwen3.5:397b", "category": "reasoning", "perf": 0.884, "tier": 2}
+{"model": "qwen3.5:397b", "category": "reasoning", "perf": 0.884, "tier": 1}
 {"model": "qwen3.5:397b", "category": "spec_docs", "perf": 1.0, "tier": 5}
 {"model": "qwen3.6-27b", "category": "mechanical", "perf": 0.72, "tier": 5}
 {"model": "qwen3.6-35b", "category": "agent_tick", "perf": 0.0, "tier": -4}
@@ -1792,6 +1794,7 @@
 {"model": "xai/grok-4.5", "category": "mock", "perf": 1.0, "tier": 5}
 {"model": "xai/grok-4.5", "category": "refactor", "perf": 0.75, "tier": 4}
 {"model": "xai/grok-4.5", "category": "schema", "perf": 0.75, "tier": 3}
+{"model": "xai/grok-4.5", "category": "spec_docs", "perf": 0.6809999999999999, "tier": -4}
 {"model": "xai/grok-4.5", "category": "terminal", "perf": 0.85, "tier": 0}
 {"model": "xai/grok-4.5", "category": "test", "perf": 0.72, "tier": 3}
 {"model": "xai/grok-4.5", "category": "tool_use", "perf": 0.75, "tier": 2}
@@ -1819,7 +1822,7 @@
 {"model": "xiaomi/mimo-v2.5-pro", "category": "code_gen", "perf": 0.85, "tier": 4}
 {"model": "xiaomi/mimo-v2.5-pro", "category": "mechanical", "perf": 0.72, "tier": 5}
 {"model": "xiaomi/mimo-v2.5-pro", "category": "refactor", "perf": 0.72, "tier": 3}
-{"model": "xiaomi/mimo-v2.5-pro", "category": "spec_docs", "perf": 0.684, "tier": -3}
+{"model": "xiaomi/mimo-v2.5-pro", "category": "spec_docs", "perf": 0.684, "tier": -2}
 {"model": "xiaomi/mimo-v2.5-pro", "category": "terminal", "perf": 0.85, "tier": 0}
 {"model": "xiaomi/mimo-v2.5-pro", "category": "test", "perf": 0.72, "tier": 3}
 {"model": "xiaomi/mimo-v2.5-pro", "category": "tool_use", "perf": 0.85, "tier": 5}
@@ -1857,7 +1860,7 @@
 {"model": "zai-org/GLM-5.2", "category": "guard", "perf": 0.86, "tier": 1}
 {"model": "zai-org/GLM-5.2", "category": "long_doc", "perf": 0.7, "tier": 0}
 {"model": "zai-org/GLM-5.2", "category": "mock", "perf": 0.8, "tier": -2}
-{"model": "zai-org/GLM-5.2", "category": "reasoning", "perf": 0.85, "tier": 1}
+{"model": "zai-org/GLM-5.2", "category": "reasoning", "perf": 0.912, "tier": 2}
 {"model": "zai-org/GLM-5.2", "category": "refactor", "perf": 0.72, "tier": 3}
 {"model": "zai-org/GLM-5.2", "category": "review", "perf": 0.88, "tier": 4}
 {"model": "zai-org/GLM-5.2", "category": "schema", "perf": 0.5, "tier": 1}
@@ -1877,7 +1880,7 @@
 {"model": "zai-org/GLM-5.2-Fast", "category": "guard", "perf": 0.86, "tier": 1}
 {"model": "zai-org/GLM-5.2-Fast", "category": "long_doc", "perf": 0.7, "tier": 0}
 {"model": "zai-org/GLM-5.2-Fast", "category": "mock", "perf": 0.8, "tier": -2}
-{"model": "zai-org/GLM-5.2-Fast", "category": "reasoning", "perf": 0.85, "tier": 1}
+{"model": "zai-org/GLM-5.2-Fast", "category": "reasoning", "perf": 0.912, "tier": 2}
 {"model": "zai-org/GLM-5.2-Fast", "category": "refactor", "perf": 0.72, "tier": 3}
 {"model": "zai-org/GLM-5.2-Fast", "category": "review", "perf": 0.88, "tier": 4}
 {"model": "zai-org/GLM-5.2-Fast", "category": "schema", "perf": 0.5, "tier": 1}
