@@ -210,3 +210,14 @@ tasks:
   status: complete
   created_at: '2026-09-14T17:46:57.933203+00:00'
   completed_at: '2026-09-15T11:21:46.989395+00:00'
+- id: TR-047
+  title: Stale docs/comments contradict shipped TR-045 ROUTING_NS guard
+  criteria:
+  - 'All three stale artifacts state the shipped behavior: diagnostics.md pitfall
+    reads that seed derives ROUTING_NS under the data home with setdefault semantics;
+    usage SKILL.md scratch-seed bullet matches cbc3075; guard script comment no longer
+    claims a pure-JSON suite (acknowledges seed subprocess + duckdb-gated tests).
+    README stays consistent. pytest suite + guard PASS.'
+  status: complete
+  created_at: '2026-09-15T17:50:02.393834+00:00'
+  completed_at: '2026-09-15T18:07:55.743706+00:00'
