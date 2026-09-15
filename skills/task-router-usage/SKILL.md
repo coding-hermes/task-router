@@ -80,9 +80,13 @@ router circuit record-success <provider> <model>
   validate/status/estimate/diff/metrics/server/web read repo-relative or
   global paths (TR-044). Force consistency with an explicit
   `ROUTING_REGISTRY=/path/to/registry.json` for scratch work.
-- **Scratch `router seed` on the fleet control host exports into the live
-  DuckBrain mirror** (`ROUTING_NS` default is hardcoded; the CLI does not
-  redirect it). Set `ROUTING_NS` explicitly for scratch seeds (TR-045).
+- **Scratch seeds stay out of the live DuckBrain mirror** — the `router` CLI
+  exports `ROUTING_NS` under the data home for the seed subprocess, and
+  `router_maintain.py` setdefaults its seed child the same way (setdefault
+  semantics: an explicit `ROUTING_NS` wins; TR-045). Only direct
+  `scripts/router_seed.py` runs need care: with `ROUTING_NS` unset they
+  resolve under the data home's scratch ns, never the fleet mirror (TR-048)
+  — set `ROUTING_NS` explicitly to place them elsewhere.
 - **`quota-state.json` bootstrapped all-OPEN is sample policy** — first-run
   bootstrap writes every provider `open`; gate for real before trusting
   gates.

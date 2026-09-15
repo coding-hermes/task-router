@@ -39,12 +39,17 @@ paths. If two router surfaces disagree about the chain, check which registry
 each one loaded (`source` + `fallback_used` in spawn output; `registry.error`
 in status output).
 
-**Pitfall (TR-045):** `router_seed.py` line 25 hardcodes
-`ROUTING_NS=/home/kara/duckbrain/namespaces/routing`; the CLI does not
-override it for data-home runs, so a scratch `router seed` on the fleet
-control host exports into the live DuckBrain mirror. Benign when a live
-re-seed follows, but never assume; set `ROUTING_NS` explicitly for scratch
-runs.
+**Pitfall (TR-045):** a scratch `router seed` used to export into the live
+DuckBrain mirror (`ROUTING_NS` was hardcoded to the fleet mirror path). Since
+cbc3075 the `router` CLI exports `ROUTING_NS=<data home>/ns/routing` for the
+seed subprocess when a data home is in play (setdefault semantics — an
+explicit `ROUTING_NS` still wins), and `router_maintain.py` setdefaults its
+seed child the same way, so scratch/data-home seeds stay self-contained and
+never write the live fleet mirror. Remaining edge: direct invocation of
+`scripts/router_seed.py` with `ROUTING_NS` unset is its own guard (TR-048,
+a977fa4) — it resolves under the data home's scratch ns, and the fleet
+mirror is only reached via explicit `ROUTING_ALLOW_FLEET_MIRROR=1`; set
+`ROUTING_NS` explicitly to place direct-script scratch runs anywhere else.
 
 ## Errors hit during the 2026-09-12 dogfood run, and their meaning
 

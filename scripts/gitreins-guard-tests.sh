@@ -16,8 +16,11 @@ if ! "$PY" -c "import pytest" >/dev/null 2>&1; then
   echo "SKIP: pytest not importable in $PY — guard tests deferred."
   exit 0
 fi
-# NOTE (TR-009/010): the suite is pure-JSON now — no duckdb import needed by
-# the scripts or the tests. The old duckdb skip was removed 2026-08-27.
+# NOTE (TR-009/010 + TR-047): the suite is mostly pure-JSON, but CI installs
+# duckdb: the seed subprocess and the duckdb-gated tests
+# (tests/test_seed_ns_guard.py) need it. Tests guard duckdb via
+# importorskip/skipif, so a bare pytest run without duckdb skips cleanly
+# instead of erroring.
 
 "$PY" -m pytest -q tests/ -x
 RC=$?
