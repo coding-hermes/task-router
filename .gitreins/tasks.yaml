@@ -199,3 +199,14 @@ tasks:
   status: complete
   created_at: '2026-09-14T11:00:40.781443+00:00'
   completed_at: '2026-09-14T11:20:43.554600+00:00'
+- id: TR-048
+  title: "scripts/router_seed.py hardcodes fleet mirror as ROUTING_NS fallback \u2014\
+    \ guard direct invocations at the script layer"
+  criteria:
+  - A bare invocation of scripts/router_seed.py with ROUTING_NS unset must NOT resolve
+    to /home/kara/duckbrain/namespaces/routing (prove via sys.addaudithook write audit
+    recording 0 writes under the protected path); a regression test asserts the guarded
+    default; guard PASSES and full pytest suite green
+  status: complete
+  created_at: '2026-09-14T17:46:57.933203+00:00'
+  completed_at: '2026-09-15T11:21:46.989395+00:00'
