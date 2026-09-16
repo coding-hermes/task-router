@@ -218,6 +218,19 @@ def test_data_home_paths_reflect_env(monkeypatch, tmp_path):
     assert dh["data_dir"] == os.path.join(REPO, "data", "tables")
 
 
+def test_spawn_quiet_keeps_stdout_pure_under_router_miss(tmp_path):
+    """--quiet suppresses stderr telemetry (ROUTER-MISS fires hundreds of
+    times on fresh-clone fallback resolves); stdout must stay pure JSON and
+    stderr must carry no ROUTER-MISS lines under quiet mode."""
+    spawn = os.path.join(REPO, "scripts", "router_spawn.py")
+    env, _ = _hermetic(tmp_path)
+    env["ROUTER_SPAWN_QUIET"] = "1"
+    proc = _run([spawn, "hermes-dagger", "--format", "json"], env_extra=env)
+    doc = _pure_json(proc, "spawn quiet router-miss")
+    assert isinstance(doc, dict)
+    assert "ROUTER-MISS" not in proc.stderr
+
+
 # ---------------------------------------------------- status: data_home ----
 
 def test_status_json_has_data_home_section(tmp_path):

@@ -39,8 +39,15 @@ Usage:
 Output (json): {project, profile, resolved_at, head, chain[], exclusions[],
 gate_reasons[], gate, settings{max_consecutive_per_provider,
 max_total_per_provider, model_concurrency_limit, overrides}}
+TR-046: {data_home{registry, data_dir, state_dir, source, fallback,
+bootstrap, note}} names exactly WHERE the data and gate state live, and
+bootstrap=true + note flag SOLO/first-run SAMPLE state (committed data/tables
+fallback and/or the first-run bootstrap quota-state with every provider OPEN)
+so the chain is never mistaken for discovered policy.
 Exit 0 always (fail-open: on any error prints {"error": ...} and exits 0) — the
 scheduler must NEVER be blocked by the router.
+--format json = PURE JSON on stdout, every path (TR-046 dogfood): diagnostics
+go to stderr; the no-input usage line and --list-profiles also emit JSON.
 """
 import json, os, sys, argparse, datetime, contextlib
 
@@ -704,6 +711,50 @@ def _resolve_fallback(tables, qs, hs, cs, reqs, limit=DEFAULT_CHAIN_LIMIT, profi
     return out
 
 
+def _data_home_meta(source, fallback_used):
+    """TR-046 (dogfood 2026-09-12): data/gate-state provenance for the JSON.
+
+    {registry, data_dir, state_dir, source, fallback, bootstrap, note}:
+    - registry/data_dir/state_dir name exactly where the resolve read from —
+      env overrides (ROUTING_REGISTRY / ROUTING_DATA_DIR / ROUTER_STATE_DIR)
+      are reflected, so `router status` and `router spawn` can never silently
+      disagree about the live data home (TR-044 follow-up).
+    - fallback=True ⇔ the registry came from the committed data/tables
+      sample tables instead of a seeded registry.json.
+    - bootstrap=True flags SOLO/first-run SAMPLE state: the data/tables
+      fallback above and/or a quota-state.json written by the `router` CLI
+      first-run bootstrap (`updated: 'bootstrap'`, every provider OPEN).
+      Sample policy, not discovered gates. Purely informational — gate
+      behavior is untouched. Fail-open: any error → visible-False, no note.
+    """
+    meta = {
+        'registry': REGISTRY,
+        'data_dir': DATA_DIR,
+        'state_dir': MR,
+        'source': source,
+        'fallback': (source == 'data/tables') or bool(fallback_used),
+        'bootstrap': False,
+        'note': None,
+    }
+    notes = []
+    if meta['fallback']:
+        notes.append(
+            'registry came from the committed data/tables sample tables '
+            '(no seeded registry.json) — run `router seed` for real state')
+    try:
+        qdoc = load_json(os.path.join(MR, 'quota-state.json'), None)
+        if isinstance(qdoc, dict) and qdoc.get('updated') == 'bootstrap':
+            notes.append(
+                "quota-state.json is the first-run bootstrap sample "
+                "(all providers OPEN) — edit it to apply real gates")
+    except Exception:  # noqa: BLE001 — visibility only, never raise
+        pass
+    if notes:
+        meta['bootstrap'] = True
+        meta['note'] = '; '.join(notes)
+    return meta
+
+
 def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=DEFAULT_CHAIN_LIMIT,
             allow_training=False, allow_slow=None):
     tables, src, fb, warn = _load_registry_with_meta()
@@ -721,11 +772,14 @@ def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=DE
         pid = None
         reqs, err = _validate_adhoc(adhoc, tables)
         if err:
+            err.setdefault('data_home',
+                           _data_home_meta(src, fb))
             return err
     elif project:
         row = projects.get(project)
         if row is None:
-            return {'error': f'project {project} not in registry'}
+            return {'error': f'project {project} not in registry',
+                    'data_home': _data_home_meta(src, fb)}
         # TR-020: tag-based profile resolution. A project references a profile
         # tag (or legacy id). Resolve tag -> version row; fall back to exact id
         # for backward compatibility with existing rows like P0_FORE.
@@ -739,7 +793,8 @@ def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=DE
         pid = 'P0_FORE'
     if pid and pid not in profiles:
         return {'error': f'profile {pid} not in registry',
-                'code': 'PROFILE_NOT_FOUND', 'retryable': False}
+                'code': 'PROFILE_NOT_FOUND', 'retryable': False,
+                'data_home': _data_home_meta(src, fb)}
 
     # TR-054 (Bane 2026-09-16): latency-tolerant lanes. allow_slow resolves in
     # the same precedence as allow_training: explicit per-call arg wins, else
@@ -776,7 +831,9 @@ def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=DE
         qdoc = {}
     caps = _effective_caps(profiles, qdoc, pid)
     if not chain:
-        return {'error': 'no chain — profile has no eligible models', 'profile': pid}
+        return {'error': 'no chain — profile has no eligible models',
+                'profile': pid,
+                'data_home': _data_home_meta(src, fb)}
 
     # --- 3. gates: quota + health + circuit + per-model busy --------------------
     qs = qdoc.get('providers') or {}
@@ -908,17 +965,27 @@ def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=DE
     # deepseek as the guaranteed last hop — never a None chain for a cron.
     fb_used = []
     if not head:
-        fb = _resolve_fallback(tables, qs, hs, cs, reqs, limit=limit,
-                               profile_id=pid)
-        if fb:
-            fb_used = fb
-            head = fb[0]
-            out_chain = fb
+        # TR-046 fix: local name `lanes` — this used to assign to `fb`,
+        # destroying the registry-loader's fallback flag. Downstream,
+        # fallback_used/data_home then reported False (no always-run lane
+        # found) even though the resolve READ the data/tables sample tables —
+        # a provenance lie in exactly the solo fresh-clone case TR-046 flags.
+        lanes = _resolve_fallback(tables, qs, hs, cs, reqs, limit=limit,
+                                  profile_id=pid)
+        if lanes:
+            fb_used = lanes
+            head = lanes[0]
+            out_chain = lanes
             reasons.append(
                 f'FALLBACK: all {len(exclusions)} eligible hops gated — using '
                 f'{head["provider"]}/{head["model"]} (always-run lane; '
                 f'DEGRADED — requirements_unmet: '
                 f'{[(c, lvl, have) for c, lvl, have in head.get("requirements_unmet", [])]})')
+
+    # TR-046: computed BEFORE the return; `fb` is the registry-loader's
+    # fallback flag (data/tables sample read), never rebound by the
+    # fallback-lane block above.
+    dh = _data_home_meta(src, fb)
 
     return {'project': project, 'profile': pid, 'resolved_at': now,
             'head': head, 'chain': out_chain, 'exclusions': exclusions,
@@ -929,8 +996,15 @@ def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=DE
             # behavior and fail-open are untouched.
             'source': src,
             'fallback_used': bool(fb),
-            'bootstrap': bool(fb),
-            'note': 'Sample policy data — all providers OPEN. Replace with real quota-state to enable gates.',
+            # TR-046: data/gate-state provenance — where the data came from
+            # (paths), whether it is the data/tables SAMPLE fallback, and
+            # whether first-run BOOTSTRAP sample policy (all-OPEN quota-state)
+            # is in effect. Informational only; gates untouched. The flat
+            # bootstrap/note mirrors exist so consumers can check one key;
+            # they are the SAME computed values as data_home (never static).
+            'data_home': dh,
+            'bootstrap': dh['bootstrap'],
+            'note': dh['note'],
             'gates_loaded': {
                 'health': bool(_present('health-state.json')),
                 'circuit': bool(_present('circuit-state.json')),
@@ -984,15 +1058,35 @@ def main():
         for r in tables.get('task_profile_requirements') or []:
             reqs.setdefault(r.get('task_id'), []).append(
                 (r.get('category'), r.get('level')))
-        for pid in sorted(profs):
-            rq = sorted(reqs.get(pid, []), key=lambda x: (-x[1], x[0]))
-            rs = ' '.join(f"{c}={'+'*l if l>0 else ('-'*-l if l<0 else '0')}" for c, l in rq)
-            print(f'{pid:<10} {profs[pid].get("title", "")}')
+        # TR-046: --format json = pure JSON even for --list-profiles (the
+        # table printed human lines on stdout regardless of --format).
+        rows = [
+            {'id': pid, 'title': profs[pid].get('title', ''),
+             'requirements': dict(sorted(reqs.get(pid, [])))}
+            for pid in sorted(profs)
+        ]
+        if args.format == 'json':
+            print(json.dumps({'profiles': rows}, indent=1))
+            return
+        for row in rows:
+            rs = ' '.join(f"{c}={'+'*l if l>0 else ('-'*-l if l<0 else '0')}"
+                          for c, l in sorted(row['requirements'].items(),
+                                             key=lambda x: (-x[1], x[0])))
+            print(f"{row['id']:<10} {row['title']}")
             print(f'           {rs}')
         return
 
     if not args.project and not args.profile_id and not args.adhoc:
-        ap.print_usage()
+        # TR-046: usage text on stdout breaks --format json consumers
+        # (`| python3 -m json.tool`). JSON mode gets a structured error
+        # (still fail-open, exit 0); human text stays for text mode/stderr.
+        if args.format == 'json':
+            print(json.dumps({
+                'error': 'no project/profile given — pass a project, '
+                         '--profile, or --profile-req (see --help)',
+                'code': 'NO_INPUT', 'retryable': False}, indent=1))
+        else:
+            ap.print_usage()
         return
 
     if args.project and args.profile_id:

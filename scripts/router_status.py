@@ -149,7 +149,10 @@ def registry_section():
         'counts': _count_models(tables),
         'data_home': DATA_DIR,
         'bootstrap': True,
-        'note': 'Sample policy data — all providers OPEN. Replace with real quota-state to enable gates.',
+        # TR-046: the note names the ACTUAL registry failure, not a static
+        # string — a healthy seeded status must never claim sample data.
+        'note': (f'{err} — registry content is the committed data/tables '
+                 'SAMPLE tables; run `router seed` for real state'),
     }
 
 
@@ -390,10 +393,47 @@ def _fmt(v, dash='-'):
     return dash if v is None else str(v)
 
 
+def data_home_section():
+    """TR-044/TR-046: ONE authoritative data-home view, identical sources to
+    the resolver (router_spawn REGISTRY/DATA_DIR/MR). `router status` is the
+    documented place to answer 'which data home is live, and is it sample or
+    seeded?' — the same env overrides give the same answer on both CLIs."""
+    bootstrap = False
+    note = None
+    notes = []
+    try:
+        with open(REGISTRY) as f:
+            seeded = isinstance(json.load(f), dict)
+    except Exception:  # noqa: BLE001 — presence/parse checked by registry_section
+        seeded = False
+    if not seeded:
+        notes.append('registry.json not seeded — resolve reads the committed '
+                     'data/tables SAMPLE tables (source data/tables); '
+                     'run `router seed` for real state')
+    try:
+        qdoc = _load_json(os.path.join(MR, 'quota-state.json'))
+        if isinstance(qdoc, dict) and qdoc.get('updated') == 'bootstrap':
+            notes.append("quota-state.json is the first-run bootstrap sample "
+                         "(all providers OPEN) — edit it to apply real gates")
+    except Exception:  # noqa: BLE001 — visibility only, never raise
+        pass
+    if notes:
+        bootstrap = True
+        note = '; '.join(notes)
+    return {'registry': REGISTRY, 'data_dir': DATA_DIR, 'state_dir': MR,
+            'seeded': seeded, 'bootstrap': bootstrap, 'note': note}
+
+
 def render_text(doc):
     lines = []
     r = doc['registry']
     lines.append(f"task-router status — {doc['generated_at']}")
+    dh = doc.get('data_home') or {}
+    if dh:
+        lines.append(f"data-home  registry={dh.get('registry')}  "
+                     f"data={dh.get('data_dir')}  state={dh.get('state_dir')}")
+        if dh.get('bootstrap'):
+            lines.append(f"           BOOTSTRAP/SAMPLE: {dh.get('note')}")
     if r['unavailable']:
         lines.append(f"registry   UNAVAILABLE: {r['error']} (reading {r['path']})")
     else:
@@ -470,6 +510,7 @@ def build():
     health = health_section()
     inflight = in_flight_section()
     gaps = gaps_section()
+    data_home = data_home_section()
     tables = {}
     doc = _load_json(REGISTRY)
     if isinstance(doc, dict) and isinstance(doc.get('tables'), dict):
@@ -495,6 +536,7 @@ def build():
     return {'generated_at': _now_iso(),
             'registry': reg, 'health': health, 'quota': quota,
             'circuit': circuit, 'in_flight': inflight, 'gaps': gaps,
+            'data_home': data_home,
             'gates': gates}
 
 
