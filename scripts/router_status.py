@@ -116,6 +116,7 @@ def registry_section():
             'engine': doc.get('source'),
             'fallback_used': False, 'warning': None,
             'counts': _count_models(doc['tables']),
+            'data_home': path,
         }
     # registry.json missing/corrupt/empty → the committed tables are the live
     # source; report that loudly (TR-025 visibility, same as router_spawn).
@@ -146,6 +147,9 @@ def registry_section():
         'fallback_used': True,
         'warning': f'{err} — reading committed data/tables fallback',
         'counts': _count_models(tables),
+        'data_home': DATA_DIR,
+        'bootstrap': True,
+        'note': 'Sample policy data — all providers OPEN. Replace with real quota-state to enable gates.',
     }
 
 

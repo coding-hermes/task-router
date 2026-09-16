@@ -929,6 +929,8 @@ def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=DE
             # behavior and fail-open are untouched.
             'source': src,
             'fallback_used': bool(fb),
+            'bootstrap': bool(fb),
+            'note': 'Sample policy data — all providers OPEN. Replace with real quota-state to enable gates.',
             'gates_loaded': {
                 'health': bool(_present('health-state.json')),
                 'circuit': bool(_present('circuit-state.json')),
