@@ -109,6 +109,12 @@ PROBE_PARAMS = {
     # cline-pass/<bare> id fixes sat STUCK in probe_gaps since 09-05: ids were
     # right, the probe's own budget was the blocker.
     'clinepass':               {'max_completion_tokens': 300},
+    # CommandCode GOAT plans: 31/69 lanes are thinking models — a 16-token ping
+    # burns the budget on hidden reasoning and nulls content (same class as
+    # meta-model/clinepass). Verified 09-11: deepseek-v4-flash pong OK at 300.
+    # 429 on these lanes = weekly quota window, not outage.
+    'commandcode':             {'max_tokens': 300},
+    'commandcode-2':           {'max_tokens': 300},
 }
 
 UP_LIKE = ('OK', 'SLOW', 'OVERLOADED', 'TIMEOUT')
