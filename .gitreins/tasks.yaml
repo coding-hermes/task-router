@@ -221,3 +221,12 @@ tasks:
   status: complete
   created_at: '2026-09-15T17:50:02.393834+00:00'
   completed_at: '2026-09-15T18:07:55.743706+00:00'
+- id: QA-TASK-ROUTER-2
+  title: "bunker-las-02 QA battery exhaustion \u2014 stale-premise closeout with live\
+    \ evidence"
+  criteria:
+  - 'Row closed with live evidence: pool NOT exhausted (2/8), capacity preflight fix
+    deployed and verified, decision doc committed'
+  status: complete
+  created_at: '2026-09-16T00:27:02.575663+00:00'
+  completed_at: '2026-09-16T00:32:46.976417+00:00'
