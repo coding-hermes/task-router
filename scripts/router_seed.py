@@ -115,7 +115,8 @@ BASE_COLUMNS = {
                       ('created_at', 'VARCHAR'),
                       ('max_consecutive_per_provider', 'INTEGER'),
                       ('max_total_per_provider', 'INTEGER'),
-                      ('version', 'INTEGER'), ('tag', 'VARCHAR')],
+                      ('version', 'INTEGER'), ('tag', 'VARCHAR'),
+                      ('allow_slow', 'BOOLEAN')],
     'task_profile_requirements': [('task_id', 'VARCHAR'), ('category', 'VARCHAR'),
                                   ('level', 'INTEGER')],
 }
@@ -790,7 +791,7 @@ con.execute("DROP TABLE IF EXISTS task_profiles")
 con.execute("DROP TABLE IF EXISTS task_profile_requirements")
 con.execute("CREATE TABLE task_profiles (id VARCHAR PRIMARY KEY, title VARCHAR, created_at TIMESTAMP, "
     "max_consecutive_per_provider INTEGER, max_total_per_provider INTEGER, "
-    "version INTEGER, tag VARCHAR)")
+    "version INTEGER, tag VARCHAR, allow_slow BOOLEAN)")
 con.execute("CREATE TABLE task_profile_requirements (task_id VARCHAR, category VARCHAR, level INTEGER, PRIMARY KEY (task_id, category))")
 
 # Profile levels re-based to the FIXED percentile scale (TR-002, 2026-08-27):
@@ -907,12 +908,12 @@ except Exception:
 _prof_rows = _load_base_rows('task_profiles')
 _req_rows = _load_base_rows('task_profile_requirements')
 if _prof_rows and _req_rows:
-    for pid, title, ts, mcp, mtp, version, tag in _prof_rows:
+    for pid, title, ts, mcp, mtp, version, tag, allow_slow in _prof_rows:
         con.execute("INSERT INTO task_profiles (id, title, created_at, "
                     "max_consecutive_per_provider, max_total_per_provider, "
-                    "version, tag) "
-                    "VALUES (?, ?, CAST(? AS TIMESTAMP), ?, ?, ?, ?)",
-                    [pid, title, ts, mcp, mtp, version, tag])
+                    "version, tag, allow_slow) "
+                    "VALUES (?, ?, CAST(? AS TIMESTAMP), ?, ?, ?, ?, ?)",
+                    [pid, title, ts, mcp, mtp, version, tag, allow_slow])
     for tid, cat, lvl in _req_rows:
         con.execute("INSERT INTO task_profile_requirements VALUES (?,?,?)",
                     [tid, cat, lvl])

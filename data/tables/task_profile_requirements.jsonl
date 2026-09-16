@@ -16,6 +16,10 @@
 {"task_id": "P1_CODING", "category": "debug", "level": -3}
 {"task_id": "P1_CODING", "category": "refactor", "level": -5}
 {"task_id": "P1_CODING", "category": "test", "level": 0}
+{"task_id": "P1_WORKER", "category": "code_gen", "level": -2}
+{"task_id": "P1_WORKER", "category": "debug", "level": -3}
+{"task_id": "P1_WORKER", "category": "refactor", "level": -5}
+{"task_id": "P1_WORKER", "category": "test", "level": 0}
 {"task_id": "P2_AGENTIC", "category": "agent_tick", "level": 0}
 {"task_id": "P2_AGENTIC", "category": "delegation", "level": 0}
 {"task_id": "P2_AGENTIC", "category": "long_horizon", "level": 1}

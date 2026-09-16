@@ -408,6 +408,12 @@ class RouterApplication:
                 at = query.get("allow_training")
                 if at and (isinstance(at, str) and at not in ("0", "false", "no")):
                     argv.append("--allow-training")
+                # TR-054: latency-tolerant resolve. ?allow_slow=1 includes lanes
+                # the probe marked SLOW (worker batches on free lanes). DOWN /
+                # quota / circuit gates still apply.
+                aslow = query.get("allow_slow")
+                if aslow and (isinstance(aslow, str) and aslow not in ("0", "false", "no")):
+                    argv.append("--allow-slow")
                 return 200, _subprocess_json("router_spawn.py", argv)
             if path == "/profiles":
                 return 200, {"profiles": _read_jsonl("task_profiles")}

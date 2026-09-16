@@ -705,7 +705,7 @@ def _resolve_fallback(tables, qs, hs, cs, reqs, limit=DEFAULT_CHAIN_LIMIT, profi
 
 
 def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=DEFAULT_CHAIN_LIMIT,
-            allow_training=False):
+            allow_training=False, allow_slow=None):
     tables, src, fb, warn = _load_registry_with_meta()
     warnings = [warn] if warn else []
     projects = {r.get('id'): r for r in tables.get('projects') or []}
@@ -740,6 +740,16 @@ def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=DE
     if pid and pid not in profiles:
         return {'error': f'profile {pid} not in registry',
                 'code': 'PROFILE_NOT_FOUND', 'retryable': False}
+
+    # TR-054 (Bane 2026-09-16): latency-tolerant lanes. allow_slow resolves in
+    # the same precedence as allow_training: explicit per-call arg wins, else
+    # the profile row's allow_slow flag (P1_WORKER), else quota-state knob.
+    # Semantics: 'model SLOW' and provider 'health SLOW' stop excluding a hop
+    # (the slowness is KNOWN and accepted by the caller); health DOWN / model
+    # DOWN / quota / circuit still exclude — SLOW-tolerant never means
+    # broken-tolerant.
+    prof_row = profiles.get(pid) or {}
+    _allow_slow = bool(allow_slow) or bool(prof_row.get('allow_slow'))
 
     # --- 2. chain from the registry -------------------------------------------
     # Profiles with NO requirement rows resolve to an empty chain — identical
@@ -829,7 +839,7 @@ def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=DE
             h = {}
         if h.get('status') == 'DOWN':
             why.append(f'health DOWN ({h.get("ts", "?")})')
-        elif h.get('status') == 'SLOW':
+        elif h.get('status') == 'SLOW' and not _allow_slow:
             why.append(f'health SLOW ({h.get("latency_ms")}ms)')
         # model-level health (probe v2 writes providers.<p>.models.<m>.status;
         # gpt-5.6-sol review 2026-08-27: the router previously ignored it and
@@ -837,7 +847,7 @@ def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=DE
         hm = (h.get('models') or {}).get(model) or {}
         if hm.get('status') == 'DOWN':
             why.append(f'model DOWN ({hm.get("ts", "?")})')
-        elif hm.get('status') == 'SLOW':
+        elif hm.get('status') == 'SLOW' and not _allow_slow:
             why.append(f'model SLOW ({hm.get("latency_ms")}ms)')
         c = cs.get(f'{prov}/{model}')
         if c and c.get('open_until') and c['open_until'] > now:
@@ -951,6 +961,10 @@ def main():
     ap.add_argument('--allow-training', action='store_true',
                     help='include lanes whose terms train on prompts/completions '
                          '(default: excluded; e.g. muse-spark-1.2-contributor)')
+    ap.add_argument('--allow-slow', action='store_true',
+                    help='include lanes the probe marked SLOW (latency-tolerant '
+                         'callers, e.g. worker batches on free lanes; TR-054). '
+                         'DOWN/quoted/circuit-open lanes still excluded.')
     ap.add_argument('--quiet', action='store_true',
                     help='suppress stderr telemetry (ROUTER-MISS, warnings); '
                          'env ROUTER_SPAWN_QUIET=1 also works')
@@ -986,7 +1000,8 @@ def main():
 
     r = resolve(project=args.project, profile_id=args.profile_id,
                 adhoc=args.adhoc, use_health=not args.no_health,
-                allow_training=args.allow_training)
+                allow_training=args.allow_training,
+                allow_slow=args.allow_slow)
     # TR-021: metrics append is best-effort; any failure is swallowed so
     # router_spawn stdout + exit code stay identical.  Strip the internal
     # _chain_rows helper key before serialization.
