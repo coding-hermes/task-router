@@ -232,6 +232,12 @@ BENCH_OVERLAY = {
     # trio; without a pattern here the rows sit INERT (GPQA/MCP-Atlas class).
     # Absolute 100-point scale -> rel = score/100.
     'AA Coding Agent Index': ['agent_tick'],
+    # 2026-09-16 (union-alpha onboarding): live-probe rows would sit INERT —
+    # same evidence-trap class as GPQA/MCP-Atlas. Small-n probes (n=1-2 per
+    # category, TR-044-compliant: real measured, never family-filled).
+    'live-probe-2026-09-16': ['agent_tick', 'reasoning', 'debug', 'schema',
+                              'code_gen', 'test', 'delegation', 'long_doc',
+                              'tool_use', 'long_horizon'],
 }
 overlay = []  # (provider, model, category, rel_score)
 for src, cats in BENCH_OVERLAY.items():

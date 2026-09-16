@@ -121,7 +121,11 @@ def test_healthy_path_marker_proves_registry_loaded(monkeypatch, tmp_path):
     chain (it is absent from the committed data/tables)."""
     tables = _load_tables()
     marker = {"provider": "prov-marker", "model": "marker-9000",
-              "normalized_price": 0.0001, "plan_tier": 0,
+              # 2026-09-16: $0 union-alpha lanes exist now, so the marker must TIE at
+              # $0 and win the tie-break chain: context bump first (union-alpha has
+              # 262144), then model name. 300000 beats 262144 AND "marker-9000" <
+              # "stealth/union-alpha"; 0.0001 would lose to the $0 lanes outright.
+              "normalized_price": 0.0, "plan_tier": 0, "context_limit": 300000,
               "data_class": "public", "token_factor": 1.0}
     stamped = dict(tables)
     stamped["models"] = list(tables["models"]) + [marker]
@@ -153,7 +157,7 @@ def test_corrupt_registry_source_fallback_and_warning(monkeypatch, tmp_path):
     assert r["head"] is not None  # resilience: resolution still works
     # the fallback data is the committed registry — head must match the
     # golden fixed-point head for this profile (same tables as registry.json)
-    assert _pair(r["head"]) == "stepfun/step-3.5-flash"
+    assert _pair(r["head"]) == "clinepass/stealth/union-alpha"  # 2026-09-16: union-alpha $0 head (see test_regression goldens)
 
 
 def test_missing_registry_source_fallback(monkeypatch, tmp_path):
@@ -187,7 +191,7 @@ def test_missing_health_state_reported_false(monkeypatch, tmp_path):
     # behavior unchanged: a missing health file must NOT fabricate a DOWN
     # gate — the chain still resolves to the healthy head
     assert r["head"] is not None
-    assert _pair(r["head"]) == "stepfun/step-3.5-flash"
+    assert _pair(r["head"]) == "clinepass/stealth/union-alpha"  # 2026-09-16: union-alpha $0 head (see test_regression goldens)
 
 
 def test_missing_all_state_files_reported(monkeypatch, tmp_path):

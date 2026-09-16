@@ -173,19 +173,19 @@ def test_chain_invariants_per_profile(monkeypatch, tmp_path, pid):
     # Bane 2026-08-31 ROUTER DOCTRINE: P0_FORE head = ollama-cloud/deepseek-v4-flash:0731.
     # The deepseek-v4-flash alias (unqualified) drifted after the :0731 revision
     # became the explicit default for the fleet foreman path.
-    ("P0_FORE", "ollama-cloud/kimi-k3"),  # 2026-09-13: ollama deepseek lanes temp-disabled (TR-042, billing 402 + rotation waste) -> kimi-for-coding k3 takes head at $0 in-sub
+    ("P0_FORE", "openrouter/stealth/union-alpha"),  # 2026-09-16: Union Alpha stealth onboarded at $0 with real probe evidence (9 categories, TR-044-compliant small-n, never family-filled) -> plan_tier 0 sub lane tops every profile chain. MIRROR fixed point = openrouter (open in mirror; wins provider tie-break vs clinepass at $0). LIVE head = clinepass lane while fleet OR keys are expired (openrouter health-DOWN). Prior: ollama kimi-k3 (TR-042 era).
     # 2026-09-16: Step Plan Flash Pro flat-sub repricing (plan_terms 39.4x lane,
     # commit afc774c) stamped step-3.5-flash at $0.0051 normalized — cheaper than
     # every other P1_CODING/P2_AGENTIC-eligible lane, so the price-ordered chain
     # re-sorted with stepfun first. Real battery evidence backs its perfs
     # (battery-T1-TOOL agent_tick/delegation 0.75, T2-CODE debug 0.75) — not a
     # blank-fill head. P0_FORE keeps kimi-k3: its stronger bars filter stepfun out.
-    ("P1_CODING", "stepfun/step-3.5-flash"),
+    ("P1_CODING", "openrouter/stealth/union-alpha"),  # 2026-09-16: union-alpha $0 head — mirror picks openrouter on tie-break (see P0_FORE note); live = clinepass
     # Capability-grounded heads (gpt-5.6-sol review 2026-08-27: do NOT tune
     # normal eligibility to accommodate the emergency fallback — fallback is a
     # degraded path that reports requirements_unmet). P2/P4 head on models with
     # real long_horizon/security evidence.
-    ("P2_AGENTIC", "stepfun/step-3.5-flash"),  # 2026-09-16: stepfun flat-sub repricing -> cheapest eligible agentic lane (was ollama-cloud/kimi-k3 from the 09-13 TR-042 disable)
+    ("P2_AGENTIC", "openrouter/stealth/union-alpha"),  # 2026-09-16: union-alpha $0 head — mirror openrouter tie-break (see P0_FORE); probe evidence includes tool_use + long_horizon
     # Bane 2026-08-31: P4_SECURITY requires security >= 2. Only gpt-5.6-sol
     # clears that bar. 2026-09-10: commandcode provider added (Provider API,
     # no-markup, open in the prod mirror) — its gpt-5.6-sol lane clears

@@ -167,3 +167,4 @@
 {"model": "accounts/fireworks/routers/kimi-latest", "inherits": "kimi-k3", "note": "fireworks \"latest\" router -> kimi-k3 (sticker 3.00 matches)"}
 {"model": "accounts/fireworks/routers/minimax-latest", "inherits": "minimax-m3", "note": "fireworks \"latest\" router -> minimax-m3 (sticker 0.30 matches m3 input)"}
 {"model": "accounts/fireworks/routers/qwen-max-latest", "inherits": "qwen3.8-max", "note": "fireworks \"latest\" router -> qwen3.8-max (sticker 2.00 matches)"}
+{"model": "stealth/union-alpha", "inherits": "union-alpha", "note": "OR/clinepass stealth route = same anonymous weights as Go lane (live-verified 09-16)"}

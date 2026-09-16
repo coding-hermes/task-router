@@ -1,0 +1,19 @@
+GitReins guard run log — full output (the console summary is bounded)
+run_utc: 2026-09-16T11:05:30Z
+workdir: /home/kara/task-router
+test_mode: diff
+test_targets: 3 file(s)
+overall: FAIL
+guards: 2 (1 failed)
+
+==============================================================================
+[FAIL] tests (diff: 3 files)  passed=false  exit_code=n/a
+==============================================================================
+--- output (untruncated) ---
+Tests timed out after 180s. To raise the limit: set guards.test_timeout in .gitreins/config.yaml (e.g. test_timeout: 300).
+
+==============================================================================
+[PASS] secrets  passed=true  exit_code=n/a
+==============================================================================
+--- output (untruncated) ---
+gitleaks: clean
