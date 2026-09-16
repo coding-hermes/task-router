@@ -231,6 +231,7 @@
 {"model": "gpt-5.6-luna", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
 {"model": "gpt-5.6-luna", "category": "sentiment", "score": 0.75, "max_score": 1.0, "source": "research-bench-2026-08-28", "valid_from": "2026-08-28"}
 {"model": "gpt-5.6-luna", "category": "sentiment", "score": 0.8, "max_score": 1.0, "source": "research-bench-2026-09-10: coderabbit tier guide — 'Luna is the tier to watch for top-of-funnel agent work' (cheap first pass that reduces load before Terra/Sol escalation; key = low reasoning). r/codex first-hand: very reliable, excellent at catching subtle state bugs, slower. OpenAI upgraded Codex CLI auto-review 5.4->Luna (vellum). Capability ceiling below Terra/Sol — escalation-tier workhorse, not premium reasoning.", "valid_from": "2026-09-10"}
+{"model": "gpt-5.6-luna", "category": "sentiment", "score": 0.82, "max_score": 1.0, "source": "research-bench-2026-09-16: r/OpenaiCodex 'underrated' value consensus + 2026-07-30 OpenAI price cut (Luna -80%)", "valid_from": "2026-09-16"}
 {"model": "gpt-5.6-sol", "category": "agent-tick", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
 {"model": "gpt-5.6-sol", "category": "agent_tick", "score": 0.8, "max_score": 1.0, "source": "AA Coding Agent Index research-bench-2026-09-07", "valid_from": "2026-09-07"}
 {"model": "gpt-5.6-sol", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
@@ -255,6 +256,7 @@
 {"model": "gpt-5.6-terra", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
 {"model": "gpt-5.6-terra", "category": "sentiment", "score": 0.78, "max_score": 1.0, "source": "research-bench-2026-08-28", "valid_from": "2026-08-28"}
 {"model": "gpt-5.6-terra", "category": "sentiment", "score": 0.82, "max_score": 1.0, "source": "research-bench-2026-09-10: r/codex multi-model coding-agent bench (sol/terra/luna/flash-3.7) — Terra performed BEST first-hand; vellum: Terra/Sonnet-5 traded near-parity during Sonnet intro window, Terra cheaper after Aug 31. Confirms 08-28 0.78 standing; small bump not a regime shift.", "valid_from": "2026-09-10"}
+{"model": "gpt-5.6-terra", "category": "terminal", "score": 87.4, "max_score": 100.0, "source": "research-bench-2026-09-16 Terminal-Bench 2.1 (DataCamp Terra-vs-Sonnet-5 comparison, Sep 2026)", "valid_from": "2026-09-16"}
 {"model": "gpt-oss:120b", "category": "agent-tick", "score": 1.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
 {"model": "gpt-oss:120b", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
 {"model": "gpt-oss:120b", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
@@ -589,6 +591,7 @@
 {"model": "step-3.7-flash", "category": "guard", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
 {"model": "step-3.7-flash", "category": "long_horizon", "score": 0.6187, "max_score": 1.0, "source": "Android Daily (vendor) research-bench-2026-08-30", "valid_from": "2026-08-30"}
 {"model": "step-3.7-flash", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "step-3.7-flash", "category": "reasoning", "score": 80.9, "max_score": 100.0, "source": "research-bench-2026-09-16 GPQA Diamond (DeepInfra vendor card)", "valid_from": "2026-09-16"}
 {"model": "step-3.7-flash", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
 {"model": "step-3.7-flash", "category": "sentiment", "score": 0.58, "max_score": 1.0, "source": "research-bench-2026-08-28", "valid_from": "2026-08-28"}
 {"model": "step-3.7-flash", "category": "sentiment", "score": 0.62, "max_score": 1.0, "source": "research-bench-2026-09-05", "valid_from": "2026-09-05"}

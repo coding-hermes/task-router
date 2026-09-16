@@ -174,12 +174,18 @@ def test_chain_invariants_per_profile(monkeypatch, tmp_path, pid):
     # The deepseek-v4-flash alias (unqualified) drifted after the :0731 revision
     # became the explicit default for the fleet foreman path.
     ("P0_FORE", "ollama-cloud/kimi-k3"),  # 2026-09-13: ollama deepseek lanes temp-disabled (TR-042, billing 402 + rotation waste) -> kimi-for-coding k3 takes head at $0 in-sub
-    ("P1_CODING", "opencode-go/mimo-v2.5"),
+    # 2026-09-16: Step Plan Flash Pro flat-sub repricing (plan_terms 39.4x lane,
+    # commit afc774c) stamped step-3.5-flash at $0.0051 normalized — cheaper than
+    # every other P1_CODING/P2_AGENTIC-eligible lane, so the price-ordered chain
+    # re-sorted with stepfun first. Real battery evidence backs its perfs
+    # (battery-T1-TOOL agent_tick/delegation 0.75, T2-CODE debug 0.75) — not a
+    # blank-fill head. P0_FORE keeps kimi-k3: its stronger bars filter stepfun out.
+    ("P1_CODING", "stepfun/step-3.5-flash"),
     # Capability-grounded heads (gpt-5.6-sol review 2026-08-27: do NOT tune
     # normal eligibility to accommodate the emergency fallback — fallback is a
     # degraded path that reports requirements_unmet). P2/P4 head on models with
     # real long_horizon/security evidence.
-    ("P2_AGENTIC", "ollama-cloud/kimi-k3"),  # 2026-09-13: TR-042 deepseek disable -> kimi sub head
+    ("P2_AGENTIC", "stepfun/step-3.5-flash"),  # 2026-09-16: stepfun flat-sub repricing -> cheapest eligible agentic lane (was ollama-cloud/kimi-k3 from the 09-13 TR-042 disable)
     # Bane 2026-08-31: P4_SECURITY requires security >= 2. Only gpt-5.6-sol
     # clears that bar. 2026-09-10: commandcode provider added (Provider API,
     # no-markup, open in the prod mirror) — its gpt-5.6-sol lane clears

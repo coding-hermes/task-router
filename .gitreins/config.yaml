@@ -3,6 +3,9 @@ guards:
   lint: false
   tests: true
   test_mode: diff
+  # suite is ~275s since the TR-039 hermetic-seed tests landed; the 180s default
+  # made every commit fail as "Tests timed out" (2026-09-16)
+  test_timeout: 900
   test_command: ./scripts/gitreins-guard-tests.sh
   static_analysis: false
 evaluator:

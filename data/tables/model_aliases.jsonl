@@ -156,3 +156,14 @@
 {"model": "deepseek-v4-1-flash", "inherits": "deepseek-v4.1-flash", "note": "fireworks dash-spelling -> canonical"}
 {"model": "deepseek-v4-flash-0731", "inherits": "deepseek-v4-flash:0731", "note": "fireworks snapshot spelling -> canonical"}
 {"model": "qwen3-7-plus", "inherits": "qwen3.7-plus", "note": "fireworks dash-spelling -> canonical"}
+{"model": "accounts/fireworks/models/deepseek-v4-pro", "inherits": "deepseek-v4-pro", "note": "fireworks prefixed id -> canonical (sticker 1.20/4.40 matches deepseek-v4-pro)"}
+{"model": "accounts/fireworks/models/minimax-m2p7", "inherits": "minimax-m2.7", "note": "fireworks p-spelling -> canonical (sticker 0.30/1.20 matches minimax-m2.7)"}
+{"model": "accounts/fireworks/routers/deepseek-flash-latest", "inherits": "deepseek-v4-flash", "note": "fireworks \"latest\" router -> deepseek-v4-flash (sticker 0.22 matches off-peak v4-flash)"}
+{"model": "accounts/fireworks/routers/deepseek-pro-latest", "inherits": "deepseek-v4-pro", "note": "fireworks \"latest\" router -> deepseek-v4-pro (sticker 1.32 matches peak v4-pro)"}
+{"model": "accounts/fireworks/routers/glm-fast-latest", "inherits": "glm-5.3", "note": "fireworks \"latest\" fast router -> glm-5.3 family (sticker 2.10 matches glm-5.3-fast lanes)"}
+{"model": "accounts/fireworks/routers/glm-flash-latest", "inherits": "glm-5.3-flash", "note": "fireworks \"latest\" router -> glm-5.3-flash (sticker 0.15 matches)"}
+{"model": "accounts/fireworks/routers/glm-latest", "inherits": "glm-5.3", "note": "fireworks \"latest\" router -> glm-5.3 (sticker 1.40 matches)"}
+{"model": "accounts/fireworks/routers/kimi-fast-latest", "inherits": "kimi-k3", "note": "fireworks \"latest\" fast router -> kimi-k3 (sticker 4.50 matches kimi-k3-fast lanes)"}
+{"model": "accounts/fireworks/routers/kimi-latest", "inherits": "kimi-k3", "note": "fireworks \"latest\" router -> kimi-k3 (sticker 3.00 matches)"}
+{"model": "accounts/fireworks/routers/minimax-latest", "inherits": "minimax-m3", "note": "fireworks \"latest\" router -> minimax-m3 (sticker 0.30 matches m3 input)"}
+{"model": "accounts/fireworks/routers/qwen-max-latest", "inherits": "qwen3.8-max", "note": "fireworks \"latest\" router -> qwen3.8-max (sticker 2.00 matches)"}

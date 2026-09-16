@@ -110,7 +110,9 @@ def test_spawn_resolves_normally_despite_many_in_flight(tmp_path):
     env = _env(tmp_path)
     env["ROUTING_REGISTRY"] = _write_registry(tmp_path, tables)
 
-    head_lane = ("opencode-go", "mimo-v2.5")
+    # 2026-09-16: current coding-hermes-scheduler head after the Step Plan Flash Pro
+    # flat-sub repricing (see test_regression golden heads).
+    head_lane = ("stepfun", "step-3.5-flash")
     with open(env["LEDGER_FILE"], "a") as f:
         for i in range(99):
             row = {"ts": datetime.datetime.now(datetime.timezone.utc).isoformat(),
