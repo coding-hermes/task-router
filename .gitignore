@@ -19,3 +19,7 @@ registry.json
 *.egg-info/
 build/
 dist/
+
+# TR-049 outcomes store — per-user data, never committed (sample file may be published separately later)
+data/state/outcomes.jsonl
+data/state/outcomes-averages.jsonl
