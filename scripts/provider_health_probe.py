@@ -115,6 +115,11 @@ PROBE_PARAMS = {
     # 429 on these lanes = weekly quota window, not outage.
     'commandcode':             {'max_tokens': 300},
     'commandcode-2':           {'max_tokens': 300},
+    # xKiro gateway (onboarded 09-16): catalog flags reasoning=true on ALL 115
+    # models (even non-reasoning families), so the 16-token default would null
+    # content fleet-wide. 300 cap; verified pattern on commandcode/meta-model.
+    # Key lands soon (Bane); probe stays green-pending until XKIRO_API_KEY exists.
+    'xkiro':                   {'max_tokens': 300},
 }
 
 UP_LIKE = ('OK', 'SLOW', 'OVERLOADED', 'TIMEOUT')
