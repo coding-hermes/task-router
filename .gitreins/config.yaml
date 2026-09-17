@@ -9,6 +9,9 @@ guards:
   # suite is ~275s since the TR-039 hermetic-seed tests landed; the 180s default
   # made every commit fail as "Tests timed out" (2026-09-16)
   test_timeout: 900
+  # overall hook budget must exceed test_timeout — the 300s default made the
+  # first full-mode data commit fail-open at 300s (2026-09-17, f792a7b)
+  hook_timeout: 700
   test_command: ./scripts/gitreins-guard-tests.sh
   static_analysis: false
 evaluator:
