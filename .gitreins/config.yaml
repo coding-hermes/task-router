@@ -2,20 +2,23 @@ guards:
   secrets: true
   lint: false
   tests: true
-  test_mode: diff
+  # full, not diff: the daily data-quality commits are data-only (data/tables/*.jsonl),
+  # diff mode finds no test files for them, skips the tests lane and returns DEGRADED
+  # PASS (= refusal). Full mode grades the whole tree (~220s, 330 tests).
+  test_mode: full
   # suite is ~275s since the TR-039 hermetic-seed tests landed; the 180s default
   # made every commit fail as "Tests timed out" (2026-09-16)
   test_timeout: 900
   test_command: ./scripts/gitreins-guard-tests.sh
   static_analysis: false
 evaluator:
-  model: deepseek-v4-flash
+  model: deepseek-flash
   max_iterations: 200
   max_time: "20m"
   max_input_tokens: "12M"
   static_analysis_diagnostics: false
 defaults:
-  model: deepseek-v4-flash
+  model: deepseek-flash
   check_for_updates: false
 history:
   enabled: true
