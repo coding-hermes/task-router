@@ -98,3 +98,57 @@ Python 3.13, bare Debian user (no sudo, no toolchains): clone →
 `python3 -m venv && pip install -e .` → 5s → resolve works off committed
 `data/tables` with zero network calls beyond the clone. The stdlib-only
 runtime design is real; only `seed` (duckdb) and tests (pytest) need extras.
+
+## 2026-09-16 dogfood: the exit-code and data-home laws, re-measured
+
+The second dogfood run (full report: `2026-09-16-integration.md`) re-tested
+the same laws with cleaner methodology and found two records needed
+corrections — a good example of why measurements should be repeated without
+the original run's assumptions.
+
+**Exit codes.** The table above says `router seed` without duckdb exits 0.
+Wrong: re-measured without a pipe, `seed` **exits 1** ("router: dispatch
+failed: No module named 'duckdb'"). The original reading was pipe-masked —
+the `head` in the pipeline produced the 0. What DOES coerce to 0 is the
+`task_router/cli.py` wrapper: a dispatch error (unknown subcommand, argparse
+usage error) prints the child's usage and a "fail-open (coerced to 0)" line,
+then exits 0 — for every subcommand, including ones with no fail-open
+contract (`validate` documents "exit 1 + issues"). Lesson: the fail-open
+contract belongs to runtime resolution (`spawn`), not to CLI misuse. Filed
+as TR-058. When measuring exit codes, never let a pipeline's last command
+stand in for the program under test.
+
+**Data home.** TR-044 is still open and now has a one-line live repro: from
+the repo cwd with no `TASK_ROUTER_HOME`, `router status` reports
+`<repo>/registry.json` while `router spawn 9router` reports
+`~/.local/share/task-router/registry.json` (fallback=true, bootstrap=true).
+The wrapper only injects data-home env for spawn/circuit/ledger/maintain/
+seed/gaps/pricing/modelsdev/clinepass/probefix; status/validate/estimate/
+diff/metrics/server/web keep repo-relative defaults. Today the heads match
+across surfaces only because every path derives from the same committed
+tables — the moment one surface seeds fresher state, they diverge silently.
+Filed as TR-056 with the bunker corollary TR-057: a fresh install that
+follows the documented data-home law (`TASK_ROUTER_HOME=~/x router seed`)
+passes spawn but FAILS `router validate`, which still checks
+`<repo>/registry.json`. A user who does everything right gets a red
+integrity check on a healthy install.
+
+**xKiro economics proved end-to-end (TR-054 follow-through).** The chain now
+carries plan-tier ordering on 115 imported lanes: `spawn 9router` heads with
+`clinepass/stealth/union-alpha` @ $0.0, and the same head comes back from
+the REST server, the MCP bridge (`tools/call` → `resolve`), and the web
+preview (`/api/preview`) — four surfaces, one answer. The xKiro pair
+breakers opened on real tick outcomes during the 09-16/17 upstream storm,
+so the gate wiring has now reacted to genuine failures, not just synthetic
+ones.
+
+**Noise budget.** ROUTER-MISS stderr telemetry improved but is still the
+dominant friction: 760 lines / 479 tier=None per ad-hoc resolve
+(TR-055; 09-12 baseline 1004/724). The gates are correct — the noise is
+telemetry policy, and flipping the default to quiet (verbose behind an env
+flag) is a one-line change the foreman can make.
+
+**Fresh install numbers (repeat of the bunker leg, new agent):**
+clone 1s → `pip install -e .` 5s → duckdb 14s → seed 8s → first resolve.
+Total ≈ 27s to a real 18-hop chain whose head matches production exactly.
+The 09-12 conclusion holds on a second independent machine.

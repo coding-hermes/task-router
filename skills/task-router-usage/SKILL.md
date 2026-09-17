@@ -1,7 +1,7 @@
 ---
 name: task-router-usage
 description: Use the task-router CLI to resolve model chains, gates, and pricing
-version: 1.0.0
+version: 1.1.0
 category: software-development
 ---
 
@@ -76,10 +76,31 @@ router circuit record-success <provider> <model>
   use `--quiet` and read `exclusions` in the JSON.
 - **Two router surfaces disagree** (server vs CLI head, validate "registry
   missing") — they loaded different registries. Only spawn/circuit/ledger/
-  maintain/seed/gaps/pricing/modelsdev/clinepass honor `TASK_ROUTER_HOME`;
-  validate/status/estimate/diff/metrics/server/web read repo-relative or
-  global paths (TR-044). Force consistency with an explicit
-  `ROUTING_REGISTRY=/path/to/registry.json` for scratch work.
+  maintain/seed/gaps/pricing/modelsdev/clinepass/probefix honor
+  `TASK_ROUTER_HOME` via the `task_router/cli.py` wrapper; validate/status/
+  estimate/diff/metrics/server/web read repo-relative or global paths
+  (TR-044, still open 2026-09-16). One-line repro: from the repo cwd,
+  `router status` reports `<repo>/registry.json` while `router spawn 9router`
+  reports `~/.local/share/task-router/registry.json` (fallback=true).
+  Force consistency with an explicit
+  `ROUTING_REGISTRY=/path/to/registry.json` for scratch work, and check
+  `fallback` / `bootstrap` in the spawn payload before trusting gates.
+- **Exit codes are only meaningful for the scripts, not the `router`
+  wrapper.** A dispatch error (unknown subcommand, invalid flag) prints the
+  child's usage plus `router: <cmd> exited 2 — fail-open (coerced to 0)` and
+  exits 0 — for every subcommand, including `validate` (TR-058; measured
+  2026-09-16). If your automation needs real exit codes, call
+  `scripts/router_<cmd>.py` directly, or parse the JSON payload instead.
+  (Note: `scripts/router_seed.py` without duckdb fails loudly AND exits 1 —
+  the loud-failure claim in the README is about the script behavior and is
+  accurate.)
+- **Bare profile ids dead-end in `spawn`/`/resolve`.** `router spawn
+  P1_CODING` → `{"error": "project P1_CODING not in registry"}` even though
+  P1_CODING is a valid profile. Profiles ride the `--profile` /
+  `--profile-req` flags (or live under a project row in
+  `data/tables/projects.jsonl`) (TR-059).
+- **`ledger end --outcome` vocab is `success|failure|error`** — `ok` is
+  rejected (argparse tells you immediately; no need to guess twice).
 - **Scratch seeds stay out of the live DuckBrain mirror** — the `router` CLI
   exports `ROUTING_NS` under the data home for the seed subprocess, and
   `router_maintain.py` setdefaults its seed child the same way (setdefault
