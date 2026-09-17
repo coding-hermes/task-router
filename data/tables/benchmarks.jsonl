@@ -203,6 +203,7 @@
 {"model": "glm-5.3-flash", "category": "code_gen", "score": 0.634, "max_score": 1.0, "source": "DeepSWE research-bench-2026-08-27", "valid_from": "2026-08-27"}
 {"model": "glm-5.3-flash", "category": "long_horizon", "score": 0.563, "max_score": 1.0, "source": "NL2Repo research-bench-2026-08-27", "valid_from": "2026-08-27"}
 {"model": "glm-5.3-flash", "category": "reasoning", "score": 0.553, "max_score": 1.0, "source": "HLE research-bench-2026-08-27", "valid_from": "2026-08-27"}
+{"model": "glm-5.3-flash", "category": "sentiment", "score": 0.71, "max_score": 1.0, "source": "research-bench-2026-09-17", "valid_from": "2026-09-17"}
 {"model": "glm-5.3-flash", "category": "sentiment", "score": 0.78, "max_score": 1.0, "source": "research-bench-2026-08-27", "valid_from": "2026-08-27"}
 {"model": "glm-5.3-flash", "category": "terminal", "score": 0.843, "max_score": 1.0, "source": "Terminal-Bench research-bench-2026-08-27", "valid_from": "2026-08-27"}
 {"model": "glm-5.3-flash-offpeak", "category": "agent_tick", "score": 0.488, "max_score": 1.0, "source": "AutomationBench research-bench-2026-08-27", "valid_from": "2026-08-27"}
@@ -244,6 +245,7 @@
 {"model": "gpt-5.6-sol", "category": "review", "score": 76.5, "max_score": 76.5, "source": "ExploitBench (independent)", "valid_from": null}
 {"model": "gpt-5.6-sol", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
 {"model": "gpt-5.6-sol", "category": "sentiment", "score": 0.82, "max_score": 1.0, "source": "research-bench-2026-08-28", "valid_from": "2026-08-28"}
+{"model": "gpt-5.6-sol", "category": "sentiment", "score": 0.86, "max_score": 1.0, "source": "research-bench-2026-09-17", "valid_from": "2026-09-17"}
 {"model": "gpt-5.6-sol", "category": "sentiment", "score": 0.88, "max_score": 1.0, "source": "research-bench-2026-09-05", "valid_from": "2026-09-05"}
 {"model": "gpt-5.6-sol", "category": "sentiment", "score": 0.88, "max_score": 1.0, "source": "research-bench-2026-09-10: standing confirmed (AA Coding Agent Index 80, leads all three evals; kingy.ai model specs 1.05M ctx/128K out). NEW FACT: OpenAI model page says Sol promo pricing holds 'at least through November 21, 2026' (yottalabs roundup) — normalized sub price $0.4 is promo-dependent; re-check lane economics on/after Nov 21. Community: deepest analysis but slowest/most exhaustive (r/codex multi-model bench).", "valid_from": "2026-09-10"}
 {"model": "gpt-5.6-terra", "category": "agent-tick", "score": 1.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
