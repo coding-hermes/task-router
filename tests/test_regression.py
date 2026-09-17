@@ -180,7 +180,7 @@ def test_chain_invariants_per_profile(monkeypatch, tmp_path, pid):
     # re-sorted with stepfun first. Real battery evidence backs its perfs
     # (battery-T1-TOOL agent_tick/delegation 0.75, T2-CODE debug 0.75) — not a
     # blank-fill head. P0_FORE keeps kimi-k3: its stronger bars filter stepfun out.
-    ("P1_CODING", "stepfun/step-3.5-flash"),  # 2026-09-16: union-alpha registry-disabled (see P0_FORE note); stepfun flat-sub head restored. Workers ride union-alpha via P1_WORKER (allow_slow) profile instead
+    ("P1_CODING", "xkiro/deepseek/deepseek-v4-flash"),  # 2026-09-17: xKiro onboarded — $200 plan covers catalog (plan_tier 0), deepseek-v4.1-flash free lane = $0 @ 1M ctx wins plan_tier 0 / price / context tie-breaks. stepfun remains live head whenever health gates the xkiro route
     # Capability-grounded heads (gpt-5.6-sol review 2026-08-27: do NOT tune
     # normal eligibility to accommodate the emergency fallback — fallback is a
     # degraded path that reports requirements_unmet). P2/P4 head on models with
@@ -213,7 +213,7 @@ def test_adhoc_profile_invariants(monkeypatch, tmp_path):
     assert "error" not in r
     chain = r["chain"]
     for e in chain:
-        assert e["usd_1m"] > 0
+        assert e["usd_1m"] is not None  # 2026-09-17: $0 plan lanes are legitimate; invariant = PRICED, not positive
     # no duplicates
     pairs = [_pair(e) for e in chain]
     assert len(pairs) == len(set(pairs))

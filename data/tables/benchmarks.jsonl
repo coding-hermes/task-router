@@ -472,6 +472,17 @@
 {"model": "minimax-m3", "category": "sentiment", "score": 0.8, "max_score": 1.0, "source": "research-bench-2026-08-27", "valid_from": "2026-08-27"}
 {"model": "minimax-m3", "category": "spec_docs", "score": 68.17, "max_score": 100.0, "source": "BenchLM composite benchlm.ai 2026-09-05 (rank #27/231, 22 rows)", "valid_from": "2026-09-05"}
 {"model": "minimax-m3", "category": "tool_use", "score": 74.2, "max_score": 100.0, "source": "MCP Atlas minimax-vendor-2026-09-05 (VENDOR-REPORTED)", "valid_from": "2026-09-05"}
+{"model": "minimax/minimax-m2.5:free", "category": "code_gen", "score": 1.0, "max_score": 1.0, "source": "xkiro-live-battery-2026-09-16 (pass/fail probe; no overlay pattern by design)", "valid_from": "2026-09-16"}
+{"model": "minimax/minimax-m2.5:free", "category": "debug", "score": 1.0, "max_score": 1.0, "source": "xkiro-live-battery-perfcols (audit row; flows via perf_* columns)", "valid_from": "2026-09-16"}
+{"model": "minimax/minimax-m2.5:free", "category": "delegation", "score": 1.0, "max_score": 1.0, "source": "xkiro-live-battery-perfcols (audit row; flows via perf_* columns)", "valid_from": "2026-09-16"}
+{"model": "minimax/minimax-m2.5:free", "category": "reasoning", "score": 1.0, "max_score": 1.0, "source": "xkiro-live-battery-perfcols (audit row; flows via perf_* columns)", "valid_from": "2026-09-16"}
+{"model": "minimax/minimax-m2.5:free", "category": "schema", "score": 1.0, "max_score": 1.0, "source": "xkiro-live-battery-perfcols (audit row; flows via perf_* columns)", "valid_from": "2026-09-16"}
+{"model": "minimax/minimax-m2.7-highspeed:free", "category": "code_gen", "score": 1.0, "max_score": 1.0, "source": "xkiro-live-battery-2026-09-16 (pass/fail probe; no overlay pattern by design)", "valid_from": "2026-09-16"}
+{"model": "minimax/minimax-m2.7-highspeed:free", "category": "debug", "score": 1.0, "max_score": 1.0, "source": "xkiro-live-battery-perfcols (audit row; flows via perf_* columns)", "valid_from": "2026-09-16"}
+{"model": "minimax/minimax-m2.7-highspeed:free", "category": "delegation", "score": 1.0, "max_score": 1.0, "source": "xkiro-live-battery-perfcols (audit row; flows via perf_* columns)", "valid_from": "2026-09-16"}
+{"model": "minimax/minimax-m2.7-highspeed:free", "category": "long_horizon", "score": 1.0, "max_score": 1.0, "source": "xkiro-live-battery-2026-09-16 (pass/fail probe; no overlay pattern by design)", "valid_from": "2026-09-16"}
+{"model": "minimax/minimax-m2.7-highspeed:free", "category": "reasoning", "score": 1.0, "max_score": 1.0, "source": "xkiro-live-battery-perfcols (audit row; flows via perf_* columns)", "valid_from": "2026-09-16"}
+{"model": "minimax/minimax-m2.7-highspeed:free", "category": "schema", "score": 1.0, "max_score": 1.0, "source": "xkiro-live-battery-perfcols (audit row; flows via perf_* columns)", "valid_from": "2026-09-16"}
 {"model": "mistral-large-3:675b", "category": "agent-tick", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
 {"model": "mistral-large-3:675b", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
 {"model": "mistral-large-3:675b", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
@@ -617,8 +628,14 @@
 {"model": "union-alpha", "category": "tool_use", "score": 0.85, "max_score": 1.0, "source": "live-probe-2026-09-16 ordered 3-tool plan, correct sequence+why (n=1 small-probe)", "valid_from": "2026-09-16"}
 {"model": "z-ai/glm-5.3-flash", "category": "agent-tick", "score": 48.8, "max_score": 100.0, "source": "zai-official-2026-08-26", "valid_from": null}
 {"model": "z-ai/glm-5.3-flash", "category": "agent-tick", "score": 78.4, "max_score": 100.0, "source": "zai-official-2026-08-26", "valid_from": null}
+{"model": "z-ai/glm-5.3-flash", "category": "code_gen", "score": 1.0, "max_score": 1.0, "source": "xkiro-live-battery-2026-09-16 (pass/fail probe; no overlay pattern by design)", "valid_from": "2026-09-16"}
+{"model": "z-ai/glm-5.3-flash", "category": "debug", "score": 1.0, "max_score": 1.0, "source": "xkiro-live-battery-perfcols (audit row; flows via perf_* columns)", "valid_from": "2026-09-16"}
 {"model": "z-ai/glm-5.3-flash", "category": "debug", "score": 63.4, "max_score": 100.0, "source": "zai-official-2026-08-26", "valid_from": null}
 {"model": "z-ai/glm-5.3-flash", "category": "debug", "score": 84.3, "max_score": 100.0, "source": "Terminal-Bench zai-official-2026-08-26", "valid_from": null}
+{"model": "z-ai/glm-5.3-flash", "category": "delegation", "score": 1.0, "max_score": 1.0, "source": "xkiro-live-battery-perfcols (audit row; flows via perf_* columns)", "valid_from": "2026-09-16"}
 {"model": "z-ai/glm-5.3-flash", "category": "long-doc", "score": 55.3, "max_score": 100.0, "source": "zai-official-2026-08-26", "valid_from": null}
+{"model": "z-ai/glm-5.3-flash", "category": "long_horizon", "score": 1.0, "max_score": 1.0, "source": "xkiro-live-battery-2026-09-16 (pass/fail probe; no overlay pattern by design)", "valid_from": "2026-09-16"}
+{"model": "z-ai/glm-5.3-flash", "category": "reasoning", "score": 1.0, "max_score": 1.0, "source": "xkiro-live-battery-perfcols (audit row; flows via perf_* columns)", "valid_from": "2026-09-16"}
 {"model": "z-ai/glm-5.3-flash", "category": "review", "score": 1773.0, "max_score": 2000.0, "source": "zai-official-2026-08-26", "valid_from": null}
+{"model": "z-ai/glm-5.3-flash", "category": "schema", "score": 1.0, "max_score": 1.0, "source": "xkiro-live-battery-perfcols (audit row; flows via perf_* columns)", "valid_from": "2026-09-16"}
 {"model": "z-ai/glm-5.3-flash", "category": "schema", "score": 29.0, "max_score": 29.5, "source": "zai-official-2026-08-26", "valid_from": null}

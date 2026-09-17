@@ -110,8 +110,9 @@ def test_spawn_resolves_normally_despite_many_in_flight(tmp_path):
     env = _env(tmp_path)
     env["ROUTING_REGISTRY"] = _write_registry(tmp_path, tables)
 
-    # 2026-09-16: head after Union Alpha stealth onboarding at $0 (see test_regression goldens).
-    head_lane = ("clinepass", "stealth/union-alpha")
+    # 2026-09-17: xKiro's $0/1M-ctx deepseek-v4-flash lane wins the head (see
+    # test_regression goldens); in-flight rows must target the head lane itself.
+    head_lane = ("xkiro", "deepseek/deepseek-v4-flash")
     with open(env["LEDGER_FILE"], "a") as f:
         for i in range(99):
             row = {"ts": datetime.datetime.now(datetime.timezone.utc).isoformat(),
