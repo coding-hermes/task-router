@@ -1,0 +1,33 @@
+{
+  "id": "xkiro",
+  "name": "xKiro gateway (docs.xkiro.com)",
+  "catalog_url": "https://api.xkiro.com/v1/models",
+  "catalog_format": "openai_models_list",
+  "user_agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36",
+  "user_agent_reason": "Cloudflare 1010-blocks non-browser UAs (TR-054)",
+  "keyless_catalog": true,
+  "field_map": {
+    "model": "id",
+    "price_in": "pricing.input",
+    "price_out": "pricing.output",
+    "context": "context_length",
+    "vision": "capabilities.vision",
+    "thinking": "capabilities.reasoning"
+  },
+  "blend": [0.96, 0.04],
+  "plan_tier_policy": {
+    "default": 0,
+    "reason": "$200 coding plan (Bane) covers catalog in-window; effective price is plan cost, list sticker kept on public_in/out_per_m"
+  },
+  "probe": {
+    "base_url": "https://api.xkiro.com/v1",
+    "key_env": "XKIRO_API_KEY",
+    "default_model": "z-ai/glm-5.3-flash",
+    "note": "default = live-verified lane; deepseek/* routes 429'd upstream 2026-09-16 and route-hop did not cover it; catalog flags reasoning=true on ALL models -> PROBE_PARAMS max_tokens 300 mandatory"
+  },
+  "data_class": "zdr",
+  "notes": [
+    "onboarded live 2026-09-16 (115 lanes, 42 free-allowance)",
+    "battery evidence lives in benchmarks.jsonl only - never perf_* (TR-054 percentile-corruption incident)"
+  ]
+}
