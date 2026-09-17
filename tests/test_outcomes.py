@@ -84,3 +84,15 @@ def test_outcomes_and_averages_gitignored():
     text = open(gi).read() if os.path.exists(gi) else ''
     assert 'data/state/outcomes.jsonl' in text
     assert 'data/state/outcomes-averages.jsonl' in text
+
+
+def test_profile_signature_is_declared_category_levels():
+    """Bane: complexity = the task's CATEGORIES (per-category required levels),
+    not a scalar. The signature must come from the registry's
+    task_profile_requirements — never invented."""
+    sig = ro.profile_signature('P4_SECURITY')
+    assert sig is not None
+    assert sig == {'guard': 0, 'review': 0, 'security': 2}
+    p1 = ro.profile_signature('P1_CODING')
+    assert 'code_gen' in p1 and 'refactor' in p1
+    assert ro.profile_signature('P_DOES_NOT_EXIST') is None  # unknown -> None, not fake

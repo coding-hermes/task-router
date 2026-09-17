@@ -82,6 +82,29 @@ def compute_averages(rows, scales_h=DEFAULT_SCALES_H, merge_backends=False, now_
     return out
 
 
+def profile_signature(profile_id, registry_path=None):
+    """The complexity reference: a task profile IS its declared per-category
+    levels (Bane: "complexity part is the categories of the task so that it
+    has a reference"). Returns {category: required_level} from the seeded
+    registry, or None when the profile is unknown — never invent levels."""
+    registry_path = registry_path or os.path.join(REPO, 'registry.json')
+    if not os.path.exists(registry_path):
+        return None
+    d = json.load(open(registry_path))
+    tables = d.get('tables', {})
+    prof = next((p for p in tables.get('task_profiles', [])
+                 if p.get('id') == profile_id), None)
+    if prof is None:
+        return None
+    # requirements live in task_profile_requirements: one row per
+    # (profile_id, category, min_level) — the declared task categories
+    reqs = {}
+    for r in tables.get('task_profile_requirements') or []:
+        if r.get('task_id') == profile_id:
+            reqs[str(r['category'])] = int(r.get('level', 0))
+    return reqs
+
+
 # ---------- IO ----------
 
 def append_rows(path, new_rows):
@@ -173,7 +196,9 @@ def import_hermes(db_path='~/.hermes/state.db'):
         ts = float(t1) if t1 is not None else None
         wall = (float(t1) - float(t0)) if (t0 is not None and t1 is not None) else None
         out.append({'source_system': 'hermes', 'session_id': sid, 'task_label': task,
-                    'complexity': None, 'provider': provider_of(base, prov), 'model': model,
+                    'complexity': None, 'profile_id': None,
+                    'required_categories': None,
+                    'provider': provider_of(base, prov), 'model': model,
                     'turns': calls, 'tokens_in': tin, 'tokens_out': tout,
                     'tokens_reasoning': treason, 'cost_usd': cost,
                     'wall_time_s': wall, 'success': None, 'ts': ts})
