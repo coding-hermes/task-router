@@ -17,6 +17,8 @@
   "blend": [0.96, 0.04],
   "plan_tier_policy": {
     "default": 0,
+    "usage_multiplier": 30,
+    "multiplier_basis": "$200/mo sub ~= $6,000/mo list-equivalent usage (~$1,400/wk), xKiro '30x usage' (Bane 2026-09-17); internal normalized_price = blend(list)/30 for plan-covered lanes; public_* keep list; wallet-only lanes (plan_tier NULL) keep full list",
     "reason": "$200 coding plan (Bane) covers catalog in-window; effective price is plan cost, list sticker kept on public_in/out_per_m"
   },
   "probe": {
