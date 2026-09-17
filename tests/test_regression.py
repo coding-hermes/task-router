@@ -193,7 +193,7 @@ def test_chain_invariants_per_profile(monkeypatch, tmp_path, pid):
     # degraded deepseek-foreman fallback. openai-codex remains DOWN in the
     # mirror (health), commandcode picks the chain head at $5 vs codex $0.4.
     # Degraded fallback still covered by test_fallback_lane_fires_when_all_subs_down.
-    ("P4_SECURITY", "commandcode/gpt-5.6-sol"),
+    ("P4_SECURITY", "xkiro/z-ai/glm-5.3-flash")  # 2026-09-17: glm-5.3 family tiers derived onto xkiro lane (live-swept, same public bench evidence) + 30x plan pricing -> security=2 clears P4 at 1/30 list; displaces commandcode/gpt-5.6-sol,
 ])
 def test_golden_fixed_point_heads(monkeypatch, tmp_path, pid, head):
     """Known heads as of 2026-08-27 (intentional reprice/new-model changes must

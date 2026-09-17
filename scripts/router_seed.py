@@ -362,10 +362,13 @@ PROFILE_MODELS = {
                           ('opencode-go', 'deepseek-v4-flash')],
     'kimi k3': [('kimi-for-coding', 'k3'), ('ollama-cloud', 'kimi-k3'), ('clinepass', 'kimi-k3'),
                 ('synthetic', 'kimi-k3'), ('neuralwatt', 'kimi-k3'), ('opencode-go', 'kimi-k3')],
-    'minimax m3': [('minimax', 'minimax-m3'), ('ollama-cloud', 'minimax-m3'), ('clinepass', 'minimax-m3')],
-    'glm-5.3': [('clinepass', 'glm-5.3'), ('zai-glm', 'glm-5.3'), ('ollama-cloud', 'glm-5.3')],
+    'minimax m3': [('minimax', 'minimax-m3'), ('ollama-cloud', 'minimax-m3'), ('clinepass', 'minimax-m3'),
+                   ('xkiro', 'minimax/minimax-m3:free')],  # 2026-09-17: same family, live-swept lane
+    'glm-5.3': [('clinepass', 'glm-5.3'), ('zai-glm', 'glm-5.3'), ('ollama-cloud', 'glm-5.3'),
+                ('xkiro', 'z-ai/glm-5.3')],
     'glm-5.2': [('ollama-cloud', 'glm-5.2'), ('zai-glm', 'glm-5.2'), ('synthetic', 'glm-5.2'),
-                ('opencode-go', 'glm-5.2'), ('clinepass', 'glm-5.2')],
+                ('opencode-go', 'glm-5.2'), ('clinepass', 'glm-5.2'),
+                ('xkiro', 'z-ai/glm-5.2')],  # 2026-09-17: same family, live-swept lane
     'gpt-5.6 sol': [('openai-codex', 'gpt-5.6-sol')],
     'gpt-5.6 terra': [('openai-codex', 'gpt-5.6-terra')],
     'gpt-5.6 luna': [('openai-codex', 'gpt-5.6-luna')],
