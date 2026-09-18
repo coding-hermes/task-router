@@ -11,6 +11,15 @@ not call router_ledger.py start/end yet) must be reported as
 gates_loaded.ledger=false + a 'spawn ledger NOT WIRED' warning — the TR-007
 'model busy' concurrency gate is visibly inactive, never silently dead.
 
+TR-033/TR-055 add the stderr-telemetry switch: ROUTER-MISS per-lane lines are
+QUIET by default (they flooded 1000+ lines per ad-hoc resolve and drowned real
+warnings) and ROUTER_MISS_VERBOSE=1 restores the audit trail; --quiet /
+ROUTER_SPAWN_QUIET=1 still silences unconditionally.
+
+TR-043 adds the model_aliases lookup: a lane whose model id is an alias of a
+tiered base inherits the base's tier and can enter the chain instead of being
+dropped with tier=None before the gate stage.
+
 The 2 pre-existing failures (P9_REVIEW invariants + fallback lane, TR-029)
 are unrelated and deliberately NOT touched here.
 """
@@ -279,56 +288,82 @@ def test_ledger_with_trace_reports_wired(monkeypatch, tmp_path):
 
 
 
-# -------------------------------------------------------- TR-033 quiet mode ---
+# ------------------------------------------------- TR-033 / TR-055 quiet mode ---
 
 def _open_providers(tables):
     """All registry providers open — zero gate interference."""
     return {r["id"]: {"status": "open"} for r in tables["providers"]}
 
 
-def test_quiet_flag_suppresses_router_miss_stderr(monkeypatch, tmp_path, capsys):
-    """Default mode emits ROUTER-MISS on stderr for unmet requirements;
-    ROUTER_SPAWN_QUIET=1 suppresses it while JSON stdout stays identical."""
+def _scrub_telemetry_env(monkeypatch):
+    """Remove BOTH telemetry env switches so the default can be asserted."""
+    monkeypatch.delenv("ROUTER_SPAWN_QUIET", raising=False)
+    monkeypatch.delenv("ROUTER_MISS_VERBOSE", raising=False)
+
+
+def test_quiet_defaults_true_without_env(monkeypatch):
+    """AC1 (TR-055): telemetry is QUIET by default — no env set at all."""
+    _scrub_telemetry_env(monkeypatch)
+    assert router_spawn._quiet() is True
+
+
+def test_router_miss_verbose_restores_telemetry(monkeypatch):
+    """AC2 (TR-055): ROUTER_MISS_VERBOSE=1 is the opt-in audit trail."""
+    _scrub_telemetry_env(monkeypatch)
+    monkeypatch.setenv("ROUTER_MISS_VERBOSE", "1")
+    assert router_spawn._quiet() is False
+
+
+def test_spawn_quiet_beats_router_miss_verbose(monkeypatch):
+    """--quiet / ROUTER_SPAWN_QUIET=1 wins over the verbose opt-in (AC3)."""
+    monkeypatch.setenv("ROUTER_SPAWN_QUIET", "1")
+    monkeypatch.setenv("ROUTER_MISS_VERBOSE", "1")
+    assert router_spawn._quiet() is True
+
+
+def test_resolve_is_silent_by_default_and_loud_when_opted_in(monkeypatch, tmp_path, capsys):
+    """AC1+AC2 end-to-end: an ad-hoc resolve that misses hundreds of lanes
+    writes NOTHING to stderr by default; ROUTER_MISS_VERBOSE=1 restores the
+    per-lane ROUTER-MISS audit trail.  Telemetry never changes the result."""
     tables = _load_tables()
     monkeypatch.setattr(router_spawn, "REGISTRY", _write_registry(tmp_path, tables))
     state_dir = _state_dir(tmp_path, quota=True, health=True, circuit=True,
                            ledger=False,  # empty ledger so the TR-026 warning fires
                            providers=_open_providers(tables))
     monkeypatch.setattr(router_spawn, "MR", state_dir)
+    _scrub_telemetry_env(monkeypatch)
 
-    # Force an ad-hoc requirement that almost every model fails so ROUTER-MISS
-    # lines definitely appear.
+    # Ad-hoc requirement that almost every model fails — pre-TR-055 this
+    # emitted ~1000+ ROUTER-MISS lines per resolve.
     r = router_spawn.resolve(project=None, profile_id=None,
                              adhoc=["reasoning=5"])
     captured = capsys.readouterr()
-    assert "ROUTER-MISS:" in captured.err
-    assert "WARNING: spawn ledger NOT WIRED" in captured.err
-    # The resolve may return an error (no chain), but stdout should still be empty
-    # here because resolve() returns a dict; the caller (main) serializes it.
-    # We call resolve() directly, so no stdout. Test quiet equivalence on stderr.
+    assert captured.err == ""                     # default: silent
+    assert "ROUTER-MISS:" not in captured.err
+    assert "WARNING: spawn ledger NOT WIRED" not in captured.err
 
-    # Now enable quiet mode
-    monkeypatch.setenv("ROUTER_SPAWN_QUIET", "1")
+    # Opt in: the audit trail comes back.
+    monkeypatch.setenv("ROUTER_MISS_VERBOSE", "1")
     r2 = router_spawn.resolve(project=None, profile_id=None,
                               adhoc=["reasoning=5"])
     captured2 = capsys.readouterr()
-    assert "ROUTER-MISS:" not in captured2.err
-    assert "WARNING: spawn ledger NOT WIRED" not in captured2.err
-    assert captured2.err == ""
-    # Results identical (except timestamps)
+    assert "ROUTER-MISS:" in captured2.err
+    assert "WARNING: spawn ledger NOT WIRED" in captured2.err
+    # stdout untouched by telemetry: identical resolve (modulo timestamp)
     r.pop("resolved_at", None)
     r2.pop("resolved_at", None)
     assert r == r2
 
 
 def test_quiet_env_var_alone_suppresses_stderr(monkeypatch, tmp_path, capsys):
-    """ROUTER_SPAWN_QUIET=1 without CLI --quiet is sufficient."""
+    """ROUTER_SPAWN_QUIET=1 without CLI --quiet is sufficient (TR-033 kept)."""
     tables = _load_tables()
     monkeypatch.setattr(router_spawn, "REGISTRY", _write_registry(tmp_path, tables))
     state_dir = _state_dir(tmp_path, quota=True, health=True, circuit=True,
                            ledger=False, providers=_open_providers(tables))
     monkeypatch.setattr(router_spawn, "MR", state_dir)
     monkeypatch.setenv("ROUTER_SPAWN_QUIET", "1")
+    monkeypatch.delenv("ROUTER_MISS_VERBOSE", raising=False)
 
     r = router_spawn.resolve(project="coding-hermes-scheduler")
     captured = capsys.readouterr()
@@ -338,8 +373,9 @@ def test_quiet_env_var_alone_suppresses_stderr(monkeypatch, tmp_path, capsys):
 
 
 def test_cli_quiet_flag_sets_env_and_suppresses_stderr(tmp_path):
-    """The --quiet CLI flag exercises the argparse branch that sets
-    ROUTER_SPAWN_QUIET=1 and suppresses stderr telemetry."""
+    """AC3 (TR-055): the --quiet CLI flag still silences stderr (argparse sets
+    ROUTER_SPAWN_QUIET=1).  Baseline flipped: the DEFAULT run is silent too;
+    ROUTER_MISS_VERBOSE=1 is the only way back to the per-lane audit trail."""
     import subprocess
     tables = _load_tables()
     reg = _write_registry(tmp_path, tables)
@@ -351,33 +387,44 @@ def test_cli_quiet_flag_sets_env_and_suppresses_stderr(tmp_path):
     env["ROUTING_REGISTRY"] = reg
     env["ROUTER_STATE_DIR"] = state_dir
     env.pop("ROUTER_SPAWN_QUIET", None)
+    env.pop("ROUTER_MISS_VERBOSE", None)
 
-    loud = subprocess.run(
+    default = subprocess.run(
         [sys.executable, "-m", "scripts.router_spawn", "coding-hermes-scheduler",
          "--format", "json"],
         capture_output=True, text=True, cwd=REPO, env=env)
+    assert default.returncode == 0
+    assert default.stderr == ""          # TR-055: quiet by default
+    assert json.loads(default.stdout)    # pure JSON stdout
+
+    env_verbose = dict(env, ROUTER_MISS_VERBOSE="1")
+    loud = subprocess.run(
+        [sys.executable, "-m", "scripts.router_spawn", "coding-hermes-scheduler",
+         "--format", "json"],
+        capture_output=True, text=True, cwd=REPO, env=env_verbose)
     assert loud.returncode == 0
     assert "ROUTER-MISS:" in loud.stderr or "WARNING: spawn ledger NOT WIRED" in loud.stderr
 
     quiet = subprocess.run(
         [sys.executable, "-m", "scripts.router_spawn", "coding-hermes-scheduler",
          "--format", "json", "--quiet"],
-        capture_output=True, text=True, cwd=REPO, env=env)
+        capture_output=True, text=True, cwd=REPO, env=env_verbose)
     assert quiet.returncode == 0
-    assert quiet.stderr == ""
-    assert json.loads(quiet.stdout)  # valid JSON
+    assert quiet.stderr == ""            # --quiet wins over verbose
+    assert json.loads(quiet.stdout)
 
 
 def _quiet_env(tmp_path, tables, state_dir):
-    """Hermetic subprocess env for the TR-033 CLI tests: registry + state dir
-    pointed at the fixtures, metrics isolated into tmp (TASK_ROUTER_HOME,
-    same convention as test_cli_paths), ROUTER_SPAWN_QUIET scrubbed so the
-    default (loud) behavior is what a fresh embedder would see."""
+    """Hermetic subprocess env for the TR-033/TR-055 CLI tests: registry + state
+    dir pointed at the fixtures, metrics isolated into tmp (TASK_ROUTER_HOME,
+    same convention as test_cli_paths), BOTH telemetry switches scrubbed so the
+    default behavior (TR-055: quiet) is what a fresh embedder would see."""
     env = os.environ.copy()
     env["ROUTING_REGISTRY"] = _write_registry(tmp_path, tables)
     env["ROUTER_STATE_DIR"] = state_dir
     env["TASK_ROUTER_HOME"] = str(tmp_path / "metrics-home")
     env.pop("ROUTER_SPAWN_QUIET", None)
+    env.pop("ROUTER_MISS_VERBOSE", None)
     return env
 
 
@@ -391,16 +438,18 @@ def _spawn_proc(env, *extra):
 
 def test_quiet_stdout_identical_to_loud(tmp_path):
     """Criterion: --quiet must produce IDENTICAL JSON stdout — stderr silence
-    alone is not enough. Loud run emits ROUTER-MISS telemetry (default ON);
-    quiet run has empty stderr; parsed JSON is equal modulo resolved_at."""
+    alone is not enough.  The loud run opts in via ROUTER_MISS_VERBOSE=1
+    (TR-055 moved the default to quiet); parsed JSON is equal modulo
+    resolved_at."""
     tables = _load_tables()
     state_dir = _state_dir(tmp_path, quota=True, health=True, circuit=True,
                            ledger=False, providers=_open_providers(tables))
     env = _quiet_env(tmp_path, tables, state_dir)
+    env["ROUTER_MISS_VERBOSE"] = "1"
 
     loud = _spawn_proc(env)
     assert loud.returncode == 0, loud.stderr
-    assert "ROUTER-MISS:" in loud.stderr  # default: telemetry ON
+    assert "ROUTER-MISS:" in loud.stderr  # opt-in: telemetry ON
 
     quiet = _spawn_proc(env, "--quiet")
     assert quiet.returncode == 0, quiet.stderr
@@ -415,8 +464,8 @@ def test_quiet_stdout_identical_to_loud(tmp_path):
 def test_quiet_fail_open_error_json_on_stdout(tmp_path):
     """Fail-open contract under quiet: an error resolve (unknown project)
     still exits 0 and prints {"error": ...} on stdout; stderr stays empty.
-    Loud and quiet stdout are identical (quiet silences telemetry, never the
-    JSON contract)."""
+    Telemetry (now opt-in) never changes the JSON contract: the
+    ROUTER_MISS_VERBOSE=1 run's stdout is identical."""
     tables = _load_tables()
     state_dir = _state_dir(tmp_path, quota=True, health=True, circuit=True,
                            ledger=False, providers=_open_providers(tables))
@@ -426,14 +475,178 @@ def test_quiet_fail_open_error_json_on_stdout(tmp_path):
     args = [sys.executable, "-m", "scripts.router_spawn",
             "no-such-project-xyz", "--format", "json"]
 
-    loud = subprocess.run(args, capture_output=True, text=True,
-                          cwd=REPO, env=env, timeout=60)
+    default = subprocess.run(args, capture_output=True, text=True,
+                             cwd=REPO, env=env, timeout=60)
+    verbose = subprocess.run(args, capture_output=True, text=True,
+                             cwd=REPO, env=dict(env, ROUTER_MISS_VERBOSE="1"),
+                             timeout=60)
     quiet = subprocess.run(args + ["--quiet"], capture_output=True, text=True,
                            cwd=REPO, env=env, timeout=60)
-    assert loud.returncode == 0  # fail-open: exit 0 on error
+    assert default.returncode == 0  # fail-open: exit 0 on error
+    assert verbose.returncode == 0
     assert quiet.returncode == 0
     assert quiet.stderr == ""
-    loud_doc = json.loads(loud.stdout)
+    default_doc = json.loads(default.stdout)
+    verbose_doc = json.loads(verbose.stdout)
     quiet_doc = json.loads(quiet.stdout)
-    assert "error" in loud_doc and "no-such-project-xyz" in loud_doc["error"]
-    assert loud_doc == quiet_doc
+    assert "error" in default_doc and "no-such-project-xyz" in default_doc["error"]
+    assert default_doc == quiet_doc == verbose_doc
+
+
+# ------------------------------------------------------- TR-043 aliases ----
+
+def _alias_tables():
+    """Minimal registry: two priced lanes, tier evidence only on the base.
+
+    prov-b/variant-model is a serving variant of prov-a/base-model's weights
+    and carries NO tier row of its own — without the alias lookup it scores
+    tier=None for every requirement and is dropped before the gate stage.
+    """
+    return {
+        "providers": [{"id": "prov-a"}, {"id": "prov-b"}],
+        "models": [
+            {"provider": "prov-a", "model": "base-model", "normalized_price": 0.5,
+             "data_class": "open", "context_limit": 1000000},
+            {"provider": "prov-b", "model": "variant-model", "normalized_price": 0.1,
+             "data_class": "open", "context_limit": 1000000},
+        ],
+        "model_tier": [{"model": "base-model", "category": "reasoning", "tier": 5}],
+        "category_levels": [{"category": "reasoning", "level": 5, "label": "q95",
+                             "min_perf": 0.9}],
+        "level_defs": [{"level": lvl, "label": str(lvl)} for lvl in range(-5, 6)],
+        "fallback_lanes": [], "projects": [], "task_profiles": [],
+        "task_profile_requirements": [],
+    }
+
+
+def _alias_data_dir(monkeypatch, tmp_path, rows, subdir="tables"):
+    """Point router_spawn.DATA_DIR at a tmp table dir holding the alias rows."""
+    ddir = tmp_path / subdir
+    ddir.mkdir(exist_ok=True)
+    with open(ddir / "model_aliases.jsonl", "w") as f:
+        for r in rows:
+            f.write(json.dumps(r) + "\n")
+    monkeypatch.setattr(router_spawn, "DATA_DIR", str(ddir))
+    return str(ddir)
+
+
+def _resolve_alias_fixture(monkeypatch, tmp_path, tables, alias_rows):
+    monkeypatch.setattr(router_spawn, "REGISTRY", _write_registry(tmp_path, tables))
+    monkeypatch.setattr(router_spawn, "MR",
+                        _state_dir(tmp_path, providers=_open_providers(tables)))
+    _alias_data_dir(monkeypatch, tmp_path, alias_rows)
+    _scrub_telemetry_env(monkeypatch)
+    return router_spawn.resolve(adhoc=["reasoning=5"])
+
+
+def test_alias_variant_inherits_base_tier_and_enters_chain(monkeypatch, tmp_path):
+    """AC5 (TR-043): a lane whose model id is an alias of a tiered base inherits
+    the base's tier and ENTERS the chain (cheapest-first), instead of being
+    dropped with tier=None for every requirement."""
+    tables = _alias_tables()
+    r = _resolve_alias_fixture(
+        monkeypatch, tmp_path, tables,
+        [{"model": "variant-model", "inherits": "base-model",
+          "note": "test fixture: serving variant of the base weights"}])
+
+    chain = [f'{e["provider"]}/{e["model"]}' for e in r["chain"]]
+    assert chain == ["prov-b/variant-model", "prov-a/base-model"]
+    assert r["head"]["model"] == "variant-model"   # $0.1 < $0.5, both tier 5
+    assert [e["hop"] for e in r["chain"]] == [1, 2]
+
+
+def test_alias_variant_without_mapping_is_dropped(monkeypatch, tmp_path):
+    """Control: with no alias row the variant keeps tier=None and never reaches
+    the chain — the pre-TR-043 behavior, unchanged (fail-open, no fabrication)."""
+    tables = _alias_tables()
+    r = _resolve_alias_fixture(monkeypatch, tmp_path, tables, [])
+
+    chain = [f'{e["provider"]}/{e["model"]}' for e in r["chain"]]
+    assert chain == ["prov-a/base-model"]
+    assert r["head"]["model"] == "base-model"
+
+
+def test_alias_chain_is_transitive(monkeypatch, tmp_path):
+    """variant -> mid (untiered) -> base (tiered): the lookup follows the whole
+    chain, because registry renames chain (deepseek-v4-flash-flex ->
+    deepseek-v4-flash -> deepseek-flash)."""
+    tables = _alias_tables()
+    tables["models"].append(
+        {"provider": "prov-a", "model": "mid-model", "normalized_price": 0.2,
+         "data_class": "open", "context_limit": 1000000})
+    r = _resolve_alias_fixture(
+        monkeypatch, tmp_path, tables,
+        [{"model": "variant-model", "inherits": "mid-model"},
+         {"model": "mid-model", "inherits": "base-model"}])
+
+    assert router_spawn._alias_chain("variant-model") == \
+        ["variant-model", "mid-model", "base-model"]
+    chain = [f'{e["provider"]}/{e["model"]}' for e in r["chain"]]
+    assert chain == ["prov-b/variant-model", "prov-a/mid-model", "prov-a/base-model"]
+
+
+def test_alias_tiers_own_evidence_wins_and_blanks_fill(monkeypatch, tmp_path):
+    """The variant's OWN tier always wins; only missing/blank categories are
+    filled from the alias base."""
+    _alias_data_dir(monkeypatch, tmp_path,
+                    [{"model": "variant-model", "inherits": "base-model"}])
+    tiers = {"variant-model": {"reasoning": 2, "debug": None},
+             "base-model": {"reasoning": 5, "debug": 4, "review": 3}}
+    folded = router_spawn._fold_tier_names(tiers)
+
+    mt = router_spawn._alias_tiers(tiers, folded, "variant-model")
+    assert mt["reasoning"] == 2   # own evidence wins over the base's 5
+    assert mt["debug"] == 4       # blank/None row filled from the base
+    assert mt["review"] == 3      # absent category filled from the base
+
+
+def test_alias_tier_lookup_is_case_folded(monkeypatch, tmp_path):
+    """Registry ids drift in case — the committed tables carry both casings of
+    the same weights (an openrouter lane `stepfun/step-3.5-flash` next to the
+    tier table's `stepfun/Step-3.5-Flash`).  A case mismatch must not blank a
+    lane: the lane's OWN rows are found folded, and the alias base's too."""
+    _alias_data_dir(monkeypatch, tmp_path,
+                    [{"model": "Variant-Model", "inherits": "Base-Model"}])
+
+    # (a) the lane's own rows are stored under a different casing
+    tiers = {"Variant-Model": {"reasoning": 5}}
+    folded = router_spawn._fold_tier_names(tiers)
+    assert router_spawn._alias_tiers(tiers, folded, "variant-model")["reasoning"] == 5
+
+    # (b) the alias base's rows are stored under a different casing
+    tiers = {"Base-Model": {"debug": 4}}
+    folded = router_spawn._fold_tier_names(tiers)
+    mt = router_spawn._alias_tiers(tiers, folded, "variant-model")
+    assert mt["debug"] == 4
+
+
+def test_alias_map_is_cached_per_path(monkeypatch, tmp_path):
+    """The map is loaded once per resolved path (module-level cache) and a
+    different data dir gets a FRESH read — a stale map can never leak across
+    tests or across an ops data-home switch."""
+    d1 = _alias_data_dir(monkeypatch, tmp_path,
+                         [{"model": "a", "inherits": "b"}])
+    assert router_spawn._alias_map() == {"a": "b"}
+
+    # same path, rewritten on disk: the cached map still answers
+    with open(os.path.join(d1, "model_aliases.jsonl"), "w") as f:
+        f.write(json.dumps({"model": "a", "inherits": "c"}) + "\n")
+    assert router_spawn._alias_map() == {"a": "b"}
+
+    # different path = different cache key = fresh read
+    _alias_data_dir(monkeypatch, tmp_path,
+                    [{"model": "x", "inherits": "y"}], subdir="tables2")
+    assert router_spawn._alias_map() == {"x": "y"}
+
+
+def test_alias_map_fail_open_on_malformed_file(monkeypatch, tmp_path):
+    """A corrupt alias file degrades to {} (no inheritance, no exception) — the
+    router's fail-open contract is never broken by enrichment data."""
+    ddir = tmp_path / "tables"
+    ddir.mkdir()
+    (ddir / "model_aliases.jsonl").write_text("{not json\n")
+    monkeypatch.setattr(router_spawn, "DATA_DIR", str(ddir))
+
+    assert router_spawn._alias_map() == {}
+    assert router_spawn._alias_chain("anything") == ["anything"]
+    assert router_spawn._alias_tiers({}, {}, "anything") == {}

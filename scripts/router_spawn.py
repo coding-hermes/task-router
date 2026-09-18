@@ -56,15 +56,37 @@ import json, os, sys, argparse, datetime, contextlib
 # fell past position 34/74 → spurious degraded_fallback). 2026-09-12 TR-039:
 # vendor-prefixed lanes (commandcode/aws-bedrock/fireworks-ai) gained tier rows,
 # eligible P1_CODING lanes went ~94 → ~260, so the cap moved 96 → 320 with
-# headroom. tests/test_regression.py::test_chain_default_limit_covers_registry
+# headroom. 2026-09-17 TR-043: the alias/case-folded lane-id lookup (see
+# _alias_tiers) lets alias-mapped and case-variant lanes tier and enter chains,
+# pushing eligible lanes to 323 (measured with limit=10**6) — the cap moved
+# 320 → 400 so the tail stays complete.
+# tests/test_regression.py::test_chain_default_limit_covers_registry
 # asserts eligible < this value — raise it whenever the registry outgrows it.
-DEFAULT_CHAIN_LIMIT = 320
+DEFAULT_CHAIN_LIMIT = 400
 
 
-# TR-033: --quiet / ROUTER_SPAWN_QUIET=1 suppresses stderr telemetry.  Default
-# is LOUD so ROUTER-MISS analysis keeps getting data.  Checked once per process.
+# TR-033 / TR-055: --quiet / ROUTER_SPAWN_QUIET=1 suppresses stderr telemetry.
+# TR-055 (2026-09-17 re-measure): the DEFAULT FLIPPED to quiet.  Per-lane
+# ROUTER-MISS lines flooded every ad-hoc resolve (1466 stderr lines, 1166 of
+# them tier=None for `--profile-req 'reasoning=5 debug=3 min_context=100000'`)
+# and drowned any real warning.  The audit trail is now OPT-IN via
+# ROUTER_MISS_VERBOSE=1 — quiet by default, loud on request.
+#
+# Truth table (env values '1'/'true'/'yes'):
+#   ROUTER_SPAWN_QUIET truthy         -> True   (--quiet sets this)
+#   else ROUTER_MISS_VERBOSE truthy   -> False  (telemetry restored)
+#   else                              -> True   (the new default)
+# False is returned ONLY when ROUTER_MISS_VERBOSE is set and ROUTER_SPAWN_QUIET
+# is not, so an explicit --quiet still wins over the verbose opt-in.
+def _truthy_env(val):
+    """Exact-match truthiness for the router's env flags ('1'/'true'/'yes')."""
+    return val in ('1', 'true', 'yes')
+
+
 def _quiet():
-    return os.environ.get('ROUTER_SPAWN_QUIET', '') in ('1', 'true', 'yes')
+    if _truthy_env(os.environ.get('ROUTER_SPAWN_QUIET', '')):
+        return True
+    return not _truthy_env(os.environ.get('ROUTER_MISS_VERBOSE', ''))
 
 
 def _err(msg):
@@ -103,6 +125,118 @@ def load_json(path, default):
         return json.load(open(path))
     except Exception:
         return default
+
+
+# ---------------------------------------------------------------- aliases ----
+# TR-043: data/tables/model_aliases.jsonl maps serving-lane variants, vendor /
+# snapshot / HF-mirrored ids to their canonical weights ({"model": variant,
+# "inherits": base}).  The spawn path consults it when a lane's model id has no
+# tier evidence of its own: the variant otherwise shows tier=None for every
+# required category and is dropped BEFORE the gate stage — invisible in the
+# chain AND in exclusions (the ROUTER-MISS flood).  Inheriting the base's tier
+# lets an alias-mapped variant tier and enter the chain.
+#
+# Cache: module-level, keyed by the resolved file path, so a test/ops override
+# of ROUTING_DATA_DIR (or a monkeypatched DATA_DIR) gets its own entry and can
+# never read a stale map.  Read errors are NOT cached (a transient failure is
+# retried on the next resolve); a missing file caches {} = no alias
+# inheritance, exactly the pre-TR-043 behavior (fail-open, never raises).
+_ALIAS_CACHE = {}
+
+
+def _alias_map():
+    """{variant_lower: base_lower} from data/tables/model_aliases.jsonl.
+
+    Module-cached per path.  Fail-open: missing/unreadable/malformed file
+    returns {} so the router keeps resolving (aliases are an enrichment, never
+    a gate).  Keys/values are case-folded — registry model ids drift in case
+    (e.g. `hf:Qwen/Qwen3.6-27B`) and a case mismatch must not silently disable
+    an existing mapping.
+    """
+    path = os.path.join(DATA_DIR, 'model_aliases.jsonl')
+    cached = _ALIAS_CACHE.get(path)
+    if cached is not None:
+        return cached
+    if not os.path.exists(path):
+        _ALIAS_CACHE[path] = {}
+        return _ALIAS_CACHE[path]
+    try:
+        amap = {}
+        with open(path) as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                row = json.loads(line)
+                var = row.get('model') or row.get('variant')
+                base = row.get('inherits') or row.get('base')
+                if var and base and str(var).lower() != str(base).lower():
+                    amap[str(var).lower()] = str(base).lower()
+    except Exception:  # noqa: BLE001 — fail-open, never block a resolve
+        return {}
+    _ALIAS_CACHE[path] = amap
+    return amap
+
+
+def _alias_chain(model):
+    """[model, base, base-of-base, ...] — TRANSITIVE alias resolution.
+
+    Registry history chains renames (deepseek-v4-flash-flex -> deepseek-v4-flash
+    -> deepseek-flash), so a single hop would miss the tiered name.  Returns
+    [model] for an unmapped/empty model.  Cycle-guarded (a malformed map can
+    never spin) and case-folded for the lookups after the first element.
+    """
+    if not model:
+        return []
+    amap = _alias_map()
+    chain = [model]
+    seen = {str(model).lower()}
+    cur = str(model).lower()
+    while True:
+        nxt = amap.get(cur)
+        if not nxt or nxt in seen:
+            break
+        seen.add(nxt)
+        chain.append(nxt)
+        cur = nxt
+    return chain
+
+
+def _fold_tier_names(tiers):
+    """{lower(model): {category: tier}} companion index for alias lookups."""
+    folded = {}
+    for name, cats in (tiers or {}).items():
+        folded.setdefault(str(name).lower(), cats)
+    return folded
+
+
+def _alias_tiers(tiers, folded, model):
+    """Tier dict for a lane's model id, alias-aware (TR-043).
+
+    The lane's OWN tier evidence always wins (a variant benchmarked in its own
+    right overrides the base); categories it has no row for are filled from its
+    alias base, then that base's base.  A lane with no alias mapping gets
+    exactly `tiers.get(model)` — byte-identical to the pre-TR-043 behavior.
+
+    Lookups are case-folded because tier evidence is per MODEL and the registry
+    matches models by `lower(model)` everywhere (router_seed.py); the committed
+    tables carry both casings of the same weights (e.g. an openrouter lane
+    `stepfun/step-3.5-flash` alongside the tier table's `stepfun/Step-3.5-Flash`),
+    so an exact-match-only lookup silently blanks a lane that HAS evidence.
+    """
+    own = tiers.get(model)
+    if own is None:
+        own = folded.get(str(model).lower())
+    chain = _alias_chain(model)
+    if len(chain) < 2:
+        return own or {}
+    merged = dict(own or {})
+    for alt in chain[1:]:
+        base = tiers.get(alt) or folded.get(alt) or {}
+        for cat, tier in base.items():
+            if merged.get(cat) is None:
+                merged[cat] = tier
+    return merged
 
 
 def _parse_utc(ts):
@@ -539,9 +673,12 @@ def _build_chain(tables, reqs, limit=DEFAULT_CHAIN_LIMIT):
     # Evidence is per MODEL (Bane 2026-08-27): tiers keyed by model name only;
     # every provider lane of the same weights inherits the same tier. A lane
     # with a bad deployment is disabled EXPLICITLY via models.disabled.
+    # TR-043: an alias-mapped variant (see _alias_tiers) also inherits its
+    # base's tier rows for categories it has none of its own.
     tiers = {}
     for r in tables.get('model_tier') or []:
         tiers.setdefault(r.get('model'), {})[r.get('category')] = r.get('tier')
+    tiers_folded = _fold_tier_names(tiers)
 
     # TR-015: split out the min_context requirement from tier-based reqs.
     min_context = None
@@ -563,7 +700,7 @@ def _build_chain(tables, reqs, limit=DEFAULT_CHAIN_LIMIT):
         if price is None:
             continue
         prov, model = m.get('provider'), m.get('model')
-        mt = tiers.get(model) or {}
+        mt = _alias_tiers(tiers, tiers_folded, model)
         # BLANK default (Bane 2026-08-27): a missing tier = -1 (no data = slightly
         # below median — clears lenient bars, fails 0 and up). NEVER 0, never an
         # inflated neutral.
@@ -663,6 +800,7 @@ def _resolve_fallback(tables, qs, hs, cs, reqs, limit=DEFAULT_CHAIN_LIMIT, profi
     tiers = {}
     for r in tables.get('model_tier') or []:
         tiers.setdefault(r.get('model'), {})[r.get('category')] = r.get('tier')
+    tiers_folded = _fold_tier_names(tiers)  # TR-043: alias-aware lane tiers
     generic, specific = [], []
     for f in lanes:
         profs = f.get('profiles') or []
@@ -695,7 +833,7 @@ def _resolve_fallback(tables, qs, hs, cs, reqs, limit=DEFAULT_CHAIN_LIMIT, profi
         if (cs.get((f.get('provider'), f.get('model'))) or
                 cs.get(f'{f.get("provider")}/{f.get("model")}')):
             continue  # circuit OPEN for this exact pair
-        mt = tiers.get(f.get('model')) or {}
+        mt = _alias_tiers(tiers, tiers_folded, f.get('model'))
         unmet = [(c, lvl, mt.get(c) if mt.get(c) is not None else -1)
                  for c, lvl in reqs
                  if (mt.get(c) if mt.get(c) is not None else -1) < lvl]
@@ -1043,11 +1181,13 @@ def main():
                          'DOWN/quoted/circuit-open lanes still excluded.')
     ap.add_argument('--quiet', action='store_true',
                     help='suppress stderr telemetry (ROUTER-MISS, warnings); '
-                         'env ROUTER_SPAWN_QUIET=1 also works')
+                         'this is now the DEFAULT — the audit trail is opt-in '
+                         'via ROUTER_MISS_VERBOSE=1; env ROUTER_SPAWN_QUIET=1 '
+                         'also works')
     args = ap.parse_args()
 
-    # TR-033: --quiet takes precedence; set the env so the rest of the code
-    # observes a single source of truth.
+    # TR-033 / TR-055: --quiet takes precedence; set the env so the rest of the
+    # code observes a single source of truth (the default is already quiet).
     if args.quiet:
         os.environ['ROUTER_SPAWN_QUIET'] = '1'
 
