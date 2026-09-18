@@ -124,6 +124,35 @@ def test_chain_invariants_per_profile(monkeypatch, tmp_path, pid):
     assert reqs, f"{pid}: profile must have requirements"
     tier = {(t["model"], t["category"]): t["tier"]
             for t in tables["model_tier"]}
+    # TR-043: the spawn path resolves a lane's tier through model_aliases — a
+    # variant id (vendor-prefixed / HF mirror, e.g. openrouter/moonshotai/kimi-k3)
+    # inherits its base's row for every category it has no evidence of its own.
+    # Mirror that rule here so the dominance check stays a REAL check
+    # (own-or-inherited evidence >= lvl) instead of flagging legitimate
+    # inherited evidence as BLANK.  Strictness is unchanged: a lane with
+    # neither own nor inherited evidence still fails any positive bar.
+    alias = {}
+    for a in tables.get("model_aliases") or []:
+        if a.get("model") and a.get("inherits"):
+            alias[str(a["model"]).lower()] = str(a["inherits"]).lower()
+    tier_by_model = {}
+    for (mname, cat), t in tier.items():
+        tier_by_model.setdefault(str(mname).lower(), {})[cat] = t
+
+    def _evidence(model_name, cat):
+        """Own tier row, else the alias chain's (TR-043), else None."""
+        own = tier_by_model.get(str(model_name).lower(), {}).get(cat)
+        if own is not None:
+            return own
+        seen = {str(model_name).lower()}
+        cur = str(model_name).lower()
+        while alias.get(cur) and alias[cur] not in seen:
+            cur = alias[cur]
+            seen.add(cur)
+            hit = tier_by_model.get(cur, {}).get(cat)
+            if hit is not None:
+                return hit
+        return None
     prices = {}
     for m in tables["models"]:
         if m.get("archive") or m.get("valid_to") is not None or m.get("disabled"):
@@ -153,10 +182,11 @@ def test_chain_invariants_per_profile(monkeypatch, tmp_path, pid):
         pair = _pair(e)
         assert pair not in seen, f"{pid}: duplicate pair {pair}"
         seen.add(pair)
-        # dominance: every requirement must be cleared — a tier row >= lvl,
-        # OR (BLANK default, Bane 2026-08-27) no tier row with lvl <= -1
+        # dominance: every requirement must be cleared — own-or-inherited tier
+        # evidence (TR-043 aliases) >= lvl, OR no evidence at all with lvl <= -1
+        # (BLANK default, Bane 2026-08-27)
         for cat, lvl in reqs:
-            t = tier.get((e["model"], cat))
+            t = _evidence(e["model"], cat)
             if t is None:
                 assert lvl <= -1, f"{pid}: {pair} BLANK tier for {cat} cannot clear {lvl}"
             else:

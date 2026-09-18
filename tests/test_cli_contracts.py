@@ -107,10 +107,22 @@ def test_text_format_prints_error_field(tmp_path):
 
 
 def test_profile_project_conflict_reported_stderr(tmp_path):
-    """Both --profile and project given → stderr names which wins; JSON pure."""
+    """Both --profile and project given → stderr names which wins; JSON pure.
+
+    TR-055: stderr telemetry is quiet by default, so the conflict warning is
+    asserted under the opt-in audit trail (ROUTER_MISS_VERBOSE=1) and asserted
+    ABSENT on the default run.
+    """
     env = _hermetic_env(tmp_path)
+    default = run(os.path.join(SCRIPTS, "router_spawn.py"), "coding-hermes-scheduler",
+                  "--profile", "P4_SECURITY", "--format", "json", env_extra=env)
+    assert default.returncode == 0
+    assert default.stderr == ""          # TR-055: quiet by default
+    assert json.loads(default.stdout)    # stdout stays pure JSON either way
+
     p = run(os.path.join(SCRIPTS, "router_spawn.py"), "coding-hermes-scheduler",
-            "--profile", "P4_SECURITY", "--format", "json", env_extra=env)
+            "--profile", "P4_SECURITY", "--format", "json",
+            env_extra=dict(env, ROUTER_MISS_VERBOSE="1"))
     assert p.returncode == 0
     assert "WARNING" in p.stderr
     assert "resolving via project" in p.stderr
