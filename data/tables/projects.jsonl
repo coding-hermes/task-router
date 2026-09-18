@@ -1,5 +1,6 @@
 {"id": "9router", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "9router-dogfood", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
+{"id": "9router-pm", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
 {"id": "9router-qa", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P9_REVIEW"}
 {"id": "9router-sync", "sensitivity": "open", "board_type": "", "stack": "", "profile": "P8_SYNC"}
 {"id": "Kobayashi-Maru", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
@@ -21,10 +22,12 @@
 {"id": "boardctl-sync", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
 {"id": "bunker", "sensitivity": "proprietary", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "bunker-dogfood", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
+{"id": "bunker-pm", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
 {"id": "bunker-qa", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P9_REVIEW"}
 {"id": "bunker-sync", "sensitivity": "open", "board_type": "", "stack": "", "profile": "P8_SYNC"}
 {"id": "chimera-v2", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "chimera-v2-dogfood", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
+{"id": "chimera-v2-pm", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
 {"id": "chimera-v2-qa", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P9_REVIEW"}
 {"id": "chimera-v2-sync", "sensitivity": "open", "board_type": "", "stack": "", "profile": "P8_SYNC"}
 {"id": "coding-hermes-scheduler", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P1_CODING"}
@@ -37,6 +40,7 @@
 {"id": "consensus-sync", "sensitivity": "open", "board_type": "", "stack": "", "profile": "P8_SYNC"}
 {"id": "crier", "sensitivity": null, "board_type": null, "stack": null, "profile": "P0_FORE"}
 {"id": "crier-dogfood", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
+{"id": "crier-pm", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
 {"id": "crier-qa", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P9_REVIEW"}
 {"id": "crier-sync", "sensitivity": "open", "board_type": "", "stack": "", "profile": "P8_SYNC"}
 {"id": "dagger-sync", "sensitivity": "open", "board_type": "", "stack": "", "profile": "P8_SYNC"}
@@ -68,10 +72,12 @@
 {"id": "frontiers-ghost-sync", "sensitivity": "open", "board_type": "", "stack": "", "profile": "P8_SYNC"}
 {"id": "gitreins-poc", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P4_SECURITY"}
 {"id": "gitreins-poc-dogfood", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
+{"id": "gitreins-poc-pm", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
 {"id": "gitreins-poc-qa", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P9_REVIEW"}
 {"id": "gitreins-sync", "sensitivity": "open", "board_type": "", "stack": "", "profile": "P8_SYNC"}
 {"id": "h3", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "h3-dogfood", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
+{"id": "h3-pm", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
 {"id": "h3-qa", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P9_REVIEW"}
 {"id": "h3-sdk-go-foreman", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "h3-sdk-go-foreman-dogfood", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
@@ -88,6 +94,7 @@
 {"id": "h3-umbrella-sync", "sensitivity": "open", "board_type": "", "stack": "", "profile": "P8_SYNC"}
 {"id": "heading", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "heading-dogfood", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
+{"id": "heading-pm", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
 {"id": "heading-qa", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P9_REVIEW"}
 {"id": "heading-sync", "sensitivity": "open", "board_type": "", "stack": "", "profile": "P8_SYNC"}
 {"id": "helios", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
@@ -101,10 +108,12 @@
 {"id": "hermes-agent-sync", "sensitivity": "open", "board_type": "", "stack": "", "profile": "P8_SYNC"}
 {"id": "hermes-canopy", "sensitivity": null, "board_type": null, "stack": null, "profile": "P0_FORE"}
 {"id": "hermes-canopy-dogfood", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
+{"id": "hermes-canopy-pm", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
 {"id": "hermes-canopy-qa", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P9_REVIEW"}
 {"id": "hermes-canopy-sync", "sensitivity": "open", "board_type": "", "stack": "", "profile": "P8_SYNC"}
 {"id": "hermes-dagger", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "hermes-dagger-dogfood", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
+{"id": "hermes-dagger-pm", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
 {"id": "hermes-dagger-qa", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P9_REVIEW"}
 {"id": "hermes4friends-infra", "sensitivity": "proprietary", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "hermes4friends-infra-dogfood", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
@@ -139,6 +148,7 @@
 {"id": "mythos-sync", "sensitivity": "open", "board_type": "", "stack": "", "profile": "P8_SYNC"}
 {"id": "off-by-one", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "off-by-one-dogfood", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
+{"id": "off-by-one-pm", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
 {"id": "off-by-one-qa", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P9_REVIEW"}
 {"id": "off-by-one-sync", "sensitivity": "open", "board_type": "", "stack": "", "profile": "P8_SYNC"}
 {"id": "qa", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P9_REVIEW"}
@@ -171,6 +181,7 @@
 {"id": "temporal-vector-index-sync", "sensitivity": "open", "board_type": "", "stack": "", "profile": "P8_SYNC"}
 {"id": "terminal-jail", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "terminal-jail-dogfood", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
+{"id": "terminal-jail-pm", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
 {"id": "terminal-jail-qa", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P9_REVIEW"}
 {"id": "terminal-jail-sync", "sensitivity": "open", "board_type": "", "stack": "", "profile": "P8_SYNC"}
 {"id": "totalstack", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P9_REVIEW"}
@@ -187,6 +198,7 @@
 {"id": "uhlp-sync", "sensitivity": "open", "board_type": "", "stack": "", "profile": "P8_SYNC"}
 {"id": "warpfs", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "warpfs-dogfood", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
+{"id": "warpfs-pm", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
 {"id": "warpfs-qa", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P9_REVIEW"}
 {"id": "warpfs-sync", "sensitivity": "open", "board_type": "", "stack": "", "profile": "P8_SYNC"}
 {"id": "wojons-mythos", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
