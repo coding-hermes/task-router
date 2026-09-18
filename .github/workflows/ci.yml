@@ -19,6 +19,9 @@ jobs:
       - name: Install test deps
         run: pip install --quiet pytest duckdb  # seed subprocess + several tests use the duckdb engine
 
+      - name: Seed registry (registry.json is gitignored — CI must generate it)
+        run: python3 -m scripts.router_seed
+
       - name: Full test suite (pure JSON — no duckdb needed)
         run: python3 -m pytest -q tests/ -p no:cacheprovider
 
