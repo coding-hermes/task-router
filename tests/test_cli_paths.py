@@ -330,3 +330,132 @@ def test_circuit_status_json_via_subprocess_entrypoint(tmp_path, monkeypatch):
     assert proc.returncode == 0, proc.stderr
     assert '"pairs"' in proc.stdout
     assert os.path.isdir(str(tmp_path / "dh"))
+
+
+# --------------------------------------------------------------------------
+# TR-056: the data-home export covers EVERY subcommand, not a subset
+# --------------------------------------------------------------------------
+
+def test_every_command_has_an_export_entry():
+    """AC1 — a subcommand missing from the map keeps its own script default
+    (repo-relative registry, hardcoded state dir) and disagrees with spawn."""
+    exports = cli._home_env_exports()
+    missing = sorted(set(cli.COMMANDS) - set(exports))
+    assert not missing, f"subcommands with no export entry: {missing}"
+    unknown = sorted(set(exports) - set(cli.COMMANDS))
+    assert not unknown, f"export entries for unknown subcommands: {unknown}"
+
+
+def test_tr056_second_wave_commands_export_the_data_home(tmp_path, monkeypatch):
+    """status/validate/estimate/server must resolve the SAME registry + state
+    dir as spawn (before TR-056 they kept the script defaults)."""
+    home = str(tmp_path / "dh")
+    monkeypatch.setenv("TASK_ROUTER_HOME", home)
+    exports = cli._home_env_exports()
+    registry = os.path.join(home, "registry.json")
+    tables = os.path.join(cli.REPO, "data", "tables")
+    for cmd in ("spawn", "status", "validate", "estimate", "server"):
+        assert exports[cmd]["ROUTING_REGISTRY"] == registry, cmd
+        assert exports[cmd]["ROUTER_STATE_DIR"] == home, cmd
+        assert exports[cmd]["ROUTING_DATA_DIR"] == tables, cmd
+
+
+def test_tr056_per_command_granularity_matches_the_scripts():
+    """Only hooks the target script can actually read are exported.
+
+    TR-056 grepped every script: the brief's assumed mapping was WIDER for
+    diff/web/metrics (three commands that read no registry/tables/state hook)
+    and NARROWER for validate (which does read ROUTER_STATE_DIR).
+    """
+    exports = cli._home_env_exports()
+    docs = os.path.join(cli.REPO, "docs")
+    # router_diff.py reads ROUTING_DOCS_DIR and no registry/tables/state hook
+    assert exports["diff"] == {"ROUTING_DOCS_DIR": docs}
+    # router_web.py reads ROUTING_DATA_DIR only — resolve_preview() pins the
+    # child's ROUTING_REGISTRY to <repo>/registry.json itself, so an export
+    # here could never be read
+    assert set(exports["web"]) == {"ROUTING_DATA_DIR"}
+    # router_metrics.py reads TASK_ROUTER_HOME (not the ROUTING_* hooks) with
+    # the same default router_spawn.py's metric writer appends to: exporting
+    # TASK_ROUTER_HOME would move the READER off the writer's file
+    assert exports["metrics"] == {}
+    # router_server.py reads all four data-home hooks
+    assert set(exports["server"]) == {"ROUTING_REGISTRY", "ROUTING_DATA_DIR",
+                                      "ROUTING_DOCS_DIR", "ROUTER_STATE_DIR"}
+    # fleet-state tools keep their own (fleet) defaults by design
+    for cmd in ("probefix", "probe", "plan-sweep", "learn"):
+        assert exports[cmd] == {}, cmd
+
+
+_ENTRY = ("import sys; sys.argv = ['router'] + sys.argv[1:]; "
+          "from task_router.cli import main; sys.exit(main())")
+
+
+def _cli(args, home, timeout=240):
+    """Run the CLI entry point as a FRESH process with HOME=home and no
+    TASK_ROUTER_HOME/XDG_DATA_HOME/ROUTING_* overrides (the acceptance
+    condition's shape: no explicit data home, so the default must be used)."""
+    stripped = ("TASK_ROUTER_HOME", "XDG_DATA_HOME", "ROUTING_REGISTRY",
+                "ROUTING_DATA_DIR", "ROUTING_DOCS_DIR", "ROUTER_STATE_DIR",
+                "LEDGER_FILE")
+    env = {k: v for k, v in os.environ.items() if k not in stripped}
+    env["HOME"] = str(home)
+    env["PYTHONPATH"] = cli.REPO + os.pathsep + os.environ.get("PYTHONPATH", "")
+    return subprocess.run([sys.executable, "-c", _ENTRY, *args],
+                          capture_output=True, text=True, env=env,
+                          timeout=timeout)
+
+
+def test_status_and_spawn_report_the_same_registry_without_home(tmp_path):
+    """AC2 — with no TASK_ROUTER_HOME, `router status` and `router spawn` name
+    the SAME registry. Pre-TR-056 status read the repo default
+    (<repo>/registry.json) while spawn read the data home (live repro:
+    /home/kara/task-router/registry.json vs
+    /home/kara/.local/share/task-router/registry.json)."""
+    home = tmp_path / "homedir"
+    home.mkdir()
+    data_home = home / ".local" / "share" / "task-router"
+
+    st = _cli(["status", "--format", "json"], home)
+    assert st.returncode == 0, st.stderr
+    status = json.loads(st.stdout)
+    sp = _cli(["spawn", "9router", "--format", "json"], home)
+    assert sp.returncode == 0, sp.stderr
+    spawn = json.loads(sp.stdout)
+
+    expected = str(data_home / "registry.json")
+    assert status["data_home"]["registry"] == expected
+    assert spawn["data_home"]["registry"] == expected
+    assert spawn["head"], "spawn did not resolve a chain — test would be vacuous"
+    assert status["data_home"]["state_dir"] == spawn["data_home"]["state_dir"]
+    # never the repo-relative default status used to keep
+    assert status["data_home"]["registry"] != os.path.join(cli.REPO,
+                                                           "registry.json")
+    # and once the data-home registry exists, status READS it (not the repo one)
+    data_home.mkdir(parents=True, exist_ok=True)
+    (data_home / "registry.json").write_text(json.dumps(
+        {"tables": {"models": []},
+         "generated_at": "2026-09-18T00:00:00+00:00"}))
+    st2 = json.loads(_cli(["status", "--format", "json"], home).stdout)
+    assert st2["registry"]["path"] == expected
+    assert st2["data_home"]["seeded"] is True
+
+
+def test_estimate_resolves_the_same_source_as_spawn(tmp_path):
+    """TR-056 — router_estimate.py subprocesses router_spawn.py with an
+    inherited env AND imports it in-process, so the data-home export must
+    reach it: pre-fix `router estimate` priced the REPO registry while
+    `router spawn` dispatched the data-home resolve (different head)."""
+    home = tmp_path / "homedir"
+    home.mkdir()
+    est_proc = _cli(["estimate", "--project", "9router"], home)
+    assert est_proc.returncode == 0, est_proc.stderr
+    est = json.loads(est_proc.stdout)
+    sp = json.loads(_cli(["spawn", "9router", "--format", "json"], home).stdout)
+    assert est.get("head"), "estimate returned no head — comparison would be vacuous"
+    assert sp.get("head"), "spawn returned no head — comparison would be vacuous"
+    assert est["source"] == sp["source"]
+    assert (est.get("head") or {}).get("provider") == \
+        (sp.get("head") or {}).get("provider")
+    assert (est.get("head") or {}).get("model") == \
+        (sp.get("head") or {}).get("model")

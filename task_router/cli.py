@@ -10,7 +10,11 @@ Before dispatch, env overrides derived from the task-router data home
 ONLY those hooks (never set a variable no script reads), and never clobber an
 explicit user override (os.environ.setdefault semantics).
 
-Full hook map (grep 'os.environ.get' across scripts/, TR-016 audit):
+Full hook map (grep 'os.environ.get' across scripts/, TR-016 audit, extended
+by the TR-056 audit to EVERY subcommand in COMMANDS — a command missing from
+this map gets no exports and silently falls back to its own repo-relative or
+hardcoded default, so two `router` subcommands can disagree about which
+registry/state dir is live from the same invocation):
 
   script                      env hooks exported from data home
   --------------------------  -----------------------------------------------
@@ -30,17 +34,58 @@ Full hook map (grep 'os.environ.get' across scripts/, TR-016 audit):
   router_modelsdev.py         ROUTING_DATA_DIR (MODELSDEV_CACHE left as-is:
                               models.dev catalog cache, not router data)
   router_clinepass.py         ROUTING_DATA_DIR
-  router_probefix.py          none (hardcodes ~/.hermes/model-router +
-                              ~/task-router; documented gap — file off-limits)
+  router_status.py            ROUTING_REGISTRY, ROUTING_DATA_DIR,
+                              ROUTER_STATE_DIR (TR-056). LEDGER_FILE is
+                              intentionally not exported: status resolves the
+                              ledger as LEDGER_FILE or ROUTER_STATE_DIR/
+                              ledger.jsonl — the same file `router ledger`
+                              names explicitly.
+  router_validate.py          ROUTING_REGISTRY, ROUTING_DATA_DIR,
+                              ROUTER_STATE_DIR (TR-056 — the brief listed only
+                              registry+tables; the script reads
+                              ROUTER_STATE_DIR for its state-file checks too)
+  router_server.py            ROUTING_REGISTRY, ROUTING_DATA_DIR,
+                              ROUTING_DOCS_DIR, ROUTER_STATE_DIR (TR-056)
+  router_estimate.py          no hook of its own, but the data home must still
+                              reach it: resolve_chain() subprocesses
+                              router_spawn.py with the inherited env AND
+                              estimate() imports router_spawn to load the
+                              providers table in-process, so both read these
+                              three vars (TR-030/TR-056)
+  router_web.py               ROUTING_DATA_DIR only (TR-056). ROUTING_REGISTRY
+                              is deliberately NOT exported: resolve_preview()
+                              builds its child env itself and pins
+                              ROUTING_REGISTRY to <repo>/registry.json, so an
+                              export here could never be read.
+  router_diff.py              ROUTING_DOCS_DIR only (TR-056) — it reads the
+                              chains-<date>.md snapshot dir and no registry/
+                              tables/state hook at all.
+  router_metrics.py           nothing exported (TR-056): it reads
+                              TASK_ROUTER_HOME directly, the SAME var (and
+                              <repo>/data/metrics.jsonl default) that
+                              router_spawn.py's metric writer uses, so reader
+                              and writer already agree. Exporting
+                              TASK_ROUTER_HOME here would point the reader at
+                              <home>/metrics.jsonl while the spawn dispatch
+                              kept appending to the repo file.
+  router_probefix.py          nothing exported (TR-056 audit correction: this
+                              script DOES read ROUTING_DATA_DIR and
+                              ROUTER_STATE_DIR — the earlier "hardcodes only"
+                              note was wrong). Its defaults are the FLEET
+                              locations (~/task-router/data/tables +
+                              ~/.hermes/model-router), which is where the
+                              scheduler-side direct invocations keep state;
+                              pointing the CLI at a different dir is a
+                              separate, behaviour-changing decision.
+  provider_health_probe.py    nothing exported, same reason (reads
+                              ROUTING_REGISTRY / ROUTING_DATA_DIR /
+                              ROUTER_STATE_DIR with fleet defaults; a
+                              calibration run must keep writing the health
+                              state the fleet reads).
   router_plan_sweep.py        none (hardcodes <repo>/data/tables; documented
                               gap — file off-limits)
   router_learn.py             none (DuckBrain CLI in ~/duckbrain; independent
                               of data home by design)
-  provider_health_probe.py    none (hardcodes ~/task-router +
-                              ~/.hermes/model-router; documented gap —
-                              file off-limits)
-  router_metrics.py           not exposed as a `router` subcommand (library
-                              used by router_spawn; no standalone CLI)
 
 Fail-open doctrine applies at the CLI boundary too: dispatch errors are
 printed and turn into SystemExit(0) for fail-open tools (spawn, probefix,
@@ -91,15 +136,28 @@ FAIL_OPEN = {"spawn", "probefix", "plan-sweep"}
 # hooks that actually exist in the target script (see module docstring map).
 # Values are computed lazily at dispatch time so a monkeypatched env (tests)
 # or a TASK_ROUTER_HOME set inside the wrapper is honored.
+def _data_dir():
+    """<repo>/data/tables — the committed table dir every script defaults to."""
+    return os.path.join(REPO, "data", "tables")
+
+
+def _docs_dir():
+    """<repo>/docs — chains-<date>.md chain snapshots (git-tracked)."""
+    return os.path.join(REPO, "docs")
+
+
 def _home_env_exports():
     """Env-var map derived from the current data home (called per dispatch)."""
     home = paths.resolve_data_home(create=True)
     state_dir = os.path.dirname(paths.circuit_state_path())  # == home
     _bootstrap_state_dir(state_dir)
+    registry = paths.registry_path()
+    data_dir = _data_dir()
+    docs_dir = _docs_dir()
     return {
         "spawn": {
-            "ROUTING_REGISTRY": paths.registry_path(),
-            "ROUTING_DATA_DIR": os.path.join(REPO, "data", "tables"),
+            "ROUTING_REGISTRY": registry,
+            "ROUTING_DATA_DIR": data_dir,
             "ROUTER_STATE_DIR": state_dir,
         },
         "circuit": {
@@ -109,8 +167,8 @@ def _home_env_exports():
             "LEDGER_FILE": paths.ledger_path(),
         },
         "maintain": {
-            "ROUTING_REGISTRY": paths.registry_path(),
-            "ROUTING_DATA_DIR": os.path.join(REPO, "data", "tables"),
+            "ROUTING_REGISTRY": registry,
+            "ROUTING_DATA_DIR": data_dir,
         },
         "seed": {
             # ROUTING_NS guard (TR-045): router_seed.py falls back to the live
@@ -119,19 +177,86 @@ def _home_env_exports():
             # INTO the fleet mirror. Deriving it under the data home keeps
             # scratch/data-home seeds self-contained; an operator who exports
             # ROUTING_NS explicitly still wins (setdefault semantics).
-            "ROUTING_REGISTRY": paths.registry_path(),
-            "ROUTING_DATA_DIR": os.path.join(REPO, "data", "tables"),
+            "ROUTING_REGISTRY": registry,
+            "ROUTING_DATA_DIR": data_dir,
             "ROUTING_NS": os.path.join(home, "ns", "routing"),
         },
-        "gaps":   {"ROUTING_DATA_DIR": os.path.join(REPO, "data", "tables")},
-        "pricing": {"ROUTING_DATA_DIR": os.path.join(REPO, "data", "tables")},
-        "modelsdev": {"ROUTING_DATA_DIR": os.path.join(REPO, "data", "tables")},
-        "clinepass": {"ROUTING_DATA_DIR": os.path.join(REPO, "data", "tables")},
-        # probefix / plan-sweep / learn / probe: no data-home hooks in those
-        # scripts (documented gaps) — nothing to export.
+        "gaps":   {"ROUTING_DATA_DIR": data_dir},
+        "pricing": {"ROUTING_DATA_DIR": data_dir},
+        "modelsdev": {"ROUTING_DATA_DIR": data_dir},
+        "clinepass": {"ROUTING_DATA_DIR": data_dir},
+        # --- TR-056: the overview / contract / server commands read the same
+        # hooks spawn does. Before this they got NO exports, so their
+        # module-level REGISTRY/state constants kept the script defaults
+        # (<repo>/registry.json, ~/.hermes/model-router) while `router spawn`
+        # resolved from the data home — `router status` and `router spawn`
+        # reported two different registries from the same invocation.
+        "status": {
+            "ROUTING_REGISTRY": registry,
+            "ROUTING_DATA_DIR": data_dir,
+            "ROUTER_STATE_DIR": state_dir,
+            # LEDGER_FILE deliberately absent: router_status.py resolves
+            # LEDGER_FILE or ROUTER_STATE_DIR/ledger.jsonl — the same file
+            # `router ledger` exports, reached here through state_dir.
+        },
+        "validate": {
+            "ROUTING_REGISTRY": registry,
+            "ROUTING_DATA_DIR": data_dir,
+            # The script reads ROUTER_STATE_DIR for its circuit/health/quota/
+            # ledger state-file checks (router_validate.py STATE_DIR).
+            "ROUTER_STATE_DIR": state_dir,
+        },
+        "estimate": {
+            # router_estimate.py has no hook of its own but needs all three:
+            # resolve_chain() runs router_spawn.py as a subprocess with the
+            # inherited env, and estimate() imports router_spawn to load the
+            # providers table in-process — both resolve these vars at read
+            # time. Without the export, `router estimate` priced the REPO
+            # registry while `router spawn` resolved the data home.
+            "ROUTING_REGISTRY": registry,
+            "ROUTING_DATA_DIR": data_dir,
+            "ROUTER_STATE_DIR": state_dir,
+        },
+        "diff": {
+            # Only hook router_diff.py has: the snapshot dir it reads
+            # chains-<date>.md from. It reads no registry/tables/state hook,
+            # so none is exported (TR-056 audit).
+            "ROUTING_DOCS_DIR": docs_dir,
+        },
+        "server": {
+            "ROUTING_REGISTRY": registry,
+            "ROUTING_DATA_DIR": data_dir,
+            "ROUTING_DOCS_DIR": docs_dir,
+            "ROUTER_STATE_DIR": state_dir,
+        },
+        "web": {
+            # router_web.py reads only ROUTING_DATA_DIR (the tables the UI
+            # shows/edits). ROUTING_REGISTRY is deliberately NOT exported:
+            # resolve_preview() builds its child env itself and pins
+            # ROUTING_REGISTRY to <repo>/registry.json, so an export here
+            # could never be read.
+            "ROUTING_DATA_DIR": data_dir,
+        },
+        "metrics": {
+            # No export: router_metrics.py reads TASK_ROUTER_HOME directly
+            # (not the ROUTING_* hooks) and router_spawn.py's metric WRITER
+            # uses the same var with the same <repo>/data/metrics.jsonl
+            # default, so reader and writer already agree. Exporting
+            # TASK_ROUTER_HOME for the metrics dispatch would move the READER
+            # to <home>/metrics.jsonl while every spawn dispatch kept
+            # appending to the repo file — a new divergence, not a fix.
+        },
         "probefix": {},
         "plan-sweep": {},
         "learn": {},
+        # probefix / probe / plan-sweep / learn: no export by design. probefix
+        # and provider_health_probe.py DO read ROUTING_*/ROUTER_STATE_DIR
+        # (TR-056 audit corrected the old "hardcodes only" note in the module
+        # docstring) but their defaults are the FLEET locations
+        # (~/task-router/data/tables + ~/.hermes/model-router) that the
+        # scheduler-side direct invocations read and write; pointing the CLI
+        # dispatch at the data home would silently redirect a calibration
+        # run's health-state.json away from the file the fleet consumes.
         "probe": {},
     }
 
