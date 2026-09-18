@@ -8,6 +8,12 @@ with 404 to resolve those things" — this is that wiring. The models.dev sync
 probe's health.jsonl, finds models the probe marked DOWN with invalid-model-id
 signals (HTTP 404 / 400 / ModelError), and resolves them:
 
+  0. CHECK provider_rules.jsonl FIRST (2026-09-18): a provider-level contract
+     row may already EXPLAIN the failure (opencode-go's x-opencode-session
+     requirement makes the probe's 400 a probe-shape artifact, not a lane
+     fault). Such rows carry `explains_probe: ["<regex over the error>"]` —
+     DATA drives the explanation, the code only reads it. Explained failures
+     are counted, printed, and NOT written as gaps.
   1. SKIP rows already covered by probe_fixes.jsonl / probe_excludes.jsonl.
   2. Fetch the provider's LIVE /models catalog (Bearer key from .env) — ground
      truth; fall back to the models.dev cache (~/.chimera/models-dev-cache.json).
@@ -18,15 +24,17 @@ signals (HTTP 404 / 400 / ModelError), and resolves them:
   4. No exact candidate -> version-rename family (same stem, digits differ) ->
      flag as GAP with the candidate suggested (renames can change behavior —
      agent decides). Nothing at all -> GAP row for the daily research agent
-     (replace or exclude decision).
+     (replace or exclude decision). If the provider's catalog could not be
+     fetched at all, the row is flagged CATALOG-N/A (endpoint/credential
+     problem — the report must not claim "catalog serves the id").
 
 --sync-providers: also diff config.yaml custom_providers (+ fallback_providers)
 against data/tables/probe_providers.jsonl and append any new ones (enabled,
 default_model null — the probe probes them via registry rows; visible gap if a
 new provider has no registry rows yet). Provider discovery stays data-driven.
 
-DATA > CODE: fix mappings and provider lists live in data files only. This
-script never edits the probe script.
+DATA > CODE: fix mappings and provider explanations live in data files only.
+This script never edits the probe script.
 
 Exit codes: 0 always (pipeline step; findings are data, not failures). Use
 --dry-run to see what WOULD be written without writing.
@@ -39,11 +47,13 @@ import sys
 import urllib.request
 import urllib.error
 
-MR = os.path.expanduser('~/.hermes/model-router')
+MR = os.environ.get('ROUTER_STATE_DIR', os.path.expanduser('~/.hermes/model-router'))
 HEALTH_JSONL = f'{MR}/health.jsonl'
-DATA_DIR = os.path.expanduser('~/task-router/data/tables')
+DATA_DIR = os.environ.get('ROUTING_DATA_DIR',
+                          os.path.dirname(os.path.dirname(os.path.abspath(__file__))) + '/data/tables')
 MODELSDEV_CACHE = os.environ.get('MODELSDEV_CACHE', os.path.expanduser('~/.chimera/models-dev-cache.json'))
-CONFIG = os.path.expanduser('~/.hermes/config.yaml')
+ENV_FILE = os.environ.get('ROUTER_ENV_FILE', os.path.expanduser('~/.hermes/.env'))
+CONFIG = os.environ.get('ROUTER_HERMES_CONFIG', os.path.expanduser('~/.hermes/config.yaml'))
 UA = 'hermes-router-probefix/1.0'
 
 # Error strings that mean "the model id is wrong / gone" (actionable) vs
@@ -53,9 +63,10 @@ ID_ERROR_RE = re.compile(r'404|400|modelerror|model not found|does not exist|'
 
 
 def load_env():
+    """Provider keys from the router env file (ROUTER_ENV_FILE override = hermetic tests)."""
     env = {}
     try:
-        for line in open(os.path.expanduser('~/.hermes/.env')):
+        for line in open(ENV_FILE):
             line = line.strip()
             if '=' in line and not line.startswith('#'):
                 k, _, v = line.partition('=')
@@ -94,6 +105,43 @@ def load_rows(fname):
                 except Exception:
                     continue
     return rows
+
+
+def load_probe_explanations():
+    """provider_rules.jsonl rows carrying `explains_probe` -> {provider: [(regex, rule, detail)]}.
+
+    DATA > CODE: the knowledge that "this provider's 400 is our probe's own
+    missing session header" belongs in provider_rules.jsonl, not here. A row
+    opts in with  "explains_probe": ["400"]  (regex list matched against the
+    probe's error text, case-insensitive). Rows with valid_to in the past are
+    ignored (an expired contract stops explaining anything).
+    """
+    out = {}
+    today = __import__('datetime').date.today().isoformat()
+    for r in load_rows('provider_rules.jsonl'):
+        pats = r.get('explains_probe')
+        prov = r.get('provider')
+        if not pats or not prov:
+            continue
+        vt = r.get('valid_to')
+        if vt and vt < today:
+            continue
+        for p in (pats if isinstance(pats, list) else [pats]):
+            try:
+                out.setdefault(prov, []).append((re.compile(str(p), re.I),
+                                                 r.get('rule') or 'rule',
+                                                 r.get('detail') or ''))
+            except re.error:
+                continue
+    return out
+
+
+def explain(prov, model, error, explanations):
+    """-> (rule, detail) when a provider_rules contract explains this failure."""
+    for rx, rule, detail in explanations.get(prov, []):
+        if rx.search(error or ''):
+            return rule, detail
+    return None
 
 
 def append_row(fname, row):
@@ -179,6 +227,19 @@ def version_family(a, b):
     return re.sub(r'\d+', '#', a) == re.sub(r'\d+', '#', b) and a != b
 
 
+def live_serves(live, model):
+    """Exact id or normalized-equal id present in the provider's live catalog."""
+    if not live:
+        return False
+    n = normalize(model)
+    for cid in live:
+        if not cid:
+            continue
+        if cid.lower() == (model or '').lower() or normalize(cid) == n:
+            return True
+    return False
+
+
 def resolve(prov, model, error, providers, env):
     """-> ('skip', reason, None) | ('fix', fix_to, via) | ('stuck', None, None)
     | ('gap', candidate, None) | ('unexplained', None, None)."""
@@ -235,6 +296,14 @@ def resolve(prov, model, error, providers, env):
     fam_all = fam_live | fam_mdev
     if len(fam_all) == 1:
         return ('gap', fam_all.pop(), None)
+    # no candidate anywhere. Classify HONESTLY, three ways:
+    #   no live catalog        -> we cannot say anything (endpoint problem)
+    #   live catalog, id gone  -> the id is DEAD upstream (disable/replace)
+    #   live catalog has the id-> inference fails anyway (transient/auth-shaped)
+    if live is None:
+        return ('nocatalog', None, None)
+    if not live_serves(live, model):
+        return ('dead', None, None)
     return ('unexplained', None, None)
 
 
@@ -303,13 +372,21 @@ def main(argv=None):
         latest = None
 
     print(f'probe 404 scan: {len(fails)} invalid-model-id failure(s) in last {args.runs} runs')
-    n_fix = n_gap = n_skip = n_unexplained = 0
+    explanations = load_probe_explanations()
+    n_fix = n_gap = n_skip = n_unexplained = n_explained = n_nocatalog = n_dead = 0
     for (prov, model), info in sorted(fails.items()):
         if latest:
             mm = ((latest.get('providers') or {}).get(prov) or {}).get('models', {}).get(model)
             if mm and mm.get('status') in ('OK', 'SLOW', 'OVERLOADED', 'TIMEOUT'):
                 n_skip += 1
                 continue  # resolved since the failing run
+        # provider contract beats a re-diagnosis (provider_rules.jsonl)
+        exp = explain(prov, model, info['error'], explanations)
+        if exp:
+            n_explained += 1
+            print(f'  EXPLAINED {prov} {model}: {info["error"]} — {exp[0]} '
+                  f'({exp[1][:90]})')
+            continue
         outcome, extra, via = resolve(prov, model, info['error'], providers, env)
         ts = info['ts']
         if outcome == 'fix':
@@ -343,6 +420,40 @@ def main(argv=None):
             n_gap += 1
         elif outcome == 'skip':
             n_skip += 1
+        elif outcome == 'nocatalog':
+            # provider catalog unreachable — we cannot claim the id is served.
+            n_nocatalog += 1
+            row = {'provider': prov, 'model': model, 'error': info['error'],
+                   'candidate': None, 'ts': ts, 'source': 'auto',
+                   'action': 'provider-catalog-unavailable (endpoint/credential — check probe_providers base_url/key)'}
+            if args.dry_run:
+                print(f'  [dry] CATALOG-N/A {prov} {model}: {info["error"]} '
+                      f'(provider /models unreachable — cannot verify id)')
+            else:
+                existing = load_rows('probe_gaps.jsonl')
+                if not any(r.get('provider') == prov and r.get('model') == model
+                           and r.get('action', '').startswith('provider-catalog-unavailable')
+                           for r in existing):
+                    append_row('probe_gaps.jsonl', row)
+                    print(f'  CATALOG-N/A {prov} {model}: {info["error"]} '
+                          f'(provider /models unreachable — cannot verify id)')
+        elif outcome == 'dead':
+            # live catalog fetched, id absent from it -> dead upstream id.
+            n_dead += 1
+            row = {'provider': prov, 'model': model, 'error': info['error'],
+                   'candidate': None, 'ts': ts, 'source': 'auto',
+                   'action': 'id-absent-from-provider-catalog (disable or replace — agent)'}
+            if args.dry_run:
+                print(f'  [dry] DEAD-ID {prov} {model}: {info["error"]} '
+                      f'(absent from the live catalog)')
+            else:
+                existing = load_rows('probe_gaps.jsonl')
+                if not any(r.get('provider') == prov and r.get('model') == model
+                           and r.get('action', '').startswith('id-absent-from-provider-catalog')
+                           for r in existing):
+                    append_row('probe_gaps.jsonl', row)
+                    print(f'  DEAD-ID {prov} {model}: {info["error"]} '
+                          f'(absent from the live catalog)')
         else:
             # unexplained: probe says 404 but provider's own catalog serves the id —
             # transient or auth-shaped; surface it once for the agent.
@@ -358,7 +469,9 @@ def main(argv=None):
                     print(f'  UNEXPLAINED {prov} {model}: {info["error"]} (catalog serves the id)')
             n_unexplained += 1
     print(f'probe 404 scan done: {n_fix} auto-fix(es), {n_gap} gap(s) flagged, '
-          f'{n_skip} already handled, {n_unexplained} unexplained')
+          f'{n_skip} already handled, {n_unexplained} unexplained, '
+          f'{n_explained} explained by provider_rules, {n_dead} dead-id(s), '
+          f'{n_nocatalog} catalog-unavailable')
     return 0
 
 
