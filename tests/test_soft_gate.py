@@ -110,9 +110,11 @@ def test_spawn_resolves_normally_despite_many_in_flight(tmp_path):
     env = _env(tmp_path)
     env["ROUTING_REGISTRY"] = _write_registry(tmp_path, tables)
 
-    # 2026-09-17: xKiro's $0/1M-ctx deepseek-v4-flash lane wins the head (see
-    # test_regression goldens); in-flight rows must target the head lane itself.
-    head_lane = ("xkiro", "deepseek/deepseek-v4-flash")
+    # 2026-09-18: xKiro's deepseek-v4-flash lane turned out to be a DEAD id
+    # (absent from the live catalog + chat 404) and is disabled — the head lane
+    # is now the $0 1M-ctx minimax-m3:free lane (see test_regression goldens);
+    # in-flight rows must target the head lane itself.
+    head_lane = ("xkiro", "minimax/minimax-m3:free")
     with open(env["LEDGER_FILE"], "a") as f:
         for i in range(99):
             row = {"ts": datetime.datetime.now(datetime.timezone.utc).isoformat(),

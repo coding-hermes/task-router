@@ -210,7 +210,7 @@ def test_chain_invariants_per_profile(monkeypatch, tmp_path, pid):
     # re-sorted with stepfun first. Real battery evidence backs its perfs
     # (battery-T1-TOOL agent_tick/delegation 0.75, T2-CODE debug 0.75) — not a
     # blank-fill head. P0_FORE keeps kimi-k3: its stronger bars filter stepfun out.
-    ("P1_CODING", "xkiro/deepseek/deepseek-v4-flash"),  # 2026-09-17: xKiro onboarded — $200 plan covers catalog (plan_tier 0), deepseek-v4.1-flash free lane = $0 @ 1M ctx wins plan_tier 0 / price / context tie-breaks. stepfun remains live head whenever health gates the xkiro route
+    ("P1_CODING", "xkiro/minimax/minimax-m3:free"),  # 2026-09-18: the xkiro deepseek lanes (deepseek-v4-flash / -v4.1-flash:free / -chat-v3.1 / -v3.2) were DEAD ids — absent from the live api.xkiro.com/v1/models catalog (111 ids) AND chat-probe HTTP 404 'does not exist' — so they are disabled with that reason. The plan_tier-0 $0 1M-ctx lane that now wins the same (plan_tier, price, context) tie-breaks is xkiro/minimax/minimax-m3:free (live probe 200 2026-09-18). stepfun remains the live head whenever health gates the xkiro route
     # Capability-grounded heads (gpt-5.6-sol review 2026-08-27: do NOT tune
     # normal eligibility to accommodate the emergency fallback — fallback is a
     # degraded path that reports requirements_unmet). P2/P4 head on models with

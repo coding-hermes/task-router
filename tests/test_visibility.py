@@ -165,7 +165,7 @@ def test_corrupt_registry_source_fallback_and_warning(monkeypatch, tmp_path):
     assert r["head"] is not None  # resilience: resolution still works
     # the fallback data is the committed registry — head must match the
     # golden fixed-point head for this profile (same tables as registry.json)
-    assert _pair(r["head"]) == "xkiro/deepseek/deepseek-v4-flash"  # 2026-09-17: xKiro $0/1M-ctx lane wins tie-breaks (see test_regression goldens)
+    assert _pair(r["head"]) == "xkiro/minimax/minimax-m3:free"  # 2026-09-18: xkiro dead deepseek ids disabled (live-catalog absent + chat 404) — $0 1M-ctx minimax-m3:free takes the tie-break (see test_regression goldens)
 
 
 def test_missing_registry_source_fallback(monkeypatch, tmp_path):
@@ -199,7 +199,7 @@ def test_missing_health_state_reported_false(monkeypatch, tmp_path):
     # behavior unchanged: a missing health file must NOT fabricate a DOWN
     # gate — the chain still resolves to the healthy head
     assert r["head"] is not None
-    assert _pair(r["head"]) == "xkiro/deepseek/deepseek-v4-flash"  # 2026-09-17: xKiro $0/1M-ctx lane wins tie-breaks (see test_regression goldens)
+    assert _pair(r["head"]) == "xkiro/minimax/minimax-m3:free"  # 2026-09-18: xkiro dead deepseek ids disabled (live-catalog absent + chat 404) — $0 1M-ctx minimax-m3:free takes the tie-break (see test_regression goldens)
 
 
 def test_missing_all_state_files_reported(monkeypatch, tmp_path):
