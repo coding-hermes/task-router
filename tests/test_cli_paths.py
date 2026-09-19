@@ -116,7 +116,7 @@ EXPECTED_COMMANDS = {
     "spawn", "circuit", "quota", "gaps", "ledger", "maintain", "modelsdev",
     "pricing", "plan-sweep", "learn", "seed", "probe", "clinepass",
     "probefix", "validate", "metrics", "status", "estimate", "diff",
-    "web", "server", "outcomes", "chain-run",
+    "web", "server", "outcomes", "chain-run", "pricing-audit",
 }
 
 
