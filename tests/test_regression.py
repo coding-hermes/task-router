@@ -772,3 +772,43 @@ def test_chain_default_limit_covers_registry():
         "cheap new provider lanes can now silently drop deepseek and other "
         "tail hops from resolve(); raise the default limit"
     )
+
+
+def test_plan_included_lanes_never_carry_payg_sticker_evidence():
+    """SUBSCRIPTION-FIRST DOCTRINE, evidence tier (2026-09-19, minimax Token
+    Plan): a plan-included lane must not be PRICED AT THE PAYG STICKER — the
+    sub is the price basis, so its evidence has to be subscription economics
+    ('normalized:flat-sub(...)'), never a bare PAYG label.
+
+    The stale-flat reprice (Bane 2026-08-27) exists to convert box prices into
+    plan economics, but until 2026-09-19 it skipped any lane whose evidence
+    started with 'normalized:' — including 'normalized:payg-sticker', which is
+    exactly the label it was meant to replace. Result: minimax Token Plan lanes
+    MiniMax-M2.5/M2.7/M3 sat at the blended PAYG sticker 0.75/M while their
+    lowercase twins carried the plan-true 0.0926/M. Fixed in router_pricing.py
+    (a PAYG label is not protection); this test locks it.
+
+    Only lanes with a resolvable catalog sticker are checked — a lane with no
+    sticker anywhere cannot be repriced and stays a documented gap.
+    """
+    tables = _load_tables()
+    terms = {t["provider"]: t for t in tables["plan_terms"]
+             if t.get("billing_model") == "flat_subscription" and t.get("included_models")}
+    cat = {(c.get("provider"), c.get("model")) for c in tables.get("model_catalog") or []
+           if c.get("cost_input") is not None and c.get("cost_output") is not None}
+    offenders = []
+    for m in tables["models"]:
+        if m.get("archive") or m.get("valid_to") is not None or m.get("disabled"):
+            continue
+        t = terms.get(m["provider"])
+        if not t or m.get("normalized_price") is None:
+            continue
+        if m["model"].replace(":free", "") not in t["included_models"]:
+            continue
+        if (m["provider"], m["model"]) not in cat:
+            continue
+        if (m.get("price_evidence") or "").startswith("normalized:payg-sticker"):
+            offenders.append(f"{m['provider']}/{m['model']} @ ${m['normalized_price']}")
+    assert not offenders, (
+        "plan-INCLUDED lanes priced at the PAYG sticker (subscription economics "
+        f"missing): {offenders} — run the pricing engine, do not hand-edit")

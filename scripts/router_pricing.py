@@ -119,10 +119,19 @@ def normalize(dry_run, quiet=False):
         # list. Usage-bucket flat plans (ollama-cloud: no per-model included
         # list — the flat fee buys a bucket) keep their researched estimate
         # prices; there is no in-plan/PAYG distinction to reprice against.
+        # NOTE (2026-09-19): 'normalized:payg-sticker' is a PAYG label, NOT
+        # subscription economics — it is exactly the box price this reprice
+        # exists to replace. It used to be shielded by the 'normalized:' prefix,
+        # so plan-included lanes whose only protection was the prefix sat at the
+        # PAYG sticker while their siblings carried plan economics (minimax
+        # Token Plan: MiniMax-M2.5/M2.7/M3 at the blended sticker 0.75/M vs the
+        # plan-true 0.0926/M their lowercase twins carry).
+        ev = m.get('price_evidence') or ''
         stale_flat = (t.get('billing_model') == 'flat_subscription'
                       and t.get('included_models')
                       and m.get('normalized_price') not in (None, 0)
-                      and not (m.get('price_evidence') or '').startswith('normalized:'))
+                      and (not ev.startswith('normalized:')
+                           or ev.startswith('normalized:payg-sticker')))
         if m.get('normalized_price') not in (None, 0) and not stale_flat:
             continue  # already priced (evidence preserved)
         model = t.get('billing_model')

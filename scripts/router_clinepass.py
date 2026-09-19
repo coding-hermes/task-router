@@ -116,9 +116,23 @@ def sync(dry_run):
         if ('clinepass', name) in have:
             skipped_dup += 1
             continue
+        # Full models.jsonl row schema (2026-09-19): every other writer emits
+        # these keys, and tests/test_context.py::test_models_jsonl_carries_context_limit
+        # asserts context_limit exists on EVERY row. The old 8-key literal made the
+        # suite red the first time this sync actually added a lane (clinepass
+        # ternary-bonsai-2-27b / glm-5.3-flashx, 2026-09-19). Clines's /models
+        # carries only id/created/owned_by, so unknowns stay NULL — a visible gap,
+        # never a guess.
         models.append({'provider': 'clinepass', 'model': name, 'normalized_price': None,
                        'price_evidence': 'clinepass-api', 'data_class': 'zdr', 'plan_tier': None,
-                       'token_factor': 1.0, 'archive': False, 'valid_from': today, 'valid_to': None})
+                       'token_factor': 1.0, 'archive': False, 'valid_from': today, 'valid_to': None,
+                       'disabled': None, 'disabled_reason': None,
+                       'context_limit': None, 'api_type': 'openai-chat', 'vision': None,
+                       'thinking': None,
+                       'perf_agent_tick': None, 'perf_long_doc': None, 'perf_debug': None,
+                       'perf_schema': None, 'perf_e2e_vision': None, 'perf_review': None,
+                       'perf_delegation': None, 'perf_guard': None, 'perf_mock': None,
+                       'perf_reasoning': None})
         have.add(('clinepass', name))
         added += 1
         if ('clinepass', name) not in have_cat:

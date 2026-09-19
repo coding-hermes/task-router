@@ -107,6 +107,24 @@ def load_rows(fname):
     return rows
 
 
+def disabled_lanes():
+    """{(provider, model): reason} of registry lanes already intentionally disabled.
+
+    REGISTRY STATE BEATS A RE-DIAGNOSIS (2026-09-19): the 09-18 xkiro/synthetic
+    dead-id rows re-appeared in the very next scan with nothing left to do — the
+    lanes had already been disabled. An auto DEAD-ID/GAP row for a lane the
+    registry already carries as disabled is stale work, not open work, and it
+    buries the rows that ARE open. Same doctrine as provider_rules explanations
+    (an explanation beats a re-diagnosis), one level up: the registry's own
+    disable IS the resolution record.
+    """
+    out = {}
+    for r in load_rows('models.jsonl'):
+        if r.get('disabled'):
+            out[(r.get('provider'), r.get('model'))] = r.get('disabled_reason') or ''
+    return out
+
+
 def load_probe_explanations():
     """provider_rules.jsonl rows carrying `explains_probe` -> {provider: [(regex, rule, detail)]}.
 
@@ -373,7 +391,8 @@ def main(argv=None):
 
     print(f'probe 404 scan: {len(fails)} invalid-model-id failure(s) in last {args.runs} runs')
     explanations = load_probe_explanations()
-    n_fix = n_gap = n_skip = n_unexplained = n_explained = n_nocatalog = n_dead = 0
+    already_disabled = disabled_lanes()
+    n_fix = n_gap = n_skip = n_unexplained = n_explained = n_nocatalog = n_dead = n_disabled = 0
     for (prov, model), info in sorted(fails.items()):
         if latest:
             mm = ((latest.get('providers') or {}).get(prov) or {}).get('models', {}).get(model)
@@ -386,6 +405,13 @@ def main(argv=None):
             n_explained += 1
             print(f'  EXPLAINED {prov} {model}: {info["error"]} — {exp[0]} '
                   f'({exp[1][:90]})')
+            continue
+        # registry state beats a re-diagnosis too: a lane the registry already
+        # carries as disabled has nothing left to do (the disable IS the record).
+        if (prov, model) in already_disabled:
+            n_disabled += 1
+            print(f'  HANDLED {prov} {model}: lane already disabled in the registry '
+                  f'({already_disabled[(prov, model)][:70]})')
             continue
         outcome, extra, via = resolve(prov, model, info['error'], providers, env)
         ts = info['ts']
@@ -469,6 +495,7 @@ def main(argv=None):
                     print(f'  UNEXPLAINED {prov} {model}: {info["error"]} (catalog serves the id)')
             n_unexplained += 1
     print(f'probe 404 scan done: {n_fix} auto-fix(es), {n_gap} gap(s) flagged, '
+          f'{n_disabled} already-disabled lane(s) (registry state — not open work), '
           f'{n_skip} already handled, {n_unexplained} unexplained, '
           f'{n_explained} explained by provider_rules, {n_dead} dead-id(s), '
           f'{n_nocatalog} catalog-unavailable')
