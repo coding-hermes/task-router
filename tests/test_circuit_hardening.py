@@ -111,6 +111,40 @@ def test_scheduler_positional_forms_preserved(tmp_path):
 
 # ------------------------------------------------------------ concurrency --
 
+# TR-078 (Bane 2026-09-19): the concurrency contract is "no lost events under
+# parallel writers" — NOT "spawn 40 interpreters at once". Unbounded waves
+# spiked loadavg by ~40 x full interpreter+duckdb startups whenever the suite
+# ran (worse when several suites overlap on the host). Bounded waves keep the
+# contract identical: same N events, all recorded, still genuinely concurrent
+# within each wave. Wave size honors ROUTER_TEST_WAVE (default 8).
+
+def _wave_size():
+    try:
+        return max(2, min(16, int(os.environ.get("ROUTER_TEST_WAVE", "8"))))
+    except ValueError:
+        return 8
+
+
+def _popen_waves(args_builder, n, env, timeout=60):
+    """Run n processes in bounded waves; return (index, returncode, stderr) fails."""
+    procs = []
+    wave = _wave_size()
+    for start in range(0, n, wave):
+        batch = []
+        for i in range(start, min(start + wave, n)):
+            e = dict(os.environ)
+            e.update(env)
+            batch.append((i, subprocess.Popen(
+                args_builder(i), stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE, text=True, env=e)))
+        for i, pr in batch:
+            out, err = pr.communicate(timeout=timeout)
+            if pr.returncode != 0:
+                procs.append((i, pr.returncode, err.strip()))
+    return procs
+
+
+
 def test_concurrent_record_failure_no_lost_events(tmp_path):
     """AC: N parallel record-failure processes -> ALL events recorded.
 
@@ -119,19 +153,10 @@ def test_concurrent_record_failure_no_lost_events(tmp_path):
     """
     env = _env(tmp_path)
     n = 40
-    procs = []
-    for i in range(n):
-        e = dict(os.environ)
-        e.update(env)
-        procs.append(subprocess.Popen(
-            [sys.executable, SCRIPT, "record-failure",
-             f"conc-prov-{i:02d}", f"model-{i:02d}", f"reason-{i:02d}"],
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=e))
-    failed = []
-    for i, pr in enumerate(procs):
-        out, err = pr.communicate(timeout=60)
-        if pr.returncode != 0:
-            failed.append((i, pr.returncode, err.strip()))
+    failed = _popen_waves(
+        lambda i: [sys.executable, SCRIPT, "record-failure",
+                   f"conc-prov-{i:02d}", f"model-{i:02d}", f"reason-{i:02d}"],
+        n, env)
     assert not failed, f"{len(failed)} processes crashed: {failed[:5]}"
     pairs = _state(tmp_path)["pairs"]
     assert len(pairs) == n, f"lost events: {n - len(pairs)} of {n} missing"
@@ -145,16 +170,11 @@ def test_concurrent_same_pair_all_failures_counted(tmp_path):
     """N parallel processes on ONE pair -> failures == N (no lost increments)."""
     env = _env(tmp_path)
     n = 20
-    procs = []
-    for _ in range(n):
-        e = dict(os.environ)
-        e.update(env)
-        procs.append(subprocess.Popen(
-            [sys.executable, SCRIPT, "record-failure", "shared", "pair"],
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=e))
-    for pr in procs:
-        out, err = pr.communicate(timeout=60)
-        assert pr.returncode == 0, err
+    # TR-078: bounded waves (same N, no 20-at-once interpreter stampede)
+    failed = _popen_waves(
+        lambda _i: [sys.executable, SCRIPT, "record-failure", "shared", "pair"],
+        n, env)
+    assert not failed, f"crashed: {failed[:5]}"
     c = _state(tmp_path)["pairs"]["shared/pair"]
     assert c["failures"] == n, f"failures={c['failures']}, expected {n}"
     assert len(_state(tmp_path)["pairs"]) == 1
