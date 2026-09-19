@@ -1285,8 +1285,18 @@ def _pub_prices(m):
     ORDERING still uses normalized_price — public prices are for reporting.
     """
     pub = m.get('public_price')
+    norm = m.get('normalized_price')
+    if pub == 0 and norm:
+        # Plan-coverage artifact (Bane 2026-09-19, kimi-for-coding/k3): a lane
+        # included in a paid plan was stamped public_price 0.0, which made cost
+        # reporting say FREE. A plan is not free — it costs the subscription
+        # real money and the provider meters usage against it. The effective
+        # rate is the normalized price; truly-free lanes (norm == 0) pass
+        # through untouched. Data-driven: fires on the (pub==0, norm>0) shape,
+        # never on a provider name.
+        pub = None
     if pub is None:
-        pub = m.get('normalized_price')
+        pub = norm
     return pub, m.get('public_in_per_m'), m.get('public_out_per_m')
 
 

@@ -510,3 +510,21 @@ def test_pricing_package_is_stdlib_only():
                     continue
                 assert mod in allowed_local or mod in sys.stdlib_module_names, (
                     f"{fn} imports non-stdlib module {mod!r}")
+
+
+
+def test_plan_lane_never_reports_free_when_it_has_an_effective_price():
+    """A lane included in a paid plan was stamped public_price 0.0, and cost
+    reporting quoted FREE (Bane 2026-09-19, kimi-for-coding/k3). The display
+    triplet must fall back to the normalized effective rate for the
+    (public==0, normalized>0) shape — while truly-free lanes (both 0) still
+    report 0 honestly."""
+    import router_spawn as rs
+    plan_artifact = {'public_price': 0.0, 'normalized_price': 0.1,
+                     'public_in_per_m': 0.0, 'public_out_per_m': 0.0}
+    pub, pin, pout = rs._pub_prices(plan_artifact)
+    assert pub == 0.1, "a plan lane must never report free"
+    truly_free = {'public_price': 0.0, 'normalized_price': 0.0}
+    assert rs._pub_prices(truly_free)[0] == 0.0
+    normal = {'public_price': 0.22, 'normalized_price': 0.168}
+    assert rs._pub_prices(normal)[0] == 0.22  # untouched shape
