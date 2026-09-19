@@ -36,7 +36,12 @@ import sys
 
 _HERE = os.path.dirname(os.path.realpath(__file__))
 _REPO = os.path.dirname(_HERE)
-REGISTRY = os.environ.get('ROUTING_REGISTRY', os.path.join(_REPO, 'registry.json'))
+
+# TR-057: derive the registry default from the data-home path helper so a
+# direct invocation (bypassing the CLI) honours TASK_ROUTER_HOME the same way
+# `router seed` and `router spawn` do.  Env override still wins.
+from task_router.paths import registry_path as _data_home_registry
+REGISTRY = os.environ.get('ROUTING_REGISTRY', _data_home_registry())
 DATA_DIR = os.environ.get('ROUTING_DATA_DIR', os.path.join(_REPO, 'data', 'tables'))
 STATE_DIR = os.environ.get('ROUTER_STATE_DIR', os.path.expanduser('~/.hermes/model-router'))
 
