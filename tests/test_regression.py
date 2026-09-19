@@ -203,7 +203,10 @@ def test_chain_invariants_per_profile(monkeypatch, tmp_path, pid):
     # Bane 2026-08-31 ROUTER DOCTRINE: P0_FORE head = ollama-cloud/deepseek-v4-flash:0731.
     # The deepseek-v4-flash alias (unqualified) drifted after the :0731 revision
     # became the explicit default for the fleet foreman path.
-    ("P0_FORE", "ollama-cloud/kimi-k3"),  # 2026-09-16: union-alpha lanes DISABLED at registry (Go=HTTP 500 broken, openrouter=keys expired) per Bane disable-broken-providers call — clinepass lane stays ENABLED and serves the P1_WORKER allow_slow profile; mirror fixed point reverts to the TR-042-era head
+    # TR-070 2026-09-19: ollama offsets re-derived from METERED usage (M=30.2x measured).
+    # kimi-k3's old 0.067 stamp was 4.4x UNDER-priced (real effective 0.298), so it headed
+    # P0_FORE as a fake-cheap burn trap; glm-5.3-flash (0.0108 effective) is the honest head.
+    ("P0_FORE", "zai-glm/glm-5.3-flash"),  # 2026-09-16: union-alpha lanes DISABLED at registry (Go=HTTP 500 broken, openrouter=keys expired) per Bane disable-broken-providers call — clinepass lane stays ENABLED and serves the P1_WORKER allow_slow profile; mirror fixed point reverts to the TR-042-era head
     # 2026-09-16: Step Plan Flash Pro flat-sub repricing (plan_terms 39.4x lane,
     # commit afc774c) stamped step-3.5-flash at $0.0051 normalized — cheaper than
     # every other P1_CODING/P2_AGENTIC-eligible lane, so the price-ordered chain
