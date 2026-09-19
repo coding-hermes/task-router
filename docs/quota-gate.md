@@ -149,3 +149,54 @@ Related: `docs/soft-gate-integration.md` (429 `quota_window` handling on the
 caller side), `scripts/router_circuit.py` (30-min `api_down` breakers — unchanged
 for genuine 5xx), `~/.hermes/scripts/routing-billing-guard.py` (the audit that
 measures the fallback rate this gate removes).
+
+## Live state written 2026-09-19
+
+Both state files (the fleet's and the data home) carry the same two entries —
+each written with `router quota set`, i.e. through the delivered writer:
+
+| provider | entry | effect |
+|---|---|---|
+| `zai-glm` | `gated`, reason `HTTP 429 code 1310: Weekly/Monthly Limit Exhausted. Your limit will reset at 2026-09-20 04:07:32`, `reset_at` `2026-09-20T04:07:32+00:00`, `detected_at` `2026-09-19T05:50:47+00:00` | **GATED** — excluded from every chain until the plan window ends |
+| `openai-codex` | `gated`, reason `HTTP 429 usage_limit_reached (plan_type=prolite): The usage limit has been reached`, `reset_at` `2026-09-19T08:11:13+00:00` (provider `resets_at=1789805473`), `detected_at` `2026-09-19T02:51:32+00:00` | recorded, **auto-cleared** (reset passed) — the lane is back with no edit |
+
+A/B on the same registry, state and profile with the health probe ignored, so the
+gate is the only variable:
+
+| arm | head | `zai-glm` hops |
+|---|---|---|
+| pre-gate state (identical file, `quota_exhausted` removed) | `zai-glm/glm-5.3-flash` | 2, 5 |
+| live state (gate active) | `kimi-for-coding/k3` | none |
+
+Measurement for the gate window: `grep -c "Fallback activated: glm-5.3-flash →
+deepseek-v4-flash" ~/.hermes/logs/agent.log`. Baseline before the gate: **15**
+such lines in the first ~30 minutes of the current log, 12 of them
+`platform=api_server` (every one requested `model=glm-5.3-flash`,
+`provider=custom` — the zai-glm gateway lane), against 196/191/344/90 in the
+previous four rotated logs.
+
+Scope of the gate, stated precisely: it stops the RESOLVER from re-picking a
+plan-exhausted lane. A caller that hard-codes the dead lane (a worker brief
+dispatched with `-m glm-5.3-flash --provider zai-glm`) still reaches the gateway
+and still falls back to PAYG — that class is the dispatcher's choice, and the fix
+there is to pick the lane from the resolver chain (or to consult
+`router quota status`), not a gate on the resolver.
+
+## Landing record (2026-09-19)
+
+This work's nine files landed inside commit `d32f3b8` — *"chore(probe): record
+the 09-19 scanner re-run output (1 STUCK row)"* — which was authored by a
+concurrent probe-data job in the same workdir. Sequence: the worker staged its
+files, the full Tier-1 guard ran and PASSED (secrets clean; `pytest -q tests/ -x`
+= **427 passed**), and the concurrent commit swept the staged set into itself
+before the TR-060 commit could be created (`fatal: cannot lock ref 'HEAD': is at
+<new> but expected <old>`). No amend and no revert was made; `git diff HEAD --`
+for every file below is empty and the guard verdict above was produced on exactly
+that tree. This section is the record commit carrying the TR-060 message and its
+acceptance evidence.
+
+Swept files: `scripts/router_spawn.py` (the gate), `scripts/router_quota.py` (new
+writer CLI), `scripts/router_status.py` (visibility), `scripts/sync_runtime.sh`
+(live wiring), `task_router/cli.py` + `task_router/paths.py` (subcommand +
+data-home helper), `tests/test_quota_gate.py` (new battery),
+`tests/test_cli_paths.py`, and this document.
