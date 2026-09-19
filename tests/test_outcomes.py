@@ -191,3 +191,20 @@ def test_ingest_validation_error_raises_for_the_400_path(monkeypatch, tmp_path):
     monkeypatch.setenv('ROUTING_OUTCOMES_FILE', str(tmp_path / 'o.jsonl'))
     with pytest.raises(ValueError):
         ro.ingest({'source_system': 'hermes'})
+
+
+def test_committed_sample_matches_the_documented_schema():
+    """data/tables/sample-outcomes.jsonl is the doc example AND a regression
+    guard: every sample row must round-trip through the ingest validator, so a
+    schema change that breaks the published shape fails here."""
+    path = os.path.join(ro.REPO, 'data', 'tables', 'sample-outcomes.jsonl')
+    assert os.path.exists(path), 'committed sample file missing'
+    rows = [json.loads(l) for l in open(path) if l.strip()]
+    assert rows, 'sample file is empty'
+    for row in rows:
+        assert ro.normalize_row(row) == row, row['session_id']
+    # the sample must exercise the interesting shapes, not just one happy path
+    assert {r['source_system'] for r in rows} >= {'sample-hermes', 'sample-opencode'}
+    assert any(r['complexity'] is None for r in rows)
+    assert any(r['success'] is False for r in rows)
+    assert any(isinstance(r['complexity'], dict) for r in rows)

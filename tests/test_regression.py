@@ -421,7 +421,13 @@ def test_registry_integrity():
                 "probe_providers", "probe_fixes", "probe_excludes", "probe_gaps",
                 "model_aliases",
                 # TR-019 external provider-name mapping rules (2026-09-01)
-                "provider_mappings"}
+                "provider_mappings",
+                # TR-049 outcome-store SAMPLE (docs/data example, not a
+                # registry table — the live store stays gitignored)
+                "sample-outcomes",
+                # TR-049 seed-derived averages (per-user data; empty on a
+                # clone without an outcome store)
+                "model_outcomes"}
     assert core <= set(tables), f"missing core tables: {core - set(tables)}"
     assert set(tables) - core <= sidecars, f"unexpected tables: {set(tables) - core - sidecars}"
     models = tables["models"]
