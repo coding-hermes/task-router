@@ -243,5 +243,96 @@ tasks:
   criteria:
   - All subcommands use data-home env exports; status/validate/estimate/diff/metrics/server/web
     get correct ROUTING_REGISTRY/ROUTING_DATA_DIR/ROUTER_STATE_DIR
-  status: in_progress
+  status: complete
   created_at: '2026-09-18T16:27:05.435045+00:00'
+  completed_at: '2026-09-18T16:56:41.632146+00:00'
+- id: TR-062
+  title: "Fix CI: 'test' workflow red on every push \u2014 step 'Full test suite (pure\
+    \ JSON \u2014 no duckdb needed)' fails, including board-only commits"
+  criteria:
+  - "The GitHub Actions workflow runs  but registry.json is missing (gitignored),\
+    \ causing test_profile_signature_is_declared_category_levels to fail. Fix: add\
+    \ a 'Seed registry' step before the test step that runs loaded providers     26\
+    \ rows\nloaded models       1415 rows\nloaded benchmarks   643 rows\nloaded archetypes\
+    \    10 rows\nloaded projects     206 rows\nloaded task_profiles  11 rows\nloaded\
+    \ task_profile_requirements  69 rows\nprovider mappings: 107 rule(s) loaded (TR-019)\n\
+    \  GAP: lane provider 'deepseek-duckbrain-sync' not in providers.jsonl and no\
+    \ provider_mappings rule resolves it (visible gap, never silent)\noverlay: 180\
+    \ inserted, 178 neutral-updated\nquality estimate rows updated (TR-002): 48\n\
+    category estimate rows inserted (TR-039): 168\n  alias: claude-haiku-4-5-20251001\
+    \ -> claude-haiku-4-5 (base has no perf rows, skipped)\n  alias: inclusionai/ling-3.0-flash-sante:free\
+    \ -> ling-3.0-flash-sante (base has no perf rows, skipped)\n  alias: amazon.nova-2-lite-v1:0\
+    \ -> amazon.nova-2-lite (base has no perf rows, skipped)\n  alias: amazon.nova-lite-v1:0\
+    \ -> amazon.nova-lite (base has no perf rows, skipped)\n  alias: amazon.nova-micro-v1:0\
+    \ -> amazon.nova-micro (base has no perf rows, skipped)\n  alias: amazon.nova-pro-v1:0\
+    \ -> amazon.nova-pro (base has no perf rows, skipped)\n  alias: ca.amazon.nova-lite-v1:0\
+    \ -> amazon.nova-lite (base has no perf rows, skipped)\n  alias: jp.amazon.nova-2-lite-v1:0\
+    \ -> amazon.nova-2-lite (base has no perf rows, skipped)\n  alias: anthropic.claude-haiku-4-5-20251001-v1:0\
+    \ -> claude-haiku-4-5 (base has no perf rows, skipped)\n  alias: anthropic.claude-opus-4-1-20250805-v1:0\
+    \ -> claude-opus-4-1 (base has no perf rows, skipped)\n  alias: anthropic.claude-opus-4-5-20251101-v1:0\
+    \ -> claude-opus-4-5 (base has no perf rows, skipped)\n  alias: anthropic.claude-opus-4-6-v1\
+    \ -> claude-opus-4-6 (base has no perf rows, skipped)\n  alias: anthropic.claude-sonnet-4-5-20250929-v1:0\
+    \ -> claude-sonnet-4-5 (base has no perf rows, skipped)\n  alias: jp.anthropic.claude-haiku-4-5-20251001-v1:0\
+    \ -> claude-haiku-4-5 (base has no perf rows, skipped)\n  alias: jp.anthropic.claude-sonnet-4-5-20250929-v1:0\
+    \ -> claude-sonnet-4-5 (base has no perf rows, skipped)\n  alias: deepseek.v3-v1:0\
+    \ -> deepseek-v3 (base has no perf rows, skipped)\n  alias: meta.llama4-maverick-17b-instruct-v1:0\
+    \ -> llama4-maverick-17b-instruct (base has no perf rows, skipped)\n  alias: meta.llama4-scout-17b-instruct-v1:0\
+    \ -> llama4-scout-17b-instruct (base has no perf rows, skipped)\n  alias: openai.gpt-oss-safeguard-120b\
+    \ -> gpt-oss-safeguard-120b (base has no perf rows, skipped)\n  alias: openai.gpt-oss-safeguard-20b\
+    \ -> gpt-oss-safeguard-20b (base has no perf rows, skipped)\n  alias: qwen.qwen3-coder-30b-a3b-v1:0\
+    \ -> qwen3-coder-30b-a3b (base has no perf rows, skipped)\n  alias: qwen.qwen3-coder-480b-a35b-v1:0\
+    \ -> qwen3-coder-480b-a35b (base has no perf rows, skipped)\n  alias: qwen.qwen3-next-80b-a3b\
+    \ -> qwen3-next-80b-a3b (base has no perf rows, skipped)\n  alias: qwen.qwen3-vl-235b-a22b\
+    \ -> qwen3-vl-235b-a22b (base has no perf rows, skipped)\n  alias: zai.glm-4.7-flash\
+    \ -> glm-4.7-flash (base has no perf rows, skipped)\n  alias: accounts/fireworks/models/qwen3p8-2p4t-a95b\
+    \ -> qwen3p8-2p4t-a95b (base has no perf rows, skipped)\naliases: 204 variants,\
+    \ 1482 inherited perfs\nseeded task profiles from data rows (11 profiles, 69 reqs)\n\
+    model_perf rows: 2386\ncategory_levels rows: 253\nmodel_tier rows: 2372\nprofiles:\
+    \ [('P0_FORE',), ('P1_CODING',), ('P1_WORKER',), ('P2_AGENTIC',), ('P3_DOCS',),\
+    \ ('P4_SECURITY',), ('P5_VISION_E2E',), ('P6_DEFAULT',), ('P7_MOCK',), ('P8_SYNC',),\
+    \ ('P9_REVIEW',)]\ncategories: 23\n  ('agent_tick', 119)\n  ('code_gen', 188)\n\
+    \  ('creative', 34)\n  ('debug', 119)\n  ('delegation', 119)\n  ('e2e_vision',\
+    \ 109)\n  ('guard', 117)\n  ('long_doc', 117)\n  ('long_horizon', 58)\n  ('math',\
+    \ 1)\n  ('mechanical', 21)\n  ('mock', 117)\n  ('reasoning', 127)\n  ('refactor',\
+    \ 178)\n  ('review', 115)\n  ('schema', 119)\n  ('security', 33)\n  ('spec_docs',\
+    \ 64)\n  ('terminal', 90)\n  ('test', 266)\n  ('tool_use', 168)\n  ('ui_frontend',\
+    \ 38)\n  ('vision', 69)\nexported tables to /home/kara/.local/share/task-router/scratch/ns/routing\n\
+    wrote /home/kara/task-router/registry.json (1954.6 KB)\nsynced data/tables ->\
+    \ /home/kara/task-router/data/tables to generate registry.json in the repo root\
+    \ (duckdb is already installed). The workflow goes green on the next push, witnessed\
+    \ in gh run list."
+  status: complete
+  created_at: '2026-09-18T17:19:20.945778+00:00'
+  completed_at: '2026-09-18T17:24:29.985486+00:00'
+- id: TR-049
+  title: 'COST-PER-TASK ENGINE: outcomes database + rolling averages + pluggable sort
+    keys'
+  criteria:
+  - 'epic: (1) outcomes ingest POST endpoint, (2) outcomes.jsonl store + gitignored,
+    (3) exponential-decay rolling averages (1d/3d/7d) in outcomes-averages.jsonl,
+    (4) per-backend isolation + merge option at resolve-time, (5) pluggable sort keys
+    (default: predicted-cost/task, alternates: wall-time, turns, ratio mix), (6) driver
+    plugin system (hermes first), (7) router_seed.py emits averages table. Doctrine:
+    DATA>JSONL, fail-open, gitignored state files, no hardcoded weights.'
+  status: in_progress
+  created_at: '2026-09-19T07:46:57.080144+00:00'
+- id: TR-051
+  title: "RESEARCH: agentic-system landscape \u2014 10+ integration targets with endpoint/protocol\
+    \ survey"
+  criteria:
+  - 'Deliver: docs/research/TR-051-agentic-drivers.md with per-system: protocol, auth
+    shape, outcome-reporting surface, driver spec sketch, priority ranking; then board
+    rows per driver, specs before implementation (specs = design authority).'
+  status: complete
+  created_at: '2026-09-19T08:50:42.033983+00:00'
+  completed_at: '2026-09-19T09:12:08.446902+00:00'
+- id: TR-057
+  title: "Fix router validate to honor TASK_ROUTER_HOME \u2014 seed writes to data\
+    \ home but validate checks <repo>/registry.json"
+  criteria:
+  - validate reads registry from the data home (TASK_ROUTER_HOME), not the repo root
+  - "fresh-clone + TASK_ROUTER_HOME=~/tr-home seed + validate \u2192 PASS"
+  - existing validate tests still pass
+  status: complete
+  created_at: '2026-09-19T09:29:00.200394+00:00'
+  completed_at: '2026-09-19T09:48:38.140523+00:00'
