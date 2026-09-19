@@ -40,7 +40,27 @@ _REPO = os.path.dirname(_HERE)
 # TR-057: derive the registry default from the data-home path helper so a
 # direct invocation (bypassing the CLI) honours TASK_ROUTER_HOME the same way
 # `router seed` and `router spawn` do.  Env override still wins.
-from task_router.paths import registry_path as _data_home_registry
+#
+# 2026-09-19 (CI red, 5 consecutive runs from 625439e): the bare import broke
+# every FRESH CHECKOUT — the helper only resolved where the package is
+# installed (board venv editable install), so `python3 -m pytest` in CI died
+# with ModuleNotFoundError: No module named 'task_router' and took 9 validate
+# fixture tests with it. Insert the repo root first (same sys.path pattern
+# router_pricing.py uses for its own package) so a direct invocation of the
+# script works from any cwd, installed or not.
+if _REPO not in sys.path:
+    sys.path.insert(0, _REPO)
+try:
+    from task_router.paths import registry_path as _data_home_registry
+except ImportError:  # pragma: no cover - uninstallable layout fallback
+    def _data_home_registry():
+        """Fallback data-home resolution (no package import available)."""
+        home = os.environ.get('TASK_ROUTER_HOME')
+        if home:
+            return os.path.join(os.path.expanduser(home), 'registry.json')
+        return os.path.join(os.path.expanduser('~/.local/share/task-router'),
+                            'registry.json')
+
 REGISTRY = os.environ.get('ROUTING_REGISTRY', _data_home_registry())
 DATA_DIR = os.environ.get('ROUTING_DATA_DIR', os.path.join(_REPO, 'data', 'tables'))
 STATE_DIR = os.environ.get('ROUTER_STATE_DIR', os.path.expanduser('~/.hermes/model-router'))
