@@ -408,15 +408,20 @@ def test_maintain_refactor_behavior_unchanged(tmp_path):
 
     reg_a = tmp_path / "registry-a.json"
     reg_b = tmp_path / "registry-b.json"
-    # seed both scratch registries from their own data copies
-    for reg, data in ((reg_a, data_a), (reg_b, data_b)):
-        env = dict(os.environ, ROUTING_REGISTRY=str(reg),
-                   ROUTING_DATA_DIR=str(data))
-        p = subprocess.run([sys.executable,
-                            os.path.join(SCRIPTS, "router_seed.py")],
-                           capture_output=True, text=True, env=env,
-                           cwd=REPO, timeout=240)
-        assert p.returncode == 0, p.stderr[-500:]
+    # TR-077: seed ONCE from data-a; run B starts from a FILE COPY of A's
+    # pre-reprice registry — B's inputs are byte-identical to A's by
+    # construction (both copytree the same committed tables), and the suite's
+    # own idempotency test proves seed output is deterministic for identical
+    # inputs. B's reprice->seed flow below still runs for real; only the
+    # redundant second INITIAL build is gone (one build, not two).
+    env = dict(os.environ, ROUTING_REGISTRY=str(reg_a),
+               ROUTING_DATA_DIR=str(data_a))
+    p = subprocess.run([sys.executable,
+                        os.path.join(SCRIPTS, "router_seed.py")],
+                       capture_output=True, text=True, env=env,
+                       cwd=REPO, timeout=240)
+    assert p.returncode == 0, p.stderr[-500:]
+    shutil.copy2(reg_a, reg_b)
 
     fake_spot = tmp_path / "fake-spot.py"
     fake_spot.write_text(

@@ -55,9 +55,14 @@ def _tier_rows(reg):
     return {(r["model"], r["category"]): r["tier"] for r in reg["tables"]["model_tier"]}
 
 
-def test_target_provider_samples_derive_tier_rows(tmp_path):
-    """Every target provider's lane has a model_tier row it can resolve from."""
-    reg = _seed(_hermetic_env(tmp_path))
+def test_target_provider_samples_derive_tier_rows(seed_registry_copy):
+    """Every target provider's lane has a model_tier row it can resolve from.
+
+    TR-077: reads the SHARED session build (read-only after seeding; same bytes
+    as a private build — seed determinism is pinned by test_seed_is_idempotent).
+    """
+    with open(seed_registry_copy["ROUTING_REGISTRY"]) as f:
+        reg = json.load(f)
     tiers = _tier_rows(reg)
     for provider, lane in SAMPLE_LANES.items():
         row = [t for (m, c), t in tiers.items() if m == lane and c == "test"]
@@ -65,16 +70,17 @@ def test_target_provider_samples_derive_tier_rows(tmp_path):
         assert row[0] >= 0, f"{provider}: {lane} tier {row[0]} below the >=0 bar"
 
 
-def test_target_providers_emit_no_router_miss(tmp_path):
+def test_target_providers_emit_no_router_miss(seed_registry_copy):
     """Resolve emits zero ROUTER-MISS lines for the three providers.
 
     Uses the board's sanity project (coding-hermes-scheduler, P1_CODING): its
     only positive bar is `test>=0`, which is the bar the vendor lanes fail on
     tier absence. Other profiles add bars (agent_tick/delegation/…) that these
     lanes legitimately miss — that is not the defect TR-039 fixes.
+    TR-077: registry comes from the SHARED session build (read-only consumer;
+    the spawn subprocess only reads it, from a per-test copy).
     """
-    env = _hermetic_env(tmp_path)
-    _seed(env)
+    env = dict(os.environ, **seed_registry_copy)
     p = _run(os.path.join(SCRIPTS, "router_spawn.py"), "coding-hermes-scheduler",
              "--format", "json", env_extra=env)
     assert p.returncode == 0, p.stderr[-400:]
