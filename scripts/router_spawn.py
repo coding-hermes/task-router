@@ -144,6 +144,23 @@ DEFAULT_WINDOW_H = 24
 DEFAULT_SORT = os.environ.get('ROUTER_SPAWN_SORT') or 'price'
 
 
+def row_is_retired(row, today=None):
+    """Has this registry row passed its retirement date?
+
+    `valid_to` on models.jsonl is the model's RETIREMENT date (20 rows carry
+    one, all past-dated = genuinely retired). Eligibility used to test
+    `valid_to is not None`, which retires a lane the moment a FUTURE date is
+    stamped — the announced-decommission case would hide the lane weeks early.
+    Date-compare instead: past = retired, future = still live.
+    """
+    vt = row.get('valid_to')
+    if not vt:
+        return False
+    if today is None:
+        today = datetime.date.today().isoformat()
+    return str(vt)[:10] <= str(today)[:10]
+
+
 def load_json(path, default):
     try:
         return json.load(open(path))
@@ -1147,7 +1164,8 @@ def _build_chain(tables, reqs, limit=DEFAULT_CHAIN_LIMIT, sort_spec=None, sort_c
     """Replicates v_task_chain exactly, in pure python.
 
     reqs = [(category, level), ...] (profile requirements or ad-hoc).
-    Eligible = active models (valid_to null, not archived, priced) with a
+    Eligible = active models (not archived, not past their valid_to
+    retirement date, priced) with a
     tier >= level for EVERY requirement. Order: plan_tier ASC,
     normalized_price * token_factor ASC, model ASC, provider ASC (the SQL
     view's tie-breaks). Returns rows [(hop, provider, model, price, dclass, mrow)].
@@ -1182,7 +1200,7 @@ def _build_chain(tables, reqs, limit=DEFAULT_CHAIN_LIMIT, sort_spec=None, sort_c
 
     eligible = []
     for m in models:
-        if m.get('archive') or m.get('valid_to') is not None:
+        if m.get('archive') or row_is_retired(m):
             continue
         if m.get('disabled'):
             continue  # explicit per-provider lane disable (bad deployment)
@@ -1315,7 +1333,7 @@ def _resolve_fallback(tables, qs, hs, cs, reqs, limit=DEFAULT_CHAIN_LIMIT, profi
         m = by_lane.get(key)
         if m is None:
             continue  # lane doesn't exist in registry — gap, not a fabrication
-        if m.get('archive') or m.get('valid_to') is not None or m.get('disabled'):
+        if m.get('archive') or row_is_retired(m) or m.get('disabled'):
             continue
         if m.get('normalized_price') is None:
             continue

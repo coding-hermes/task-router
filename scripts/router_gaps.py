@@ -24,11 +24,15 @@ import argparse
 import json
 import os
 import sys
+import sys
 
 _REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.environ.get('ROUTING_DATA_DIR', os.path.join(_REPO, 'data', 'tables'))
 CATS = 24
 
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # sibling tools
+from router_spawn import row_is_retired  # noqa: E402
 
 def _rows(name):
     path = os.path.join(DATA_DIR, f'{name}.jsonl')
@@ -74,7 +78,7 @@ def assess(tables):
 
     per = []
     for m in models:
-        if m.get('archive') or m.get('valid_to') or m.get('disabled'):
+        if m.get('archive') or row_is_retired(m) or m.get('disabled'):
             continue  # disabled = intentional exclusion (plan sweep / quality)
         p, name = m['provider'], m['model']
         missing = []
