@@ -848,24 +848,108 @@ def _sort_predicted_cost_per_task(arg, lanes, ctx):
     return key
 
 
+def _sort_wall_time(arg, lanes, ctx):
+    """Fastest measured wall time per task first; a lane with no sample sorts
+    LAST (unknown is worst, never best)."""
+    def key(m):
+        value, _prov = lane_metric(m, ctx, 'wall')
+        return float('inf') if value is None else value
+    return key
+
+
+def _sort_turns(arg, lanes, ctx):
+    """Fewest measured turns per task first; no sample sorts LAST."""
+    def key(m):
+        value, _prov = lane_metric(m, ctx, 'turns')
+        return float('inf') if value is None else value
+    return key
+
+
+#: ratio term aliases: caller-facing metric name -> internal metric
+_TERM_ALIASES = {'cost': 'cost', 'predicted_cost_per_task': 'cost',
+                 'time': 'wall', 'wall': 'wall', 'wall_time': 'wall',
+                 'turns': 'turns'}
+
+
+def _parse_ratio(spec):
+    """'0.7*cost+0.3*time' -> [(0.7, 'cost'), (0.3, 'wall')].
+
+    The mix is CALLER data, never a baked-in constant (TR-049 c5). Raises
+    ValueError for anything malformed so the caller can degrade visibly.
+    """
+    if not spec or not str(spec).strip():
+        raise ValueError('ratio needs a mix, e.g. ratio:0.7*cost+0.3*time')
+    terms = []
+    for raw in str(spec).replace(',', '+').split('+'):
+        part = raw.strip()
+        if not part:
+            continue
+        if '*' not in part:
+            raise ValueError(f'ratio term {part!r} must be <weight>*<metric>')
+        weight, _, metric = part.partition('*')
+        try:
+            w = float(weight)
+        except ValueError:
+            raise ValueError(f'ratio weight {weight!r} is not a number')
+        term = _TERM_ALIASES.get(metric.strip().lower())
+        if term is None:
+            raise ValueError(f'unknown ratio metric {metric!r} '
+                             f'(known: {", ".join(sorted(_TERM_ALIASES))})')
+        terms.append((w, term))
+    if not terms:
+        raise ValueError('ratio needs at least one term')
+    return terms
+
+
+def _sort_ratio(arg, lanes, ctx):
+    """ratio:<w1>*<cost>+<w2>*<time> — a caller-supplied mix of the measured
+    metrics. Each term is min-max NORMALIZED across the eligible lanes before
+    blending (dollars, seconds and turns are not comparable raw), and a lane
+    missing a term counts as unknown = worst for that term."""
+    terms = _parse_ratio(arg)
+    observed = {}
+    for _w, term in terms:
+        for m in lanes:
+            value, _prov = lane_metric(m, ctx, term)
+            if value is not None:
+                observed.setdefault(term, []).append(value)
+
+    def norm(term, m):
+        value, _prov = lane_metric(m, ctx, term)
+        values = observed.get(term) or []
+        if value is None or not values:
+            return 1.0
+        lo, hi = min(values), max(values)
+        return 0.0 if hi == lo else (value - lo) / (hi - lo)
+
+    def key(m):
+        return sum(w * norm(term, m) for w, term in terms)
+    return key
+
+
 #: Sort-key DISPATCH — adding a key is one entry here, never a new branch
 #: inside the chain comparator (TR-049 c5). Each factory takes
 #: (arg, lanes, ctx) and returns a key callable over a lane row.
 SORT_KEYS = {
     'price': _sort_price,
     'predicted_cost_per_task': _sort_predicted_cost_per_task,
+    'wall_time': _sort_wall_time,
+    'turns': _sort_turns,
+    'ratio': _sort_ratio,
 }
 
 
 def make_sort_key(spec, lanes, ctx):
     """(key callable, resolved name) for a sort spec. Raises ValueError on an
-    unknown key — the caller degrades visibly (fail-open, never a hard stop)."""
+    unknown key or a malformed ratio — the caller degrades visibly (fail-open,
+    never a hard stop)."""
     name, _, arg = str(spec or DEFAULT_SORT).partition(':')
     name = name.strip()
     factory = SORT_KEYS.get(name)
     if factory is None:
         raise ValueError(f'unknown sort key {name!r} (known: '
-                         f'{", ".join(sorted(SORT_KEYS))})')
+                         f'{", ".join(sorted(SORT_KEYS))}, or '
+                         f'ratio:<w>*<cost>+<w>*<time>)')
     return factory(arg, lanes, ctx), name
 
 

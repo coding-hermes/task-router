@@ -167,3 +167,94 @@ def test_backend_isolation_changes_the_order(monkeypatch, tmp_path):
                                     backend="hermes")
     assert isolated["sort_stats"]["backend"] == "hermes"
     assert _order(isolated)[0] == "prov-a/a-expensive"   # c has no hermes sample
+
+
+# ------------------------------------------------------ component 5: sorting ---
+
+def test_default_sort_keeps_the_legacy_price_order(monkeypatch, tmp_path):
+    """Regression guard: with stats available the DEFAULT ordering must still be
+    the historical (plan_tier, effective price) order — router_spawn.py is
+    symlinked into the live fleet, so a silent re-rank is not acceptable."""
+    _wire(monkeypatch, tmp_path, averages=[
+        _row("prov-a", "a-expensive", cost=0.01),   # cheapest per task
+    ])
+    legacy = router_spawn.resolve(project="proj")
+    assert legacy["sort"] == "price"
+    assert _order(legacy) == ["prov-b/b-cheap", "prov-c/c-mid", "prov-a/a-expensive"]
+    explicit = router_spawn.resolve(project="proj", sort="price")
+    assert _order(explicit) == _order(legacy)
+
+
+def test_wall_time_sort_and_unknown_is_worst(monkeypatch, tmp_path):
+    _wire(monkeypatch, tmp_path, averages=[
+        _row("prov-c", "c-mid", wall=5.0, n=5),
+        _row("prov-b", "b-cheap", wall=99.0, n=5),
+    ])
+    r = router_spawn.resolve(project="proj", sort="wall_time")
+    assert _order(r)[:2] == ["prov-c/c-mid", "prov-b/b-cheap"]
+    assert _order(r)[2] == "prov-a/a-expensive"   # no sample -> unknown -> last
+
+
+def test_turns_sort(monkeypatch, tmp_path):
+    _wire(monkeypatch, tmp_path, averages=[
+        _row("prov-b", "b-cheap", turns=30),
+        _row("prov-c", "c-mid", turns=3),
+        _row("prov-a", "a-expensive", turns=7),
+    ])
+    assert _order(router_spawn.resolve(project="proj", sort="turns")) == [
+        "prov-c/c-mid", "prov-a/a-expensive", "prov-b/b-cheap"]
+
+
+def test_ratio_mix_is_caller_supplied_and_normalized(monkeypatch, tmp_path):
+    """ratio:<w>*<cost>+<w>*<time> — cost and time are normalized across the
+    eligible lanes before blending (dollars vs seconds are not comparable raw)."""
+    _wire(monkeypatch, tmp_path, averages=[
+        _row("prov-a", "a-expensive", cost=0.10, wall=100.0),  # cheap, slow
+        _row("prov-b", "b-cheap", cost=10.0, wall=1.0),        # dear, fast
+    ])
+    cost_heavy = router_spawn.resolve(project="proj", sort="ratio:0.9*cost+0.1*time")
+    assert _order(cost_heavy)[0] == "prov-a/a-expensive"
+    time_heavy = router_spawn.resolve(project="proj", sort="ratio:0.1*cost+0.9*time")
+    assert _order(time_heavy)[0] == "prov-b/b-cheap"
+
+
+def test_window_h_selects_the_average_window(monkeypatch, tmp_path):
+    """--window-h picks which decay window feeds the sort."""
+    rows = [_row("prov-a", "a-expensive", cost=0.01)]
+    rows[0]["avg_cost_task_72h"] = 0.0     # a different value in the 72h window
+    _wire(monkeypatch, tmp_path, averages=rows)
+    r = router_spawn.resolve(project="proj", sort="predicted_cost_per_task",
+                             window_h=72)
+    assert r["sort_stats"]["window_h"] == 72
+    hop = next(e for e in r["chain"] if e["provider"] == "prov-a")
+    assert hop["outcomes"]["predicted_cost_per_task"] == 0.0
+    # the default window reports the OTHER field's sample (0.01), not the 72h one
+    other = router_spawn.resolve(project="proj", sort="predicted_cost_per_task")
+    hop24 = next(e for e in other["chain"] if e["provider"] == "prov-a")
+    assert hop24["outcomes"]["predicted_cost_per_task"] == pytest.approx(0.01)
+
+
+def test_parse_ratio_rejects_bad_specs():
+    assert router_spawn._parse_ratio("0.7*cost+0.3*time") == [(0.7, "cost"), (0.3, "wall")]
+    assert router_spawn._parse_ratio("1*wall_time") == [(1.0, "wall")]
+    assert router_spawn._parse_ratio("1*turns,1*cost") == [(1.0, "turns"), (1.0, "cost")]
+    for bad in ("", "0.7", "0.7*carrots", "x*cost"):
+        with pytest.raises(ValueError):
+            router_spawn._parse_ratio(bad)
+
+
+def test_unknown_sort_key_fails_open_to_price(monkeypatch, tmp_path):
+    _wire(monkeypatch, tmp_path, averages=[_row("prov-a", "a-expensive", cost=0.01)])
+    r = router_spawn.resolve(project="proj", sort="cheapest-vibes")
+    assert "error" not in r                     # never blocks a resolve
+    assert r["sort"] == "price"                 # degraded, visibly
+    assert r["sort_stats"]["warning"]
+    assert _order(r) == ["prov-b/b-cheap", "prov-c/c-mid", "prov-a/a-expensive"]
+
+
+def test_sort_dispatch_dict_is_the_only_switch():
+    """Pluggability contract: adding a key is one dict entry, never a new branch
+    inside the comparator."""
+    assert set(router_spawn.SORT_KEYS) == {
+        "price", "predicted_cost_per_task", "wall_time", "turns", "ratio"}
+    assert router_spawn.DEFAULT_SORT in router_spawn.SORT_KEYS

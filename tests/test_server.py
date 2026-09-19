@@ -368,3 +368,35 @@ def test_outcome_ingest_is_listed_as_an_mcp_tool(server_env):
         assert result["structuredContent"]["appended"] is True
         store = Path(server_env["ROUTING_OUTCOMES_FILE"])
         assert "mcp-ingest-1" in store.read_text()
+
+
+# ---------------------------------------------------------------------------
+# TR-049 component 5 — GET /resolve forwards the outcome-ordering knobs
+# ---------------------------------------------------------------------------
+
+def test_resolve_forwards_the_outcome_sort_knobs(server_env):
+    """The HTTP surface must not drift from the CLI flags: ?sort/&window_h/
+    &backend reach router_spawn."""
+    with _server(server_env) as port:
+        code, payload = _request(
+            port, "/resolve?project=my-project&sort=turns&window_h=72&backend=sample-hermes")
+        assert code == 200, payload
+        assert payload.get("sort") == "turns"
+        stats = payload["sort_stats"]
+        assert stats["loaded"] is True
+        assert stats["window_h"] == 72
+        assert stats["backend"] == "sample-hermes"
+
+        # merge_backends=1 wins over --backend (documented precedence)
+        code, merged = _request(
+            port, "/resolve?project=my-project&backend=sample-hermes&merge_backends=1")
+        assert code == 200
+        assert merged["sort_stats"]["backend"] is None
+        assert merged["sort_stats"]["merge_backends"] is True
+
+        # no knobs -> the legacy default ordering, reported as such
+        code, plain = _request(port, "/resolve?project=my-project")
+        assert code == 200
+        assert plain["sort"] == "price"
+        assert plain["sort_stats"]["loaded"] is False
+

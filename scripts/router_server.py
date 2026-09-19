@@ -499,7 +499,9 @@ class RouterApplication:
                     if value:
                         argv.extend([flag, str(value)])
                 merge = query.get("merge_backends")
-                if merge and (isinstance(merge, str) and merge not in ("0", "false", "no")):
+                if isinstance(merge, list):
+                    merge = merge[0] if merge else None
+                if merge and str(merge) not in ("0", "false", "no"):
                     argv.append("--merge-backends")
                 return 200, _subprocess_json("router_spawn.py", argv)
             if path == "/profiles":
