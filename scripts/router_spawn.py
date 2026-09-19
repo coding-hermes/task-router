@@ -913,6 +913,22 @@ def lane_stats(index, provider, model, keys):
     rows = index.get((provider, model)) or []
     if not rows:
         return None, None
+    want_sigs = []
+    for want in keys or ():
+        want_sigs.append(_canonical_complexity(want))
+        try:
+            import router_outcomes
+            sig = router_outcomes.complexity_sig(want)
+            if sig:
+                want_sigs.append(sig)
+        except Exception:  # noqa: BLE001 — stats are optional; fail-open
+            pass
+    for want in want_sigs:
+        for r in rows:
+            if want and (r.get('complexity_sig') == want
+                         or _canonical_complexity(r.get('required_categories')) == want
+                         or _canonical_complexity(r.get('complexity')) == want):
+                return r, 'complexity'
     for want in keys or ():
         for r in rows:
             if _canonical_complexity(r.get('complexity')) == want:
@@ -936,9 +952,11 @@ def lane_metric(m, ctx, metric):
     store has no sample for the lane."""
     ctx = ctx or {}
     window = ctx.get('window_h', DEFAULT_WINDOW_H)
-    field = {'cost': f'avg_cost_task_{window}h',
-             'wall': f'avg_wall_time_{window}h',
-             'turns': f'avg_turns_{window}h'}[metric]
+    template = METRIC_FIELDS.get(metric)
+    if template is None:
+        raise ValueError(f'unknown metric {metric!r} (known: '
+                         f'{", ".join(sorted(METRIC_FIELDS))})')
+    field = template.format(w=window)
     row, match = lane_stats(ctx.get('index') or {}, m.get('provider'),
                             m.get('model'), ctx.get('keys'))
     if row is None:
@@ -958,9 +976,15 @@ def outcome_note(m, ctx):
             'stats_source': (ctx.get('meta') or {}).get('source')}
     if row is not None:
         note['n_samples'] = row.get('n_samples')
+        note['complexity_sig'] = row.get('complexity_sig')
+        note['required_categories'] = row.get('required_categories')
         note['predicted_cost_per_task'] = row.get(f'avg_cost_task_{window}h')
         note['avg_wall_time_s'] = row.get(f'avg_wall_time_{window}h')
         note['avg_turns'] = row.get(f'avg_turns_{window}h')
+        note['avg_tokens_in'] = row.get(f'avg_tokens_in_{window}h')
+        note['avg_tokens_out'] = row.get(f'avg_tokens_out_{window}h')
+        note['avg_tokens_total'] = row.get(f'avg_tokens_total_{window}h')
+        note['success_rate'] = row.get('success_rate')
     return note
 
 
@@ -1012,10 +1036,23 @@ def _sort_turns(arg, lanes, ctx):
     return key
 
 
+#: metric registry (TR-065 R6): caller-facing metric -> averages-row field
+#: template. Adding a metric in router_outcomes.compute_averages + one line here
+#: makes it sortable (and usable in ratio mixes) with no other code change.
+METRIC_FIELDS = {
+    'cost': 'avg_cost_task_{w}h',
+    'wall': 'avg_wall_time_{w}h',
+    'turns': 'avg_turns_{w}h',
+    'tokens_in': 'avg_tokens_in_{w}h',
+    'tokens_out': 'avg_tokens_out_{w}h',
+    'tokens_total': 'avg_tokens_total_{w}h',
+}
 #: ratio term aliases: caller-facing metric name -> internal metric
 _TERM_ALIASES = {'cost': 'cost', 'predicted_cost_per_task': 'cost',
                  'time': 'wall', 'wall': 'wall', 'wall_time': 'wall',
-                 'turns': 'turns'}
+                 'turns': 'turns', 'tokens': 'tokens_total',
+                 'tokens_in': 'tokens_in', 'tokens_out': 'tokens_out',
+                 'tokens_total': 'tokens_total'}
 
 
 def _parse_ratio(spec):

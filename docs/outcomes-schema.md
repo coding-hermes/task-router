@@ -130,8 +130,13 @@ A window is a **half-life**, like the Linux load average: a sample exactly one
 window old contributes weight `0.5`; two windows old, `0.25`. Defaults are
 1d/3d/7d; `--windows` accepts hours (`48`) or durations (`2d`, `12h`).
 
-Bucket = `(source_system, provider, model, complexity)` — i.e. one row per
-backend **and** one row per `(model × complexity reference)`, which is what
+Bucket = `(source_system, provider, model, complexity_sig)` — i.e. one row per
+backend **and** one row per `(model × complexity SET)`. `complexity_sig` is
+`sha1(canonical_json({category: min_level}))` (TR-065 R1): dict-order
+independent, level-sensitive, so `{code_gen:2, test:1}` and `{security:2,
+review:0}` on ONE model are two independent buckets. Rows that declare nothing
+share the `null` signature (the per-model average for callers who never declare).
+`required_categories` is carried alongside for readability. Which is what
 makes a lane's cost comparable at the task profile it will actually be asked to
 serve. `--merge-backends` collapses `source_system` (sample-count weighted, so a
 100k-sample backend is not averaged as an equal of a 2-sample one) and adds a
@@ -145,6 +150,17 @@ carries it:
 | `avg_cost_task_<N>h` | decay-weighted mean `cost_usd` — **cost per completed task** |
 | `avg_wall_time_<N>h` | decay-weighted mean `wall_time_s` |
 | `avg_turns_<N>h` | decay-weighted mean `turns` |
+| `avg_tokens_in_<N>h` | decay-weighted mean input tokens per task |
+| `avg_tokens_out_<N>h` | decay-weighted mean output tokens per task |
+| `avg_tokens_total_<N>h` | decay-weighted mean (in + out) per task |
+
+**Sort rules** (TR-065 R6): every metric above is sortable by name
+(`predicted_cost_per_task`, `wall_time`, `turns`, `tokens_in`, `tokens_out`,
+`tokens_total`) and usable in compound mixes — `--sort ratio:0.7*cost+0.3*turns`,
+`--sort ratio:1*tokens_total`. The metric registry in `router_spawn.py`
+(`METRIC_FIELDS`) plus the `avg_*` keys computed here are the only two places
+that need a line for a NEW metric to become sortable; unknown metrics degrade
+visibly to price, never silently.
 | `n_samples` | rows in the bucket |
 | `n_completed` / `n_success_known` / `success_rate` | completion counts; `success_rate` is `null` when the source never reports success (never fabricated) |
 
@@ -183,7 +199,8 @@ table.
 
 | column | source |
 |---|---|
-| `source_system`, `provider`, `model`, `complexity` | bucket key |
-| `avg_cost_task_<N>h`, `avg_wall_time_<N>h`, `avg_turns_<N>h` | decay-weighted means |
+| `source_system`, `provider`, `model`, `complexity_sig` | bucket key |
+| `required_categories` | the declared requirement set behind the signature |
+| `avg_*_<N>h` (cost, wall_time, turns, tokens_in/out/total) | decay-weighted means |
 | `n_samples`, `n_completed`, `n_success_known`, `success_rate` | counts |
 | `backends` | comma-joined backend list (merged rows) |

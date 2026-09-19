@@ -13,12 +13,17 @@ NOW = 1_800_000_000.0
 
 
 def _row(model='m1', provider='p1', complexity=None, cost=1.0, age_s=0, ts=None,
-         success=True, source='test'):
-    return {'source_system': source, 'session_id': f'{source}-{model}-{age_s}-{cost}',
+         success=True, source='test', sig=None, req=None):
+    row = {'source_system': source, 'session_id': f'{source}-{model}-{age_s}-{cost}',
             'complexity': complexity, 'provider': provider, 'model': model,
             'turns': 1, 'tokens_in': 100, 'tokens_out': 10, 'tokens_reasoning': 0,
             'cost_usd': cost, 'wall_time_s': 5.0, 'success': success,
             'ts': ts if ts is not None else NOW - age_s}
+    if sig:
+        row['complexity_sig'] = sig
+    if req:
+        row['required_categories'] = req
+    return row
 
 
 def test_decay_weight_half_life():
@@ -58,15 +63,23 @@ def test_compute_averages_merge_opt_in():
     assert len(out) == 1
     assert out[0]['avg_cost_task_24h'] == pytest.approx(5.0)
     assert 'source_system' not in out[0]
-    assert out[0]['provider'] == 'p1' and out[0]['model'] == 'm1' and out[0]['complexity'] == 'P1'
+    assert out[0]['provider'] == 'p1' and out[0]['model'] == 'm1'
+    # both rows declare the same profile id -> one bucket keyed by that
+    # declaration (a profile id keys by name until the registry maps it)
+    assert out[0]['complexity_sig'] == 'profile:P1'
 
 
 def test_complexity_is_part_of_the_bucket():
-    rows = [_row(complexity='P1', cost=1.0), _row(complexity='P4', cost=9.0)]
+    # TR-065: the bucket key is the complexity SET (a signature), so two tasks
+    # declaring different requirement sets on one model never share an average.
+    sig_a = ro.complexity_sig({'code_gen': 2})
+    sig_b = ro.complexity_sig({'security': 2})
+    rows = [_row(cost=1.0, sig=sig_a, req={'code_gen': 2}),
+            _row(cost=9.0, sig=sig_b, req={'security': 2})]
     out = ro.compute_averages(rows, scales_h=[24], merge_backends=True, now_s=NOW)
     assert len(out) == 2
-    costs = {e['complexity']: e['avg_cost_task_24h'] for e in out}
-    assert costs['P1'] == pytest.approx(1.0) and costs['P4'] == pytest.approx(9.0)
+    costs = {e['complexity_sig']: e['avg_cost_task_24h'] for e in out}
+    assert costs[sig_a] == pytest.approx(1.0) and costs[sig_b] == pytest.approx(9.0)
     assert all(e['provider'] == 'p1' and e['model'] == 'm1' for e in out)
 
 

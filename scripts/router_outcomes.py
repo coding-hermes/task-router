@@ -20,6 +20,7 @@ Subcommands:
 """
 import argparse
 import fcntl
+import hashlib
 import json
 import math
 import os
@@ -88,35 +89,115 @@ def bucket_avg(rows, scale_h, now_s=None):
     return bucket_weighted(rows, 'cost_usd', scale_h, now_s=now_s)
 
 
-def compute_averages(rows, scales_h=DEFAULT_SCALES_H, merge_backends=False, now_s=None):
-    """Bucket = (source_system, provider, model, complexity) — or
-    (provider, model, complexity) when merging across backends.
-    Averages computed per bucket per scale; cost-per-task is the bucket's
-    weighted mean session cost (the task unit here = one session).
+def canonical_complexity(obj):
+    """Normalize a complexity declaration to a canonical {category: int} dict.
 
-    Per scale the bucket carries the three sort-key inputs TR-049 needs:
-    avg_cost_task_<s>h (cost), avg_wall_time_<s>h (wall_time_s) and
-    avg_turns_<s>h (turns) — every metric is None when no sample carries it.
+    Accepts: {cat: level} | [{"category": c, "level": l}, ...] | {"c=3","d=-2"}.
+    Returns None when nothing usable is present (never invent categories).
+    """
+    if obj is None:
+        return None
+    if isinstance(obj, dict):
+        out = {}
+        for k, v in obj.items():
+            if k == 'category' and 'level' in obj and len(obj) <= 3:
+                continue  # single-row {category, level} shape
+            try:
+                out[str(k)] = int(v)
+            except (TypeError, ValueError):
+                return None
+        return out or None
+    if isinstance(obj, (list, tuple)):
+        out = {}
+        for item in obj:
+            if isinstance(item, dict) and 'category' in item:
+                out[str(item['category'])] = int(item.get('level', 0))
+            elif isinstance(item, str) and '=' in item:
+                c, _, lvl = item.partition('=')
+                out[c.strip()] = int(lvl)
+            else:
+                return None
+        return out or None
+    return None
+
+
+def complexity_sig(requirements):
+    """The complexity REFERENCE (TR-065 R1): sha1 over the canonical JSON of
+    {category: min_level}. Dict-order independent; level-sensitive — a task
+    requiring code_gen>=2 is a different bucket from code_gen>=3 on the same
+    model. Returns None when the declaration is unusable (never guess)."""
+    canon = canonical_complexity(requirements)
+    if not canon:
+        return None
+    payload = json.dumps({k: int(canon[k]) for k in sorted(canon)},
+                         separators=(',', ':'), sort_keys=True)
+    return hashlib.sha1(payload.encode()).hexdigest()
+
+
+def row_complexity_sig(row):
+    """The bucket key for an outcome row: an explicit complexity_sig wins, then
+    a canonical dict (complexity / required_categories), then a profile id
+    (keyed by name when the registry is unavailable) — else None (honest:
+    imported gateway rows carry no declared set)."""
+    sig = row.get('complexity_sig')
+    if isinstance(sig, str) and sig:
+        return sig
+    for field in ('required_categories', 'complexity'):
+        v = row.get(field)
+        if isinstance(v, (dict, list)):
+            s = complexity_sig(v)
+            if s:
+                return s
+    pid = row.get('profile_id') or (row.get('complexity')
+                                    if isinstance(row.get('complexity'), str) else None)
+    if isinstance(pid, str) and pid.strip():
+        return f'profile:{pid.strip()}'
+    return None
+
+
+def compute_averages(rows, scales_h=DEFAULT_SCALES_H, merge_backends=False, now_s=None):
+    """Bucket = (source_system, provider, model, complexity_sig) — the signature
+    of the declared requirement SET (TR-065 R1/R3), not a single scalar. Rows
+    that declare nothing share the None bucket, so a per-model average is still
+    available to callers who never declare complexity.
+
+    Per scale each bucket carries every metric the sort rules consume:
+    avg_cost_task_<s>h, avg_tokens_in_task_<s>h, avg_tokens_out_task_<s>h,
+    avg_tokens_total_task_<s>h, avg_turns_task_<s>h, avg_wall_time_task_<s>h —
+    None whenever no sample carries that metric (never fabricate).
     """
     now_s = now_s or time.time()
-    buckets = {}
+    buckets, sig_dicts = {}, {}
     for r in rows:
-        key = ((r['provider'], r['model'], r.get('complexity')) if merge_backends
-               else (r.get('source_system'), r['provider'], r['model'], r.get('complexity')))
+        sig = row_complexity_sig(r)
+        key = ((r['provider'], r['model'], sig) if merge_backends
+               else (r.get('source_system'), r['provider'], r['model'], sig))
         buckets.setdefault(key, []).append(r)
+        if sig:
+            canon = canonical_complexity(r.get('required_categories')) or \
+                canonical_complexity(r.get('complexity'))
+            if canon:
+                sig_dicts[sig] = canon
     out = []
     for key, brows in sorted(buckets.items(), key=lambda kv: str(kv[0])):
         if merge_backends:
-            prov, model, complexity = key
-            entry = {'provider': prov, 'model': model, 'complexity': complexity}
+            prov, model, sig = key
+            entry = {'provider': prov, 'model': model}
         else:
-            src, prov, model, complexity = key
-            entry = {'source_system': src, 'provider': prov, 'model': model,
-                     'complexity': complexity}
+            src, prov, model, sig = key
+            entry = {'source_system': src, 'provider': prov, 'model': model}
+        entry['complexity_sig'] = sig
+        entry['required_categories'] = sig_dicts.get(sig) if sig else None
         for s in scales_h:
             entry[f'avg_cost_task_{s}h'] = bucket_weighted(brows, 'cost_usd', s, now_s=now_s)
             entry[f'avg_wall_time_{s}h'] = bucket_weighted(brows, 'wall_time_s', s, now_s=now_s)
             entry[f'avg_turns_{s}h'] = bucket_weighted(brows, 'turns', s, now_s=now_s)
+            entry[f'avg_tokens_in_{s}h'] = bucket_weighted(brows, 'tokens_in', s, now_s=now_s)
+            entry[f'avg_tokens_out_{s}h'] = bucket_weighted(brows, 'tokens_out', s, now_s=now_s)
+            tot = [{'ts': r.get('ts'), 'tokens_total': (r.get('tokens_in') or 0) + (r.get('tokens_out') or 0)}
+                   for r in brows
+                   if r.get('tokens_in') is not None or r.get('tokens_out') is not None]
+            entry[f'avg_tokens_total_{s}h'] = bucket_weighted(tot, 'tokens_total', s, now_s=now_s) if tot else None
         entry['n_samples'] = len(brows)
         entry['n_completed'] = sum(1 for r in brows if r.get('success'))
         known = sum(1 for r in brows if r.get('success') is not None)
@@ -138,14 +219,16 @@ def merge_average_rows(rows):
     """
     groups = {}
     for r in rows:
-        key = (r.get('provider'), r.get('model'), r.get('complexity'))
+        key = (r.get('provider'), r.get('model'), r.get('complexity_sig'))
         groups.setdefault(key, []).append(r)
     metric_fields = sorted({k for r in rows for k in r
                             if k.startswith('avg_')})
     out = []
     for key, grows in sorted(groups.items(), key=lambda kv: str(kv[0])):
-        prov, model, complexity = key
-        entry = {'provider': prov, 'model': model, 'complexity': complexity}
+        prov, model, sig = key
+        entry = {'provider': prov, 'model': model, 'complexity_sig': sig,
+                 'required_categories': next((r.get('required_categories') for r in grows
+                                              if r.get('required_categories')), None)}
         for f in metric_fields:
             wsum = xsum = 0.0
             for r in grows:
