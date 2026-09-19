@@ -139,6 +139,8 @@ COMMANDS = {
     "diff":       "router_diff.py",
     "web":        "router_web.py",
     "server":     "router_server.py",
+    "outcomes":   "router_outcomes.py",       # TR-049/065 store: import-hermes/averages/query
+    "chain-run":  "router_chain_run.py",      # TR-066 Path A: walk the chain, record attempts
 }
 RESERVED = ()
 

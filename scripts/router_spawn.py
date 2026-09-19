@@ -972,7 +972,13 @@ def outcome_note(m, ctx):
     window = ctx.get('window_h', DEFAULT_WINDOW_H)
     row, match = lane_stats(ctx.get('index') or {}, m.get('provider'),
                             m.get('model'), ctx.get('keys'))
+    # TR-066 R5: the fallback kind is NAMED, never implicit — a caller must be
+    # able to see that an ordering rested on a weaker bucket.
+    _FALLBACK_KIND = {'complexity': None, 'unconditioned': 'unconditioned',
+                      'merged': 'merged-backends', 'fallback': 'weighted-fallback',
+                      None: 'no-samples'}
     note = {'window_h': window, 'matched': match,
+            'stats_fallback': _FALLBACK_KIND.get(match, 'weighted-fallback'),
             'stats_source': (ctx.get('meta') or {}).get('source')}
     if row is not None:
         note['n_samples'] = row.get('n_samples')

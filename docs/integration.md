@@ -98,6 +98,73 @@ before each routed spawn, capture the trace_id, call `end` when the spawn
 settles; `router_ledger.py status` then flips to `wired: true` automatically
 and the `'model busy'` gate starts enforcing per-model concurrency limits.
 
+## TR-066 — Side channel (declared complexity → chain → caller executes)
+
+The cheap integration path: the caller ALREADY knows the complexity (the task
+board holds the profile), so no classifier and no proxy are involved. The
+caller asks the router for a chain and executes it itself.
+
+**1. Ask for the chain** (any of these; response facts are the same):
+
+```bash
+# named profile from the board
+python3 scripts/router_spawn.py <project> --format json
+python3 scripts/router_spawn.py --profile P1_CODING --format json
+# ad-hoc category levels (the DEPLOYED complexity: cat=level, integers)
+python3 scripts/router_spawn.py --profile-req 'code_gen=2 test=1' --format json
+# stats-based ordering (TR-065) + backend isolation + window
+... --sort predicted_cost_per_task --window-h 24 --backend hermes
+... --sort 'ratio:0.7*cost+0.3*turns'
+```
+
+Per hop the response carries: `provider`, `model`, `usd_1m` (PUBLIC list price —
+reporting), the chain position, `context_limit`, and `outcomes` (the stats
+provenance: `matched`, `complexity_sig`, `n_samples`, `stats_fallback`,
+predicted_cost_per_task, avg_wall_time/turns/tokens). `stats_fallback` NAMES
+the weaker bucket when ordering rested on one (`unconditioned`, `merged-backends`,
+`weighted-fallback`, `no-samples`, or `null` = exact signature match).
+
+**2. Execute the chain** — reference implementation, one command:
+
+```bash
+python3 scripts/router_chain_run.py <project|--profile P|--profile-req '...'> \
+    --sort predicted_cost_per_task --max-hops 3 \
+    --cmd 'my-agent --provider {provider} --model {model} --prompt-file task.md'
+```
+
+- The template gets `ROUTER_PROVIDER`, `ROUTER_MODEL`, `ROUTER_HOP`,
+  `ROUTER_KEY_ENV` in the environment — the CALLER owns auth; the router never
+  handles keys.
+- Exit 0 = success → stop; non-zero = transport/HTTP failure → record a breaker
+  failure and advance to the next hop (bounded by `--max-hops`).
+- **Content dissatisfaction is NOT a retry trigger.** A template that ran fine
+  but produced a bad result must exit 0 and report `success=false` itself —
+  the executor only walks the chain on transport failures.
+- `--dry-run` prints the plan (hops, prices, stats provenance) with zero
+  executions and zero writes.
+
+**3. Write back the outcome** (closes the loop; required for the averages to
+learn). Either the CLI or the API — same validation:
+
+```bash
+python3 scripts/router_outcomes.py ...
+curl -X POST localhost:9092/api/v1/outcomes -H 'Content-Type: application/json' -d '{
+  "source_system":"hermes","session_id":"s-123","profile_id":"P1_CODING",
+  "required_categories":{"code_gen":2,"test":1},
+  "provider":"deepseek","model":"deepseek-v4-flash",
+  "turns":7,"tokens_in":52000,"tokens_out":3100,"cost_usd":0.0112,
+  "wall_time_s":184.5,"success":true}'
+```
+
+Rows are keyed `(source_system, session_id, model)` — a retried POST never
+double-counts. `router_chain_run.py` writes one row per attempt automatically
+(source_system `chain-run`) and forwards breaker evidence to the circuit store.
+
+**4. Refresh the averages** (hourly, already wired): cron job
+`task-router averages refresh` runs `~/.hermes/scripts/router-averages-refresh.sh`
+(silent on success, alerts on failure) — newly reported outcomes are in the
+stats within the hour.
+
 ## Verification
 - Tick spawns show the resolved model/provider in scheduler.log.
 - Force a failure on a head pair → next spawn hops to chain hop 2; breaker file shows the open entry.
