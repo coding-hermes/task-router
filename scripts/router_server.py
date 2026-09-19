@@ -15,6 +15,9 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+import time
+import urllib.error
+import urllib.request
 from urllib.parse import parse_qs, urlparse
 
 REPO = Path(__file__).resolve().parents[1]
@@ -587,6 +590,12 @@ class RouterApplication:
                 return 200, router_outcomes.ingest(body)
             except ValueError as exc:
                 return 400, {"error": str(exc)}
+        if path in PROXY_PATHS:
+            # TR-067 Path B: mirror endpoint — classify (or take the declared
+            # profile), build the chain internally, call the upstream gateway
+            # with a bounded fallback ladder, return the upstream response shape
+            # plus additive _router metadata.
+            return proxy_chat(path, body, headers)
         return 404, {"error": "not found"}
 
     def tools(self):
@@ -691,9 +700,183 @@ class RouterApplication:
         }
 
 
+PROXY_PATHS = ("/v1/chat/completions", "/v1/responses")
+
+#: Injectable upstream call for tests: (path, body, headers) -> (status, payload)
+_UPSTREAM_CALL = None
+
+
+def _proxy_upstream_default(path, body, headers):
+    """POST the request to the upstream gateway (default: the Hermes gateway
+    on localhost). Returns (status, payload-dict). Transport failure raises —
+    the ladder treats it exactly like a 5xx."""
+    base = os.environ.get('ROUTER_PROXY_UPSTREAM', 'http://127.0.0.1:8642')
+    req = urllib.request.Request(
+        base.rstrip('/') + path, data=json.dumps(body).encode(),
+        headers={k: v for k, v in headers.items()
+                 if k.lower() in ('authorization', 'x-api-key', 'content-type')}
+        | {'Content-Type': 'application/json', 'User-Agent': 'task-router-proxy/1.0'})
+    try:
+        with urllib.request.urlopen(req, timeout=1800) as resp:
+            raw = resp.read()
+            status = resp.status
+    except urllib.error.HTTPError as exc:      # a REAL response, not transport
+        return exc.code, {'error': exc.read().decode()[:400]}
+    try:
+        payload = json.loads(raw)
+    except ValueError:
+        payload = {'error': 'upstream returned non-JSON', 'raw': raw[:200].decode(errors='replace')}
+    return (status if isinstance(status, int) else 200), payload
+
+
+def _proxy_requirements(body, headers, path):
+    """Decide the complexity for this request. Returns (source, payload) where
+    source ∈ declared | classifier | default, payload carries the matrix,
+    complexity_sig and (for the classifier) prompt version/model/problems."""
+    declared = headers.get('x-router-profile')
+    if declared:
+        sig = None
+        try:
+            import router_outcomes as ro
+            sig = ro.complexity_sig(ro.profile_signature(declared) or {})
+        except Exception:  # noqa: BLE001
+            pass
+        return 'declared', {'profile_id': declared, 'matrix': None,
+                            'complexity_sig': sig, 'problems': []}
+    text = []
+    for m in (body.get('messages') or []) if isinstance(body, dict) else []:
+        c = m.get('content') if isinstance(m, dict) else None
+        if isinstance(c, str):
+            text.append(c)
+    if isinstance(body, dict) and isinstance(body.get('input'), str):
+        text.append(body['input'])
+    text = '\n'.join(text)[-20000:]
+    try:
+        import router_classify
+        res = router_classify.classify(text)
+    except Exception as exc:  # noqa: BLE001
+        return 'default', {'profile_id': 'P0_FORE', 'matrix': None, 'complexity_sig': None,
+                           'problems': [f'classifier unavailable: {str(exc)[:200]}']}
+    if res.get('matrix') is None:
+        # R10: degrade to the default profile, WITH the reason visible.
+        return 'default', {'profile_id': 'P0_FORE', 'matrix': None, 'complexity_sig': None,
+                           'confidence': res.get('confidence'),
+                           'prompt_version': res.get('prompt_version'),
+                           'model': res.get('model'), 'problems': res.get('problems') or []}
+    return 'classifier', {'matrix': res['matrix'], 'complexity_sig': res.get('complexity_sig'),
+                          'confidence': res.get('confidence'),
+                          'prompt_version': res.get('prompt_version'),
+                          'model': res.get('model'), 'problems': res.get('problems') or []}
+
+
+def _proxy_chain(requirements, sort_spec=None, window_h=None):
+    """Ask the router for the chain (subprocess: the CLI stays the single
+    source of truth for resolve semantics)."""
+    args = ['--format', 'json']
+    if requirements.get('profile_id'):
+        args += ['--profile', requirements['profile_id']]
+    if requirements.get('matrix'):
+        args += ['--profile-req', ' '.join(f'{c}={v}' for c, v in sorted(requirements['matrix'].items()))]
+    if sort_spec:
+        args += ['--sort', sort_spec]
+    if window_h:
+        args += ['--window-h', str(window_h)]
+    try:
+        raw = _subprocess_text("router_spawn.py", args, timeout=180)
+        out = json.loads(raw) if raw else {}
+    except Exception:  # noqa: BLE001 — resolve problems degrade, never 500
+        return {}
+    return out if isinstance(out, dict) else {}
+
+
+def _proxy_record(provider, model, ok, requirements, reason='', latency_s=None, source='router-proxy'):
+    """One outcome row per attempt + breaker evidence (best effort, fail-open)."""
+    try:
+        import router_outcomes as ro
+        row = {'source_system': source, 'session_id': f'proxy-{time.time()}',
+               'provider': provider, 'model': model,
+               'required_categories': requirements.get('matrix'),
+               'complexity_sig': requirements.get('complexity_sig'),
+               'profile_id': requirements.get('profile_id'),
+               'turns': None, 'tokens_in': None, 'tokens_out': None,
+               'cost_usd': None, 'wall_time_s': latency_s, 'success': ok,
+               'task_label': reason[:200] or None, 'ts': time.time()}
+        ro.append_rows(ro.outcomes_path(), [row])
+    except Exception:  # noqa: BLE001
+        pass
+    try:
+        verb = 'record-success' if ok else 'record-failure'
+        args = [verb, provider, model] + ([] if ok else [reason or 'transport failure'])
+        _subprocess_text("router_circuit.py", args)
+    except Exception:  # noqa: BLE001
+        pass
+
+
+def proxy_chat(path, body, headers, max_hops=None, upstream=None):
+    """TR-067 Path B entry point. Never raises: any internal failure returns a
+    shaped error with the ladder trail (fail-open, the caller is a live client)."""
+    headers = {k.lower(): v for k, v in (headers or {}).items()}
+    body = body if isinstance(body, dict) else {}
+    try:
+        hops = int(headers.get('x-router-max-hops') or
+                   os.environ.get('ROUTER_PROXY_MAX_HOPS') or (max_hops or 3))
+    except (TypeError, ValueError):
+        hops = 3
+    source, requirements = _proxy_requirements(body, headers, path)
+    if source == 'classifier' and not (requirements.get('matrix') or {}):
+        # empty matrix = the task pressures no category. The router needs a
+        # profile to build a chain, so use the default one — VISIBLY.
+        source = 'classifier-empty'
+        requirements = {**requirements, 'profile_id': 'P0_FORE',
+                        'problems': (requirements.get('problems') or []) +
+                                    ['empty matrix -> default profile P0_FORE']}
+    resolved = _proxy_chain(requirements, sort_spec=headers.get('x-router-sort'),
+                            window_h=headers.get('x-router-window-h'))
+    chain = resolved.get('chain') or []
+    meta = {'complexity_source': source, 'requirements': requirements,
+            'sort': resolved.get('sort'), 'chain_length': len(chain),
+            'max_hops': hops, 'ladder': [],
+            'degrade_reason': (requirements.get('problems') or [None])[0]}
+    if not chain:
+        meta['gate'] = resolved.get('gate')
+        return 503, {'error': 'no open hop for this request', '_router': meta}
+
+    call = upstream or _UPSTREAM_CALL or _proxy_upstream_default
+    last = None
+    for hop in chain[:hops]:
+        provider, model = hop.get('provider'), hop.get('model')
+        attempt = {'hop': hop.get('hop'), 'provider': provider, 'model': model,
+                   'usd_1m': hop.get('usd_1m'),
+                   'stats_fallback': (hop.get('outcomes') or {}).get('stats_fallback')}
+        fwd = dict(body)
+        fwd['model'] = model
+        hdrs = {**headers, 'x-router-provider': str(provider)}
+        t0 = time.time()
+        try:
+            status, payload = call(path, fwd, hdrs)
+        except Exception as exc:  # noqa: BLE001 — transport failure == ladder step
+            status, payload = 0, {'error': str(exc)[:300]}
+        attempt['latency_s'] = round(time.time() - t0, 3)
+        attempt['status'] = status
+        ok = 200 <= int(status or 0) < 300
+        attempt['outcome'] = 'ok' if ok else 'transport-failure'
+        meta['ladder'].append(attempt)
+        _proxy_record(str(provider), str(model), ok, requirements,
+                      reason='' if ok else str(payload.get('error') if isinstance(payload, dict) else payload)[:200],
+                      latency_s=attempt['latency_s'])
+        last = (status, payload)
+        if ok:
+            out = dict(payload) if isinstance(payload, dict) else {'upstream': payload}
+            out['_router'] = {**meta, 'served_by': {'provider': provider, 'model': model}}
+            return 200, out
+    status, payload = last or (502, {'error': 'no hops attempted'})
+    out = dict(payload) if isinstance(payload, dict) else {'upstream': payload}
+    out['_router'] = {**meta, 'served_by': None, 'exhausted': True}
+    return (status if isinstance(status, int) and status >= 400 else 502), out
+
+
 class RouterHandler(BaseHTTPRequestHandler):
     server_version = "task-router/1.0"
-
     @property
     def app(self):
         return self.server.app

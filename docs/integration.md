@@ -165,6 +165,82 @@ double-counts. `router_chain_run.py` writes one row per attempt automatically
 (silent on success, alerts on failure) — newly reported outcomes are in the
 stats within the hour.
 
+## TR-067 — Router proxy (classified complexity → internal chain → upstream call)
+
+The zero-effort path: the client points its `base_url` at the router and
+nothing else changes. The router classifies the request, builds the chain
+internally, calls the upstream gateway, and walks the chain on transport
+failures.
+
+**1. Configure (all DATA, all env):**
+
+```bash
+export ROUTER_PROXY_UPSTREAM=http://127.0.0.1:8642        # the real gateway
+export ROUTER_CLASSIFIER_BASE_URL=https://api.z.ai/api/coding/paas/v4
+export ROUTER_CLASSIFIER_MODEL=glm-5.3-flash              # fast sub lane
+export ROUTER_CLASSIFIER_KEY_ENV=ZAI_GLM_API_KEY          # NAME, never a value
+export ROUTER_PROXY_MAX_HOPS=3
+```
+
+The classifier prompt is a VERSIONED FILE (`data/classifier/prompt-v1.md`) —
+edit the file, not the code; every result records the prompt version + model it
+used. Without `ROUTER_CLASSIFIER_BASE_URL` the proxy still works: it degrades
+VISIBLY to the default profile (`_router.degrade_reason` says why).
+
+**2. Call it like the gateway:**
+
+```bash
+curl -s localhost:9092/v1/chat/completions -H 'Authorization: Bearer <your-gateway-key>' \
+  -H 'Content-Type: application/json' \
+  -d '{"messages":[{"role":"user","content":"why is this Go test deadlocking under -race?"}]}'
+```
+
+Headers that steer the router (all optional):
+
+| header | effect |
+|---|---|
+| `x-router-profile: P1_CODING` | DECLARED complexity — skips the classifier entirely (contract face) |
+| `x-router-sort: predicted_cost_per_task` | ordering rule (any TR-065 metric or `ratio:` mix) |
+| `x-router-window-h: 24` | decay window for stats-based ordering |
+| `x-router-max-hops: 2` | bound on the fallback ladder |
+
+The caller's `Authorization` / `x-api-key` are forwarded upstream unchanged —
+the router never stores or invents keys.
+
+**3. Read the response.** The upstream response shape is returned as-is, plus
+an additive `_router` object:
+
+```json
+"_router": {
+  "complexity_source": "classifier | declared | classifier-empty | default",
+  "requirements": {"matrix": {"debug": 3, "reasoning": 3},
+                   "complexity_sig": "ab12…", "confidence": 0.8,
+                   "prompt_version": "v1", "model": "glm-5.3-flash", "problems": []},
+  "sort": "predicted_cost_per_task", "chain_length": 12, "max_hops": 3,
+  "served_by": {"provider": "deepseek", "model": "deepseek-v4-flash"},
+  "ladder": [{"hop": 2, "provider": "…", "model": "…", "usd_1m": 0.15,
+              "stats_fallback": "unconditioned", "status": 200, "latency_s": 4.2,
+              "outcome": "ok"}],
+  "degrade_reason": null
+}
+```
+
+**4. Semantics (spec R9–R11).**
+- Transport failure OR non-2xx → the next hop is tried (breaker recorded per
+  attempt), bounded by `max_hops`; when every hop fails the LAST upstream
+  response is returned with `_router.exhausted: true` (never a fabricated 200).
+- No open hop for the request → `503` with `_router.gate` naming the gate.
+- **Content dissatisfaction is NOT a retry trigger** — the router does not
+  silently re-ask a different model for a better answer.
+- Every attempt is recorded as an outcome row (`source_system: router-proxy`),
+  so the ladder's own performance feeds the averages it sorts by.
+- `no open hop` / malformed classifier output never crash the request: the
+  router returns a shaped error or the visible degrade, never a traceback.
+
+**Limitation (honest):** the mirror is JSON request/response. Streaming
+(`stream: true`) is forwarded as a non-streamed body — clients that require SSE
+should keep calling the gateway directly and use Path A instead.
+
 ## Verification
 - Tick spawns show the resolved model/provider in scheduler.log.
 - Force a failure on a head pair → next spawn hops to chain hop 2; breaker file shows the open entry.
