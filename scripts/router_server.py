@@ -97,7 +97,37 @@ def build_openapi():
                     "required": True,
                     "schema": string,
                     "description": "Registry project id",
-                }
+                },
+                {
+                    "name": "sort",
+                    "in": "query",
+                    "required": False,
+                    "schema": string,
+                    "description": "Chain ordering: price (default) | "
+                                   "predicted_cost_per_task | wall_time | turns | "
+                                   "ratio:<w>*<cost>+<w>*<time>",
+                },
+                {
+                    "name": "backend",
+                    "in": "query",
+                    "required": False,
+                    "schema": string,
+                    "description": "Use only this source_system's outcome stats",
+                },
+                {
+                    "name": "merge_backends",
+                    "in": "query",
+                    "required": False,
+                    "schema": string,
+                    "description": "Aggregate outcome stats across all backends",
+                },
+                {
+                    "name": "window_h",
+                    "in": "query",
+                    "required": False,
+                    "schema": integer,
+                    "description": "Average window (half-life, hours) for stats-based sorts",
+                },
             ],
         ),
     }
@@ -459,6 +489,18 @@ class RouterApplication:
                 aslow = query.get("allow_slow")
                 if aslow and (isinstance(aslow, str) and aslow not in ("0", "false", "no")):
                     argv.append("--allow-slow")
+                # TR-049: outcomes-driven ordering passthrough (same flags as
+                # the CLI, so the HTTP surface can never drift from it).
+                for key, flag in (("sort", "--sort"), ("backend", "--backend"),
+                                  ("window_h", "--window-h")):
+                    value = query.get(key)
+                    if isinstance(value, list):
+                        value = value[0] if value else None
+                    if value:
+                        argv.extend([flag, str(value)])
+                merge = query.get("merge_backends")
+                if merge and (isinstance(merge, str) and merge not in ("0", "false", "no")):
+                    argv.append("--merge-backends")
                 return 200, _subprocess_json("router_spawn.py", argv)
             if path == "/profiles":
                 return 200, {"profiles": _read_jsonl("task_profiles")}

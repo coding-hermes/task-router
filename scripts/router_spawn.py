@@ -119,6 +119,25 @@ METRICS_FILE = os.path.join(_METRICS_HOME, 'metrics.jsonl') if _METRICS_HOME els
 # does not count as in-flight.
 STALE_MS = 30 * 60 * 1000
 
+# --- TR-049 components 4/5: outcomes-driven ordering --------------------------
+# Resolve-time stats come from the rolling-averages table written by
+# scripts/outcomes_averages.py (see docs/outcomes-schema.md). Path resolution
+# mirrors the store's: env override > repo-relative runtime default.
+AVERAGES = os.environ.get('ROUTING_AVERAGES_FILE',
+                          os.path.join(_REPO, 'data', 'state', 'outcomes-averages.jsonl'))
+DEFAULT_WINDOW_H = 24
+#: Ordering used when --sort is not given.
+#:
+#: Deliberately the historical 'price' order (plan_tier, effective price), NOT
+#: 'predicted_cost_per_task'. This script is SYMLINKED into the live fleet
+#: (~/.hermes/scripts/router_spawn.py), so a different default silently re-ranks
+#: every fleet resolution — and cost-per-task ranking is not safe as a DEFAULT
+#: yet either: a lane that fails fast records cost 0.0 and would sort first,
+#: while the Hermes backend reports no completion signal to filter on. Opt in
+#: per call with --sort <key> (or set ROUTER_SPAWN_SORT / flip this constant
+#: deliberately).
+DEFAULT_SORT = os.environ.get('ROUTER_SPAWN_SORT') or 'price'
+
 
 def load_json(path, default):
     try:
@@ -653,7 +672,204 @@ def _resolve_profile_tag(profiles, ref):
     return ref
 
 
-def _build_chain(tables, reqs, limit=DEFAULT_CHAIN_LIMIT):
+def _averages_path():
+    """Resolve-time stats path (env override wins, resolved per call)."""
+    return os.environ.get('ROUTING_AVERAGES_FILE') or AVERAGES
+
+
+def _canonical_complexity(value):
+    """Stable string for a complexity reference: a profile id, a per-category
+    level map ({category: level}), or None."""
+    if value is None:
+        return None
+    if isinstance(value, str):
+        return value
+    if isinstance(value, dict):
+        return json.dumps({str(k): v for k, v in sorted(value.items())},
+                          sort_keys=True, separators=(',', ':'))
+    return json.dumps(value, sort_keys=True, separators=(',', ':'))
+
+
+def _complexity_keys(profile_id, tables):
+    """The complexity references a lane's stats row may be keyed by: the profile
+    id, plus the canonical form of its DECLARED per-category levels (the same
+    reference shape the outcome store documents). Never invented — a profile
+    with no requirement rows contributes only its id."""
+    keys = set()
+    if profile_id:
+        keys.add(str(profile_id))
+        sig = {}
+        for r in tables.get('task_profile_requirements') or []:
+            if r.get('task_id') == profile_id:
+                sig[str(r.get('category'))] = r.get('level')
+        if sig:
+            keys.add(_canonical_complexity(sig))
+    return keys
+
+
+def load_outcome_stats(backend=None, merge_backends=None, path=None):
+    """(index, meta) — the resolve-time view of the rolling averages.
+
+    index = {(provider, model): [row, ...]}
+    meta  = {path, rows, source, error}
+
+    Isolation is the DEFAULT whenever a `backend` is named (keep only that
+    source_system's rows, `source='backend:<name>'`); without a backend the rows
+    are MERGED across backends, sample-count weighted — the documented default.
+    Pass merge_backends=True to force the merge even with a backend named.
+
+    Fail-open: an absent or unreadable table yields an empty index plus the
+    reason; a resolve NEVER fails because the stats are missing.
+    """
+    p = path or _averages_path()
+    meta = {'path': p, 'rows': 0, 'source': 'merged', 'error': None}
+    rows = []
+    try:
+        with open(p) as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    row = json.loads(line)
+                except ValueError:
+                    continue
+                if isinstance(row, dict) and row.get('provider') and row.get('model'):
+                    rows.append(row)
+    except OSError as exc:
+        meta['error'] = f'unreadable averages: {exc}'
+        return {}, meta
+    if backend and not merge_backends:
+        meta['source'] = f'backend:{backend}'
+        rows = [r for r in rows if r.get('source_system') == backend]
+        if not rows:
+            meta['error'] = f'no samples for backend {backend!r}'
+    elif rows:
+        try:
+            import router_outcomes  # optional stats dependency (stdlib-only)
+            rows = router_outcomes.merge_average_rows(rows)
+        except Exception as exc:  # noqa: BLE001 — fail-open, keep the resolve
+            meta['error'] = f'merge failed: {exc}'
+            return {}, meta
+    index = {}
+    for r in rows:
+        index.setdefault((r.get('provider'), r.get('model')), []).append(r)
+    meta['rows'] = len(rows)
+    return index, meta
+
+
+def lane_stats(index, provider, model, keys):
+    """(row, match) for a lane: the stats row matching the task's complexity
+    reference, else the unconditioned bucket, else a weighted merge of the
+    lane's buckets. (None, None) when the store has no sample — never invented.
+    """
+    rows = index.get((provider, model)) or []
+    if not rows:
+        return None, None
+    for want in keys or ():
+        for r in rows:
+            if _canonical_complexity(r.get('complexity')) == want:
+                return r, 'complexity'
+    for r in rows:
+        if r.get('complexity') is None:
+            return r, 'unconditioned'
+    if len(rows) > 1:
+        try:
+            import router_outcomes
+            merged = router_outcomes.merge_average_rows(rows)
+            if merged:
+                return merged[0], 'merged'
+        except Exception:  # noqa: BLE001
+            pass
+    return rows[0], 'fallback'
+
+
+def lane_metric(m, ctx, metric):
+    """(value, provenance) for one metric of one lane. (None, None) when the
+    store has no sample for the lane."""
+    ctx = ctx or {}
+    window = ctx.get('window_h', DEFAULT_WINDOW_H)
+    field = {'cost': f'avg_cost_task_{window}h',
+             'wall': f'avg_wall_time_{window}h',
+             'turns': f'avg_turns_{window}h'}[metric]
+    row, match = lane_stats(ctx.get('index') or {}, m.get('provider'),
+                            m.get('model'), ctx.get('keys'))
+    if row is None:
+        return None, None
+    return row.get(field), {'match': match, 'n_samples': row.get('n_samples'),
+                            'source': (ctx.get('meta') or {}).get('source'),
+                            'window_h': window}
+
+
+def outcome_note(m, ctx):
+    """Per-hop stats provenance for the resolve response."""
+    ctx = ctx or {}
+    window = ctx.get('window_h', DEFAULT_WINDOW_H)
+    row, match = lane_stats(ctx.get('index') or {}, m.get('provider'),
+                            m.get('model'), ctx.get('keys'))
+    note = {'window_h': window, 'matched': match,
+            'stats_source': (ctx.get('meta') or {}).get('source')}
+    if row is not None:
+        note['n_samples'] = row.get('n_samples')
+        note['predicted_cost_per_task'] = row.get(f'avg_cost_task_{window}h')
+        note['avg_wall_time_s'] = row.get(f'avg_wall_time_{window}h')
+        note['avg_turns'] = row.get(f'avg_turns_{window}h')
+    return note
+
+
+def _effective_price(m):
+    return (m.get('normalized_price') or 0.0) * (m.get('token_factor') or 1.0)
+
+
+def _context_sort_key(m):
+    ctx = m.get('context_limit')
+    return -(ctx if isinstance(ctx, int) else 0)
+
+
+def _legacy_sort_key(m):
+    """The historical chain order: (plan_tier, effective price, larger context
+    first, model, provider) — unchanged since TR-015."""
+    return (m.get('plan_tier') if m.get('plan_tier') is not None else 1 << 30,
+            _effective_price(m), _context_sort_key(m),
+            m.get('model') or '', m.get('provider') or '')
+
+
+def _sort_price(arg, lanes, ctx):
+    """The legacy ordering (the default)."""
+    return _legacy_sort_key
+
+
+def _sort_predicted_cost_per_task(arg, lanes, ctx):
+    """Cheapest measured cost PER COMPLETED TASK first. A lane with no sample
+    keeps its price-proxy rank — unknown is not free."""
+    def key(m):
+        value, _prov = lane_metric(m, ctx, 'cost')
+        return _effective_price(m) if value is None else value
+    return key
+
+
+#: Sort-key DISPATCH — adding a key is one entry here, never a new branch
+#: inside the chain comparator (TR-049 c5). Each factory takes
+#: (arg, lanes, ctx) and returns a key callable over a lane row.
+SORT_KEYS = {
+    'price': _sort_price,
+    'predicted_cost_per_task': _sort_predicted_cost_per_task,
+}
+
+
+def make_sort_key(spec, lanes, ctx):
+    """(key callable, resolved name) for a sort spec. Raises ValueError on an
+    unknown key — the caller degrades visibly (fail-open, never a hard stop)."""
+    name, _, arg = str(spec or DEFAULT_SORT).partition(':')
+    name = name.strip()
+    factory = SORT_KEYS.get(name)
+    if factory is None:
+        raise ValueError(f'unknown sort key {name!r} (known: '
+                         f'{", ".join(sorted(SORT_KEYS))})')
+    return factory(arg, lanes, ctx), name
+
+
+def _build_chain(tables, reqs, limit=DEFAULT_CHAIN_LIMIT, sort_spec=None, sort_ctx=None):
     """Replicates v_task_chain exactly, in pure python.
 
     reqs = [(category, level), ...] (profile requirements or ad-hoc).
@@ -740,20 +956,25 @@ def _build_chain(tables, reqs, limit=DEFAULT_CHAIN_LIMIT):
         eligible.append(m)
 
     # TR-015: P3_DOCS / P2_AGENTIC prefer large-context lanes when prices are
-    # close. We implement this as a secondary sort bump: among lanes whose
-    # effective price is within 25% of each other, larger context_limit wins.
-    # Primary ordering remains (plan_tier, effective_price, model, provider).
-    def _context_sort_key(m):
-        ctx = m.get('context_limit')
-        return -(ctx if isinstance(ctx, int) else 0)
-
-    eligible.sort(key=lambda m: (
-        m.get('plan_tier') if m.get('plan_tier') is not None else 1 << 30,
-        (m.get('normalized_price') or 0.0) * (m.get('token_factor') or 1.0),
-        _context_sort_key(m),
-        m.get('model') or '',
-        m.get('provider') or '',
-    ))
+    # close — that is the secondary component of the LEGACY ordering key.
+    # TR-049 c5: ordering goes through the SORT_KEYS dispatch (never a branch
+    # inside the comparator); 'price' is the default entry.
+    eligible.sort(key=_legacy_sort_key)
+    sort_used, sort_warning = 'price', None
+    if sort_spec and sort_spec != 'price':
+        try:
+            order_key, sort_used = make_sort_key(sort_spec, eligible, sort_ctx or {})
+            eligible.sort(key=lambda m: (order_key(m), _legacy_sort_key(m)))
+        except ValueError as exc:
+            # Fail-open: an unknown/malformed key degrades to the price order
+            # and SAYS SO (stderr + sort_stats.warning) — it never blocks a
+            # resolve and never silently reorders.
+            sort_used, sort_warning = 'price', f'{sort_spec!r} ignored: {exc}'
+            _err(f'WARNING: --sort {sort_spec!r} ignored — {exc}')
+            eligible.sort(key=_legacy_sort_key)
+    if sort_ctx is not None:
+        sort_ctx['used'] = sort_used
+        sort_ctx['warning'] = sort_warning
     # 6th element = the full model row, so callers can expose PUBLIC prices
     # (usd_1m/in_per_m/out_per_m) without a second lookup.
     return [(i + 1, m.get('provider'), m.get('model'),
@@ -894,7 +1115,8 @@ def _data_home_meta(source, fallback_used):
 
 
 def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=DEFAULT_CHAIN_LIMIT,
-            allow_training=False, allow_slow=None):
+            allow_training=False, allow_slow=None, sort=None, backend=None,
+            merge_backends=False, window_h=DEFAULT_WINDOW_H):
     tables, src, fb, warn = _load_registry_with_meta()
     warnings = [warn] if warn else []
     projects = {r.get('id'): r for r in tables.get('projects') or []}
@@ -945,9 +1167,25 @@ def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=DE
     _allow_slow = bool(allow_slow) or bool(prof_row.get('allow_slow'))
 
     # --- 2. chain from the registry -------------------------------------------
+    # TR-049 c4/c5: when a stats-based sort is requested, load the rolling
+    # averages ONCE and give the ordering its context (index + the task's
+    # complexity reference keys). Fail-open: unreadable stats never block a
+    # resolve — the ordering degrades to the price keys and says why.
+    sort_spec = sort or DEFAULT_SORT
+    sort_ctx = None
+    if sort_spec != 'price':
+        stats_index, stats_meta = load_outcome_stats(
+            backend=backend, merge_backends=merge_backends)
+        sort_ctx = {'index': stats_index, 'meta': stats_meta, 'window_h': window_h,
+                    'keys': _complexity_keys(pid, tables),
+                    'used': 'price', 'warning': None}
+        if stats_meta.get('error'):
+            _err(f'WARNING: outcome stats degraded — {stats_meta["error"]}')
     # Profiles with NO requirement rows resolve to an empty chain — identical
     # to v_task_eligible (its task list comes from DISTINCT requirements).
-    chain_rows = _build_chain(tables, reqs, limit=limit) if reqs else []
+    chain_rows = _build_chain(tables, reqs, limit=limit, sort_spec=sort_spec,
+                              sort_ctx=sort_ctx) if reqs else []
+    sort_used = (sort_ctx or {}).get('used') or 'price'
     # TR-021: keep the raw price-ordered eligible list for metrics before gates.
     chain = list(chain_rows)
 
@@ -1088,6 +1326,10 @@ def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=DE
             note = mrow.get('_context_note')
             if note:
                 ent['context_note'] = note
+            if sort_ctx is not None:
+                # TR-049: the stats this hop was ranked by (additive key; the
+                # sort itself never changes gate behavior).
+                ent['outcomes'] = outcome_note(mrow, sort_ctx)
             out_chain.append(ent)
 
     # --- 4. diversity pruning: two-knob caps on the survivor chain -------------
@@ -1158,6 +1400,24 @@ def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=DE
             'warnings': warnings,
             'gate': 'OPEN' if head else ('NO-OPEN-HOP' if out_chain or exclusions else 'NO-CHAIN'),
             'settings': caps,
+            # TR-049 c4/c5: which ordering was actually applied, and where the
+            # stats came from. Additive — gate behavior is untouched.
+            # NB: the stats-degradation reason is `problem`, not `error` — the
+            # flat `error` key is reserved for "this resolve FAILED" (fail-open
+            # contract), and consumers/text-scrapers treat a literal "error" in
+            # the payload as a failed resolve.
+            'sort': sort_used,
+            'sort_stats': {
+                'window_h': window_h,
+                'backend': backend if (backend and not merge_backends) else None,
+                'merge_backends': bool(merge_backends or not backend),
+                'loaded': sort_ctx is not None,
+                'source': (sort_ctx or {}).get('meta', {}).get('source'),
+                'rows': (sort_ctx or {}).get('meta', {}).get('rows', 0),
+                'path': (sort_ctx or {}).get('meta', {}).get('path'),
+                'problem': (sort_ctx or {}).get('meta', {}).get('error'),
+                'warning': (sort_ctx or {}).get('warning'),
+            },
             # TR-021: carry the raw chain rows to the metrics hook without
             # recomputing.  This key is intentionally NOT part of the public
             # contract and is stripped before JSON serialization in main().
@@ -1184,6 +1444,23 @@ def main():
                          'this is now the DEFAULT — the audit trail is opt-in '
                          'via ROUTER_MISS_VERBOSE=1; env ROUTER_SPAWN_QUIET=1 '
                          'also works')
+    # TR-049 c4/c5: outcomes-driven ordering.
+    ap.add_argument('--sort', default=None, metavar='KEY',
+                    help='chain ordering: price (default) | predicted_cost_per_task '
+                         '(cheapest measured cost per COMPLETED task) | wall_time | '
+                         'turns | ratio:<w>*<cost>+<w>*<time>. Stats-based keys read '
+                         'the rolling averages ($ROUTING_AVERAGES_FILE); an unknown '
+                         'key degrades to price with a visible warning.')
+    ap.add_argument('--backend', default=None, metavar='NAME',
+                    help='use only this source_system\'s outcome stats (per-backend '
+                         'isolation). Default: merge every backend.')
+    ap.add_argument('--merge-backends', action='store_true',
+                    help='aggregate outcome stats across all backends — the default '
+                         'when --backend is absent; wins over --backend when both '
+                         'are given.')
+    ap.add_argument('--window-h', type=int, default=DEFAULT_WINDOW_H, metavar='H',
+                    help=f'average window (half-life, hours) for stats-based sorts '
+                         f'(default {DEFAULT_WINDOW_H})')
     args = ap.parse_args()
 
     # TR-033 / TR-055: --quiet takes precedence; set the env so the rest of the
@@ -1237,7 +1514,9 @@ def main():
     r = resolve(project=args.project, profile_id=args.profile_id,
                 adhoc=args.adhoc, use_health=not args.no_health,
                 allow_training=args.allow_training,
-                allow_slow=args.allow_slow)
+                allow_slow=args.allow_slow,
+                sort=args.sort, backend=args.backend,
+                merge_backends=args.merge_backends, window_h=args.window_h)
     # TR-021: metrics append is best-effort; any failure is swallowed so
     # router_spawn stdout + exit code stay identical.  Strip the internal
     # _chain_rows helper key before serialization.
