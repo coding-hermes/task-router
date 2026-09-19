@@ -15,7 +15,9 @@ Locked in:
 - estimate costs are real multiplications of the fixture public prices
   (hand-checked: 0.2M in * $0.25/M + 0.1M out * $0.50/M = $0.10) with
   PAYG-vs-subscription labels from providers.plan; resolver errors stay
-  fail-open (structured error, exit 0).
+  fail-open (structured error, exit 0). TR-059: the project may be positional
+  (`router estimate proj-x`) and a bare PROFILE id in that slot resolves as
+  the profile instead of dead-ending.
 - diff parses the real docs/chains-<date>.md snapshot format (head moves,
   new/dropped lanes, price deltas); a missing snapshot is a clean exit 2
   with an empty stdout — never a traceback, never a fabricated diff.
@@ -273,6 +275,40 @@ def test_estimate_unknown_project_failopen(monkeypatch, tmp_path):
     assert "ghost" in doc["error"]
     assert doc["head"] is None and doc["top"] == []
     assert "Traceback" not in proc.stderr
+
+
+def test_estimate_positional_project_and_profile(monkeypatch, tmp_path):
+    """TR-059 — the project may be POSITIONAL (`router estimate X`), and a bare
+    PROFILE id in that slot resolves as the profile instead of dead-ending.
+
+    Fixture: proj-x -> profile P_EST (see EST_TABLES). Both forms must price
+    the same chain; `P_EST` (a profile, not a project) must resolve too.
+    """
+    _write_registry(tmp_path, EST_TABLES)
+    _write_state(tmp_path)
+    pos = _run("router_estimate.py", ["proj-x", "--json"], monkeypatch, tmp_path)
+    flag = _run("router_estimate.py", ["--project", "proj-x", "--json"],
+                monkeypatch, tmp_path)
+    assert pos.returncode == 0, pos.stderr
+    assert flag.returncode == 0, flag.stderr
+    a, b = json.loads(pos.stdout), json.loads(flag.stdout)
+    assert "error" not in a and "error" not in b
+    assert a["chain_estimated"] == b["chain_estimated"] == 2
+    assert a["totals"] == b["totals"]
+
+    # a bare PROFILE name is not a dead end (pre-TR-059: 'project P_EST not in
+    # registry', even though P_EST is the profile proj-x resolves to)
+    bare = _run("router_estimate.py", ["P_EST", "--json"], monkeypatch, tmp_path)
+    assert bare.returncode == 0, bare.stderr
+    c = json.loads(bare.stdout)
+    assert c.get("error") is None, c.get("error")
+    assert c["profile"] == "P_EST"
+    assert c["chain_estimated"] == 2
+    assert (c["head"] or {}).get("model") == (a["head"] or {}).get("model")
+    # ...and a name that is neither still errors with the unchanged payload
+    ghost = _run("router_estimate.py", ["ghost-profile"], monkeypatch, tmp_path)
+    g = json.loads(ghost.stdout)
+    assert g["error"] == "project ghost-profile not in registry"
 
 
 # -------------------------------------------------------------------- diff ----

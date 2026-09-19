@@ -6,6 +6,11 @@ implements; router ops owns the tools + data.
 ## TASK-ROUTER-001 — spawn-time model/provider resolution
 - Before building the gateway POST (`/v1/responses`), call:
   `~/.hermes/venvs/board/bin/python3 ~/.hermes/scripts/router_spawn.py <project> --format json`
+- `<project>` is a registry project id; a bare PROFILE id/tag in that slot also
+  resolves (TR-059) — same semantics as `--profile`, so `spawn P1_CODING` and
+  `spawn --profile P1_CODING` return the same chain (the payload's `resolved_as`
+  says which path was taken, and `hint` names the canonical form when the slot
+  carried a profile name).
 - Use the returned `head.provider` / `head.model` in the request body.
 - Router errors → fall back to current per-project model/provider behavior (fail-open, log warning).
 - PAYG (deepseek) is a LEGITIMATE fallback hop — subs first by price order; never force PAYG as

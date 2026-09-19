@@ -400,3 +400,46 @@ def test_resolve_forwards_the_outcome_sort_knobs(server_env):
         assert plain["sort"] == "price"
         assert plain["sort_stats"]["loaded"] is False
 
+
+# ---------------------------------------------------------------------------
+# TR-059 — ?project=<bare profile name> is not a dead end
+# ---------------------------------------------------------------------------
+
+def test_resolve_accepts_a_bare_profile_name(server_env):
+    """TR-059: /resolve passes ?project= straight to router_spawn.py, so the
+    resolver's auto-profile fix must reach HTTP unchanged — and the payload
+    must be chain-for-chain identical to `--profile P1_CODING` on the same
+    data home (one fix, three surfaces: spawn, estimate, server)."""
+    with _server(server_env) as port:
+        code, payload = _request(port, "/resolve?project=P1_CODING")
+        assert code == 200, payload
+        assert "error" not in payload, payload.get("error")
+        assert payload["project"] == "P1_CODING"
+        assert payload["profile"] == "P1_CODING"
+        assert payload["resolved_as"] == "profile"
+        assert payload["chain"], "empty chain — the parity check below would be vacuous"
+
+        # CLI parity, same data home: the documented --profile path
+        proc = subprocess.run(
+            [PY, str(REPO / "scripts" / "router_spawn.py"), "--profile",
+             "P1_CODING", "--format", "json"],
+            cwd=REPO, env=server_env, capture_output=True, text=True, timeout=60)
+        assert proc.returncode == 0, proc.stderr
+        flag = json.loads(proc.stdout)
+        assert [(h["provider"], h["model"]) for h in payload["chain"]] == \
+            [(h["provider"], h["model"]) for h in flag["chain"]]
+        assert (payload["head"] or {}).get("model") == \
+            (flag["head"] or {}).get("model")
+        assert flag["resolved_as"] == "profile-arg"
+
+        # An id this data home contains as a PROJECT is untouched.
+        code, proj = _request(port, "/resolve?project=my-project")
+        assert code == 200 and "error" not in proj
+        assert proj["resolved_as"] == "project"
+
+        # A name that is neither keeps the unchanged error, with no hint.
+        code, bad = _request(port, "/resolve?project=some-nonexistent-thing")
+        assert code == 200
+        assert bad["error"] == "project some-nonexistent-thing not in registry"
+        assert "use --profile" not in bad["error"]
+

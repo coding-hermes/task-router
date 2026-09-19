@@ -20,6 +20,14 @@ non-fail-open commands keep their native codes.
 
 All tests run the REAL scripts via subprocess with hermetic env (temp data dir
 / state dir) — no mocks, no import-time env games.
+
+TR-059 (bare profile names are not dead ends): the project positional is also
+accepted as a PROFILE id/tag (`router spawn P1_CODING` == `--profile
+P1_CODING`) and the payload then carries the canonical `use --profile X` hint;
+a name that is neither keeps the unchanged 'not in registry' error with no
+hint; a case-insensitive near-miss of a profile gains a
+'matches profile X, use --profile X' hint; an exact project row still wins
+over a profile name; and `router estimate X` accepts the same positional.
 """
 import json
 import os
@@ -322,4 +330,181 @@ def test_fail_open_coercion_table(monkeypatch, tmp_path):
     # non-fail-open commands were never coerced
     assert rc_for("validate", SystemExit(1)) == 1
     assert rc_for("validate", RuntimeError("boom")) == 1
+
+
+# =============================================== TR-059: bare profile names
+
+def _open_state_env(tmp_path):
+    """_hermetic_env + a quota-state whitelisting EVERY provider as 'open'.
+
+    _hermetic_env leaves the state dir empty, which is fail-closed by design
+    (absent gate state = gated). The TR-059 assertions are about a REAL chain
+    and about two callers agreeing on it, so the gate policy is made explicit
+    here — a resolver change that silently emptied the chain would otherwise
+    make the parity assertions pass vacuously.
+    """
+    env = _hermetic_env(tmp_path)
+    with open(os.path.join(DATA_DIR, "providers.jsonl")) as f:
+        providers = [json.loads(l)["id"] for l in f if l.strip()]
+    with open(os.path.join(env["ROUTER_STATE_DIR"], "quota-state.json"), "w") as f:
+        json.dump({"updated": "test",
+                   "providers": {p: {"status": "open"} for p in providers}}, f)
+    return env
+
+
+def _spawn(args, env):
+    p = run(os.path.join(SCRIPTS, "router_spawn.py"), *args, env_extra=env)
+    assert p.returncode == 0, f"fail-open: exit must be 0: {p.stderr}"
+    return p, json.loads(p.stdout)
+
+
+def _pairs(doc):
+    return [(h.get("provider"), h.get("model")) for h in doc.get("chain") or []]
+
+
+def test_bare_profile_name_in_project_slot_resolves(tmp_path):
+    """TR-059 (AC1) — `router spawn P1_CODING` is no longer a dead end.
+
+    Pre-fix: {"error": "project P1_CODING not in registry"} even though
+    P1_CODING is a valid profile — the caller cannot tell 'typo' from 'right
+    id, wrong flag'.
+    """
+    env = _open_state_env(tmp_path)
+    p, data = _spawn(["P1_CODING", "--format", "json"], env)
+    assert "error" not in data, data.get("error")
+    assert "chain" in data
+    assert data["chain"], "empty chain — nothing was resolved"
+    assert data["profile"] == "P1_CODING"
+    assert data["resolved_as"] == "profile"
+    assert data["project"] == "P1_CODING"   # the input is echoed, not swapped
+    # TR-059-FIX: the caller is told the canonical form on the way through
+    assert data["hint"] == "use --profile P1_CODING"
+    assert p.stderr == ""                   # TR-055: quiet by default
+
+
+def test_profile_flag_run_carries_no_hint(tmp_path):
+    """Guard: the hint exists because the PROJECT slot named a profile. The
+    documented --profile call must stay byte-hint-free (null), so nothing
+    downstream mistakes a correct call for a corrected one."""
+    env = _open_state_env(tmp_path)
+    _, flag = _spawn(["--profile", "P1_CODING", "--format", "json"], env)
+    assert flag["resolved_as"] == "profile-arg"
+    assert flag["hint"] is None
+    _, proj = _spawn(["9router", "--format", "json"], env)
+    assert proj["resolved_as"] == "project"
+    assert proj["hint"] is None
+
+
+def test_bare_profile_resolve_matches_the_profile_flag(tmp_path):
+    """TR-059 (AC2) — auto-resolution is CONSISTENT with --profile: same
+    profile, same chain (same order), same head. Only provenance differs."""
+    env = _open_state_env(tmp_path)
+    _, bare = _spawn(["P1_CODING", "--format", "json"], env)
+    _, flag = _spawn(["--profile", "P1_CODING", "--format", "json"], env)
+    assert bare["profile"] == flag["profile"] == "P1_CODING"
+    assert _pairs(bare), "empty chain — the parity assertion would be vacuous"
+    assert _pairs(bare) == _pairs(flag)
+    assert (bare["head"] or {}).get("model") == (flag["head"] or {}).get("model")
+    assert bare["gate"] == flag["gate"]
+    assert bare["resolved_as"] == "profile"
+    assert flag["resolved_as"] == "profile-arg"
+
+
+def test_bare_profile_warning_is_opt_in(tmp_path):
+    """The auto-resolution is auditable without polluting stdout/stderr on the
+    default run (TR-055): ROUTER_MISS_VERBOSE=1 brings the trail back."""
+    env = _open_state_env(tmp_path)
+    p, data = _spawn(["P1_CODING", "--format", "json"],
+                     dict(env, ROUTER_MISS_VERBOSE="1"))
+    assert "is a profile, not a project" in p.stderr
+    assert data["resolved_as"] == "profile"   # stdout stayed pure JSON
+
+
+def test_unknown_project_error_unchanged_without_hint(tmp_path):
+    """TR-059 (AC3) — a name that is neither a project nor a profile keeps the
+    exact pre-fix error and gains NO hint: a false 'use --profile' would send
+    the caller chasing a profile that does not exist."""
+    env = _open_state_env(tmp_path)
+    _, data = _spawn(["some-nonexistent-thing", "--format", "json"], env)
+    assert data["error"] == "project some-nonexistent-thing not in registry"
+    assert "hint" not in data and "matched_profile" not in data
+    assert "use --profile" not in data["error"]
+    assert set(data) == {"error", "data_home"}   # shape unchanged too
+
+
+def test_case_mismatched_profile_name_gets_a_hint(tmp_path):
+    """TR-059 bonus — the hint fires ONLY on a real approximate match
+    (case-insensitive exact on id or tag) and names the profile to use."""
+    env = _open_state_env(tmp_path)
+    _, data = _spawn(["p1_coding", "--format", "json"], env)
+    assert "not in registry" in data["error"]
+    assert "matches profile P1_CODING, use --profile P1_CODING" in data["error"]
+    assert data["error"] == ("project p1_coding not in registry — matches "
+                            "profile P1_CODING, use --profile P1_CODING")
+    assert data["hint"] == "use --profile P1_CODING"
+    assert data["matched_profile"] == "P1_CODING"
+
+
+def test_exact_project_id_still_wins_over_a_profile_name(tmp_path):
+    """TR-059 precedence — the project table is consulted FIRST, so a PROJECT
+    row that happens to share a profile's name keeps its own meaning (the
+    auto-profile path can never shadow an existing project)."""
+    env = _open_state_env(tmp_path)
+    tables = {}
+    for fn in sorted(os.listdir(DATA_DIR)):
+        if fn.endswith(".jsonl"):
+            with open(os.path.join(DATA_DIR, fn)) as f:
+                tables[fn[:-len(".jsonl")]] = [json.loads(l) for l in f if l.strip()]
+    tables["projects"] = list(tables.get("projects") or []) + [
+        {"id": "P1_CODING", "profile": "P0_FORE"}]
+    reg = tmp_path / "collide-registry.json"
+    reg.write_text(json.dumps({"version": 3, "tables": tables}))
+    _, data = _spawn(["P1_CODING", "--format", "json"],
+                     dict(env, ROUTING_REGISTRY=str(reg)))
+    assert "error" not in data, data.get("error")
+    assert data["profile"] == "P0_FORE"       # the PROJECT row won
+    assert data["resolved_as"] == "project"
+
+
+def test_estimate_accepts_a_positional_project(tmp_path):
+    """TR-059 (AC4) — `router estimate X` == `router estimate --project X`:
+    same chain priced, same head, exit 0."""
+    env = _open_state_env(tmp_path)
+    pos = run(os.path.join(SCRIPTS, "router_estimate.py"), "9router", "--json",
+              env_extra=env)
+    flag = run(os.path.join(SCRIPTS, "router_estimate.py"), "--project", "9router",
+               "--json", env_extra=env)
+    assert pos.returncode == 0, pos.stderr
+    assert flag.returncode == 0, flag.stderr
+    a, b = json.loads(pos.stdout), json.loads(flag.stdout)
+    assert "error" not in a and "error" not in b
+    assert a["chain_estimated"] > 0, "nothing priced — parity would be vacuous"
+    assert a["chain_estimated"] == b["chain_estimated"] == len(a["chain"])
+    assert (a["head"] or {}).get("model") == (b["head"] or {}).get("model")
+    assert a["project"] == b["project"] == "9router"
+    assert a["totals"] == b["totals"]
+
+
+def test_estimate_positional_bare_profile_name(tmp_path):
+    """TR-059 — `router estimate P1_CODING` prices the profile exactly like
+    `router spawn P1_CODING` resolves it (the estimate never drifts from the
+    spawn: it subprocesses the same resolver)."""
+    env = _open_state_env(tmp_path)
+    est = json.loads(run(os.path.join(SCRIPTS, "router_estimate.py"), "P1_CODING",
+                         "--json", env_extra=env).stdout)
+    _, spawn = _spawn(["P1_CODING", "--format", "json"], env)
+    assert est.get("error") is None, est.get("error")
+    assert est["profile"] == "P1_CODING"
+    assert spawn["chain"], "empty chain — the comparison would be vacuous"
+    assert est["chain_estimated"] == len(spawn["chain"])
+    assert (est["head"] or {}).get("model") == (spawn["head"] or {}).get("model")
+
+
+def test_estimate_without_a_project_is_still_a_usage_error(tmp_path):
+    """Accepting a positional must not turn 'no input at all' into a silent
+    exit 0 — the documented usage error (exit 2) stays."""
+    env = _open_state_env(tmp_path)
+    p = run(os.path.join(SCRIPTS, "router_estimate.py"), "--json", env_extra=env)
+    assert p.returncode == 2, p.stdout + p.stderr
+    assert "a project is required" in p.stderr
 

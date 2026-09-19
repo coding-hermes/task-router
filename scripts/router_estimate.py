@@ -25,8 +25,10 @@ hop always carries numbers; None prices render as null and are excluded
 from totals, never fabricated.
 
 CLI:
-  router_estimate.py --project X [--tokens-in N] [--tokens-out N] [--json]
-    --project     required; resolved via the registry project → profile
+  router_estimate.py [X | --project X] [--tokens-in N] [--tokens-out N] [--json]
+    X / --project  the project to price, positionally or as a flag (same
+                  input). A profile id/tag is accepted too — router_spawn.py
+                  auto-resolves it exactly like `router spawn X` (TR-059).
     --tokens-in   default 100000
     --tokens-out  default 100000
     --json        pure machine-parseable JSON (default output IS json; the
@@ -216,7 +218,16 @@ def render_text(e):
 def main(argv=None):
     ap = argparse.ArgumentParser(
         description='Per-hop cost preview for a project chain (public prices)')
-    ap.add_argument('--project', required=True)
+    # TR-059: the project can be given POSITIONALLY (`router estimate X`) or
+    # with --project — same input, same resolution. A bare PROFILE name is
+    # accepted for the same reason `router spawn X` accepts one: resolve_chain
+    # passes it straight to router_spawn.py, whose resolver auto-resolves a
+    # profile id/tag in the project slot — so the estimate and the spawn can
+    # never disagree about what X means.
+    ap.add_argument('project', nargs='?', default=None,
+                    help='project id (or a profile id/tag, resolved as a '
+                         'profile exactly like `router spawn X`)')
+    ap.add_argument('--project', dest='project_opt', default=None)
     ap.add_argument('--tokens-in', type=int, default=DEFAULT_TOKENS)
     ap.add_argument('--tokens-out', type=int, default=DEFAULT_TOKENS)
     ap.add_argument('--json', action='store_true',
@@ -225,10 +236,18 @@ def main(argv=None):
     ap.add_argument('--format', choices=['json', 'text'], default='json',
                     help='json (default) or text')
     args = ap.parse_args(argv)
+    project = args.project_opt or args.project
+    if not project:
+        # Still a USAGE error (exit 2, argparse's message) — the documented
+        # contract for a missing required input, now that a positional counts.
+        ap.error('a project is required (positionally or via --project)')
+    if args.project_opt and args.project and args.project_opt != args.project:
+        print(f"router_estimate: both {args.project} and --project "
+              f"{args.project_opt} given — using --project", file=sys.stderr)
     if args.tokens_in < 0 or args.tokens_out < 0:
         print(json.dumps({'error': '--tokens-in/--tokens-out must be >= 0'}))
         return 0
-    e = estimate(args.project, args.tokens_in, args.tokens_out)
+    e = estimate(project, args.tokens_in, args.tokens_out)
     if args.json or args.format == 'json':
         print(json.dumps(e, indent=1))
     else:

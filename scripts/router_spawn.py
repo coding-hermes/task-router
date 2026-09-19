@@ -783,6 +783,42 @@ def _resolve_profile_tag(profiles, ref):
     return ref
 
 
+def _profile_ref_matches(profiles, ref):
+    """TR-059: does `ref` name a profile — an exact id OR a tag?
+
+    Projects and profiles live in DIFFERENT tables, so the project positional
+    is a natural place for a caller to put a bare profile name
+    (`router spawn P1_CODING`, GET /resolve?project=P1_CODING`). resolve()
+    uses this to tell "typo'd project" from "right id, wrong flag".
+
+    Tag matching mirrors _resolve_profile_tag (a tag takes precedence over an
+    id collision), so `matches ⇒ _resolve_profile_tag returns a real profile`.
+    """
+    if not ref:
+        return False
+    if ref in profiles:
+        return True
+    return any(r.get('tag') == ref for r in profiles.values())
+
+
+def _profile_near_miss(profiles, ref):
+    """TR-059: the profile id `ref` approximately names, else None.
+
+    CASE-INSENSITIVE exact match on id or tag only — never fuzzy/partial.
+    A wrong "did you mean" hint is worse than no hint (the caller would edit
+    the wrong token), so anything less than an exact-match-ignoring-case
+    returns None and the caller adds no hint at all.
+    """
+    if not ref:
+        return None
+    low = str(ref).lower()
+    for pid in sorted(profiles):
+        row = profiles.get(pid) or {}
+        if pid.lower() == low or str(row.get('tag') or '').lower() == low:
+            return pid
+    return None
+
+
 def _averages_path():
     """Resolve-time stats path (env override wins, resolved per call)."""
     return os.environ.get('ROUTING_AVERAGES_FILE') or AVERAGES
@@ -1329,8 +1365,20 @@ def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=DE
         reqs_by_profile.setdefault(r.get('task_id'), []).append(
             (r.get('category'), r.get('level')))
     # --- 1. project → profile -------------------------------------------------
+    # TR-059: HOW the profile was chosen, emitted on the resolve doc so a
+    # caller can see why their input produced this chain:
+    #   'project'     — the positional matched a PROJECT row
+    #   'profile'     — the positional was a bare PROFILE name (auto-resolved)
+    #   'profile-arg' — --profile was passed
+    #   'adhoc'       — --profile-req was passed
+    #   'default'     — neither given (direct API call; falls back to P0_FORE)
+    # `profile_hint` = the canonical form for this input, when the PROJECT
+    # slot actually named a profile (TR-059-FIX criterion: the caller must be
+    # told `use --profile X` whether the resolve succeeds or dead-ends).
+    profile_hint = None
     pid = profile_id
     if adhoc:
+        resolved_as = 'adhoc'
         pid = None
         reqs, err = _validate_adhoc(adhoc, tables)
         if err:
@@ -1340,15 +1388,53 @@ def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=DE
     elif project:
         row = projects.get(project)
         if row is None:
-            return {'error': f'project {project} not in registry',
-                    'data_home': _data_home_meta(src, fb)}
-        # TR-020: tag-based profile resolution. A project references a profile
-        # tag (or legacy id). Resolve tag -> version row; fall back to exact id
-        # for backward compatibility with existing rows like P0_FORE.
-        pid = _resolve_profile_tag(profiles, row.get('profile') or 'P0_FORE')
-        reqs = reqs_by_profile.get(pid, [])
+            # TR-059 (dogfood 2026-09-16/17): projects and profiles live in
+            # DIFFERENT tables, so a bare profile name in the project slot
+            # used to dead-end at {"error": "project P1_CODING not in
+            # registry"} with no hint that --profile is the documented path —
+            # hit live on `router spawn P1_CODING` AND on
+            # GET /resolve?project=P1_CODING (the server passes the query
+            # straight through, so both surfaces share this one fix).
+            if _profile_ref_matches(profiles, project):
+                # A ref that NAMES a profile (id or tag) resolves AS that
+                # profile, with --profile's exact semantics (tag -> version
+                # row via _resolve_profile_tag, exact-id fallback), so
+                # `router spawn P1_CODING` == `router spawn --profile
+                # P1_CODING` == GET /resolve?project=P1_CODING. An exact
+                # PROJECT id still wins (the lookup above), so no existing
+                # project changes meaning.
+                pid = _resolve_profile_tag(profiles, project)
+                reqs = reqs_by_profile.get(pid, [])
+                resolved_as = 'profile'
+                profile_hint = f'use --profile {pid}'
+                _err(f'WARNING: {project} is a profile, not a project — '
+                     f'resolving via profile (same as --profile {pid})')
+            else:
+                # Not a project AND not a profile: the pre-TR-059 error,
+                # byte-identical (error + data_home; no code/retryable — the
+                # fail-open error shape is pinned by TR-023's battery) unless
+                # the name is a real approximate match of a profile.
+                err = {'error': f'project {project} not in registry',
+                       'data_home': _data_home_meta(src, fb)}
+                near = _profile_near_miss(profiles, project)
+                if near:
+                    # Bonus hint, ONLY on a real approximate match: the dead
+                    # end above is exactly the confusion TR-059 is about.
+                    err['error'] += (f' — matches profile {near}, '
+                                     f'use --profile {near}')
+                    err['hint'] = f'use --profile {near}'
+                    err['matched_profile'] = near
+                return err
+        else:
+            # TR-020: tag-based profile resolution. A project references a profile
+            # tag (or legacy id). Resolve tag -> version row; fall back to exact id
+            # for backward compatibility with existing rows like P0_FORE.
+            pid = _resolve_profile_tag(profiles, row.get('profile') or 'P0_FORE')
+            reqs = reqs_by_profile.get(pid, [])
+            resolved_as = 'project'
     else:
         # --profile argument may be a tag or an exact id.
+        resolved_as = 'profile-arg' if profile_id else 'default'
         pid = _resolve_profile_tag(profiles, pid or 'P0_FORE')
         reqs = reqs_by_profile.get(pid, [])
     if not pid and not adhoc:
@@ -1577,6 +1663,12 @@ def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=DE
     dh = _data_home_meta(src, fb)
 
     return {'project': project, 'profile': pid, 'resolved_at': now,
+            # TR-059: how the profile was chosen ('project' | 'profile' |
+            # 'profile-arg' | 'adhoc' | 'default') — additive; gate behavior is
+            # untouched. `hint` names the canonical form when the project slot
+            # actually carried a profile name (null otherwise).
+            'resolved_as': resolved_as,
+            'hint': profile_hint,
             'head': head, 'chain': out_chain, 'exclusions': exclusions,
             'gate_reasons': reasons,
             'degraded_fallback': bool(fb_used),

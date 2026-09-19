@@ -190,16 +190,20 @@ con.executemany("INSERT INTO level_defs VALUES (?,?,?)", lv)
 con.execute("DROP TABLE IF EXISTS model_perf")
 con.execute("""
 CREATE TABLE model_perf AS
-SELECT model, replace(category, 'perf_', '') AS category, max(perf) AS perf
-FROM (UNPIVOT (SELECT model, perf_agent_tick, perf_long_doc, perf_debug, perf_schema,
-                      perf_e2e_vision, perf_review, perf_delegation, perf_guard, perf_mock, perf_reasoning
-               FROM models WHERE valid_to IS NULL AND archive = false
-                            AND (disabled IS NULL OR NOT disabled))
-      ON perf_agent_tick, perf_long_doc, perf_debug, perf_schema,
-         perf_e2e_vision, perf_review, perf_delegation, perf_guard, perf_mock, perf_reasoning
-      INTO NAME category VALUE perf)
-WHERE perf IS NOT NULL
-GROUP BY model, category
+SELECT model, category, perf, 'measured' AS source,
+       'models.jsonl:perf_' || category AS source_ref
+FROM (
+  SELECT model, replace(category, 'perf_', '') AS category, max(perf) AS perf
+  FROM (UNPIVOT (SELECT model, perf_agent_tick, perf_long_doc, perf_debug, perf_schema,
+                        perf_e2e_vision, perf_review, perf_delegation, perf_guard, perf_mock, perf_reasoning
+                 FROM models WHERE valid_to IS NULL AND archive = false
+                              AND (disabled IS NULL OR NOT disabled))
+        ON perf_agent_tick, perf_long_doc, perf_debug, perf_schema,
+           perf_e2e_vision, perf_review, perf_delegation, perf_guard, perf_mock, perf_reasoning
+        INTO NAME category VALUE perf)
+  WHERE perf IS NOT NULL
+  GROUP BY model, category
+)
 """)
 
 # ---------- 3. benchmark overlays for NEW categories --------------------------
@@ -240,7 +244,7 @@ BENCH_OVERLAY = {
                               'code_gen', 'test', 'delegation', 'long_doc',
                               'tool_use', 'long_horizon'],
 }
-overlay = []  # (provider, model, category, rel_score)
+overlay = []  # (provider, model, category, rel_score, bench_source)
 for src, cats in BENCH_OVERLAY.items():
     rows = con.execute("SELECT model, category, score, max_score FROM benchmarks WHERE source LIKE ?",
                        [f'%{src}%']).fetchall()
@@ -248,7 +252,7 @@ for src, cats in BENCH_OVERLAY.items():
         if not mx:
             continue
         for c in cats:
-            overlay.append((model, c, float(score) / float(mx)))
+            overlay.append((model, c, float(score) / float(mx), src))
 # map benchmark model names (e.g. cline-pass/glm-5.3) to registry (provider, model)
 model_ids = {}
 for p, m in con.execute("SELECT DISTINCT provider, model FROM models").fetchall():
@@ -586,8 +590,9 @@ def apply_category_estimates():
             if not con.execute("SELECT 1 FROM models WHERE model=? LIMIT 1",
                                [name]).fetchone():
                 continue
-            con.execute("INSERT INTO model_perf VALUES (?,?,?)",
-                        [name, cat, float(v)])
+            con.execute("INSERT INTO model_perf (model, category, perf, source, source_ref) "
+                        "VALUES (?,?,?,?,?)",
+                        [name, cat, float(v), 'estimate', 'CATEGORY_ESTIMATES'])
             n += 1
     return n
 
@@ -609,7 +614,8 @@ def apply_quality_estimates():
                          (cat == 'multilingual' and abs(cur[0] - 0.50) < 0.001)
             if degenerate:
                 con.execute(
-                    "UPDATE model_perf SET perf=? WHERE model=? AND category=?",
+                    "UPDATE model_perf SET perf=?, source='estimate', source_ref='QUALITY_ESTIMATES' "
+                    "WHERE model=? AND category=?",
                     [v, name, cat])
                 n += 1
     return n
@@ -639,7 +645,9 @@ def seed_estimates():
                 if con.execute("SELECT 1 FROM model_perf WHERE model=? AND category=?",
                                [model, c]).fetchone():
                     continue
-                con.execute("INSERT INTO model_perf VALUES (?,?,?)", [model, c, v])
+                con.execute("INSERT INTO model_perf (model, category, perf, source, source_ref) "
+                            "VALUES (?,?,?,?,?)",
+                            [model, c, v, 'estimate', f'PROFILE_TAGS:{pname}'])
                 n += 1
     # BLANK default (Bane 2026-08-27): a model with nothing set for a category
     # stays BLANK — no fabricated plus/minus, no 0.50 neutral fill. The resolver
@@ -661,15 +669,17 @@ def apply_overlay():
        over the neutral fill; non-neutral tag estimates are preserved).
     """
     n_ins = n_upd = 0
-    for model, cat, rel in overlay:
+    for model, cat, rel, bsrc in overlay:
         cur = con.execute("SELECT perf FROM model_perf WHERE lower(model)=? AND category=?",
                           [model.lower(), cat]).fetchone()
         if cur is None:
-            con.execute("INSERT INTO model_perf VALUES (?,?,?)", [model, cat, rel])
+            con.execute("INSERT INTO model_perf (model, category, perf, source, source_ref) "
+                        "VALUES (?,?,?,?,?)", [model, cat, rel, 'bench', f'bench:{bsrc}'])
             n_ins += 1
         elif abs(cur[0] - 0.50) < 0.001:
-            con.execute("UPDATE model_perf SET perf=? WHERE lower(model)=? AND category=?",
-                        [rel, model.lower(), cat])
+            con.execute("UPDATE model_perf SET perf=?, source='bench', source_ref=? "
+                        "WHERE lower(model)=? AND category=?",
+                        [rel, f'bench:{bsrc}', model.lower(), cat])
             n_upd += 1
         elif cur[0] < rel:
             # Bane 2026-09-01: a measured benchmark score beats ANY estimate —
@@ -679,8 +689,9 @@ def apply_overlay():
             # fleet-evidence pass) block real evidence AND, when the review
             # q10 boundary moved 0.60→0.61, silently exclude the fleet
             # workhorse from every P0_FORE chain. Estimates lose to evidence.
-            con.execute("UPDATE model_perf SET perf=? WHERE lower(model)=? AND category=?",
-                        [rel, model.lower(), cat])
+            con.execute("UPDATE model_perf SET perf=?, source='bench', source_ref=? "
+                        "WHERE lower(model)=? AND category=?",
+                        [rel, f'bench:{bsrc}', model.lower(), cat])
             n_upd += 1
     if n_ins or n_upd:
         print(f'overlay: {n_ins} inserted, {n_upd} neutral-updated')
@@ -719,7 +730,8 @@ def apply_aliases():
             if con.execute("SELECT 1 FROM model_perf WHERE lower(model)=? AND category=?",
                            [var.lower(), cat]).fetchone():
                 continue
-            con.execute("INSERT INTO model_perf VALUES (?,?,?)", [var, cat, perf])
+            con.execute("INSERT INTO model_perf (model, category, perf, source, source_ref) "
+                        "VALUES (?,?,?,?,?)", [var, cat, perf, 'family', f'alias:{base}'])
             n += 1
     if n:
         print(f'aliases: {len(aliases)} variants, {n} inherited perfs')
@@ -729,9 +741,14 @@ apply_aliases()
 
 # dedupe: benchmark overlays may have inserted the same (model, category) twice
 con.execute("DROP TABLE IF EXISTS model_perf_dedup")
+# dedup carries PROVENANCE of the winning value (TR-064 R2): arg_max picks the
+# source/source_ref of the row whose perf won the max() — never a generic label.
 con.execute("""
 CREATE TABLE model_perf_dedup AS
-SELECT model, category, max(perf) AS perf FROM model_perf GROUP BY 1,2""")
+SELECT model, category, max(perf) AS perf,
+       arg_max(source, perf) AS source,
+       arg_max(source_ref, perf) AS source_ref
+FROM model_perf GROUP BY 1,2""")
 con.execute("DROP TABLE model_perf")
 con.execute("ALTER TABLE model_perf_dedup RENAME TO model_perf")
 
@@ -781,10 +798,11 @@ JOIN (UNPIVOT cat_q ON q01, q05, q10, q20, q35, q50, q65, q80, q90, q95, q99
 con.execute("DROP TABLE IF EXISTS model_tier")
 con.execute("""
 CREATE TABLE model_tier AS
-SELECT mp.model, mp.category, mp.perf, max(cl.level) AS tier
+SELECT mp.model, mp.category, mp.perf, max(cl.level) AS tier,
+       mp.source AS tier_source, mp.source_ref AS source_ref
 FROM model_perf mp JOIN category_levels cl
   ON cl.category = mp.category AND cl.min_perf <= mp.perf
-GROUP BY mp.model, mp.category, mp.perf""")
+GROUP BY mp.model, mp.category, mp.perf, mp.source, mp.source_ref""")
 # BLANK default (Bane 2026-08-27): models without a perf row in a category have
 # NO tier row — the resolver treats a missing tier as -1, never 0 and never
 # an inflated neutral.

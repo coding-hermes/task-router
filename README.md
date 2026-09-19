@@ -39,6 +39,11 @@ pip install duckdb          # or: uv pip install duckdb
 # Resolve a configured project to its gated, price-ordered chain.
 router spawn my-project --format json
 
+# A bare PROFILE name works in the project slot too: `router spawn P1_CODING`
+# resolves exactly like `router spawn --profile P1_CODING`, and
+# `router estimate P1_CODING` prices that same chain.
+router spawn P1_CODING --format json
+
 # One-command overview of registry, gates, circuit, and gaps.
 router status
 
@@ -67,6 +72,8 @@ router spawn --profile-req 'reasoning=5 debug=3 min_context=100000' --format jso
 router circuit status --json
 router validate            # integrity check; exit 1 + issue list when broken
 router estimate --project my-project --tokens-in 100000 --tokens-out 100000
+# same input positionally (a profile id/tag works here too)
+router estimate my-project --tokens-in 100000 --tokens-out 100000
 router diff 2026-08-31 2026-09-01
 ```
 
@@ -225,9 +232,9 @@ for repo-relative use.
 
 | Command | Purpose |
 |---|---|
-| `router spawn` | Resolve a project or ad-hoc capability profile into a gated fallback chain. Flags: `<project>`, `--profile`, `--profile-req`, `--list-profiles`, `--explain`, `--format`, `--no-health` |
+| `router spawn` | Resolve a project or ad-hoc capability profile into a gated fallback chain. Flags: `<project>`, `--profile`, `--profile-req`, `--list-profiles`, `--explain`, `--format`, `--no-health`. A profile id/tag passed as `<project>` resolves as that profile (TR-059) |
 | `router status` | One-command overview: registry source/freshness, health, quota, circuit, in-flight, gaps (`--format json\|text`) |
-| `router estimate` | Cost preview for a project's chain at given token volumes, head + top alternates, PAYG vs subscription annotated |
+| `router estimate` | Cost preview for a project's chain at given token volumes (`<project>` positional or `--project`; profile id/tag accepted), head + top alternates, PAYG vs subscription annotated |
 | `router diff` | Chain snapshot diff between two dates: head moves, new/dropped lanes, price deltas |
 | `router validate` | Integrity check: registry schema/freshness, state files, profile integrity (`--json`; exit 1 on issues) |
 | `router circuit` | Circuit breakers: `record-failure` (`--class`), `record-success`, `status`, `clear` |

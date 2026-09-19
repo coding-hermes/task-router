@@ -326,15 +326,13 @@ tasks:
   status: complete
   created_at: '2026-09-19T08:50:42.033983+00:00'
   completed_at: '2026-09-19T09:12:08.446902+00:00'
-- id: TR-060
-  title: "Quota gate for plan-exhausted lanes (openai-codex, zai-glm): derive a quota\
-    \ gate from 429 'usage limit reached' responses \u2014 mark the provider GATED\
-    \ with reset expiry in quota-state.json so the head advances to the next eligible\
-    \ lane instead of oscillating and generating 200+ PAYG fallback sessions/day"
+- id: TR-059-FIX
+  title: 'spawn/estimate dead-end error for bare profile names: when the project id
+    is not in projects.jsonl but matches a profile id/tag, resolve it as a profile
+    or return an error with a hint to use --profile'
   criteria:
-  - Guard PASS (secrets+tests), 394 tests pass, openai-codex + zai-glm lanes marked
-    GATED with reset expiry in quota-state.json, head advances to next eligible lane,
-    429 oscillation eliminated, regression test added
-  status: complete
-  created_at: '2026-09-19T10:49:47.224076+00:00'
-  completed_at: '2026-09-19T12:08:37.945227+00:00'
+  - "CLI: router spawn P1_CODING exits 0 + JSON error says 'project P1_CODING not\
+    \ in registry \u2014 matches profile P1_CODING, use --profile P1_CODING'; CLI:\
+    \ --profile P1_CODING still resolves fine; new regression tests in tests/test_cli_contracts.py"
+  status: in_progress
+  created_at: '2026-09-19T12:40:00.246650+00:00'
