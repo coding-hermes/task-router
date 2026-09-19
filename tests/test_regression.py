@@ -812,3 +812,58 @@ def test_plan_included_lanes_never_carry_payg_sticker_evidence():
     assert not offenders, (
         "plan-INCLUDED lanes priced at the PAYG sticker (subscription economics "
         f"missing): {offenders} — run the pricing engine, do not hand-edit")
+
+
+def test_minimax_plan_included_models_have_no_duplicate_lane_spellings():
+    """Minimax Token Plan included_models must not carry both a lowercase lane
+    and its PascalCase duplicate for the same generation. M2.7 and M3 have
+    active lowercase lanes (minimax-m2.7, minimax-m3); the PascalCase entries
+    were dropped 2026-09-19 (board TR-063) because a second spelling of the same
+    weights under a second id is ONE physical model in the registry — the 09-16
+    reconciliation rule for that case is DROP-from-included + disable, never
+    keep-both. M2.5 has no lowercase lane row on this provider so its alias
+    entry stays (model_aliases.jsonl MiniMax-M2.5 -> minimax-m2.5).
+    """
+    tables = _load_tables()
+    minimax_terms = next(t for t in tables["plan_terms"] if t["provider"] == "minimax")
+    included = set(minimax_terms["included_models"])
+    # The two PascalCase duplicates must not be in included_models
+    assert "MiniMax-M2.7" not in included, "MiniMax-M2.7 duplicate still in included_models"
+    assert "MiniMax-M3" not in included, "MiniMax-M3 duplicate still in included_models"
+    # M2.5 alias must stay (no lowercase minimax-m2.5 row on minimax provider)
+    assert "MiniMax-M2.5" in included
+    # The canonical lowercase lanes must be present
+    assert "minimax-m2.7" in included
+    assert "minimax-m3" in included
+
+
+def test_minimax_pascalcase_duplicates_are_disabled():
+    """MiniMax-M2.7 and MiniMax-M3 model rows under provider 'minimax' must be
+    disabled after the 2026-09-19 duplicate reconciliation, each naming the
+    canonical lowercase lane it duplicates — and their canonical twins must stay
+    ACTIVE (a disabled duplicate is only correct while the lowercase lane the
+    plan actually calls is enabled).
+
+    This is the other half of test_plan_included_lanes_never_disabled: once the
+    PascalCase ids left included_models they are no longer plan-protected, and
+    router_plan_sweep.py would disable them anyway (PAYG outside the flat plan)
+    with a less specific reason — the explicit disable + reason records WHY.
+    """
+    tables = _load_tables()
+    minimax_models = {r["model"]: r for r in tables["models"]
+                      if r["provider"] == "minimax"}
+    for dup in ("MiniMax-M2.7", "MiniMax-M3"):
+        row = minimax_models.get(dup)
+        assert row is not None, f"{dup} row missing from models.jsonl"
+        assert row.get("disabled") is True, f"{dup} not disabled"
+        reason = row.get("disabled_reason") or ""
+        assert "duplicate" in reason and "minimax-m" in reason, (
+            f"{dup} disabled without a duplicate reason naming the canonical lane: {reason!r}"
+        )
+    for canonical in ("minimax-m2.7", "minimax-m3"):
+        row = minimax_models.get(canonical)
+        assert row is not None, f"{canonical} lane missing from models.jsonl"
+        assert not row.get("disabled"), (
+            f"{canonical} (the canonical plan lane) must stay active — "
+            "disabling it would orphan the minimax Token Plan"
+        )
