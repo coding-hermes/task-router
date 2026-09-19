@@ -96,3 +96,98 @@ def test_profile_signature_is_declared_category_levels():
     p1 = ro.profile_signature('P1_CODING')
     assert 'code_gen' in p1 and 'refactor' in p1
     assert ro.profile_signature('P_DOES_NOT_EXIST') is None  # unknown -> None, not fake
+
+
+# ---------------------------------------------------------------------------
+# TR-049 component 1 — ingest payload normalization + fail-open append
+# ---------------------------------------------------------------------------
+
+def _wire(**over):
+    body = {'source_system': 'hermes', 'session_id': 's-1', 'task_label': 'tick',
+            'complexity': {'code_gen': 2, 'guard': 0}, 'provider': 'deepseek',
+            'model': 'deepseek-v4-flash', 'turns': 4, 'tokens_in': 10,
+            'tokens_out': 20, 'tokens_reasoning': 5, 'cost': 0.25,
+            'wall_time': 61.5, 'success': True}
+    body.update(over)
+    return body
+
+
+def test_normalize_row_accepts_the_wire_shape():
+    row = ro.normalize_row(_wire(), now_s=NOW)
+    # wire alias `cost`/`wall_time` land on the store's own names
+    assert row['cost_usd'] == 0.25 and row['wall_time_s'] == 61.5
+    assert row['ts'] == NOW
+    assert row['complexity'] == {'code_gen': 2, 'guard': 0}
+    assert row['success'] is True and row['turns'] == 4
+    # every store field is present (docs/outcomes-schema.md contract)
+    assert set(ro.STORE_FIELDS) <= set(row)
+
+
+def test_normalize_row_round_trips_store_names():
+    """A row read back from the store re-posts unchanged (cost_usd/wall_time_s)."""
+    row = ro.normalize_row(_wire(), now_s=NOW)
+    again = ro.normalize_row(row, now_s=NOW)
+    assert again == row
+
+
+def test_normalize_row_rejects_every_problem_at_once():
+    with pytest.raises(ValueError) as exc:
+        ro.normalize_row({'source_system': '', 'session_id': 's', 'provider': 'p',
+                          'model': 'm', 'turns': 1.5, 'success': 'yes',
+                          'complexity': 7})
+    msg = str(exc.value)
+    for fragment in ('source_system', 'turns', 'success', 'complexity'):
+        assert fragment in msg, msg
+
+
+def test_normalize_row_rejects_conflicting_cost_aliases():
+    with pytest.raises(ValueError) as exc:
+        ro.normalize_row(_wire(cost=1.0, cost_usd=2.0))
+    assert 'disagree' in str(exc.value)
+
+
+def test_normalize_row_allows_null_metrics():
+    row = ro.normalize_row({'source_system': 'hermes', 'session_id': 's2',
+                            'provider': 'p', 'model': 'm'}, now_s=NOW)
+    assert row['cost_usd'] is None and row['wall_time_s'] is None
+    assert row['success'] is None and row['complexity'] is None
+    assert row['turns'] is None
+
+
+def test_append_row_fast_dedupes_inside_the_tail(tmp_path):
+    p = str(tmp_path / 'store.jsonl')
+    row = ro.normalize_row(_wire(session_id='dup'), now_s=NOW)
+    assert ro.append_row_fast(p, row) == (True, 'appended')
+    ok, reason = ro.append_row_fast(p, row)
+    assert ok is False and 'duplicate' in reason
+    assert len([l for l in open(p) if l.strip()]) == 1
+    # a different session still lands
+    assert ro.append_row_fast(p, ro.normalize_row(_wire(session_id='other'), now_s=NOW))[0]
+
+
+def test_append_row_fast_is_fail_open_on_write_error(tmp_path):
+    """A store problem returns (False, reason) — never raises: the reporter
+    must not be blocked by our disk."""
+    blocked = tmp_path / 'not-a-dir'
+    blocked.write_text('x')
+    ok, reason = ro.append_row_fast(str(blocked / 'store.jsonl'),
+                                    ro.normalize_row(_wire(), now_s=NOW))
+    assert ok is False and 'write failed' in reason
+
+
+def test_ingest_honours_routing_outcomes_file(tmp_path, monkeypatch):
+    store = tmp_path / 'elsewhere' / 'outcomes.jsonl'
+    monkeypatch.setenv('ROUTING_OUTCOMES_FILE', str(store))
+    assert ro.outcomes_path() == str(store)
+    out = ro.ingest(_wire(session_id='env-1'), now_s=NOW)
+    assert out['appended'] is True and out['store'] == str(store)
+    written = json.loads(open(store).read().strip())
+    assert written['session_id'] == 'env-1' and written['cost_usd'] == 0.25
+    # ingest is the only writer needed by the HTTP layer
+    assert ro.outcomes_path() == str(store)
+
+
+def test_ingest_validation_error_raises_for_the_400_path(monkeypatch, tmp_path):
+    monkeypatch.setenv('ROUTING_OUTCOMES_FILE', str(tmp_path / 'o.jsonl'))
+    with pytest.raises(ValueError):
+        ro.ingest({'source_system': 'hermes'})

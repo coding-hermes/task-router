@@ -23,6 +23,14 @@ DATA_DIR = Path(os.environ.get("ROUTING_DATA_DIR", REPO / "data" / "tables"))
 DOCS_DIR = Path(os.environ.get("ROUTING_DOCS_DIR", REPO / "docs"))
 MAX_BODY_BYTES = 1024 * 1024
 
+# TR-049: the outcome store lives in scripts/router_outcomes.py (the same
+# module the averages CLI and the seed consume) — imported rather than
+# re-implemented so the store path/env resolution cannot drift between the
+# HTTP ingest and the batch tools.
+if str(SCRIPTS) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS))
+import router_outcomes  # noqa: E402  (stdlib-only sibling script module)
+
 JSON_RESPONSE = {
     "description": "JSON response",
     "content": {"application/json": {"schema": {"type": "object"}}},
@@ -147,6 +155,43 @@ def build_openapi():
                 "reason": string,
             },
             ["trace_id", "outcome"],
+        )
+    }
+    # TR-049 component 1: outcome ingest. One row per completed task; the
+    # response carries the normalized row so a reporter can verify the write.
+    paths["/api/v1/outcomes"] = {
+        "post": _post_operation(
+            "ingestOutcome",
+            "Ingest one completed-task outcome (cost-per-task engine)",
+            {
+                "source_system": string,
+                "session_id": string,
+                "task_label": string,
+                "complexity": {
+                    "type": ["object", "string", "null"],
+                    "description": "per-category required levels "
+                                   "{category: level} or a profile id — the "
+                                   "task's complexity reference",
+                },
+                "profile_id": string,
+                "required_categories": {"type": ["object", "array", "null"]},
+                "provider": string,
+                "model": string,
+                "turns": {"type": ["integer", "null"]},
+                "tokens_in": {"type": ["integer", "null"]},
+                "tokens_out": {"type": ["integer", "null"]},
+                "tokens_reasoning": {"type": ["integer", "null"]},
+                "cost": {"type": ["number", "null"],
+                         "description": "task cost in USD (alias: cost_usd)"},
+                "cost_usd": {"type": ["number", "null"]},
+                "wall_time": {"type": ["number", "null"],
+                              "description": "wall seconds (alias: wall_time_s)"},
+                "wall_time_s": {"type": ["number", "null"]},
+                "success": {"type": ["boolean", "null"]},
+                "ts": {"type": ["number", "null"],
+                       "description": "epoch seconds (default: server now)"},
+            },
+            ["source_system", "session_id", "provider", "model"],
         )
     }
     nullable_string = {"type": ["string", "null"]}
@@ -489,6 +534,15 @@ class RouterApplication:
             kind = path.rsplit("/", 1)[-1]
             if kind in {"provider", "model", "profile"}:
                 return 200, _append_listing(kind, body)
+        if path == "/api/v1/outcomes":
+            # TR-049 ingest. A malformed payload is a caller bug -> 400 with
+            # every problem named; a STORE problem is fail-open -> 200 with
+            # appended=false + the reason (the reporter must never be blocked
+            # by our disk, and the caller retries on the next tick).
+            try:
+                return 200, router_outcomes.ingest(body)
+            except ValueError as exc:
+                return 400, {"error": str(exc)}
         return 404, {"error": "not found"}
 
     def tools(self):

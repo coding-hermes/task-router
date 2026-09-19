@@ -69,6 +69,11 @@ def server_env(tmp_path):
         "ROUTER_STATE_DIR": str(state_dir),
         "LEDGER_FILE": str(state_dir / "ledger.jsonl"),
         "TASK_ROUTER_HOME": str(tmp_path / "router-home"),
+        # TR-049: hermetic outcome store — the ingest endpoint must NEVER be
+        # able to append into the live (gitignored) data/state/outcomes.jsonl
+        # from a test run.
+        "ROUTING_OUTCOMES_FILE": str(tmp_path / "outcomes.jsonl"),
+        "ROUTING_AVERAGES_FILE": str(tmp_path / "outcomes-averages.jsonl"),
     }
 
 
@@ -275,3 +280,91 @@ def test_mcp_lists_openapi_tools_and_calls_resolve_and_mutation(server_env):
         assert mutated["result"]["isError"] is False
         _, circuits = _request(port, "/circuit/status")
         assert any(row["pair"] == "tr018-mcp/m1" for row in circuits["pairs"])
+
+
+# ---------------------------------------------------------------------------
+# TR-049 component 1 — POST /api/v1/outcomes
+# ---------------------------------------------------------------------------
+
+_OUTCOME_PAYLOAD = {
+    "source_system": "hermes",
+    "session_id": "ingest-e2e-1",
+    "task_label": "TR-049 ingest probe",
+    "complexity": {"code_gen": 2, "guard": 0},
+    "provider": "deepseek",
+    "model": "deepseek-v4-flash",
+    "turns": 7,
+    "tokens_in": 1000,
+    "tokens_out": 250,
+    "tokens_reasoning": 40,
+    "cost": 0.031,
+    "wall_time": 91.5,
+    "success": True,
+}
+
+
+def test_outcome_ingest_appends_row_and_dedupes(server_env):
+    """The endpoint validates, appends the NORMALIZED row to the configured
+    store, and a re-POST of the same session is a no-op (not a duplicate)."""
+    key = "secret123"
+    store = Path(server_env["ROUTING_OUTCOMES_FILE"])
+    with _server(server_env, mode="edit", key=key) as port:
+        code, payload = _request(port, "/api/v1/outcomes", method="POST",
+                                 body=_OUTCOME_PAYLOAD, key=key)
+        assert code == 200, payload
+        assert payload["appended"] is True
+        assert payload["row"]["cost_usd"] == 0.031      # wire alias normalized
+        assert payload["row"]["wall_time_s"] == 91.5
+        assert payload["row"]["complexity"] == {"code_gen": 2, "guard": 0}
+
+        rows = [json.loads(line) for line in store.read_text().splitlines() if line.strip()]
+        assert len(rows) == 1 and rows[0]["session_id"] == "ingest-e2e-1"
+
+        again, repeat = _request(port, "/api/v1/outcomes", method="POST",
+                                 body=_OUTCOME_PAYLOAD, key=key)
+        assert again == 200 and repeat["appended"] is False
+        assert "duplicate" in repeat["reason"]
+        assert len(store.read_text().strip().splitlines()) == 1
+
+
+def test_outcome_ingest_rejects_a_malformed_payload(server_env):
+    key = "secret123"
+    with _server(server_env, mode="edit", key=key) as port:
+        code, payload = _request(port, "/api/v1/outcomes", method="POST",
+                                 body={"source_system": "hermes"}, key=key)
+        assert code == 400
+        assert "session_id" in payload["error"] and "provider" in payload["error"]
+
+
+def test_outcome_ingest_is_key_gated_like_every_mutation(server_env):
+    """Read-only mode has no mutations (fail-closed at the mode gate, exactly
+    like /listings/* and /ledger/*); edit mode without the key is 401."""
+    with _server(server_env) as port:
+        code, _ = _request(port, "/api/v1/outcomes", method="POST",
+                           body=_OUTCOME_PAYLOAD)
+        assert code == 403
+    with _server(server_env, mode="edit", key="secret123") as port:
+        code, _ = _request(port, "/api/v1/outcomes", method="POST",
+                           body=_OUTCOME_PAYLOAD)
+        assert code == 401
+
+
+def test_outcome_ingest_is_listed_as_an_mcp_tool(server_env):
+    key = "secret123"
+    with _server(server_env, mode="edit", key=key) as port:
+        _, listed = _rpc(port, "tools/list", rpc_id=2)
+        names = {tool["name"] for tool in listed["result"]["tools"]}
+        assert "ingestOutcome" in names
+        _, called = _rpc(
+            port,
+            "tools/call",
+            {"name": "ingestOutcome",
+             "arguments": {**_OUTCOME_PAYLOAD, "session_id": "mcp-ingest-1"}},
+            rpc_id=3,
+            key=key,
+        )
+        result = called["result"]
+        assert result["isError"] is False
+        assert result["structuredContent"]["appended"] is True
+        store = Path(server_env["ROUTING_OUTCOMES_FILE"])
+        assert "mcp-ingest-1" in store.read_text()

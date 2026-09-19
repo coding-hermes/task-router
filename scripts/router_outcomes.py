@@ -19,6 +19,7 @@ Subcommands:
   query           print the average for a lane (optionally merged)
 """
 import argparse
+import fcntl
 import json
 import math
 import os
@@ -27,8 +28,31 @@ import sys
 import time
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-OUTCOMES = os.path.join(REPO, 'data', 'state', 'outcomes.jsonl')
-AVERAGES = os.path.join(REPO, 'data', 'state', 'outcomes-averages.jsonl')
+_DEFAULT_OUTCOMES = os.path.join(REPO, 'data', 'state', 'outcomes.jsonl')
+_DEFAULT_AVERAGES = os.path.join(REPO, 'data', 'state', 'outcomes-averages.jsonl')
+
+
+def outcomes_path():
+    """The outcome store path (TR-049).
+
+    ROUTING_OUTCOMES_FILE wins so a reporter can point at its OWN store (the
+    per-user data doctrine: every user rebuilds the averages from their data);
+    the repo-relative default is gitignored runtime state. Resolved at CALL
+    time so a long-lived process (the API server) follows an env change and
+    tests stay hermetic.
+    """
+    return os.environ.get('ROUTING_OUTCOMES_FILE') or _DEFAULT_OUTCOMES
+
+
+def averages_path():
+    """The rolling-averages path (ROUTING_AVERAGES_FILE override, TR-049)."""
+    return os.environ.get('ROUTING_AVERAGES_FILE') or _DEFAULT_AVERAGES
+
+
+# Back-compat module constants (historical import-time values). New code calls
+# the resolvers above; these exist so existing importers keep working.
+OUTCOMES = outcomes_path()
+AVERAGES = averages_path()
 DEFAULT_SCALES_H = [24, 72, 168]  # 1d / 3d / 7d
 
 
@@ -109,7 +133,11 @@ def profile_signature(profile_id, registry_path=None):
 
 def append_rows(path, new_rows):
     """Idempotent append: skip rows whose (source_system, session_id, model)
-    is already present. Returns appended count."""
+    is already present. Returns appended count.
+
+    Bulk path (CLI import): scans the WHOLE store once, then appends. Not used
+    by the HTTP ingest — see append_row_fast for why.
+    """
     seen = set()
     if os.path.exists(path):
         for l in open(path):
@@ -127,6 +155,196 @@ def append_rows(path, new_rows):
             f.write(json.dumps(r, ensure_ascii=False) + '\n')
             n += 1
     return n
+
+
+def tail_rows(path, max_lines=2000, max_bytes=512 * 1024):
+    """The last `max_lines` complete JSONL rows (bounded read).
+
+    Reads at most `max_bytes` from the end of the file so the duplicate guard
+    on a live store stays O(tail), not O(store) — the live store is ~90 MB.
+    """
+    if not os.path.exists(path):
+        return []
+    size = os.path.getsize(path)
+    with open(path, 'rb') as f:
+        start = max(0, size - max_bytes)
+        f.seek(start)
+        chunk = f.read()
+    if start > 0:
+        # drop the partial first line
+        chunk = chunk.split(b'\n', 1)[1] if b'\n' in chunk else b''
+    lines = [l for l in chunk.decode('utf-8', errors='replace').splitlines() if l.strip()]
+    rows = []
+    for l in lines[-max_lines:]:
+        try:
+            rows.append(json.loads(l))
+        except ValueError:
+            continue
+    return rows
+
+
+def append_row_fast(path, row, tail_lines=2000):
+    """Append ONE normalized row: flock-serialized write + bounded-tail dedupe.
+
+    Returns (appended: bool, reason: str). Never raises for an I/O problem the
+    caller cannot fix — the HTTP ingest is fail-open (a store hiccup must not
+    turn into a 500). Raises only on a programming error (non-dict row).
+
+    Dedupe semantics: the same (source_system, session_id, model) inside the
+    recent tail is treated as a re-POST and skipped; older duplicates are
+    accepted. The average is decay-weighted, so a stale duplicate cannot
+    dominate a bucket, while the O(tail) guard keeps ingest ~ms.
+    """
+    if not isinstance(row, dict):
+        raise ValueError('row must be an object')
+    key = (row.get('source_system'), row.get('session_id'), row.get('model'))
+    try:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        # flock the store itself (no sidecar lock file to leak on crash).
+        with open(path, 'a+') as f:
+            fcntl.flock(f, fcntl.LOCK_EX)
+            try:
+                if key[1] is not None:
+                    for prev in tail_rows(path, max_lines=tail_lines):
+                        if (prev.get('source_system'), prev.get('session_id'),
+                                prev.get('model')) == key:
+                            return False, 'duplicate (same source_system/session_id/model in tail)'
+                f.seek(0, os.SEEK_END)
+                f.write(json.dumps(row, ensure_ascii=False) + '\n')
+                f.flush()
+                os.fsync(f.fileno())
+            finally:
+                fcntl.flock(f, fcntl.LOCK_UN)
+    except OSError as exc:
+        return False, f'write failed: {exc}'
+    return True, 'appended'
+
+
+# ---------- ingest (TR-049 component 1) ----------
+
+_REQUIRED_INGEST = ('source_system', 'session_id', 'provider', 'model')
+# Field order of a store row = the order normalize_row emits + the docs table.
+STORE_FIELDS = ('source_system', 'session_id', 'task_label', 'complexity',
+                'profile_id', 'required_categories', 'provider', 'model',
+                'turns', 'tokens_in', 'tokens_out', 'tokens_reasoning',
+                'cost_usd', 'wall_time_s', 'success', 'ts')
+
+
+def _required_str(body, name, problems):
+    v = body.get(name)
+    if not isinstance(v, str) or not v.strip():
+        problems.append(f'{name} must be a non-empty string')
+        return None
+    return v.strip()
+
+
+def _optional_number(body, name, problems, integer=False):
+    v = body.get(name)
+    if v is None:
+        return None
+    if isinstance(v, bool) or not isinstance(v, (int, float)):
+        problems.append(f'{name} must be a number or null')
+        return None
+    if integer and float(v) != int(v):
+        problems.append(f'{name} must be an integer')
+        return None
+    return int(v) if integer else float(v)
+
+
+def normalize_row(body, now_s=None):
+    """Validate + normalize an ingest payload into a store row.
+
+    Accepts the wire names from the TR-049 contract (cost, wall_time) plus the
+    store's own names (cost_usd, wall_time_s) so a re-posted row round-trips.
+    Raises ValueError listing EVERY problem (never partially accepts).
+    """
+    if not isinstance(body, dict):
+        raise ValueError('payload must be a JSON object')
+    problems = []
+    row = {}
+    for name in ('source_system', 'session_id', 'provider', 'model'):
+        row[name] = _required_str(body, name, problems)
+    # task_label: optional free text ('' allowed, None when absent)
+    tl = body.get('task_label')
+    if tl is not None and not isinstance(tl, str):
+        problems.append('task_label must be a string or null')
+        tl = None
+    row['task_label'] = tl
+    # complexity: per-category levels (object) or a profile id (string) — the
+    # reference Bane asked for; never invented, so anything else is rejected.
+    cx = body.get('complexity')
+    if cx is not None and not isinstance(cx, (dict, str)):
+        problems.append('complexity must be an object of category levels, '
+                        'a profile id string, or null')
+        cx = None
+    if isinstance(cx, str) and not cx.strip():
+        cx = None
+    row['complexity'] = cx
+    pid = body.get('profile_id')
+    if pid is not None and not isinstance(pid, str):
+        problems.append('profile_id must be a string or null')
+        pid = None
+    row['profile_id'] = pid
+    req_cats = body.get('required_categories')
+    if req_cats is not None and not isinstance(req_cats, (dict, list)):
+        problems.append('required_categories must be an object/list or null')
+        req_cats = None
+    row['required_categories'] = req_cats
+    row['turns'] = _optional_number(body, 'turns', problems, integer=True)
+    for name in ('tokens_in', 'tokens_out', 'tokens_reasoning'):
+        row[name] = _optional_number(body, name, problems, integer=True)
+    cost = body.get('cost_usd', body.get('cost'))
+    if 'cost_usd' in body and 'cost' in body and body['cost'] != body['cost_usd']:
+        problems.append('cost and cost_usd disagree — send one')
+    if cost is None:
+        row['cost_usd'] = None
+    elif isinstance(cost, bool) or not isinstance(cost, (int, float)):
+        problems.append('cost must be a number or null')
+        row['cost_usd'] = None
+    else:
+        row['cost_usd'] = float(cost)
+    wall = body.get('wall_time_s', body.get('wall_time'))
+    if 'wall_time_s' in body and 'wall_time' in body and body['wall_time'] != body['wall_time_s']:
+        problems.append('wall_time and wall_time_s disagree — send one')
+    if wall is None:
+        row['wall_time_s'] = None
+    elif isinstance(wall, bool) or not isinstance(wall, (int, float)):
+        problems.append('wall_time must be a number or null')
+        row['wall_time_s'] = None
+    else:
+        row['wall_time_s'] = float(wall)
+    success = body.get('success')
+    if success is not None and not isinstance(success, bool):
+        problems.append('success must be true, false, or null')
+        success = None
+    row['success'] = success
+    ts = body.get('ts')
+    if ts is None:
+        ts = now_s if now_s is not None else time.time()
+    elif isinstance(ts, bool) or not isinstance(ts, (int, float)):
+        problems.append('ts must be an epoch number or null')
+        ts = now_s if now_s is not None else time.time()
+    row['ts'] = float(ts)
+    if problems:
+        raise ValueError('; '.join(problems))
+    return row
+
+
+def ingest(payload, path=None, now_s=None):
+    """End-to-end ingest for one payload: normalize → locked append.
+
+    Fail-open by contract (TR-049): validation problems raise ValueError (the
+    caller reports 400 — a malformed payload is a caller bug), a WRITE problem
+    returns {'appended': False, 'error': ...} so the caller still answers 200.
+    """
+    row = normalize_row(payload, now_s=now_s)
+    store = path or outcomes_path()
+    appended, reason = append_row_fast(store, row)
+    out = {'appended': bool(appended), 'reason': reason, 'store': store,
+           'row': row}
+    if not appended:
+        out['error'] = reason
+    return out
 
 
 def import_hermes(db_path='~/.hermes/state.db'):
