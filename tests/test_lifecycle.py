@@ -60,3 +60,68 @@ def test_both_models_jsonl_consumers_use_the_helper():
     assert "valid_to') is not None" not in spawn, "presence-test retires lanes early"
     assert "row_is_retired(m)" in spawn
     assert "row_is_retired(m)" in gaps
+
+
+# ---------------------------------------------------------------- seed overlay
+# The lifecycle overlay channel (data/lifecycle.jsonl -> seed merge): a stamp
+# hand-written into data/tables/models.jsonl is DESTROYED by the seed's final
+# sync (generated files), so dates + provenance must ride the overlay to
+# survive. Proven with a real reseed twice.
+
+import json  # noqa: E402
+import shutil  # noqa: E402
+import subprocess  # noqa: E402
+
+DATA_DIR = os.path.join(REPO, "data", "tables")
+PY = sys.executable
+
+
+def _seed_env(tmp_path):
+    data = tmp_path / "data"
+    shutil.copytree(DATA_DIR, data)
+    state = tmp_path / "state"
+    state.mkdir(exist_ok=True)
+    return {"ROUTING_DATA_DIR": str(data),
+            "ROUTER_STATE_DIR": str(state),
+            "ROUTING_REGISTRY": str(tmp_path / "registry.json")}
+
+
+def test_lifecycle_overlay_survives_reseeds(tmp_path):
+    from conftest import SEED_TIMEOUT  # duckdb seed: worst-load budget
+    env = _seed_env(tmp_path)
+    overlay = (tmp_path / "lifecycle.jsonl")
+    overlay.write_text(json.dumps({
+        "provider": "prov-test", "model": "retiring-model",
+        "valid_to": "2026-12-01",
+        "lifecycle_source": "provider-announcement:test-suite",
+        "lifecycle_checked_at": "2026-09-19",
+        "replaced_by": "prov-test/successor"}) + "\n")
+    env["ROUTING_LIFECYCLE_FILE"] = str(overlay)
+
+    for run in (1, 2):  # twice: the second run proves regenerate-proof
+        p = subprocess.run([PY, os.path.join(REPO, "scripts", "router_seed.py")],
+                           capture_output=True, text=True, timeout=SEED_TIMEOUT,
+                           env={**os.environ, **env})
+        assert p.returncode == 0, p.stderr[-400:]
+    reg = json.load(open(env["ROUTING_REGISTRY"]))
+    row = [m for m in reg["tables"]["models"]
+           if m["provider"] == "prov-test" and m["model"] == "retiring-model"]
+    assert row, "overlay lane missing after two seeds"
+    assert row[0]["valid_to"] == "2026-12-01"
+    assert row[0]["lifecycle_source"] == "provider-announcement:test-suite"
+    assert row[0]["replaced_by"] == "prov-test/successor"
+
+
+def test_lifecycle_overlay_without_provenance_is_rejected(tmp_path):
+    from conftest import SEED_TIMEOUT
+    env = _seed_env(tmp_path)
+    overlay = (tmp_path / "lifecycle.jsonl")
+    overlay.write_text(json.dumps({
+        "provider": "prov-test", "model": "anon-model",
+        "valid_to": "2026-12-01"}) + "\n")
+    env["ROUTING_LIFECYCLE_FILE"] = str(overlay)
+    p = subprocess.run([PY, os.path.join(REPO, "scripts", "router_seed.py")],
+                       capture_output=True, text=True, timeout=SEED_TIMEOUT,
+                       env={**os.environ, **env})
+    assert p.returncode != 0, "an anonymous date must not pass (spec R4)"
+    assert "provenance" in (p.stderr + p.stdout)

@@ -98,6 +98,8 @@ BASE_COLUMNS = {
                ('perf_delegation', 'DOUBLE'), ('perf_guard', 'DOUBLE'),
                ('perf_mock', 'DOUBLE'), ('perf_reasoning', 'DOUBLE'),
                ('valid_from', 'DATE'), ('valid_to', 'DATE'), ('archive', 'BOOLEAN'),
+               ('lifecycle_source', 'VARCHAR'), ('lifecycle_checked_at', 'VARCHAR'),
+               ('replaced_by', 'VARCHAR'),
                ('token_factor', 'DOUBLE'),
                ('disabled', 'BOOLEAN'), ('disabled_reason', 'VARCHAR'),
                ('context_limit', 'BIGINT'),
@@ -169,6 +171,40 @@ for t, cols in BASE_COLUMNS.items():
         con.executemany(f"INSERT INTO {t} VALUES ({','.join('?' * len(cols))})", rows)
     print(f'loaded {t:<12} {len(rows):>3} rows')
 
+# ---------- lifecycle overlays (TR-069): dates + provenance as DATA ----------
+# Provider retirement/announcement notices live in data/lifecycle.jsonl and are
+# merged AFTER the base load: generated tables are rebuilt from the registry on
+# every seed, so a hand-stamp inside them would be destroyed (measured today).
+# The overlay survives every reseed by construction and carries its own
+# provenance (lifecycle_source is REQUIRED — no anonymous dates).
+_LC_PATH = (os.environ.get('ROUTING_LIFECYCLE_FILE')
+            or os.path.join(os.path.dirname(DATA_DIR), 'lifecycle.jsonl'))
+_LC_COLS = [c[0] for c in BASE_COLUMNS['models']]
+_LC_UPDATABLE = [c for c in _LC_COLS if c not in ('provider', 'model')]
+_lc_rows = []
+try:
+    with open(_LC_PATH) as _f:
+        _lc_rows = [json.loads(_l) for _l in _f if _l.strip()]
+except FileNotFoundError:
+    pass
+for _o in _lc_rows:
+    _prov, _mod = _o.get('provider'), _o.get('model')
+    if not _prov or not _mod:
+        raise SystemExit(f'lifecycle overlay without provider/model: {_o}')
+    if not _o.get('lifecycle_source'):
+        raise SystemExit(f'lifecycle overlay without provenance (R4): {_prov}/{_mod}')
+    if con.execute('SELECT 1 FROM models WHERE provider=? AND model=?',
+                   [_prov, _mod]).fetchone():
+        _sets = ', '.join(f'{c} = ?' for c in _LC_UPDATABLE)
+        _args = [_o.get(c) for c in _LC_UPDATABLE] + [_prov, _mod]
+        con.execute(f'UPDATE models SET {_sets} WHERE provider=? AND model=?', _args)
+    else:
+        # announced lane not yet in any catalog — insert it (NULLs where unknown)
+        con.execute(f"INSERT INTO models VALUES ({','.join('?' * len(_LC_COLS))})",
+                    [_o.get(c) for c in _LC_COLS])
+if _lc_rows:
+    print(f'applied {len(_lc_rows)} lifecycle overlays from {_LC_PATH}')
+
 CATS = ['agent_tick','long_doc','debug','schema','e2e_vision','review','delegation',
         'guard','mock','reasoning','code_gen','refactor','terminal','mechanical','test',
         'math','tool_use','long_horizon','vision','ui_frontend','spec_docs','creative',
@@ -196,7 +232,7 @@ FROM (
   SELECT model, replace(category, 'perf_', '') AS category, max(perf) AS perf
   FROM (UNPIVOT (SELECT model, perf_agent_tick, perf_long_doc, perf_debug, perf_schema,
                         perf_e2e_vision, perf_review, perf_delegation, perf_guard, perf_mock, perf_reasoning
-                 FROM models WHERE valid_to IS NULL AND archive = false
+                 FROM models WHERE (valid_to IS NULL OR valid_to > CURRENT_DATE) AND archive = false
                               AND (disabled IS NULL OR NOT disabled))
         ON perf_agent_tick, perf_long_doc, perf_debug, perf_schema,
            perf_e2e_vision, perf_review, perf_delegation, perf_guard, perf_mock, perf_reasoning
@@ -627,7 +663,7 @@ def seed_estimates():
     # live models only — a model with no live lane (e.g. archived rows like
     # opencode-go/ox-alpha-free) must not leak into model_perf (TR-008)
     live_models = {r[0] for r in con.execute(
-        "SELECT DISTINCT model FROM models WHERE valid_to IS NULL AND archive = false").fetchall()}
+        "SELECT DISTINCT model FROM models WHERE (valid_to IS NULL OR valid_to > CURRENT_DATE) AND archive = false").fetchall()}
     n = 0
     for pname, pairs in PROFILE_MODELS.items():
         tags = PROFILE_TAGS.get(pname, {})
@@ -961,7 +997,7 @@ SELECT r.task_id, m.provider, m.model, m.normalized_price, m.token_factor, m.pla
 FROM models m
 JOIN task_profiles tp ON true
 JOIN (SELECT DISTINCT task_id FROM task_profile_requirements) r ON r.task_id = tp.id
-WHERE m.valid_to IS NULL AND m.archive = false
+WHERE (m.valid_to IS NULL OR m.valid_to > CURRENT_DATE) AND m.archive = false
   AND (m.disabled IS NULL OR NOT m.disabled)
   AND NOT EXISTS (
         SELECT 1 FROM task_profile_requirements rr
