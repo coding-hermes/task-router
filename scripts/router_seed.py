@@ -97,7 +97,7 @@ BASE_COLUMNS = {
                ('perf_e2e_vision', 'DOUBLE'), ('perf_review', 'DOUBLE'),
                ('perf_delegation', 'DOUBLE'), ('perf_guard', 'DOUBLE'),
                ('perf_mock', 'DOUBLE'), ('perf_reasoning', 'DOUBLE'),
-               ('valid_from', 'DATE'), ('valid_to', 'DATE'), ('archive', 'BOOLEAN'),
+               ('valid_from', 'DATE'), ('available_from', 'DATE'), ('valid_to', 'DATE'), ('archive', 'BOOLEAN'),
                ('lifecycle_source', 'VARCHAR'), ('lifecycle_checked_at', 'VARCHAR'),
                ('replaced_by', 'VARCHAR'),
                ('token_factor', 'DOUBLE'),
@@ -232,7 +232,7 @@ FROM (
   SELECT model, replace(category, 'perf_', '') AS category, max(perf) AS perf
   FROM (UNPIVOT (SELECT model, perf_agent_tick, perf_long_doc, perf_debug, perf_schema,
                         perf_e2e_vision, perf_review, perf_delegation, perf_guard, perf_mock, perf_reasoning
-                 FROM models WHERE (valid_to IS NULL OR valid_to > CURRENT_DATE) AND archive = false
+                 FROM models WHERE (valid_to IS NULL OR valid_to > CURRENT_DATE) AND (available_from IS NULL OR available_from <= CURRENT_DATE) AND archive = false
                               AND (disabled IS NULL OR NOT disabled))
         ON perf_agent_tick, perf_long_doc, perf_debug, perf_schema,
            perf_e2e_vision, perf_review, perf_delegation, perf_guard, perf_mock, perf_reasoning
@@ -663,7 +663,7 @@ def seed_estimates():
     # live models only — a model with no live lane (e.g. archived rows like
     # opencode-go/ox-alpha-free) must not leak into model_perf (TR-008)
     live_models = {r[0] for r in con.execute(
-        "SELECT DISTINCT model FROM models WHERE (valid_to IS NULL OR valid_to > CURRENT_DATE) AND archive = false").fetchall()}
+        "SELECT DISTINCT model FROM models WHERE (valid_to IS NULL OR valid_to > CURRENT_DATE) AND (available_from IS NULL OR available_from <= CURRENT_DATE) AND archive = false").fetchall()}
     n = 0
     for pname, pairs in PROFILE_MODELS.items():
         tags = PROFILE_TAGS.get(pname, {})

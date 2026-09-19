@@ -67,7 +67,12 @@ import json, os, sys, argparse, datetime, contextlib
 # 320 → 400 so the tail stays complete.
 # tests/test_regression.py::test_chain_default_limit_covers_registry
 # asserts eligible < this value — raise it whenever the registry outgrows it.
-DEFAULT_CHAIN_LIMIT = 400
+# 2026-09-19 PAYG-LAST (Bane): normalized=99.0 ordering sentinel puts the PAYG
+# lanes after EVERY plan lane, so the cap must clear the whole price-sorted
+# eligible list or the ultimate fallback silently vanishes (TR-039 class).
+# Live: eligible grew past 512 with the sentinel -> 400 → 1024 (deepseek
+# positions measured at ~513+).
+DEFAULT_CHAIN_LIMIT = 1024
 
 
 # TR-033 / TR-055: --quiet / ROUTER_SPAWN_QUIET=1 suppresses stderr telemetry.
@@ -159,6 +164,51 @@ def row_is_retired(row, today=None):
     if today is None:
         today = datetime.date.today().isoformat()
     return str(vt)[:10] <= str(today)[:10]
+
+
+RETIRE_WARN_DAYS = int(os.environ.get('ROUTER_RETIRE_WARN_DAYS', '14'))
+
+
+def _today():
+    """Testable clock seam (TR-069): frozen-clock tests monkeypatch this."""
+    return datetime.date.today().isoformat()
+
+
+def _days_until(date_str, today):
+    """Days from today until date_str (negative = past). None = unparseable."""
+    try:
+        d = datetime.date.fromisoformat(str(date_str)[:10])
+        t = datetime.date.fromisoformat(str(today)[:10])
+        return (d - t).days
+    except Exception:
+        return None
+
+
+def lifecycle_state(row, today=None):
+    """TR-069 wave 2: the four lifecycle states, derived from DATES only.
+
+    coming_soon — available_from is a FUTURE date (announced, not yet routable)
+    live        — no dates, or inside the [available_from, valid_to) window
+    retiring    — live today but valid_to is within RETIRE_WARN_DAYS
+    retired     — valid_to has passed (day-of counts as retired; same rule as
+                  row_is_retired, which this shares semantics with)
+
+    Unknown dates stay None/absent = live: dates decide, nothing invented.
+    """
+    if today is None:
+        today = datetime.date.today().isoformat()
+    today = str(today)[:10]
+    vt = row.get('valid_to')
+    if vt and str(vt)[:10] <= today:
+        return 'retired'
+    af = row.get('available_from')
+    if af and str(af)[:10] > today:
+        return 'coming_soon'
+    if vt:
+        left = _days_until(vt, today)
+        if left is not None and left <= RETIRE_WARN_DAYS:
+            return 'retiring'
+    return 'live'
 
 
 def load_json(path, default):
@@ -719,6 +769,26 @@ def _validate_adhoc(adhoc, tables):
     return reqs, None
 
 
+def _stamp_payg_providers(tables):
+    """Snapshot the PAYG provider set + stamp every lane row (Bane 2026-09-19).
+
+    Data-driven from the providers table: `plan = 'PAYG'` names the pay-per-
+    token billing class. _legacy_sort_key sends those lanes to the terminal
+    chain bucket (after every plan lane). Called once per registry load; the
+    set is stored under tables['_payg_providers'] (never exported/serialized
+    back), and rows carry a boolean _payg so the sort path does no lookups.
+    """
+    try:
+        payg = {p.get('id') for p in (tables.get('providers') or [])
+                if isinstance(p, dict) and str(p.get('plan') or '').upper() == 'PAYG'}
+        tables['_payg_providers'] = payg
+        for m in tables.get('models') or []:
+            if isinstance(m, dict):
+                m['_payg'] = m.get('provider') in payg
+    except Exception:  # noqa: BLE001 — stamping must never break a resolve
+        tables['_payg_providers'] = set()
+
+
 def _load_registry_with_meta():
     """(tables, source, fallback_used, warning) — registry.json, else data/tables.
 
@@ -734,6 +804,7 @@ def _load_registry_with_meta():
             doc = json.load(f)
         tables = doc.get('tables') if isinstance(doc, dict) else None
         if isinstance(tables, dict) and tables:
+            _stamp_payg_providers(tables)
             return tables, 'registry.json', False, None
         if not isinstance(doc, dict):
             err = 'registry.json present but not an object (corrupt)'
@@ -757,6 +828,7 @@ def _load_registry_with_meta():
                             rows.append(json.loads(line))
                 tables[name] = rows
         if tables:
+            _stamp_payg_providers(tables)
             return tables, 'data/tables', True, \
                 f'{err} — using committed data/tables fallback'
         return {}, 'data/tables', True, \
@@ -1022,8 +1094,21 @@ def _context_sort_key(m):
 
 def _legacy_sort_key(m):
     """The historical chain order: (plan_tier, effective price, larger context
-    first, model, provider) — unchanged since TR-015."""
-    return (m.get('plan_tier') if m.get('plan_tier') is not None else 1 << 30,
+    first, model, provider) — unchanged since TR-015.
+
+    2026-09-19 PAYG-LAST (Bane): PAYG providers sort into a terminal bucket,
+    after EVERY plan lane — PAYG is the ultimate fallback, reached only after
+    all healthy plan combos. Data-driven: the providers table's `plan` column
+    names the billing class ('PAYG'); the set is snapshotted by the registry
+    loader into tables['_payg_providers'] (no I/O in the sort path). The
+    bucket key goes BEFORE plan_tier so even tier-1 plan hops rank ahead of
+    PAYG, and public prices are untouched (reporting stays official)."""
+    if m.get('_payg'):
+        return (1, 1 << 30, 0, _effective_price(m), _context_sort_key(m),
+                m.get('model') or '', m.get('provider') or '')
+    return (0,
+            m.get('plan_tier') if m.get('plan_tier') is not None else 1 << 30,
+            0,
             _effective_price(m), _context_sort_key(m),
             m.get('model') or '', m.get('provider') or '')
 
@@ -1160,7 +1245,8 @@ def make_sort_key(spec, lanes, ctx):
     return factory(arg, lanes, ctx), name
 
 
-def _build_chain(tables, reqs, limit=DEFAULT_CHAIN_LIMIT, sort_spec=None, sort_ctx=None):
+def _build_chain(tables, reqs, limit=DEFAULT_CHAIN_LIMIT, sort_spec=None, sort_ctx=None,
+                 lifecycle_counts=None):
     """Replicates v_task_chain exactly, in pure python.
 
     reqs = [(category, level), ...] (profile requirements or ad-hoc).
@@ -1199,8 +1285,19 @@ def _build_chain(tables, reqs, limit=DEFAULT_CHAIN_LIMIT, sort_spec=None, sort_c
     reqs = tier_reqs
 
     eligible = []
+    ls_counts = lifecycle_counts  # None = caller does not want counts
     for m in models:
+        _st = lifecycle_state(m)
+        if ls_counts is not None:
+            ls_counts[_st] = ls_counts.get(_st, 0) + 1
         if m.get('archive') or row_is_retired(m):
+            continue
+        af = m.get('available_from')
+        if af and str(af)[:10] > _today():
+            # TR-069 wave 2: announced-but-unreleased lanes never route, but
+            # they SAY SO on stderr and are COUNTED — nothing vanishes silently.
+            _err(f'{m.get("provider")}/{m.get("model")}: coming_soon '
+                 f'(available_from {str(af)[:10]}) — not yet routable')
             continue
         if m.get('disabled'):
             continue  # explicit per-provider lane disable (bad deployment)
@@ -1542,7 +1639,8 @@ def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=DE
             _err(f'WARNING: outcome stats degraded — {stats_meta["error"]}')
     # Profiles with NO requirement rows resolve to an empty chain — identical
     # to v_task_eligible (its task list comes from DISTINCT requirements).
-    chain_rows = _build_chain(tables, reqs, limit=limit, sort_spec=sort_spec,
+    _lc_counts = {}
+    chain_rows = _build_chain(tables, reqs, limit=limit, lifecycle_counts=_lc_counts, sort_spec=sort_spec,
                               sort_ctx=sort_ctx) if reqs else []
     sort_used = (sort_ctx or {}).get('used') or 'price'
     # TR-021: keep the raw price-ordered eligible list for metrics before gates.
@@ -1683,6 +1781,14 @@ def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=DE
                    'usd_1m': round(float(pub_usd), 4) if pub_usd is not None else None,
                    'in_per_m': pub_in, 'out_per_m': pub_out,
                    'data_class': dc}
+            # TR-069 wave 2: retiring lanes warn on EVERY hop (date + successor);
+            # capacity is never silently cut, but callers see the deadline.
+            _ls = lifecycle_state(mrow)
+            if _ls == 'retiring':
+                ent['lifecycle'] = 'retiring'
+                ent['retires_on'] = str(mrow.get('valid_to'))[:10]
+                if mrow.get('replaced_by'):
+                    ent['replaced_by'] = mrow.get('replaced_by')
             # TR-015: expose per-lane context window; preserve unknown as None.
             ctx = mrow.get('context_limit')
             if ctx is not None:
@@ -1734,6 +1840,9 @@ def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=DE
     dh = _data_home_meta(src, fb)
 
     return {'project': project, 'profile': pid, 'resolved_at': now,
+            # TR-069 wave 2: per-state model counts — the hiding is always
+            # reported ("nothing vanishes silently").
+            'lifecycle_counts': _lc_counts,
             # TR-059: how the profile was chosen ('project' | 'profile' |
             # 'profile-arg' | 'adhoc' | 'default') — additive; gate behavior is
             # untouched. `hint` names the canonical form when the project slot
