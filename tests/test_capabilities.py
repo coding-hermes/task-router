@@ -35,11 +35,13 @@ def _hermetic_env(tmp_path):
     state = tmp_path / "state"
     state.mkdir(exist_ok=True)
     return {"ROUTING_DATA_DIR": str(data), "ROUTER_STATE_DIR": str(state),
-            "ROUTING_REGISTRY": str(tmp_path / "registry.json"),
-            # router_seed needs duckdb; CI installs pytest only (pure-JSON
-            # suite) — route the child through the seed's stdlib fallback
-            "ROUTER_SEED_PYTHON": PY,
-            "ROUTING_BOARD_PY": PY}
+            "ROUTING_REGISTRY": str(tmp_path / "registry.json")}
+
+
+# The seed is a duckdb pipeline (~11s idle measured); a saturated fleet stretches
+# that past the default 120s, which surfaced as a full-suite-only
+# `subprocess.TimeoutExpired` (TR-068). Budget lives in conftest.py.
+from conftest import SEED_TIMEOUT  # noqa: E402
 
 
 def _write_jsonl(path, rows):
@@ -77,7 +79,8 @@ def test_seed_round_trips_capabilities_null_and_value(tmp_path):
 
 def test_profiles_have_version_and_tag(tmp_path):
     env = _hermetic_env(tmp_path)
-    _run(os.path.join(SCRIPTS, "router_seed.py"), env_extra=env).check_returncode()
+    _run(os.path.join(SCRIPTS, "router_seed.py"), timeout=SEED_TIMEOUT,
+         env_extra=env).check_returncode()
     with open(env["ROUTING_REGISTRY"]) as f:
         reg = json.load(f)
     for p in reg["tables"]["task_profiles"]:

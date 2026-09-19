@@ -21,7 +21,10 @@ DATA_DIR = os.path.join(REPO, "data", "tables")
 PY = sys.executable
 
 
-def _run(*args, timeout=120, env_extra=None):
+from conftest import SEED_TIMEOUT  # noqa: E402
+
+
+def _run(*args, timeout=SEED_TIMEOUT, env_extra=None):
     env = dict(os.environ)
     if env_extra:
         env.update(env_extra)

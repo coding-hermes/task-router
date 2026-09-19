@@ -38,6 +38,8 @@ import pytest
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SCRIPTS = os.path.join(REPO, "scripts")
+
+from conftest import SEED_TIMEOUT  # noqa: E402
 if REPO not in sys.path:
     sys.path.insert(0, REPO)
 if SCRIPTS not in sys.path:
@@ -558,7 +560,7 @@ def test_end_to_end_gate_written_by_the_cli_is_honored_by_the_resolver(tmp_path)
                ROUTING_DATA_DIR=str(tmp_path / 'data'))
     proc = subprocess.run([sys.executable, os.path.join(SCRIPTS, 'router_spawn.py'),
                            'demo', '--format', 'json'],
-                          capture_output=True, text=True, timeout=120, env=env)
+                          capture_output=True, text=True, timeout=SEED_TIMEOUT, env=env)
     assert proc.returncode == 0, proc.stderr
     out = json.loads(proc.stdout)
     assert out['head']['provider'] == 'openai-codex'
@@ -582,7 +584,7 @@ def test_status_shows_the_plan_gate(tmp_path):
                ROUTING_REGISTRY=_write_registry(tmp_path))
     proc = subprocess.run([sys.executable, os.path.join(SCRIPTS, 'router_status.py'),
                            '--format', 'json'],
-                          capture_output=True, text=True, timeout=120, env=env)
+                          capture_output=True, text=True, timeout=SEED_TIMEOUT, env=env)
     assert proc.returncode == 0, proc.stderr
     doc = json.loads(proc.stdout)
     plan = doc['quota']['quota_exhausted']
@@ -591,8 +593,14 @@ def test_status_shows_the_plan_gate(tmp_path):
     assert plan['gated'][0]['reset_at'] == _utc(5)
     text = subprocess.run([sys.executable, os.path.join(SCRIPTS, 'router_status.py'),
                            '--format', 'text'],
-                          capture_output=True, text=True, timeout=120, env=env)
-    assert 'plan-gate  zai-glm GATED until' in text.stdout
+                          capture_output=True, text=True, timeout=SEED_TIMEOUT, env=env)
+    assert 'plan-gate  zai-glm GATED until' in text.stdout, (
+        # TR-068: this assertion failed ONCE in a loaded 453-test run and has not
+        # reproduced in 99 executions since. Dump everything the classification
+        # saw, so a recurrence is diagnosable without a rerun.
+        f"plan-gate line missing.\nrc={text.returncode}\n"
+        f"gated={plan['gated']}\nexpired={plan['expired']}\n"
+        f"stdout:\n{text.stdout[-1200:]}\nstderr:\n{text.stderr[-600:]}")
 
 
 def test_cli_dispatch_does_not_redirect_the_quota_state_dir(tmp_path, monkeypatch):

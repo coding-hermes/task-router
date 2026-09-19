@@ -13,6 +13,8 @@ never the live registry).
 """
 import json
 import os
+
+from conftest import SEED_TIMEOUT  # noqa: E402
 import shutil
 import subprocess
 import sys
@@ -257,7 +259,7 @@ def test_discount_window_stamped_on_row():
     env["ROUTING_DATA_DIR"] = scratch
     p = subprocess.run([PY, os.path.join(SCRIPTS, "router_pricing.py"),
                         "--dry-run", "--json"], capture_output=True,
-                       text=True, env=env, timeout=120)
+                       text=True, env=env, timeout=SEED_TIMEOUT)
     assert p.returncode == 0, p.stderr[-500:]
     data = json.loads(p.stdout)
     # the discount only reaches unpriced rows; with groq's unpriced compound
