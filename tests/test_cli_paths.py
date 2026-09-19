@@ -88,6 +88,7 @@ def test_tilde_expansion_in_override(tmp_path, monkeypatch):
         (paths.circuit_state_path, "circuit-state.json"),
         (paths.ledger_path, "ledger.jsonl"),
         (paths.health_state_path, "health-state.json"),
+        (paths.quota_state_path, "quota-state.json"),
     ],
 )
 def test_file_helpers_live_inside_data_home(tmp_path, monkeypatch,
@@ -112,7 +113,7 @@ def test_helpers_follow_env_changes_lazily(tmp_path, monkeypatch):
 # --------------------------------------------------------------------------
 
 EXPECTED_COMMANDS = {
-    "spawn", "circuit", "gaps", "ledger", "maintain", "modelsdev",
+    "spawn", "circuit", "quota", "gaps", "ledger", "maintain", "modelsdev",
     "pricing", "plan-sweep", "learn", "seed", "probe", "clinepass",
     "probefix", "validate", "metrics", "status", "estimate", "diff",
     "web", "server",

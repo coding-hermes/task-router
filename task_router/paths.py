@@ -25,6 +25,7 @@ __all__ = [
     "circuit_state_path",
     "ledger_path",
     "health_state_path",
+    "quota_state_path",
 ]
 
 ENV_HOME = "TASK_ROUTER_HOME"
@@ -73,3 +74,17 @@ def ledger_path():
 def health_state_path():
     """Path to health-state.json inside the data home."""
     return os.path.join(resolve_data_home(), "health-state.json")
+
+
+def quota_state_path():
+    """Path to quota-state.json inside the data home (TR-060).
+
+    The LIVE plan-window gate file is read/written by scripts/router_spawn.py
+    and scripts/router_quota.py, which resolve ``ROUTER_STATE_DIR`` with the
+    SCRIPT default ``~/.hermes/model-router`` (that is what the scheduler's
+    direct spawn invocation reads). This helper is the data-home spelling of
+    the same filename, used by the CLI's first-run bootstrap and by callers
+    that deliberately target the data home — see the `quota` comment in
+    task_router.cli for why ``router quota`` does NOT export it.
+    """
+    return os.path.join(resolve_data_home(), "quota-state.json")

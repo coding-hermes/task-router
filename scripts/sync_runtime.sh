@@ -4,10 +4,10 @@
 # Repo scripts/ is the single source of truth for the router runtime tools.
 # The live installs the scheduler + cron call live at ~/.hermes/scripts/.
 # Two topologies exist, by consumer:
-#   1. SYMLINKS — router_spawn.py, router_circuit.py, router_ledger.py,
-#      router_seed.py, router_maintain.py. Consumers: scheduler daemon
-#      subprocess, foremen, manual CLI calls. No path guard — symlinks exec
-#      the canonical file directly.
+#   1. SYMLINKS — router_spawn.py, router_circuit.py, router_quota.py,
+#      router_ledger.py, router_seed.py, router_maintain.py. Consumers:
+#      scheduler daemon subprocess, foremen, manual CLI calls. No path guard —
+#      symlinks exec the canonical file directly.
 #   2. BYTE-IDENTICAL COPY — provider_health_probe.py. The Hermes cron runner
 #      resolves symlinks and BLOCKS any script whose real path falls outside
 #      ~/.hermes/scripts/ ("Blocked: script path resolves outside the scripts
@@ -24,7 +24,7 @@ mkdir -p "${LIVE_DIR}"
 # --- 1. symlinked tools (subprocess + manual consumers only) ---
 # router_server.py + router_web.py joined TR-017/TR-018 (API+MCP server, web UI):
 # long-lived processes exec'd by operators/systemd — symlink keeps them canonical.
-for f in router_spawn.py router_circuit.py router_ledger.py router_seed.py router_maintain.py \
+for f in router_spawn.py router_circuit.py router_quota.py router_ledger.py router_seed.py router_maintain.py \
          router_modelsdev.py router_gaps.py router_pricing.py router_clinepass.py router_plan_sweep.py \
          router_learn.py router_server.py router_web.py router_status.py router_estimate.py \
          router_diff.py router_metrics.py router_validate.py router_probefix.py; do

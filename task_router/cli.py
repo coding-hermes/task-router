@@ -120,6 +120,7 @@ SCRIPTS_DIR = os.path.join(REPO, "scripts")
 COMMANDS = {
     "spawn":      "router_spawn.py",
     "circuit":    "router_circuit.py",
+    "quota":      "router_quota.py",
     "gaps":       "router_gaps.py",
     "ledger":     "router_ledger.py",
     "maintain":   "router_maintain.py",
@@ -193,6 +194,20 @@ def _home_env_exports():
         },
         "circuit": {
             "ROUTER_STATE_DIR": state_dir,
+        },
+        "quota": {
+            # DELIBERATELY EMPTY (TR-060). router_quota.py is the WRITER that
+            # puts a plan-window gate where the RESOLVER reads it, and the
+            # fleet's spawn path invokes scripts/router_spawn.py directly
+            # (~/.hermes/scripts/router_spawn.py, no ROUTER_STATE_DIR in the
+            # tick env) — so it reads the SCRIPT default
+            # (~/.hermes/model-router/quota-state.json). Exporting the data
+            # home here (as `circuit` does) would make `router quota set`
+            # write a gate into the data-home bootstrap sample that the
+            # scheduler never consults: a silent no-op for the exact feature
+            # it implements. `router quota` therefore resolves the same file
+            # as the spawn path by default; --state-file/--state-dir target
+            # anything else explicitly.
         },
         "ledger": {
             "LEDGER_FILE": paths.ledger_path(),
@@ -309,7 +324,7 @@ def _bootstrap_state_dir(state_dir):
     rather than a silent zero-chain surprise. Never overwrites an existing
     file; any error is non-fatal (the underlying script still runs).
     """
-    qpath = os.path.join(state_dir, 'quota-state.json')
+    qpath = paths.quota_state_path()
     if os.path.exists(qpath):
         return
     try:
@@ -412,6 +427,7 @@ def _print_help():
     texts = {
         "spawn":      "resolve a task/profile to a model chain (fail-open JSON/text)",
         "circuit":    "circuit-breaker state for (provider, model) pairs",
+        "quota":      "plan-window quota gates (429 exhaustion): set/clear/status",
         "gaps":       "registry coverage gap report",
         "ledger":     "spawn-ledger start/end/status (TR-007)",
         "maintain":   "registry repair/export/reprice maintenance",

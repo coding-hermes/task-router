@@ -187,6 +187,25 @@ def circuit_section():
 
 # ---------------------------------------------------------------- quota ----
 
+def _plan_gates(doc):
+    """TR-060: plan-window gates from the resolver's own classifier.
+
+    Returns {'gated': [...], 'expired': [...]} using
+    router_spawn.load_quota_gates() so `router status` can never disagree with
+    the resolver about a lane being GATED vs auto-cleared. Any import/parse
+    problem degrades to empty lists (visibility only, never blocks status).
+    """
+    empty = {'gated': [], 'expired': []}
+    try:
+        if _HERE not in sys.path:
+            sys.path.insert(0, _HERE)
+        import router_spawn  # reads ROUTER_STATE_DIR/<file> — same env
+        return router_spawn.quota_gate_summary(
+            router_spawn.load_quota_gates(doc))
+    except Exception:
+        return empty
+
+
 def quota_section():
     path = os.path.join(MR, 'quota-state.json')
     doc = _load_json(path)
@@ -194,7 +213,8 @@ def quota_section():
         present = os.path.exists(path)
         return {'source': path, 'present': present, 'unavailable': present,
                 'error': 'quota-state.json unreadable (corrupt)' if present else None,
-                'open': 0, 'gated': 0, 'gated_providers': []}
+                'open': 0, 'gated': 0, 'gated_providers': [],
+                'quota_exhausted': {'gated': [], 'expired': []}}
     provs = doc.get('providers') if isinstance(doc, dict) else None
     if not isinstance(provs, dict):
         provs = {}
@@ -209,7 +229,11 @@ def quota_section():
             gated.append({'provider': pid, 'status': q.get('status'),
                           'reason': q.get('reason', '')})
     return {'source': path, 'present': True, 'unavailable': False, 'error': None,
-            'open': n_open, 'gated': len(gated), 'gated_providers': gated}
+            'open': n_open, 'gated': len(gated), 'gated_providers': gated,
+            # TR-060 plan-window gates are a DIFFERENT mechanism from the
+            # policy `providers` gates above (they expire by themselves) —
+            # reported in their own block so neither can hide the other.
+            'quota_exhausted': _plan_gates(doc)}
 
 
 # --------------------------------------------------------------- health ----
@@ -461,6 +485,13 @@ def render_text(doc):
         names = ', '.join(g['provider'] for g in q['gated_providers'])
         lines.append(f"quota      {q['open']} open · {q['gated']} gated"
                      + (f" ({names})" if names else ''))
+        # TR-060: plan-window gates (429 exhaustion) expire by themselves —
+        # list them with the reset time so an operator sees WHY a lane is out
+        # and WHEN it comes back without opening the state file.
+        for g in (q.get('quota_exhausted') or {}).get('gated') or []:
+            lines.append(f"plan-gate  {g['provider']} GATED until "
+                         f"{g.get('reset_at') or '(no reset time)'} — "
+                         f"{g.get('reason') or ''}".rstrip())
     ci = doc['circuit']
     if ci['unavailable']:
         lines.append(f"circuit    UNAVAILABLE: {ci['error']}")

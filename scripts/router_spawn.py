@@ -5,6 +5,10 @@ Resolves a project (or ad-hoc profile) to the chain of (provider, model) pairs t
 scheduler/foreman may use, cross-checked against live gate state:
 
   quota-state.json   — provider policy gates (GATED = blocked, reason)
+                       + optional "quota_exhausted" plan-window gates (TR-060):
+                         {"<provider>": {"status": "gated", "reason": <str>,
+                                         "reset_at": <ISO ts>,
+                                         "detected_at": <ISO ts>}}
                        + optional "diversity" knobs (TR-007):
                          {"max_consecutive_per_provider": N|null,
                           "max_total_per_provider":       N|null,
@@ -38,7 +42,8 @@ Usage:
 
 Output (json): {project, profile, resolved_at, head, chain[], exclusions[],
 gate_reasons[], gate, settings{max_consecutive_per_provider,
-max_total_per_provider, model_concurrency_limit, overrides}}
+max_total_per_provider, model_concurrency_limit, overrides},
+quota_gates{source, gated[], expired[]}}
 TR-046: {data_home{registry, data_dir, state_dir, source, fallback,
 bootstrap, note}} names exactly WHERE the data and gate state live, and
 bootstrap=true + note flag SOLO/first-run SAMPLE state (committed data/tables
@@ -267,6 +272,112 @@ def _parse_utc(ts):
         return dt.astimezone(datetime.timezone.utc)
     except Exception:
         return None
+
+
+# ---------------------------------------------- TR-060 quota exhaustion ------
+# A plan-limit 429 ('usage limit has been reached' / 'Weekly/Monthly Limit
+# Exhausted ... reset at <ts>') is NOT an api_down blip: the PLAN WINDOW lasts
+# hours to days while the api_down circuit cools in 30 minutes. Before TR-060
+# the lane was therefore re-picked on the next tick, re-failed, and every
+# affected fleet session fell back to the PAYG default (~200 sessions/day,
+# live audit 2026-09-17).
+#
+# quota-state.json carries policy gates ('providers.<p>.status' != 'open') with
+# no expiry; TR-060 adds a PLAN-WINDOW gate that expires by itself:
+#
+#   "quota_exhausted": {
+#     "<provider>": {"status": "gated", "reason": "<why>",
+#                    "reset_at": "<ISO 8601>", "detected_at": "<ISO 8601>"}}
+#
+# Semantics (documented, tested in tests/test_quota_gate.py):
+#   GATED   — status not in ('open', 'cleared', 'expired') AND (reset_at is
+#             missing/unparseable OR reset_at > now).
+#   OPEN    — reset_at in the PAST (auto-clear: the plan window refilled, the
+#             entry stays in the file for audit) or an explicit open/cleared
+#             status. NOTHING has to be edited for a lane to come back.
+#   A nested providers.<p>.quota_exhausted object is honored too (merged over
+#   the top-level section), so a hand-written gate lands wherever the operator
+#   naturally looks.
+# Fail-open: absent/unreadable/malformed state never raises and never gates.
+QUOTA_GATE_OPEN_STATUSES = frozenset(('open', 'cleared', 'expired'))
+QUOTA_GATE_FIELDS = ('provider', 'status', 'reason', 'reset_at', 'detected_at')
+
+
+def load_quota_gates(qdoc, now=None):
+    """{provider: gate} for the plan-window gates in quota-state.json (TR-060).
+
+    `now` is an aware datetime, an ISO string, or None (= wall clock). Each
+    gate carries: provider, status, reason, reset_at, detected_at, active
+    (this lane is excluded RIGHT NOW), expired (was gated, reset_at passed —
+    auto-cleared) and the ready-made gate_reason string emitted in
+    exclusions/gate_reasons:
+        'quota exhausted: <reason> (resets <reset_at>)'  — future reset
+        'quota exhausted: <reason> (no reset time)'      — no/unparseable reset
+    Never raises: a non-dict quota-state document yields {}.
+    """
+    gates = {}
+    if isinstance(qdoc, dict):
+        section = qdoc.get('quota_exhausted')
+        if isinstance(section, dict):
+            for prov, ent in section.items():
+                if isinstance(ent, dict):
+                    gates[str(prov)] = dict(ent)
+        provs = qdoc.get('providers')
+        if isinstance(provs, dict):
+            for prov, row in provs.items():
+                nested = row.get('quota_exhausted') if isinstance(row, dict) else None
+                if isinstance(nested, dict):
+                    merged = dict(gates.get(str(prov)) or {})
+                    merged.update(nested)
+                    gates[str(prov)] = merged
+    now_dt = now if isinstance(now, datetime.datetime) else _parse_utc(now)
+    if now_dt is None:
+        now_dt = datetime.datetime.now(datetime.timezone.utc)
+    if now_dt.tzinfo is None:
+        now_dt = now_dt.replace(tzinfo=datetime.timezone.utc)
+    out = {}
+    for prov, ent in gates.items():
+        status = str(ent.get('status') or 'gated').strip().lower()
+        reset_at = ent.get('reset_at')
+        reset_dt = _parse_utc(reset_at) if reset_at else None
+        declared_gated = status not in QUOTA_GATE_OPEN_STATUSES
+        # A gated entry with NO reset time stays gated (the documented
+        # fallback: until the operator clears it) — never silently open.
+        active = bool(declared_gated and (reset_dt is None or reset_dt > now_dt))
+        reason = ent.get('reason') or 'plan limit reached'
+        out[prov] = {
+            'provider': prov,
+            'status': status,
+            'reason': ent.get('reason') or '',
+            'reset_at': reset_at,
+            'detected_at': ent.get('detected_at'),
+            'active': active,
+            'expired': bool(declared_gated and not active),
+            'gate_reason': ('quota exhausted: ' + str(reason)
+                            + (f' (resets {reset_at})' if reset_at
+                               else ' (no reset time)')),
+        }
+    return out
+
+
+def quota_gate_summary(gates):
+    """{source-less summary} of a load_quota_gates() map for the resolve output.
+
+    Two sorted lists: `gated` = actively excluded providers (the fact an
+    operator must be able to see — an invisible gate is a silent zero-chain),
+    `expired` = recorded-but-auto-cleared entries (audit trail + proof the
+    mechanism is reading the file). Deterministic order.
+    """
+    gated, expired = [], []
+    for prov in sorted(gates or {}):
+        g = gates[prov]
+        row = {k: g.get(k) for k in QUOTA_GATE_FIELDS}
+        row['gate_reason'] = g.get('gate_reason')
+        if g.get('active'):
+            gated.append(row)
+        elif g.get('expired'):
+            expired.append(row)
+    return {'gated': gated, 'expired': expired}
 
 
 def ledger_has_traces(state_dir):
@@ -1082,7 +1193,8 @@ def _pub_prices(m):
     return pub, m.get('public_in_per_m'), m.get('public_out_per_m')
 
 
-def _resolve_fallback(tables, qs, hs, cs, reqs, limit=DEFAULT_CHAIN_LIMIT, profile_id=None):
+def _resolve_fallback(tables, qs, hs, cs, reqs, limit=DEFAULT_CHAIN_LIMIT, profile_id=None,
+                      qgates=None):
     """FALLBACK LANES (Bane 2026-08-27): when the primary chain is fully
     gated/down, resolve the always-run lanes from data/tables/fallback_lanes.jsonl
     (registry table `fallback_lanes`: {provider, model, order, key_env, profiles?}).
@@ -1091,8 +1203,11 @@ def _resolve_fallback(tables, qs, hs, cs, reqs, limit=DEFAULT_CHAIN_LIMIT, profi
     - fallback lanes may serve a profile they don't fully clear — but that is
       REPORTED, never silent: each hop carries `requirements_unmet` and the
       resolve response sets `degraded_fallback=true` when it fires.
-    - the same gates as the primary chain apply: quota GATED, health DOWN/SLOW,
-      circuit OPEN, model-level health, and the lane must exist/be priced.
+    - the same gates as the primary chain apply: quota GATED, plan-window
+      quota exhaustion (TR-060, `qgates`), health DOWN/SLOW, circuit OPEN,
+      model-level health, and the lane must exist/be priced. A quota-exhausted
+      provider must not reappear as the FALLBACK head — that is the same
+      oscillation with a different label.
     - `profiles` field (optional) restricts a lane to specific profiles (e.g.
       the vision-exp lane serves only P5_VISION_E2E so a text model never
       handles vision E2E); absent = generic lane for all profiles.
@@ -1129,6 +1244,9 @@ def _resolve_fallback(tables, qs, hs, cs, reqs, limit=DEFAULT_CHAIN_LIMIT, profi
         q = qs.get(f.get('provider')) or {}
         if q.get('status') != 'open':
             continue
+        qg = (qgates or {}).get(f.get('provider')) or {}
+        if qg.get('active'):
+            continue  # TR-060: plan window exhausted — not a fallback either
         h = hs.get(f.get('provider')) or {}
         if h.get('status') in ('DOWN', 'SLOW'):
             continue
@@ -1305,6 +1423,8 @@ def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=DE
     models_cfg = qdoc.get('models') or {}
     if not isinstance(models_cfg, dict):
         models_cfg = {}
+    # TR-060: plan-window exhaustion gates (auto-clearing, reset_at-bounded).
+    quota_gates = load_quota_gates(qdoc)
     hsrc = load_json(f'{MR}/health-state.json', {}) if use_health else {}
     hs = hsrc.get('providers', {}) if use_health else {}
     cstate = load_json(f'{MR}/circuit-state.json', {})
@@ -1351,6 +1471,11 @@ def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=DE
             q = {}
         if q.get('status') != 'open':
             why.append(f'quota GATED: {q.get("reason", "blocked")}')
+        qg = quota_gates.get(prov)
+        if qg and qg.get('active'):
+            # TR-060: plan-window exhaustion (reset_at in the future, or no
+            # reset time at all) — the lane is skipped until the plan refills.
+            why.append(qg['gate_reason'])
         h = hs.get(prov, {})
         if not isinstance(h, dict):
             h = {}
@@ -1435,7 +1560,7 @@ def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=DE
         # found) even though the resolve READ the data/tables sample tables —
         # a provenance lie in exactly the solo fresh-clone case TR-046 flags.
         lanes = _resolve_fallback(tables, qs, hs, cs, reqs, limit=limit,
-                                  profile_id=pid)
+                                  profile_id=pid, qgates=quota_gates)
         if lanes:
             fb_used = lanes
             head = lanes[0]
@@ -1481,6 +1606,12 @@ def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=DE
                 'ledger': ledger_wired,
                 'ledger_rows': len(inflight),
             },
+            # TR-060: which plan-window quota gates are in effect right now,
+            # and which recorded entries have auto-cleared (reset_at passed).
+            # A NEW top-level key on purpose: TR-025's battery pins the exact
+            # gates_loaded dict, and an invisible gate is a silent zero-chain.
+            'quota_gates': dict(quota_gate_summary(quota_gates),
+                                source=f'{MR}/quota-state.json'),
             'warnings': warnings,
             'gate': 'OPEN' if head else ('NO-OPEN-HOP' if out_chain or exclusions else 'NO-CHAIN'),
             'settings': caps,
