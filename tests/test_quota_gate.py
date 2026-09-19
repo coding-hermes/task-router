@@ -459,6 +459,23 @@ def test_status_classifies_gated_vs_expired(tmp_path):
     assert 'GATED' in text.stdout and 'expired' in text.stdout
 
 
+def test_status_reports_an_explicitly_open_entry(tmp_path):
+    """A recorded-but-OPEN entry must be visible as open — not look like a
+    missing entry (the 'open' key used to be permanently empty)."""
+    d = tmp_path / 'state'
+    d.mkdir()
+    (d / 'quota-state.json').write_text(json.dumps({
+        'updated': 't', 'providers': {},
+        'quota_exhausted': {'zai-glm': {'status': 'open', 'reason': 'plan refilled',
+                                        'reset_at': _utc(5)}}}))
+    p = _quota('status', '--json', '--state-dir', str(d))
+    assert p.returncode == 0, p.stderr
+    out = json.loads(p.stdout)
+    assert out['gated'] == [] and out['expired'] == []
+    assert [r['provider'] for r in out['open']] == ['zai-glm']
+    assert 'open' in _quota('status', '--state-dir', str(d)).stdout
+
+
 def test_clear_removes_only_the_named_gate(tmp_path):
     d = tmp_path / 'state'
     d.mkdir()

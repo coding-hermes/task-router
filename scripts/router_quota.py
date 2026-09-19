@@ -300,7 +300,15 @@ def quota_status(provider=None, state_file_arg=None, state_dir_arg=None,
     if load_quota_gates is not None:
         gates = load_quota_gates(doc)
         summary = quota_gate_summary(gates)
-        gated, expired, open_ = summary['gated'], summary['expired'], []
+        gated, expired = summary['gated'], summary['expired']
+        # An entry that is neither gated nor auto-cleared carries an explicit
+        # open/cleared status — report it as OPEN instead of hiding it (a
+        # recorded-but-open lane must not look like a missing entry).
+        open_ = [{'provider': g['provider'], 'status': g['status'],
+                  'reason': g['reason'], 'reset_at': g['reset_at'],
+                  'detected_at': g['detected_at']}
+                 for _p, g in sorted(gates.items())
+                 if not g['active'] and not g['expired']]
         considered = sorted(gates)
     else:  # degrade: raw entries, no classification (never a traceback)
         section = doc.get('quota_exhausted')
@@ -338,6 +346,8 @@ def quota_status(provider=None, state_file_arg=None, state_dir_arg=None,
     for row in expired:
         print(f"  {row.get('provider'):<20} expired  (auto-cleared; was gated "
               f"until {row.get('reset_at') or '-'})")
+    for row in open_:
+        print(f"  {row.get('provider'):<20} open     (recorded, not gated)")
     return 0
 
 
