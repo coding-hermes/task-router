@@ -90,6 +90,19 @@ registry/state dir is live from the same invocation):
 Fail-open doctrine applies at the CLI boundary too: dispatch errors are
 printed and turn into SystemExit(0) for fail-open tools (spawn, probefix,
 plan-sweep); all other scripts keep their native exit codes.
+
+USAGE errors are not runtime failures. argparse's usage-error exit code (2)
+is OPERATOR error — a typo'd flag, a dropped argument — and masking it as
+success makes the failure undetectable to a caller (docs/dogfood/
+diagnostics.md, 2026-09-16: "the fail-open contract belongs to runtime
+resolution (spawn), not to CLI misuse"). So for plan-sweep/probefix a usage
+error keeps its exit status: `router plan-sweep --dry-run` exits 2 (TR-058).
+
+`spawn` is the deliberate exception: AGENTS.md pins its contract as absolute
+("router_spawn.py must NEVER block the scheduler: any error -> {"error": ...}
+and exit 0. Keep it that way"), it is consumed programmatically with a fixed
+argv (so a coerced 0 can never hide a human typo), and TR-058 AC2 requires
+`router spawn --bogus` to stay 0. See USAGE_ERROR_PROPAGATES.
 """
 
 import os
@@ -131,6 +144,24 @@ RESERVED = ()
 # Scripts whose failure must NEVER block a caller (scheduler doctrine):
 # they print their own error payload and exit 0 (or we coerce them to 0).
 FAIL_OPEN = {"spawn", "probefix", "plan-sweep"}
+
+# argparse's usage-error exit code — `router` itself uses it for an unknown
+# subcommand (see main()). Every fail-open script also returns 0 on its own
+# runtime paths (router_plan_sweep.py / router_probefix.py `return 0`;
+# router_spawn.py prints {"error": ...}), so a 2 from one of them can only
+# come from argparse — never from a runtime condition.
+USAGE_ERROR = 2
+
+# Fail-open commands whose USAGE errors (exit 2) must reach the caller
+# instead of being coerced to 0 (TR-058). The fail-open contract covers
+# runtime resolution; a typo'd flag is operator error and hiding it makes a
+# cron calling `router plan-sweep --dry-run` unable to detect its own bug.
+#
+# `spawn` is deliberately NOT here: its fail-open contract is absolute and
+# documented (AGENTS.md — "router_spawn.py must NEVER block the scheduler"),
+# and it is invoked programmatically with a fixed argv, so coercion there
+# cannot hide a human typo. TR-058 AC2 pins `router spawn --bogus` at 0.
+USAGE_ERROR_PROPAGATES = {"plan-sweep", "probefix"}
 
 # Per-command env exports derived from the data home. Lists contain ONLY
 # hooks that actually exist in the target script (see module docstring map).
@@ -345,7 +376,12 @@ def main(argv=None):
     except SystemExit as e:
         # Scripts raise SystemExit for argparse usage errors (--help -> 0).
         code = e.code if isinstance(e.code, int) else 0 if e.code is None else 1
-        if cmd in FAIL_OPEN and code not in (0,):
+        # A usage error is OPERATOR error, not a runtime failure: for the
+        # commands in USAGE_ERROR_PROPAGATES it keeps its exit status so a
+        # caller can detect a typo (TR-058 — pre-fix `router plan-sweep
+        # --dry-run` exited 0 with a "fail-open" line, undetectable).
+        usage_error = code == USAGE_ERROR and cmd in USAGE_ERROR_PROPAGATES
+        if cmd in FAIL_OPEN and not usage_error and code != 0:
             print(f"router: {cmd} exited {code} — fail-open "
                   f"(coerced to 0)", file=sys.stderr)
             rc = 0

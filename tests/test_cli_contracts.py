@@ -12,6 +12,12 @@ TR-024 (--json real everywhere): router_pricing --json, router_plan_sweep
 succeeds); router-data-quality.sh never truncates the gap report and aborts on
 required-step failure.
 
+TR-058 (usage errors are not runtime failures): the CLI wrapper's fail-open
+coercion covers RUNTIME failures only. `router plan-sweep --dry-run` (flag
+does not exist) exits 2 with argparse's message and no "coerced to 0" line;
+`router spawn --bogus` still exits 0 (spawn's contract is absolute, AGENTS.md);
+non-fail-open commands keep their native codes.
+
 All tests run the REAL scripts via subprocess with hermetic env (temp data dir
 / state dir) — no mocks, no import-time env games.
 """
@@ -210,3 +216,110 @@ def test_pricing_json_dry_run_matches_non_json_summary(tmp_path):
     pj = run(os.path.join(SCRIPTS, "router_pricing.py"), "--dry-run", "--json", env_extra=env)
     data = json.loads(pj.stdout)
     assert len(data["priced"]) + len(data["gaps"]) >= 1
+
+
+# ==================================================== TR-058: usage-error exits
+
+# The installed console script's shape, as a fresh process: `router <args>`.
+_ENTRY = ("import sys; sys.argv = ['router'] + sys.argv[1:]; "
+          "from task_router.cli import main; sys.exit(main())")
+
+
+def _router(args, tmp_path, timeout=180):
+    """`router <args>` in a FRESH process with a hermetic data home.
+
+    TASK_ROUTER_HOME is redirected to tmp_path so the wrapper's first-run
+    bootstrap and env exports never touch real state (same shape as
+    tests/test_cli_paths.py `_cli`, which is the module that owns the
+    console-script entry point).
+    """
+    env = dict(os.environ)
+    env["TASK_ROUTER_HOME"] = str(tmp_path / "dh")
+    env["PYTHONPATH"] = REPO + os.pathsep + env.get("PYTHONPATH", "")
+    return subprocess.run([PY, "-c", _ENTRY, *args], capture_output=True,
+                          text=True, env=env, timeout=timeout, cwd=REPO)
+
+
+def test_plan_sweep_usage_error_exits_2(tmp_path):
+    """TR-058 AC1/AC6 — a bogus flag on plan-sweep must not read as success.
+
+    Pre-fix: `router plan-sweep --dry-run` printed argparse's usage AND
+    "router: plan-sweep exited 2 — fail-open (coerced to 0)", then exited 0 —
+    so a cron or script calling it could never detect the typo by exit code.
+    """
+    p = _router(["plan-sweep", "--dry-run"], tmp_path)
+    assert p.returncode != 0, f"usage error masked as success: {p.stderr}"
+    assert p.returncode == 2, p.stderr
+    assert "unrecognized arguments: --dry-run" in p.stderr
+    # no fail-open line for a typo: the coercion must not even claim to run
+    assert "coerced to 0" not in p.stderr
+
+
+def test_spawn_usage_error_stays_fail_open(tmp_path):
+    """AC2 — spawn's fail-open contract is absolute (AGENTS.md: router_spawn.py
+    must NEVER block the scheduler). Its coercion is unconditional, so a
+    caller with a fixed argv sees 0 exactly as before."""
+    p = _router(["spawn", "--bogus"], tmp_path)
+    assert p.returncode == 0, p.stderr
+    assert "coerced to 0" in p.stderr
+
+
+def test_probefix_usage_error_keeps_its_exit_status(tmp_path):
+    """The OTHER fail-open operator tool follows plan-sweep, not spawn: a
+    typo'd flag is operator error, so probefix propagates the 2."""
+    p = _router(["probefix", "--bogus"], tmp_path)
+    assert p.returncode == 2, p.stderr
+    assert "coerced to 0" not in p.stderr
+
+
+@pytest.mark.parametrize("cmd", ["validate", "circuit", "status"])
+def test_non_fail_open_usage_errors_unchanged(cmd, tmp_path):
+    """AC3/AC4 — commands outside FAIL_OPEN already propagated exit 2; the
+    TR-058 guard must not disturb them."""
+    p = _router([cmd, "--bogus"], tmp_path)
+    assert p.returncode == 2, p.stderr
+
+
+def test_fail_open_coercion_table(monkeypatch, tmp_path):
+    """The policy itself, one row per (command, failure class).
+
+    `dispatch` is monkeypatched so each row exercises the wrapper's own
+    decision instead of relying on a script that happens to fail that way:
+    SystemExit(1) stands for a RUNTIME failure (a table that cannot be read,
+    a provider that is down) and must stay fail-open for every FAIL_OPEN
+    command; SystemExit(2) is argparse and propagates only for
+    USAGE_ERROR_PROPAGATES.
+    """
+    if REPO not in sys.path:
+        sys.path.insert(0, REPO)
+    from task_router import cli
+
+    monkeypatch.setenv("TASK_ROUTER_HOME", str(tmp_path / "dh"))
+
+    def rc_for(cmd, exc):
+        def _boom(*_a, **_k):
+            raise exc
+        monkeypatch.setattr(cli, "dispatch", _boom)
+        return cli.main([cmd])
+
+    # runtime failure (exit 1) — fail-open preserved for the whole trio
+    assert rc_for("plan-sweep", SystemExit(1)) == 0
+    assert rc_for("probefix", SystemExit(1)) == 0
+    assert rc_for("spawn", SystemExit(1)) == 0
+    # dispatch exception (a runtime failure class of its own) — still 0
+    assert rc_for("plan-sweep", RuntimeError("unreadable tables")) == 0
+    assert rc_for("spawn", RuntimeError("unreadable tables")) == 0
+
+    # usage error (exit 2) — operator error, propagates for plan-sweep/probefix
+    assert rc_for("plan-sweep", SystemExit(2)) == 2
+    assert rc_for("probefix", SystemExit(2)) == 2
+    # ...but spawn's contract is absolute (AC2)
+    assert rc_for("spawn", SystemExit(2)) == 0
+
+    # success and the --help convention are untouched
+    assert rc_for("plan-sweep", SystemExit(0)) == 0
+    assert rc_for("plan-sweep", SystemExit(None)) == 0
+    # non-fail-open commands were never coerced
+    assert rc_for("validate", SystemExit(1)) == 1
+    assert rc_for("validate", RuntimeError("boom")) == 1
+
