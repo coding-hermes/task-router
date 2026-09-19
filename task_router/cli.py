@@ -141,6 +141,7 @@ COMMANDS = {
     "server":     "router_server.py",
     "outcomes":   "router_outcomes.py",       # TR-049/065 store: import-hermes/averages/query
     "chain-run":  "router_chain_run.py",      # TR-066 Path A: walk the chain, record attempts
+    "lifecycle":  "router_lifecycle.py",      # TR-069 digest: states, arrivals, retirements
     "pricing-audit": "router_pricing_audit.py",  # TR-070: evidence-class pricing audit
 }
 RESERVED = ()
@@ -211,6 +212,13 @@ def _home_env_exports():
         # CLI's reader off the file the resolver and the cron WRITE (the
         # TR-060 quota trap).
         "outcomes": {},
+        # TR-069: lifecycle digest reads the SAME registry view as the resolver
+        # (REGISTRY hook) — must see what spawn sees, counts included.
+        "lifecycle": {
+            "ROUTING_REGISTRY": registry,
+            "ROUTING_DATA_DIR": data_dir,
+            "ROUTER_STATE_DIR": state_dir,
+        },
         # TR-070: DELIBERATELY EMPTY. The audit reads the repo tables and the
         # LIVE gateway meter (~/.hermes/state.db, absolute default) on purpose —
         # realized usage is the offset ground truth; a data-home export would
