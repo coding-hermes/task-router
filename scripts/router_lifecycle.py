@@ -23,6 +23,46 @@ def _registry_path():
                             'registry.json'))
 
 
+def _cache_path():
+    return os.environ.get('ROUTER_MODELSDEV_CACHE') or os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        'data', 'state', 'modelsdev-cache.json')
+
+
+def catalog_drift(rows, cache=None):
+    """TR-069 intake assist (Bane: automate detection of silent retirements).
+
+    An ACTIVE lane whose provider exists in the models.dev cache but whose
+    model id does not (exact OR base-id, i.e. strip a ':tag' or '/sub' path)
+    is a CANDIDATE silent retirement. Absence is NOT a date — this reports,
+    it never stamps; verify with the provider, then stamp via lifecycle.jsonl.
+    """
+    if cache is None:
+        try:
+            cache = json.load(open(_cache_path()))
+        except Exception:
+            return []
+    covered = {pid: set(models or {}) for pid, models in cache.items()
+               if isinstance(models, dict)}
+    out = []
+    for m in rows:
+        if m.get('archive') or m.get('disabled') or rs.row_is_retired(m):
+            continue
+        if m.get('available_from') and str(m['available_from'])[:10] > rs._today():
+            continue
+        pid, mid = m.get('provider'), m.get('model') or ''
+        catalog = covered.get(pid)
+        if catalog is None:
+            continue  # provider not in the public catalog (proxies/plans) — skip
+        base = mid.split(':')[0].split('/')[-1]
+        if mid in catalog or base in catalog:
+            continue
+        out.append({'provider': pid, 'model': mid,
+                    'note': 'active lane absent from the models.dev catalog — '
+                            'verify with the provider, then stamp valid_to'})
+    return out
+
+
 def _fmt_date(d):
     return str(d)[:10] if d else '-'
 
@@ -64,7 +104,16 @@ def build_report(rows, today=None, show_retired=False):
         if len(groups['retired']) > 20:
             lines.append(f'  ... and {len(groups["retired"]) - 20} more (use --json for all)')
 
-    if not groups['coming_soon'] and not groups['retiring']:
+    drift = catalog_drift(rows)
+    if drift:
+        lines.append('\nPOSSIBLY GONE (active lane, absent from the current models.dev '
+                     'catalog — verify with the provider before stamping):')
+        for d in drift[:25]:
+            lines.append(f"  {d['provider']}/{d['model']}")
+        if len(drift) > 25:
+            lines.append(f'  ... and {len(drift) - 25} more (use --json for all)')
+
+    if not groups['coming_soon'] and not groups['retiring'] and not drift:
         lines.append('\nno upcoming arrivals or retirements on record')
     return '\n'.join(lines)
 
@@ -114,7 +163,8 @@ def main(argv=None):
                                        'replaced_by', 'lifecycle_source', 'disabled')})
         print(json.dumps({'today': today,
                           'counts': {k: len(v) for k, v in groups.items()},
-                          'states': groups}, indent=1))
+                          'states': groups,
+                          'catalog_drift': catalog_drift(rows)}, indent=1))
         return 0
     print(build_report(rows, today=today, show_retired=args.all))
     return 0

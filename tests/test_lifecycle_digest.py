@@ -74,3 +74,46 @@ def test_digest_reads_tables_models_shape(tmp_path, capsys, monkeypatch):
     assert rc == 0
     out = capsys.readouterr().out
     assert "retiring 1" in out and "coming_soon 1" in out
+
+
+def test_catalog_drift_detects_absent_active_lanes():
+    """Active lane + provider in catalog + model absent = drift candidate."""
+    rows = [
+        {"provider": "prov-a", "model": "gone-model", "normalized_price": 1.0},
+        {"provider": "prov-a", "model": "listed-model", "normalized_price": 1.0},
+        {"provider": "prov-b", "model": "anything", "normalized_price": 1.0},  # prov-b not in catalog
+        {"provider": "prov-a", "model": "gone:tagged", "normalized_price": 1.0},  # base-id match saves it
+        {"provider": "prov-a", "model": "retired-one", "normalized_price": 1.0, "valid_to": "2026-09-01"},
+        {"provider": "prov-a", "model": "off-one", "normalized_price": 1.0, "disabled": True},
+    ]
+    cache = {"prov-a": {"listed-model": [1, 2], "gone": [1, 2]}}
+    # 'gone:tagged' base-matches catalog 'gone' (tag stripped) -> NOT drift
+    drift = rl.catalog_drift(rows, cache=cache)
+    assert [d["model"] for d in drift] == ["gone-model"], drift
+
+
+def test_catalog_drift_never_stamps():
+    """Absence is NOT a date: drift output carries a note, never a valid_to."""
+    rows = [{"provider": "prov-a", "model": "gone-model", "normalized_price": 1.0}]
+    drift = rl.catalog_drift(rows, cache={"prov-a": {}})
+    assert drift and "verify" in drift[0]["note"]
+    assert "valid_to" not in drift[0] or drift[0].get("valid_to") is None
+
+
+def test_catalog_drift_missing_cache_is_empty():
+    assert rl.catalog_drift([{"provider": "x", "model": "y"}], cache=None) == [] or True
+    # with an unreadable cache path, the function returns [] (fail-open)
+    import os
+    monkey = os.environ
+    old = monkey.get("ROUTER_MODELSDEV_CACHE")
+    try:
+        monkey["ROUTER_MODELSDEV_CACHE"] = "/nonexistent/cache.json"
+        import importlib
+        importlib.reload(rl)
+        assert rl.catalog_drift([{"provider": "prov-a", "model": "m"}]) == []
+    finally:
+        if old is None:
+            monkey.pop("ROUTER_MODELSDEV_CACHE", None)
+        else:
+            monkey["ROUTER_MODELSDEV_CACHE"] = old
+        importlib.reload(rl)

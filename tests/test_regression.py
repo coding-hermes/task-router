@@ -94,6 +94,12 @@ def _resolve(monkeypatch, tmp_path, tables, project="coding-hermes-scheduler", p
     return router_spawn.resolve(project=project)
 
 
+def _payg_providers(tables):
+    """Providers whose billing class is PAYG (Bane 2026-09-19 PAYG-LAST data)."""
+    return {p.get("id") for p in (tables.get("providers") or [])
+            if isinstance(p, dict) and str(p.get("plan") or "").upper() == "PAYG"}
+
+
 def _pair(e):
     return f"{e['provider']}/{e['model']}"
 
@@ -191,8 +197,13 @@ def test_chain_invariants_per_profile(monkeypatch, tmp_path, pid):
                 assert lvl <= -1, f"{pid}: {pair} BLANK tier for {cat} cannot clear {lvl}"
             else:
                 assert t >= lvl, f"{pid}: {pair} tier {t} < req {lvl} for {cat}"
-        # order: (plan_tier, price) non-decreasing
-        key = (plan[pair], prices[pair])
+        # order: (PAYG bucket, plan_tier, price) non-decreasing.
+        # Bane 2026-09-19 PAYG-LAST ruling: PAYG providers sort into a terminal
+        # bucket AFTER every plan lane, so within the PAYG bucket the price may
+        # drop relative to the last plan lane — that is the intended order.
+        payg = _payg_providers(tables)
+        bucket = 1 if pair.split("/", 1)[0] in payg else 0
+        key = (bucket, plan[pair], prices[pair])
         if prev_key is not None:
             assert key >= prev_key, f"{pid}: order violation {prev_key} -> {key} at {pair}"
         prev_key = key
