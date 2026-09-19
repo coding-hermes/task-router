@@ -1,7 +1,8 @@
 # SPEC-STATS-ENGINE-V2 — complexity-set-keyed rolling averages + compound pluggable sort rules
 
-Status: SPEC (design authority) · 2026-09-19 · Bane directive
+Status: SPEC (design authority) — see the STATUS line below · 2026-09-19 · Bane directive
 Board row: TR-065 (P1) · **absorbs the remainder of TR-049 c6+**
+Status: CORE DELIVERED 2026-09-19 — TR-065 complete (59cfec6 + hourly cron dc9786e46a48). Superset matching remains OFF by design.
 Related: `docs/outcomes-schema.md` (c2), `scripts/router_outcomes.py` (c1–c5),
 `scripts/outcomes_averages.py` (c3), profile_signature (1b02902)
 

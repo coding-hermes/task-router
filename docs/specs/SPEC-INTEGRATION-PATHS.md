@@ -1,7 +1,8 @@
 # SPEC-INTEGRATION-PATHS — side channel (declared complexity) and router proxy (classified complexity), with fallback chains
 
-Status: SPEC (design authority) · 2026-09-19 · Bane directive
+Status: SPEC (design authority) — see the STATUS line below · 2026-09-19 · Bane directive
 Board rows: TR-066 (P1, side channel) · TR-067 (P1, proxy + classifier — **absorbs TR-050**)
+Status: DELIVERED 2026-09-19 — Path A TR-066 (bcc98c9), Path B TR-067 (50699f7, absorbs TR-050). Streaming intentionally not mirrored.
 Related: docs/integration.md, TR-051 (agentic-system research, complete), TR-065 (stats v2)
 
 ## 1. Principle

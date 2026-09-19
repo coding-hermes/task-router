@@ -1,7 +1,8 @@
 # SPEC-COMPLEXITY-COVERAGE — every routable lane carries a complete, provenance-stamped complexity profile
 
-Status: SPEC (design authority) · 2026-09-19 · Bane directive
+Status: SPEC (design authority) — see the STATUS line below · 2026-09-19 · Bane directive
 Board row: TR-064 (P1)
+Status: DELIVERED 2026-09-19 — TR-064 complete (be9672a). Live report: `docs/coverage-2026-09-19.md`.
 Related: TR-044 (family-fill guard), docs/category-data-quality.md, TR-054 (evidence-class law)
 
 ## 1. Problem
