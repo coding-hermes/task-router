@@ -194,6 +194,22 @@ def _home_env_exports():
             "ROUTING_DATA_DIR": data_dir,
             "ROUTER_STATE_DIR": state_dir,
         },
+        # TR-066: the side-channel executor RESOLVES through router_spawn in
+        # this same process, so it must point at the identical registry, tables
+        # and state dir — otherwise `router chain-run` would walk a chain from
+        # a different fleet view than `router spawn` (the TR-056 defect class).
+        "chain-run": {
+            "ROUTING_REGISTRY": registry,
+            "ROUTING_DATA_DIR": data_dir,
+            "ROUTER_STATE_DIR": state_dir,
+        },
+        # TR-065: DELIBERATELY EMPTY. router_outcomes.py (and the hourly
+        # averages refresh) resolve the repo-relative store
+        # <repo>/data/state/outcomes-averages.jsonl, and router_spawn.py READS
+        # that same default — exporting the data home here would move the
+        # CLI's reader off the file the resolver and the cron WRITE (the
+        # TR-060 quota trap).
+        "outcomes": {},
         "circuit": {
             "ROUTER_STATE_DIR": state_dir,
         },

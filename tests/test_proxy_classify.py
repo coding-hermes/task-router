@@ -25,10 +25,26 @@ def test_prompt_is_a_versioned_file():
     assert 'v1' in os.path.basename(p)
 
 
-def test_categories_are_data_driven_not_hardcoded():
-    cats = rc.registry_categories()
-    # the live registry's requirement vocabulary, not a literal list
-    assert 'code_gen' in cats and 'security' in cats and len(cats) > 10
+def test_categories_are_data_driven_not_hardcoded(tmp_path):
+    """The vocabulary follows the DATA, proven hermetically.
+
+    Previously this read the registry through the env hook (ROUTING_REGISTRY),
+    which a full-suite run can leave pointing at another test's fixture — a
+    live-path dependency, not a property test. Now we build the registry and
+    assert the vocabulary tracks it; an absent registry yields NOTHING rather
+    than a built-in list.
+    """
+    reg = tmp_path / 'registry.json'
+    reg.write_text(json.dumps({'tables': {'task_profile_requirements': [
+        {'category': 'alpha_cat'}, {'category': 'beta_cat'},
+        {'category': 'alpha_cat'}]}}))
+    assert rc.registry_categories(str(reg)) == ['alpha_cat', 'beta_cat']
+    assert rc.registry_categories(str(tmp_path / 'missing.json')) == []
+
+    # the shipped registry carries the real fleet vocabulary (explicit path,
+    # so no env hook can redirect this assertion)
+    live = rc.registry_categories(os.path.join(rc.REPO, 'registry.json'))
+    assert 'code_gen' in live and 'security' in live and len(live) > 10
 
 
 def test_valid_matrix_parses_with_sig():
