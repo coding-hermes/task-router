@@ -106,9 +106,19 @@ def test_paid_sibling_window_cost_is_not_invented():
 # ------------------------------------- F4: no sentinels, offsets self-consistent
 def test_no_price_sentinels_anywhere():
     """99.0 was a sentinel that hid deepseek's cheapest PAYG. No active lane may
-    carry it (or any obvious sentinel) again."""
-    bad = [(r["provider"], r["model"], r["normalized_price"])
-           for r in _active() if r["normalized_price"] in (99.0, 999.0, 1e6)]
+    carry it (or any obvious sentinel) again — EXCEPT the Bane 2026-09-19
+    PAYG-LAST ordering ruling: the deepseek/deepseek-foreman PAYG providers may
+    carry the 99.0 ORDERING sentinel only when the row's evidence names it
+    ('ordering-only PAYG-last'), so the mandate is loud and auditable, and no
+    other provider may carry any sentinel at all."""
+    _PAYG = {"deepseek", "deepseek-foreman"}
+    bad = []
+    for r in _active():
+        if r["normalized_price"] in (99.0, 999.0, 1e6):
+            ev = str(r.get("price_evidence") or "")
+            if r["provider"] in _PAYG and "ordering-only payg-last" in ev.lower():
+                continue  # sanctioned ordering sentinel (public_* stay official)
+            bad.append((r["provider"], r["model"], r["normalized_price"]))
     assert not bad, f"sentinel prices are live in chains: {bad}"
 
 
