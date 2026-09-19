@@ -46,8 +46,13 @@ renames, not different projects):
    (wire-level interception), (B) clients that must be **launched with a config
    or env we write** (launch-level), (C) clients that only speak a **standard
    agent protocol** (ACP/MCP), and (D) clients with **no interception point at
-   all** whose only contribution is a **telemetry/session import**. 15 of the 19
-   systems below have (A) and/or (B); 4 are observation-only.
+   all** whose only contribution is a **telemetry/session import**. Counted from
+   the per-system sketches below: **12** systems expose a verified wire override
+   (OpenClaw, OpenCode, Claude Code, Codex CLI, Gemini CLI, Aider, Goose, Pi,
+   Cline, Crush, Hermes, OpenHands), **4** are launch/host surfaces only (herdr,
+   AionUi, Zed, t3code), **2** have no write surface at all (Cursor, GitHub
+   Copilot CLI — telemetry import only), and **1** (Qwen Code) is left unverified
+   pending its own docs. 12 + 4 + 2 + 1 = 19.
 2. **Two hard wire-format constraints land directly on TR-050's gateway proxy.**
    (a) Codex CLI's `model_providers.<id>.wire_api` accepts **only `responses`**
    ("`responses` is the only supported value, and it is the default when
