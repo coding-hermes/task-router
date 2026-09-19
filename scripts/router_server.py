@@ -525,9 +525,15 @@ class RouterApplication:
 
         if method != "POST":
             return 405, {"error": "method not allowed"}
-        auth_error = self._authorize(headers)
-        if auth_error:
-            return auth_error
+        # TR-067: the mirror can opt out of the ROUTER key when the caller's own
+        # upstream credential is the real gate (default: OFF — the gate is never
+        # weakened silently). Set ROUTER_PROXY_AUTH=passthrough to enable.
+        proxy_passthrough = (path in PROXY_PATHS
+                             and os.environ.get('ROUTER_PROXY_AUTH') == 'passthrough')
+        if not proxy_passthrough:
+            auth_error = self._authorize(headers)
+            if auth_error:
+                return auth_error
         body = _require_object(body)
 
         if path == "/circuit/record":

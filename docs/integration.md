@@ -207,6 +207,12 @@ Headers that steer the router (all optional):
 The caller's `Authorization` / `x-api-key` are forwarded upstream unchanged —
 the router never stores or invents keys.
 
+**Auth.** Every POST to the server is key-gated by default (read-only mode
+answers `403`, edit mode needs `X-API-Key`). For a gateway-shaped client
+whose own credential is the real gate, start the server with
+`ROUTER_PROXY_AUTH=passthrough` — that skips ONLY the router key on the two
+mirror paths (never on mutations), and the server stays bound to localhost.
+
 **3. Read the response.** The upstream response shape is returned as-is, plus
 an additive `_router` object:
 
