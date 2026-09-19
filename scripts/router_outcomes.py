@@ -63,26 +63,41 @@ def decay_weight(age_s, scale_h):
     return 0.5 ** (age_s / (scale_h * 3600.0))
 
 
-def bucket_avg(rows, scale_h, now_s=None):
-    """Weighted mean of cost_usd over rows with a cost, by decay weight.
-    Returns None when no row carries a cost (never fabricate)."""
+def bucket_weighted(rows, field, scale_h, now_s=None):
+    """Decay-weighted mean of `field` over rows that carry it.
+
+    Returns None when no row carries the field — never fabricate (a missing
+    fact stays missing; the resolve-time sort treats unknown as unknown).
+    """
     now_s = now_s or time.time()
     wsum = xsum = 0.0
     for r in rows:
-        if r.get('cost_usd') is None:
+        v = r.get(field)
+        if v is None:
             continue
         ts = r.get('ts') or now_s
         w = decay_weight(max(0.0, now_s - ts), scale_h)
         wsum += w
-        xsum += w * r['cost_usd']
+        xsum += w * v
     return None if wsum == 0 else xsum / wsum
+
+
+def bucket_avg(rows, scale_h, now_s=None):
+    """Weighted mean of cost_usd over rows with a cost, by decay weight.
+    Returns None when no row carries a cost (never fabricate)."""
+    return bucket_weighted(rows, 'cost_usd', scale_h, now_s=now_s)
 
 
 def compute_averages(rows, scales_h=DEFAULT_SCALES_H, merge_backends=False, now_s=None):
     """Bucket = (source_system, provider, model, complexity) — or
     (provider, model, complexity) when merging across backends.
     Averages computed per bucket per scale; cost-per-task is the bucket's
-    weighted mean session cost (the task unit here = one session)."""
+    weighted mean session cost (the task unit here = one session).
+
+    Per scale the bucket carries the three sort-key inputs TR-049 needs:
+    avg_cost_task_<s>h (cost), avg_wall_time_<s>h (wall_time_s) and
+    avg_turns_<s>h (turns) — every metric is None when no sample carries it.
+    """
     now_s = now_s or time.time()
     buckets = {}
     for r in rows:
@@ -99,9 +114,54 @@ def compute_averages(rows, scales_h=DEFAULT_SCALES_H, merge_backends=False, now_
             entry = {'source_system': src, 'provider': prov, 'model': model,
                      'complexity': complexity}
         for s in scales_h:
-            entry[f'avg_cost_task_{s}h'] = bucket_avg(brows, s, now_s=now_s)
+            entry[f'avg_cost_task_{s}h'] = bucket_weighted(brows, 'cost_usd', s, now_s=now_s)
+            entry[f'avg_wall_time_{s}h'] = bucket_weighted(brows, 'wall_time_s', s, now_s=now_s)
+            entry[f'avg_turns_{s}h'] = bucket_weighted(brows, 'turns', s, now_s=now_s)
         entry['n_samples'] = len(brows)
         entry['n_completed'] = sum(1 for r in brows if r.get('success'))
+        known = sum(1 for r in brows if r.get('success') is not None)
+        entry['n_success_known'] = known
+        entry['success_rate'] = (entry['n_completed'] / known) if known else None
+        out.append(entry)
+    return out
+
+
+def merge_average_rows(rows):
+    """Collapse per-backend average rows into one row per (provider, model,
+    complexity) — sample-count weighted, so a 100k-sample backend outweighs a
+    2-sample one instead of being averaged as an equal.
+
+    This is the MERGE half of TR-049 component 4: resolve-time merge stats.
+    Rows without an n_samples count contribute weight 0 to the merge but still
+    count toward `n_samples` presence; every weighted metric is None when no
+    contributing row carries it.
+    """
+    groups = {}
+    for r in rows:
+        key = (r.get('provider'), r.get('model'), r.get('complexity'))
+        groups.setdefault(key, []).append(r)
+    metric_fields = sorted({k for r in rows for k in r
+                            if k.startswith('avg_')})
+    out = []
+    for key, grows in sorted(groups.items(), key=lambda kv: str(kv[0])):
+        prov, model, complexity = key
+        entry = {'provider': prov, 'model': model, 'complexity': complexity}
+        for f in metric_fields:
+            wsum = xsum = 0.0
+            for r in grows:
+                v, w = r.get(f), (r.get('n_samples') or 0)
+                if v is None or w <= 0:
+                    continue
+                wsum += w
+                xsum += w * v
+            entry[f] = (xsum / wsum) if wsum else None
+        entry['n_samples'] = sum((r.get('n_samples') or 0) for r in grows)
+        entry['n_completed'] = sum((r.get('n_completed') or 0) for r in grows)
+        known = sum((r.get('n_success_known') or 0) for r in grows)
+        entry['n_success_known'] = known
+        entry['success_rate'] = (entry['n_completed'] / known) if known else None
+        entry['backends'] = sorted({r.get('source_system') for r in grows
+                                    if r.get('source_system')})
         out.append(entry)
     return out
 
