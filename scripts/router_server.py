@@ -795,11 +795,25 @@ def _proxy_chain(requirements, sort_spec=None, window_h=None):
     return out if isinstance(out, dict) else {}
 
 
-def _proxy_record(provider, model, ok, requirements, reason='', latency_s=None, source='router-proxy'):
-    """One outcome row per attempt + breaker evidence (best effort, fail-open)."""
+def _proxy_record(provider, model, ok, requirements, reason='', latency_s=None,
+                  source='router-proxy', session_id=None):
+    """One outcome row per attempt + breaker evidence (best effort, fail-open).
+
+    TR-071: `source` is the DRIVER identity when the caller declared one
+    (`x-router-caller`, see drivers/ and SPEC-PROXY-DRIVERS §2). Before this, the
+    row was always stamped 'router-proxy', so a proxied hermes session was
+    indistinguishable from any other anonymous proxy traffic — the caller could
+    not be attributed, which is the whole point of wiring a host to the proxy.
+    Default stays 'router-proxy' for undeclared callers, so nothing silently
+    changes class.
+
+    `wall_time_s` is the failing hop's latency on failure and the TOTAL ladder
+    time on success (see proxy_chat), so the row means "time to get an answer".
+    """
     try:
         import router_outcomes as ro
-        row = {'source_system': source, 'session_id': f'proxy-{time.time()}',
+        row = {'source_system': source,
+               'session_id': session_id or f'proxy-{time.time()}',
                'provider': provider, 'model': model,
                'required_categories': requirements.get('matrix'),
                'complexity_sig': requirements.get('complexity_sig'),
@@ -823,6 +837,26 @@ def proxy_chat(path, body, headers, max_hops=None, upstream=None):
     shaped error with the ladder trail (fail-open, the caller is a live client)."""
     headers = {k.lower(): v for k, v in (headers or {}).items()}
     body = body if isinstance(body, dict) else {}
+    # TR-071: a DRIVER may declare itself so proxied attempts are attributed to
+    # it instead of landing as anonymous 'router-proxy' traffic. Validated
+    # against the driver registry, so a typo or a random header value cannot
+    # invent a source_system; an unknown value degrades to 'router-proxy' with
+    # the reason visible in the envelope.
+    caller = (headers.get('x-router-caller') or '').strip()
+    caller_problems = []
+    if caller:
+        try:
+            sys.path.insert(0, os.path.join(
+                os.path.dirname(os.path.abspath(__file__)), 'drivers'))
+            import drivers
+            if caller not in drivers.list_drivers():
+                caller_problems.append(
+                    f'unknown caller {caller!r}; attributed as router-proxy')
+                caller = ''
+        except Exception as exc:  # noqa: BLE001 — never fail a live request here
+            caller_problems.append(f'caller lookup failed: {str(exc)[:120]}')
+            caller = ''
+    source_system = caller or 'router-proxy'
     try:
         hops = int(headers.get('x-router-max-hops') or
                    os.environ.get('ROUTER_PROXY_MAX_HOPS') or (max_hops or 3))
@@ -867,13 +901,22 @@ def proxy_chat(path, body, headers, max_hops=None, upstream=None):
             'first_attempt_hop': (chain[0].get('hop') if chain else None),
             'skipped_hops': max(0, len(chain) - attempted_bound),
             'exclusions': exclusions, 'gate_reasons': gate_reasons,
-            'degrade_reason': (requirements.get('problems') or [None])[0]}
+            'degrade_reason': (requirements.get('problems') or [None])[0],
+            'caller': source_system,
+            'problems': list(caller_problems)}
     if not chain:
         meta['gate'] = resolved.get('gate')
         return 503, {'error': 'no open hop for this request', '_router': meta}
 
     call = upstream or _UPSTREAM_CALL or _proxy_upstream_default
     last = None
+    # One session id per REQUEST (not per hop): a client's request spans
+    # several attempts, and the TR-049 store dedupes on
+    # (source_system, session_id, model) — a per-hop id made every collapsed
+    # attempt indistinguishable. The ladder is preserved in the envelope's
+    # `_router.ladder` for the attempts that the store collapses.
+    session_id = f'{source_system}-{int(time.time() * 1000)}'
+    ladder_t0 = time.time()
     for hop in chain[:hops]:
         provider, model = hop.get('provider'), hop.get('model')
         attempt = {'hop': hop.get('hop'), 'provider': provider, 'model': model,
@@ -892,13 +935,22 @@ def proxy_chat(path, body, headers, max_hops=None, upstream=None):
         ok = 200 <= int(status or 0) < 300
         attempt['outcome'] = 'ok' if ok else 'transport-failure'
         meta['ladder'].append(attempt)
+        last = (status, payload)
+        # On success the row means "time to get an answer" (total ladder time);
+        # on failure it is that hop's latency, so a slow dead hop is still
+        # visible. Measured ONCE and reused for the envelope, so the row and the
+        # client-visible `wall_time_s` cannot disagree — `_proxy_record` runs a
+        # subprocess, so measuring again after it would inflate the envelope by
+        # the router's own bookkeeping time.
+        wall = (round(time.time() - ladder_t0, 3) if ok else attempt['latency_s'])
         _proxy_record(str(provider), str(model), ok, requirements,
                       reason='' if ok else str(payload.get('error') if isinstance(payload, dict) else payload)[:200],
-                      latency_s=attempt['latency_s'])
-        last = (status, payload)
+                      latency_s=wall,
+                      source=source_system, session_id=session_id)
         if ok:
             out = dict(payload) if isinstance(payload, dict) else {'upstream': payload}
-            out['_router'] = {**meta, 'served_by': {'provider': provider, 'model': model}}
+            out['_router'] = {**meta, 'served_by': {'provider': provider, 'model': model},
+                              'wall_time_s': wall}
             return 200, out
     status, payload = last or (502, {'error': 'no hops attempted'})
     out = dict(payload) if isinstance(payload, dict) else {'upstream': payload}
