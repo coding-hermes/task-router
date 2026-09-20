@@ -796,6 +796,28 @@ def _proxy_requirements(body, headers, path):
     if isinstance(body, dict) and isinstance(body.get('input'), str):
         text.append(body['input'])
     text = '\n'.join(text)[-20000:]
+    # Scorer selection (Bane 2026-09-20): JEV is the cheap alternative scorer —
+    # one decisions call, input cheap / output free, score on a 0..2 scale that
+    # selects a band whose LEVELS are the same complexity matrix. Per-request
+    # header wins over the deployment default so a caller can choose per call.
+    scorer = str(headers.get('x-router-scorer') or os.environ.get('ROUTER_SCORER') or 'classifier').lower()
+    if scorer in ('jev', 'decisions'):
+        try:
+            import router_jev
+            jres = router_jev.classify(text)
+        except Exception as exc:  # noqa: BLE001
+            return 'default', {'profile_id': 'P0_FORE', 'matrix': None, 'complexity_sig': None,
+                               'problems': [f'jev scorer unavailable: {str(exc)[:200]}']}
+        if jres.get('matrix') is None:
+            # Same R10 discipline as the classifier: degrade VISIBLY.
+            return 'default', {'profile_id': 'P0_FORE', 'matrix': None, 'complexity_sig': None,
+                               'confidence': jres.get('confidence'),
+                               'scorer': 'jev', 'score': jres.get('score'),
+                               'model': jres.get('model'), 'problems': jres.get('problems') or []}
+        return 'jev', {'matrix': jres['matrix'], 'complexity_sig': jres.get('complexity_sig'),
+                       'confidence': jres.get('confidence'), 'scorer': 'jev',
+                       'score': jres.get('score'), 'band': jres.get('band'),
+                       'model': jres.get('model'), 'problems': jres.get('problems') or []}
     try:
         import router_classify
         res = router_classify.classify(text)

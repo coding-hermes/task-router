@@ -165,6 +165,55 @@ double-counts. `router_chain_run.py` writes one row per attempt automatically
 (silent on success, alerts on failure) — newly reported outcomes are in the
 stats within the hour.
 
+## JEV — the cheap second scorer (TR-101, Bane 2026-09-20)
+
+Same proxy, same matrix machinery, different (much cheaper) brain for the
+"how hard is this input?" question. One JEV decisions call answers a `score`
+question on a documented 0..2 scale (1 = the middle) and the score selects a
+BAND whose LEVELS are the complexity matrix — so chain selection is unchanged.
+
+```bash
+export OR_JEV=<key from the "Jev" OpenRouter workspace>   # ~/.hermes/.env
+curl -s localhost:9391/v1/chat/completions -H "Authorization: Bearer $GATEWAY_KEY" \
+  -H 'x-router-scorer: jev' -H 'Content-Type: application/json' \
+  -d '{"model":"auto","messages":[{"role":"user","content":"why does this test deadlock under -race?"}]}'
+```
+
+Selection: per-request header `x-router-scorer: jev` beats the deployment
+default `ROUTER_SCORER` (`classifier` when unset). A declared profile
+(`x-router-profile`) still skips scoring entirely — it keeps priority.
+
+Scalar limits, stated rather than hidden: JEV answers ONE number, so it cannot
+know WHICH categories a task stresses; a band therefore carries a fixed
+(coding-oriented) matrix and the result reports `band` / `band_title` /
+`band_note` so the coarse read is visible in every outcome row. Edit
+`data/classifier/jev-bands.jsonl` to retune — the scale is DATA, not code.
+
+Measured on this box (2026-09-20, `OR_JEV` workspace key):
+
+| scorer | input | answer | cost/call | matrix produced |
+|---|---|---|---|---|
+| classifier (TR-067) | prompt file + chat model | per-category JSON | model tokens | `{debug:3, reasoning:3, code_gen:1, test:2}` |
+| **JEV** | one decisions call | `score 1.88`, confidence 0.82 | **$0.0000144** | `{code_gen:0, debug:1, refactor:0, test:1, reasoning:0}` |
+
+Both paths were verified against a real request on 2026-09-20; they produced
+DIFFERENT matrices and therefore different chains (classifier → `zai-glm/glm-5.3-flash`,
+JEV → `stepfun/step-3.7-flash`) — the scorer really does steer routing.
+
+**Deploy recipe that works (verified, incl. the trap):** the classifier/key
+lookup reads the process environment, so a server started with the key only
+present in `~/.hermes/.env` degrades with `HTTP 401` — export it first:
+
+```bash
+set -a; source ~/.hermes/.env; set +a          # transient, never persisted
+export ROUTER_PROXY_AUTH=passthrough            # mirror mode: the caller's own upstream key is the gate
+export ROUTER_PROXY_UPSTREAM=http://127.0.0.1:8642
+export ROUTER_CLASSIFIER_BASE_URL=http://127.0.0.1:8642/v1
+export ROUTER_CLASSIFIER_MODEL=deepseek-v4.1-flash
+export ROUTER_CLASSIFIER_KEY_ENV=API_SERVER_KEY
+python3 scripts/router_server.py --mode read-only --host 127.0.0.1 --port 9391
+```
+
 ## TR-067 — Router proxy (classified complexity → internal chain → upstream call)
 
 The zero-effort path: the client points its `base_url` at the router and

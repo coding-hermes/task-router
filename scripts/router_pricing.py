@@ -127,6 +127,14 @@ def normalize(dry_run, quiet=False):
         # Token Plan: MiniMax-M2.5/M2.7/M3 at the blended sticker 0.75/M vs the
         # plan-true 0.0926/M their lowercase twins carry).
         ev = m.get('price_evidence') or ''
+        # F3 window-story preservation (2026-09-20): a zero-price lane already
+        # carrying a window-cost-pending story is PRICED-WITH-A-STORY by
+        # router_trapfix.py (TR-070). The engine must not clobber that story
+        # with a sticker/discount fill (the 09-20 pre-run rewrote 6 committed
+        # pending tags back to 'temporary free lane+discount(free-lane)');
+        # re-examination is trapfix's job, not the pricing fill's.
+        if m.get('normalized_price') == 0 and 'window-cost-pending' in ev:
+            continue
         stale_flat = (t.get('billing_model') == 'flat_subscription'
                       and t.get('included_models')
                       and m.get('normalized_price') not in (None, 0)

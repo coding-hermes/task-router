@@ -1,10 +1,15 @@
 GitReins guard run log — full output (the console summary is bounded)
-run_utc: 2026-09-16T07:43:23Z
+run_utc: 2026-09-19T14:54:50Z
 workdir: /home/kara/task-router
-test_mode: diff
-test_targets: full suite (safety trigger)
-overall: PASS
-guards: 2 (0 failed)
+test_mode: full
+test_targets: all (full mode)
+overall: PASS (DEGRADED — skipped checks)
+guards: 2 (0 failed, 1 skipped)
+diagnostics:
+  first_failing_test: none detected
+  secrets_scanners: clean (gitleaks + builtin cross-check)
+skipped_steps:
+  - tests: no staged files
 
 ==============================================================================
 [PASS] secrets  passed=true  exit_code=n/a
@@ -13,7 +18,7 @@ guards: 2 (0 failed)
 gitleaks: clean
 
 ==============================================================================
-[PASS] tests  passed=true  exit_code=n/a
+[SKIP] tests  passed=true  exit_code=n/a  skip_reason=no staged files
 ==============================================================================
 --- output (untruncated) ---
-No matching test files — skipped (diff mode)
+No files staged — skipped
