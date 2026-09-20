@@ -110,10 +110,37 @@ def band_for(score, bands=None):
     return bands[-1] if score > bands[-1]['score_max'] else bands[0]
 
 
-def score_to_matrix(score, bands=None):
+def data_categories(path=None):
+    """Category vocabulary from the LEVEL DATA file (data/tables/category_levels.jsonl).
+
+    Fallback used when the registry-derived vocabulary is unavailable (e.g. a
+    test or a caller points ROUTING_REGISTRY at a scratch file that has no
+    task_profile_requirements). Without this, an empty vocabulary made every
+    "unknown" category look KNOWN and invalid band levels passed through
+    silently — caught by the suite (2026-09-20)."""
+    p = path or os.path.join(REPO, 'data', 'tables', 'category_levels.jsonl')
+    cats = set()
+    try:
+        with open(p) as fh:
+            for line in fh:
+                line = line.strip()
+                if line:
+                    c = json.loads(line).get('category')
+                    if c:
+                        cats.add(c)
+    except (OSError, ValueError):
+        return []
+    return sorted(cats)
+
+
+def score_to_matrix(score, bands=None, categories=None):
     """(matrix, band, problems) — the SAME matrix shape the classifier returns
     (category -> signed level, -5..+5). Validated through router_classify's own
-    validator so both scorers cannot drift apart."""
+    validator so both scorers cannot drift apart.
+
+    `categories` injects the vocabulary (tests / callers with a known set).
+    Resolution order: explicit param -> registry vocabulary -> level DATA file,
+    and an empty vocabulary is REPORTED, never silently accepted."""
     problems = []
     bands = bands if bands is not None else load_bands()
     if score is None:
@@ -129,14 +156,25 @@ def score_to_matrix(score, bands=None):
         return None, None, problems + ['no band matched']
     matrix = dict(band.get('levels') or {})
     sys.path.insert(0, os.path.join(REPO, 'scripts'))
+    cats = categories
     try:
         import router_classify as rc
-        matrix, conf, vproblems = rc.validate_matrix({'categories': matrix}, rc.registry_categories())
+        if cats is None:
+            cats = rc.registry_categories()
+            if not cats:
+                cats = data_categories()
+                if cats:
+                    problems.append('registry category vocabulary unavailable; validated against '
+                                    'data/tables/category_levels.jsonl instead')
+        matrix, _conf, vproblems = rc.validate_matrix({'categories': matrix}, cats)
         problems.extend(vproblems)
         if matrix is None:
             problems.append('band levels rejected by the matrix validator')
     except Exception as exc:  # noqa: BLE001 — validation unavailable, still usable
         problems.append(f'matrix validation skipped: {str(exc)[:120]}')
+    if cats == []:
+        problems.append('category vocabulary unavailable: matrix NOT validated against any '
+                        'vocabulary — the levels are whatever the band data says')
     return matrix, band, problems
 
 
@@ -188,7 +226,7 @@ def ask_hardness(state, http=None, timeout=90, criteria=None, model=None):
     return out
 
 
-def classify(text, http=None, bands=None, timeout=90):
+def classify(text, http=None, bands=None, timeout=90, categories=None):
     """Drop-in peer of router_classify.classify: same result keys so the proxy
     can swap scorers without branching downstream."""
     out = {'scorer': 'jev', 'model': JEV_MODEL, 'matrix': None, 'complexity_sig': None,
@@ -205,7 +243,7 @@ def classify(text, http=None, bands=None, timeout=90):
     out['key_name'] = res['key_name']
     if res['score'] is None:
         return out
-    matrix, band, problems = score_to_matrix(res['score'], bands=bands)
+    matrix, band, problems = score_to_matrix(res['score'], bands=bands, categories=categories)
     out['problems'].extend(problems)
     if band:
         out['band'] = band.get('band')

@@ -66,7 +66,8 @@ def test_band_boundaries_are_the_documented_middles():
 # ------------------------------------------------------ score -> matrix ----
 
 def test_score_to_matrix_uses_band_levels():
-    matrix, band, problems = router_jev.score_to_matrix(1.8, bands=BANDS)
+    matrix, band, problems = router_jev.score_to_matrix(
+        1.8, bands=BANDS, categories=["code_gen", "test", "debug"])
     assert band["band"] == "high"
     assert matrix == {"debug": 1, "test": 1}
     assert problems == []
@@ -84,10 +85,38 @@ def test_matrix_is_validated_by_the_classifier_validator():
 def test_unknown_category_in_band_data_is_rejected():
     bad = [{"band": "x", "score_min": 0.0, "score_max": 2.0, "title": "x",
             "levels": {"not_a_category": 3}, "note": ""}]
-    matrix, band, problems = router_jev.score_to_matrix(1.0, bands=bad)
+    # vocabulary injected: the registry-derived list depends on ROUTING_REGISTRY,
+    # which sibling tests repoint at scratch registries mid-suite (2026-09-20).
+    matrix, band, problems = router_jev.score_to_matrix(
+        1.0, bands=bad, categories=["code_gen", "test", "debug"])
     assert band["band"] == "x"
     assert matrix == {}, "unknown categories must be dropped, not passed through"
     assert any("unknown category" in p for p in problems)
+
+
+def test_empty_vocabulary_is_reported_not_silently_accepted(monkeypatch):
+    """An empty vocabulary must be LOUD: with none, every bogus level looks
+    valid and would reach chain selection unvalidated."""
+    monkeypatch.setattr(router_jev, "data_categories", lambda path=None: [])
+    import router_classify as rc
+    monkeypatch.setattr(rc, "registry_categories", lambda *a, **k: [])
+    bad = [{"band": "x", "score_min": 0.0, "score_max": 2.0, "title": "x",
+            "levels": {"not_a_category": 3}, "note": ""}]
+    matrix, band, problems = router_jev.score_to_matrix(1.0, bands=bad)
+    assert any("NOT validated" in p for p in problems), problems
+
+
+def test_registry_vocabulary_falls_back_to_the_level_data(monkeypatch):
+    """When the registry vocabulary is unavailable, the LEVEL DATA file is the
+    authoritative category list — validation still happens, and says so."""
+    import router_classify as rc
+    monkeypatch.setattr(rc, "registry_categories", lambda *a, **k: [])
+    assert router_jev.data_categories(), "category_levels.jsonl must list categories"
+    bad = [{"band": "x", "score_min": 0.0, "score_max": 2.0, "title": "x",
+            "levels": {"not_a_category": 3, "code_gen": -1}, "note": ""}]
+    matrix, band, problems = router_jev.score_to_matrix(1.0, bands=bad)
+    assert matrix == {"code_gen": -1}, "valid levels survive, bogus ones drop"
+    assert any("category_levels.jsonl instead" in p for p in problems), problems
 
 
 # ------------------------------------------------------------ fail-closed ---
@@ -153,7 +182,7 @@ def test_key_failover_uses_the_next_key():
 # ------------------------------------------------------ result contract ----
 
 def test_classify_result_shape_matches_the_classifier_peer():
-    res = router_jev.classify("x", http=fake_http(1.9), bands=BANDS)
+    res = router_jev.classify("x", http=fake_http(1.9), bands=BANDS, categories=["code_gen", "debug", "test", "reasoning", "refactor"])
     for key in ("matrix", "complexity_sig", "confidence", "problems", "model"):
         assert key in res, key
     assert res["scorer"] == "jev"
@@ -168,7 +197,7 @@ def test_complexity_sig_matches_classifier_path_for_same_matrix():
     """Same matrix from either scorer must produce the SAME stats key, or
     outcome rows would split between scoring paths."""
     import router_outcomes as ro
-    res = router_jev.classify("x", http=fake_http(1.9), bands=BANDS)
+    res = router_jev.classify("x", http=fake_http(1.9), bands=BANDS, categories=["code_gen", "debug", "test", "reasoning", "refactor"])
     assert res["complexity_sig"] == ro.complexity_sig(res["matrix"])
 
 
