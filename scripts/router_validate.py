@@ -66,6 +66,11 @@ DATA_DIR = os.environ.get('ROUTING_DATA_DIR', os.path.join(_REPO, 'data', 'table
 STATE_DIR = os.environ.get('ROUTER_STATE_DIR', os.path.expanduser('~/.hermes/model-router'))
 
 REGISTRY_VERSION = 3
+# TR-082: seed writes the tables and registry.json within the same second, so a
+# strict `registry < newest_table` comparison made a correct first run report
+# itself as stale ("0s newer") and exit 1. Treat a lag up to this many seconds
+# as fresh; anything beyond it is a genuinely stale registry.
+FRESHNESS_SLACK_S = 1.0
 # Schema fields router_spawn.py's registry loader reads off every model row.
 MODEL_SCHEMA_FIELDS = ('provider', 'model', 'normalized_price', 'plan_tier',
                        'token_factor', 'data_class', 'disabled', 'archive')
@@ -161,14 +166,26 @@ def run_checks():
             reg_m = os.path.getmtime(REGISTRY)
             newest_f = max(table_files, key=os.path.getmtime)
             newest_m = os.path.getmtime(newest_f)
-            if reg_m < newest_m:
+            # TR-082: seed rewrites the tables and registry.json inside the SAME
+            # second, so a raw float comparison let sub-second write ordering
+            # decide — the fresh-install path reported its own successful write
+            # as "stale (0s newer)" and exited 1. Compare with a slack window:
+            # only a registry older than the newest table by MORE than
+            # FRESHNESS_SLACK_S is genuinely stale.
+            lag = newest_m - reg_m
+            if lag > FRESHNESS_SLACK_S:
                 add('freshness', False,
                     f'stale registry (warning-level): {os.path.basename(newest_f)} is '
-                    f'{newest_m - reg_m:.0f}s newer than registry.json — re-run '
+                    f'{lag:.0f}s newer than registry.json — re-run '
                     f'scripts/router_seed.py')
             else:
                 add('freshness', True,
-                    f'registry.json is at least as new as all {len(table_files)} data tables')
+                    f'registry.json is at least as new as all {len(table_files)} data tables '
+                    f'(tolerance {FRESHNESS_SLACK_S:.0f}s)')
+            # TR-082: name BOTH resolved paths so a future reader can see exactly
+            # what was compared instead of guessing at the layout.
+            add('freshness.paths', True,
+                f'compared registry={REGISTRY} against tables={DATA_DIR}')
 
     # ---- c. state files: parse-if-present ------------------------------------
     for fname in STATE_JSON_FILES:

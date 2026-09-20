@@ -203,3 +203,93 @@ def test_no_open_hop_is_a_503_with_the_gate_named(proxy_env, monkeypatch):
     status, payload = rsrv.proxy_chat('/v1/chat/completions', {'messages': []}, {},
                                       upstream=lambda *a: (200, {}))
     assert status == 503 and payload['_router']['gate'] == 'NO-OPEN-HOP'
+
+
+# ─── TR-081: the ladder must be self-auditing ──────────────────────────────
+# A caller served at hop 4 could not previously learn that hops 1-3 were gated
+# at resolve time (the resolver filters them out before the proxy builds its
+# ladder). The response now carries the skip evidence.
+
+def _gated_chain(*pairs, exclusions=(), gate_reasons=()):
+    """A chain whose first entry is NOT hop 1 — i.e. earlier hops were filtered
+    by the resolver's gates (health / circuit / quota)."""
+    out = _chain(*pairs)
+    out['exclusions'] = list(exclusions)
+    out['gate_reasons'] = list(gate_reasons)
+    return out
+
+
+def test_ladder_starting_past_hop_1_reports_the_skip_evidence(proxy_env, monkeypatch):
+    """The dogfood case: served at hop 4 while hops 1-3 were gated."""
+    monkeypatch.setattr(rsrv, '_proxy_requirements', lambda b, h, p: (
+        'declared', {'profile_id': 'P1', 'matrix': None, 'complexity_sig': None, 'problems': []}))
+    excl = [{'hop': 1, 'provider': 'kimi-for-coding', 'model': 'k3',
+             'why': ['health DOWN (2026-09-20T01:00:40+00:00)']},
+            {'hop': 2, 'provider': 'zai-glm', 'model': 'glm-5.3-flash',
+             'why': ['quota GATED: blocked']}]
+    reasons = ['hop 1 kimi-for-coding/k3: health DOWN', 'hop 2 zai-glm/glm-5.3-flash: quota GATED: blocked']
+    res = _gated_chain(('zai-glm', 'glm-5.3'), exclusions=excl, gate_reasons=reasons)
+    res['chain'][0]['hop'] = 4  # first OPEN hop is 4
+    monkeypatch.setattr(rsrv, '_proxy_chain', lambda reqs, **k: res)
+
+    status, payload = rsrv.proxy_chat('/v1/chat/completions', {'messages': []}, {},
+                                      upstream=lambda *a: (200, {'ok': 1}))
+    r = payload['_router']
+    assert status == 200
+    # the caller can now see the walk started at 4, not 1 …
+    assert r['first_attempt_hop'] == 4
+    # … and WHY the cheaper hops were not tried
+    assert len(r['exclusions']) == 2
+    assert r['exclusions'][0]['provider'] == 'kimi-for-coding'
+    assert r['gate_reasons'] == reasons
+
+
+def test_taken_path_reports_no_skipped_hops(proxy_env, monkeypatch):
+    """hop1 fails, hop2 serves with max_hops=2 — full trail, nothing skipped."""
+    monkeypatch.setattr(rsrv, '_proxy_requirements', lambda b, h, p: (
+        'declared', {'profile_id': 'P1', 'matrix': None, 'complexity_sig': None, 'problems': []}))
+    monkeypatch.setattr(rsrv, '_proxy_chain', lambda reqs, **k: _gated_chain(('p1', 'bad'), ('p2', 'good')))
+
+    def upstream(path, body, headers):
+        if body['model'] == 'bad':
+            raise ConnectionError('connection refused')
+        return 200, {'choices': [{'message': {'content': 'served'}}]}
+    status, payload = rsrv.proxy_chat('/v1/chat/completions', {'messages': []},
+                                      {'x-router-max-hops': '2'}, upstream=upstream)
+    r = payload['_router']
+    assert status == 200
+    assert [a['outcome'] for a in r['ladder']] == ['transport-failure', 'ok']
+    assert r['first_attempt_hop'] == 1
+    assert r['skipped_hops'] == 0
+    assert r['exclusions'] == [] and r['gate_reasons'] == []
+
+
+def test_skipped_hops_counts_chain_beyond_the_bound(proxy_env, monkeypatch):
+    """max_hops=2 over a 3-entry chain: one entry is never attempted."""
+    monkeypatch.setattr(rsrv, '_proxy_requirements', lambda b, h, p: (
+        'declared', {'profile_id': 'P1', 'matrix': None, 'complexity_sig': None, 'problems': []}))
+    monkeypatch.setattr(rsrv, '_proxy_chain',
+                        lambda reqs, **k: _gated_chain(('p1', 'a'), ('p2', 'b'), ('p3', 'c')))
+    status, payload = rsrv.proxy_chat('/v1/chat/completions', {'messages': []},
+                                      {'x-router-max-hops': '2'},
+                                      upstream=lambda *a: (500, {'error': 'boom'}))
+    r = payload['_router']
+    assert r['exhausted'] is True
+    assert len(r['ladder']) == 2
+    assert r['skipped_hops'] == 1  # the third entry was never reached
+
+
+def test_malformed_resolver_output_cannot_break_the_proxy(proxy_env, monkeypatch):
+    """Fail-open is sacred: garbage exclusions/gate_reasons must not raise."""
+    monkeypatch.setattr(rsrv, '_proxy_requirements', lambda b, h, p: (
+        'declared', {'profile_id': 'P1', 'matrix': None, 'complexity_sig': None, 'problems': []}))
+    for bad in ({'chain': [{'hop': 1, 'provider': 'p', 'model': 'm'}],
+                 'exclusions': 'garbage', 'gate_reasons': None},
+                {'chain': [{'hop': 1, 'provider': 'p', 'model': 'm'}]}):
+        monkeypatch.setattr(rsrv, '_proxy_chain', lambda reqs, _b=bad, **k: _b)
+        status, payload = rsrv.proxy_chat('/v1/chat/completions', {'messages': []}, {},
+                                          upstream=lambda *a: (200, {'ok': 1}))
+        r = payload['_router']
+        assert status == 200
+        assert r['exclusions'] == [] and r['gate_reasons'] == []
+        assert r['first_attempt_hop'] == 1 and r['skipped_hops'] == 0

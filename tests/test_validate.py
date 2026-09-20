@@ -165,3 +165,50 @@ def test_validate_human_output_non_json(tmp_path):
     assert proc.returncode == 0
     assert "[ok  ] registry.parse" in proc.stdout
     assert "valid:" in proc.stdout
+
+
+# ─── TR-082: the freshness check must not red on its own successful write ──
+
+def test_validate_same_second_seed_is_not_stale(tmp_path):
+    """Seed writes the tables and registry.json in the same second; the table
+    landing a few ms later must not make a correct first run report stale.
+
+    This is the exact fresh-install path the README documents: before the fix
+    it printed '[FAIL] freshness: stale registry ... 0s newer' and exited 1."""
+    reg, data_dir, state_dir = _valid_fixture(tmp_path)
+    now = time.time()
+    os.utime(reg, (now, now))
+    # the newest table 3 ms LATER — same second, bigger float mtime
+    tables = sorted((data_dir).glob("*.jsonl"))
+    os.utime(tables[-1], (now + 0.003, now + 0.003))
+    proc = _run(["--json"], _env(reg, data_dir, state_dir))
+    out = json.loads(proc.stdout)
+    freshness = next(c for c in out["checks"] if c["name"] == "freshness")
+    assert freshness["ok"] is True, freshness["detail"]
+    assert not any("stale registry" in i for i in out["issues"])
+    assert proc.returncode == 0
+
+
+def test_validate_beyond_tolerance_is_still_stale(tmp_path):
+    """The slack must not swallow a genuinely stale registry."""
+    reg, data_dir, state_dir = _valid_fixture(tmp_path)
+    now = time.time()
+    os.utime(reg, (now - 60, now - 60))
+    tables = sorted((data_dir).glob("*.jsonl"))
+    os.utime(tables[-1], (now, now))
+    proc = _run(["--json"], _env(reg, data_dir, state_dir))
+    assert proc.returncode == 1
+    out = json.loads(proc.stdout)
+    freshness = next(c for c in out["checks"] if c["name"] == "freshness")
+    assert freshness["ok"] is False
+    assert "stale registry" in freshness["detail"]
+
+
+def test_validate_reports_which_paths_were_compared(tmp_path):
+    """A reader must be able to see WHAT was compared, not infer the layout."""
+    reg, data_dir, state_dir = _valid_fixture(tmp_path)
+    proc = _run(["--json"], _env(reg, data_dir, state_dir))
+    out = json.loads(proc.stdout)
+    paths = next(c for c in out["checks"] if c["name"] == "freshness.paths")
+    assert str(reg) in paths["detail"]
+    assert str(data_dir) in paths["detail"]

@@ -839,9 +839,34 @@ def proxy_chat(path, body, headers, max_hops=None, upstream=None):
     resolved = _proxy_chain(requirements, sort_spec=headers.get('x-router-sort'),
                             window_h=headers.get('x-router-window-h'))
     chain = resolved.get('chain') or []
+    # TR-081: the ladder must be SELF-AUDITING. The resolver filters gated lanes
+    # before the proxy ever sees the chain, so a caller can be served at hop 4
+    # (e.g. $1.52/M) while the registry's own chain head was 18x cheaper — and
+    # nothing in the response explained it. Pass the skip evidence through and
+    # count what was never attempted.
+    try:
+        exclusions = resolved.get('exclusions') or []
+        if not isinstance(exclusions, list):
+            exclusions = []
+    except Exception:  # noqa: BLE001 — a malformed resolver must not break the proxy
+        exclusions = []
+    try:
+        gate_reasons = resolved.get('gate_reasons') or []
+        if not isinstance(gate_reasons, list):
+            gate_reasons = []
+    except Exception:  # noqa: BLE001
+        gate_reasons = []
+    # skipped_hops = chain entries the walk will not reach because it is bounded
+    # by max_hops. (Hops gated BEFORE the chain was built are not chain entries
+    # at all; they are named in `exclusions` with their `why`.) Honest count:
+    # only entries that exist in the chain and exceed the bound.
+    attempted_bound = max(0, min(len(chain), hops))
     meta = {'complexity_source': source, 'requirements': requirements,
             'sort': resolved.get('sort'), 'chain_length': len(chain),
             'max_hops': hops, 'ladder': [],
+            'first_attempt_hop': (chain[0].get('hop') if chain else None),
+            'skipped_hops': max(0, len(chain) - attempted_bound),
+            'exclusions': exclusions, 'gate_reasons': gate_reasons,
             'degrade_reason': (requirements.get('problems') or [None])[0]}
     if not chain:
         meta['gate'] = resolved.get('gate')
