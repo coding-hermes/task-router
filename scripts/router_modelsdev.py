@@ -504,6 +504,54 @@ def _is_dynamic_route(provider, model):
         return False
 
 
+def _documented_null(provider, model, notes=None):
+    """True when model_notes.jsonl already explains this lane's NULL price.
+
+    TR-043 refinement (found by auditing my own filed rows): a NULL price is not
+    automatically a gap. `data/tables/model_notes.jsonl` documents why several
+    lanes are NULL ON PURPOSE — PLAN ALIAS lanes that resolve to a real model
+    (`kimi-for-coding` -> k3), aggregator-system lanes billed as member-model
+    rates plus per-use tool fees (`groq/compound`), and lanes whose provider
+    publishes no per-model rate at all (`ollama-cloud` JS-rendered pages).
+
+    Filing "price this lane" for those is busywork and buries the real gaps: the
+    first run of this function filed 7 rows, ALL of which were already
+    documented. A note only counts if it actually addresses the price — a note
+    about a missing context_limit does not explain a missing price.
+    """
+    if notes is None:
+        notes = _load_model_notes()
+    # Check BOTH the lane's own note and the provider-level '*' note: a specific
+    # note often covers something else (context_limit, model identity), while the
+    # provider wildcard carries the price explanation. Either may explain NULL.
+    candidates = [notes.get((provider, model)), notes.get((provider, '*'))]
+    for note in candidates:
+        if not note:
+            continue
+        low = note.lower()
+        if ('null' in low or 'unpriced' in low or 'no sticker' in low
+                or 'not published' in low or 'no models.dev price' in low
+                or 'no published rate' in low):
+            return True
+    return False
+
+
+def _load_model_notes():
+    """(provider, model) -> note from data/tables/model_notes.jsonl."""
+    path = os.path.join(DATA_DIR, 'model_notes.jsonl')
+    out = {}
+    try:
+        with open(path) as f:
+            for line in f:
+                if not line.strip():
+                    continue
+                r = json.loads(line)
+                out[(r.get('provider'), r.get('model'))] = r.get('note') or ''
+    except Exception:
+        pass
+    return out
+
+
 def _pricing_gaps(models):
     """TR-043: lanes whose only price source is the aggregator are invisible.
 
@@ -519,6 +567,7 @@ def _pricing_gaps(models):
     gap is filed instead of staying silent.
     """
     today = datetime.datetime.now().strftime('%Y-%m-%d')
+    notes = _load_model_notes()
     gaps = []
     for m in models:
         if m.get('archive') or m.get('disabled'):
@@ -531,6 +580,9 @@ def _pricing_gaps(models):
         # per-token price — filing a "price this lane" row for it is busywork.
         # This is the same by-design classification router_lifecycle uses.
         if _is_dynamic_route(m.get('provider'), m.get('model') or ''):
+            continue
+        # ...and neither is a NULL that model_notes.jsonl already explains.
+        if _documented_null(m.get('provider'), m.get('model'), notes):
             continue
         gaps.append({
             'provider': m.get('provider'),

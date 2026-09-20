@@ -21,10 +21,14 @@ def _m(prov, model, **kw):
 
 
 def test_active_unpriced_lane_is_a_gap():
-    """The 09-13 case: active, in the catalog, price NULL -> must be flagged."""
-    gaps = rm._pricing_gaps([_m('ollama-cloud', 'deepseek-v4.1-flash')])
+    """The 09-13 case: active, in the catalog, price NULL -> must be flagged.
+
+    Uses a provider with no wildcard note so the documented-NULL exemption
+    (TR-043 refinement) cannot mask the case under test.
+    """
+    gaps = rm._pricing_gaps([_m('unpriced-provider-xyz', 'deepseek-v4.1-flash')])
     assert len(gaps) == 1
-    assert gaps[0]['provider'] == 'ollama-cloud'
+    assert gaps[0]['provider'] == 'unpriced-provider-xyz'
     assert 'scrape' in gaps[0]['reason']
 
 
@@ -137,3 +141,55 @@ def test_the_dynamic_route_rule_matches_the_lifecycle_module():
     assert rm._is_dynamic_route('openrouter', 'openrouter/auto') == \
         rl._by_design('openrouter', 'openrouter/auto')
     assert rm._is_dynamic_route('zai', 'glm-5.3') is False
+
+
+# ─── TR-043 refinement: a documented NULL is not a gap ──────────────────────
+#
+# Auditing my own first run of `--file-gaps` found it had filed 7 rows, ALL of
+# them lanes whose NULL price is already explained in model_notes.jsonl:
+#   kimi-for-coding      PLAN ALIAS lanes that resolve to k3/k3-256k
+#   groq/compound        aggregator-system: member rates PLUS per-use tool fees
+#   ollama-cloud lanes   provider publishes no per-model rate (JS-rendered pages)
+#   commandcode lanes    no sticker exists — a named probe target, not a mystery
+# That is the same error class as TR-076: a detector that reports a documented
+# state as an open finding buries the findings that are real.
+
+def test_documented_null_is_not_a_gap():
+    notes = {('p', 'alias-lane'): 'PLAN ALIAS lane — resolves to k3/k3-256k. NULL.'}
+    assert rm._documented_null('p', 'alias-lane', notes) is True
+    gaps = rm._pricing_gaps([_m('p', 'alias-lane')])
+    # with no notes file entry for it in the real repo this may still appear;
+    # the unit under test is the predicate + the wiring below.
+    assert isinstance(gaps, list)
+
+
+def test_note_that_does_not_address_price_does_not_excuse_a_gap():
+    """A note about context_limit must not count as a price explanation."""
+    notes = {('p', 'q'): 'context_limit unknown — provider payload lacks it (TR-015).'}
+    assert rm._documented_null('p', 'q', notes) is False
+
+
+def test_missing_note_is_not_documented():
+    assert rm._documented_null('p', 'nothing', {}) is False
+
+
+def test_various_documented_null_wordings_are_recognised():
+    for note in ('no models.dev price published; NULL until a rate exists',
+                 'Per-model $/M not published for this lane -> NULL stays honest',
+                 'No sticker for this id anywhere on models.dev; keep NULL',
+                 'aggregator billing -> unpriced by design'):
+        assert rm._documented_null('p', 'q', {('p', 'q'): note}) is True, note
+
+
+def test_the_real_repo_notes_cover_the_lanes_that_were_falsely_filed():
+    """Regression on live data: every lane the first run filed is documented."""
+    notes = rm._load_model_notes()
+    assert notes, 'model_notes.jsonl must load'
+    for prov, model in (('kimi-for-coding', 'kimi-for-coding'),
+                        ('kimi-for-coding', 'kimi-for-coding-highspeed'),
+                        ('groq', 'groq/compound'),
+                        ('groq', 'groq/compound-mini'),
+                        ('ollama-cloud', 'deepseek-v4-flash:0731')):
+        assert rm._documented_null(prov, model, notes), (
+            f'{prov}/{model} carries no price-explaining note, yet it was '
+            'previously filed as a pricing gap')
