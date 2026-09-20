@@ -33,6 +33,7 @@ import json
 import os
 import subprocess
 import sys
+import time
 
 import pytest
 
@@ -573,12 +574,22 @@ def test_end_to_end_gate_written_by_the_cli_is_honored_by_the_resolver(tmp_path)
 def test_status_shows_the_plan_gate(tmp_path):
     """An operator must SEE the gate (`router status`) — an invisible gate is a
     silent zero-chain — and the classification comes from the resolver's own
-    classifier, so status can never disagree with resolve()."""
+    classifier, so status can never disagree with resolve().
+
+    TR-095: the reset stamp is computed ONCE and REUSED. It used to be computed
+    twice — once to write the state file, once inside the assertion — and the
+    two values were compared for equality. `_utc()` has SECOND resolution, and
+    two subprocess launches sit between the two calls, so the comparison was a
+    coin flip whenever a second boundary fell in that gap: that is the once-in-a-
+    while failure TR-068 recorded and could not reproduce. The product was never
+    at fault; the assertion re-derived its own expected value.
+    """
+    reset_at = _utc(5)
     state = tmp_path / 'state'
     state.mkdir()
     (state / 'quota-state.json').write_text(json.dumps({
         'updated': 't', 'providers': dict(OPEN_PROVIDERS),
-        'quota_exhausted': dict(_gate('zai-glm', _utc(5), reason='weekly limit'),
+        'quota_exhausted': dict(_gate('zai-glm', reset_at, reason='weekly limit'),
                                 **_gate('openai-codex', _utc(-5), reason='plan limit'))}))
     env = dict(os.environ, ROUTER_STATE_DIR=str(state),
                ROUTING_REGISTRY=_write_registry(tmp_path))
@@ -590,7 +601,7 @@ def test_status_shows_the_plan_gate(tmp_path):
     plan = doc['quota']['quota_exhausted']
     assert [g['provider'] for g in plan['gated']] == ['zai-glm']
     assert [g['provider'] for g in plan['expired']] == ['openai-codex']
-    assert plan['gated'][0]['reset_at'] == _utc(5)
+    assert plan['gated'][0]['reset_at'] == reset_at
     text = subprocess.run([sys.executable, os.path.join(SCRIPTS, 'router_status.py'),
                            '--format', 'text'],
                           capture_output=True, text=True, timeout=SEED_TIMEOUT, env=env)
@@ -621,3 +632,56 @@ def test_cli_dispatch_does_not_redirect_the_quota_state_dir(tmp_path, monkeypatc
     # proof the write went to the state dir the RESOLVER reads, not the wrapper's
     dh_file = tmp_path / 'dh' / 'quota-state.json'
     assert not dh_file.exists() or 'quota_exhausted' not in json.load(open(dh_file))
+
+
+# ------------------------------------------------- TR-095: the flake class ---
+
+def test_no_test_recomputes_a_timestamp_it_compares_for_equality():
+    """TR-095 guard.
+
+    `_utc()` has SECOND resolution. A test that derives an expected stamp by
+    CALLING it again and compares that to a value written earlier is a coin
+    flip: any second boundary between the two calls fails the assertion, and no
+    product bug is involved. That is how test_status_shows_the_plan_gate failed
+    once-in-a-while for months (TR-068) without reproducing.
+
+    The rule: a stamp used in a comparison must be captured ONCE and reused.
+    This guard scans the suite for the pattern so it cannot return.
+    """
+    import re
+
+    tests_dir = os.path.dirname(os.path.abspath(__file__))
+    offenders = []
+    # an assert (or subTest compare) whose expected side CALLS a time helper
+    pattern = re.compile(r'assert\b[^\n]*_utc\s*\(')
+    call_in_assert = re.compile(r'==\s*_utc\s*\(')
+    for name in sorted(os.listdir(tests_dir)):
+        if not name.endswith('.py'):
+            continue
+        path = os.path.join(tests_dir, name)
+        for i, line in enumerate(open(path), 1):
+            stripped = line.strip()
+            if stripped.startswith('#'):
+                continue
+            if call_in_assert.search(line):
+                offenders.append(f'{name}:{i}: {stripped}')
+            elif pattern.search(line) and '==' not in line:
+                # `assert plan[...] == reset_at` is fine (no call); a bare
+                # `assert x == _utc(5)` is the bug. Flag only calls compared.
+                offenders.append(f'{name}:{i}: {stripped}')
+    assert not offenders, (
+        'a test recomputed a timestamp inside a comparison — capture it once '
+        'and reuse it (TR-095):\n  ' + '\n  '.join(offenders))
+
+
+def test_the_second_resolution_window_is_real():
+    """The mechanism behind the guard: two _utc() calls one second apart produce
+    DIFFERENT strings, so equality across any >1s gap must never be assumed."""
+    first = _utc(5)
+    deadline = time.time() + 2.0
+    second = first
+    while second == first and time.time() < deadline:
+        second = _utc(5)
+    assert second != first, (
+        '_utc() stopped advancing in second resolution — the TR-095 reasoning '
+        'about the comparison window would need revisiting')
