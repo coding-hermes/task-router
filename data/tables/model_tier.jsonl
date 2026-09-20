@@ -89,13 +89,10 @@
 {"model": "Qwen/Qwen3.8-Max-0902", "category": "review", "perf": 0.68, "tier": -1, "tier_source": "family", "source_ref": "alias:qwen3.8-max"}
 {"model": "Qwen/Qwen3.8-Max-0902", "category": "schema", "perf": 0.75, "tier": 2, "tier_source": "family", "source_ref": "alias:qwen3.8-max"}
 {"model": "Qwen/Qwen3.8-Max-0902", "category": "test", "perf": 0.72, "tier": 3, "tier_source": "estimate", "source_ref": "CATEGORY_ESTIMATES"}
-{"model": "accounts/fireworks/models/deepseek-v4-flash-0731", "category": "code_gen", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash:0731"}
-{"model": "accounts/fireworks/models/deepseek-v4-flash-0731", "category": "mechanical", "perf": 0.72, "tier": 5, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash:0731"}
+{"model": "accounts/fireworks/models/deepseek-v4-flash-0731", "category": "code_gen", "perf": 0.5, "tier": -2, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash:0731"}
 {"model": "accounts/fireworks/models/deepseek-v4-flash-0731", "category": "refactor", "perf": 0.5, "tier": 1, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash:0731"}
-{"model": "accounts/fireworks/models/deepseek-v4-flash-0731", "category": "spec_docs", "perf": 0.72, "tier": 1, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash:0731"}
-{"model": "accounts/fireworks/models/deepseek-v4-flash-0731", "category": "terminal", "perf": 0.85, "tier": 1, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash:0731"}
-{"model": "accounts/fireworks/models/deepseek-v4-flash-0731", "category": "test", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash:0731"}
-{"model": "accounts/fireworks/models/deepseek-v4-flash-0731", "category": "tool_use", "perf": 0.85, "tier": 5, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash:0731"}
+{"model": "accounts/fireworks/models/deepseek-v4-flash-0731", "category": "terminal", "perf": 0.827, "tier": -3, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash:0731"}
+{"model": "accounts/fireworks/models/deepseek-v4-flash-0731", "category": "tool_use", "perf": 0.75, "tier": 1, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash:0731"}
 {"model": "accounts/fireworks/models/deepseek-v4-flash-0731", "category": "vision", "perf": 0.46794871794871795, "tier": -1, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash:0731"}
 {"model": "accounts/fireworks/models/deepseek-v4-flash-vision-exp", "category": "code_gen", "perf": 0.5, "tier": -2, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash-vision-exp"}
 {"model": "accounts/fireworks/models/deepseek-v4-flash-vision-exp", "category": "refactor", "perf": 0.5, "tier": 1, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash-vision-exp"}
@@ -638,13 +635,10 @@
 {"model": "deepseek-v4-flash", "category": "test", "perf": 0.85, "tier": 4, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:deepseek v4 flash"}
 {"model": "deepseek-v4-flash", "category": "tool_use", "perf": 0.85, "tier": 5, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:deepseek v4 flash"}
 {"model": "deepseek-v4-flash", "category": "vision", "perf": 0.45, "tier": -1, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:deepseek v4 flash"}
-{"model": "deepseek-v4-flash-0731", "category": "code_gen", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash:0731"}
-{"model": "deepseek-v4-flash-0731", "category": "mechanical", "perf": 0.72, "tier": 5, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash:0731"}
+{"model": "deepseek-v4-flash-0731", "category": "code_gen", "perf": 0.5, "tier": -2, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash:0731"}
 {"model": "deepseek-v4-flash-0731", "category": "refactor", "perf": 0.5, "tier": 1, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash:0731"}
-{"model": "deepseek-v4-flash-0731", "category": "spec_docs", "perf": 0.72, "tier": 1, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash:0731"}
-{"model": "deepseek-v4-flash-0731", "category": "terminal", "perf": 0.85, "tier": 1, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash:0731"}
-{"model": "deepseek-v4-flash-0731", "category": "test", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash:0731"}
-{"model": "deepseek-v4-flash-0731", "category": "tool_use", "perf": 0.85, "tier": 5, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash:0731"}
+{"model": "deepseek-v4-flash-0731", "category": "terminal", "perf": 0.827, "tier": -3, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash:0731"}
+{"model": "deepseek-v4-flash-0731", "category": "tool_use", "perf": 0.75, "tier": 1, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash:0731"}
 {"model": "deepseek-v4-flash-0731", "category": "vision", "perf": 0.46794871794871795, "tier": -1, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash:0731"}
 {"model": "deepseek-v4-flash-flex", "category": "agent_tick", "perf": 0.75, "tier": 1, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash"}
 {"model": "deepseek-v4-flash-flex", "category": "code_gen", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash"}
@@ -667,13 +661,10 @@
 {"model": "deepseek-v4-flash-vision-exp", "category": "refactor", "perf": 0.5, "tier": 1, "tier_source": "bench", "source_ref": "bench:battery-T2-CODE"}
 {"model": "deepseek-v4-flash-vision-exp", "category": "test", "perf": 0.72, "tier": 3, "tier_source": "estimate", "source_ref": "CATEGORY_ESTIMATES"}
 {"model": "deepseek-v4-flash-vision-exp", "category": "tool_use", "perf": 0.5, "tier": -2, "tier_source": "bench", "source_ref": "bench:battery-T1-TOOL"}
-{"model": "deepseek-v4-flash:0731", "category": "code_gen", "perf": 0.85, "tier": 4, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:deepseek v4 flash"}
-{"model": "deepseek-v4-flash:0731", "category": "mechanical", "perf": 0.72, "tier": 5, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:deepseek v4 flash"}
+{"model": "deepseek-v4-flash:0731", "category": "code_gen", "perf": 0.5, "tier": -2, "tier_source": "bench", "source_ref": "bench:battery-T5-DEBUG"}
 {"model": "deepseek-v4-flash:0731", "category": "refactor", "perf": 0.5, "tier": 1, "tier_source": "bench", "source_ref": "bench:battery-T2-CODE"}
-{"model": "deepseek-v4-flash:0731", "category": "spec_docs", "perf": 0.72, "tier": 1, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:deepseek v4 flash"}
-{"model": "deepseek-v4-flash:0731", "category": "terminal", "perf": 0.85, "tier": 1, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:deepseek v4 flash"}
-{"model": "deepseek-v4-flash:0731", "category": "test", "perf": 0.85, "tier": 4, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:deepseek v4 flash"}
-{"model": "deepseek-v4-flash:0731", "category": "tool_use", "perf": 0.85, "tier": 5, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:deepseek v4 flash"}
+{"model": "deepseek-v4-flash:0731", "category": "terminal", "perf": 0.827, "tier": -3, "tier_source": "bench", "source_ref": "bench:Terminal-Bench"}
+{"model": "deepseek-v4-flash:0731", "category": "tool_use", "perf": 0.75, "tier": 1, "tier_source": "bench", "source_ref": "bench:battery-T1-TOOL"}
 {"model": "deepseek-v4-flash:0731", "category": "vision", "perf": 0.46794871794871795, "tier": -1, "tier_source": "bench", "source_ref": "bench:ApexBench"}
 {"model": "deepseek-v4-pro", "category": "agent_tick", "perf": 0.5, "tier": -3, "tier_source": "measured", "source_ref": "models.jsonl:perf_agent_tick"}
 {"model": "deepseek-v4-pro", "category": "code_gen", "perf": 0.85, "tier": 4, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:deepseek v4 pro"}
@@ -1042,7 +1033,7 @@
 {"model": "glm-5.3-flash", "category": "test", "perf": 0.72, "tier": 3, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:glm-5.3-flash"}
 {"model": "glm-5.3-flash", "category": "tool_use", "perf": 0.85, "tier": 5, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:glm-5.3-flash"}
 {"model": "glm-5.3-flash", "category": "vision", "perf": 0.6, "tier": 0, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:glm-5.3-flash"}
-{"model": "glm-5.3-flash-offpeak", "category": "terminal", "perf": 0.843, "tier": -3, "tier_source": "bench", "source_ref": "bench:Terminal-Bench"}
+{"model": "glm-5.3-flash-offpeak", "category": "terminal", "perf": 0.843, "tier": -2, "tier_source": "bench", "source_ref": "bench:Terminal-Bench"}
 {"model": "google/gemini-3.1-flash-lite", "category": "test", "perf": 0.72, "tier": 3, "tier_source": "estimate", "source_ref": "CATEGORY_ESTIMATES"}
 {"model": "google/gemini-3.5-flash", "category": "test", "perf": 0.72, "tier": 3, "tier_source": "estimate", "source_ref": "CATEGORY_ESTIMATES"}
 {"model": "google/gemini-3.5-flash-lite", "category": "test", "perf": 0.72, "tier": 3, "tier_source": "estimate", "source_ref": "CATEGORY_ESTIMATES"}
@@ -2204,7 +2195,7 @@
 {"model": "z-ai/glm-5.3-flash", "category": "schema", "perf": 0.88, "tier": 5, "tier_source": "family", "source_ref": "alias:glm-5.3-flash"}
 {"model": "z-ai/glm-5.3-flash", "category": "security", "perf": 0.85, "tier": 2, "tier_source": "family", "source_ref": "alias:glm-5.3-flash"}
 {"model": "z-ai/glm-5.3-flash", "category": "spec_docs", "perf": 0.72, "tier": 1, "tier_source": "family", "source_ref": "alias:glm-5.3-flash"}
-{"model": "z-ai/glm-5.3-flash", "category": "terminal", "perf": 0.843, "tier": -3, "tier_source": "bench", "source_ref": "bench:Terminal-Bench"}
+{"model": "z-ai/glm-5.3-flash", "category": "terminal", "perf": 0.843, "tier": -2, "tier_source": "bench", "source_ref": "bench:Terminal-Bench"}
 {"model": "z-ai/glm-5.3-flash", "category": "test", "perf": 0.72, "tier": 3, "tier_source": "family", "source_ref": "alias:glm-5.3-flash"}
 {"model": "z-ai/glm-5.3-flash", "category": "tool_use", "perf": 0.85, "tier": 5, "tier_source": "family", "source_ref": "alias:glm-5.3-flash"}
 {"model": "z-ai/glm-5.3-flash", "category": "vision", "perf": 0.6, "tier": 0, "tier_source": "family", "source_ref": "alias:glm-5.3-flash"}
