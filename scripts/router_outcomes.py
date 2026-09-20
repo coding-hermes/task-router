@@ -672,6 +672,158 @@ def import_pi(sessions_dir='~/.pi/agent/sessions'):
     return out
 
 
+def import_opencode(db_path='~/.local/share/opencode/opencode.db'):
+    """opencode driver (TR-073): opencode's SQLite store -> outcome rows.
+
+    The T surface is NOT a directory of session JSON files (unlike pi): opencode
+    keeps everything in one SQLite DB. Shape verified against real data on this
+    box (137 sessions / 3,870 messages), not assumed:
+
+      * `message.data` is JSON; an assistant message carries
+        `tokens` = {total, input, output, reasoning, cache:{read, write}},
+        a real `cost`, the lane at `providerID`/`modelID`, and
+        `time.{created, completed}` in epoch MILLISECONDS.
+      * cache accounting is NESTED under `tokens.cache`, so `cache.read` must be
+        summed separately — folding it into `input` would misreport every cached
+        request (94,146,162 cache reads across the 3,711 real messages).
+
+    success is reported only when it is genuinely knowable. opencode's `finish`
+    is a terminal reason; `unknown` means the turn ended without one, which is
+    NOT evidence of failure, so it maps to None rather than a guessed boolean.
+
+    The DB is opened strictly READ-ONLY (and immutably as a fallback): opencode
+    may be mid-write, and a reader must never disturb the host's store.
+    """
+    path = os.path.expanduser(db_path)
+    if not os.path.exists(path):
+        return []
+    out = []
+    sessions = {}
+    conn = None
+    for uri in (f'file:{path}?mode=ro', f'file:{path}?mode=ro&immutable=1'):
+        try:
+            conn = sqlite3.connect(uri, uri=True, timeout=5)
+            break
+        except sqlite3.Error:
+            conn = None
+    if conn is None:
+        return []
+    try:
+        conn.row_factory = sqlite3.Row
+        try:
+            for r in conn.execute('SELECT id, title, directory, time_created,'
+                                  ' time_updated FROM session'):
+                sessions[r['id']] = {'title': r['title'],
+                                     'dir': r['directory'],
+                                     'created': r['time_created'],
+                                     'updated': r['time_updated']}
+        except sqlite3.Error:
+            pass
+
+        agg = {}
+        try:
+            rows = conn.execute('SELECT session_id, time_created, data'
+                                ' FROM message')
+        except sqlite3.Error:
+            return []
+        for r in rows:
+            try:
+                d = json.loads(r['data'])
+            except (ValueError, TypeError):
+                continue
+            if d.get('role') != 'assistant':
+                continue
+            sid = r['session_id']
+            a = agg.setdefault(sid, {'turns': 0, 'tin': 0, 'tout': 0,
+                                     'treason': 0, 'tcread': 0, 'tcwrite': 0,
+                                     'cost': 0.0, 'saw_cost': False,
+                                     'provider': None, 'model': None,
+                                     'finishes': [], 'first': None,
+                                     'last': None})
+            a['turns'] += 1
+            tk = d.get('tokens')
+            if isinstance(tk, dict):
+                a['tin'] += int(tk.get('input') or 0)
+                a['tout'] += int(tk.get('output') or 0)
+                a['treason'] += int(tk.get('reasoning') or 0)
+                cache = tk.get('cache')
+                if isinstance(cache, dict):
+                    a['tcread'] += int(cache.get('read') or 0)
+                    a['tcwrite'] += int(cache.get('write') or 0)
+            c = d.get('cost')
+            if isinstance(c, (int, float)):
+                a['saw_cost'] = True
+                a['cost'] += float(c)
+            a['provider'] = d.get('providerID') or a['provider']
+            a['model'] = d.get('modelID') or a['model']
+            if isinstance(d.get('finish'), str):
+                a['finishes'].append(d['finish'])
+            t = d.get('time') or {}
+            start = t.get('created')
+            end = t.get('completed') or t.get('created')
+            ms = r['time_created']
+            if isinstance(start, (int, float)):
+                start = start / 1000.0
+            elif isinstance(ms, (int, float)):
+                start = ms / 1000.0
+            else:
+                start = None
+            if isinstance(end, (int, float)):
+                end = end / 1000.0
+            elif isinstance(ms, (int, float)):
+                end = ms / 1000.0
+            else:
+                end = None
+            if start is not None:
+                a['first'] = start if a['first'] is None else min(a['first'], start)
+            if end is not None:
+                a['last'] = end if a['last'] is None else max(a['last'], end)
+    finally:
+        conn.close()
+
+    for sid, a in agg.items():
+        if not a['turns']:
+            continue
+        meta = sessions.get(sid) or {}
+        if a['model'] is None and a['provider'] is None:
+            continue          # nothing to attribute; never fabricate a row
+        # `unknown` is NOT a failure signal — only an explicit error is.
+        if any(f == 'error' for f in a['finishes']):
+            success = False
+        elif any(f in ('stop', 'tool-calls') for f in a['finishes']):
+            success = True
+        else:
+            success = None
+        created = meta.get('created')
+        updated = meta.get('updated')
+        if isinstance(created, (int, float)):
+            created = created / 1000.0
+        else:
+            created = a['first']
+        if isinstance(updated, (int, float)):
+            updated = updated / 1000.0
+        else:
+            updated = a['last']
+        wall = (updated - created
+                if isinstance(created, (int, float))
+                and isinstance(updated, (int, float)) else None)
+        out.append({'source_system': 'opencode', 'session_id': sid,
+                    'task_label': meta.get('title') or meta.get('dir'),
+                    'complexity': None, 'profile_id': None,
+                    'required_categories': None,
+                    'provider': a['provider'], 'model': a['model'],
+                    'turns': a['turns'],
+                    'tokens_in': a['tin'] or None,
+                    'tokens_out': a['tout'] or None,
+                    'tokens_reasoning': a['treason'] or None,
+                    'tokens_cache_read': a['tcread'] or None,
+                    'tokens_cache_write': a['tcwrite'] or None,
+                    'cost_usd': (a['cost'] if a['saw_cost'] else None),
+                    'wall_time_s': wall, 'success': success,
+                    'ts': a['last'] or updated})
+    return sorted(out, key=lambda r: (r['ts'] or 0, r['session_id']))
+
+
 def _iso_to_epoch(v):
     """ISO-8601 (with trailing Z) -> epoch seconds. None when unparseable."""
     if not isinstance(v, str) or not v:
@@ -688,6 +840,7 @@ def main():
     sub = ap.add_subparsers(dest='cmd', required=True)
     sub.add_parser('import-hermes')
     sub.add_parser('import-pi')
+    sub.add_parser('import-opencode')
     p_avg = sub.add_parser('averages')
     p_avg.add_argument('--merge-backends', action='store_true')
     p_q = sub.add_parser('query')
@@ -700,6 +853,9 @@ def main():
         print(f'outcomes: +{n} new rows (idempotent)')
     elif args.cmd == 'import-pi':
         n = append_rows(OUTCOMES, import_pi())
+        print(f'outcomes: +{n} new rows (idempotent)')
+    elif args.cmd == 'import-opencode':
+        n = append_rows(OUTCOMES, import_opencode())
         print(f'outcomes: +{n} new rows (idempotent)')
     elif args.cmd == 'averages':
         rows = [json.loads(l) for l in open(OUTCOMES) if l.strip()] if os.path.exists(OUTCOMES) else []

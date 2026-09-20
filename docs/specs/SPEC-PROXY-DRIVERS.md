@@ -80,12 +80,30 @@ reader may reduce to reading a table that already exists.
 3. **TR-075 deepseek-harness** — has the most pre-existing wire machinery
    (a completed pi-ai compat-gate surface), so it is the last and lowest-risk.
 
-### 4.1 The one thing that blocks several rows
+### 4.1 Wire formats: `anthropic-messages` / `gemini`
 
-`anthropic-messages` and `gemini` wire formats are **NOT** spoken by the proxy
-yet. If a host needs them, that is PROXY scope and lands BEFORE that driver —
-name it in the driver's spec section rather than working around it in the
-driver. opencode is the likely first consumer (anthropic-messages).
+`anthropic-messages` and `gemini` wire formats are **NOT** spoken by the proxy.
+If a host needs them, that is PROXY scope and lands BEFORE that driver — name it
+in the driver's spec section rather than working around it in the driver.
+
+**VERIFIED 2026-09-20 (TR-097 step 1): no host needs them. Do not build
+speculatively.** The opencode case, previously the "likely first consumer", was
+settled by running the real binary against the real proxy rather than reading the
+survey sketch: opencode 1.18.29 emitted 119 requests, 100% to
+`/v1/chat/completions`, with zero anthropic markers (no top-level `system`, no
+`stop_sequences`, no content blocks, `max_tokens` not `max_completion_tokens`).
+The dialect is chosen by the bundled `@ai-sdk/openai-compatible` package, which is
+the fallback for a hand-declared provider. Full evidence:
+`docs/evidence/tr097-anthropic-messages-verdict.md`.
+
+A driver must still declare `npm: '@ai-sdk/openai-compatible'` and
+`api: '<proxy>/v1'` explicitly — omit-vs-omit is not a safe default to rely on.
+
+Note the attribution seam: a proxied attempt is attributed to a driver only when
+the caller sends `x-router-caller` AND the id is registered (TR-071). Until the
+host's driver is registered, rows land as `source_system="router-proxy"` by
+design. opencode proved able to send that header via
+`provider.<name>.options.headers`.
 
 ## 5. What is explicitly OUT of scope
 
