@@ -117,10 +117,16 @@ landed under the scratch home). It does **not** isolate two commands, by explici
   (`reset_at 2026-09-19T08:11:13Z`, already elapsed).
 - Same class, by design and not measured here: `router probe`, `router probefix`,
   `router plan-sweep` (run from the fleet's own registry/state locations).
-
-TR-083 asks for one line in the README's data-home section: *state *writers* are not all
-data-home scoped — `quota` (and the calibration commands) write fleet state; pass
-`--state-file` to target a scratch file.*
+- **Ports are not isolated either.** The documented `router web` default is **:9093**,
+  the same port the fleet's own web UI uses; a scratch `router web` binds it (it was
+  free at the time — the fleet's :9092 API server was up, :9093 was not). Same for
+  `router server --port 9092`. Discovered because the API server had to be moved to
+  :9192/:9193 to avoid colliding with the running fleet server. Both scratch listeners
+  were stopped at the end of the run.
+- TR-083 asks for one line in the README's data-home section: *state *writers* are not all
+  data-home scoped — `quota` (and the calibration commands) write fleet state; pass
+  `--state-file` to target a scratch file; and the default ports are shared with the
+  running fleet.*
 
 ## 6. Findings → rows
 
