@@ -25,6 +25,15 @@ class Driver:
     config_path = None
     #: the base URL shape the host needs (documented verbatim, see §3 wire facts)
     base_url_shape = '/v1'
+    #: Wire compat the host DECLARES to the proxy (SPEC-PROXY-DRIVERS §3).
+    #: Supported keys:
+    #:   supports_developer_role — host's config says the endpoint rejects
+    #:     `role:developer` (pi's compat.supportsDeveloperRole=false; the same
+    #:     fact reaches deepseek-harness as a PiAiCompatProfile). When false, the
+    #:     host rewrites developer->system CLIENT-SIDE; when true, the host sends
+    #:     `developer` and the PROXY must accept it.
+    #: A driver states the fact; it never implements the workaround itself.
+    compat = {}
 
     @classmethod
     def caller_id(cls):

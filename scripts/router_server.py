@@ -735,6 +735,45 @@ def _proxy_upstream_default(path, body, headers):
     return (status if isinstance(status, int) else 200), payload
 
 
+def _normalize_developer_role(body, headers):
+    """Rewrite `role:developer` -> `role:system` (TR-074/TR-075, spec §6.4).
+
+    The spec's §3 wire table predicted this failure: pi and deepseek-harness
+    reason about a `compat.supportsDeveloperRole` flag, and OpenAI-compatible
+    servers vary on whether they accept `developer`. The proxy forwards the body
+    UNCHANGED, so a host that sends `developer` burns the whole ladder on a
+    payload the proxy could have accepted — measured: 400 at the upstream, with
+    `role:system` of the same content returning 200.
+
+    The two roles are the same message with different spellings (`developer` is
+    OpenAI's rename of `system` for newer models), so normalizing is lossless
+    for the providers that lack it and harmless for those that have it. Done
+    here rather than per-driver because FIVE drivers would otherwise each carry
+    the workaround and drift (spec §1).
+
+    Returns (body, count). Count is disclosed in the envelope so the rewrite is
+    never silent. Callers that genuinely need `developer` preserved send
+    `x-router-developer-role: preserve`.
+    """
+    if not isinstance(body, dict):
+        return body, 0
+    if str(headers.get('x-router-developer-role', '')).lower() == 'preserve':
+        return body, 0
+    msgs = body.get('messages')
+    if not isinstance(msgs, list):
+        return body, 0
+    n = 0
+    out = []
+    for m in msgs:
+        if isinstance(m, dict) and m.get('role') == 'developer':
+            m = {**m, 'role': 'system'}
+            n += 1
+        out.append(m)
+    if not n:
+        return body, 0
+    return {**body, 'messages': out}, n
+
+
 def _proxy_requirements(body, headers, path):
     """Decide the complexity for this request. Returns (source, payload) where
     source ∈ declared | classifier | default, payload carries the matrix,
@@ -857,6 +896,10 @@ def proxy_chat(path, body, headers, max_hops=None, upstream=None):
             caller_problems.append(f'caller lookup failed: {str(exc)[:120]}')
             caller = ''
     source_system = caller or 'router-proxy'
+    # TR-074/TR-075: normalize `role:developer` -> `role:system` BEFORE the walk.
+    # A payload the upstream rejects must not burn every hop, and the rewrite is
+    # the same for all five drivers (spec §1: one place, not five).
+    body, dev_rewrites = _normalize_developer_role(body, headers)
     try:
         hops = int(headers.get('x-router-max-hops') or
                    os.environ.get('ROUTER_PROXY_MAX_HOPS') or (max_hops or 3))
@@ -903,7 +946,13 @@ def proxy_chat(path, body, headers, max_hops=None, upstream=None):
             'exclusions': exclusions, 'gate_reasons': gate_reasons,
             'degrade_reason': (requirements.get('problems') or [None])[0],
             'caller': source_system,
+            'developer_role_rewrites': dev_rewrites,
             'problems': list(caller_problems)}
+    if dev_rewrites:
+        # never silent: the caller's payload was adjusted
+        meta['problems'].append(
+            f'normalized {dev_rewrites} role:developer message(s) -> system '
+            f'(reference provider compat; x-router-developer-role: preserve to keep)')
     if not chain:
         meta['gate'] = resolved.get('gate')
         return 503, {'error': 'no open hop for this request', '_router': meta}
