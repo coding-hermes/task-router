@@ -824,6 +824,146 @@ def import_opencode(db_path='~/.local/share/opencode/opencode.db'):
     return sorted(out, key=lambda r: (r['ts'] or 0, r['session_id']))
 
 
+def import_openclaw(state_dir='~/.openclaw'):
+    """openclaw driver (TR-072): openclaw's agent store -> outcome rows.
+
+    The T surface is a per-agent SQLite DB, not JSON files and not the same schema
+    as opencode: `<state>/agents/<agentId>/agent/openclaw-agent.sqlite`. Shape
+    derived from a REAL run on this box (18 transcript events / 18 trajectory
+    events from one live session), not assumed:
+
+      * `transcript_events.event_json` holds one canonical transcript event per
+        row; an assistant turn is `{type:'message', message:{role:'assistant',
+        api, provider, model, usage:{input, output, cacheRead, cacheWrite,
+        totalTokens, cost:{total}}, stopReason, timestamp(ms)}}`.
+      * the lane is `message.provider` / `message.model` (the CONFIGURED route),
+        not `responseModel` — the latter is whatever the upstream answered with.
+      * `stopReason` is a real terminal reason, so success is genuinely knowable
+        here; there is no observed 'error' value on this box, so only the clear
+        failure vocabulary is treated as failure and anything else stays None
+        rather than being guessed.
+      * cache is flat (`usage.cacheRead`), unlike opencode's nested
+        `tokens.cache.read` — the two hosts must not share a reader.
+
+    Multiple agents are scanned: a state dir can hold more than one agent DB, and
+    silently reading only the first would under-report.
+
+    Every DB is opened strictly READ-ONLY (immutable fallback): openclaw may be
+    mid-write and a reader must never disturb the host's store.
+    """
+    base = os.path.expanduser(state_dir)
+    if not os.path.isdir(base):
+        return []
+    import glob
+    out = []
+    for db in sorted(glob.glob(os.path.join(base, 'agents', '*', 'agent',
+                                            '*.sqlite'))):
+        out.extend(_openclaw_db_rows(db))
+    return sorted(out, key=lambda r: (r['ts'] or 0, r['session_id']))
+
+
+#: stop reasons that genuinely mean the turn failed (never guessed beyond these)
+_OPENCLAW_FAILURE_REASONS = frozenset(
+    {'error', 'aborted', 'abort', 'timeout', 'timedOut', 'refusal'})
+
+
+def _openclaw_db_rows(path):
+    """Rows from one openclaw agent DB. Malformed/unreadable -> no rows."""
+    conn = None
+    for uri in (f'file:{path}?mode=ro', f'file:{path}?mode=ro&immutable=1'):
+        try:
+            conn = sqlite3.connect(uri, uri=True, timeout=5)
+            break
+        except sqlite3.Error:
+            conn = None
+    if conn is None:
+        return []
+    rows = []
+    try:
+        conn.row_factory = sqlite3.Row
+        agg = {}
+        sessions = {}
+        try:
+            cur = conn.execute('SELECT session_id, event_json'
+                               ' FROM transcript_events ORDER BY seq')
+        except sqlite3.Error:
+            return []
+        for r in cur:
+            try:
+                d = json.loads(r['event_json'])
+            except (ValueError, TypeError):
+                continue
+            sid = r['session_id']
+            t = d.get('type')
+            if t == 'session':
+                sessions[sid] = d
+                continue
+            if t != 'message':
+                continue
+            m = d.get('message') or {}
+            if m.get('role') != 'assistant':
+                continue
+            a = agg.setdefault(sid, {'turns': 0, 'tin': 0, 'tout': 0,
+                                     'tcread': 0, 'tcwrite': 0, 'cost': 0.0,
+                                     'saw_cost': False, 'provider': None,
+                                     'model': None, 'reasons': [],
+                                     'first': None, 'last': None})
+            a['turns'] += 1
+            u = m.get('usage')
+            if isinstance(u, dict):
+                a['tin'] += int(u.get('input') or 0)
+                a['tout'] += int(u.get('output') or 0)
+                a['tcread'] += int(u.get('cacheRead') or 0)
+                a['tcwrite'] += int(u.get('cacheWrite') or 0)
+                c = u.get('cost')
+                if isinstance(c, dict) and c.get('total') is not None:
+                    a['saw_cost'] = True
+                    a['cost'] += float(c.get('total') or 0)
+            # the CONFIGURED lane (message.provider/model), not responseModel
+            a['provider'] = m.get('provider') or a['provider']
+            a['model'] = m.get('model') or a['model']
+            if isinstance(m.get('stopReason'), str):
+                a['reasons'].append(m['stopReason'])
+            ts = m.get('timestamp')
+            if isinstance(ts, (int, float)):
+                ts = ts / 1000.0
+                a['first'] = ts if a['first'] is None else min(a['first'], ts)
+                a['last'] = ts if a['last'] is None else max(a['last'], ts)
+        for sid, a in agg.items():
+            if not a['turns']:
+                continue
+            if a['model'] is None and a['provider'] is None:
+                continue      # nothing to attribute; never fabricate a row
+            if any(x in _OPENCLAW_FAILURE_REASONS for x in a['reasons']):
+                success = False
+            elif a['reasons']:
+                success = True
+            else:
+                success = None
+            s = sessions.get(sid) or {}
+            wall = (a['last'] - a['first']
+                    if a['first'] is not None and a['last'] is not None else None)
+            rows.append({'source_system': 'openclaw', 'session_id': sid,
+                         'task_label': s.get('cwd'),
+                         'complexity': None, 'profile_id': None,
+                         'required_categories': None,
+                         'provider': a['provider'], 'model': a['model'],
+                         'turns': a['turns'],
+                         'tokens_in': a['tin'] or None,
+                         'tokens_out': a['tout'] or None,
+                         'tokens_reasoning': None,
+                         'tokens_cache_read': a['tcread'] or None,
+                         'tokens_cache_write': a['tcwrite'] or None,
+                         'cost_usd': (a['cost'] if a['saw_cost'] else None),
+                         'wall_time_s': wall, 'success': success,
+                         'ts': a['last']})
+    except sqlite3.Error:
+        return []
+    finally:
+        conn.close()
+    return rows
+
+
 def _iso_to_epoch(v):
     """ISO-8601 (with trailing Z) -> epoch seconds. None when unparseable."""
     if not isinstance(v, str) or not v:
@@ -841,6 +981,7 @@ def main():
     sub.add_parser('import-hermes')
     sub.add_parser('import-pi')
     sub.add_parser('import-opencode')
+    sub.add_parser('import-openclaw')
     p_avg = sub.add_parser('averages')
     p_avg.add_argument('--merge-backends', action='store_true')
     p_q = sub.add_parser('query')
@@ -856,6 +997,9 @@ def main():
         print(f'outcomes: +{n} new rows (idempotent)')
     elif args.cmd == 'import-opencode':
         n = append_rows(OUTCOMES, import_opencode())
+        print(f'outcomes: +{n} new rows (idempotent)')
+    elif args.cmd == 'import-openclaw':
+        n = append_rows(OUTCOMES, import_openclaw())
         print(f'outcomes: +{n} new rows (idempotent)')
     elif args.cmd == 'averages':
         rows = [json.loads(l) for l in open(OUTCOMES) if l.strip()] if os.path.exists(OUTCOMES) else []
