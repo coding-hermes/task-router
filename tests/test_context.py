@@ -32,13 +32,25 @@ def _run(*args, timeout=SEED_TIMEOUT, env_extra=None):
                           timeout=timeout, env=env)
 
 
-def _hermetic_env(tmp_path):
+def _hermetic_env(tmp_path, seed=None):
+    """Hermetic env for one test.
+
+    seed=None  -> private build (tests that MUTATE the seed inputs need this).
+    seed=<dict> from the session fixture seed_registry_copy -> reuse the shared
+    build: these spawn tests only READ the registry (TR-077 rule).
+    """
     data = tmp_path / "data"
-    shutil.copytree(DATA_DIR, data)
+    reg = tmp_path / "registry.json"
     state = tmp_path / "state"
     state.mkdir(exist_ok=True)
+    if seed is not None:
+        # the session fixture already produced a per-test hermetic copy
+        return {"ROUTING_DATA_DIR": seed["ROUTING_DATA_DIR"],
+                "ROUTER_STATE_DIR": str(state),
+                "ROUTING_REGISTRY": seed["ROUTING_REGISTRY"]}
+    shutil.copytree(DATA_DIR, data)
     return {"ROUTING_DATA_DIR": str(data), "ROUTER_STATE_DIR": str(state),
-            "ROUTING_REGISTRY": str(tmp_path / "registry.json")}
+            "ROUTING_REGISTRY": str(reg)}
 
 
 # ------------------------------------------------------------------ data ACs ----
@@ -88,9 +100,8 @@ def test_context_limit_values_come_from_modelsdev_or_manual_note(tmp_path):
 
 # ------------------------------------------------------------------ spawn ACs ----
 
-def test_spawn_emits_context_limit_per_lane(tmp_path):
-    env = _hermetic_env(tmp_path)
-    _run(os.path.join(SCRIPTS, "router_seed.py"), env_extra=env).check_returncode()
+def test_spawn_emits_context_limit_per_lane(seed_registry_copy, tmp_path):
+    env = _hermetic_env(tmp_path, seed=seed_registry_copy)
     p = _run(os.path.join(SCRIPTS, "router_spawn.py"), "my-project",
              "--format", "json", env_extra=env)
     assert p.returncode == 0, p.stderr[:400]
@@ -100,10 +111,9 @@ def test_spawn_emits_context_limit_per_lane(tmp_path):
         assert "context_limit" in c
 
 
-def test_spawn_min_context_excludes_low_window_lanes(tmp_path):
+def test_spawn_min_context_excludes_low_window_lanes(seed_registry_copy, tmp_path):
     """--profile-req min_context=1000000 drops lanes with smaller known windows."""
-    env = _hermetic_env(tmp_path)
-    _run(os.path.join(SCRIPTS, "router_seed.py"), env_extra=env).check_returncode()
+    env = _hermetic_env(tmp_path, seed=seed_registry_copy)
     p = _run(os.path.join(SCRIPTS, "router_spawn.py"), "my-project",
              "--profile-req", "min_context=1000000",
              "--format", "json", env_extra=env)
@@ -116,10 +126,9 @@ def test_spawn_min_context_excludes_low_window_lanes(tmp_path):
         assert ctx is None or ctx >= 1_000_000, c
 
 
-def test_spawn_null_context_passes_with_note(tmp_path):
+def test_spawn_null_context_passes_with_note(seed_registry_copy, tmp_path):
     """A lane with unknown context_limit is not excluded but carries a note."""
-    env = _hermetic_env(tmp_path)
-    _run(os.path.join(SCRIPTS, "router_seed.py"), env_extra=env).check_returncode()
+    env = _hermetic_env(tmp_path, seed=seed_registry_copy)
     p = _run(os.path.join(SCRIPTS, "router_spawn.py"), "my-project",
              "--profile-req", "min_context=1000000",
              "--format", "json", env_extra=env)
@@ -153,10 +162,9 @@ def test_chains_snapshot_has_context_column():
     assert "context_limit" in content
 
 
-def test_profile_req_min_context_is_known_category(tmp_path):
+def test_profile_req_min_context_is_known_category(seed_registry_copy, tmp_path):
     """min_context is accepted as a synthetic requirement category."""
-    env = _hermetic_env(tmp_path)
-    _run(os.path.join(SCRIPTS, "router_seed.py"), env_extra=env).check_returncode()
+    env = _hermetic_env(tmp_path, seed=seed_registry_copy)
     p = _run(os.path.join(SCRIPTS, "router_spawn.py"), "my-project",
              "--profile-req", "min_context=500000",
              "--format", "json", env_extra=env)
