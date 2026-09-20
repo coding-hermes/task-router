@@ -90,6 +90,22 @@ all resolve under the data home when driven through the `router` command.
 Running `python3 scripts/<tool>.py` directly keeps the historical
 repository-relative defaults.
 
+**Not every writer is data-home scoped.** A few commands read and write the
+*deployment's* state locations by design, because the fleet's own spawn path
+reads them there:
+
+- `router quota` / `router quota set|clear` — writes the quota-gate file
+  (default `~/.hermes/model-router/quota-state.json`, or `ROUTER_STATE_DIR`).
+  Setting `TASK_ROUTER_HOME` does **not** redirect it.
+- `router probe`, `router probefix`, `router plan-sweep` — resolve the fleet
+  registry/state locations for the same reason.
+
+To gate a lane against a scratch file instead of production policy, point the
+state directory at a throwaway location explicitly (`ROUTER_STATE_DIR=/tmp/…`,
+or the command's own `--state-file` where it offers one) — and remember the
+default ports (`:9092` API, `:9093` web) are shared with a running fleet
+instance, so use `--port` when probing by hand.
+
 ## The router command
 
 `pip install -e .` installs one executable, `router`, with a subcommand per

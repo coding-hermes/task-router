@@ -62,11 +62,13 @@ When a gateway call returns HTTP 429 or an `overload`/`quota_window` error:
 ```bash
 export ROUTER_STATE_DIR=/var/lib/hermes/model-router
 
-# Record the failure against the lane that was attempted
+# Record the failure against the lane that was attempted.
+# NOTE: the arguments are POSITIONAL (provider, then model, then an optional
+# free-text reason); --provider/--model/--reason are NOT recognised and exit 2.
 ~/.hermes/venvs/board/bin/python3 /home/kara/task-router/scripts/router_circuit.py \
-  record-failure --provider "<provider>" --model "<model>" \
-    --class {overload|quota_window} \
-    [--reason "optional short reason"]
+  record-failure "<provider>" "<model>" \
+    "optional short reason" \
+    --class {overload|quota_window}
 
 # Re-resolve; the previously attempted lane should now be excluded and the head
 # will advance to the next chain entry

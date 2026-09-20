@@ -178,7 +178,7 @@ failures.
 export ROUTER_PROXY_UPSTREAM=http://127.0.0.1:8642        # the real gateway
 export ROUTER_CLASSIFIER_BASE_URL=https://api.z.ai/api/coding/paas/v4
 export ROUTER_CLASSIFIER_MODEL=glm-5.3-flash              # fast sub lane
-export ROUTER_CLASSIFIER_KEY_ENV=ZAI_GLM_API_KEY          # NAME, never a value
+export ROUTER_CLASSIFIER_KEY_ENV=ZAI_API_KEY              # NAME, never a value
 export ROUTER_PROXY_MAX_HOPS=3
 ```
 
@@ -186,6 +186,14 @@ The classifier prompt is a VERSIONED FILE (`data/classifier/prompt-v1.md`) —
 edit the file, not the code; every result records the prompt version + model it
 used. Without `ROUTER_CLASSIFIER_BASE_URL` the proxy still works: it degrades
 VISIBLY to the default profile (`_router.degrade_reason` says why).
+
+> **`ROUTER_CLASSIFIER_KEY_ENV` names an env var — it is deployment-specific.**
+> The value above (`ZAI_API_KEY`) is this fleet's name for the Z.AI credential;
+> on another deployment the correct name is whatever that `.env` actually
+> defines. If the name is wrong the classifier call cannot authenticate and the
+> proxy falls back to the default profile — a *visible* degrade
+> (`_router.degrade_reason` names the failure), but the cost ranking is silently
+> off. Check the key name as part of verification.
 
 **2. Call it like the gateway:**
 
