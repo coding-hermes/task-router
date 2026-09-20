@@ -152,3 +152,120 @@ flag) is a one-line change the foreman can make.
 clone 1s → `pip install -e .` 5s → duckdb 14s → seed 8s → first resolve.
 Total ≈ 27s to a real 18-hop chain whose head matches production exactly.
 The 09-12 conclusion holds on a second independent machine.
+
+---
+
+Not a log dump. This is **how the thing is built, why, what broke during the run,
+and the right way to drive it** — written so the next agent (or a future chat)
+can answer "is this project worth anything / does it actually work?" by reading
+the repo instead of re-running the suite.
+
+## 2026-09-20 dogfood: the data-home boundary, the proxy ladder, and the false-red validate
+
+### How it is built (and why that shape)
+
+```
+profile / project ──► registry (registry.json, seeded from data/tables/*.jsonl)
+                        │  eligibility: every signed requirement clears (+ min_context)
+                        ▼
+                  price-ordered eligible pairs   ← DETERMINISTIC: policy, not telemetry
+                        │
+                        ▼
+                  runtime gates AT RESOLVE TIME: quota | health | circuit | diversity | ledger
+                        │
+                        ▼
+        head + surviving chain + exclusions[].why   ← the audit trail
+                        │
+                        ▼
+   caller spawns … and (the TR-067 path) calls the upstream gateway itself
+```
+
+The load-bearing design decision is **transient signals never rewrite the price
+order** — they are applied at resolve time and reported as exclusions. That is
+why a resolve can be reproduced and audited: the stored chain is policy, the
+gates are stamped on top, and every drop carries a reason string.
+
+Second decision: **the CLI is a dispatcher, not a program.** `task_router/cli.py`
+`runpy`s `scripts/router_<name>.py` and injects env per subcommand
+(`ROUTING_REGISTRY`, `ROUTING_DATA_DIR`, `ROUTER_STATE_DIR`, `LEDGER_FILE`,
+`ROUTING_NS`, …). Everything subtle about this project lives in that table — a
+subcommand with the wrong exports reads a different registry than `spawn` does
+(the TR-044/TR-056 defect class, both now verified fixed). Two rows in the table
+are **deliberately empty**, and both are the "wrong fix is worse" cases:
+
+- `"quota": {}` — `router_quota.py` writes the gate where the **fleet spawn path**
+  reads it (`~/.hermes/model-router/quota-state.json`, no `ROUTER_STATE_DIR` in the
+  tick env). Exporting the data home here would make `router quota set` a silent
+  no-op for the exact feature it implements (TR-060).
+- `"probe": {}` / `"pricing-audit": {}` / `"outcomes": {}` — the calibration and
+  audit tools intentionally read the **fleet** registry and the **live** meter
+  (`~/.hermes/state.db`); a data-home export would point them at a fixture.
+
+**Right way:** if you set `TASK_ROUTER_HOME` for scratch work, remember it scopes
+*readers* and the circuit/ledger writers only. `quota` (and the calibration
+commands) still write fleet state — pass `--state-file` to aim them at a scratch
+file. This is the one place where "isolated scratch run" can touch production
+(TR-083).
+
+### How the run went (and the exact errors hit)
+
+| # | Error string (verbatim) | Reading | Right way |
+|---|---|---|---|
+| 1 | `router: unknown command '--version'` | the CLI has no `--version`; the command list is the version surface | `router --help` |
+| 2 | `router_circuit.py: error: unrecognized arguments: --provider --model --reason` (rc=2) | the documented invocation in `docs/soft-gate-integration.md` does not exist | positional: `router circuit record-failure <provider> <model> "<reason>" --class <class>` (TR-084) |
+| 3 | `NOT WIRED: ledger.jsonl has no trace rows` (warning on every resolve) | TR-007's concurrency gate is inert until the *scheduler* calls `ledger start/end` | not a defect — a cross-repo integration gap, stated in the payload |
+| 4 | `[FAIL] freshness: stale registry (warning-level): fallback_lanes.jsonl is 0s newer than registry.json` | `router seed && router validate` is red immediately after seeding (control host **and** fresh Debian 13) | TR-082 filed; until fixed, treat `validate`'s freshness line as advisory |
+| 5 | `classifier call failed: ROUTER_CLASSIFIER_BASE_URL not configured` inside `degrade_reason` | the promised *visible* degrade worked; with the doc's `ROUTER_CLASSIFIER_KEY_ENV=ZAI_GLM_API_KEY` (absent from the fleet `.env`, which has `ZAI_API_KEY`) the same degrade would hit a wired classifier | check `degrade_reason` before trusting cost ordering |
+| 6 | `{"error":"No active credentials for provider: zai-glm"}` (9router, 404) | probing the resolved `provider` id against the **9router** address space is the wrong layer — the router resolves *fleet* provider lanes, not 9router aliases | drive the router's own surfaces (CLI / REST / MCP / proxy); do not re-route its head through 9router by name |
+| 7 | `COLLECT-FAIL unreachable-agent` for `agent=e3d3cd28` | the shared default evidence path held a **2026-09-18** run's meta; this launch wrote no `.meta` of its own | TR-085 filed against the harness — always pass `--evidence <per-run-path>` |
+
+### The one P1 this run found, and how to see it again
+
+`docs/integration.md` promises the proxy is a *ladder*: classify → chain → walk the
+chain on transport failures, bounded by `x-router-max-hops` (default 3).
+Measured live (200 OK, served by `zai-glm/glm-5.3`, 115 s):
+
+```json
+"_router": {"chain_length": 40, "max_hops": 2,
+            "ladder": [{"hop": 4, "provider": "zai-glm", "model": "glm-5.3",
+                        "usd_1m": 1.52, "status": 200, "outcome": "ok",
+                        "latency_s": 114.024}],
+            "served_by": {"provider": "zai-glm", "model": "glm-5.3"}}
+```
+
+One entry, and it is **hop 4** — the chain's hop 1 costs **$0.082/M**, i.e. 18.5×
+cheaper, and was never attempted. The ladder is reported as if complete, so a
+caller cannot tell a full walk from a single attempt (TR-081). **Re-run:**
+`ROUTER_PROXY_UPSTREAM=http://127.0.0.1:8642 ROUTER_PROXY_AUTH=passthrough
+router server --mode read-only --port 9193`, then POST
+`/v1/chat/completions` with `x-router-max-hops: 2` and read `_router.ladder`.
+
+### Environment traps that cost time
+
+- **State-file keys.** The circuit/ledger state lived in `circuit-state.json` with
+  the pairs under a top-level `pairs` key that also contains a `v2` sub-object.
+  Top-level keys are **not** `$provider.$model`; read the file's own shape
+  (`{version, pairs: {…, v2: {provider_breakers, classes}}}`) before parsing it.
+- **Concurrency of the proxy.** A single upstream call takes ~114 s (gateway +
+  large context). The server is `ThreadingHTTPServer`, so a bounded parallel
+  probe is safe, but serial probes cost minutes each — budget for it.
+- **The fresh box needs nothing special.** Debian 13 / Python 3.13.5, no clang,
+  no cmake, no gcc, no `getfattr`: clone → venv → `pip install -e .` → `pip install
+  duckdb` → resolver live in ~15 s. `python3-venv` supplies `pip` even though the
+  base interpreter has no `pip` module.
+
+### Where the value actually is
+
+The honest answer to "does it work / is it worth anything":
+
+- **It works, and its central artifact is the `exclusions[].why` trail.** A
+  fleet operator can answer "why is my model X instead of Y" from one JSON
+  payload, with the gate and its reset time quoted. That is the product.
+- **It is trustworthy**: gates are honoured (breaker open → head moved; restore →
+  head returned), state round-trips through the ledger, and it never corrupts
+  anything it is asked about.
+- **It is rough around its own edges**: two documented command forms do not
+  execute, `validate` is red on a correctly-seeded fresh install, and the proxy's
+  cost-saving promise fails silently in the direction that costs money.
+- **Not verified here:** the classifier path itself (needs `ROUTER_CLASSIFIER_BASE_URL`
+  + a key env name that exists) and the full 4-driver proxy integration suite (TR-071..075).

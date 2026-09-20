@@ -74,31 +74,50 @@ router circuit record-success <provider> <model>
 - **Hundreds of `ROUTER-MISS` stderr lines** — per-lane exclusion telemetry;
   `tier=None` means the lane has no model_tier rows (TR-043). Not an error;
   use `--quiet` and read `exclusions` in the JSON.
-- **Two router surfaces disagree** (server vs CLI head, validate "registry
-  missing") — they loaded different registries. Only spawn/circuit/ledger/
-  maintain/seed/gaps/pricing/modelsdev/clinepass/probefix honor
-  `TASK_ROUTER_HOME` via the `task_router/cli.py` wrapper; validate/status/
-  estimate/diff/metrics/server/web read repo-relative or global paths
-  (TR-044, still open 2026-09-16). One-line repro: from the repo cwd,
-  `router status` reports `<repo>/registry.json` while `router spawn 9router`
-  reports `~/.local/share/task-router/registry.json` (fallback=true).
-  Force consistency with an explicit
-  `ROUTING_REGISTRY=/path/to/registry.json` for scratch work, and check
-  `fallback` / `bootstrap` in the spawn payload before trusting gates.
-- **Exit codes are only meaningful for the scripts, not the `router`
-  wrapper.** A dispatch error (unknown subcommand, invalid flag) prints the
-  child's usage plus `router: <cmd> exited 2 — fail-open (coerced to 0)` and
-  exits 0 — for every subcommand, including `validate` (TR-058; measured
-  2026-09-16). If your automation needs real exit codes, call
-  `scripts/router_<cmd>.py` directly, or parse the JSON payload instead.
-  (Note: `scripts/router_seed.py` without duckdb fails loudly AND exits 1 —
-  the loud-failure claim in the README is about the script behavior and is
-  accurate.)
-- **Bare profile ids dead-end in `spawn`/`/resolve`.** `router spawn
-  P1_CODING` → `{"error": "project P1_CODING not in registry"}` even though
-  P1_CODING is a valid profile. Profiles ride the `--profile` /
-  `--profile-req` flags (or live under a project row in
-  `data/tables/projects.jsonl`) (TR-059).
+- **Two router surfaces disagree** — **FIXED (TR-056; re-verified 2026-09-20).**
+  `status` / `validate` / `estimate` / `diff` / `metrics` / `server` / `web` now
+  receive the same `ROUTING_*` / `ROUTER_STATE_DIR` exports that `spawn` gets, so
+  one invocation reads one registry (`router status` and `router spawn` both
+  resolve under `$TASK_ROUTER_HOME`). Keep checking `fallback_used` /
+  `bootstrap` / `warnings` before trusting gates: with no seeded
+  `registry.json` the resolver serves the committed `data/tables` sample and
+  says so.
+- **Exit codes ARE meaningful for the `router` wrapper** — **FIXED (TR-058;
+  re-verified 2026-09-20):** `validate` → 1, unknown subcommand → 2, bad
+  `circuit` flags → 2, bad `ledger end --outcome` → 2. Automation can trust
+  `$?` (parsing the JSON payload still works and is more precise).
+- **`quota` writes FLEET state, not the data home.** **Confirmed 2026-09-20:**
+  with `TASK_ROUTER_HOME` set, `router quota set zai-glm "reason" <reset_at>`
+  reported `state: ~/.hermes/model-router/quota-state.json` — a real gate on the
+  live fleet, while the scratch home's `quota-state.json` has no
+  `quota_exhausted` key at all. Deliberate (TR-060: the fleet spawn path reads
+  the script default), so pass `--state-file <path>` when you must gate inside a
+  scratch sandbox. Same class: `router probe` / `probefix` / `plan-sweep` read
+  and write fleet locations.
+- **`circuit record-failure` takes POSITIONALS.** The invocation printed in
+  `docs/soft-gate-integration.md` (`--provider/--model/--reason`) exits 2.
+  Correct: `router circuit record-failure <provider> <model> "<reason>" --class
+  overload|quota_window|api_down|out_of_credit` (TR-084).
+- **The proxy ladder does NOT advance on a successful call** — **measured
+  2026-09-20 (TR-081):** a request with `x-router-max-hops: 2` returned a
+  `_router.ladder` with a SINGLE entry at `hop 4` (the served pair) while the
+  chain's hop 1 was never attempted, and the ladder still reads as a complete
+  walk. Compare `served_by` against the chain; never treat `ladder` as the list
+  of attempts.
+- **The classifier key name in the docs does not exist in the fleet env.**
+  `docs/integration.md` says `ROUTER_CLASSIFIER_KEY_ENV=ZAI_GLM_API_KEY`; the
+  fleet `~/.hermes/.env` has `ZAI_API_KEY` / `ZAI_DEFAULT_API_KEY`. Wrong name =
+  silent `complexity_source: "default"` (visible in `degrade_reason`, so check it).
+- **"Seed then validate is green" is not true on a fresh install** —
+  **reproduced 2026-09-20 on two boxes** (control host Python 3.11, fresh Debian
+  13 / Python 3.13.5): immediately after `router seed`, `router validate` exits 1
+  with `[FAIL] freshness: stale registry (warning-level): fallback_lanes.jsonl is
+  0s newer than registry.json`. Second re-run in a row is green. Do not treat
+  that single FAIL as a broken install (TR-082).
+- **Bare profile ids dead-end in `spawn`/`/resolve`.** **FIXED (TR-059;
+  re-verified 2026-09-20):** `router spawn P1_CODING --format json` now resolves
+  that profile and reports `resolved_as: "profile"` with
+  `hint: "use --profile P1_CODING"`.
 - **`ledger end --outcome` vocab is `success|failure|error`** — `ok` is
   rejected (argparse tells you immediately; no need to guess twice).
 - **Scratch seeds stay out of the live DuckBrain mirror** — the `router` CLI
