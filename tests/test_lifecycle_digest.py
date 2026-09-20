@@ -87,9 +87,14 @@ def test_catalog_drift_detects_absent_active_lanes():
         {"provider": "prov-a", "model": "off-one", "normalized_price": 1.0, "disabled": True},
     ]
     cache = {"prov-a": {"listed-model": [1, 2], "gone": [1, 2]}}
-    # 'gone:tagged' base-matches catalog 'gone' (tag stripped) -> NOT drift
+    # 'gone:tagged' base-matches catalog 'gone' (tag stripped) -> NOT a retirement;
+    # TR-076 classifies it as tag-shape instead of the old silent skip, so the
+    # assertion is on the ABSENT bucket, which is the one that means "verify".
     drift = rl.catalog_drift(rows, cache=cache)
-    assert [d["model"] for d in drift] == ["gone-model"], drift
+    absent = [d["model"] for d in drift if d.get("kind") == "absent"]
+    assert absent == ["gone-model"], drift
+    tagged = [d for d in drift if d["model"] == "gone:tagged"]
+    assert tagged and tagged[0]["kind"] == "tag-shape"
 
 
 def test_catalog_drift_never_stamps():

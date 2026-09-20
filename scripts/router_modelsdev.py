@@ -68,6 +68,7 @@ What it does:
 Stdlib only. Repo-relative paths (env overrides: ROUTING_DATA_DIR).
 """
 import argparse
+import datetime
 import json
 import os
 import re
@@ -490,6 +491,119 @@ def _apply_writes(summary, models, verbose=True):
     return wrote_cat, wrote_models, n_added
 
 
+def _is_dynamic_route(provider, model):
+    """True for provider-side routing/meta endpoints (TR-076 BY_DESIGN rule).
+
+    Imported lazily from router_lifecycle so the two modules cannot drift on
+    which lanes are exempt — if that list changes, both move together.
+    """
+    try:
+        import router_lifecycle as _rl
+        return _rl._by_design(provider, model)
+    except Exception:
+        return False
+
+
+def _pricing_gaps(models):
+    """TR-043: lanes whose only price source is the aggregator are invisible.
+
+    Forensics 2026-09-13: ollama deepseek-v4.1-flash WAS detected by tick 34 but
+    sat invisible in chains for 3 days, because the models.dev ollama-cloud
+    section carries an EMPTY cost for every model — so the sync added the row
+    with normalized_price=None and nothing ever flagged it. A NULL price is not
+    a finding on its own; the finding is that the lane is ACTIVE, in the catalog,
+    and still unpriced, so no chain can rank or display it.
+
+    Returns the active + enabled + unpriced rows, each with the reason it cannot
+    be priced automatically. The caller turns these into board candidates so the
+    gap is filed instead of staying silent.
+    """
+    today = datetime.datetime.now().strftime('%Y-%m-%d')
+    gaps = []
+    for m in models:
+        if m.get('archive') or m.get('disabled'):
+            continue
+        if m.get('normalized_price') is not None:
+            continue
+        if m.get('valid_to') and str(m['valid_to'])[:10] <= today:
+            continue
+        # A dynamic route has no fixed backing model, so it can never carry a
+        # per-token price — filing a "price this lane" row for it is busywork.
+        # This is the same by-design classification router_lifecycle uses.
+        if _is_dynamic_route(m.get('provider'), m.get('model') or ''):
+            continue
+        gaps.append({
+            'provider': m.get('provider'),
+            'model': m.get('model'),
+            'price_evidence': m.get('price_evidence'),
+            'reason': ('aggregator cost is empty ({} / null) — needs a provider '
+                       'pricing-page scrape, the ollama.com/library method'),
+        })
+    return gaps
+
+
+def _file_gap_rows(gaps, dry_run=False):
+    """Append one board row per unpriced lane (TR-043).
+
+    A board row is the mechanism Bane asked for: instead of the gap sitting
+    invisibly, the owning lane gets a task. Rows are de-duplicated by
+    (provider, model) against what is already on the board, so a weekly scan
+    does not pile up duplicates — the same defect the sibling `--file-gaps`
+    runs would otherwise reintroduce every tick.
+    """
+    board = os.path.join(_REPO, '.coding-hermes', 'board', 'tasks.jsonl')
+    if not os.path.exists(board):
+        return 0
+    existing = set()
+    rows = []
+    for line in open(board):
+        if not line.strip():
+            continue
+        try:
+            r = json.loads(line)
+        except Exception:
+            continue
+        rows.append(r)
+        if r.get('status') in ('complete', 'retired', 'duplicate'):
+            continue
+        for key in (r.get('detail') or '').split('\n'):
+            if key.startswith('lanes:'):
+                for pair in key[6:].split(','):
+                    existing.add(pair.strip())
+    ids = [r.get('id') or '' for r in rows]
+    nums = [int(i.split('-')[-1]) for i in ids
+            if i.startswith('TR-') and i.split('-')[-1].isdigit()]
+    next_n = (max(nums) + 1) if nums else 1
+    pending = [g for g in gaps
+               if f"{g['provider']}/{g['model']}" not in existing]
+    if dry_run or not pending:
+        return len(pending)
+    now = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    with open(board, 'a') as f:
+        for g in pending:
+            tid = f'TR-{next_n:03d}'
+            next_n += 1
+            f.write(json.dumps({
+                'id': tid, 'status': 'todo', 'priority': 'P2',
+                'title': f"PRICING GAP — {g['provider']}/{g['model']} is active but unpriced (invisible to chains)",
+                'detail': (f"Found by the weekly models.dev sync (TR-043). This lane is "
+                           f"ACTIVE and enabled but carries no usable price, so no chain "
+                           f"can rank or display it.\n\n"
+                           f"price_evidence: {g['price_evidence']}\n"
+                           f"reason: {g['reason']}\n"
+                           f"lanes: {g['provider']}/{g['model']}\n\n"
+                           f"ACCEPTANCE:\n"
+                           f" 1. Scrape the provider pricing page (ollama.com/library method) "
+                           f"and stamp public_in/public_out with the page + date as evidence.\n"
+                           f" 2. The lane is visible in a chain the SAME week it was detected.\n"
+                           f" 3. If it genuinely has no public price, stamp the reason instead "
+                           f"of leaving NULL."),
+                'created_at': now, 'updated_at': now,
+                'created_by': 'router_modelsdev', 'actor': 'weekly-sync',
+            }) + '\n')
+    return len(pending)
+
+
 def _print_human(summary):
     print(f"== models.dev sync ({summary['providers_on_modelsdev']} providers on catalog) ==")
     for t in summary['touched_providers']:
@@ -528,6 +642,8 @@ def main(argv=None):
     p_fetch.add_argument('--dry-run', action='store_true')
     sub.add_parser('mappings', help='print active provider mapping rules')
     ap.add_argument('--seed', action='store_true', help='run router_seed.py after sync')
+    ap.add_argument('--file-gaps', action='store_true', dest='file_gaps',
+                    help='TR-043: file a board row for every active unpriced lane')
     ap.add_argument('--commit', action='store_true', help='git commit + push the repo')
     args = ap.parse_args(argv)
 
@@ -573,6 +689,22 @@ def main(argv=None):
         # stays pure machine-parseable JSON.
         print(f'wrote catalog={wrote_cat} models={wrote_models} (+{n_added} rows)',
               file=sys.stderr)
+
+    # TR-043: an unpriced ACTIVE lane cannot be ranked or shown in a chain, so it
+    # is effectively invisible. Surface every one in the summary (and file board
+    # candidates on request) instead of letting the gap sit silently.
+    gaps = _pricing_gaps(models)
+    summary['pricing_gaps'] = len(gaps)
+    if gaps and not args.json:
+        print(f'\nPRICING GAPS ({len(gaps)} active lane(s) with no usable price — '
+              'invisible to chains until priced):')
+        for g in gaps[:25]:
+            print(f"  {g['provider']}/{g['model']}  [{g['price_evidence']}]  {g['reason']}")
+        if len(gaps) > 25:
+            print(f'  ... and {len(gaps) - 25} more')
+    if gaps and args.file_gaps:
+        n = _file_gap_rows(gaps, dry_run=args.dry_run)
+        print(f'filed {n} pricing-gap board row(s)' + (' (dry-run)' if args.dry_run else ''))
 
     if args.seed:
         seed = os.path.join(_REPO, 'scripts', 'router_seed.py')
