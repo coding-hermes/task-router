@@ -15,6 +15,8 @@
 {"id": "asce-dogfood", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
 {"id": "asce-qa", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P9_REVIEW"}
 {"id": "asce-sync", "sensitivity": "open", "board_type": "", "stack": "", "profile": "P8_SYNC"}
+{"id": "auger", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
+{"id": "auger-sync", "sensitivity": "open", "board_type": "", "stack": "", "profile": "P8_SYNC"}
 {"id": "axiom-sync", "sensitivity": "open", "board_type": "", "stack": "", "profile": "P8_SYNC"}
 {"id": "bankai", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "bankai-sync", "sensitivity": "open", "board_type": "", "stack": "", "profile": "P8_SYNC"}
