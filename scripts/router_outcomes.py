@@ -19,6 +19,7 @@ Subcommands:
   query           print the average for a lane (optionally merged)
 """
 import argparse
+import datetime
 import fcntl
 import hashlib
 import json
@@ -566,10 +567,127 @@ def import_hermes(db_path='~/.hermes/state.db'):
     return out
 
 
+def import_pi(sessions_dir='~/.pi/agent/sessions'):
+    """pi driver (TR-074): pi session JSONL -> outcome rows.
+
+    pi writes one JSONL per session under
+    `~/.pi/agent/sessions/<cwd-slug>/<timestamp>_<uuid>.jsonl`. The first line is
+    a `session` header (id, timestamp, cwd); assistant messages carry a `usage`
+    object (input/output/cacheRead/cacheWrite/totalTokens and a cost block) and a
+    `stopReason`. Verified against a real session file, not assumed from docs.
+
+    Unlike hermes (whose gateway does not report completion, so success stays
+    NULL), pi DOES report `stopReason`, so success is genuinely known here —
+    inferred only when an assistant message exists, never fabricated.
+
+    cost_usd is the session's own summed `cost.total`. pi computes it from the
+    cost table in the provider config, and the router's config declares zeros
+    (lane pricing is the router's job, TR-070), so a driver-shaped session
+    reports 0.0 rather than a fabricated number.
+    """
+    import glob
+    base = os.path.expanduser(sessions_dir)
+    out = []
+    # pi's layout is <sessions>/<cwd-slug>/<file>.jsonl, but a flat directory of
+    # session files is also valid input (and is how tests construct fixtures), so
+    # glob recursively rather than encoding the depth.
+    for path in sorted(glob.glob(os.path.join(base, '**', '*.jsonl'),
+                                 recursive=True)):
+        sid = None
+        first_ts = last_ts = None
+        cwd = None
+        provider = model = None
+        turns = 0
+        tin = tout = tcread = tcwrite = 0
+        cost_total = 0.0
+        saw_usage = False
+        stop_reasons = []
+        try:
+            with open(path, encoding='utf-8', errors='replace') as fh:
+                for line in fh:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        d = json.loads(line)
+                    except ValueError:
+                        continue
+                    t = d.get('type')
+                    if t == 'session':
+                        sid = d.get('id') or sid
+                        cwd = d.get('cwd') or cwd
+                        ts = _iso_to_epoch(d.get('timestamp'))
+                        first_ts = first_ts or ts
+                        last_ts = ts or last_ts
+                        continue
+                    if t != 'message':
+                        continue
+                    m = d.get('message') or {}
+                    ts = _iso_to_epoch(d.get('timestamp'))
+                    if ts:
+                        first_ts = first_ts if first_ts is not None else ts
+                        last_ts = ts
+                    if m.get('role') != 'assistant':
+                        continue
+                    turns += 1
+                    provider = m.get('provider') or provider
+                    model = m.get('model') or model
+                    if isinstance(m.get('stopReason'), str):
+                        stop_reasons.append(m['stopReason'])
+                    u = m.get('usage')
+                    if isinstance(u, dict):
+                        saw_usage = True
+                        tin += int(u.get('input') or 0)
+                        tout += int(u.get('output') or 0)
+                        tcread += int(u.get('cacheRead') or 0)
+                        tcwrite += int(u.get('cacheWrite') or 0)
+                        c = u.get('cost')
+                        if isinstance(c, dict):
+                            cost_total += float(c.get('total') or 0)
+        except OSError:
+            continue
+
+        if not sid:
+            continue
+        if not saw_usage and not turns:
+            continue          # nothing to report; never fabricate a row
+        if model is None and provider is None:
+            continue
+        success = None
+        if stop_reasons:
+            success = not any(r == 'error' for r in stop_reasons)
+        wall = (last_ts - first_ts) if (first_ts is not None and last_ts is not None) else None
+        out.append({'source_system': 'pi', 'session_id': sid,
+                    'task_label': cwd, 'complexity': None, 'profile_id': None,
+                    'required_categories': None,
+                    'provider': provider, 'model': model,
+                    'turns': turns, 'tokens_in': tin or None,
+                    'tokens_out': tout or None,
+                    'tokens_cache_read': tcread or None,
+                    'tokens_cache_write': tcwrite or None,
+                    'tokens_reasoning': None,
+                    'cost_usd': (cost_total if saw_usage else None),
+                    'wall_time_s': wall, 'success': success,
+                    'ts': last_ts})
+    return out
+
+
+def _iso_to_epoch(v):
+    """ISO-8601 (with trailing Z) -> epoch seconds. None when unparseable."""
+    if not isinstance(v, str) or not v:
+        return None
+    s = v.strip().replace('Z', '+00:00')
+    try:
+        return datetime.datetime.fromisoformat(s).timestamp()
+    except ValueError:
+        return None
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split('\n')[1])
     sub = ap.add_subparsers(dest='cmd', required=True)
     sub.add_parser('import-hermes')
+    sub.add_parser('import-pi')
     p_avg = sub.add_parser('averages')
     p_avg.add_argument('--merge-backends', action='store_true')
     p_q = sub.add_parser('query')
@@ -579,6 +697,9 @@ def main():
 
     if args.cmd == 'import-hermes':
         n = append_rows(OUTCOMES, import_hermes())
+        print(f'outcomes: +{n} new rows (idempotent)')
+    elif args.cmd == 'import-pi':
+        n = append_rows(OUTCOMES, import_pi())
         print(f'outcomes: +{n} new rows (idempotent)')
     elif args.cmd == 'averages':
         rows = [json.loads(l) for l in open(OUTCOMES) if l.strip()] if os.path.exists(OUTCOMES) else []
