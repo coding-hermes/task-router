@@ -1233,7 +1233,7 @@
 {"model": "hy3", "category": "long_doc", "perf": 0.65, "tier": -1, "tier_source": "measured", "source_ref": "models.jsonl:perf_long_doc"}
 {"model": "hy3", "category": "mechanical", "perf": 0.72, "tier": 5, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:hy3"}
 {"model": "hy3", "category": "mock", "perf": 0.82, "tier": -1, "tier_source": "estimate", "source_ref": "QUALITY_ESTIMATES"}
-{"model": "hy3", "category": "reasoning", "perf": 0.8, "tier": 0, "tier_source": "measured", "source_ref": "models.jsonl:perf_reasoning"}
+{"model": "hy3", "category": "reasoning", "perf": 0.897, "tier": 1, "tier_source": "bench", "source_ref": "bench:GPQA"}
 {"model": "hy3", "category": "refactor", "perf": 0.5, "tier": 1, "tier_source": "bench", "source_ref": "bench:battery-T2-CODE"}
 {"model": "hy3", "category": "review", "perf": 0.75, "tier": 1, "tier_source": "measured", "source_ref": "models.jsonl:perf_review"}
 {"model": "hy3", "category": "schema", "perf": 0.5, "tier": 1, "tier_source": "measured", "source_ref": "models.jsonl:perf_schema"}
@@ -2053,7 +2053,7 @@
 {"model": "tencent/hy3", "category": "long_doc", "perf": 0.65, "tier": -1, "tier_source": "family", "source_ref": "alias:hy3"}
 {"model": "tencent/hy3", "category": "mechanical", "perf": 0.72, "tier": 5, "tier_source": "family", "source_ref": "alias:hy3"}
 {"model": "tencent/hy3", "category": "mock", "perf": 0.82, "tier": -1, "tier_source": "family", "source_ref": "alias:hy3"}
-{"model": "tencent/hy3", "category": "reasoning", "perf": 0.8, "tier": 0, "tier_source": "family", "source_ref": "alias:hy3"}
+{"model": "tencent/hy3", "category": "reasoning", "perf": 0.897, "tier": 1, "tier_source": "family", "source_ref": "alias:hy3"}
 {"model": "tencent/hy3", "category": "refactor", "perf": 0.5, "tier": 1, "tier_source": "family", "source_ref": "alias:hy3"}
 {"model": "tencent/hy3", "category": "review", "perf": 0.75, "tier": 1, "tier_source": "family", "source_ref": "alias:hy3"}
 {"model": "tencent/hy3", "category": "schema", "perf": 0.5, "tier": 1, "tier_source": "family", "source_ref": "alias:hy3"}
@@ -2068,7 +2068,7 @@
 {"model": "tencent/hy3-paid", "category": "long_doc", "perf": 0.65, "tier": -1, "tier_source": "family", "source_ref": "alias:hy3"}
 {"model": "tencent/hy3-paid", "category": "mechanical", "perf": 0.72, "tier": 5, "tier_source": "family", "source_ref": "alias:hy3"}
 {"model": "tencent/hy3-paid", "category": "mock", "perf": 0.82, "tier": -1, "tier_source": "family", "source_ref": "alias:hy3"}
-{"model": "tencent/hy3-paid", "category": "reasoning", "perf": 0.8, "tier": 0, "tier_source": "family", "source_ref": "alias:hy3"}
+{"model": "tencent/hy3-paid", "category": "reasoning", "perf": 0.897, "tier": 1, "tier_source": "family", "source_ref": "alias:hy3"}
 {"model": "tencent/hy3-paid", "category": "refactor", "perf": 0.5, "tier": 1, "tier_source": "family", "source_ref": "alias:hy3"}
 {"model": "tencent/hy3-paid", "category": "review", "perf": 0.75, "tier": 1, "tier_source": "family", "source_ref": "alias:hy3"}
 {"model": "tencent/hy3-paid", "category": "schema", "perf": 0.5, "tier": 1, "tier_source": "family", "source_ref": "alias:hy3"}

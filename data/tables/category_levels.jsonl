@@ -136,7 +136,7 @@
 {"category": "reasoning", "level": -2, "label": "--", "min_perf": 0.65}
 {"category": "reasoning", "level": -1, "label": "-", "min_perf": 0.7424999999999999}
 {"category": "reasoning", "level": 0, "label": "0", "min_perf": 0.8}
-{"category": "reasoning", "level": 1, "label": "+", "min_perf": 0.8574999999999999}
+{"category": "reasoning", "level": 1, "label": "+", "min_perf": 0.88}
 {"category": "reasoning", "level": 2, "label": "++", "min_perf": 0.917}
 {"category": "reasoning", "level": 3, "label": "+++", "min_perf": 0.9420000000000001}
 {"category": "reasoning", "level": 4, "label": "++++", "min_perf": 0.9694}

@@ -102,6 +102,7 @@
 {"model": "deepseek-v4-flash", "category": "code_gen", "score": 0.79, "max_score": 1.0, "source": "SWE-bench Verified 79.0% (vendor, zenmux.ai roundup) research-bench-2026-09-11", "valid_from": "2026-09-11"}
 {"model": "deepseek-v4-flash", "category": "long_horizon", "score": 0.544, "max_score": 1.0, "source": "DeepSWE 54.4 (0731 post-training re-run on identical weights, regolo.ai roundup) research-bench-2026-09-11 — post-training gain, NOT architectural; treat as 0731-generation evidence", "valid_from": "2026-09-11"}
 {"model": "deepseek-v4-flash", "category": "sentiment", "score": 0.7, "max_score": 1.0, "source": "research-bench-2026-09-11: batch/default-pipeline consensus (morphllm); AA Intelligence 35 vs Pro-0813 36 — within 1pt; terminal/agentic gap vs Pro corroborated", "valid_from": "2026-09-11"}
+{"model": "deepseek-v4-flash", "category": "terminal", "score": 82.7, "max_score": 100.0, "source": "Terminal-Bench 2.1 82.7 official GA build (deepseek.ai blog; corroborated flowtivity.ai + deepseekreasonix.com) research-bench-2026-09-21", "valid_from": "2026-09-21"}
 {"model": "deepseek-v4-flash-vision-exp", "category": "agent-tick", "score": 2.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
 {"model": "deepseek-v4-flash-vision-exp", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
 {"model": "deepseek-v4-flash-vision-exp", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
@@ -344,6 +345,7 @@
 {"model": "hy3", "category": "long-doc", "score": 0.671, "max_score": 1.0, "source": "BrowseComp (vendor) research-bench-2026-08-29", "valid_from": "2026-08-29"}
 {"model": "hy3", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
 {"model": "hy3", "category": "reasoning", "score": 0.702, "max_score": 1.0, "source": "WideSearch (vendor) research-bench-2026-08-29", "valid_from": "2026-08-29"}
+{"model": "hy3", "category": "reasoning", "score": 89.7, "max_score": 100.0, "source": "GPQA Diamond 89.7 rank 39/464 (benchmarklist.com aggregator) research-bench-2026-09-21", "valid_from": "2026-09-21"}
 {"model": "hy3", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
 {"model": "hy3", "category": "sentiment", "score": 0.6, "max_score": 1.0, "source": "research-bench-2026-09-09: benchlm Hy3-preview 43.8/100 #174/226 (agentic #76); vendor update relays SWE-bench Pro 46.0->57.9 + Terminal Bench 58.0->71.7 (explainx/medium, scale-ambiguous — NOT overlaid); HF card touts ClawEval/WildClawBench practicality; community sees a real agentic coder but mid-pack overall rank", "valid_from": "2026-09-09"}
 {"model": "hy3", "category": "sentiment", "score": 0.7, "max_score": 1.0, "source": "research-sent-2026-08-27", "valid_from": "2026-08-27"}
