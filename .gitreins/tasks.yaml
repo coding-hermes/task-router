@@ -336,3 +336,11 @@ tasks:
     \ --profile P1_CODING still resolves fine; new regression tests in tests/test_cli_contracts.py"
   status: in_progress
   created_at: '2026-09-19T12:40:00.246650+00:00'
+- id: TR-103
+  title: "CI RED: test_jev_scoring tests fail on CI (OR_JEV absent) \u2014 inject\
+    \ key into 3 hermetic tests"
+  criteria:
+  - python3 -m pytest tests/test_jev_scoring.py passes with OR_JEV unset and HOME=<empty
+    dir>; full suite green
+  status: in_progress
+  created_at: '2026-09-21T06:04:07.501874+00:00'

@@ -134,14 +134,18 @@ def test_no_score_is_a_problem_not_a_guess():
     assert problems == ["no JEV score"]
 
 
-def test_transport_error_is_reported_and_no_matrix():
+def test_transport_error_is_reported_and_no_matrix(monkeypatch):
+    # Hermetic (TR-103): without a key, key_candidates() early-returns before
+    # the injected fake transport is ever reached — CI has no ~/.hermes/.env.
+    monkeypatch.setenv("OR_JEV", "test-key")
     res = router_jev.classify("anything", http=fake_http(None, status=500, body="boom"), bands=BANDS)
     assert res["matrix"] is None
     assert res["score"] is None
     assert any("HTTP 500" in p for p in res["problems"])
 
 
-def test_malformed_answer_is_reported_and_no_matrix():
+def test_malformed_answer_is_reported_and_no_matrix(monkeypatch):
+    monkeypatch.setenv("OR_JEV", "test-key")  # hermetic, see TR-103 above
     res = router_jev.classify("anything", http=fake_http(None, body={"answers": {"hardness": {"type": "score"}}}),
                               bands=BANDS)
     assert res["matrix"] is None
@@ -181,7 +185,8 @@ def test_key_failover_uses_the_next_key():
 
 # ------------------------------------------------------ result contract ----
 
-def test_classify_result_shape_matches_the_classifier_peer():
+def test_classify_result_shape_matches_the_classifier_peer(monkeypatch):
+    monkeypatch.setenv("OR_JEV", "test-key")  # hermetic, see TR-103 above
     res = router_jev.classify("x", http=fake_http(1.9), bands=BANDS, categories=["code_gen", "debug", "test", "reasoning", "refactor"])
     for key in ("matrix", "complexity_sig", "confidence", "problems", "model"):
         assert key in res, key
