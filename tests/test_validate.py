@@ -212,3 +212,81 @@ def test_validate_reports_which_paths_were_compared(tmp_path):
     paths = next(c for c in out["checks"] if c["name"] == "freshness.paths")
     assert str(reg) in paths["detail"]
     assert str(data_dir) in paths["detail"]
+
+
+# ─── Worker task 2026-09-21: bare-run default must match seed + spawn ────────
+#
+# router_validate.py resolved its REGISTRY default through
+# task_router.paths.registry_path() (data home) while router_seed.py and
+# router_spawn.py default to <repo>/registry.json — so a bare
+# `python3 scripts/router_validate.py` at repo root on a healthy checkout
+# exited 1 with "registry.exists: missing ~/.local/share/task-router/
+# registry.json". Installed CLI use keeps working through the env override:
+# task_router.cli exports ROUTING_REGISTRY (data-home derived) before
+# dispatching, so the env remains the only mechanism needed.
+
+_BARE_ENV_KEYS = ("ROUTING_REGISTRY", "TASK_ROUTER_HOME", "XDG_DATA_HOME")
+
+
+def _import_validate_fresh(monkeypatch, **env_over):
+    """Import scripts/router_validate.py as a fresh module with the given env.
+
+    Deletes every registry-affecting variable first so module-level DEFAULTS
+    (not inherited shell env) decide the resolution. The module is popped from
+    sys.modules after the assertion block via the returned cleanup contract.
+    """
+    for k in _BARE_ENV_KEYS:
+        monkeypatch.delenv(k, raising=False)
+    for k, v in env_over.items():
+        monkeypatch.setenv(k, v)
+    scripts_dir = os.path.join(REPO, "scripts")
+    if REPO not in sys.path:
+        sys.path.insert(0, REPO)
+    if scripts_dir not in sys.path:
+        sys.path.insert(0, scripts_dir)
+    sys.modules.pop("router_validate", None)
+    try:
+        import importlib
+        return importlib.import_module("router_validate")
+    finally:
+        if scripts_dir in sys.path:
+            sys.path.remove(scripts_dir)
+        sys.modules.pop("router_validate", None)
+
+
+def test_validate_default_registry_matches_seed_and_spawn(monkeypatch):
+    """With no env overrides, validate's REGISTRY default == seed/spawn default.
+
+    Both other scripts resolve ROUTING_REGISTRY or <repo>/registry.json; the
+    validator must not diverge to the data home (measured divergence: bare run
+    looked at ~/.local/share/task-router/registry.json and exited 1)."""
+    mod = _import_validate_fresh(monkeypatch)
+    assert mod.REGISTRY == os.path.join(REPO, "registry.json")
+
+
+def test_validate_registry_env_override_still_wins(monkeypatch, tmp_path):
+    """ROUTING_REGISTRY stays authoritative over the repo default."""
+    override = str(tmp_path / "override-registry.json")
+    mod = _import_validate_fresh(monkeypatch, ROUTING_REGISTRY=override)
+    assert mod.REGISTRY == override
+
+
+def test_bare_run_at_repo_root_exits0_on_healthy_checkout(monkeypatch):
+    """THE acceptance: bare `python3 scripts/router_validate.py` at repo root
+    on the current (seeded, committed-tables) tree exits 0 and validates the
+    REPO registry — the same file `router seed` writes and `router spawn`
+    reads. Runs against the real repo registry/data (no fixtures) because the
+    bug was exactly in the no-env resolution path."""
+    for k in _BARE_ENV_KEYS:
+        monkeypatch.delenv(k, raising=False)
+    proc = subprocess.run([PY, VALIDATE, "--json"], cwd=REPO,
+                          env=dict(os.environ), capture_output=True,
+                          text=True, timeout=60)
+    assert "Traceback" not in proc.stderr, proc.stderr[:400]
+    out = json.loads(proc.stdout)  # raises unless stdout is PURE JSON
+    exists = next(c for c in out["checks"] if c["name"] == "registry.exists")
+    assert exists["ok"] is True, out["issues"]
+    assert os.path.realpath(exists["detail"]) == os.path.realpath(
+        os.path.join(REPO, "registry.json"))
+    assert out["valid"] is True, out["issues"]
+    assert proc.returncode == 0

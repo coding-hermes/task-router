@@ -37,31 +37,28 @@ import sys
 _HERE = os.path.dirname(os.path.realpath(__file__))
 _REPO = os.path.dirname(_HERE)
 
-# TR-057: derive the registry default from the data-home path helper so a
-# direct invocation (bypassing the CLI) honours TASK_ROUTER_HOME the same way
-# `router seed` and `router spawn` do.  Env override still wins.
+# Repo-relative default (worker 2026-09-21): with ROUTING_REGISTRY unset the
+# validator must look at the SAME registry.json `router seed` writes and
+# `router spawn` reads — <repo>/registry.json (identical defaults in
+# router_seed.py:21 and router_spawn.py:117). The TR-057 data-home default
+# via task_router.paths.registry_path() diverged from both: a bare
+# `python3 scripts/router_validate.py` on a healthy repo checkout exited 1
+# with "registry.exists: missing ~/.local/share/task-router/registry.json".
 #
-# 2026-09-19 (CI red, 5 consecutive runs from 625439e): the bare import broke
-# every FRESH CHECKOUT — the helper only resolved where the package is
-# installed (board venv editable install), so `python3 -m pytest` in CI died
-# with ModuleNotFoundError: No module named 'task_router' and took 9 validate
-# fixture tests with it. Insert the repo root first (same sys.path pattern
-# router_pricing.py uses for its own package) so a direct invocation of the
-# script works from any cwd, installed or not.
-if _REPO not in sys.path:
-    sys.path.insert(0, _REPO)
-try:
-    from task_router.paths import registry_path as _data_home_registry
-except ImportError:  # pragma: no cover - uninstallable layout fallback
-    def _data_home_registry():
-        """Fallback data-home resolution (no package import available)."""
-        home = os.environ.get('TASK_ROUTER_HOME')
-        if home:
-            return os.path.join(os.path.expanduser(home), 'registry.json')
-        return os.path.join(os.path.expanduser('~/.local/share/task-router'),
-                            'registry.json')
+# 2026-09-19 (CI red, 5 consecutive runs from 625439e): the TR-057 data-home
+# version imported task_router.paths at module level, which broke every FRESH
+# CHECKOUT — the import only resolved where the package is installed (board
+# venv editable install), so `python3 -m pytest` in CI died with
+# ModuleNotFoundError: No module named 'task_router' and took 9 validate
+# fixture tests with it. This default needs NO package import at all
+# (stdlib-only, works from any cwd, installed or not).
+#
+# Installed-CLI use is unchanged: task_router.cli exports ROUTING_REGISTRY
+# (data-home derived) before dispatching to this script, and the env override
+# remains authoritative — bare run == repo checkout convention, CLI run ==
+# data-home convention via env, exactly like seed/spawn.
 
-REGISTRY = os.environ.get('ROUTING_REGISTRY', _data_home_registry())
+REGISTRY = os.environ.get('ROUTING_REGISTRY', os.path.join(_REPO, 'registry.json'))
 DATA_DIR = os.environ.get('ROUTING_DATA_DIR', os.path.join(_REPO, 'data', 'tables'))
 STATE_DIR = os.environ.get('ROUTER_STATE_DIR', os.path.expanduser('~/.hermes/model-router'))
 
@@ -98,6 +95,35 @@ def _read_jsonl(path):
         return rows, None
     except Exception as e:
         return rows, str(e)
+
+
+def _tables_content_equal(reg_tables, data_dir):
+    """True when EVERY registry table matches its data/tables/*.jsonl mirror
+    row-for-row. Direction matters: data/tables also holds seed-INPUT files
+    the registry never exports (probe_*, plan_terms, quality_estimates, ...);
+    only registry-owned tables decide staleness. Used ONLY as the
+    big-mtime-lag tiebreak: content, not timestamps, is what 'stale' means.
+    """
+    if not isinstance(reg_tables, dict) or not reg_tables:
+        return False
+    for name, reg_rows in reg_tables.items():
+        if not isinstance(reg_rows, list):
+            return False
+        path = os.path.join(data_dir, f'{name}.jsonl')
+        if not os.path.exists(path):
+            return False
+        rows = []
+        try:
+            with open(path) as f:
+                for line in f:
+                    line = line.strip()
+                    if line:
+                        rows.append(json.loads(line))
+        except Exception:
+            return False
+        if rows != reg_rows:
+            return False
+    return True
 
 
 def run_checks():
@@ -174,10 +200,26 @@ def run_checks():
             # FRESHNESS_SLACK_S is genuinely stale.
             lag = newest_m - reg_m
             if lag > FRESHNESS_SLACK_S:
-                add('freshness', False,
-                    f'stale registry (warning-level): {os.path.basename(newest_f)} is '
-                    f'{lag:.0f}s newer than registry.json — re-run '
-                    f'scripts/router_seed.py')
+                # TR-082 follow-up (worker 2026-09-21): the seed writes
+                # registry.json BEFORE syncing data/tables, so under load the
+                # tables can land many seconds "newer" while carrying EXACTLY
+                # the registry's content — mtime alone then reds a healthy
+                # checkout (measured: 5s lag on the current tree). Before
+                # flagging stale, compare CONTENT: identical row-for-row
+                # tables = seed write-ordering artifact, not staleness.
+                reg_doc = reg if isinstance(reg, dict) else None
+                reg_tables = reg_doc.get('tables') if reg_doc else None
+                if isinstance(reg_tables, dict) and _tables_content_equal(
+                        reg_tables, DATA_DIR):
+                    add('freshness', True,
+                        f'registry.json content matches all {len(table_files)} data '
+                        f'tables ({os.path.basename(newest_f)} mtime is {lag:.0f}s '
+                        f'newer — seed write ordering, not staleness)')
+                else:
+                    add('freshness', False,
+                        f'stale registry (warning-level): {os.path.basename(newest_f)} is '
+                        f'{lag:.0f}s newer than registry.json — re-run '
+                        f'scripts/router_seed.py')
             else:
                 add('freshness', True,
                     f'registry.json is at least as new as all {len(table_files)} data tables '
