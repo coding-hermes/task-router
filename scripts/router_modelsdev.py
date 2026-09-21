@@ -721,12 +721,15 @@ def main(argv=None):
                        include_all=args.include_all, dry_run=args.dry_run)
 
     if args.json:
-        summary.pop('adds', None)      # internal write-path payloads
-        summary.pop('catalog', None)
+        # keep the write-path payloads ('adds'/'catalog') intact for
+        # _apply_writes below — print a filtered copy instead of popping
+        # (popping here crashed the real-write --json run: KeyError 'adds').
         summary['action'] = 'sync'
         summary['dry_run'] = args.dry_run
         summary['include_all'] = args.include_all
-        print(json.dumps(summary, ensure_ascii=False))
+        printable = {k: v for k, v in summary.items()
+                     if k not in ('adds', 'catalog')}
+        print(json.dumps(printable, ensure_ascii=False))
     else:
         _print_human(summary)
 
