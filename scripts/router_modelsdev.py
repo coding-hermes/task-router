@@ -470,7 +470,12 @@ def _apply_writes(summary, models, verbose=True):
                            'perf_e2e_vision': None, 'perf_review': None,
                            'perf_delegation': None, 'perf_guard': None,
                            'perf_mock': None, 'perf_reasoning': None,
-                           'valid_from': None, 'valid_to': None,
+                           # TR-098: a fresh dated row needs a valid_from — the
+                           # sync date IS the row's first-valid day. Active
+                           # rows with valid_from NULL are invisible to the
+                           # TR-069 lifecycle date engine (states/dates).
+                           'valid_from': datetime.date.today().isoformat(),
+                           'valid_to': None,
                            'archive': False, 'token_factor': 1.0,
                            'disabled': None, 'disabled_reason': None,
                            'context_limit': (meta.get('limit') or {}).get('context'),
