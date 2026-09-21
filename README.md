@@ -12,6 +12,7 @@ The runtime contract is **fail-open**: `router_spawn.py` always exits `0`. If re
 - [The router command](#the-router-command)
 - [Web UI](#web-ui)
 - [API server and MCP bridge](#api-server-and-mcp-bridge)
+- [Classified proxy deployment (TR-067)](#classified-proxy-deployment-tr-067)
 - [Architecture](#architecture)
 - [Context windows and capabilities](#context-windows-and-capabilities)
 - [Versioned, tagged profiles](#versioned-tagged-profiles)
@@ -47,7 +48,7 @@ router spawn P1_CODING --format json
 # One-command overview of registry, gates, circuit, and gaps.
 router status
 
-# Run the test suite (293 tests). The suite imports duckdb too, so run it with
+# Run the test suite (692 tests). The suite imports duckdb too, so run it with
 # an interpreter that has duckdb — the board venv on the fleet hosts:
 #   ~/.hermes/venvs/board/bin/python3 -m pytest -q tests/
 python3 -m pytest -q tests/
@@ -148,6 +149,111 @@ ROUTER_EDIT_API_KEY=... router server --mode edit
   `tools/list`, `tools/call`). Tools are derived mechanically from the
   OpenAPI schema, so an MCP client can list and call the same operations —
   including gated mutations — under identical auth rules.
+
+## Classified proxy deployment (TR-067)
+
+The server also speaks `POST /v1/chat/completions` and `POST /v1/responses`
+(Path B): it classifies the request (or takes the caller's declared
+profile), builds the chain internally, walks a bounded fallback ladder
+against the upstream gateway, and returns the upstream response shape plus
+additive `_router` metadata (`complexity_source`, ladder trail,
+`served_by`, skip/exclusion counts). `ROUTER_PROXY_AUTH=passthrough` lets a
+caller's own upstream credential gate the mirror paths instead of the
+router key — the gate is never weakened silently; without it the usual
+router auth applies.
+
+### Verified recipe (live-tested 2026-09-21 on :9391, real requests)
+
+```bash
+set -a; source ~/.hermes/.env; set +a
+export ROUTER_PROXY_AUTH=passthrough
+export ROUTER_PROXY_UPSTREAM=http://127.0.0.1:8642
+export ROUTER_CLASSIFIER_BASE_URL=http://127.0.0.1:8642/v1
+export ROUTER_CLASSIFIER_MODEL=deepseek-v4.1-flash
+export ROUTER_CLASSIFIER_KEY_ENV=API_SERVER_KEY
+scripts/router_server.py --mode read-only --host 127.0.0.1 --port 9391
+```
+
+Same process env covers the whole path: the resolver chain, the classifier
+and the outcome/breaker bookkeeping all run as subprocesses of the server
+(`env=os.environ.copy()`), so exported `ROUTER_*` variables propagate — no
+per-tool config needed.
+
+Env knobs:
+
+| Variable | Purpose |
+|---|---|
+| `ROUTER_PROXY_AUTH=passthrough` | mirror paths gated by the caller's upstream credential |
+| `ROUTER_PROXY_UPSTREAM` | upstream gateway base (default `http://127.0.0.1:8642`) |
+| `ROUTER_PROXY_MAX_HOPS` | ladder bound; per-request `x-router-max-hops` wins |
+| `ROUTER_SCORER` | default scorer: `classifier` (default), `jev`, `decisions` |
+| `ROUTER_CLASSIFIER_BASE_URL/_MODEL/_KEY_ENV` | classifier endpoint, model id, env name of its key |
+
+Caller headers: `x-router-scorer` (per-request scorer override),
+`x-router-caller` (driver attribution), `x-router-profile` (declare the
+complexity instead of classifying), `x-router-max-hops`, `x-router-sort`,
+`x-router-window-h`, `x-router-developer-role: preserve`.
+
+### Port collision check (2026-09-21)
+
+All listeners enumerated with `ss -tlnp` before binding:
+
+- `9092` — live fleet API server (`router server`, pid confirmed); proxy
+  must never take it.
+- `8642` — the Hermes gateway itself; proxy's upstream, never a bind
+  target.
+- `9292` — free at deployment time (it had been squatted by a scratch
+  process during the 2026-09-20 verification, so re-check before every
+  bind).
+- `9391` — free; chosen for verification, and the verified recipe above
+  pins it. Check before rebinding: `ss -tlnp | grep -E ':(9391|9292)\b'`
+  (empty = free).
+
+### Classifier lane health — read before pointing at the gateway
+
+The classifier is a plain chat call to `ROUTER_CLASSIFIER_BASE_URL`, so it
+is only as disciplined as the lane serving it. Live finding
+(2026-09-21): identical calls with the classification prompt returned the
+expected JSON object roughly half the time when pointed at the gateway;
+`state.db` `session_model_usage` showed **zero** `deepseek-v4.1-flash`
+rows in the window — the label rode gateway fallback hops that ignore the
+classifier's system prompt and answer the raw task instead
+(`complexity_source` then degrades to `default`, visibly, by design).
+Called directly (`https://api.deepseek.com/v1`), the same lane classified
+3/3. So:
+
+- Prefer the deepseek endpoint for the classifier; treat
+  `ROUTER_CLASSIFIER_BASE_URL=http://127.0.0.1:8642/v1` as a fallback to
+  re-verify when gateway lanes move. Sanity-check before/after any
+  restart:
+
+  ```bash
+  python3 scripts/router_classify.py --text "Write a quick file-copy script"
+  ```
+
+  JSON object with `categories` = lane healthy; anything else = degraded.
+
+- Parity is defined on answer CONTENT, not generation identity: the proxy
+  forwards the body unchanged and returns the upstream payload with
+  additive `_router` fields, but the gateway may serve any lane for the
+  requested model. Exact-match parity tests must pin an answer
+  (constrained prompt) or compare the served model id; free-form prompts
+  differ word-by-word across calls by nature.
+
+### Client cutover (owner's call)
+
+Point fleet clients' `base_url` at the proxy instead of the gateway:
+
+```text
+before:  http://127.0.0.1:8642/v1
+after:   http://127.0.0.1:9391/v1      (same auth header works: passthrough)
+```
+
+Nothing else changes for callers — same wire shape, same key; responses
+gain the additive `_router` envelope. The operator-facing flip (which
+clients move, and when) is deliberately left to the owner; this repo ships
+the recipe, the port checks, and the verified acceptance evidence, not
+the fleet-wide reconfig.
 
 ## Architecture
 
