@@ -268,3 +268,28 @@ def test_dry_run_same_counts_and_models_jsonl_byte_identical(fixture_env, tmp_pa
 
     after = open(os.path.join(str(fixture_env), "models.jsonl"), "rb").read()
     assert after == before, "--dry-run must not write models.jsonl"
+
+
+# ------------------------------------------ adds: fresh dated rows (TR-098) ----
+
+def test_added_row_carries_valid_from_today(fixture_env):
+    """TR-098 (e): a NEW model row is a fresh dated row — valid_from must be
+    the sync date, never NULL. The old template stamped valid_from: None,
+    which left the row invisible to the TR-069 lifecycle date engine
+    (479 active NULL-valid_from rows measured 2026-09-21)."""
+    import datetime
+    rows = [_model_row("prov", "existing", valid_from="2026-08-01")]
+    api = _payload(existing=_meta(context=100000),
+                   brand_new=_meta(context=128000))
+    summary = md.run_sync(api, rows, [], md.load_mappings())
+    assert [r["model"] for r in summary["new_models"]] == ["brand_new"]
+
+    # the write path (what actually appends the template row)
+    md._apply_writes(summary, rows, verbose=False)
+    added = [r for r in rows if r["model"] == "brand_new"]
+    assert len(added) == 1
+    assert added[0]["valid_from"] == datetime.date.today().isoformat()
+    assert added[0]["valid_to"] is None
+    assert added[0]["archive"] is False
+    # pre-existing row untouched by the add path
+    assert rows[0]["valid_from"] == "2026-08-01"
