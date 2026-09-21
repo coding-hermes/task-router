@@ -486,9 +486,12 @@ def main(config_path=None, only_providers=None, output_path=None, write=True):
                                  f'id corrected: {model} → {alt}'
                     r2['probed_as'] = alt
                     r = r2
+            # TR-104: stamp every model entry with the probe-run transition ts —
+            # router_spawn renders it as "model DOWN (<ts>)"; unstamped legacy
+            # entries used to print "model DOWN (?)".
             models[model] = {'status': r['status'], 'latency_ms': r.get('latency_ms'),
                              'error': r.get('error'), 'note': r.get('note'),
-                             'probed_as': r.get('probed_as')}
+                             'probed_as': r.get('probed_as'), 'ts': ts}
             if i < len(lanes) - 1:
                 time.sleep(0.15)  # gentle: never blast a provider (Bane 08-28)
         status, stats = aggregate(models)

@@ -152,5 +152,13 @@ def test_probe_default_still_writes(tmp_path):
     assert out_file.exists(), "health-state.json not written on a normal run"
     state = json.loads(out_file.read_text())
     assert "fakeprov" in state.get("providers", {}), "written state missing the probed provider"
+    # TR-104: every probed model entry carries the probe-run transition ts —
+    # router_spawn renders it in "model DOWN (<ts>)"; without it legacy states
+    # print "model DOWN (?)".
+    prov = state["providers"]["fakeprov"]
+    mm = (prov.get("models") or {}).get("fake-model")
+    assert mm is not None, "model entry missing from written state"
+    assert mm.get("ts") and mm["ts"] == prov.get("ts"), (
+        f"model entry missing probe ts: model={mm.get('ts')} provider={prov.get('ts')}")
     jsonl = out_dir / "health-state.jsonl"
     assert jsonl.exists() and jsonl.read_text().strip(), "health jsonl not appended"

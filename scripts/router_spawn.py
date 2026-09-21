@@ -1742,8 +1742,12 @@ def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=DE
         # gpt-5.6-sol review 2026-08-27: the router previously ignored it and
         # routed onto 22 DOWN pairs)
         hm = (h.get('models') or {}).get(model) or {}
+        # TR-104: render the model's own transition ts (probe v3 stamps every
+        # model entry); entries written before stamping fall back to the
+        # provider-level probe ts — never a bare '?'.
+        mt = hm.get('ts') or h.get('ts') or '?'
         if hm.get('status') == 'DOWN':
-            why.append(f'model DOWN ({hm.get("ts", "?")})')
+            why.append(f'model DOWN ({mt})')
         elif hm.get('status') == 'SLOW' and not _allow_slow:
             why.append(f'model SLOW ({hm.get("latency_ms")}ms)')
         c = cs.get(f'{prov}/{model}')

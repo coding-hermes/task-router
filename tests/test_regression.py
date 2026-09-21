@@ -355,6 +355,37 @@ def test_health_down_provider_excluded(monkeypatch, tmp_path):
     assert any(e["provider"] == "opencode-go" for e in r["exclusions"])
 
 
+def test_model_down_reason_carries_timestamp(monkeypatch, tmp_path):
+    """TR-104: 'model DOWN (?)' must show a real when. Probe-stamped entries
+    (models.<m>.ts) render their own transition time; legacy entries written
+    before stamping fall back to the provider-level probe ts — never '?'."""
+    tables = _mini_registry([("prov-a", "a1", 1.0, 0), ("prov-b", "b1", 2.0, 0)],
+                            {"agent_tick": 1, "debug": 1})
+    state = _state_dir(tmp_path, providers={"prov-a": {"status": "open"},
+                                            "prov-b": {"status": "open"}})
+    with open(os.path.join(state, "health-state.json")) as f:
+        h = json.load(f)
+    h["providers"]["prov-a"] = {
+        "status": "OK", "latency_ms": 100, "ts": "2026-09-21T20:00:00+00:00",
+        "models": {"a1": {"status": "DOWN", "error": "HTTP 429"}},  # legacy: no ts
+    }
+    h["providers"]["prov-b"] = {
+        "status": "OK", "latency_ms": 100, "ts": "2026-09-21T20:00:00+00:00",
+        "models": {"b1": {"status": "DOWN", "error": "HTTP 429",
+                          "ts": "2026-09-21T22:30:00+00:00"}},  # stamped shape
+    }
+    with open(os.path.join(state, "health-state.json"), "w") as f:
+        json.dump(h, f)
+    monkeypatch.setattr(router_spawn, "MR", state)
+    r = _resolve(monkeypatch, tmp_path, tables, profile="TP")
+    whys = {_pair(e): e["why"] for e in r["exclusions"]}
+    assert any(w == "model DOWN (2026-09-21T22:30:00+00:00)"
+               for w in whys["prov-b/b1"]), whys.get("prov-b/b1")
+    assert any(w == "model DOWN (2026-09-21T20:00:00+00:00)"
+               for w in whys["prov-a/a1"]), whys.get("prov-a/a1")
+    assert not any("(?)" in w for e in r["exclusions"] for w in e["why"])
+
+
 def test_circuit_open_exclusion_reason_format(monkeypatch, tmp_path):
     """Breaker regression: exact reason format 'circuit OPEN until ... (N failures)'.
     open_until must be in the FUTURE (ISO strings compare lexicographically)."""
