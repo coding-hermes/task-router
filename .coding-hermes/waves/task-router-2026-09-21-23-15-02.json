@@ -1,0 +1,69 @@
+{
+  "tick_id": "task-router-2026-09-21-23-15-02",
+  "wave_of": "task-router-2026-09-21-08-40-11",
+  "wave_budget": 9,
+  "dispatched": 4,
+  "created_at": "2026-09-21T23:15:02Z",
+  "recovery": {
+    "previous_wave": "task-router-2026-09-21-08-40-11",
+    "status": "already_complete",
+    "workers_merged": [
+      "TR-098",
+      "TR-099",
+      "TR-100"
+    ],
+    "branches_cleaned": [],
+    "notes": "Wave already complete — TR-098/099/100 merged on 849c825. PM-standin added TR-104/105/106 during that tick; those are the wave tasks here."
+  },
+  "tasks": [
+    {
+      "id": "TR-102",
+      "title": "DEPLOY the classified proxy — recipe VERIFIED live; flip decision is the owner's",
+      "priority": "P1",
+      "worktree": "/home/kara/worktrees/task-router-TR-102",
+      "branch": "wt/TR-102",
+      "base_sha": "5eeb050",
+      "model": "glm-5.3-flash",
+      "provider": "zai-glm",
+      "depends_on": [],
+      "notes": "Deployment flip — owner's call. Worker to implement the verified recipe and wire the proxy."
+    },
+    {
+      "id": "TR-104",
+      "title": "health.ts missing on DOWN model entries — router_spawn prints DOWN (?) with no timestamp",
+      "priority": 3,
+      "worktree": "/home/kara/worktrees/task-router-TR-104",
+      "branch": "wt/TR-104",
+      "base_sha": "5eeb050",
+      "model": "glm-5.3-flash",
+      "provider": "zai-glm",
+      "depends_on": [],
+      "notes": "Fix: stamp model-level health-state.json entries with transition ts; render real timestamp on read."
+    },
+    {
+      "id": "TR-105",
+      "title": ".gitreins/logs/*.log are tracked yet rotational — foreman commits them, rotation leaves the tree permanently dirty",
+      "priority": 2,
+      "worktree": "/home/kara/worktrees/task-router-TR-105",
+      "branch": "wt/TR-105",
+      "base_sha": "5eeb050",
+      "model": "glm-5.3-flash",
+      "provider": "zai-glm",
+      "depends_on": [],
+      "notes": "Fix: git rm --cached .gitreins/logs/, add to .gitignore, give .gitreins/tasks.yaml a deliberate policy."
+    },
+    {
+      "id": "TR-106",
+      "title": "router_validate.py registry default diverges from router_seed.py — false INVALID on a healthy checkout",
+      "priority": 3,
+      "worktree": "/home/kara/worktrees/task-router-TR-106",
+      "branch": "wt/TR-106",
+      "base_sha": "5eeb050",
+      "model": "glm-5.3-flash",
+      "provider": "zai-glm",
+      "depends_on": [],
+      "notes": "Fix: default validate to repo-root registry.json path (same as seed) when ROUTING_REGISTRY unset."
+    }
+  ],
+  "finished_at": "2026-09-22T17:46:43Z"
+}

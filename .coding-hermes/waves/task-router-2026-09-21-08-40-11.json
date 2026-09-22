@@ -13,21 +13,37 @@
       "worktree": "/home/kara/worktrees/task-router-TR-098",
       "branch": "wt/TR-098",
       "lane": "model-catalog",
-      "seed_input_scope": ["data/tables/models.jsonl", "data/tables/model_aliases.jsonl", "data/tables/providers.jsonl (enabled/lane fields only)", "data/lifecycle.jsonl", "data/tables/model_notes.jsonl", "modelsdev cache"]
+      "seed_input_scope": [
+        "data/tables/models.jsonl",
+        "data/tables/model_aliases.jsonl",
+        "data/tables/providers.jsonl (enabled/lane fields only)",
+        "data/lifecycle.jsonl",
+        "data/tables/model_notes.jsonl",
+        "modelsdev cache"
+      ]
     },
     {
       "id": "TR-099",
       "worktree": "/home/kara/worktrees/task-router-TR-099",
       "branch": "wt/TR-099",
       "lane": "plan-terms",
-      "seed_input_scope": ["data/tables/plan_terms.jsonl", "data/tables/temporary_discounts.jsonl", "data/tables/providers.jsonl (ToS fields only)"]
+      "seed_input_scope": [
+        "data/tables/plan_terms.jsonl",
+        "data/tables/temporary_discounts.jsonl",
+        "data/tables/providers.jsonl (ToS fields only)"
+      ]
     },
     {
       "id": "TR-100",
       "worktree": "/home/kara/worktrees/task-router-TR-100",
       "branch": "wt/TR-100",
       "lane": "rankings-misc",
-      "seed_input_scope": ["data/tables/model_perf.jsonl", "data/tables/benchmarks.jsonl", "data/tables/quality_estimates.jsonl", "data/tables/fallback_lanes.jsonl"]
+      "seed_input_scope": [
+        "data/tables/model_perf.jsonl",
+        "data/tables/benchmarks.jsonl",
+        "data/tables/quality_estimates.jsonl",
+        "data/tables/fallback_lanes.jsonl"
+      ]
     }
   ],
   "independence": {
@@ -40,5 +56,6 @@
       "pytest seeds into the worktree's own gitignored registry.json only (TR-045/TR-048 guards keep ns untouched)"
     ]
   },
-  "merge_plan": "serial merges TR-098 -> TR-099 -> TR-100, gitreins Tier-1 gate per merge, then ONE ns export/commit + s3daily push by foreman"
+  "merge_plan": "serial merges TR-098 -> TR-099 -> TR-100, gitreins Tier-1 gate per merge, then ONE ns export/commit + s3daily push by foreman",
+  "finished_at": "2026-09-22T17:46:43Z"
 }
