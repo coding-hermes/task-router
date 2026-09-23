@@ -103,3 +103,5 @@
 {"provider": "clinepass", "model": "inkling:free", "error": "HTTP 400", "candidate": null, "ts": "2026-09-21T10:00:18+00:00", "source": "auto", "action": "fix-not-working (agent)"}
 {"provider": "clinepass", "model": "laguna-xs-2.1:free", "error": "HTTP 400", "candidate": null, "ts": "2026-09-21T10:00:18+00:00", "source": "auto", "action": "fix-not-working (agent)"}
 {"provider": "clinepass", "model": "lfm-2.5-2.6b:free", "error": "HTTP 400", "candidate": null, "ts": "2026-09-21T10:00:18+00:00", "source": "auto", "action": "fix-not-working (agent)"}
+{"provider": "clinepass", "model": "gemma-4-26b-a4b-it:free", "error": "HTTP 400", "candidate": null, "ts": "2026-09-22T10:00:54+00:00", "source": "auto", "action": "fix-not-working (agent)"}
+{"provider": "clinepass", "model": "cline-pass/deepseek-v4-flash", "error": "HTTP 404", "candidate": null, "ts": "2026-09-22T23:00:40+00:00", "source": "auto", "action": "fix-not-working (agent)"}

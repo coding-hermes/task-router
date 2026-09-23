@@ -27,7 +27,7 @@ mkdir -p "${LIVE_DIR}"
 for f in router_spawn.py router_circuit.py router_quota.py router_ledger.py router_seed.py router_maintain.py \
          router_modelsdev.py router_gaps.py router_pricing.py router_clinepass.py router_plan_sweep.py \
          router_learn.py router_server.py router_web.py router_status.py router_estimate.py \
-         router_diff.py router_metrics.py router_validate.py router_probefix.py; do
+         router_diff.py router_metrics.py router_validate.py router_probefix.py router_refresh_resume.py; do
   target="${LIVE_DIR}/${f}"
   if [ -L "${target}" ] && [ "$(readlink "${target}")" = "${REPO_SCRIPTS}/${f}" ]; then
     echo "OK      ${f} -> symlink already correct"
@@ -41,7 +41,7 @@ done
 # --- 2. byte-identical copy (cron realpath guard: provider-health-probe AND
 #        router-data-quality pipelines — cron resolves symlinks and BLOCKS any
 #        script whose real path falls outside ~/.hermes/scripts/) ---
-for f in provider_health_probe.py router-data-quality.sh fleet-cooldown-policy.py; do
+for f in provider_health_probe.py router-data-quality.sh fleet-cooldown-policy.py router_health.py; do
   want=644; [ "${f##*.}" = "sh" ] && want=755
   if [ -f "${LIVE_DIR}/${f}" ] && [ ! -L "${LIVE_DIR}/${f}" ] \
      && [ "$(stat -c %a "${LIVE_DIR}/${f}")" = "$want" ] \
