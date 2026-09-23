@@ -564,6 +564,10 @@ def write_fleet_pins(projects, namespaces=None):
     """
     import urllib.parse
     enabled = [p for p in projects if p.get('enabled', p.get('enabled'))]
+    # TASKS-ADMISSION LAW read-site default (SCHED-PERF-006): callers without
+    # namespace data (unit renders, legacy regens) must get the legacy arm
+    # behavior, not an UnboundLocalError at the ns_admission read below.
+    ns_admission = {}
     out = [
         "# Fleet configuration — cooldown overrides",
         "# These entries ensure cooldowns survive scheduler restarts.",
