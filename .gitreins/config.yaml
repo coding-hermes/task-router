@@ -17,7 +17,10 @@ guards:
 evaluator:
   model: deepseek-flash
   max_iterations: 200
-  max_time: "20m"
+  # 2026-09-23: SCHED-PERF-006 tier2 starved at 20m (Time cap (20m) exceeded
+  # (20m15s elapsed), tier1 PASS, all 3 criterion parts already verified in
+  # the evidence) — one-rung raise to 45m, re-judge --force on unchanged code.
+  max_time: "45m"
   max_input_tokens: "12M"
   static_analysis_diagnostics: false
 defaults:
