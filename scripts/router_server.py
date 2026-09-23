@@ -7,6 +7,7 @@ MCP tool calls then require the same value in X-API-Key.
 """
 
 import argparse
+import datetime
 import fcntl
 import hmac
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -85,7 +86,7 @@ def build_openapi():
     get_paths = {
         "/openapi.json": ("getOpenAPI", "Get the OpenAPI 3.1 schema", []),
         "/": ("getRoot", "Health + status surface (TR-087)", []),
-        "/health": ("getHealth", "Control-plane health: identity, registry freshness, gate states (TR-087)", []),
+        "/health": ("getHealth", "Control-plane health: identity, registry age (mtime) + freshness, router_validate gate verdict, gate states (TR-087, TR-REVIEW-001)", []),
         "/model_status": ("getModelStatus", "Per-model/provider status lookup: registry + probe + circuit joined per lane (TR-087)", [
             {
                 "name": "provider",
@@ -1285,6 +1286,12 @@ class RouterHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         try:
             parsed = urlparse(self.path)
+            if parsed.path in ('/v1/models', '/models'):
+                # Interop: every OpenAI-compatible client probes the model list
+                # first, and Hermes does too. A 404 here reads as "provider is
+                # broken" and sends the caller to a fallback lane.
+                self._send(200, openai_models_payload())
+                return
             status, payload = self.app.dispatch(
                 "GET",
                 parsed.path,
@@ -1375,6 +1382,77 @@ class RouterHTTPServer(ThreadingHTTPServer):
         super().__init__(address, RouterHandler)
 
 
+def _classifier_failure_is_fatal(problem_text):
+    """Is a classifier failure a DEPLOYMENT error or a transient blip?
+
+    Fatal (refuse to serve): credential/permission failures — a 401/403 means
+    every request would silently degrade to the default profile, which is exactly
+    the misconfiguration the startup self-check exists to catch.
+
+    Transient (warn and START): 429 rate limits, 5xx, timeouts, transport errors.
+    Refusing to boot on a rate limit makes the proxy unavailable precisely when
+    its classifier is busiest, and the request path already degrades VISIBLY (R10).
+    Measured 2026-09-23: z.ai returned 429 at startup, the self-check returned
+    False, and the server sys.exit(1) — so the wired client had no router at all.
+
+    Module level rather than nested in main() so the rule is unit-testable.
+    """
+    text = str(problem_text or '')
+    low = text.lower()
+    return ('401' in text) or ('403' in text) or ('unauthor' in low) \
+        or ('invalid api key' in low) or ('authentication' in low)
+
+
+_OPENAI_MODELS_CACHE = {"at": 0.0, "payload": None}
+
+
+def openai_models_payload(data_dir=None, max_age_s=300):
+    """GET /v1/models — the OpenAI-compatible model list for this router.
+
+    Clients probe this before sending traffic (the OpenAI SDK, Hermes itself and
+    other harnesses all do); a 404 makes them treat the provider as broken and
+    fall back. Built from the registry's own table (DATA, never a hardcoded
+    list), filtered to lanes a request could actually reach: not archived, not
+    disabled, inside the lifecycle window (available_from <= today < valid_to).
+    Cached briefly so a hammering client does not re-scan the table.
+    """
+    now = time.time()
+    if (_OPENAI_MODELS_CACHE["payload"] is not None
+            and (now - _OPENAI_MODELS_CACHE["at"]) < max_age_s):
+        return _OPENAI_MODELS_CACHE["payload"]
+    ddir = Path(data_dir) if data_dir else DATA_DIR
+    today = datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%d')
+    data = []
+    try:
+        with open(Path(ddir) / 'models.jsonl') as fh:
+            for line in fh:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    row = json.loads(line)
+                except ValueError:
+                    continue
+                if row.get('archive') or row.get('disabled'):
+                    continue
+                af = row.get('available_from')
+                if af and str(af)[:10] > today:        # announced, not yet routable
+                    continue
+                vt = row.get('valid_to')
+                if vt and str(vt)[:10] <= today:       # retired
+                    continue
+                model = row.get('model')
+                if not model:
+                    continue
+                data.append({'id': str(model), 'object': 'model', 'created': 0,
+                             'owned_by': str(row.get('provider') or 'unknown')})
+    except OSError:
+        data = []
+    payload = {'object': 'list', 'data': data}
+    _OPENAI_MODELS_CACHE.update({'at': now, 'payload': payload})
+    return payload
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description="Task Router OpenAPI + MCP server")
     parser.add_argument("--mode", choices=("read-only", "edit"), default="read-only")
@@ -1424,13 +1502,15 @@ def main(argv=None):
                 timeout_s=10,
             )
             if res.get("matrix") is None:
+                problems = res.get('problems')
+                fatal = _classifier_failure_is_fatal(problems)
                 print(
                     f"router_server: classifier self-check returned matrix=null — "
-                    f"ROUTER_CLASSIFIER_* env is set but classifier is not returning "
-                    f"a valid matrix. Problems: {res.get('problems')}",
+                    f"{'REFUSING TO SERVE (deployment error)' if fatal else 'starting anyway (transient)'}"
+                    f". Problems: {problems}",
                     file=sys.stderr,
                 )
-                return False
+                return not fatal
             print(
                 f"router_server: classifier self-check OK "
                 f"(matrix={res['matrix']}, confidence={res.get('confidence')})",
@@ -1438,12 +1518,13 @@ def main(argv=None):
             )
             return True
         except Exception as exc:
+            fatal = _classifier_failure_is_fatal(exc)
             print(
                 f"router_server: classifier self-check FAILED ({exc}) — "
-                f"ROUTER_CLASSIFIER_* env is set but unreachable",
+                f"{'misconfigured, refusing to serve' if fatal else 'transient, starting anyway'}",
                 file=sys.stderr,
             )
-            return False
+            return not fatal
 
     if not _check_classifier():
         sys.exit(1)

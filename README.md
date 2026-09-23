@@ -257,17 +257,26 @@ the fleet-wide reconfig.
 
 ### The :9391 instance is a managed unit (TR-087b, 2026-09-22)
 
-The second listener on `127.0.0.1:9391` was previously a bare child of
-`systemd --user` with no unit file — a control plane nothing could
-health-check. It is now `task-router-proxy.service` (enabled,
-`Restart=on-failure`), same verified recipe; the classifier credential lives
-in `/home/kara/.config/systemd/user/task-router-proxy.env` (mode 600, never
-in the unit file). Health is queryable like the :9092 server:
+The second listener on `127.0.0.1:9391` is the **classified proxy** (TR-067
+Path B): it speaks `POST /v1/chat/completions` and `POST /v1/responses`, and
+it also serves the read-only API routes (`/status`, `/health`,
+`/openapi.json`). It is not a second control plane — the fleet API lives on
+`:9092`. What it is, why it exists, and what each port is for:
+**`docs/health-plane.md`**.
+
+It runs as `task-router-proxy.service` (enabled, `Restart=on-failure`), same
+verified recipe; the classifier credential lives in
+`/home/kara/.config/systemd/user/task-router-proxy.env` (mode 600, never in
+the unit file). Health is queryable like the :9092 server:
 
 ```bash
 systemctl --user status task-router-proxy.service
 curl -s http://127.0.0.1:9391/health
 ```
+
+`/health` on either port reports the running commit, the registry's
+**mtime** age and freshness verdict, and the `router validate` gate verdict —
+the canary contract is in `docs/health-plane.md`.
 
 ## Architecture
 
@@ -388,6 +397,7 @@ for repo-relative use.
 | `router learn` | Learning loop: `dump`, `lesson`, `doctrine`, `provider` |
 | `router web` | Local web UI on :9093 (settings + resolve preview) |
 | `router server` | OpenAPI API server + MCP bridge on :9092 (`--mode read-only\|edit`, `--port`) |
+| `scripts/router_health_probe.py` | Canary probe for `/health`: asserts a real commit, a RAN-and-passed `router validate` gate and a non-stale registry. Exit 0 PASS / 1 FAIL / 2 cannot-run. `--url`, `--json`, `--timeout`, `--max-age-h` (see `docs/health-plane.md`) |
 
 Commands that commit, push, write state, or change provider configuration are
 operational tools — review `--help` and use `--dry-run` where available.

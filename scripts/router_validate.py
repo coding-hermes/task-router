@@ -126,6 +126,76 @@ def _tables_content_equal(reg_tables, data_dir):
     return True
 
 
+def freshness_check(registry_path=None, data_dir=None):
+    """The freshness verdict + the numbers behind it (one source of truth).
+
+    Returns a dict; `ok` is the gate verdict and `detail` is the exact string
+    the `freshness` check publishes. Callers that need the numbers (the health
+    plane's `registry_age` block) must not re-derive the predicate from
+    `lag_s` alone: the content tiebreak below is part of the definition, and a
+    re-derivation that skips it reports `stale: true` on a checkout the gate
+    calls valid (measured: 37855s mtime lag, byte-identical tables).
+
+    Keys: ok, detail, registry, data_dir, tables, newest_table, lag_s,
+    content_match, stale.
+    """
+    registry_path = registry_path or REGISTRY
+    data_dir = data_dir or DATA_DIR
+    table_files = sorted(glob.glob(os.path.join(data_dir, '*.jsonl')))
+    out = {'ok': False, 'detail': '', 'registry': registry_path,
+           'data_dir': data_dir, 'tables': len(table_files),
+           'newest_table': None, 'lag_s': None, 'content_match': None,
+           'stale': None}
+    if not table_files:
+        out['detail'] = f'no data tables found under {data_dir}'
+        return out
+    reg_m = os.path.getmtime(registry_path)
+    newest_f = max(table_files, key=os.path.getmtime)
+    newest_m = os.path.getmtime(newest_f)
+    # TR-082: seed rewrites the tables and registry.json inside the SAME
+    # second, so a raw float comparison let sub-second write ordering
+    # decide — the fresh-install path reported its own successful write
+    # as "stale (0s newer)" and exited 1. Compare with a slack window:
+    # only a registry older than the newest table by MORE than
+    # FRESHNESS_SLACK_S is genuinely stale.
+    lag = newest_m - reg_m
+    out['newest_table'] = os.path.basename(newest_f)
+    out['lag_s'] = lag
+    if lag > FRESHNESS_SLACK_S:
+        # TR-082 follow-up (worker 2026-09-21): the seed writes
+        # registry.json BEFORE syncing data/tables, so under load the
+        # tables can land many seconds "newer" while carrying EXACTLY
+        # the registry's content — mtime alone then reds a healthy
+        # checkout (measured: 5s lag on the current tree). Before
+        # flagging stale, compare CONTENT: identical row-for-row
+        # tables = seed write-ordering artifact, not staleness.
+        reg_doc = None
+        try:
+            with open(registry_path) as f:
+                reg_doc = json.load(f)
+        except Exception:
+            reg_doc = None
+        reg_tables = reg_doc.get('tables') if isinstance(reg_doc, dict) else None
+        out['content_match'] = bool(
+            isinstance(reg_tables, dict)
+            and _tables_content_equal(reg_tables, data_dir))
+        if out['content_match']:
+            out.update(ok=True, stale=False,
+                       detail=f'registry.json content matches all {len(table_files)} data '
+                              f'tables ({out["newest_table"]} mtime is {lag:.0f}s '
+                              f'newer — seed write ordering, not staleness)')
+        else:
+            out.update(ok=False, stale=True,
+                       detail=f'stale registry (warning-level): {out["newest_table"]} is '
+                              f'{lag:.0f}s newer than registry.json — re-run '
+                              f'scripts/router_seed.py')
+    else:
+        out.update(ok=True, stale=False,
+                   detail=f'registry.json is at least as new as all {len(table_files)} data tables '
+                          f'(tolerance {FRESHNESS_SLACK_S:.0f}s)')
+    return out
+
+
 def run_checks():
     checks, issues = [], []
 
@@ -185,45 +255,11 @@ def run_checks():
 
     # ---- b. freshness: registry vs data/tables -------------------------------
     if os.path.exists(REGISTRY):
-        table_files = sorted(glob.glob(os.path.join(DATA_DIR, '*.jsonl')))
-        if not table_files:
-            add('freshness', False, f'no data tables found under {DATA_DIR}')
+        fresh = freshness_check(REGISTRY, DATA_DIR)
+        if fresh['lag_s'] is None:
+            add('freshness', False, fresh['detail'])
         else:
-            reg_m = os.path.getmtime(REGISTRY)
-            newest_f = max(table_files, key=os.path.getmtime)
-            newest_m = os.path.getmtime(newest_f)
-            # TR-082: seed rewrites the tables and registry.json inside the SAME
-            # second, so a raw float comparison let sub-second write ordering
-            # decide — the fresh-install path reported its own successful write
-            # as "stale (0s newer)" and exited 1. Compare with a slack window:
-            # only a registry older than the newest table by MORE than
-            # FRESHNESS_SLACK_S is genuinely stale.
-            lag = newest_m - reg_m
-            if lag > FRESHNESS_SLACK_S:
-                # TR-082 follow-up (worker 2026-09-21): the seed writes
-                # registry.json BEFORE syncing data/tables, so under load the
-                # tables can land many seconds "newer" while carrying EXACTLY
-                # the registry's content — mtime alone then reds a healthy
-                # checkout (measured: 5s lag on the current tree). Before
-                # flagging stale, compare CONTENT: identical row-for-row
-                # tables = seed write-ordering artifact, not staleness.
-                reg_doc = reg if isinstance(reg, dict) else None
-                reg_tables = reg_doc.get('tables') if reg_doc else None
-                if isinstance(reg_tables, dict) and _tables_content_equal(
-                        reg_tables, DATA_DIR):
-                    add('freshness', True,
-                        f'registry.json content matches all {len(table_files)} data '
-                        f'tables ({os.path.basename(newest_f)} mtime is {lag:.0f}s '
-                        f'newer — seed write ordering, not staleness)')
-                else:
-                    add('freshness', False,
-                        f'stale registry (warning-level): {os.path.basename(newest_f)} is '
-                        f'{lag:.0f}s newer than registry.json — re-run '
-                        f'scripts/router_seed.py')
-            else:
-                add('freshness', True,
-                    f'registry.json is at least as new as all {len(table_files)} data tables '
-                    f'(tolerance {FRESHNESS_SLACK_S:.0f}s)')
+            add('freshness', fresh['ok'], fresh['detail'])
             # TR-082: name BOTH resolved paths so a future reader can see exactly
             # what was compared instead of guessing at the layout.
             add('freshness.paths', True,
@@ -317,6 +353,19 @@ def run_checks():
     return checks, issues
 
 
+def run_checks_dict():
+    """The check envelope as one dict: {'valid', 'checks', 'issues'}.
+
+    Single source of truth for the report shape. `main()` prints this, and
+    consumers that cannot run the CLI as a subprocess (the HTTP health plane in
+    router_health.py) read the SAME dict — so a check added here is a check
+    everywhere, and the gate verdict on /health can never drift from the
+    `router validate` verdict an operator sees.
+    """
+    checks, issues = run_checks()
+    return {'valid': not issues, 'checks': checks, 'issues': issues}
+
+
 def main():
     ap = argparse.ArgumentParser(
         description='router validate — registry/state/profile integrity checks (stdlib only)')
@@ -324,9 +373,8 @@ def main():
                     help='emit pure machine-parseable JSON on stdout')
     args = ap.parse_args()
 
-    checks, issues = run_checks()
-    valid = not issues
-    report = {'valid': valid, 'checks': checks, 'issues': issues}
+    report = run_checks_dict()
+    checks, issues, valid = report['checks'], report['issues'], report['valid']
 
     if args.json:
         print(json.dumps(report))
