@@ -32,6 +32,7 @@ Usage: python3 fleet-cooldown-policy.py [--apply] [--dry-run] [--verify]
                  DB row); exit 1 with `MISMATCH <project> <field>: db=<v>
                  toml=<v>` lines = drift. Read-only, no evaluation loop.
 """
+import hashlib
 import json
 import os
 import re
@@ -273,7 +274,92 @@ def verify_pins():
     return problems
 
 
+SCRIPT_PATH = os.path.realpath(__file__)
+# CANONICAL_HASH_PATH uses expanduser so HOME-override (tests) redirects the
+# sidecar without breaking SCRIPT_PATH (which must always resolve to the real
+# running file via __file__).
+CANONICAL_HASH_PATH = os.path.join(
+    os.path.expanduser('~/.hermes/scripts'), '.fleet-cooldown-policy.canonical.sha256'
+)
+
+STATUS_BOOTSTRAPPED = 'BOOTSTRAPPED'
+STATUS_OK = 'OK'
+STATUS_MISMATCH = 'MISMATCH'
+
+
+def _sha256_file(path):
+    """Return the hex sha256 of a file."""
+    h = hashlib.sha256()
+    with open(path, 'rb') as f:
+        for chunk in iter(lambda: f.read(65536), b''):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def verify_deploy_hash():
+    """Check the deployed script against the canonical sidecar.
+
+    Returns (ok: bool, status: str, detail: str).
+      BOOTSTRAPPED — no sidecar; one was written (returns ok=True).
+      OK           — sidecar matches the deployed script.
+      MISMATCH     — sidecar differs; LOUD print to stdout.
+    """
+    deployed_hash = _sha256_file(SCRIPT_PATH)
+    if not os.path.exists(CANONICAL_HASH_PATH):
+        write_canonical_hash(deployed_hash)
+        return True, STATUS_BOOTSTRAPPED, deployed_hash
+    with open(CANONICAL_HASH_PATH) as f:
+        canonical_hash = f.read().strip()
+    if canonical_hash == deployed_hash:
+        return True, STATUS_OK, deployed_hash
+    print('DEPLOY HASH MISMATCH — SCHED-PERF-003')
+    print(f'  deployed : {deployed_hash}')
+    print(f'  canonical: {canonical_hash}')
+    print(f'  The policy script has diverged from its canonical version.')
+    print(f'  If this is intentional, re-canonicalize with --update-canonical.')
+    print(f'  The sync guard (SCHED-PERF-006) blocked overwrite of the live copy.')
+    return False, STATUS_MISMATCH, canonical_hash
+
+
+def write_canonical_hash(deployed_hash=None):
+    """Write the canonical sidecar for the currently deployed script.
+
+    If deployed_hash is None it is read from the deployed script.
+    """
+    if deployed_hash is None:
+        deployed_hash = _sha256_file(SCRIPT_PATH)
+    with open(CANONICAL_HASH_PATH, 'w') as f:
+        f.write(deployed_hash + '\n')
+
+
+def _parse_args():
+    """Minimal argv parser so we can check for --update-canonical."""
+    return {'--update-canonical': '--update-canonical' in sys.argv}
+
+
 def main():
+    # ── Deploy-integrity guard (SCHED-PERF-003 / SCHED-PERF-006) ─────────
+    # Run AFTER argument parsing but BEFORE the pin evaluation on --apply /
+    # --verify paths so a mismatched hash refuses cleanly. --dry-run stays
+    # intentionally tolerant.
+    args = _parse_args()
+
+    if args.get('--update-canonical'):
+        write_canonical_hash()
+        print(f'Canonical hash updated: {_sha256_file(SCRIPT_PATH)}')
+        sys.exit(0)
+
+    if '--verify' in sys.argv or '--apply' in sys.argv:
+        ok, status, detail = verify_deploy_hash()
+        if status == STATUS_BOOTSTRAPPED:
+            print(f'DEPLOY HASH: bootstrapped (new sidecar written)')
+        elif status == STATUS_OK:
+            print(f'DEPLOY HASH: {detail} matches canonical')
+        else:
+            # MISMATCH — refuse before any fleet write
+            sys.exit(1)
+    # ── End deploy-integrity guard ─────────────────────────────────────
+
     if '--verify' in sys.argv:
         problems = verify_pins()
         for p in problems:

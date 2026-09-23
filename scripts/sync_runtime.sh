@@ -43,15 +43,48 @@ done
 #        script whose real path falls outside ~/.hermes/scripts/) ---
 for f in provider_health_probe.py router-data-quality.sh fleet-cooldown-policy.py router_health.py; do
   want=644; [ "${f##*.}" = "sh" ] && want=755
-  if [ -f "${LIVE_DIR}/${f}" ] && [ ! -L "${LIVE_DIR}/${f}" ] \
-     && [ "$(stat -c %a "${LIVE_DIR}/${f}")" = "$want" ] \
-     && cmp -s "${REPO_SCRIPTS}/${f}" "${LIVE_DIR}/${f}"; then
-    echo "OK      ${f} -> byte-identical copy"
+  if [ "${f}" = "fleet-cooldown-policy.py" ]; then
+    # ── SCHED-PERF-006 deploy-hash guard ──────────────────────────────────
+    # Never blindly overwrite the canonical live copy. Three cases:
+    #   1. live matches repo → OK
+    #   2. live matches sidecar (canonical) → SKIP + FAIL (stale repo clobber)
+    #   3. live diverges from sidecar → proceed (live was already non-canonical)
+    SIDECAR="${LIVE_DIR}/.fleet-cooldown-policy.canonical.sha256"
+    if [ -f "${LIVE_DIR}/${f}" ] && [ ! -L "${LIVE_DIR}/${f}" ] && cmp -s "${REPO_SCRIPTS}/${f}" "${LIVE_DIR}/${f}"; then
+      echo "OK      ${f} -> byte-identical copy"
+    else
+      LIVE_HASH=""; CANONICAL_HASH=""
+      if [ -f "${LIVE_DIR}/${f}" ] && [ ! -L "${LIVE_DIR}/${f}" ]; then
+        LIVE_HASH=$(sha256sum "${LIVE_DIR}/${f}" | cut -c1-64)
+      fi
+      if [ -f "${SIDECAR}" ]; then
+        # Sidecar stores the deployed-script hash as plain hex text (64 chars).
+        # Read it directly — do NOT sha256sum the sidecar file itself.
+        CANONICAL_HASH=$(tr -d '[:space:]' < "${SIDECAR}")
+      fi
+      if [ -n "$LIVE_HASH" ] && [ "$LIVE_HASH" = "$CANONICAL_HASH" ] && [ -n "$CANONICAL_HASH" ]; then
+        echo "SKIP    ${f} -> live copy matches canonical sidecar, REPO DIFFERS (SCHED-PERF-006)"
+        echo "         The sidecar protects the deployed script from stale-repo clobber."
+        echo "         Re-canonicalize the repo script or update the sidecar explicitly."
+        exit 1
+      else
+        rm -f "${LIVE_DIR}/${f}"   # drop symlink first: cp would write THROUGH it
+        cp "${REPO_SCRIPTS}/${f}" "${LIVE_DIR}/${f}"
+        chmod "$want" "${LIVE_DIR}/${f}"
+        echo "SYNCED  ${f} -> copied from repo (non-canonical live copy replaced)"
+      fi
+    fi
   else
-    rm -f "${LIVE_DIR}/${f}"   # drop symlink first: cp would write THROUGH it
-    cp "${REPO_SCRIPTS}/${f}" "${LIVE_DIR}/${f}"
-    chmod "$want" "${LIVE_DIR}/${f}"
-    echo "SYNCED  ${f} -> copied from repo (byte-identical, mode $want)"
+    if [ -f "${LIVE_DIR}/${f}" ] && [ ! -L "${LIVE_DIR}/${f}" ] \
+       && [ "$(stat -c %a "${LIVE_DIR}/${f}")" = "$want" ] \
+       && cmp -s "${REPO_SCRIPTS}/${f}" "${LIVE_DIR}/${f}"; then
+      echo "OK      ${f} -> byte-identical copy"
+    else
+      rm -f "${LIVE_DIR}/${f}"   # drop symlink first: cp would write THROUGH it
+      cp "${REPO_SCRIPTS}/${f}" "${LIVE_DIR}/${f}"
+      chmod "$want" "${LIVE_DIR}/${f}"
+      echo "SYNCED  ${f} -> copied from repo (byte-identical, mode $want)"
+    fi
   fi
 done
 
