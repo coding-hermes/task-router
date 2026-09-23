@@ -300,9 +300,17 @@ an additive `_router` object:
 - `no open hop` / malformed classifier output never crash the request: the
   router returns a shaped error or the visible degrade, never a traceback.
 
-**Limitation (honest):** the mirror is JSON request/response. Streaming
-(`stream: true`) is forwarded as a non-streamed body — clients that require SSE
-should keep calling the gateway directly and use Path A instead.
+**Streaming clients ARE served (TR-120, 2026-09-23):** the mirror BUFFERS —
+`stream: true` is stripped from the forwarded hop, and the buffered completion
+is re-served as one synthesized SSE completion (role + content + finish + usage
+chunks, `[DONE]`). A hermes agent turn now runs through the mirror unmodified.
+
+**TR-120 — Hermes client lane (VERIFIED live, proxy :9397).** Recipe + the two
+failed paths + the shadowing root cause: see `docs/tr120-recipe.md` (short
+version: name the custom provider `task-router` — `router` collides with the
+built-in Ramp Router plugin — then `hermes chat -q ... --provider task-router
+-m glm-5.3-flash` reaches the proxy and lands one attributed, metered outcome
+row).
 
 ## Verification
 - Tick spawns show the resolved model/provider in scheduler.log.
