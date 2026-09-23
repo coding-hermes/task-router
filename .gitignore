@@ -27,3 +27,14 @@ data/state/outcomes-averages.jsonl
 # guard logs are rotational run output (TR-089/TR-105): the countable metric
 # lives in the per-run logs themselves; keep the tree clean, compress old logs.
 .gitreins/logs/
+# Upstream `gitreins install` manages exactly this entry set (cli.py
+# GITREINS_GITIGNORE_ENTRIES, DF-018 + DF-GITREINS-POC-31). This repo predates
+# DF-GITREINS-POC-31, so the flock file touched by every task transition
+# (`.gitreins/tasks.yaml.lock`) was still landing as an untracked entry, and the
+# QA ledger / usage telemetry would do the same after a `gitreins qa record` run.
+# Declaring them by class keeps `gitreins install` idempotent ("already in
+# .gitignore") instead of letting it rewrite this file later (REVIEW-TR-003).
+.gitreins/tasks.yaml.lock
+.gitreins/usage.jsonl
+.gitreins/qa-ledger.jsonl
+.gitreins/config.yaml.bak
