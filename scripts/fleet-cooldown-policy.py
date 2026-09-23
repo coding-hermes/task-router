@@ -22,7 +22,15 @@ Correction rules (Bane 2026-09-09, supersede 2026-08-07):
   floor re-poisons the pin on the project's next committing tick —
   proven 2026-09-09: h3 ran 900s against a 43200 pin for 2 days).
 
-Usage: python3 fleet-cooldown-policy.py [--apply]
+Usage: python3 fleet-cooldown-policy.py [--apply] [--dry-run] [--verify]
+
+  --apply        evaluate + PUT corrections + regenerate fleet.toml
+  --dry-run      force the read-only evaluation even with --apply present
+                 (Bane rule: dry-run must never mutate live state)
+  --verify       SCHED-GAP-121 tripwire: exit 0 = every operator pin agrees
+                 across both stores (ELEVATED_PINS vs fleet.toml vs the live
+                 DB row); exit 1 with `MISMATCH <project> <field>: db=<v>
+                 toml=<v>` lines = drift. Read-only, no evaluation loop.
 """
 import json
 import os
@@ -32,6 +40,12 @@ import sys
 import urllib.request
 
 API = 'http://127.0.0.1:9090'
+
+# HTTP timeout for every API call. The scheduler's /api/v1/projects response is
+# 18-30s on a loaded box (one row per lane, computed fields included); the
+# original 10s made --apply die mid-run with a bare TimeoutError and leave the
+# fleet un-pinned (SCHED-PERF-002). Override with FLEET_POLICY_HTTP_TIMEOUT.
+HTTP_TIMEOUT = int(os.environ.get('FLEET_POLICY_HTTP_TIMEOUT', '120'))
 TARGET_ACTIVE = 3600       # FAST — Bane-designated fast projects (1h; was 15m/900)
 TARGET_IDLE = 21600        # DEFAULT — fleet baseline (6h; was 2h/7200 — Bane 08-15: "default 4 or 6 hours")
 TARGET_COMPLETED = 43200  # COMPLETED — no work, verified done (12h)
@@ -49,11 +63,10 @@ TARGET_CI = 1800          # CI failing + CI tasks on board
 # clobbered by ~08:00 same day). Hard-skip, same semantics as the 900 tier.
 ELEVATED_PINS = {
     'h3': 43200,      # Bane 2026-08-27: h3 family ticks too fast (5 rows × 6h = 11 ticks/24h) — 12h anti-flood pin
-    'h3-sdk-go-foreman': 43200,
-    'h3-sdk-python-foreman': 43200,
-    'h3-sdk-typescript-foreman': 43200,
-    'h3-shim-foreman': 43200,
     'warpfs': 21600,  # Bane 2026-08-19: ALL projects to 6h window for now
+    'hermes-canopy-releng': 86400,  # Bane 2026-09-19: releng is 24h, not 6h
+    'hermes-dagger': 900,  # Bane 2026-09-15: 15min dagger speed ruling (was living in DB only, drifted fleet.toml back to 7200)
+    'hermes-canopy': 21600,  # Bane 2026-09-17: all coding-hermes primaries at 21600 (was 7200 in OPERATOR_7200)
 }
 
 # OPERATOR_7200 — Bane-designated 2h FAST projects (killer projects under active
@@ -72,12 +85,24 @@ ELEVATED_PINS = {
 # restart, and (b) hand-edits to fleet.toml are clobbered by the next
 # --apply. Sync/qa/pm/dogfood lanes stay OFF until the upstream-quiet
 # signal ships — arming them now would only mask upstream outages.
+#
+# TASKS-ADMISSION LAW (Bane 2026-09-19): adaptive cooldown is a TIMER
+# feature — it paces a lane that wakes on its cooldown clock. A
+# tasks-admission project spawns from board state, never from the timer,
+# so arming it is dead bookkeeping and the tripwire ends up policing an
+# invariant over machinery that never runs. Arming therefore applies ONLY
+# to namespaces whose admission_mode is timer-based (cooldown); a tasks
+# namespace is never armed, and an armed row in one is config drift the
+# tripwire flags. Today that means: nothing in coding-hermes (tasks) is
+# armed; only a future cooldown-admission foreman lane would be.
 ADAPTIVE_LANES = {"coding-hermes"}
 ADAPTIVE_CEILING_MULTIPLIER = 8
-OPERATOR_7200 = {
-    'hermes-dagger': 7200,   # killer project — active development
-    'hermes-canopy': 7200,   # killer project — active development
-}
+# OPERATOR_7200 — emptied 2026-09-19 (Bane's 2026-09-17 ruling removed the fast
+# exceptions: "all 17 coding-hermes primaries at 21600/21600"). hermes-dagger
+# (900s, the 2026-09-15 ruling) and hermes-canopy (21600s) moved to ELEVATED_PINS
+# so the regen emits the canonical pin instead of fossilizing 7200 into
+# fleet.toml — a 2h snap-back on restart was the symptom (SCHED-GAP-121).
+OPERATOR_7200 = {}
 
 LEDGER_PATH = os.path.expanduser('~/.hermes/stand-in/ledger.json')
 
@@ -169,7 +194,7 @@ def board_pending(workdir):
     return None
 
 def api_get(path):
-    with urllib.request.urlopen(API + path, timeout=10) as r:
+    with urllib.request.urlopen(API + path, timeout=HTTP_TIMEOUT) as r:
         return json.loads(r.read())
 
 def api_put(path, body):
@@ -186,11 +211,83 @@ def api_put(path, body):
     req = urllib.request.Request(
         API + path, data=json.dumps(body).encode(),
         headers={'Content-Type': 'application/json'}, method='PUT')
-    with urllib.request.urlopen(req, timeout=10) as r:
+    with urllib.request.urlopen(req, timeout=HTTP_TIMEOUT) as r:
         return json.loads(r.read())
 
+def verify_pins():
+    """SCHED-GAP-121 tripwire: operator pins must agree across both stores.
+
+    For every project in ELEVATED_PINS, the fleet.toml pin and the live DB
+    row must both carry the canonical value. A pin present in only one store
+    is drift: the loader re-pins from fleet.toml at restart, so a DB-only pin
+    silently reverts (SCHED-GAP-121: hermes-dagger 900 lived only in the DB
+    while OPERATOR_7200 regenerated 7200 into fleet.toml), while a toml-only
+    pin is what the policy is about to write. Scope is the ELEVATED_PINS set
+    (the SCHED-GAP-012 whitelist) — non-canonical operator pins such as a
+    weekly 604800 cadence are honoured by the evaluation but are NOT checked
+    here, because the regen re-emits the live value for rows outside the maps
+    so they cannot drift out of the file.
+
+    Read-only: no PUT, no regen, no evaluation loop.
+    Return: list of `MISMATCH <project> <field>: db=<v> toml=<v>` strings.
+    """
+    problems = []
+    fleet_pins = read_fleet_pins()
+    try:
+        projects = api_get('/api/v1/projects').get('projects', [])
+    except Exception as exc:  # scheduler down — cannot certify, fail loud
+        return [f"MISMATCH <all> api: db=<unreachable: {exc}> toml=<n/a>"]
+    live = {p.get('name', ''): p for p in projects}
+
+    # Canonical pins must be present in BOTH stores at the pin value. One
+    # line per project: a toml/store disagreement with the canonical pin is
+    # a single finding, not two (the earlier form emitted the same mismatch
+    # twice when both stores were off-pin).
+    for name, pin in sorted(ELEVATED_PINS.items()):
+        row = live.get(name)
+        if row is None:
+            problems.append(f"MISMATCH {name} project: db=<absent> toml={fleet_pins.get(name)}")
+            continue
+        if not row.get('enabled'):
+            continue  # regen writes enabled rows only; toml pin is stale-by-design
+        db_cd = row.get('cooldown_s')
+        toml_cd = fleet_pins.get(name)
+        if db_cd != pin or toml_cd != pin:
+            problems.append(f"MISMATCH {name} cooldown_s: db={db_cd} toml={toml_cd} (canonical pin={pin})")
+
+    # TASKS-ADMISSION LAW: nothing in a tasks-admission namespace may be
+    # armed. Reported as WARN, not MISMATCH: this is the tripwire's own T1
+    # check (fleet-arming-tripwire.py) and the loader disarms key-less rows
+    # at the next restart, so it must not fail the documented pin contract.
+    try:
+        namespaces = api_get('/api/v1/namespaces').get('namespaces', [])
+    except Exception:
+        namespaces = []
+    tasks_ns = {n.get('id') for n in namespaces
+                if (n.get('admission_mode') or 'cooldown') == 'tasks'}
+    for name, row in sorted(live.items()):
+        if row.get('namespace_id') in tasks_ns and row.get('adaptive_cooldown'):
+            print(f"WARN {name} adaptive_cooldown: db=1 toml=n/a "
+                  f"(tasks-admission namespace '{row.get('namespace_id')}' — disarm; "
+                  f"tripwire owns this check)")
+    return problems
+
+
 def main():
-    apply = '--apply' in sys.argv
+    if '--verify' in sys.argv:
+        problems = verify_pins()
+        for p in problems:
+            print(p)
+        if problems:
+            print(f"\n{len(problems)} pin mismatch(es) — drift detected")
+            sys.exit(1)
+        print(f"OK: {len(ELEVATED_PINS)} canonical pin(s) agree across fleet.toml and the live DB; "
+              f"no tasks-admission lane armed")
+        sys.exit(0)
+    # --dry-run is a SAFETY override: it must win over --apply, because the
+    # documented invocation `--apply --dry-run` otherwise performs a LIVE
+    # apply (argv membership test below). Dry-run never mutates live state.
+    apply = '--apply' in sys.argv and '--dry-run' not in sys.argv
     fleet_pins = read_fleet_pins()
     projects = api_get('/api/v1/projects').get('projects', [])
 
@@ -398,6 +495,10 @@ def write_fleet_pins(projects, namespaces=None):
         "",
     ]
     if namespaces:
+        # admission_mode per namespace (TASKS-ADMISSION LAW): tasks
+        # namespaces are never armed; timer (cooldown) namespaces are.
+        ns_admission = {n.get('id', ''): (n.get('admission_mode') or 'cooldown')
+                        for n in namespaces}
         out.append("# ── Namespaces ───────────────────────────────────────────────")
         out.append("# Namespace-level config (prompts, chains, caps) is data in the")
         out.append("# scheduler DB; the regen mirrors it so restarts re-pin it.")
@@ -409,6 +510,9 @@ def write_fleet_pins(projects, namespaces=None):
             out.append(f'hard_cap = {ns.get("hard_cap", 100)}')
             out.append(f'max_concurrent = {ns.get("max_concurrent", 0)}')
             out.append(f'enabled = {"true" if ns.get("enabled", True) else "false"}')
+            am = ns.get("admission_mode") or ""
+            if am:
+                out.append(f'admission_mode = "{am}"')
             desc = ns.get("description") or ""
             if desc and '"' not in desc:
                 out.append(f'description = "{desc}"')
@@ -445,13 +549,14 @@ def write_fleet_pins(projects, namespaces=None):
         ns = p.get('namespace_id', p.get('NamespaceID'))
         if ns:
             out.append(f'namespace_id = "{ns}"')
-        # SCHED-GAP-1 arming: foreman lane only, explicit 8x ceiling.
-        # cooldown_floor_s is emitted EXPLICITLY = the pin: the loader
-        # defaults an absent floor to the pin-at-enable-time, so regens
-        # without the key could drift the floor away from the pin (the
-        # 2026-09-09 h3 fossil: floor=900 vs pin=43200 → 2 days of 15-min
-        # ticks). Floor == pin here keeps restart re-pins converged.
-        if ns in ADAPTIVE_LANES:
+        # SCHED-GAP-1 arming (as amended by the TASKS-ADMISSION LAW,
+        # Bane 2026-09-19): arm ONLY a timer-based (cooldown-admission)
+        # foreman lane. A tasks-admission project spawns from board
+        # state, so adaptive pacing is dead bookkeeping there — emit no
+        # adaptive keys at all, and the tripwire treats an armed row in
+        # a tasks namespace as drift. The live admission_mode comes
+        # from the namespace; the namespace block above carries it.
+        if ns in ADAPTIVE_LANES and ns_admission.get(ns, "cooldown") != "tasks":
             out.append('adaptive_cooldown = true')
             out.append(f'cooldown_floor_s = {cooldown}')
             out.append(f'cooldown_ceiling_s = {cooldown * ADAPTIVE_CEILING_MULTIPLIER}')
