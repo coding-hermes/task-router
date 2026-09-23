@@ -777,7 +777,13 @@ def _proxy_upstream_default(path, body, headers):
     try:
         payload = json.loads(raw)
     except ValueError:
-        payload = {'error': 'upstream returned non-JSON', 'raw': raw[:200].decode(errors='replace')}
+        # TR-120: a 200 whose body is not JSON (an upstream that streamed SSE
+        # anyway) is NOT a servable answer — the OpenAI clients read `choices`
+        # and report an empty stream. Treat it like a transport failure so the
+        # ladder advances instead of handing the client garbage.
+        return (status if isinstance(status, int) else 200), {
+            'error': 'upstream returned non-JSON',
+            'raw': raw[:200].decode(errors='replace')}
     return (status if isinstance(status, int) else 200), payload
 
 
@@ -1105,6 +1111,7 @@ def proxy_chat(path, body, headers, max_hops=None, upstream=None):
                    'usd_1m': hop.get('usd_1m'),
                    'stats_fallback': (hop.get('outcomes') or {}).get('stats_fallback')}
         fwd = dict(body)
+        fwd.pop('stream', None)  # TR-120: the mirror is buffered; strip the client's stream wish
         fwd['model'] = model
         hdrs = {**headers, 'x-router-provider': str(provider)}
         t0 = time.time()
@@ -1115,7 +1122,16 @@ def proxy_chat(path, body, headers, max_hops=None, upstream=None):
         attempt['latency_s'] = round(time.time() - t0, 3)
         attempt['status'] = status
         ok = 200 <= int(status or 0) < 300
-        attempt['outcome'] = 'ok' if ok else 'transport-failure'
+        if ok and isinstance(payload, dict) and not payload.get('choices') \
+                and payload.get('error') and path == '/v1/chat/completions':
+            # TR-120: a 2xx that carries an error envelope and no choices is not
+            # a servable completion — the client reads `choices` and reports an
+            # empty stream. Count the hop as failed so the ladder advances
+            # instead of serving garbage with a green status.
+            ok = False
+            attempt['outcome'] = 'unservable-2xx'
+        attempt['outcome'] = ('ok' if ok
+                              else attempt.get('outcome') or 'transport-failure')
         meta['ladder'].append(attempt)
         last = (status, payload)
         # On success the row means "time to get an answer" (total ladder time);
@@ -1218,11 +1234,56 @@ class RouterHandler(BaseHTTPRequestHandler):
                 body=body,
                 headers=self._headers(),
             )
+            if status == 200 and isinstance(body, dict) and body.get("stream") \
+                    and parsed.path in PROXY_PATHS:
+                # TR-120: clients that ask for SSE (the OpenAI SDK always does
+                # for agent loops) cannot read a buffered JSON body — the
+                # stream reader sees zero chunks and reports an empty stream.
+                # The mirror buffers the upstream answer; re-serve it as one
+                # synthesized SSE completion so the client's wire shape holds.
+                self._send_sse_chat(payload)
+                return
             self._send(status, payload)
         except ValueError as exc:
             self._send(400, {"error": str(exc)})
         except Exception as exc:
             self._send(500, {"error": str(exc)})
+
+    def _send_sse_chat(self, payload):
+        """Buffered completion -> OpenAI chat-completions SSE frames.
+
+        The upstream answer is already complete; emit it as one delta chunk
+        (role+content), the finish chunk, and [DONE] — the exact frame set the
+        OpenAI SDK's stream reader needs. An error payload is forwarded as a
+        data frame so the client's error path sees the reason (never silence).
+        """
+        self.send_response(200)
+        self.send_header("Content-Type", "text/event-stream; charset=utf-8")
+        self.send_header("Cache-Control", "no-cache")
+        self.end_headers()
+        def _frame(obj):
+            self.wfile.write(b"data: " + json.dumps(obj).encode() + b"\n\n")
+        if isinstance(payload, dict) and payload.get("choices"):
+            choice0 = payload["choices"][0] or {}
+            msg = choice0.get("message") or {}
+            cid = payload.get("id") or "chatcmpl-router"
+            model = payload.get("model") or ""
+            _frame({"id": cid, "object": "chat.completion.chunk", "created": payload.get("created") or int(time.time()),
+                    "model": model, "choices": [{"index": 0, "delta": {"role": "assistant"}, "finish_reason": None}]})
+            content = msg.get("content") or ""
+            if content:
+                _frame({"id": cid, "object": "chat.completion.chunk", "created": payload.get("created") or int(time.time()),
+                        "model": model, "choices": [{"index": 0, "delta": {"content": content}, "finish_reason": None}]})
+            _frame({"id": cid, "object": "chat.completion.chunk", "created": payload.get("created") or int(time.time()),
+                    "model": model, "choices": [{"index": 0, "delta": {},
+                                                 "finish_reason": choice0.get("finish_reason") or "stop"}]})
+            if isinstance(payload.get("usage"), dict):
+                _frame({"id": cid, "object": "chat.completion.chunk", "created": payload.get("created") or int(time.time()),
+                        "model": model, "choices": [], "usage": payload["usage"]})
+        else:
+            # Unserved (ladder exhausted / shaped error): keep the visible reason.
+            _frame(payload if isinstance(payload, dict) else {"error": str(payload)})
+        self.wfile.write(b"data: [DONE]\n\n")
 
     def log_message(self, format_, *args):
         print(

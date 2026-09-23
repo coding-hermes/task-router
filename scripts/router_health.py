@@ -75,11 +75,28 @@ def _read_jsonl(path):
 
 
 def git_commit():
-    head = REPO / ".git" / "HEAD"
+    # .git may be a DIR (normal checkout) or a FILE pointing at the real
+    # gitdir (a linked worktree, wt/* branches) — handle both, else every
+    # worktree run reports commit "unknown" and the health gate fails.
+    gitdir = REPO / ".git"
     try:
+        if gitdir.is_file():
+            pointer = gitdir.read_text().strip()
+            if pointer.startswith("gitdir: "):
+                gitdir = Path(pointer[8:])
+        head = gitdir / "HEAD"
         ref = head.read_text().strip()
         if ref.startswith("ref: "):
-            ref_path = REPO / ".git" / ref[5:]
+            ref_rel = ref[5:]
+            # A worktree gitdir has no refs of its own — loose refs live in
+            # the COMMON dir (gitdir/commondir, relative to the gitdir).
+            ref_path = gitdir / ref_rel
+            if not ref_path.exists():
+                try:
+                    common = (gitdir / (gitdir / "commondir").read_text().strip()).resolve()
+                    ref_path = common / ref_rel
+                except OSError:
+                    pass
             return ref_path.read_text().strip()[:12] if ref_path.exists() else "unknown"
         return ref[:12]
     except OSError:
