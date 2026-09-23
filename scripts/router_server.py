@@ -33,6 +33,7 @@ MAX_BODY_BYTES = 1024 * 1024
 if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 import router_outcomes  # noqa: E402  (stdlib-only sibling script module)
+import router_health  # noqa: E402  (TR-087 health plane)
 
 JSON_RESPONSE = {
     "description": "JSON response",
@@ -83,6 +84,17 @@ def build_openapi():
     ledger_outcome = {"type": "string", "enum": ["success", "failure", "error"]}
     get_paths = {
         "/openapi.json": ("getOpenAPI", "Get the OpenAPI 3.1 schema", []),
+        "/": ("getRoot", "Health + status surface (TR-087)", []),
+        "/health": ("getHealth", "Control-plane health: identity, registry freshness, gate states (TR-087)", []),
+        "/model_status": ("getModelStatus", "Per-model/provider status lookup: registry + probe + circuit joined per lane (TR-087)", [
+            {
+                "name": "provider",
+                "in": "query",
+                "required": False,
+                "schema": string,
+                "description": "Filter to one provider id (e.g. zai-glm)",
+            },
+        ]),
         "/status": ("getStatus", "Server and registry status", []),
         "/profiles": ("listProfiles", "List task profiles", []),
         "/providers": ("listProviders", "List providers", []),
@@ -464,6 +476,22 @@ class RouterApplication:
         if method == "GET":
             if path == "/openapi.json":
                 return 200, self.openapi
+            if path == "/":
+                payload = router_health.health(mode=self.mode)
+                payload["_links"] = {
+                    "health": "/health",
+                    "model_status": "/model_status?provider=<id>",
+                    "status": "/status",
+                    "openapi": "/openapi.json",
+                }
+                return 200, payload
+            if path == "/health":
+                return 200, router_health.health(mode=self.mode)
+            if path == "/model_status":
+                provider = query.get("provider")
+                if isinstance(provider, list):
+                    provider = provider[0] if provider else None
+                return 200, router_health.model_status(provider=provider)
             if path == "/status":
                 return 200, {
                     "status": "ok",

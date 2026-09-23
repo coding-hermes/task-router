@@ -255,6 +255,20 @@ clients move, and when) is deliberately left to the owner; this repo ships
 the recipe, the port checks, and the verified acceptance evidence, not
 the fleet-wide reconfig.
 
+### The :9391 instance is a managed unit (TR-087b, 2026-09-22)
+
+The second listener on `127.0.0.1:9391` was previously a bare child of
+`systemd --user` with no unit file — a control plane nothing could
+health-check. It is now `task-router-proxy.service` (enabled,
+`Restart=on-failure`), same verified recipe; the classifier credential lives
+in `/home/kara/.config/systemd/user/task-router-proxy.env` (mode 600, never
+in the unit file). Health is queryable like the :9092 server:
+
+```bash
+systemctl --user status task-router-proxy.service
+curl -s http://127.0.0.1:9391/health
+```
+
 ## Architecture
 
 ```text
