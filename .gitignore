@@ -23,3 +23,7 @@ dist/
 # TR-049 outcomes store — per-user data, never committed (sample file may be published separately later)
 data/state/outcomes.jsonl
 data/state/outcomes-averages.jsonl
+
+# guard logs are rotational run output (TR-089/TR-105): the countable metric
+# lives in the per-run logs themselves; keep the tree clean, compress old logs.
+.gitreins/logs/
