@@ -146,3 +146,25 @@ on either trigger.
 `router_spawn.py` and `router_maintain.py` never block the scheduler or the
 maintenance loop on spot-check errors: any failure → warning + continue (for
 `router_spawn.py`: `{"error": ...}` + exit 0).
+
+## 7. Health surfaces for this pipeline
+
+The registry this document maintains is exposed for probing:
+
+```bash
+curl -s http://127.0.0.1:9092/health | jq '{registry, registry_age, gate}'
+```
+
+- `registry` — data freshness: newest `valid_from` date in `models.jsonl`.
+- `registry_age` — file freshness: `mtime` of `registry.json`, the newest
+  table it is compared against, `lag_s`, and the freshness verdict (the same
+  predicate as `router validate`'s `freshness` check, content tiebreak
+  included). A large `lag_s` with `content_match: true` is seed write
+  ordering, **not** staleness.
+- `gate` — the full `router validate` verdict, so a maintenance run that
+  broke the profiles/requirements/state plane shows up on the same probe.
+
+Both listeners (`:9092` fleet API, `:9391` classified proxy) serve it. Full
+contract, the :9391 purpose, and the canary probe recipe:
+`docs/health-plane.md`. Re-seed after a red `freshness` or
+`registry.exists` and the probe clears itself — nothing is repaired silently.

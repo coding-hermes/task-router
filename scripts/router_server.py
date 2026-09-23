@@ -85,7 +85,7 @@ def build_openapi():
     get_paths = {
         "/openapi.json": ("getOpenAPI", "Get the OpenAPI 3.1 schema", []),
         "/": ("getRoot", "Health + status surface (TR-087)", []),
-        "/health": ("getHealth", "Control-plane health: identity, registry freshness, gate states (TR-087)", []),
+        "/health": ("getHealth", "Control-plane health: identity, registry age (mtime) + freshness, router_validate gate verdict, gate states (TR-087, TR-REVIEW-001)", []),
         "/model_status": ("getModelStatus", "Per-model/provider status lookup: registry + probe + circuit joined per lane (TR-087)", [
             {
                 "name": "provider",
