@@ -226,7 +226,7 @@
 {"model": "accounts/fireworks/models/kimi-k3", "category": "refactor", "perf": 0.72, "source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/models/kimi-k3", "category": "review", "perf": 0.85, "source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/models/kimi-k3", "category": "schema", "perf": 0.5, "source": "family", "source_ref": "alias:kimi-k3"}
-{"model": "accounts/fireworks/models/kimi-k3", "category": "spec_docs", "perf": 0.86, "source": "family", "source_ref": "alias:kimi-k3"}
+{"model": "accounts/fireworks/models/kimi-k3", "category": "spec_docs", "perf": 0.87, "source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/models/kimi-k3", "category": "terminal", "perf": 0.921590909090909, "source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/models/kimi-k3", "category": "test", "perf": 0.72, "source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/models/kimi-k3", "category": "tool_use", "perf": 0.85, "source": "family", "source_ref": "alias:kimi-k3"}
@@ -456,7 +456,7 @@
 {"model": "accounts/fireworks/routers/kimi-fast-latest", "category": "refactor", "perf": 0.72, "source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/routers/kimi-fast-latest", "category": "review", "perf": 0.85, "source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/routers/kimi-fast-latest", "category": "schema", "perf": 0.5, "source": "family", "source_ref": "alias:kimi-k3"}
-{"model": "accounts/fireworks/routers/kimi-fast-latest", "category": "spec_docs", "perf": 0.86, "source": "family", "source_ref": "alias:kimi-k3"}
+{"model": "accounts/fireworks/routers/kimi-fast-latest", "category": "spec_docs", "perf": 0.87, "source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/routers/kimi-fast-latest", "category": "terminal", "perf": 0.921590909090909, "source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/routers/kimi-fast-latest", "category": "test", "perf": 0.72, "source": "estimate", "source_ref": "CATEGORY_ESTIMATES"}
 {"model": "accounts/fireworks/routers/kimi-fast-latest", "category": "tool_use", "perf": 0.85, "source": "family", "source_ref": "alias:kimi-k3"}
@@ -475,7 +475,7 @@
 {"model": "accounts/fireworks/routers/kimi-k3-fast", "category": "refactor", "perf": 0.72, "source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/routers/kimi-k3-fast", "category": "review", "perf": 0.85, "source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/routers/kimi-k3-fast", "category": "schema", "perf": 0.5, "source": "family", "source_ref": "alias:kimi-k3"}
-{"model": "accounts/fireworks/routers/kimi-k3-fast", "category": "spec_docs", "perf": 0.86, "source": "family", "source_ref": "alias:kimi-k3"}
+{"model": "accounts/fireworks/routers/kimi-k3-fast", "category": "spec_docs", "perf": 0.87, "source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/routers/kimi-k3-fast", "category": "terminal", "perf": 0.921590909090909, "source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/routers/kimi-k3-fast", "category": "test", "perf": 0.72, "source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/routers/kimi-k3-fast", "category": "tool_use", "perf": 0.85, "source": "family", "source_ref": "alias:kimi-k3"}
@@ -494,7 +494,7 @@
 {"model": "accounts/fireworks/routers/kimi-latest", "category": "refactor", "perf": 0.72, "source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/routers/kimi-latest", "category": "review", "perf": 0.85, "source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/routers/kimi-latest", "category": "schema", "perf": 0.5, "source": "family", "source_ref": "alias:kimi-k3"}
-{"model": "accounts/fireworks/routers/kimi-latest", "category": "spec_docs", "perf": 0.86, "source": "family", "source_ref": "alias:kimi-k3"}
+{"model": "accounts/fireworks/routers/kimi-latest", "category": "spec_docs", "perf": 0.87, "source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/routers/kimi-latest", "category": "terminal", "perf": 0.921590909090909, "source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/routers/kimi-latest", "category": "test", "perf": 0.72, "source": "estimate", "source_ref": "CATEGORY_ESTIMATES"}
 {"model": "accounts/fireworks/routers/kimi-latest", "category": "tool_use", "perf": 0.85, "source": "family", "source_ref": "alias:kimi-k3"}
@@ -1098,6 +1098,7 @@
 {"model": "gpt-5.6-terra", "category": "terminal", "perf": 0.8740000000000001, "source": "bench", "source_ref": "bench:Terminal-Bench"}
 {"model": "gpt-5.6-terra", "category": "test", "perf": 0.85, "source": "estimate", "source_ref": "PROFILE_TAGS:gpt-5.6 terra"}
 {"model": "gpt-5.6-terra", "category": "tool_use", "perf": 0.25, "source": "bench", "source_ref": "bench:battery-T1-TOOL"}
+{"model": "gpt-6-sol", "category": "terminal", "perf": 0.43, "source": "bench", "source_ref": "bench:Terminal-Bench"}
 {"model": "gpt-oss-120b", "category": "code_gen", "perf": 0.72, "source": "estimate", "source_ref": "PROFILE_TAGS:gpt-oss"}
 {"model": "gpt-oss-120b", "category": "refactor", "perf": 0.72, "source": "estimate", "source_ref": "PROFILE_TAGS:gpt-oss"}
 {"model": "gpt-oss-120b", "category": "test", "perf": 0.72, "source": "estimate", "source_ref": "PROFILE_TAGS:gpt-oss"}
@@ -1162,7 +1163,7 @@
 {"model": "hf:moonshotai/Kimi-K3", "category": "refactor", "perf": 0.72, "source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "hf:moonshotai/Kimi-K3", "category": "review", "perf": 0.85, "source": "measured", "source_ref": "models.jsonl:perf_review"}
 {"model": "hf:moonshotai/Kimi-K3", "category": "schema", "perf": 0.5, "source": "measured", "source_ref": "models.jsonl:perf_schema"}
-{"model": "hf:moonshotai/Kimi-K3", "category": "spec_docs", "perf": 0.86, "source": "family", "source_ref": "alias:kimi-k3"}
+{"model": "hf:moonshotai/Kimi-K3", "category": "spec_docs", "perf": 0.87, "source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "hf:moonshotai/Kimi-K3", "category": "terminal", "perf": 0.921590909090909, "source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "hf:moonshotai/Kimi-K3", "category": "test", "perf": 0.72, "source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "hf:moonshotai/Kimi-K3", "category": "tool_use", "perf": 0.85, "source": "family", "source_ref": "alias:kimi-k3"}
@@ -1424,7 +1425,7 @@
 {"model": "kimi-k3", "category": "refactor", "perf": 0.72, "source": "estimate", "source_ref": "PROFILE_TAGS:kimi k3"}
 {"model": "kimi-k3", "category": "review", "perf": 0.85, "source": "measured", "source_ref": "models.jsonl:perf_review"}
 {"model": "kimi-k3", "category": "schema", "perf": 0.5, "source": "measured", "source_ref": "models.jsonl:perf_schema"}
-{"model": "kimi-k3", "category": "spec_docs", "perf": 0.86, "source": "bench", "source_ref": "bench:BenchLM"}
+{"model": "kimi-k3", "category": "spec_docs", "perf": 0.87, "source": "bench", "source_ref": "bench:BenchLM"}
 {"model": "kimi-k3", "category": "terminal", "perf": 0.921590909090909, "source": "bench", "source_ref": "bench:Terminal-Bench"}
 {"model": "kimi-k3", "category": "test", "perf": 0.72, "source": "estimate", "source_ref": "PROFILE_TAGS:kimi k3"}
 {"model": "kimi-k3", "category": "tool_use", "perf": 0.85, "source": "estimate", "source_ref": "PROFILE_TAGS:kimi k3"}
@@ -1443,7 +1444,7 @@
 {"model": "kimi-k3-fast", "category": "refactor", "perf": 0.72, "source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "kimi-k3-fast", "category": "review", "perf": 0.85, "source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "kimi-k3-fast", "category": "schema", "perf": 0.5, "source": "family", "source_ref": "alias:kimi-k3"}
-{"model": "kimi-k3-fast", "category": "spec_docs", "perf": 0.86, "source": "family", "source_ref": "alias:kimi-k3"}
+{"model": "kimi-k3-fast", "category": "spec_docs", "perf": 0.87, "source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "kimi-k3-fast", "category": "terminal", "perf": 0.921590909090909, "source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "kimi-k3-fast", "category": "test", "perf": 0.72, "source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "kimi-k3-fast", "category": "tool_use", "perf": 0.85, "source": "family", "source_ref": "alias:kimi-k3"}
@@ -1462,7 +1463,7 @@
 {"model": "kimi-k3-flex", "category": "refactor", "perf": 0.72, "source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "kimi-k3-flex", "category": "review", "perf": 0.85, "source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "kimi-k3-flex", "category": "schema", "perf": 0.5, "source": "family", "source_ref": "alias:kimi-k3"}
-{"model": "kimi-k3-flex", "category": "spec_docs", "perf": 0.86, "source": "family", "source_ref": "alias:kimi-k3"}
+{"model": "kimi-k3-flex", "category": "spec_docs", "perf": 0.87, "source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "kimi-k3-flex", "category": "terminal", "perf": 0.921590909090909, "source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "kimi-k3-flex", "category": "test", "perf": 0.72, "source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "kimi-k3-flex", "category": "tool_use", "perf": 0.85, "source": "family", "source_ref": "alias:kimi-k3"}
@@ -1649,7 +1650,7 @@
 {"model": "moonshotai/Kimi-K3", "category": "refactor", "perf": 0.72, "source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "moonshotai/Kimi-K3", "category": "review", "perf": 0.85, "source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "moonshotai/Kimi-K3", "category": "schema", "perf": 0.5, "source": "family", "source_ref": "alias:kimi-k3"}
-{"model": "moonshotai/Kimi-K3", "category": "spec_docs", "perf": 0.86, "source": "family", "source_ref": "alias:kimi-k3"}
+{"model": "moonshotai/Kimi-K3", "category": "spec_docs", "perf": 0.87, "source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "moonshotai/Kimi-K3", "category": "terminal", "perf": 0.921590909090909, "source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "moonshotai/Kimi-K3", "category": "test", "perf": 0.72, "source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "moonshotai/Kimi-K3", "category": "tool_use", "perf": 0.85, "source": "family", "source_ref": "alias:kimi-k3"}
@@ -2331,7 +2332,7 @@
 {"model": "~moonshotai/kimi-latest", "category": "refactor", "perf": 0.72, "source": "family", "source_ref": "alias:accounts/fireworks/routers/kimi-latest"}
 {"model": "~moonshotai/kimi-latest", "category": "review", "perf": 0.85, "source": "family", "source_ref": "alias:accounts/fireworks/routers/kimi-latest"}
 {"model": "~moonshotai/kimi-latest", "category": "schema", "perf": 0.5, "source": "family", "source_ref": "alias:accounts/fireworks/routers/kimi-latest"}
-{"model": "~moonshotai/kimi-latest", "category": "spec_docs", "perf": 0.86, "source": "family", "source_ref": "alias:accounts/fireworks/routers/kimi-latest"}
+{"model": "~moonshotai/kimi-latest", "category": "spec_docs", "perf": 0.87, "source": "family", "source_ref": "alias:accounts/fireworks/routers/kimi-latest"}
 {"model": "~moonshotai/kimi-latest", "category": "terminal", "perf": 0.921590909090909, "source": "family", "source_ref": "alias:accounts/fireworks/routers/kimi-latest"}
 {"model": "~moonshotai/kimi-latest", "category": "test", "perf": 0.72, "source": "family", "source_ref": "alias:accounts/fireworks/routers/kimi-latest"}
 {"model": "~moonshotai/kimi-latest", "category": "tool_use", "perf": 0.85, "source": "family", "source_ref": "alias:accounts/fireworks/routers/kimi-latest"}

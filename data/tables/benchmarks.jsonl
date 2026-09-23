@@ -143,6 +143,7 @@
 {"model": "deepseek-v4-pro-0813", "category": "guard", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
 {"model": "deepseek-v4-pro-0813", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
 {"model": "deepseek-v4-pro-0813", "category": "schema", "score": 1.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "deepseek-v4.1-flash", "category": "long_horizon", "score": 0.742, "max_score": 1.0, "source": "research-bench-2026-09-23: DeepSWE v1.1 74.2 vs GPT-6 Sol 73.0, AutomationBench 54.8 vs 45.8, Agent's Last Exam 31.8 vs 26.7, CyberGym 88.1 vs 84.5 (flowtivity.ai analysis of DeepSeek V4.1 Flash launch data; VENDOR-REPORTED)", "valid_from": "2026-09-23"}
 {"model": "gemma-4-31b", "category": "agent-tick", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
 {"model": "gemma-4-31b", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
 {"model": "gemma-4-31b", "category": "debug", "score": 3.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
@@ -262,6 +263,9 @@
 {"model": "gpt-5.6-terra", "category": "sentiment", "score": 0.78, "max_score": 1.0, "source": "research-bench-2026-08-28", "valid_from": "2026-08-28"}
 {"model": "gpt-5.6-terra", "category": "sentiment", "score": 0.82, "max_score": 1.0, "source": "research-bench-2026-09-10: r/codex multi-model coding-agent bench (sol/terra/luna/flash-3.7) — Terra performed BEST first-hand; vellum: Terra/Sonnet-5 traded near-parity during Sonnet intro window, Terra cheaper after Aug 31. Confirms 08-28 0.78 standing; small bump not a regime shift.", "valid_from": "2026-09-10"}
 {"model": "gpt-5.6-terra", "category": "terminal", "score": 87.4, "max_score": 100.0, "source": "research-bench-2026-09-16 Terminal-Bench 2.1 (DataCamp Terra-vs-Sonnet-5 comparison, Sep 2026)", "valid_from": "2026-09-16"}
+{"model": "gpt-6-luna", "category": "long_horizon", "score": 0.666, "max_score": 1.0, "source": "research-bench-2026-09-23: DeepSWE v1.1 66.6% at max reasoning effort, edging GPT-6 Sol at high effort at a fraction of the price (Vellum launch analysis; VENDOR-REPORTED)", "valid_from": "2026-09-23"}
+{"model": "gpt-6-sol", "category": "sentiment", "score": 0.85, "max_score": 1.0, "source": "research-sent-2026-09-23: AA Intelligence Index 48 at max effort (level with GPT-5.6 Sol 47), Coding Agent Index +2 over 5.6 Sol; 'push the cost efficiency frontier' at half price (artificialanalysis.ai, officechai)", "valid_from": "2026-09-23"}
+{"model": "gpt-6-sol", "category": "terminal", "score": 43.0, "max_score": 100.0, "source": "research-bench-2026-09-23: Terminal-Bench 4.0 43% at max effort vs GPT-5.6 Sol 37% (Artificial Analysis, via explainx.ai + officechai)", "valid_from": "2026-09-23"}
 {"model": "gpt-oss:120b", "category": "agent-tick", "score": 1.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
 {"model": "gpt-oss:120b", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
 {"model": "gpt-oss:120b", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
@@ -431,6 +435,7 @@
 {"model": "kimi-k3", "category": "sentiment", "score": 0.8, "max_score": 1.0, "source": "research-sent-2026-08-27", "valid_from": "2026-08-27"}
 {"model": "kimi-k3", "category": "sentiment", "score": 0.85, "max_score": 1.0, "source": "research-bench-2026-09-05", "valid_from": "2026-09-05"}
 {"model": "kimi-k3", "category": "sentiment", "score": 0.86, "max_score": 1.0, "source": "research-bench-2026-09-13 — BenchLM #7/232 (74.82, 48 rows); multi-source coding-agent guide consensus", "valid_from": "2026-09-13"}
+{"model": "kimi-k3", "category": "sentiment", "score": 0.87, "max_score": 1.0, "source": "research-sent-2026-09-23: LMArena Frontend Code Arena first place 1679 pts (blind human preference, independent — Tom's Hardware + layer3labs); Moonshot claims beats GPT-5.5/Claude Opus 4.8 across coding+agentic suite (VENDOR-REPORTED); BenchLM #7/231 74.36/100", "valid_from": "2026-09-23"}
 {"model": "kimi-k3", "category": "spec_docs", "score": 74.9, "max_score": 100.0, "source": "BenchLM composite benchlm.ai 2026-09-05 (rank #7/232, 47 rows)", "valid_from": "2026-09-05"}
 {"model": "kimi-k3", "category": "terminal", "score": 0.883, "max_score": 1.0, "source": "Terminal-Bench 2.1 (vendor) research-bench-2026-08-29", "valid_from": "2026-08-29"}
 {"model": "kimi-k3", "category": "terminal", "score": 88.3, "max_score": 100.0, "source": "Terminal-Bench 2.1 moonshot-vendor-2026-09-05", "valid_from": "2026-09-05"}
