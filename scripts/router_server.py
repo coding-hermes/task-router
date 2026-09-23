@@ -1168,6 +1168,13 @@ def proxy_chat(path, body, headers, max_hops=None, upstream=None):
     # session record — cost, provider, steps and tokens land on ONE task row that
     # grows as the session's steps are served (see router_outcomes.accumulate_row).
     declared_session = (headers.get('x-router-session') or '').strip()[:200]
+    # TR-122 fallback: the OpenAI `user` field (a stable client-side id) when the
+    # header is absent.  This lets any OpenAI-shaped client send a session marker
+    # without knowing the router's custom header name.
+    if not declared_session:
+        body_user = (body.get('user') or '').strip()
+        if body_user:
+            declared_session = body_user[:200]
     parent_session_id = declared_session or None
     session_id = (f'{source_system}:{declared_session}' if declared_session
                   else f'{source_system}-{int(time.time() * 1000)}')
