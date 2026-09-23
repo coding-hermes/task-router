@@ -1384,6 +1384,63 @@ def main(argv=None):
         return 2
 
     app = RouterApplication(args.mode, edit_key)
+
+    # TR-119 startup self-check: the proxy must not serve traffic with a broken
+    # classifier.  ROUTER_CLASSIFIER_* env vars are the deployment artifact — the
+    # docs recipe (docs/integration.md) names them; server code reads the env and
+    # nothing else.  If the env is not set we still start (the proxy degrades
+    # visibly), but a SET env that is unreachable is a deployment error we catch
+    # here before accepting any request.
+    def _check_classifier():
+        """Quick ping: call the classifier once, 10 s timeout.
+
+        Two outcomes:
+        - env NOT configured → matrix=null is EXPECTED, proxy starts with
+          visible degrade (R10) — do not block.
+        - env IS configured but returns null or raises → the user set a
+          classifier that is broken; fail fast so they fix the env before
+          accepting traffic.
+        """
+        try:
+            import router_classify as _rc
+            # If no env is configured we skip the check entirely (degrade path).
+            if not os.environ.get('ROUTER_CLASSIFIER_BASE_URL'):
+                print(
+                    "router_server: classifier env not configured — "
+                    "proxy will degrade visibly to default profile",
+                    file=sys.stderr,
+                )
+                return True
+            res = _rc.classify(
+                "ping",
+                categories=["code_gen", "debug", "test"],
+                timeout_s=10,
+            )
+            if res.get("matrix") is None:
+                print(
+                    f"router_server: classifier self-check returned matrix=null — "
+                    f"ROUTER_CLASSIFIER_* env is set but classifier is not returning "
+                    f"a valid matrix. Problems: {res.get('problems')}",
+                    file=sys.stderr,
+                )
+                return False
+            print(
+                f"router_server: classifier self-check OK "
+                f"(matrix={res['matrix']}, confidence={res.get('confidence')})",
+                file=sys.stderr,
+            )
+            return True
+        except Exception as exc:
+            print(
+                f"router_server: classifier self-check FAILED ({exc}) — "
+                f"ROUTER_CLASSIFIER_* env is set but unreachable",
+                file=sys.stderr,
+            )
+            return False
+
+    if not _check_classifier():
+        sys.exit(1)
+
     server = RouterHTTPServer((args.host, args.port), app)
     actual_host, actual_port = server.server_address[:2]
     print(

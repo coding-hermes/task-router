@@ -185,13 +185,15 @@ def _backoff_delay(attempt):
     return min(2 ** (attempt - 1), 8)
 
 
-def default_llm(prompt, text, timeout=60):
+def default_llm(prompt, text, timeout=60, timeout_s=None):
     """OpenAI-shaped classifier call over the configured lanes.
 
     Primary lane first, with bounded retry + backoff on 429/5xx
     (ROUTER_CLASSIFIER_RETRIES); the fallback lane (ROUTER_CLASSIFIER_FALLBACK_*)
     is used only after the primary is exhausted. Each lane carries its own
-    timeout budget. Raises on total failure — the caller degrades visibly.
+    timeout budget (default 60 s, overridden by `timeout_s` for the primary
+    and by ROUTER_CLASSIFIER_FALLBACK_TIMEOUT_S for the fallback). Raises on
+    total failure — the caller degrades visibly.
     """
     lanes = _classifier_lanes()
     if not lanes:
@@ -201,6 +203,9 @@ def default_llm(prompt, text, timeout=60):
         'messages': [{'role': 'system', 'content': prompt},
                      {'role': 'user', 'content': text}],
     }).encode()
+    # Override the primary lane timeout if the caller supplied timeout_s
+    if timeout_s is not None and lanes:
+        lanes = [dict(lanes[0], timeout=float(timeout_s))] + list(lanes[1:])
     retries = _retry_budget()
     last_exc = None
     for lane_idx, lane in enumerate(lanes):
@@ -245,9 +250,13 @@ def _call_lane(lane, body):
     return msg.get('content') or msg.get('reasoning_content') or ''
 
 
-def classify(text, llm=None, version=DEFAULT_PROMPT_VERSION, categories=None):
+def classify(text, llm=None, version=DEFAULT_PROMPT_VERSION, categories=None, timeout_s=None):
     """text -> result dict. Never raises for classifier problems: the result
-    carries matrix=None + reasons and the caller degrades (R10)."""
+    carries matrix=None + reasons and the caller degrades (R10).
+
+    timeout_s: optional float, overrides the primary lane timeout for this call
+    (used by the startup self-check so it never blocks longer than requested).
+    """
     out = {'prompt_version': version, 'model': os.environ.get('ROUTER_CLASSIFIER_MODEL'),
            'matrix': None, 'complexity_sig': None, 'confidence': None,
            'problems': [], 'raw': None}
@@ -259,7 +268,10 @@ def classify(text, llm=None, version=DEFAULT_PROMPT_VERSION, categories=None):
         out['problems'].append(f'prompt {version} unreadable: {exc}')
         return out
     try:
-        raw = (llm or default_llm)(prompt, text)
+        if llm:
+            raw = llm(prompt, text)   # injected LLM: no timeout_s kwarg
+        else:
+            raw = default_llm(prompt, text, timeout_s=timeout_s)
     except Exception as exc:  # noqa: BLE001 — degrade, never crash the request
         out['problems'].append(f'classifier call failed: {str(exc)[:200]}')
         return out
