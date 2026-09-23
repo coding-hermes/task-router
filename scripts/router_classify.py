@@ -21,6 +21,7 @@ import json
 import os
 import re
 import sys
+import time
 import urllib.error
 import urllib.request
 
@@ -133,27 +134,112 @@ def validate_matrix(obj, categories):
     return matrix, conf, problems
 
 
+#: HTTP statuses worth a bounded retry: rate limiting and upstream hiccups —
+#: never a 4xx from OUR payload (that is a bug, retrying it is waste).
+_RETRYABLE_STATUS = (429, 500, 502, 503, 504)
+
+
+def _classifier_lanes():
+    """The configured classifier lanes, primary first.
+
+    Lane 0: ROUTER_CLASSIFIER_BASE_URL/_MODEL/_KEY_ENV (the existing primary —
+    unchanged). Lane 1+: ROUTER_CLASSIFIER_FALLBACK_BASE_URL/_MODEL/_KEY_ENV
+    (+ _FALLBACK_TIMEOUT_S — a slow lane gets its own budget, never the
+    primary's). Env/data-driven end to end; no provider names in code.
+    """
+    lanes = [{'base': os.environ.get('ROUTER_CLASSIFIER_BASE_URL'),
+              'model': os.environ.get('ROUTER_CLASSIFIER_MODEL', 'glm-5.3-flash'),
+              'key_env': os.environ.get('ROUTER_CLASSIFIER_KEY_ENV', ''),
+              'key_value': os.environ.get('ROUTER_CLASSIFIER_KEY_VALUE'),
+              'timeout': _env_float('ROUTER_CLASSIFIER_TIMEOUT_S', 60.0)}]
+    fb_base = os.environ.get('ROUTER_CLASSIFIER_FALLBACK_BASE_URL')
+    if fb_base:
+        lanes.append({'base': fb_base,
+                      'model': os.environ.get('ROUTER_CLASSIFIER_FALLBACK_MODEL', ''),
+                      'key_env': os.environ.get('ROUTER_CLASSIFIER_FALLBACK_KEY_ENV', ''),
+                      'key_value': os.environ.get('ROUTER_CLASSIFIER_FALLBACK_KEY_VALUE'),
+                      'timeout': _env_float('ROUTER_CLASSIFIER_FALLBACK_TIMEOUT_S', 60.0)})
+    return [lane for lane in lanes if lane['base']]
+
+
+def _env_float(name, default):
+    try:
+        return float(os.environ.get(name, '') or default)
+    except ValueError:
+        return default
+
+
+def _retry_budget():
+    """Bounded retry count for the PRIMARY lane (ROUTER_CLASSIFIER_RETRIES,
+    default 0 = one call, no retry). The fallback lane is tried ONCE, only
+    after the primary is fully exhausted."""
+    try:
+        return max(0, int(os.environ.get('ROUTER_CLASSIFIER_RETRIES', '0')))
+    except ValueError:
+        return 0
+
+
+def _backoff_delay(attempt):
+    """Seconds to sleep before retry `attempt` (1-based): 1s, 2s, 4s… capped at
+    8s. A classifier retry must not hold the proxied request hostage."""
+    return min(2 ** (attempt - 1), 8)
+
+
 def default_llm(prompt, text, timeout=60):
-    """OpenAI-shaped classifier call. Configured entirely by env so the model
-    is DATA: ROUTER_CLASSIFIER_BASE_URL / _MODEL / _KEY_ENV (+ _KEY_VALUE for
-    tests). Raises on failure — the caller degrades visibly."""
-    base = os.environ.get('ROUTER_CLASSIFIER_BASE_URL')
-    if not base:
+    """OpenAI-shaped classifier call over the configured lanes.
+
+    Primary lane first, with bounded retry + backoff on 429/5xx
+    (ROUTER_CLASSIFIER_RETRIES); the fallback lane (ROUTER_CLASSIFIER_FALLBACK_*)
+    is used only after the primary is exhausted. Each lane carries its own
+    timeout budget. Raises on total failure — the caller degrades visibly.
+    """
+    lanes = _classifier_lanes()
+    if not lanes:
         raise RuntimeError('ROUTER_CLASSIFIER_BASE_URL not configured')
-    model = os.environ.get('ROUTER_CLASSIFIER_MODEL', 'glm-5.3-flash')
-    key_env = os.environ.get('ROUTER_CLASSIFIER_KEY_ENV', '')
-    key = os.environ.get('ROUTER_CLASSIFIER_KEY_VALUE') or (
-        os.environ.get(key_env) if key_env else '')
     body = json.dumps({
-        'model': model, 'temperature': 0, 'max_tokens': 700,
+        'temperature': 0, 'max_tokens': 700,
         'messages': [{'role': 'system', 'content': prompt},
                      {'role': 'user', 'content': text}],
     }).encode()
-    req = urllib.request.Request(base.rstrip('/') + '/chat/completions', data=body,
-                                 headers={'Content-Type': 'application/json',
-                                          'Authorization': f'Bearer {key}',
-                                          'User-Agent': 'task-router-classifier/1.0'})
-    with urllib.request.urlopen(req, timeout=timeout) as resp:
+    retries = _retry_budget()
+    last_exc = None
+    for lane_idx, lane in enumerate(lanes):
+        attempts = (retries + 1) if lane_idx == 0 else 1
+        for attempt in range(1, attempts + 1):
+            if attempt > 1:
+                time.sleep(_backoff_delay(attempt - 1))
+            try:
+                return _call_lane(lane, body)
+            except urllib.error.HTTPError as exc:
+                retryable = exc.code in _RETRYABLE_STATUS
+                last_exc = exc
+                if not retryable or attempt >= attempts:
+                    if lane_idx < len(lanes) - 1 and retryable:
+                        break   # fall to the next lane, do not raise yet
+                    raise
+            except Exception as exc:  # noqa: BLE001 — transport/timeout
+                last_exc = exc
+                if attempt >= attempts:
+                    if lane_idx < len(lanes) - 1:
+                        break
+                    raise
+    raise last_exc if last_exc else RuntimeError('no classifier lane attempted')
+
+
+def _call_lane(lane, body):
+    """One POST to one classifier lane. `body` is the lane-agnostic request
+    skeleton (messages/params); the model is per-lane data."""
+    payload = json.loads(body)
+    payload['model'] = lane['model'] or payload.get('model', '')
+    key = lane.get('key_value') or (
+        os.environ.get(lane['key_env']) if lane['key_env'] else '')
+    req = urllib.request.Request(
+        lane['base'].rstrip('/') + '/chat/completions',
+        data=json.dumps(payload).encode(),
+        headers={'Content-Type': 'application/json',
+                 'Authorization': f'Bearer {key}',
+                 'User-Agent': 'task-router-classifier/1.0'})
+    with urllib.request.urlopen(req, timeout=lane['timeout']) as resp:
         data = json.loads(resp.read())
     msg = (data.get('choices') or [{}])[0].get('message') or {}
     return msg.get('content') or msg.get('reasoning_content') or ''
