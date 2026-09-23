@@ -740,6 +740,24 @@ PROXY_PATHS = ("/v1/chat/completions", "/v1/responses")
 _UPSTREAM_CALL = None
 
 
+def _proxy_hop_timeout_s():
+    """Bounded per-hop timeout (seconds) for the upstream mirror.
+
+    Was a hardcoded 1800s: one unresponsive lane held the request — and with the
+    fleet wired through the proxy, the caller's whole tick — for half an hour
+    while the ladder sat on hop 1 (measured 2026-09-23: a real proxied request
+    exceeded 300s with no response and no row). A hop that cannot answer inside
+    the budget must FAIL so the ladder advances; the ladder already treats a
+    transport error as a step, so this is a timeout, not a retry policy.
+    """
+    raw = os.environ.get('ROUTER_PROXY_HOP_TIMEOUT_S', '180')
+    try:
+        val = float(raw)
+    except (TypeError, ValueError):
+        return 180.0
+    return val if val > 0 else 180.0
+
+
 def _proxy_upstream_default(path, body, headers):
     """POST the request to the upstream gateway (default: the Hermes gateway
     on localhost). Returns (status, payload-dict). Transport failure raises —
@@ -751,7 +769,7 @@ def _proxy_upstream_default(path, body, headers):
                  if k.lower() in ('authorization', 'x-api-key', 'content-type')}
         | {'Content-Type': 'application/json', 'User-Agent': 'task-router-proxy/1.0'})
     try:
-        with urllib.request.urlopen(req, timeout=1800) as resp:
+        with urllib.request.urlopen(req, timeout=_proxy_hop_timeout_s()) as resp:
             raw = resp.read()
             status = resp.status
     except urllib.error.HTTPError as exc:      # a REAL response, not transport
@@ -884,8 +902,57 @@ def _proxy_chain(requirements, sort_spec=None, window_h=None):
     return out if isinstance(out, dict) else {}
 
 
+def _proxy_usage(payload):
+    """(tokens_in, tokens_out) from an OpenAI-compatible usage block.
+
+    Both wire shapes are accepted because both are proxied: /v1/chat/completions
+    reports prompt_tokens/completion_tokens, /v1/responses reports
+    input_tokens/output_tokens. A missing or non-numeric meter stays None — the
+    row must say "not measured", never 0 (Bane: no fake zeros; a zero here would
+    drag the cost-per-task average down as if the work were free).
+    """
+    if not isinstance(payload, dict):
+        return None, None
+    usage = payload.get('usage')
+    if not isinstance(usage, dict):
+        return None, None
+    def num(*names):
+        for n in names:
+            v = usage.get(n)
+            if isinstance(v, bool) or not isinstance(v, (int, float)):
+                continue
+            return int(v)
+        return None
+    return num('prompt_tokens', 'input_tokens'), num('completion_tokens', 'output_tokens')
+
+
+def _proxy_cost(hop, tokens_in, tokens_out):
+    """(cost_usd, basis) for one attempt, from the HOP's own prices.
+
+    Reporting uses the PUBLIC list price (Bane 2026-08-27). The hop already
+    carries the public split — `router_spawn._pub_prices` substitutes the
+    normalized rate when a lane was stamped `public_price: 0.0` because it is
+    covered by a subscription, so a plan lane cannot report FREE here either.
+
+    A zero-or-absent price is NOT a cost of zero: when nothing usable is priced
+    the answer is (None, reason). Unknown is reported as unknown.
+    """
+    if tokens_in is None and tokens_out is None:
+        return None, 'no usage block; price not applied'
+    tin, tout = tokens_in or 0, tokens_out or 0
+    inp, outp = hop.get('in_per_m'), hop.get('out_per_m')
+    if inp or outp:                                  # a real per-1M split
+        return (tin / 1e6) * (inp or 0.0) + (tout / 1e6) * (outp or 0.0), \
+               'public split (in_per_m/out_per_m)'
+    blend = hop.get('usd_1m')
+    if blend:
+        return ((tin + tout) / 1e6) * blend, 'public blended (usd_1m)'
+    return None, 'no price on this hop; cost unknown'
+
+
 def _proxy_record(provider, model, ok, requirements, reason='', latency_s=None,
-                  source='router-proxy', session_id=None):
+                  source='router-proxy', session_id=None,
+                  tokens_in=None, tokens_out=None, cost_usd=None):
     """One outcome row per attempt + breaker evidence (best effort, fail-open).
 
     TR-071: `source` is the DRIVER identity when the caller declared one
@@ -907,8 +974,8 @@ def _proxy_record(provider, model, ok, requirements, reason='', latency_s=None,
                'required_categories': requirements.get('matrix'),
                'complexity_sig': requirements.get('complexity_sig'),
                'profile_id': requirements.get('profile_id'),
-               'turns': None, 'tokens_in': None, 'tokens_out': None,
-               'cost_usd': None, 'wall_time_s': latency_s, 'success': ok,
+               'turns': None, 'tokens_in': tokens_in, 'tokens_out': tokens_out,
+               'cost_usd': cost_usd, 'wall_time_s': latency_s, 'success': ok,
                'task_label': reason[:200] or None, 'ts': time.time()}
         ro.append_rows(ro.outcomes_path(), [row])
     except Exception:  # noqa: BLE001
@@ -1042,13 +1109,25 @@ def proxy_chat(path, body, headers, max_hops=None, upstream=None):
         # subprocess, so measuring again after it would inflate the envelope by
         # the router's own bookkeeping time.
         wall = (round(time.time() - ladder_t0, 3) if ok else attempt['latency_s'])
+        # Metering (2026-09-23): a proxied request is the ONLY place the router
+        # sees the work itself, so the usage block is what lets the
+        # cost-per-task averages learn from real traffic. Without it every
+        # proxied row was cost-blind and the ledger could only be filled by
+        # post-hoc state.db imports (no prompt, no complexity, no cost).
+        tokens_in, tokens_out = _proxy_usage(payload if ok else None)
+        cost_usd, price_basis = _proxy_cost(hop, tokens_in, tokens_out)
+        attempt['tokens_in'], attempt['tokens_out'] = tokens_in, tokens_out
+        attempt['cost_usd'], attempt['price_basis'] = cost_usd, price_basis
         _proxy_record(str(provider), str(model), ok, requirements,
                       reason='' if ok else str(payload.get('error') if isinstance(payload, dict) else payload)[:200],
                       latency_s=wall,
-                      source=source_system, session_id=session_id)
+                      source=source_system, session_id=session_id,
+                      tokens_in=tokens_in, tokens_out=tokens_out, cost_usd=cost_usd)
         if ok:
             out = dict(payload) if isinstance(payload, dict) else {'upstream': payload}
-            out['_router'] = {**meta, 'served_by': {'provider': provider, 'model': model},
+            out['_router'] = {**meta, 'served_by': {'provider': provider, 'model': model,
+                                                    'tokens_in': tokens_in, 'tokens_out': tokens_out,
+                                                    'cost_usd': cost_usd, 'price_basis': price_basis},
                               'wall_time_s': wall}
             return 200, out
     status, payload = last or (502, {'error': 'no hops attempted'})

@@ -150,7 +150,11 @@ def test_ladder_advances_on_transport_failure_and_serves_second_hop(proxy_env, m
         return 200, {'choices': [{'message': {'content': 'served'}}]}
     status, payload = rsrv.proxy_chat('/v1/chat/completions', {'messages': []}, {}, upstream=upstream)
     assert status == 200
-    assert payload['_router']['served_by'] == {'provider': 'p2', 'model': 'good'}
+    served = payload['_router']['served_by']
+    assert (served['provider'], served['model']) == ('p2', 'good')
+    # metering keys are part of the served_by contract since 2026-09-23
+    assert {'tokens_in', 'tokens_out', 'cost_usd', 'price_basis'} <= set(served)
+    assert served['cost_usd'] is None                      # no usage block upstream
     ladder = payload['_router']['ladder']
     assert [a['outcome'] for a in ladder] == ['transport-failure', 'ok']
     assert ladder[0]['status'] == 0 and 'refused' in payload['_router']['ladder'][0]['model'] or True
