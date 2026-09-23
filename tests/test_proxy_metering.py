@@ -183,3 +183,52 @@ def test_upstream_uses_the_bounded_timeout(monkeypatch):
     status, payload = rsrv._proxy_upstream_default('/v1/chat/completions', {'model': 'x'}, {})
     assert status == 200 and payload == {'ok': True}
     assert seen['timeout'] == 30.0
+
+
+# ---------- session association (TR-120) ----------
+
+def test_caller_session_is_associated_and_accumulated(monkeypatch, tmp_path):
+    """The caller declares its Hermes session; the proxy's outcome row carries it
+    as parent_session_id and accumulates onto a per-session row instead of
+    inventing an id per step."""
+    store = tmp_path / 'outcomes.jsonl'
+    monkeypatch.setenv('ROUTING_OUTCOMES_FILE', str(store))
+    import importlib
+    import router_outcomes as ro
+    importlib.reload(ro)
+    monkeypatch.setattr(rsrv, 'router_outcomes', ro, raising=False)
+    _chain(monkeypatch, [{'hop': 1, 'provider': 'zai-glm', 'model': 'glm-5.3-flash',
+                          'in_per_m': 1.0, 'out_per_m': 1.0}])
+    monkeypatch.setattr(rsrv, '_subprocess_text', lambda *a, **k: '')
+    body = {'model': 'auto', 'messages': [{'role': 'user', 'content': 'hi'}]}
+    up = lambda p, b, h: (200, {'choices': [], 'usage': {'prompt_tokens': 1000, 'completion_tokens': 500}})
+    for _ in range(2):
+        status, out = rsrv.proxy_chat('/v1/chat/completions', body,
+                                      {'x-router-session': '20260827_002414_35850a9e',
+                                       'x-router-caller': 'hermes'}, upstream=up)
+        assert status == 200
+    rows = [json.loads(l) for l in open(store) if l.strip()]
+    assert len(rows) == 1, 'two steps of one session = one task row'
+    r = rows[0]
+    assert r['parent_session_id'] == '20260827_002414_35850a9e'
+    assert r['session_id'] == 'hermes:20260827_002414_35850a9e'
+    assert r['source_system'] == 'hermes'
+    assert r['steps'] == 2 and r['turns'] == 2
+    assert r['tokens_in'] == 2000 and r['cost_usd'] == pytest.approx(0.003)
+    assert out['_router']['outcome_row']['parent_session_id'] == '20260827_002414_35850a9e'
+
+
+def test_without_a_declared_session_each_request_stands_alone(monkeypatch, tmp_path):
+    store = tmp_path / 'outcomes.jsonl'
+    monkeypatch.setenv('ROUTING_OUTCOMES_FILE', str(store))
+    import importlib
+    import router_outcomes as ro
+    importlib.reload(ro)
+    monkeypatch.setattr(rsrv, 'router_outcomes', ro, raising=False)
+    _chain(monkeypatch, [{'hop': 1, 'provider': 'p', 'model': 'm', 'usd_1m': 1.0}])
+    monkeypatch.setattr(rsrv, '_subprocess_text', lambda *a, **k: '')
+    up = lambda p, b, h: (200, {'usage': {'prompt_tokens': 10, 'completion_tokens': 10}})
+    for _ in range(2):
+        rsrv.proxy_chat('/v1/chat/completions', {'model': 'auto', 'messages': []}, {}, upstream=up)
+    rows = [json.loads(l) for l in open(store) if l.strip()]
+    assert len(rows) == 2 and all(r['parent_session_id'] is None for r in rows)

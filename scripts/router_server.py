@@ -952,7 +952,8 @@ def _proxy_cost(hop, tokens_in, tokens_out):
 
 def _proxy_record(provider, model, ok, requirements, reason='', latency_s=None,
                   source='router-proxy', session_id=None,
-                  tokens_in=None, tokens_out=None, cost_usd=None):
+                  tokens_in=None, tokens_out=None, cost_usd=None,
+                  parent_session_id=None):
     """One outcome row per attempt + breaker evidence (best effort, fail-open).
 
     TR-071: `source` is the DRIVER identity when the caller declared one
@@ -970,14 +971,22 @@ def _proxy_record(provider, model, ok, requirements, reason='', latency_s=None,
         import router_outcomes as ro
         row = {'source_system': source,
                'session_id': session_id or f'proxy-{time.time()}',
+               'parent_session_id': parent_session_id,
                'provider': provider, 'model': model,
                'required_categories': requirements.get('matrix'),
                'complexity_sig': requirements.get('complexity_sig'),
                'profile_id': requirements.get('profile_id'),
-               'turns': None, 'tokens_in': tokens_in, 'tokens_out': tokens_out,
+               'turns': None, 'steps': 1, 'tokens_in': tokens_in, 'tokens_out': tokens_out,
                'cost_usd': cost_usd, 'wall_time_s': latency_s, 'success': ok,
                'task_label': reason[:200] or None, 'ts': time.time()}
-        ro.append_rows(ro.outcomes_path(), [row])
+        if parent_session_id:
+            # Accumulate: one row per (source_system, session, model) that grows as
+            # the session's steps land, so the task's tokens/cost/steps stay
+            # associated with the session the caller declared. Also fixes the
+            # O(store) scan the bulk append path did on every proxied hop.
+            ro.accumulate_row(ro.outcomes_path(), row)
+        else:
+            ro.append_row_fast(ro.outcomes_path(), row)
     except Exception:  # noqa: BLE001
         pass
     try:
@@ -1081,7 +1090,14 @@ def proxy_chat(path, body, headers, max_hops=None, upstream=None):
     # (source_system, session_id, model) — a per-hop id made every collapsed
     # attempt indistinguishable. The ladder is preserved in the envelope's
     # `_router.ladder` for the attempts that the store collapses.
-    session_id = f'{source_system}-{int(time.time() * 1000)}'
+    # TR-049/TR-120 session association: a caller may declare its own session
+    # (the Hermes session id) so the router's outcome row can be joined to the
+    # session record — cost, provider, steps and tokens land on ONE task row that
+    # grows as the session's steps are served (see router_outcomes.accumulate_row).
+    declared_session = (headers.get('x-router-session') or '').strip()[:200]
+    parent_session_id = declared_session or None
+    session_id = (f'{source_system}:{declared_session}' if declared_session
+                  else f'{source_system}-{int(time.time() * 1000)}')
     ladder_t0 = time.time()
     for hop in chain[:hops]:
         provider, model = hop.get('provider'), hop.get('model')
@@ -1122,12 +1138,16 @@ def proxy_chat(path, body, headers, max_hops=None, upstream=None):
                       reason='' if ok else str(payload.get('error') if isinstance(payload, dict) else payload)[:200],
                       latency_s=wall,
                       source=source_system, session_id=session_id,
-                      tokens_in=tokens_in, tokens_out=tokens_out, cost_usd=cost_usd)
+                      tokens_in=tokens_in, tokens_out=tokens_out, cost_usd=cost_usd,
+                      parent_session_id=parent_session_id)
         if ok:
             out = dict(payload) if isinstance(payload, dict) else {'upstream': payload}
             out['_router'] = {**meta, 'served_by': {'provider': provider, 'model': model,
                                                     'tokens_in': tokens_in, 'tokens_out': tokens_out,
                                                     'cost_usd': cost_usd, 'price_basis': price_basis},
+                              'outcome_row': {'source_system': source_system,
+                                              'session_id': session_id,
+                                              'parent_session_id': parent_session_id},
                               'wall_time_s': wall}
             return 200, out
     status, payload = last or (502, {'error': 'no hops attempted'})

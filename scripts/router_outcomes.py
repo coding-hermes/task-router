@@ -163,8 +163,10 @@ def compute_averages(rows, scales_h=DEFAULT_SCALES_H, merge_backends=False, now_
     available to callers who never declare complexity.
 
     Per scale each bucket carries every metric the sort rules consume:
-    avg_cost_task_<s>h, avg_tokens_in_task_<s>h, avg_tokens_out_task_<s>h,
-    avg_tokens_total_task_<s>h, avg_turns_task_<s>h, avg_wall_time_task_<s>h —
+    avg_cost_task_<s>h, avg_tokens_in_<s>h, avg_tokens_out_<s>h,
+    avg_tokens_total_<s>h, avg_turns_<s>h, avg_wall_time_<s>h — (the token/turn/
+    wall keys carry no `_task` infix; only cost does. Verified against the code,
+    docs/outcomes-schema.md and router_spawn's consumers 2026-09-23.)
     None whenever no sample carries that metric (never fabricate).
     """
     now_s = now_s or time.time()
@@ -325,6 +327,120 @@ def tail_rows(path, max_lines=2000, max_bytes=512 * 1024):
         except ValueError:
             continue
     return rows
+
+
+def _merge_task_rows(prev, incoming):
+    """Merge one step of a task into its accumulated task row.
+
+    Sums what a task spends (tokens, cost, wall time), counts `turns` as the
+    number of steps merged, keeps `success` sticky (a task that ever succeeded is
+    a success) and lets the NEWEST descriptive fields win without letting a blank
+    incoming value erase a known one. Additive by construction: a lane that needs
+    three steps costs three steps, which is exactly what the cost-per-task
+    averages must see."""
+    out = dict(prev)
+    for field in ('tokens_in', 'tokens_out', 'tokens_reasoning', 'cost_usd', 'wall_time_s'):
+        a, b = prev.get(field), incoming.get(field)
+        if a is None and b is None:
+            out[field] = None                      # still unmeasured, not zero
+        else:
+            out[field] = (a or 0) + (b or 0)
+    prev_turns, inc_turns = prev.get('turns'), incoming.get('turns')
+    out['turns'] = (prev_turns or 0) + (inc_turns if isinstance(inc_turns, int) and inc_turns > 0 else 1)
+    out['steps'] = (prev.get('steps') or 1) + 1
+    out['success'] = bool(prev.get('success')) or bool(incoming.get('success'))
+    for field in ('ts', 'task_label', 'complexity', 'profile_id', 'required_categories',
+                  'complexity_sig', 'provider', 'model', 'session_id', 'source_system',
+                  'hermes_session'):
+        value = incoming.get(field)
+        if value not in (None, '', {}, []):
+            out[field] = value
+    return out
+
+
+def accumulate_row(path, row, tail_lines=2000, tail_bytes=512 * 1024):
+    """Append-or-accumulate ONE normalized row for a TASK (cost-per-task engine).
+
+    The store's unit is one row per finished task/session (docs/outcomes-schema.md)
+    and its identity is (source_system, session_id, model). A session makes MANY
+    calls — one per step — so appending each step as its own row loses the
+    association (and the plain dedupe silently DROPS steps 2..N), while inventing a
+    unique id per step destroys the join to the session. This does neither: the
+    first step appends, later steps of the same (source_system, session_id, model)
+    MERGE into that row, so tokens/cost/steps accumulate on the row that
+    represents the task.
+
+    Bounded work: only the last `tail_bytes` of the store are read and only the
+    matched line is rewritten — a live ~90 MB store costs O(tail), not O(store).
+    Returns (mode, reason) with mode in ('accumulated', 'appended', 'failed');
+    never raises for an I/O problem (callers are live request paths)."""
+    if not isinstance(row, dict):
+        raise ValueError('row must be an object')
+    row = dict(row)
+    row.setdefault('steps', 1)          # the first step is still a step count
+    if row.get('turns') is None:
+        # For a proxied request one model call IS one turn; the counter then
+        # tracks the session's steps on the accumulated task row.
+        row['turns'] = 1
+    key = (row.get('source_system'), row.get('session_id'), row.get('model'))
+    payload = json.dumps(row, ensure_ascii=False).encode() + b'\n'
+    try:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        if not os.path.exists(path):
+            open(path, 'ab').close()
+        # NOT 'a+b': append mode redirects every write to EOF regardless of seek,
+        # which turned the in-place merge into a second appended row (caught by
+        # tests/test_outcome_accumulation.py).
+        with open(path, 'r+b') as f:
+            fcntl.flock(f, fcntl.LOCK_EX)
+            try:
+                size = f.seek(0, os.SEEK_END)
+                start = max(0, size - tail_bytes)
+                f.seek(start)
+                chunk = f.read()
+                body_off = 0
+                if start > 0:
+                    cut = chunk.find(b'\n')
+                    if cut == -1:                 # window holds no complete line
+                        f.seek(0, os.SEEK_END)
+                        f.write(payload)
+                        f.flush()
+                        os.fsync(f.fileno())
+                        return 'appended', 'no complete row in the tail window'
+                    body_off = start + cut + 1
+                    chunk = chunk[cut + 1:]
+                lines = chunk.split(b'\n')
+                offset = body_off
+                found = None
+                for raw in lines:
+                    if raw.strip():
+                        try:
+                            prev = json.loads(raw)
+                        except ValueError:
+                            prev = None
+                        if prev is not None and (prev.get('source_system'), prev.get('session_id'),
+                                                 prev.get('model')) == key:
+                            found = (offset, prev, len(raw) + 1)
+                    offset += len(raw) + 1
+                if found is None:
+                    f.seek(0, os.SEEK_END)
+                    f.write(payload)
+                    f.flush()
+                    os.fsync(f.fileno())
+                    return 'appended', 'first row for this task'
+                line_off, prev, line_len = found
+                merged = _merge_task_rows(prev, row)
+                rest = chunk[(line_off - body_off) + line_len:]
+                f.seek(line_off)
+                f.write(json.dumps(merged, ensure_ascii=False).encode() + b'\n' + rest)
+                f.truncate()
+                f.flush()
+                os.fsync(f.fileno())
+                return 'accumulated', f'merged step {merged.get("steps")} into the task row'
+            finally:
+                fcntl.flock(f, fcntl.LOCK_UN)
+    except OSError as exc:
+        return 'failed', f'write failed: {exc}'
 
 
 def append_row_fast(path, row, tail_lines=2000):
