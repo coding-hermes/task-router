@@ -781,6 +781,66 @@ def _proxy_upstream_default(path, body, headers):
     return (status if isinstance(status, int) else 200), payload
 
 
+def _provider_upstream_factory(provider_id, providers_map):
+    """Return a hop-specific upstream call function for a provider, or None.
+
+    If the provider row carries api_base_url, the returned function POSTs
+    directly to that URL (the 'last mile'), injecting the provider's own API
+    key from the env var named in api_key_env.  If no api_base_url is set for
+    this provider, returns None — caller should use the global upstream."""
+    info = providers_map.get(provider_id, {})
+    base = info.get('api_base_url')
+    if not base:
+        return None
+    key_env = info.get('api_key_env', '')
+    api_key = os.environ.get(key_env, '') if key_env else ''
+
+    def _call(path, body, headers):
+        req = urllib.request.Request(
+            base.rstrip('/') + path,
+            data=json.dumps(body).encode(),
+            headers={
+                'Content-Type': 'application/json',
+                'User-Agent': 'task-router-proxy/1.0',
+                **({'Authorization': f'Bearer {api_key}'} if api_key else {}),
+            })
+        try:
+            with urllib.request.urlopen(req, timeout=_proxy_hop_timeout_s()) as resp:
+                return resp.status, json.loads(resp.read())
+        except urllib.error.HTTPError as exc:
+            return exc.code, {'error': exc.read().decode()[:400]}
+        except Exception as exc:
+            return 0, {'error': str(exc)[:300]}
+    return _call
+
+
+_PROVIDER_ROUTING_CACHE = None
+
+
+def _load_provider_routing():
+    """Load providers.jsonl and return {provider_id: {api_base_url, api_key_env}}.
+    Cached in-process after first call."""
+    global _PROVIDER_ROUTING_CACHE
+    if _PROVIDER_ROUTING_CACHE is not None:
+        return _PROVIDER_ROUTING_CACHE
+    path = os.path.join(DATA_DIR, 'providers.jsonl')
+    result = {}
+    try:
+        with open(path) as f:
+            for line in f:
+                row = json.loads(line)
+                pid = row.get('id')
+                if pid and row.get('api_base_url'):
+                    result[pid] = {
+                        'api_base_url': row['api_base_url'],
+                        'api_key_env': row.get('api_key_env', ''),
+                    }
+    except Exception:
+        pass
+    _PROVIDER_ROUTING_CACHE = result
+    return result
+
+
 def _normalize_developer_role(body, headers):
     """Rewrite `role:developer` -> `role:system` (TR-074/TR-075, spec §6.4).
 
@@ -1083,7 +1143,14 @@ def proxy_chat(path, body, headers, max_hops=None, upstream=None):
         meta['gate'] = resolved.get('gate')
         return 503, {'error': 'no open hop for this request', '_router': meta}
 
-    call = upstream or _UPSTREAM_CALL or _proxy_upstream_default
+    # Load per-provider routing (last-mile): providers with api_base_url defined
+    # get their own hop-level upstream; others fall back to the global upstream.
+    provider_routing = _load_provider_routing()
+    _default_upstream = upstream or _UPSTREAM_CALL or _proxy_upstream_default
+
+    def _hop_call(prov_id):
+        return _provider_upstream_factory(prov_id, provider_routing) or _default_upstream
+
     last = None
     # One session id per REQUEST (not per hop): a client's request spans
     # several attempts, and the TR-049 store dedupes on
@@ -1108,8 +1175,9 @@ def proxy_chat(path, body, headers, max_hops=None, upstream=None):
         fwd['model'] = model
         hdrs = {**headers, 'x-router-provider': str(provider)}
         t0 = time.time()
+        hop_call = _hop_call(provider)
         try:
-            status, payload = call(path, fwd, hdrs)
+            status, payload = hop_call(path, fwd, hdrs)
         except Exception as exc:  # noqa: BLE001 — transport failure == ladder step
             status, payload = 0, {'error': str(exc)[:300]}
         attempt['latency_s'] = round(time.time() - t0, 3)
