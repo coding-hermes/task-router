@@ -4,6 +4,9 @@ on:
   push:
     branches: [main]
   pull_request:
+  # Release verification: CI must run (and stay green) on the v0.2.0 tag
+  # commit, but tag pushes are not push-events on branches — dispatch it.
+  workflow_dispatch:
 
 jobs:
   test:

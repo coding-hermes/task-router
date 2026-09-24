@@ -8,4 +8,4 @@ Thin installable wrapper around the repo's scripts/ tools:
 from task_router import paths  # noqa: F401  (re-exported namespace)
 
 __all__ = ["paths"]
-__version__ = "0.1.0"
+__version__ = "0.2.0"
