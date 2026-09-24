@@ -249,3 +249,4 @@
 {"id": 1789971816, "timestamp": "2026-09-24T00:26:27Z", "event_type": "task_updated", "task_id": "TR-116", "actor": "wave-recovery", "detail": "{\"status\": \"failed\"}"}
 {"id": 1789971817, "timestamp": "2026-09-24T00:26:27Z", "event_type": "task_updated", "task_id": "TR-117", "actor": "wave-recovery", "detail": "{\"status\": \"failed\"}"}
 {"id": 1789971812, "timestamp": "2026-09-24T00:28:09Z", "event_type": "task_created", "task_id": "INT-CI-001", "actor": "wave-recovery", "detail": "{\"source\": \"wave-recovery\", \"reason\": \"CI broken on push 0f90330\"}"}
+{"id": 1789971818, "timestamp": "2026-09-24T05:12:58Z", "event_type": "task_created", "task_id": "TR-125", "actor": "foreman", "detail": "{\"id\":\"TR-125\",\"status\":\"pending\"}"}
