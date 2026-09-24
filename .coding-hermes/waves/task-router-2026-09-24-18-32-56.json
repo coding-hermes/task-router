@@ -1,0 +1,95 @@
+{
+  "tick_id": "task-router-2026-09-24-18-32-56",
+  "project": "task-router",
+  "wave_budget": 7,
+  "created_at": "2026-09-24T18:32:56Z",
+  "base_sha": "e342d5a",
+  "tasks": [
+    {
+      "id": "TR-107",
+      "title": "Circuit cooldown docs claim 5m-doubling-cap-1h; class-based code is FLAT per class",
+      "priority": "P3",
+      "worktree": "/home/kara/worktrees/task-router-TR-107",
+      "branch": "wt/TR-107",
+      "base_sha": "e342d5a",
+      "model": "glm-5.3-flash",
+      "provider": "zai-glm",
+      "status": "dispatched",
+      "gitreins_id": "TR-107"
+    },
+    {
+      "id": "TR-108",
+      "title": "Freshness gate has no self-heal: daily cron died pre-seed (2026-09-22)",
+      "priority": "P2",
+      "worktree": "/home/kara/worktrees/task-router-TR-108",
+      "branch": "wt/TR-108",
+      "base_sha": "e342d5a",
+      "model": "glm-5.3-flash",
+      "provider": "zai-glm",
+      "status": "dispatched",
+      "gitreins_id": "TR-108"
+    },
+    {
+      "id": "TR-124",
+      "title": "Capability bars are real but FLAT on the spawn path: no board task declares a profile",
+      "priority": "P1",
+      "worktree": "/home/kara/worktrees/task-router-TR-124",
+      "branch": "wt/TR-124",
+      "base_sha": "e342d5a",
+      "model": "glm-5.3-flash",
+      "provider": "zai-glm",
+      "status": "dispatched",
+      "gitreins_id": "TR-124"
+    },
+    {
+      "id": "RELEASE-002",
+      "title": "RELEASE: task-router v0.2.0 — CI green on HEAD, TR-106 unverified, P1s open",
+      "priority": "P0",
+      "worktree": "/home/kara/worktrees/task-router-RELEASE-002",
+      "branch": "wt/RELEASE-002",
+      "base_sha": "e342d5a",
+      "model": "glm-5.3-flash",
+      "provider": "zai-glm",
+      "status": "dispatched",
+      "gitreins_id": "RELEASE-002"
+    },
+    {
+      "id": "INT-CI-001",
+      "title": "CI failure: test_without_a_declared_session_each_request_stands_alone + test_main_degrades_to_the_profile_when_scoring_fail",
+      "priority": "P1",
+      "worktree": "/home/kara/worktrees/task-router-INT-CI-001",
+      "branch": "wt/INT-CI-001",
+      "base_sha": "e342d5a",
+      "model": "glm-5.3-flash",
+      "provider": "zai-glm",
+      "status": "dispatched",
+      "gitreins_id": "INT-CI-001"
+    },
+    {
+      "id": "TR-126",
+      "title": "[P2] SCOPE: task-router — decide what connecting over the muster protocol means",
+      "priority": "P2",
+      "worktree": "/home/kara/worktrees/task-router-TR-126",
+      "branch": "wt/TR-126",
+      "base_sha": "e342d5a",
+      "model": "glm-5.3-flash",
+      "provider": "zai-glm",
+      "status": "dispatched",
+      "gitreins_id": "TR-126"
+    },
+    {
+      "id": "TR-129",
+      "title": "[P1] BUILD: task-router proxy — speak the real Hermes gateway session protocol",
+      "priority": "P1",
+      "worktree": "/home/kara/worktrees/task-router-TR-129",
+      "branch": "wt/TR-129",
+      "base_sha": "e342d5a",
+      "model": "glm-5.3-flash",
+      "provider": "zai-glm",
+      "status": "dispatched",
+      "gitreins_id": "TR-129"
+    }
+  ],
+  "serial_after": ["TR-125"],
+  "notes": "Wave of 7 independent tasks. TR-125 (complexity=3, registry completeness) serialized after wave. BASE_SHA=e342d5a verified before dispatch."
+}
