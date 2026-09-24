@@ -24,12 +24,16 @@ WHAT. A git merge driver that unions the three sides row by row:
     this merge happened to allocate;
   * IDS: a row keeps its id unless another row already holds it. Rows present in
     the merge base ALWAYS keep theirs; a colliding row is given a free id above
-    the file maximum. When the same row arrives under two ids — each tree
-    renumbered the same collision differently — the variants are recognised by
-    their content (every field except `id`) and collapsed onto one id, but only
-    when every id involved is CONTESTED (two different rows claim it). Two rows
-    that merely look alike keep their own ids: a merge must never swallow a row
-    because it resembles another one.
+    every id in the result, and for the numeric ids the boards actually use
+    (epoch seconds) that number is DERIVED FROM THE ROW'S CONTENT in a reserved
+    band (DERIVED_ID_BASE) — never `max(id)+1`, which changes with the other rows
+    in the board. When the same row arrives under two ids — each tree renumbered
+    the same collision differently — the variants are recognised by their content
+    (every field except `id`) and collapsed onto one id when any of those ids was
+    derived by this driver, or when every id involved is CONTESTED (two different
+    rows claim it). Two rows that merely look alike and whose ids nobody disputes
+    keep their own ids: a merge must never swallow a row because it resembles
+    another one.
   * conflict markers from a previously abandoned merge are resolved as the two
     sides (so this driver can also repair an already-conflicted file).
 
@@ -53,8 +57,16 @@ of the roles git handed us:
      the merge base are never renumbered. An id is not a place in the file, so a
      merge must not move a row's identity. (test_a_row_whose_id_is_unique...)
   5. HIGH-WATER MARK: a renumbered row gets an id above every id in the result,
-     so a later `max(id)+1` append lands on a fresh id instead of an existing
-     row's. Collisions are healed forward, never reused.
+     and that number is DERIVED FROM THE ROW, not from the other rows or from the
+     order in which they arrived. `max(id)+1` satisfies "above the file maximum"
+     but is a function of the OTHER rows: the same collision resolved in a tree
+     whose board is a few hundred rows shorter picks a different number, so the
+     two trees come back holding the same row under two uncontested ids and the
+     conservative collapse rule cannot fold them — the row is duplicated. A
+     content-derived id (derived band) is the same number in every tree and never
+     shifts when unrelated rows are appended. Collisions are healed forward,
+     never reused, and a derived id is recognisable as such, which is what lets
+     the collapse rule be exact instead of a guess.
 
 This driver cannot stop two writers from choosing the same id (allocation stays
 lock-free by doctrine); it guarantees that any two such boards merge to unique,
@@ -91,6 +103,51 @@ IDENTITY_FIELDS = ('task_id', 'title', 'event', 'event_type', 'project',
 #: `TR-126` / `event-7`: string ids whose numeric tail can be climbed when a
 #: collision forces a renumber (so a task keeps its repo's id shape).
 _TRAILING_DIGITS = re.compile(r'^(?P<prefix>.*?)(?P<num>\d+)$')
+
+#: Reserved band for ids THIS DRIVER derives for a renumbered NUMERIC row (see
+#: `derived_id`). Writer ids are epoch seconds (events, ~1.8e9) or `TR-<n>`
+#: strings (tasks), so the band is free in practice — and an id inside it is
+#: recognisably a renumbering artifact rather than something a writer allocated,
+#: which is what lets the collapse rule below be exact instead of a guess.
+DERIVED_ID_BASE = 10 ** 15
+DERIVED_ID_SPAN = 10 ** 12
+
+
+def is_derived(rid):
+    """True when this id was invented by the driver, not allocated by a writer."""
+    if isinstance(rid, bool):
+        return False
+    try:
+        return int(rid) >= DERIVED_ID_BASE
+    except (TypeError, ValueError):
+        return False
+
+
+def derived_id(payload_hash, taken):
+    """The id a renumbered NUMERIC row gets: a pure function of its content.
+
+    Why content, and not `max(id)+1`. The renumbering must be identical in every
+    tree that resolves the same collision — that is the whole point of the
+    invariant — and two trees rarely hold boards of the same length (different
+    branches, different appends). An id derived from the high-water mark is a
+    function of the OTHER rows, so the short board renumbers a colliding row to 7
+    and the long one to 901: the same row then comes back under two ids, neither
+    of them contested, and the conservative collapse rule cannot fold them — the
+    row is duplicated on the next merge (measured: a 2-row collision merged with a
+    board that also held id 900 grew a copy of the row). Content-derived ids also
+    survive appends: they never shift when unrelated rows arrive.
+
+    The salt keeps the id unique if a hash ever lands on a taken id; it is part
+    of the same pure function, so every clone escalates identically.
+    """
+    salt = 0
+    while True:
+        seed = payload_hash if salt == 0 else f'{payload_hash}#{salt}'
+        cand = DERIVED_ID_BASE + int(
+            hashlib.sha256(seed.encode()).hexdigest()[:15], 16) % DERIVED_ID_SPAN
+        if scalar_id(cand) not in taken:
+            return cand
+        salt += 1
 
 
 def canonical(value):
@@ -180,18 +237,22 @@ def order_key(row):
 
 
 def id_sort_key(rid):
-    """Candidate-id preference: ints (event ids) before strings (task ids)."""
+    """Candidate-id preference: a writer's id before one this driver derived (a
+    row's own number beats an invented one), ints (event ids) before strings
+    (task ids)."""
+    derived = is_derived(rid)
     if isinstance(rid, int) and not isinstance(rid, bool):
-        return (0, rid, '')
-    return (1, 0, str(rid))
+        return (1 if derived else 0, 0, rid, '')
+    return (1 if derived else 0, 1, 0, str(rid))
 
 
 class IdAllocator:
     """The file-wide id space, so a renumber can never land on an existing id.
 
-    A fresh id is placed ABOVE every id in the result (invariant 5): the next
-    `max(id)+1` append by any writer is then guaranteed to miss every row that
-    is already in the board, and collisions are healed forward, never reused."""
+    Numeric ids are renumbered into the reserved derived band, by content
+    (invariant 5): above every id in the result, the same number in every tree,
+    and recognisably this driver's own. String ids (`TR-<n>`) keep the repo's id
+    shape and climb above the highest tail in the result."""
 
     def __init__(self, rows):
         self.taken = set()
@@ -218,14 +279,10 @@ class IdAllocator:
             self.high = max(self.high, rid)
 
     def fresh(self, like, hint=''):
-        """A free id shaped like `like`: ints climb the high-water mark, `TR-126`
-        keeps its prefix and climbs, any other string gets a content suffix."""
+        """A free id for a renumbered row: `like` is the id it arrived with,
+        `hint` its content hash (the input to a derived id)."""
         if not isinstance(like, str):          # ints, and rows with no id
-            while True:
-                self.high += 1
-                if scalar_id(self.high) not in self.taken:
-                    self.taken.add(self.high)
-                    return self.high
+            return derived_id(hint or 'row', self.taken)
         m = _TRAILING_DIGITS.match(like)
         if m:
             prefix = m.group('prefix')
@@ -237,7 +294,7 @@ class IdAllocator:
                     self.prefix_max[prefix] = num
                     self.taken.add(cand)
                     return cand
-        base = f'{like}~{hint}' if hint else f'{like}~1'
+        base = f'{like}~{hint[:6]}' if hint else f'{like}~1'
         cand, n = base, 1
         while cand in self.taken or cand == like:
             n += 1
@@ -339,12 +396,14 @@ def merge_rows(base, ours, theirs):
             claims.setdefault(scalar_id(rid), set()).add(pid)
     contested = {rid for rid, pids in claims.items() if len(pids) > 1}
 
-    # Collapse a multi-id group ONLY when every one of its ids is contested: then
-    # the group is one row that two trees numbered differently, and merging it
-    # onto a single id is what keeps this merge a fixed point instead of
-    # duplicating rows on every cross-merge (invariant 2). Two rows that merely
-    # look alike keep their own (uncontested) ids — content must never merge rows
-    # whose ids nobody disputes, or a real append would be swallowed silently.
+    # Collapse a multi-id group when it is ONE row that two trees numbered
+    # differently: either one of the ids is one this driver derived — an invented
+    # number carries no claim on the row's identity, so the content decides — or
+    # every id is contested (each claimed by two rows with different content).
+    # Collapsing is what keeps this merge a fixed point instead of duplicating
+    # rows on every cross-merge (invariant 2). A group of writer ids that nobody
+    # disputes is left alone: content must never swallow a real append because it
+    # resembles another row.
     grouped = {}
     for cluster in ordered:
         grouped.setdefault(payload_key(cluster['row']), []).append(cluster)
@@ -356,7 +415,9 @@ def merge_rows(base, ours, theirs):
                 if rid is not None and scalar_id(rid) not in {scalar_id(x)
                                                               for x in ids}:
                     ids.append(rid)
-        if len(clusters) > 1 and ids and all(scalar_id(i) in contested for i in ids):
+        if len(clusters) > 1 and ids and (
+                any(is_derived(i) for i in ids) or
+                all(scalar_id(i) in contested for i in ids)):
             logical.append({'row': clusters[0]['row'], 'ids': ids,
                             'base_id': clusters[0]['base_id'],
                             'variants': len(clusters)})
@@ -389,7 +450,7 @@ def merge_rows(base, ours, theirs):
             else:
                 chosen = alloc.fresh(own if own is not None else entry['ids'][0],
                                      hint=hashlib.sha256(
-                                         payload_key(row).encode()).hexdigest()[:6])
+                                         payload_key(row).encode()).hexdigest())
                 label = _label(row)
                 notes.append(f'renumbered a colliding id to {chosen} ({label})')
         if entry['variants'] > 1:

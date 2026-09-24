@@ -34,6 +34,11 @@ DRIVER = os.environ.get('BOARD_MERGE_DRIVER') or os.path.join(
     REPO, 'scripts', 'board-merge-driver.py')
 BOARD = '.coding-hermes/board/events.jsonl'
 
+#: Must match DERIVED_ID_BASE in the driver: the reserved band a renumbered
+#: numeric id is derived into (an id up there is the driver's own invention, not
+#: a number a writer allocated).
+DERIVED_ID_BASE = 10 ** 15
+
 
 def run_driver(b, o, t, tmp_path, ours_text=None):
     for name, text in (('base', b), ('ours', ours_text if ours_text is not None else o),
@@ -234,7 +239,11 @@ def test_a_row_two_trees_numbered_differently_collapses_onto_one_id():
     base, ours, theirs = concurrent_pair()
     _, _, merged = run_once(base, ours, theirs)
     tail = [(r['id'], r['event_type']) for r in rows(merged)[7:]]
-    assert tail == [(8, 'writer_x'), (9, 'writer_y')], tail
+    assert tail[0] == (8, 'writer_x'), tail
+    # the loser is renumbered by CONTENT (invariant 5), not to the next integer:
+    # the next integer is a function of the other rows, so two clones whose
+    # boards differ in length would not agree on this row.
+    assert tail[1][1] == 'writer_y' and tail[1][0] >= DERIVED_ID_BASE, tail
 
 
 def test_rows_that_only_differ_by_id_are_kept_apart_when_nothing_is_contested():
@@ -256,7 +265,13 @@ def test_a_row_whose_id_is_unique_is_never_renumbered():
     assert rc == 0, err
     by_event = {r['event_type']: r['id'] for r in rows(merged)}
     assert by_event['real_row'] == 9, 'a row nobody disputes keeps its id'
-    assert sorted(by_event.values()) == [8, 9, 10]
+    losers = [rid for event, rid in by_event.items()
+              if event != 'real_row' and rid != 8]
+    assert len(losers) == 1 and losers[0] >= DERIVED_ID_BASE, (
+        'renumbered BY CONTENT: an id taken from the high-water mark depends on '
+        'the other rows, so a clone whose board is longer picks a different one '
+        'and the two clones disagree about this row (see '
+        'test_renumbering_does_not_depend_on_how_long_the_board_is)')
     assert len(rows(merged)) == 3, 'no row lost while de-duplicating'
 
 
@@ -376,8 +391,12 @@ def test_two_trees_that_merge_each_other_end_up_with_the_same_board(tmp_path):
     merged = rows(main_board)
     assert len(merged) == 9, 'both appends survived, nothing duplicated'
     assert len({r['id'] for r in merged}) == 9, 'ids stay unique'
-    assert {r['event_type']: r['id'] for r in merged if r['event_type'] != 'seed'} \
-        == {'writer_x': 8, 'writer_y': 9}, 'each append keeps one stable id'
+    per_event = {r['event_type']: r['id'] for r in merged
+                 if r['event_type'] != 'seed'}
+    assert per_event['writer_x'] == 8, 'the row that owns the contested id keeps it'
+    assert per_event['writer_y'] >= DERIVED_ID_BASE, (
+        'the loser is renumbered by CONTENT, not to the next integer: two clones '
+        'whose boards differ in length must compute the SAME id for that row')
     assert '<<<<<<<' not in main_board
 
     # and the loop is broken: further cross-merges never leave the two trees
@@ -388,3 +407,95 @@ def test_two_trees_that_merge_each_other_end_up_with_the_same_board(tmp_path):
         assert r.returncode == 0, 'a merge of two settled boards must not conflict'
     assert _git_ok(repo, 'show', 'main:' + BOARD).stdout == main_board
     assert _git_ok(repo, 'show', 'other:' + BOARD).stdout == main_board
+
+
+# --- the two ways a cross-clone merge still lost the board -------------------
+
+
+def test_renumbering_does_not_depend_on_how_long_the_board_is():
+    """A colliding row's new id must be a function of THAT ROW. The high-water
+    mark is not: the same collision resolved in a tree whose board is a few
+    hundred rows longer picks a different number, so the two trees come back
+    holding the same row under two ids, neither of them contested, and the next
+    merge cannot fold them — it appends a copy of the row instead (invariant 5).
+    Measured before the fix: the short board renumbered the row to 7 and the
+    long one to 901."""
+    pair = jl({'id': 6, 'timestamp': '2026-09-23T01:00:00Z', 'event_type': 'b'},
+              {'id': 6, 'timestamp': '2026-09-23T01:00:01Z', 'event_type': 'c'})
+    filler = jl({'id': 900, 'timestamp': '2026-09-23T00:00:00Z',
+                 'event_type': 'unrelated'})
+    rc, err, short = run_once('', pair, '')
+    assert rc == 0, err
+    rc, err, long_board = run_once('', filler + pair, '')
+    assert rc == 0, err
+    short_ids = {r['event_type']: r['id'] for r in rows(short)}
+    long_ids = {r['event_type']: r['id'] for r in rows(long_board)}
+    assert short_ids == {k: long_ids[k] for k in short_ids}, (
+        'the same row got a different id in a longer board: %s vs %s'
+        % (short_ids, long_ids))
+
+
+def test_a_renumbered_row_is_not_duplicated_when_the_other_tree_writes_it_back():
+    """The tree that never saw the merge still holds the row under the contested
+    id. Merging that tree back must reconcile the row, not append a second copy —
+    this is the duplicate growth (9 -> 11 -> 15 -> 23 -> ...) that never settled
+    and is the reason the board had to be merged by hand (invariant 2)."""
+    base = jl({'id': 5, 'timestamp': '2026-09-23T00:00:00Z', 'event_type': 'seed'})
+    ours = base + jl({'id': 6, 'timestamp': '2026-09-23T01:00:00Z',
+                      'event_type': 'b'})
+    theirs = base + jl({'id': 6, 'timestamp': '2026-09-23T01:00:01Z',
+                        'event_type': 'c'})
+    rc, err, merged = run_once(base, ours, theirs)
+    assert rc == 0, err
+    rc, err, again = run_once(base, merged, theirs)
+    assert rc == 0, err
+    assert [r['event_type'] for r in rows(again)] == \
+        [r['event_type'] for r in rows(merged)], (
+        'the renumbered row came back under its contested id and was appended '
+        'again: %s -> %s' % (rows(merged), rows(again)))
+
+
+@pytest.mark.skipif(shutil.which('git') is None, reason='git is required')
+def test_without_the_driver_two_appends_block_every_commit(tmp_path):
+    """THE DEADLOCK, reproduced (the control the driver's own test cannot be).
+
+    Without `merge=boardjsonl` and without a driver configured, two writers that
+    append a row on the same fresh id leave git declaring a conflict on a file
+    with no semantic conflict: the path stays unmerged and git refuses EVERY
+    commit in the tree ("Committing is not possible because you have unmerged
+    files"). That is the state that lasted >25 minutes on 2026-09-23 and ended
+    with a merge/abort wiping a colleague's staged work."""
+    repo = tmp_path / 'clone'
+    repo.mkdir()
+    _git_ok(repo, 'init', '-q', '-b', 'main')
+    for key, value in (('user.email', 'board@example.invalid'),
+                       ('user.name', 'board test'),
+                       ('commit.gpgsign', 'false')):
+        _git_ok(repo, 'config', key, value)
+    board = repo / BOARD
+    board.parent.mkdir(parents=True)
+    board.write_text(jl(*[{'id': i, 'timestamp': '2026-09-23T00:0%d:00Z' % i,
+                           'event_type': 'seed'} for i in range(1, 8)]))
+    _git_ok(repo, 'add', '-A')
+    _git_ok(repo, 'commit', '-qm', 'base board (ids 1..7)')
+    _git_ok(repo, 'branch', 'other')
+
+    _append(board, {'id': 8, 'timestamp': '2026-09-23T01:00:00Z',
+                    'event_type': 'writer_x'})
+    _git_ok(repo, 'commit', '-qam', 'writer x appends id 8')
+    _git_ok(repo, 'checkout', '-q', 'other')
+    _append(board, {'id': 8, 'timestamp': '2026-09-23T01:00:01Z',
+                    'event_type': 'writer_y'})
+    _git_ok(repo, 'commit', '-qam', 'writer y appends id 8')
+    _git_ok(repo, 'checkout', '-q', 'main')
+
+    merge = _git(repo, 'merge', '--no-edit', 'other')
+    assert merge.returncode != 0, 'without the driver this merge must conflict'
+    assert 'CONFLICT' in merge.stdout, merge.stdout
+    assert '<<<<<<<' in board.read_text(), 'the conflict reaches the working tree'
+    assert _git_ok(repo, 'diff', '--name-only',
+                   '--diff-filter=U').stdout.strip(), \
+        'a conflicted board leaves the path unmerged'
+    blocked = _git(repo, 'commit', '-m', 'anything at all')
+    assert blocked.returncode != 0, 'a conflicted board must refuse every commit'
+    assert 'unmerged' in (blocked.stdout + blocked.stderr)
