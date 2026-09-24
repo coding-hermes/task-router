@@ -48,7 +48,7 @@ router spawn P1_CODING --format json
 # One-command overview of registry, gates, circuit, and gaps.
 router status
 
-# Run the test suite (692 tests). The suite imports duckdb too, so run it with
+# Run the test suite (748 tests). The suite imports duckdb too, so run it with
 # an interpreter that has duckdb — the board venv on the fleet hosts:
 #   ~/.hermes/venvs/board/bin/python3 -m pytest -q tests/
 python3 -m pytest -q tests/
@@ -435,6 +435,13 @@ router metrics --top-pairs 20 --since 24h
 
 Metrics live at `$TASK_ROUTER_HOME/metrics.jsonl` under the CLI, or
 `data/metrics.jsonl` repo-relative. Treat real metrics as operational data.
+
+**Retention policy.** The ledger is bounded, not unbounded: a 30-day window with
+a 2 GiB ceiling, reclaimed by an atomic window prune — never by renaming the live
+file, because the writer appends to one path and the reader reads that same path.
+Measured growth is ~64 MB/day (2.97 M rows / 1.48 GB over 23 days to 2026-09-23).
+The full rule, the measurement table and the follow-up compaction row are in
+[docs/decisions/review-tr-003-metrics-ledger-retention.md](docs/decisions/review-tr-003-metrics-ledger-retention.md).
 
 ## Data and namespaces
 
