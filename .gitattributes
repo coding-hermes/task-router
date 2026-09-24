@@ -1,0 +1,2 @@
+# JSONL boards are appended by concurrent writers: merge them by union, never by markers.
+.coding-hermes/board/*.jsonl merge=boardjsonl
