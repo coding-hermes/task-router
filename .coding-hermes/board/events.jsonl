@@ -241,3 +241,10 @@
 {"id": 1789971808, "timestamp": "2026-09-24T00:21:16Z", "event_type": "task_updated", "task_id": "TR-107", "actor": "wave-recovery", "detail": "{\"status\": \"pending\"}"}
 {"id": 1789971809, "timestamp": "2026-09-24T00:21:16Z", "event_type": "task_updated", "task_id": "TR-108", "actor": "wave-recovery", "detail": "{\"status\": \"pending\"}"}
 {"id": 1789971810, "timestamp": "2026-09-24T00:21:16Z", "event_type": "task_updated", "task_id": "RELEASE-002", "actor": "wave-recovery", "detail": "{\"status\": \"pending\"}"}
+{"id": 1789971811, "timestamp": "2026-09-24T00:22:38Z", "event_type": "task_completed", "task_id": "REVIEW-TR-004", "actor": "foreman", "detail": "{\"status\":\"complete\"}"}
+{"id": 1789971812, "timestamp": "2026-09-24T00:26:27Z", "event_type": "task_updated", "task_id": "REVIEW-TR-001", "actor": "wave-recovery", "detail": "{\"status\": \"complete\"}"}
+{"id": 1789971813, "timestamp": "2026-09-24T00:26:27Z", "event_type": "task_updated", "task_id": "REVIEW-TR-002", "actor": "wave-recovery", "detail": "{\"status\": \"complete\"}"}
+{"id": 1789971814, "timestamp": "2026-09-24T00:26:27Z", "event_type": "task_updated", "task_id": "REVIEW-TR-003", "actor": "wave-recovery", "detail": "{\"status\": \"complete\"}"}
+{"id": 1789971815, "timestamp": "2026-09-24T00:26:27Z", "event_type": "task_updated", "task_id": "TR-115", "actor": "wave-recovery", "detail": "{\"status\": \"failed\"}"}
+{"id": 1789971816, "timestamp": "2026-09-24T00:26:27Z", "event_type": "task_updated", "task_id": "TR-116", "actor": "wave-recovery", "detail": "{\"status\": \"failed\"}"}
+{"id": 1789971817, "timestamp": "2026-09-24T00:26:27Z", "event_type": "task_updated", "task_id": "TR-117", "actor": "wave-recovery", "detail": "{\"status\": \"failed\"}"}
