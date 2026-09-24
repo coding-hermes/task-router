@@ -628,8 +628,14 @@ def _file_gap_rows(gaps, dry_run=False):
                 for pair in key[6:].split(','):
                     existing.add(pair.strip())
     ids = [r.get('id') or '' for r in rows]
+    # The board merge driver renumbers a colliding task id INTO A RESERVED BAND
+    # (DERIVED_ID_BASE in scripts/board-merge-driver.py); those numbers are the
+    # driver's, not this writer's sequence. Allocate above the highest REAL task
+    # number, or one renumber would drag every later task id into the band.
+    DERIVED_ID_FLOOR = 10 ** 15
     nums = [int(i.split('-')[-1]) for i in ids
-            if i.startswith('TR-') and i.split('-')[-1].isdigit()]
+            if i.startswith('TR-') and i.split('-')[-1].isdigit()
+            and int(i.split('-')[-1]) < DERIVED_ID_FLOOR]
     next_n = (max(nums) + 1) if nums else 1
     pending = [g for g in gaps
                if f"{g['provider']}/{g['model']}" not in existing]

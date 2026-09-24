@@ -24,16 +24,16 @@ WHAT. A git merge driver that unions the three sides row by row:
     this merge happened to allocate;
   * IDS: a row keeps its id unless another row already holds it. Rows present in
     the merge base ALWAYS keep theirs; a colliding row is given a free id above
-    every id in the result, and for the numeric ids the boards actually use
-    (epoch seconds) that number is DERIVED FROM THE ROW'S CONTENT in a reserved
-    band (DERIVED_ID_BASE) — never `max(id)+1`, which changes with the other rows
-    in the board. When the same row arrives under two ids — each tree renumbered
-    the same collision differently — the variants are recognised by their content
-    (every field except `id`) and collapsed onto one id when any of those ids was
-    derived by this driver, or when every id involved is CONTESTED (two different
-    rows claim it). Two rows that merely look alike and whose ids nobody disputes
-    keep their own ids: a merge must never swallow a row because it resembles
-    another one.
+    every id in the result, and that number is DERIVED FROM THE ROW'S CONTENT in a
+    reserved band (DERIVED_ID_BASE) — never `max(id)+1`, which changes with the
+    other rows in the board. A prefixed id keeps its prefix and derives its
+    numeric tail the same way (`TR-126` -> `TR-<band>`). When the same row arrives
+    under two ids — each tree renumbered the same collision differently — the
+    variants are recognised by their content (every field except `id`) and
+    collapsed onto one id when any of those ids was derived by this driver, or
+    when every id involved is CONTESTED (two different rows claim it). Two rows
+    that merely look alike and whose ids nobody disputes keep their own ids: a
+    merge must never swallow a row because it resembles another one.
   * conflict markers from a previously abandoned merge are resolved as the two
     sides (so this driver can also repair an already-conflicted file).
 
@@ -62,11 +62,13 @@ of the roles git handed us:
      but is a function of the OTHER rows: the same collision resolved in a tree
      whose board is a few hundred rows shorter picks a different number, so the
      two trees come back holding the same row under two uncontested ids and the
-     conservative collapse rule cannot fold them — the row is duplicated. A
-     content-derived id (derived band) is the same number in every tree and never
-     shifts when unrelated rows are appended. Collisions are healed forward,
-     never reused, and a derived id is recognisable as such, which is what lets
-     the collapse rule be exact instead of a guess.
+     conservative collapse rule cannot fold them — the row is duplicated. The
+     same holds one level down for a prefixed id's numeric tail (`TR-126` is
+     renumbered to `TR-<band>`, not to the next free task number). A
+     content-derived id is the same id in every tree and never shifts when
+     unrelated rows are appended. Collisions are healed forward, never reused,
+     and a derived id is recognisable as such, which is what lets the collapse
+     rule be exact instead of a guess.
 
 This driver cannot stop two writers from choosing the same id (allocation stays
 lock-free by doctrine); it guarantees that any two such boards merge to unique,
@@ -100,31 +102,31 @@ TIMESTAMP_KEYS = ('updated_at', 'timestamp', 'ts', 'created_at', 'last_updated')
 IDENTITY_FIELDS = ('task_id', 'title', 'event', 'event_type', 'project',
                    'provider', 'model', 'name', 'slug')
 
-#: `TR-126` / `event-7`: string ids whose numeric tail can be climbed when a
-#: collision forces a renumber (so a task keeps its repo's id shape).
+#: `TR-126` / `event-7`: an id whose numeric tail is the part this driver may
+#: renumber, so a task keeps its repo's id shape when it is derived.
 _TRAILING_DIGITS = re.compile(r'^(?P<prefix>.*?)(?P<num>\d+)$')
 
-#: Reserved band for ids THIS DRIVER derives for a renumbered NUMERIC row (see
-#: `derived_id`). Writer ids are epoch seconds (events, ~1.8e9) or `TR-<n>`
-#: strings (tasks), so the band is free in practice — and an id inside it is
-#: recognisably a renumbering artifact rather than something a writer allocated,
-#: which is what lets the collapse rule below be exact instead of a guess.
+#: Reserved band for ids THIS DRIVER derives for a renumbered row (see
+#: `derived_id`). Writer ids are epoch seconds (events, ~1.8e9) or small
+#: `TR-<n>` task numbers, so the band is free in practice — and an id (or an id's
+#: numeric tail) inside it is recognisably a renumbering artifact rather than
+#: something a writer allocated, which is what lets the collapse rule below be
+#: exact instead of a guess.
 DERIVED_ID_BASE = 10 ** 15
 DERIVED_ID_SPAN = 10 ** 12
 
 
 def is_derived(rid):
-    """True when this id was invented by the driver, not allocated by a writer."""
-    if isinstance(rid, bool):
+    """True when this id was invented by the driver, not allocated by a writer:
+    a number in the reserved band, possibly behind an id prefix (`TR-<band>`)."""
+    if isinstance(rid, bool) or rid is None:
         return False
-    try:
-        return int(rid) >= DERIVED_ID_BASE
-    except (TypeError, ValueError):
-        return False
+    m = _TRAILING_DIGITS.match(str(rid))
+    return bool(m) and int(m.group('num')) >= DERIVED_ID_BASE
 
 
 def derived_id(payload_hash, taken):
-    """The id a renumbered NUMERIC row gets: a pure function of its content.
+    """The id a renumbered row gets: a pure function of its content.
 
     Why content, and not `max(id)+1`. The renumbering must be identical in every
     tree that resolves the same collision — that is the whole point of the
@@ -136,6 +138,12 @@ def derived_id(payload_hash, taken):
     row is duplicated on the next merge (measured: a 2-row collision merged with a
     board that also held id 900 grew a copy of the row). Content-derived ids also
     survive appends: they never shift when unrelated rows arrive.
+
+    The same reasoning applies to a prefixed id's numeric tail: `TR-126` colliding
+    with a DIFFERENT task row is renumbered to `TR-<band>`, not to the next free
+    task number, because the next free number is a function of the other rows
+    (the same defect one level down — two clones with different-length boards
+    would disagree about a colliding task row and duplicate it).
 
     The salt keeps the id unique if a hash ever lands on a taken id; it is part
     of the same pure function, so every clone escalates identically.
@@ -249,51 +257,35 @@ def id_sort_key(rid):
 class IdAllocator:
     """The file-wide id space, so a renumber can never land on an existing id.
 
-    Numeric ids are renumbered into the reserved derived band, by content
-    (invariant 5): above every id in the result, the same number in every tree,
-    and recognisably this driver's own. String ids (`TR-<n>`) keep the repo's id
-    shape and climb above the highest tail in the result."""
+    A renumbered row is given an id BY CONTENT in the reserved derived band
+    (invariant 5): above every id in the result, the same id in every tree, and
+    recognisably this driver's own. A prefixed id keeps its prefix and derives its
+    numeric tail (`TR-126` -> `TR-<band>`), so a task keeps the repo's id shape
+    without the tail depending on the other rows; any other string id gets a
+    content suffix."""
 
     def __init__(self, rows):
         self.taken = set()
-        self.high = 0            # max numeric id (events)
-        self.prefix_max = {}     # 'TR-' -> max numeric tail seen (tasks)
         for row in rows:
             rid = row.get('id') if isinstance(row, dict) else None
-            if rid is None:
-                continue
-            self.taken.add(scalar_id(rid))
-            if isinstance(rid, int) and not isinstance(rid, bool):
-                self.high = max(self.high, rid)
-            elif isinstance(rid, str):
-                m = _TRAILING_DIGITS.match(rid)
-                if m:
-                    key = m.group('prefix')
-                    self.prefix_max[key] = max(self.prefix_max.get(key, 0),
-                                               int(m.group('num')))
+            if rid is not None:
+                self.taken.add(scalar_id(rid))
 
     def claim(self, rid):
         """Reserve an id chosen for the output."""
         self.taken.add(scalar_id(rid))
-        if isinstance(rid, int) and not isinstance(rid, bool):
-            self.high = max(self.high, rid)
 
     def fresh(self, like, hint=''):
         """A free id for a renumbered row: `like` is the id it arrived with,
         `hint` its content hash (the input to a derived id)."""
-        if not isinstance(like, str):          # ints, and rows with no id
+        if like is None or isinstance(like, (int, float)) and \
+                not isinstance(like, bool):
             return derived_id(hint or 'row', self.taken)
+        if not isinstance(like, str):          # odd scalar ids (bools, nulls)
+            return derived_id(f'{like}|{hint or ""}', self.taken)
         m = _TRAILING_DIGITS.match(like)
-        if m:
-            prefix = m.group('prefix')
-            num = max(self.prefix_max.get(prefix, 0), int(m.group('num')))
-            while True:
-                num += 1
-                cand = f'{prefix}{num}'
-                if cand not in self.taken:
-                    self.prefix_max[prefix] = num
-                    self.taken.add(cand)
-                    return cand
+        if m:                                  # keep the shape, derive the tail
+            return f'{m.group("prefix")}{derived_id(hint or like, self.taken)}'
         base = f'{like}~{hint[:6]}' if hint else f'{like}~1'
         cand, n = base, 1
         while cand in self.taken or cand == like:

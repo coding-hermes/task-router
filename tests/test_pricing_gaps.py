@@ -93,6 +93,25 @@ def test_file_gap_rows_appends_a_new_lane_and_continues_the_id(tmp_path, monkeyp
     assert rows[1]['created_by'] == 'router_modelsdev'
 
 
+def test_a_driver_derived_task_id_does_not_shift_the_writer_sequence(tmp_path, monkeypatch):
+    """A renumbered task id lives in the merge driver's reserved band
+    (DERIVED_ID_BASE in scripts/board-merge-driver.py). That number is the
+    driver's, not part of this writer's sequence, so it must not drag the next
+    REAL task number up with it."""
+    board_dir = os.path.join(str(tmp_path), '.coding-hermes', 'board')
+    os.makedirs(board_dir)
+    board = os.path.join(board_dir, 'tasks.jsonl')
+    open(board, 'w').write(
+        json.dumps({'id': 'TR-126', 'status': 'complete'}) + '\n' +
+        json.dumps({'id': 'TR-1000363097895447', 'status': 'todo'}) + '\n')
+    monkeypatch.setattr(rm, '_REPO', str(tmp_path))
+    n = rm._file_gap_rows([{'provider': 'p', 'model': 'q',
+                            'price_evidence': 'ev', 'reason': 'why'}])
+    assert n == 1
+    rows = [json.loads(l) for l in open(board) if l.strip()]
+    assert rows[-1]['id'] == 'TR-127', rows[-1]['id']
+
+
 def test_a_completed_row_does_not_block_refiling(tmp_path, monkeypatch):
     """If the gap came back after being closed, it must be filed again."""
     board_dir = os.path.join(str(tmp_path), '.coding-hermes', 'board')

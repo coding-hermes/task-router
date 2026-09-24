@@ -298,14 +298,39 @@ def test_a_legacy_row_without_an_id_is_left_alone():
 
 
 def test_a_colliding_task_id_keeps_the_repos_id_shape():
-    """Two task rows both allocated TR-126. The loser keeps the TR-<n> shape and
-    climbs above the highest TR id instead of becoming something no board
-    consumer recognises."""
+    """Two task rows both allocated TR-126. The loser keeps the TR- prefix a board
+    consumer recognises, but its NUMBER is derived from the row instead of being
+    the next free number in the local task sequence: "the next free number" is a
+    function of the other rows, so two clones whose boards differ in length would
+    disagree about this row (see the clone test below)."""
     rc, err, merged = run_once('', jl({'id': 'TR-126', 'title': 'A'},
                                       {'id': 'TR-126', 'title': 'B'}),
                                jl({'id': 'TR-128', 'title': 'C'}))
     assert rc == 0, err
-    assert sorted(r['id'] for r in rows(merged)) == ['TR-126', 'TR-128', 'TR-129']
+    ids = sorted(r['id'] for r in rows(merged))
+    assert 'TR-126' in ids and 'TR-128' in ids, ids
+    derived = [i for i in ids if i not in ('TR-126', 'TR-128')]
+    assert len(derived) == 1 and derived[0].startswith('TR-'), ids
+    assert int(derived[0][3:]) >= DERIVED_ID_BASE, (
+        'a renumbered task id must be recognisably derived, not the next number '
+        'in the repo task sequence')
+
+
+def test_a_colliding_task_id_is_the_same_in_every_clone():
+    """The numeric defect one level down: a renumbered task id must not depend on
+    how many other task rows the board happens to hold, or two clones come back
+    with the same task under two ids and duplicate it."""
+    pair = jl({'id': 'TR-126', 'title': 'A'}, {'id': 'TR-126', 'title': 'B'})
+    other_row = jl({'id': 'TR-900', 'title': 'Z'})
+    rc, err, short = run_once('', pair, '')
+    assert rc == 0, err
+    rc, err, long_board = run_once('', pair + other_row, '')
+    assert rc == 0, err
+    short_ids = sorted(r['id'] for r in rows(short))
+    long_ids = sorted(r['id'] for r in rows(long_board))
+    assert short_ids == [i for i in long_ids if i != 'TR-900'], (
+        'the same task row got a different id in a longer board: %s vs %s'
+        % (short_ids, long_ids))
 
 
 def test_the_module_docstring_states_the_invariant():
