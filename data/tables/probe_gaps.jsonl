@@ -106,3 +106,5 @@
 {"provider": "clinepass", "model": "gemma-4-26b-a4b-it:free", "error": "HTTP 400", "candidate": null, "ts": "2026-09-22T10:00:54+00:00", "source": "auto", "action": "fix-not-working (agent)"}
 {"provider": "clinepass", "model": "cline-pass/deepseek-v4-flash", "error": "HTTP 404", "candidate": null, "ts": "2026-09-22T23:00:40+00:00", "source": "auto", "action": "fix-not-working (agent)"}
 {"provider": "clinepass", "model": "ling-3.0-flash-fin:free", "error": "HTTP 400", "candidate": null, "ts": "2026-09-23T10:00:39+00:00", "source": "auto", "action": "fix-not-working (agent)"}
+{"provider": "commandcode", "model": "deepseek/deepseek-v4-flash", "error": "HTTP 400", "candidate": null, "ts": "2026-09-24T10:00:37+00:00", "source": "auto", "action": "verify (catalog serves id \u2014 likely transient/auth)"}
+{"provider": "commandcode", "model": "z-ai/glm-5.3-flash", "error": "HTTP 400", "candidate": null, "ts": "2026-09-24T10:00:37+00:00", "source": "auto", "action": "verify (catalog serves id \u2014 likely transient/auth)"}
