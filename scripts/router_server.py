@@ -14,6 +14,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 import os
 from pathlib import Path
+import re
 import subprocess
 import sys
 import time
@@ -454,6 +455,9 @@ class RouterApplication:
         self.edit_key = edit_key
         self.openapi = OPENAPI
         self.operations = self._operation_map()
+        # TR-129: populated by main() from the upstream's /v1/capabilities at
+        # startup (advisory metadata; empty dict when the probe has not run).
+        self.hermes_capabilities = {}
 
     def _operation_map(self):
         result = {}
@@ -479,6 +483,10 @@ class RouterApplication:
                 return 200, self.openapi
             if path == "/":
                 payload = router_health.health(mode=self.mode)
+                # TR-129: what the upstream /v1/capabilities probe learned at
+                # startup (additive; empty when the probe has not run).
+                if self.hermes_capabilities:
+                    payload["hermes_upstream"] = self.hermes_capabilities
                 payload["_links"] = {
                     "health": "/health",
                     "model_status": "/model_status?provider=<id>",
@@ -630,6 +638,12 @@ class RouterApplication:
             # profile), build the chain internally, call the upstream gateway
             # with a bounded fallback ladder, return the upstream response shape
             # plus additive _router metadata.
+            # TR-129: /v1/responses through a Hermes-gateway upstream speaks the
+            # gateway's session protocol (X-Hermes-Session-Key forward,
+            # X-Hermes-Session-Id echo, SSE keepalive handling, idle deadline).
+            # The OpenAI chat path keeps its original handler.
+            if path == "/v1/responses":
+                return _hermes_proxy_chat(body, headers)
             return proxy_chat(path, body, headers)
         return 404, {"error": "not found"}
 
@@ -736,6 +750,344 @@ class RouterApplication:
 
 
 PROXY_PATHS = ("/v1/chat/completions", "/v1/responses")
+
+#: TR-129: the upstream is the REAL Hermes gateway when ROUTER_PROXY_UPSTREAM
+#: points at one (the deployment recipe names the gateway's own port; the
+#: legacy default is the gateway too). Feature-detect via /v1/capabilities.
+_HERMES_CAPABILITY_MARKER = 'hermes.api_server.capabilities'
+_HERMES_DEFAULT_UPSTREAM = 'http://127.0.0.1:8642'
+
+#: SOURCE B caps session keys at 256 chars (the gateway echoes the key back in
+#: a response header — a longer key is a header-injection risk on that path).
+_HERMES_MAX_SESSION_HEADER_LEN = 256
+
+#: TR-129 idle deadline (SOURCE A): a gateway turn that produces no real SSE
+#: event for this long is aborted so the ladder can advance. Keepalives are
+#: deliberately NOT activity (gateway emits them on a bare timer regardless of
+#: agent liveness — a keepalive reset would disable the deadline entirely).
+_HERMES_IDLE_TIMEOUT_S = 300.0
+
+
+class _HermesIdleTimeout(Exception):
+    """The idle deadline fired: no real SSE event inside the budget."""
+
+
+class _HermesIdleWatch:
+    """Resettable idle deadline for one gateway stream (SOURCE A turnWatch).
+
+    Real events call reset(); the reader checks expired() BEFORE each blocking
+    readline, so a keepalive-only stream dies inside the budget instead of
+    hanging until the socket does. _clock is injectable for tests.
+    """
+
+    def __init__(self, timeout_s, _clock=time.monotonic):
+        self._timeout_s = float(timeout_s)
+        self._clock = _clock
+        self._deadline = _clock() + self._timeout_s
+        self.fired = False
+
+    def reset(self):
+        self._deadline = self._clock() + self._timeout_s
+
+    def expired(self):
+        if self.fired:
+            return True
+        if self._clock() >= self._deadline:
+            self.fired = True
+        return self.fired
+
+
+def _hermes_idle_timeout_s():
+    raw = os.environ.get('ROUTER_HERMES_IDLE_TIMEOUT_S', '')
+    try:
+        val = float(raw)
+    except (TypeError, ValueError):
+        return _HERMES_IDLE_TIMEOUT_S
+    return val if val > 0 else _HERMES_IDLE_TIMEOUT_S
+
+
+def _sse_lines(reader, watch=None):
+    """Yield raw SSE lines from `reader`, enforcing the idle watch.
+
+    The deadline check sits BEFORE the blocking readline: a stream that keeps
+    bytes arriving (keepalives) but produces no real event still trips it. A
+    watch-free reader (tests, buffered bodies) never times out.
+    """
+    while True:
+        if watch is not None and watch.expired():
+            raise _HermesIdleTimeout('no real SSE event inside the idle budget')
+        line = reader.readline()
+        if not line:
+            return
+        yield line
+
+
+def _read_hermes_sse(lines, on_event=None, watch=None):
+    """Consume a Hermes gateway /v1/responses SSE stream to its terminal event.
+
+    SOURCE A parser semantics: `event:` sets the event name, `data:` lines
+    accumulate, a blank line dispatches, a JSON body's `type` field wins over
+    the event: line. SSE comments (`: keepalive` — the gateway's idle-time
+    frame) are skipped WITHOUT counting as activity. response.completed
+    returns the inner response envelope; response.failed raises (a failed turn
+    is not a servable answer). Any other typed event is real activity and
+    resets the idle watch. A stream that ends without a terminal event raises
+    (SOURCE A: that is a transient — the gateway died mid-turn).
+
+    `lines` is any iterable of raw lines (the _sse_lines generator carries the
+    idle enforcement; a plain list works for buffered bodies/tests).
+    """
+    event_name = ''
+    data_lines = []
+    for raw in lines:
+        if isinstance(raw, bytes):
+            raw = raw.decode('utf-8', errors='replace')
+        line = raw.rstrip('\r\n')
+        if line == '':
+            if data_lines:
+                data = '\n'.join(data_lines)
+                try:
+                    payload = json.loads(data)
+                except ValueError:
+                    payload = None        # non-JSON data: activity, keep reading
+                evt = (payload.get('type') if isinstance(payload, dict) else None) \
+                    or event_name
+                if evt in ('response.completed', 'response.failed'):
+                    if watch is not None:
+                        watch.reset()
+                    if on_event is not None:
+                        on_event(evt)
+                    if not isinstance(payload, dict) or \
+                            not isinstance(payload.get('response'), dict):
+                        raise ValueError(f'{evt} envelope without a response object')
+                    if evt == 'response.failed':
+                        raise ValueError('upstream turn failed: response.failed')
+                    return payload['response']
+                if evt:                    # any typed event = real activity
+                    if watch is not None:
+                        watch.reset()
+                    if on_event is not None:
+                        on_event(evt)
+                event_name = ''
+                data_lines = []
+            continue
+        if line.startswith(':'):
+            # SSE comment — the gateway's keepalive. Deliberately NOT activity
+            # (same ruling as the scheduler's readSSEResponse).
+            continue
+        if line.startswith('event:'):
+            event_name = line[len('event:'):].strip()
+            continue
+        if line.startswith('data:'):
+            data_lines.append(line[len('data:'):].strip())
+            continue
+        # Unknown line shape: ignore (fail-open; SOURCE A keeps reading too).
+    raise ValueError('upstream SSE stream ended without a terminal event')
+
+
+def _hermes_session_key_error(session_key):
+    """Validate a caller-declared X-Hermes-Session-Key (SOURCE B rules).
+
+    Returns None when usable (possibly the stripped value), or the 400 error
+    message when the gateway itself would reject it. Absent/empty is valid —
+    the header is optional.
+    """
+    if session_key is None:
+        return None
+    raw = str(session_key).strip()
+    if not raw:
+        return None
+    if re.search(r'[\r\n\x00]', raw):
+        return 'Invalid session key (control characters are not allowed)'
+    if len(raw) > _HERMES_MAX_SESSION_HEADER_LEN:
+        return f'Session key too long (max {_HERMES_MAX_SESSION_HEADER_LEN} chars)'
+    return None
+
+
+def _hermes_capabilities_metadata(base, _opener=None):
+    """Read session metadata from the upstream's /v1/capabilities at startup.
+
+    Fails OPEN: any problem is recorded in the returned dict as `error` and
+    the proxy serves /v1/responses anyway (the capabilities endpoint is
+    advisory; the wire behavior does not depend on it).
+    """
+    opener = _opener or urllib.request.urlopen
+    out = {}
+    try:
+        req = urllib.request.Request(
+            base.rstrip('/') + '/v1/capabilities',
+            headers={'User-Agent': 'task-router-proxy/1.0'})
+        with opener(req, timeout=10) as resp:
+            doc = json.loads(resp.read())
+        if not isinstance(doc, dict):
+            raise ValueError('capabilities payload is not an object')
+        out['object'] = doc.get('object')
+        out['is_hermes_gateway'] = doc.get('object') == _HERMES_CAPABILITY_MARKER
+        features = doc.get('features') if isinstance(doc.get('features'), dict) else {}
+        out['responses_api'] = bool(features.get('responses_api'))
+        out['session_key_header'] = features.get('session_key_header')
+        out['session_continuity_header'] = features.get('session_continuity_header')
+        endpoints = doc.get('endpoints') if isinstance(doc.get('endpoints'), dict) else {}
+        ep = endpoints.get('responses') or {}
+        out['responses_endpoint'] = ep.get('path')
+        out['responses_method'] = ep.get('method')
+    except Exception as exc:  # noqa: BLE001 — advisory probe must never block startup
+        out['error'] = f'capabilities probe failed: {str(exc)[:200]}'
+    return out
+
+
+def _hermes_upstream_base():
+    return os.environ.get('ROUTER_PROXY_UPSTREAM', _HERMES_DEFAULT_UPSTREAM)
+
+
+def _hermes_responses_call(path, body, headers, _opener=None):
+    """One hop to the REAL Hermes gateway on /v1/responses (SOURCE A/B wire).
+
+    Returns (status, payload_dict, session_id). A streamed answer is consumed
+    through the SSE parser (keepalives skipped, idle deadline enforced); a
+    buffered JSON answer passes through. X-Hermes-Session-Id is read from the
+    RESPONSE headers in both cases. HTTP error statuses are returned (not
+    raised) so the ladder treats them as a step; transport failures raise.
+    """
+    base = _hermes_upstream_base()
+    fwd_headers = {
+        'Content-Type': 'application/json',
+        'User-Agent': 'task-router-proxy/1.0',
+    }
+    for name in ('authorization', 'x-api-key'):
+        if headers.get(name):
+            fwd_headers[name] = headers[name]
+    session_key = headers.get('x-hermes-session-key')
+    if session_key:
+        fwd_headers['X-Hermes-Session-Key'] = session_key
+    fwd_body = dict(body)
+    want_stream = bool(fwd_body.pop('stream', None))
+    timeout = max(_proxy_hop_timeout_s(), _hermes_idle_timeout_s())
+    req = urllib.request.Request(
+        base.rstrip('/') + path,
+        data=json.dumps(fwd_body).encode(),
+        headers=fwd_headers,
+        method='POST')
+    opener = _opener or urllib.request.urlopen
+    try:
+        resp = opener(req, timeout=timeout)
+    except urllib.error.HTTPError as exc:      # a REAL response, not transport
+        try:
+            detail = exc.read().decode(errors='replace')[:400]
+        except Exception:  # noqa: BLE001
+            detail = ''
+        return exc.code, {'error': detail or f'HTTP {exc.code}'}, ''
+    if not hasattr(resp, '__enter__'):         # test double returning bare object
+        resp = _BareResponse(resp)
+    try:
+        session_id = resp.headers.get('X-Hermes-Session-Id') or ''
+        ctype = resp.headers.get('Content-Type') or ''
+        if want_stream or 'text/event-stream' in ctype:
+            events = []
+            result = _read_hermes_sse(
+                _sse_lines(resp, _HermesIdleWatch(_hermes_idle_timeout_s())),
+                on_event=events.append)
+            resp._router_events = events       # test visibility only
+            return 200, result, session_id
+        raw = resp.read()
+        try:
+            payload = json.loads(raw)
+        except ValueError:
+            return (resp.status if isinstance(resp.status, int) else 200), \
+                {'error': 'upstream returned non-JSON'}, session_id
+        return (resp.status if isinstance(resp.status, int) else 200), payload, \
+            session_id
+    finally:
+        try:
+            resp.close()
+        except Exception:  # noqa: BLE001
+            pass
+
+
+class _BareResponse:
+    """Adapt a bare (non-context-manager) response object to the interface
+    _hermes_responses_call expects (headers/status/read/close)."""
+
+    def __init__(self, resp):
+        self._resp = resp
+
+    @property
+    def status(self):
+        return getattr(self._resp, 'status', None)
+
+    @property
+    def headers(self):
+        return getattr(self._resp, 'headers', _HeadersLike())
+
+    def read(self, n=-1):
+        return self._resp.read(n)
+
+    def readline(self):
+        return self._resp.readline()
+
+    def close(self):
+        try:
+            self._resp.close()
+        except Exception:  # noqa: BLE001
+            pass
+
+
+class _HeadersLike:
+    def get(self, name, default=None):
+        return default
+
+    def close(self):
+        pass
+
+
+def _hermes_proxy_chat(body, headers, upstream=None):
+    """TR-129 Path H: /v1/responses through a REAL Hermes gateway upstream.
+
+    Reuses the ladder (chain, metering, outcome rows, fail-open) from
+    proxy_chat and only swaps the hop: each attempt goes out with the caller's
+    X-Hermes-Session-Key and the gateway's stream semantics (idle deadline, no
+    stream wish forwarded — the gateway streams when its answer is SSE, which
+    the parser handles either way). The caller gets the gateway's response
+    envelope plus additive _router metadata with the session echo.
+    """
+    upstream = upstream or _UPSTREAM_CALL or _hermes_responses_call
+    hermes_session_key = None
+    key_error = None
+    if isinstance(headers, dict):
+        raw_key = headers.get('X-Hermes-Session-Key')
+        if raw_key is None:
+            raw_key = headers.get('x-hermes-session-key')
+        if raw_key:
+            key_error = _hermes_session_key_error(raw_key)
+            if key_error is None:
+                hermes_session_key = str(raw_key).strip()
+    if key_error:
+        return 400, {'error': key_error}
+    t0 = time.time()
+
+    def _hop(path, hop_body, hop_headers):
+        merged = {**(headers if isinstance(headers, dict) else {})}
+        if hermes_session_key:
+            merged['x-hermes-session-key'] = hermes_session_key
+        status, payload, session_id = upstream(path, hop_body, merged)
+        if session_id:
+            payload = dict(payload)
+            payload['_router_hermes_session_id'] = session_id
+        return status, payload
+
+    status, payload = proxy_chat('/v1/responses', body, headers,
+                                 upstream=_hop)
+    wall = round(time.time() - t0, 3)
+    out = payload if isinstance(payload, dict) else {'upstream': payload}
+    meta = out.get('_router')
+    if isinstance(meta, dict):
+        session_id = out.pop('_router_hermes_session_id', '') or ''
+        # Echo ONLY what the gateway actually advertised — never a fabricated id.
+        meta['hermes_session_id'] = str(session_id)[:256]
+        meta['hermes_session_key'] = hermes_session_key
+        meta['hermes_wall_time_s'] = wall
+        meta['hermes_idle_timeout_s'] = _hermes_idle_timeout_s()
+    return status, out
 
 #: Injectable upstream call for tests: (path, body, headers) -> (status, payload)
 _UPSTREAM_CALL = None
@@ -1275,11 +1627,13 @@ class RouterHandler(BaseHTTPRequestHandler):
         except (UnicodeDecodeError, json.JSONDecodeError) as exc:
             raise ValueError(f"invalid JSON body: {exc}") from exc
 
-    def _send(self, status, payload):
+    def _send(self, status, payload, extra_headers=None):
         encoded = json.dumps(payload).encode()
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
         self.send_header("Content-Length", str(len(encoded)))
+        for name, value in (extra_headers or {}).items():
+            self.send_header(name, value)
         self.end_headers()
         self.wfile.write(encoded)
 
@@ -1323,9 +1677,24 @@ class RouterHandler(BaseHTTPRequestHandler):
                 # stream reader sees zero chunks and reports an empty stream.
                 # The mirror buffers the upstream answer; re-serve it as one
                 # synthesized SSE completion so the client's wire shape holds.
-                self._send_sse_chat(payload)
+                # TR-129: /v1/responses emits the Responses-API event set
+                # (response.created -> response.completed/failed), not chat
+                # chunks; X-Hermes-Session-Id rides the stream headers.
+                if parsed.path == "/v1/responses":
+                    self._send_sse_responses(payload)
+                else:
+                    self._send_sse_chat(payload)
                 return
-            self._send(status, payload)
+            # Buffered answer (or non-200). On /v1/responses the upstream
+            # session id (SOURCE B: the gateway sends it on buffered responses
+            # too) rides the response headers.
+            extra = {}
+            if parsed.path == "/v1/responses" and status == 200 \
+                    and isinstance(payload, dict):
+                meta = payload.get("_router")
+                if isinstance(meta, dict) and meta.get("hermes_session_id"):
+                    extra["X-Hermes-Session-Id"] = str(meta["hermes_session_id"])
+            self._send(status, payload, extra_headers=extra)
         except ValueError as exc:
             self._send(400, {"error": str(exc)})
         except Exception as exc:
@@ -1365,6 +1734,49 @@ class RouterHandler(BaseHTTPRequestHandler):
         else:
             # Unserved (ladder exhausted / shaped error): keep the visible reason.
             _frame(payload if isinstance(payload, dict) else {"error": str(payload)})
+        self.wfile.write(b"data: [DONE]\n\n")
+
+    def _send_sse_responses(self, payload):
+        """Buffered /v1/responses envelope -> Responses-API SSE frames (TR-129).
+
+        The gateway's own event set is response.created -> (deltas/items) ->
+        response.completed / response.failed; a buffered mirror cannot replay
+        the live deltas, so it emits the created frame and the terminal frame
+        carrying the full envelope — the same wire shape the OpenAI Responses
+        stream reader consumes. X-Hermes-Session-Id (when the upstream echoed
+        one) rides the stream headers, exactly as the gateway's own SSE does.
+        """
+        self.send_response(200)
+        self.send_header("Content-Type", "text/event-stream; charset=utf-8")
+        self.send_header("Cache-Control", "no-cache")
+        session_id = ""
+        if isinstance(payload, dict):
+            meta = payload.get("_router")
+            if isinstance(meta, dict):
+                session_id = str(meta.get("hermes_session_id") or "")
+        if session_id:
+            self.send_header("X-Hermes-Session-Id", session_id)
+        self.end_headers()
+
+        def _frame(event, obj):
+            self.wfile.write(f"event: {event}\n".encode()
+                             + b"data: " + json.dumps(obj).encode() + b"\n\n")
+
+        if isinstance(payload, dict) and not payload.get("error") \
+                and (payload.get("object") == "response" or "output" in payload):
+            response_id = payload.get("id") or "resp-router"
+            created = payload.get("created_at") or int(time.time())
+            _frame("response.created", {"type": "response.created",
+                                        "response": {"id": response_id,
+                                                     "created_at": created}})
+            _frame("response.completed", {"type": "response.completed",
+                                          "response": payload})
+        else:
+            # Unserved / shaped error: forward as a data frame so the client's
+            # error path sees the reason (never silence).
+            self.wfile.write(b"data: " + json.dumps(
+                payload if isinstance(payload, dict) else {"error": str(payload)}
+            ).encode() + b"\n\n")
         self.wfile.write(b"data: [DONE]\n\n")
 
     def log_message(self, format_, *args):
@@ -1469,6 +1881,28 @@ def main(argv=None):
         return 2
 
     app = RouterApplication(args.mode, edit_key)
+
+    # TR-129: read session metadata from the upstream /v1/capabilities at
+    # startup. This is an ADVISORY probe — it records what the upstream
+    # advertises (session headers, the responses endpoint, whether it IS a
+    # Hermes gateway) so the deployment recipe can be verified at boot. It
+    # never blocks startup: an unreachable or foreign upstream only logs.
+    app.hermes_capabilities = _hermes_capabilities_metadata(_hermes_upstream_base())
+    if app.hermes_capabilities.get("error"):
+        print(
+            "router_server: upstream /v1/capabilities probe failed "
+            f"({app.hermes_capabilities['error']}) — continuing (advisory)",
+            file=sys.stderr,
+        )
+    else:
+        print(
+            "router_server: upstream capabilities: "
+            f"hermes_gateway={app.hermes_capabilities.get('is_hermes_gateway')} "
+            f"responses={app.hermes_capabilities.get('responses_method')} "
+            f"{app.hermes_capabilities.get('responses_endpoint')} "
+            f"session_key_header={app.hermes_capabilities.get('session_key_header')}",
+            file=sys.stderr,
+        )
 
     # TR-119 startup self-check: the proxy must not serve traffic with a broken
     # classifier.  ROUTER_CLASSIFIER_* env vars are the deployment artifact — the
