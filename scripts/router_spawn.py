@@ -1914,11 +1914,150 @@ def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=DE
             # contract and is stripped before JSON serialization in main().
             '_chain_rows': chain_rows}
 
+COMPLEXITY_SCORERS = ('auto', 'classifier', 'jev')
+
+
+def complexity_requirements(text, scorer='auto', classify_fn=None, classify_name=None):
+    """Requirement levels derived from the TASK's own complexity.
+
+    Bane 2026-09-23: a profile alone made the spawn path a fixed list. The router
+    has to look at the task itself, so this scores the task text and turns the
+    result into the SAME requirement list the proxy path already uses
+    (router_server._proxy_requirements -> _proxy_chain: the scorer's signed
+    matrix IS the requirement list, one level per category, 1:1).
+
+    Returns (adhoc, meta):
+      adhoc = ['cat=level', ...] ready for the resolver's ad-hoc channel, so all
+              existing validation, tier-gating and reporting apply unchanged;
+              None when no matrix could be produced.
+      meta  = always says what happened, including the degrade reason.
+
+    Fail-open by contract: never raises, because router_spawn must never block
+    the scheduler. A scorer that is down degrades to the caller's profile with a
+    VISIBLE reason, never to a silently different chain.
+    """
+    meta = {'scorer': scorer, 'source': None, 'matrix': None, 'adhoc': None,
+            'problems': [], 'degraded': False, 'degrade_reason': None}
+    text = (text or '').strip()
+    if not text:
+        meta.update(degraded=True, degrade_reason='empty task text')
+        return None, meta
+
+    if classify_fn is not None:
+        attempts = [(classify_name or 'stub', classify_fn)]
+    else:
+        attempts = []
+        want = (scorer or 'auto').lower()
+        if want in ('auto', 'classifier'):
+            try:
+                import router_classify
+                attempts.append(('classifier', router_classify.classify))
+            except Exception as exc:  # noqa: BLE001
+                meta['problems'].append(f'classifier import failed: {str(exc)[:160]}')
+        if want in ('auto', 'jev', 'decisions'):
+            try:
+                import router_jev
+                attempts.append(('jev', router_jev.classify))
+            except Exception as exc:  # noqa: BLE001
+                meta['problems'].append(f'jev import failed: {str(exc)[:160]}')
+    if not attempts:
+        meta.update(degraded=True, degrade_reason='no scorer available')
+        return None, meta
+
+    for name, fn in attempts:
+        try:
+            res = fn(text)
+        except Exception as exc:  # noqa: BLE001
+            meta['problems'].append(f'{name}: {str(exc)[:200]}')
+            continue
+        if not isinstance(res, dict) or not res.get('matrix'):
+            why = '; '.join(str(x) for x in (res or {}).get('problems') or [])
+            meta['problems'].append(f'{name}: {why or "no matrix returned"}')
+            continue
+        matrix = {}
+        for cat, lvl in res['matrix'].items():
+            if isinstance(lvl, bool) or not isinstance(lvl, (int, float)):
+                continue
+            matrix[str(cat)] = int(lvl)
+        if not matrix:
+            meta['problems'].append(f'{name}: matrix had no numeric levels')
+            continue
+        adhoc = [f'{c}={v}' for c, v in sorted(matrix.items())]
+        meta.update(source=name, matrix=matrix, adhoc=adhoc, degraded=False,
+                    degrade_reason=None,
+                    confidence=res.get('confidence'),
+                    complexity_sig=res.get('complexity_sig'),
+                    model=res.get('model'), band=res.get('band'),
+                    score=res.get('score'),
+                    prompt_version=res.get('prompt_version'))
+        return adhoc, meta
+
+    meta.update(degraded=True,
+                degrade_reason='; '.join(meta['problems']) or 'scorer produced no matrix')
+    return None, meta
+
+
+def task_text_for(project=None, task_id=None, board=None):
+    """Task text the router should score: the board row's own title+description.
+
+    Bane 2026-09-23: "the board is outlining the task" — so the board row IS the
+    complexity input. Reads the project's board (or an explicit --board path).
+    Returns (text, source_path) or (None, reason).
+    """
+    if not task_id:
+        return None, 'no task id'
+    cands = []
+    if board:
+        cands.append(board)
+    cands.append(os.path.join(os.getcwd(), '.coding-hermes', 'board', 'tasks.jsonl'))
+    if project:
+        # The routing registry keys projects by id+profile only (no workdir), so
+        # conventional locations are tried rather than guessed from it.
+        home = os.path.expanduser('~')
+        cands.append(os.path.join(home, project, '.coding-hermes', 'board', 'tasks.jsonl'))
+        cands.append(os.path.join(home, 'coding-hermes', project,
+                                  '.coding-hermes', 'board', 'tasks.jsonl'))
+    for path in cands:
+        try:
+            with open(path) as fh:
+                for line in fh:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        row = json.loads(line)
+                    except ValueError:
+                        continue
+                    if str(row.get('id')) != str(task_id):
+                        continue
+                    parts = [str(row.get('title') or '')]
+                    desc = row.get('description')
+                    if desc:
+                        parts.append(str(desc))
+                    tags = row.get('tags')
+                    if tags:
+                        parts.append('tags: ' + ' '.join(map(str, tags)))
+                    return '\n'.join(p for p in parts if p), path
+        except OSError:
+            continue
+    return None, f'task {task_id} not found in {len(cands)} board path(s)'
+
+
 def main():
     ap = argparse.ArgumentParser(description='Task router — resolve chain for project/profile')
     ap.add_argument('project', nargs='?')
     ap.add_argument('--profile', dest='profile_id')
     ap.add_argument('--profile-req', dest='adhoc', nargs='+', help="ad-hoc 'cat=level' list")
+    ap.add_argument('--prompt', help='task text to score for complexity (this task, '
+                                     'not a fixed profile)')
+    ap.add_argument('--prompt-file', help='read the task text from a file (- = stdin)')
+    ap.add_argument('--from-task', dest='from_task',
+                    help='score a board task row (title+description) by id')
+    ap.add_argument('--board', help='board path for --from-task '
+                                    '(default: the project workdir, else cwd)')
+    ap.add_argument('--scorer', choices=list(COMPLEXITY_SCORERS), default=None,
+                    help='complexity scorer: auto (classifier, JEV fallback), '
+                         'classifier, or jev (cheap)')
     ap.add_argument('--list-profiles', action='store_true')
     ap.add_argument('--explain', action='store_true')
     ap.add_argument('--format', choices=['json', 'text'], default='json')
@@ -1984,6 +2123,41 @@ def main():
             print(f'           {rs}')
         return
 
+    # TR-124 (Bane 2026-09-23): look at the TASK, not just its profile. The task
+    # text is scored into requirement levels so the chain follows the task's own
+    # complexity; a scorer outage degrades to the profile WITH a visible reason.
+    task_text, text_src = None, None
+    if args.prompt is not None:
+        task_text, text_src = args.prompt, '--prompt'
+    elif args.prompt_file:
+        try:
+            if args.prompt_file == '-':
+                task_text = sys.stdin.read()
+            else:
+                with open(args.prompt_file) as fh:
+                    task_text = fh.read()
+            text_src = args.prompt_file
+        except OSError as exc:
+            task_text, text_src = None, f'--prompt-file unreadable: {exc}'
+    elif args.from_task:
+        task_text, text_src = task_text_for(project=args.project,
+                                            task_id=args.from_task, board=args.board)
+    complexity_meta = None
+    if task_text:
+        adhoc, complexity_meta = complexity_requirements(
+            task_text, scorer=args.scorer or os.environ.get('ROUTER_SCORER') or 'auto')
+        complexity_meta['text_source'] = text_src
+        complexity_meta['text_chars'] = len(task_text)
+        if adhoc:
+            if args.adhoc:
+                _err('WARNING: --profile-req ignored — task complexity requirements win')
+            args.adhoc = adhoc
+        else:
+            _err(f"WARNING: complexity scoring degraded to the profile — "
+                 f"{complexity_meta.get('degrade_reason')}")
+    elif complexity_meta is None and (args.prompt_file or args.from_task):
+        _err(f"WARNING: no task text available ({text_src}) — resolving from the profile")
+
     if not args.project and not args.profile_id and not args.adhoc:
         # TR-046: usage text on stdout breaks --format json consumers
         # (`| python3 -m json.tool`). JSON mode gets a structured error
@@ -2016,6 +2190,8 @@ def main():
     except Exception:
         pass
     r.pop('_chain_rows', None)
+    if complexity_meta is not None:
+        r['complexity'] = complexity_meta
     if args.format == 'json':
         print(json.dumps(r, indent=1))
         return
@@ -2024,6 +2200,13 @@ def main():
         if r.get('code'):
             print(f'code={r.get("code")}  retryable={r.get("retryable")}')
         return
+    cx = r.get('complexity')
+    if cx:
+        if cx.get('degraded'):
+            print(f'  COMPLEXITY: DEGRADED to the profile — {cx.get("degrade_reason")}')
+        else:
+            print(f'  COMPLEXITY: {cx.get("source")} conf={cx.get("confidence")} '
+                  f'({cx.get("text_chars")} chars from {cx.get("text_source")})')
     print(f'▶ {r.get("project", r.get("profile"))}  profile={r.get("profile")}  gate={r.get("gate")}')
     h = r.get('head')
     if h:
