@@ -1522,7 +1522,7 @@ def _data_home_meta(source, fallback_used):
 
 def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=DEFAULT_CHAIN_LIMIT,
             allow_training=False, allow_slow=None, sort=None, backend=None,
-            merge_backends=False, window_h=DEFAULT_WINDOW_H):
+            merge_backends=False, window_h=DEFAULT_WINDOW_H, ref_meta=None):
     tables, src, fb, warn = _load_registry_with_meta()
     warnings = [warn] if warn else []
     projects = {r.get('id'): r for r in tables.get('projects') or []}
@@ -1598,6 +1598,13 @@ def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=DE
             # tag (or legacy id). Resolve tag -> version row; fall back to exact id
             # for backward compatibility with existing rows like P0_FORE.
             pid = _resolve_profile_tag(profiles, row.get('profile') or 'P0_FORE')
+            # TR-124: a MATCHED board declaration outranks the project's DEFAULT
+            # profile — the task row is the more specific declaration, and the
+            # spawn path (`router spawn <project> --profile-from-board <tid>`)
+            # exists precisely so the board can set the bar. Unmatched/absent
+            # requests keep the project row's profile untouched (backward compat).
+            if ref_meta and ref_meta.get('matched') and ref_meta.get('profile_id'):
+                pid = ref_meta['profile_id']
             reqs = reqs_by_profile.get(pid, [])
             resolved_as = 'project'
     else:
@@ -1859,6 +1866,11 @@ def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=DE
             # actually carried a profile name (null otherwise).
             'resolved_as': resolved_as,
             'hint': profile_hint,
+            # TR-124: when a board-declared profile was requested, how it
+            # resolved (matched/declared/problems/source_path); null when the
+            # channel wasn't used — same always-present-additive contract as
+            # `hint` above. Gate behavior is untouched.
+            'board_profile': ref_meta,
             'head': head, 'chain': out_chain, 'exclusions': exclusions,
             'gate_reasons': reasons,
             'degraded_fallback': bool(fb_used),
@@ -1919,6 +1931,79 @@ def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=DE
             # recomputing.  This key is intentionally NOT part of the public
             # contract and is stripped before JSON serialization in main().
             '_chain_rows': chain_rows}
+
+def profile_ref_for(project=None, task_id=None, board=None):
+    """TR-124 (Bane 2026-09-24): the board row declares its own capability bar.
+
+    A board task row may carry a `profile` field — an exact profile id
+    (`P1_CODING`) or a tag (`v2`-style retags, same semantics as --profile).
+    The caller (foreman/spawn path) reads it with THIS function and passes the
+    value to `--profile`, so the row's declared bars — not a hardcoded default
+    profile — decide which lanes are eligible. Complexity scoring is a SEPARATE
+    channel (--from-task); a declared profile beats it, mirroring the proxy's
+    precedence (a declared profile skips scoring entirely).
+
+    Fail-open by contract: missing row / missing field / unreadable board /
+    unknown id all degrade to the caller's normal profile path — the router
+    must never block the scheduler. Unknown ids surface on stderr (verbose) and
+    on the payload's complexity.problems (visible degrade), never invented.
+    """
+    row, where = None, None
+    # task_text_for's scan loop, reused via a tiny inline scan (same candidate
+    # order) so both board readers agree on which file wins.
+    cands = []
+    if board:
+        cands.append(board)
+    cands.append(os.path.join(os.getcwd(), '.coding-hermes', 'board', 'tasks.jsonl'))
+    if project:
+        home = os.path.expanduser('~')
+        cands.append(os.path.join(home, project, '.coding-hermes', 'board', 'tasks.jsonl'))
+        cands.append(os.path.join(home, 'coding-hermes', project,
+                                  '.coding-hermes', 'board', 'tasks.jsonl'))
+    for path in cands:
+        try:
+            with open(path) as fh:
+                for line in fh:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        r = json.loads(line)
+                    except ValueError:
+                        continue
+                    if task_id and str(r.get('id')) == str(task_id):
+                        row, where = r, path
+                        break
+                    if not task_id and not row:
+                        row, where = r, path  # first row when no id was named
+        except OSError:
+            continue
+        if row:
+            break
+    if not row:
+        return None, {'requested': task_id, 'matched': False,
+                      'problems': [f'task {task_id} not found in {len(cands)} '
+                                   f'board path(s)']}
+    ref = str(row.get('profile') or '').strip()
+    if not ref:
+        return None, {'requested': task_id, 'matched': False,
+                      'problems': [f'row {row.get("id")} has no profile field'],
+                      'source_path': where}
+    tables = _load_registry()
+    profiles = {r.get('id'): r for r in tables.get('task_profiles') or []}
+    if not _profile_ref_matches(profiles, ref):
+        near = _profile_near_miss(profiles, ref)
+        why = (f'profile {ref} from board row {row.get("id")} not in registry'
+               + (f' — matches profile {near}, use --profile {near}' if near else ''))
+        _err(f'WARNING: {why} — falling back to the project default profile')
+        return None, {'requested': task_id, 'matched': False,
+                      'declared': ref, 'problems': [why], 'source_path': where}
+    pid = _resolve_profile_tag(profiles, ref)
+    _err(f"WARNING: board row {row.get('id')} declares profile {ref} "
+         f'({pid}) — resolving via --profile {pid}')
+    return pid, {'requested': task_id, 'matched': True, 'declared': ref,
+                 'profile_id': pid, 'source_path': where}
+
 
 COMPLEXITY_SCORERS = ('auto', 'classifier', 'jev')
 
@@ -2061,6 +2146,11 @@ def main():
                     help='score a board task row (title+description) by id')
     ap.add_argument('--board', help='board path for --from-task '
                                     '(default: the project workdir, else cwd)')
+    ap.add_argument('--profile-from-board', dest='profile_from_board',
+                    metavar='TASK_ID', default=None,
+                    help='use the profile declared on board task TASK_ID '
+                         '("profile" field: exact id or tag). Absent field = '
+                         'the caller profile as before (TR-124).')
     ap.add_argument('--scorer', choices=list(COMPLEXITY_SCORERS), default=None,
                     help='complexity scorer: auto (classifier, JEV fallback), '
                          'classifier, or jev (cheap)')
@@ -2133,6 +2223,26 @@ def main():
     # text is scored into requirement levels so the chain follows the task's own
     # complexity; a scorer outage degrades to the profile WITH a visible reason.
     task_text, text_src = None, None
+    # TR-124 board→profile plumbing: a board row may DECLARE its profile
+    # (`"profile": "P1_CODING"`). When asked (--profile-from-board), that
+    # declaration becomes the profile id — the same channel --profile uses,
+    # so all validation and gate behavior apply unchanged. Precedence mirrors
+    # the proxy's declared-complexity rule: a matched declaration beats
+    # complexity scoring entirely; ad-hoc --profile-req levels still win as
+    # the caller's explicit override; everything degrades visibly, never
+    # blocks (fail-open).
+    complexity_meta = None
+    board_profile_meta = None
+    if args.profile_from_board:
+        declared, board_profile_meta = profile_ref_for(
+            project=args.project, task_id=args.profile_from_board, board=args.board)
+        if declared:
+            if args.profile_id and args.profile_id != declared:
+                _err(f'WARNING: --profile {args.profile_id} overridden by the '
+                     f'board declaration — resolving via --profile {declared}')
+            args.profile_id = declared
+        # unmatched/absent: keep the caller's own path untouched (fail-open;
+        # the reason rides the payload's board_profile block).
     if args.prompt is not None:
         task_text, text_src = args.prompt, '--prompt'
     elif args.prompt_file:
@@ -2150,17 +2260,26 @@ def main():
                                             task_id=args.from_task, board=args.board)
     complexity_meta = None
     if task_text:
-        adhoc, complexity_meta = complexity_requirements(
-            task_text, scorer=args.scorer or os.environ.get('ROUTER_SCORER') or 'auto')
-        complexity_meta['text_source'] = text_src
-        complexity_meta['text_chars'] = len(task_text)
-        if adhoc:
-            if args.adhoc:
-                _err('WARNING: --profile-req ignored — task complexity requirements win')
-            args.adhoc = adhoc
+        # TR-124: a MATCHED board declaration IS the complexity contract —
+        # skip scoring entirely (mirrors the proxy's declared-complexity
+        # precedence: x-router-profile skips the classifier). An unmatched
+        # request (no field/row) still falls through to scoring when text is
+        # present, so behavior degrades visibly, not silently.
+        if board_profile_meta and board_profile_meta.get('matched'):
+            _err(f"WARNING: board row declares profile "
+                 f"{board_profile_meta.get('declared')} — complexity scoring skipped")
         else:
-            _err(f"WARNING: complexity scoring degraded to the profile — "
-                 f"{complexity_meta.get('degrade_reason')}")
+            adhoc, complexity_meta = complexity_requirements(
+                task_text, scorer=args.scorer or os.environ.get('ROUTER_SCORER') or 'auto')
+            complexity_meta['text_source'] = text_src
+            complexity_meta['text_chars'] = len(task_text)
+            if adhoc:
+                if args.adhoc:
+                    _err('WARNING: --profile-req ignored — task complexity requirements win')
+                args.adhoc = adhoc
+            else:
+                _err(f"WARNING: complexity scoring degraded to the profile — "
+                     f"{complexity_meta.get('degrade_reason')}")
     elif complexity_meta is None and (args.prompt_file or args.from_task):
         _err(f"WARNING: no task text available ({text_src}) — resolving from the profile")
 
@@ -2187,7 +2306,8 @@ def main():
                 allow_training=args.allow_training,
                 allow_slow=args.allow_slow,
                 sort=args.sort, backend=args.backend,
-                merge_backends=args.merge_backends, window_h=args.window_h)
+                merge_backends=args.merge_backends, window_h=args.window_h,
+                ref_meta=board_profile_meta)
     # TR-021: metrics append is best-effort; any failure is swallowed so
     # router_spawn stdout + exit code stay identical.  Strip the internal
     # _chain_rows helper key before serialization.
@@ -2198,6 +2318,8 @@ def main():
     r.pop('_chain_rows', None)
     if complexity_meta is not None:
         r['complexity'] = complexity_meta
+    if board_profile_meta is not None:
+        r['board_profile'] = board_profile_meta
     if args.format == 'json':
         print(json.dumps(r, indent=1))
         return
