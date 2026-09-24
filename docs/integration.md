@@ -25,7 +25,10 @@ implements; router ops owns the tools + data.
 - Do NOT retry the same pair while its breaker is open — advance to the next chain hop.
 - Existing fallback_model / fallback_provider / consecutive_failures columns stay the
   last-resort fallback when the router is unavailable.
-- Breaker cooldowns: 5m, double per consecutive failure, cap 1h (router_circuit.py).
+- Breaker cooldowns are FLAT per failure class (router_circuit.py
+  CLASS_COOLDOWN_S): overload=120s, quota_window=300s, api_down=1800s,
+  out_of_credit=14400s. Consecutive failures re-open with the same class
+  cooldown — no exponential doubling.
 - Max 1 spawn attempt per hop per tick.
 
 ## Diversity + concurrency (TR-007 design, 2026-08-27)

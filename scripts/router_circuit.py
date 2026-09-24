@@ -3,7 +3,10 @@
 
 Shared state file: ~/.hermes/model-router/circuit-state.json (override with
 ROUTER_STATE_DIR for hermetic tests / scratch runs).
-Cooldowns: 1st failure 5m, then double per consecutive failure, cap 1h.
+Cooldowns: flat per failure class (CLASS_COOLDOWN_S, TR-014):
+  overload=120s, quota_window=300s, api_down=1800s, out_of_credit=14400s.
+No exponential growth: every consecutive failure of the same class re-opens
+with the same class cooldown.
 A pair with open_until in the future is excluded from chains (router_spawn.py).
 
 State semantics (documented, TR-024):
