@@ -168,3 +168,5 @@ Both listeners (`:9092` fleet API, `:9391` classified proxy) serve it. Full
 contract, the :9391 purpose, and the canary probe recipe:
 `docs/health-plane.md`. Re-seed after a red `freshness` or
 `registry.exists` and the probe clears itself — nothing is repaired silently.
+(The opt-in exception is `router validate --heal`, TR-108: the caller — a
+refresh-cron RESUME block, not the monitor — explicitly arms the re-seed.)

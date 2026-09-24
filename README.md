@@ -381,7 +381,7 @@ for repo-relative use.
 | `router status` | One-command overview: registry source/freshness, health, quota, circuit, in-flight, gaps (`--format json\|text`) |
 | `router estimate` | Cost preview for a project's chain at given token volumes (`<project>` positional or `--project`; profile id/tag accepted), head + top alternates, PAYG vs subscription annotated |
 | `router diff` | Chain snapshot diff between two dates: head moves, new/dropped lanes, price deltas |
-| `router validate` | Integrity check: registry schema/freshness, state files, profile integrity (`--json`; exit 1 on issues) |
+| `router validate` | Integrity check: registry schema/freshness, state files, profile integrity (`--json`; exit 1 on issues). Self-heal opt-in: `--heal` / `ROUTER_VALIDATE_HEAL=1` re-runs `router seed` first when the registry is missing or stale (TR-108), then grades the healed tree — default OFF, the bare run stays read-only |
 | `router circuit` | Circuit breakers: `record-failure` (`--class`), `record-success`, `status`, `clear` |
 | `router ledger` | Spawn lifecycle: `start`, `end`, `status` (in-flight counts, trace ids) |
 | `router metrics` | Usage counters: `--top-providers`, `--top-models`, `--top-pairs`, `--profile`, `--since`, `--json` |
