@@ -21,6 +21,7 @@ Design invariants (do not violate):
 - Keys are never touched: probe row carries key_env only.
 """
 import argparse
+import datetime
 import json
 import os
 import sys
@@ -165,10 +166,35 @@ def apply_lanes(path, provider, new_lanes, plan_tier, price_evidence, drift=None
             # merge: existing row is the base (keeps provenance, evidence cols,
             # plan stamps, disabled state); catalog fields overwrite as facts
             lane = dict(r)
-            lane.update(new_lanes[r['model']])
+            incoming = dict(new_lanes[r['model']])
+            # F3 (Bane's rule, enforced by test_feedback_invariants): a `:free`
+            # lane is NOT free — it draws the metered window at list-equivalent
+            # value. So a catalog's $0 sticker must never overwrite an
+            # established window cost, and a zero free lane must never sit
+            # without a story. Measured 2026-09-24: an unguarded import flattened
+            # 13 free lanes (e.g. gemma-4-26b-it:free 0.195 -> 0.0,
+            # nemotron-3-ultra:free 1.5 -> 0.0) and broke the invariant.
+            today = datetime.date.today().isoformat()
+            if ':free' in str(r['model']) and (incoming.get('normalized_price') or 0) == 0:
+                note = ''
+                if (r.get('normalized_price') or 0) > 0:
+                    incoming['normalized_price'] = r.get('normalized_price')
+                    incoming['public_price'] = r.get('public_price')
+                    note = (f' | {today} catalog sticker $0; window_cost KEPT '
+                            f'({r.get("normalized_price")})')
+                elif 'window-cost-pending' not in str(r.get('price_evidence') or '').lower():
+                    note = (f' | {today} window-cost-pending: zero-price SKU, no '
+                            f'established sibling cost')
+                if note:
+                    incoming['price_evidence'] = (r.get('price_evidence') or '') + note
+            lane.update(incoming)
             lane['provider'] = provider
             lane['model'] = r['model']
-            lane['plan_tier'] = r['plan_tier'] if r.get('plan_tier') is not None else plan_tier
+            # plan_tier is what the PAYG/plan bucketing and the plan-offset
+            # pricing key off. NEVER stamp one onto a live row that has none:
+            # measured 2026-09-24, stamping 0 on 376 openrouter rows re-bucketed
+            # them and moved the P0_FORE golden head to an openrouter lane.
+            lane['plan_tier'] = r.get('plan_tier')
             if drift and r['model'] in drift:
                 stamp = ' | catalog drift ' + drift[r['model']]
                 if stamp not in (r.get('price_evidence') or ''):

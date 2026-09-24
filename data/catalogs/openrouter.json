@@ -18,8 +18,8 @@
     0.04
   ],
   "plan_tier_policy": {
-    "default": 0,
-    "reason": "aggregator = PAYG, no subscription pool; list price IS the effective price"
+    "default": null,
+    "reason": "aggregator = PAYG, no subscription pool: plan_tier stays null like the other 376 openrouter rows (a numeric tier here re-buckets PAYG lanes and changes chain order)"
   },
   "data_class": "unknown",
   "notes": [

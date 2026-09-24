@@ -130,3 +130,78 @@ def test_the_openrouter_preset_declares_the_scale_and_basis():
     assert preset['normalized_from'] == 'price_in'
     assert preset['blend'] == [0.96, 0.04]
     assert 'vision' not in preset['field_map'] and 'thinking' not in preset['field_map']
+
+
+# ---------- 4. merge discipline: what a refresh must NOT overwrite ----------
+
+def _write(path, rows):
+    with open(path, 'w') as fh:
+        for r in rows:
+            fh.write(json.dumps(r) + '\n')
+
+
+def _read(path):
+    return [json.loads(l) for l in open(path) if l.strip()]
+
+
+def test_plan_tier_is_never_stamped_onto_a_live_row(tmp_path):
+    """Measured 2026-09-24: stamping plan_tier=0 on 376 openrouter rows
+    re-bucketed the PAYG lanes and moved the P0_FORE golden head off its pinned
+    lane. A refresh owns prices, not a lane's plan semantics."""
+    path = str(tmp_path / 'models.jsonl')
+    _write(path, [{'provider': 'openrouter', 'model': 'm', 'plan_tier': None,
+                   'normalized_price': 1.0}])
+    imp.apply_lanes(path, 'openrouter', {'m': {'provider': 'openrouter', 'model': 'm',
+                                               'normalized_price': 2.0}}, 0, 'ev')
+    row = _read(path)[0]
+    assert row['normalized_price'] == 2.0, 'price still updates'
+    assert row['plan_tier'] is None, 'plan_tier must survive untouched'
+
+
+def test_a_free_lanes_window_cost_survives_a_zero_catalog_sticker(tmp_path):
+    """F3: a :free lane draws the metered window at list-equivalent value, so a
+    $0 catalog price is not a measurement of its cost."""
+    path = str(tmp_path / 'models.jsonl')
+    _write(path, [{'provider': 'openrouter', 'model': 'x:free',
+                   'normalized_price': 1.5, 'public_price': 1.5,
+                   'price_evidence': 'window-cost 2026-09-19'}])
+    imp.apply_lanes(path, 'openrouter',
+                    {'x:free': {'provider': 'openrouter', 'model': 'x:free',
+                                'normalized_price': 0.0, 'public_price': 0.0}},
+                    None, 'ev')
+    row = _read(path)[0]
+    assert row['normalized_price'] == 1.5, 'the established window cost must not be flattened'
+    assert 'window_cost KEPT' in row['price_evidence']
+
+
+def test_a_free_lane_at_zero_gains_a_pending_tag(tmp_path):
+    path = str(tmp_path / 'models.jsonl')
+    _write(path, [{'provider': 'openrouter', 'model': 'y:free',
+                   'normalized_price': 0.0, 'price_evidence': ''}])
+    imp.apply_lanes(path, 'openrouter',
+                    {'y:free': {'provider': 'openrouter', 'model': 'y:free',
+                                'normalized_price': 0.0, 'public_price': 0.0}},
+                    None, 'ev')
+    assert 'window-cost-pending' in _read(path)[0]['price_evidence']
+
+
+def test_a_paid_lane_is_not_touched_by_the_free_guard(tmp_path):
+    path = str(tmp_path / 'models.jsonl')
+    _write(path, [{'provider': 'openrouter', 'model': 'paid',
+                   'normalized_price': 1.0, 'price_evidence': ''}])
+    imp.apply_lanes(path, 'openrouter',
+                    {'paid': {'provider': 'openrouter', 'model': 'paid',
+                              'normalized_price': 0.25, 'public_price': 0.25}},
+                    None, 'ev')
+    row = _read(path)[0]
+    assert row['normalized_price'] == 0.25 and row['price_evidence'] == ''
+
+
+def test_new_rows_take_the_presets_plan_tier(tmp_path):
+    """For a PAYG preset that is null — inventing 0 would re-bucket the lane."""
+    path = str(tmp_path / 'models.jsonl')
+    _write(path, [])
+    imp.apply_lanes(path, 'openrouter',
+                    {'fresh': {'provider': 'openrouter', 'model': 'fresh',
+                               'normalized_price': 0.5}}, None, 'ev')
+    assert _read(path)[0]['plan_tier'] is None
