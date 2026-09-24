@@ -86,10 +86,18 @@ def test_apply_lanes_update_preserves_order_and_evidence(tmp_path):
     assert rows[1]['model'] == 'prov/alpha'
     assert rows[1]['normalized_price'] == pytest.approx(1.04)
     assert rows[1]['perf_reasoning'] == 0.77       # evidence columns preserved on update
-    assert rows[1]['plan_tier'] == 0
+    # An UPDATE must not restamp plan_tier on a live row. Measured 2026-09-24: a
+    # catalog refresh that stamped the preset's 0 onto 376 openrouter rows
+    # (all of which carry None) re-bucketed them and moved the P0_FORE golden
+    # head onto an openrouter lane. plan_tier is a PLAN fact that belongs to the
+    # provider's own wiring, not something a price import overwrites.
+    assert rows[1]['plan_tier'] is None
     assert rows[2]['model'] == 'prov/beta'
     assert rows[2]['perf_reasoning'] is None       # TR-044: net-new = NULL until probed
-    assert rows[2]['plan_tier'] == 0               # plan tier is a PLAN fact, storable now
+    # A NET-NEW row still takes the preset's declared tier: plan providers
+    # (xkiro plan_tier_policy.default=0) keep stamping, a PAYG aggregator
+    # declares null so no tier is invented for it.
+    assert rows[2]['plan_tier'] == 0
 
 
 def test_apply_lanes_new_rows_are_perf_null(tmp_path):
