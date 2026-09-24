@@ -205,3 +205,74 @@ def test_new_rows_take_the_presets_plan_tier(tmp_path):
                     {'fresh': {'provider': 'openrouter', 'model': 'fresh',
                                'normalized_price': 0.5}}, None, 'ev')
     assert _read(path)[0]['plan_tier'] is None
+
+
+# ---------- 5. cache rates (Bane 2026-09-24: the term that compounds) ----------
+
+PRESET_CACHE = dict(PRESET)
+PRESET_CACHE['field_map'] = dict(PRESET['field_map'],
+                                 price_cache_read='pricing.input_cache_read',
+                                 price_cache_write='pricing.input_cache_write')
+
+
+def test_cache_rates_are_scaled_like_prices():
+    e = entry('m', 0.0000001, 0.0000005)
+    e['pricing']['input_cache_read'] = '0.00000001'
+    lane = imp.normalize(catalog(e), PRESET_CACHE)['m']
+    assert lane['public_cache_read_per_m'] == pytest.approx(0.01)
+
+
+def test_cache_write_is_mapped_too():
+    e = entry('m', 0.0000001, 0.0000005)
+    e['pricing']['input_cache_write'] = '0.000000125'
+    lane = imp.normalize(catalog(e), PRESET_CACHE)['m']
+    assert lane['public_cache_write_per_m'] == pytest.approx(0.125)
+
+
+def test_cache_is_null_when_the_catalog_does_not_publish_it():
+    """NULL means unpublished. NEVER 0 — 0 would read as free cache and win
+    every long-horizon chain on a term we never measured."""
+    lane = imp.normalize(catalog(entry('m', 0.0000001, 0.0000005)), PRESET_CACHE)['m']
+    assert lane['public_cache_read_per_m'] is None
+
+
+def test_a_genuine_zero_cache_rate_is_preserved_as_zero():
+    e = entry('m', 0.0000001, 0.0000005)
+    e['pricing']['input_cache_read'] = '0'
+    lane = imp.normalize(catalog(e), PRESET_CACHE)['m']
+    assert lane['public_cache_read_per_m'] == 0.0
+
+
+def test_cache_keys_are_absent_when_the_preset_does_not_map_them():
+    lane = lane_for('m', pin=0.0000001, pout=0.0000005)
+    assert 'public_cache_read_per_m' not in lane
+
+
+def test_openrouter_preset_pins_the_cache_fields_and_variant_notes():
+    preset = json.load(open(os.path.join(REPO, 'data', 'catalogs', 'openrouter.json')))
+    assert preset['field_map']['price_cache_read'] == 'pricing.input_cache_read'
+    assert preset['field_map']['price_cache_write'] == 'pricing.input_cache_write'
+    # Prime SKUs are throughput purchases, not price cuts; the intro-priced Flash
+    # lane doubles on 2027-01-01. Both facts must stay attached to the lane.
+    assert any('glm-5.3-prime' in k for k in preset['variant_notes'])
+    assert '2027-01-01' in preset['variant_notes']['google/gemini-3.8-flash']
+
+
+def test_variant_notes_are_appended_to_price_evidence(tmp_path):
+    p = str(tmp_path / 'models.jsonl')
+    _write(p, [{'provider': 'openrouter', 'model': 'z-ai/glm-5.3-prime',
+                'normalized_price': 2.8, 'price_evidence': 'preset=openrouter'}])
+    imp.apply_lanes(p, 'openrouter',
+                    {'z-ai/glm-5.3-prime': {'provider': 'openrouter', 'model': 'z-ai/glm-5.3-prime',
+                                            'normalized_price': 2.8}}, None, 'ev',
+                    variant_notes={'z-ai/glm-5.3-prime': 'throughput SKU (test)'})
+    row = _read(p)[0]
+    assert 'throughput SKU (test)' in row['price_evidence']
+    assert row['price_evidence'].startswith('preset=openrouter'), 'provenance survives'
+
+
+def test_the_seed_schema_carries_the_cache_columns():
+    """The registry only sees columns the seed declares: without these the data
+    would be written to models.jsonl and silently dropped from every chain."""
+    src = open(os.path.join(REPO, 'scripts', 'router_seed.py')).read()
+    assert "'public_cache_read_per_m'" in src and "'public_cache_write_per_m'" in src

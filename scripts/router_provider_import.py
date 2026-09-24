@@ -123,6 +123,13 @@ def normalize(catalog, preset):
             lane['vision'] = bool(cap_v) if cap_v is not None else None
         if fm.get('thinking'):
             lane['thinking'] = bool(cap_t) if cap_t is not None else None
+        # Cache rates (Bane 2026-09-24: cache is the term that compounds in agent
+        # loops). Mapped only when the preset declares the field; a catalog that
+        # omits it stays NULL (= unpublished), never 0 (= free cache).
+        if fm.get('price_cache_read'):
+            lane['public_cache_read_per_m'] = _scaled_price(dig(e, fm['price_cache_read']), scale)
+        if fm.get('price_cache_write'):
+            lane['public_cache_write_per_m'] = _scaled_price(dig(e, fm['price_cache_write']), scale)
         out[mid] = lane
     return out
 
@@ -151,7 +158,7 @@ def diff(existing, new):
     return {'added': added, 'changed': changed, 'unchanged': unchanged, 'removed': removed}
 
 
-def apply_lanes(path, provider, new_lanes, plan_tier, price_evidence, drift=None):
+def apply_lanes(path, provider, new_lanes, plan_tier, price_evidence, drift=None, variant_notes=None):
     """Update models.jsonl in place: update matching rows, append net-new.
     Returns (updated, appended). Row order of existing file is preserved.
     Evidence discipline: existing rows KEEP their price_evidence (a no-drift
@@ -199,6 +206,11 @@ def apply_lanes(path, provider, new_lanes, plan_tier, price_evidence, drift=None
                 stamp = ' | catalog drift ' + drift[r['model']]
                 if stamp not in (r.get('price_evidence') or ''):
                     lane['price_evidence'] = (r.get('price_evidence') or '') + stamp
+            # Variant notes come from the PRESET (source-controlled data, e.g.
+            # "throughput SKU"), not from hand-editing the generated JSONL.
+            note = (variant_notes or {}).get(r['model'])
+            if note and note not in (lane.get('price_evidence') or ''):
+                lane['price_evidence'] = (lane.get('price_evidence') or '') + ' | ' + note
             out.append(lane)
             seen.add(r['model'])
             updated += 1
@@ -317,7 +329,8 @@ def main():
     policy = preset.get('plan_tier_policy', {})
     plan_tier = policy.get('default')
     evidence = f"provider_import preset={preset['id']} " + policy.get('reason', '')
-    updated, appended = apply_lanes(mpath, preset['id'], new_lanes, plan_tier, evidence)
+    updated, appended = apply_lanes(mpath, preset['id'], new_lanes, plan_tier, evidence,
+                                   variant_notes=preset.get('variant_notes'))
     print(f'applied: {updated} updated, {appended} appended (plan_tier={plan_tier})')
 
     if ensure_probe_row(os.path.join(TABLES, 'probe_providers.jsonl'), preset):

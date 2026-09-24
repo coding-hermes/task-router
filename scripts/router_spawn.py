@@ -1784,6 +1784,12 @@ def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=DE
             ent = {'hop': hop, 'provider': prov, 'model': model,
                    'usd_1m': round(float(pub_usd), 4) if pub_usd is not None else None,
                    'in_per_m': pub_in, 'out_per_m': pub_out,
+                   # Cache rates ride along on every hop (Bane 2026-09-24: cache is
+                   # the term that compounds in agent loops, so a hop's real cost is
+                   # not knowable from in/out alone). None = the provider does not
+                   # publish it — never 0, which would read as free cache.
+                   'cache_read_per_m': mrow.get('public_cache_read_per_m'),
+                   'cache_write_per_m': mrow.get('public_cache_write_per_m'),
                    'data_class': dc}
             # TR-069 wave 2: retiring lanes warn on EVERY hop (date + successor);
             # capacity is never silently cut, but callers see the deadline.

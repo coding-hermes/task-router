@@ -92,6 +92,12 @@ BASE_COLUMNS = {
                ('normalized_price', 'DOUBLE'), ('price_evidence', 'VARCHAR'),
                ('public_price', 'DOUBLE'), ('public_in_per_m', 'DOUBLE'),
                ('public_out_per_m', 'DOUBLE'),
+               # Cache-read/-write rates per 1M. Cache is the term that compounds
+               # in agent loops (Bane 2026-09-24): a lane can be cheaper on input
+               # and still lose a long-horizon task on cache. NULL = the provider
+               # does not publish it (never 0, which would read as "free cache").
+               ('public_cache_read_per_m', 'DOUBLE'),
+               ('public_cache_write_per_m', 'DOUBLE'),
                ('data_class', 'VARCHAR'), ('plan_tier', 'INTEGER'),
                ('perf_agent_tick', 'DOUBLE'), ('perf_long_doc', 'DOUBLE'),
                ('perf_debug', 'DOUBLE'), ('perf_schema', 'DOUBLE'),
