@@ -1,0 +1,33 @@
+{
+  "id": "openrouter",
+  "name": "OpenRouter aggregator (openrouter.ai/api/v1)",
+  "catalog_url": "https://openrouter.ai/api/v1/models",
+  "catalog_format": "openai_models_list",
+  "keyless_catalog": true,
+  "keyless_reason": "the model catalogue is public; only inference needs a key. Fleet OR keys: OPENROUTER_API_KEY is EXPIRED (provider row notes 'free promo lane only') \u2014 GITREINS_OPENROUTER_KEY and MYTHOS_OPENROUTER_KEY answer 200 (verified 2026-09-24 on stealth/space-bunny-alpha).",
+  "price_scale": 1000000,
+  "price_scale_reason": "OpenRouter quotes USD PER TOKEN (pricing.prompt/completion); every lane in our tables is priced per 1M tokens. Without this the whole provider imports 1e-6x too cheap.",
+  "field_map": {
+    "model": "id",
+    "price_in": "pricing.prompt",
+    "price_out": "pricing.completion",
+    "context": "context_length"
+  },
+  "blend": [
+    0.96,
+    0.04
+  ],
+  "plan_tier_policy": {
+    "default": 0,
+    "reason": "aggregator = PAYG, no subscription pool; list price IS the effective price"
+  },
+  "data_class": "unknown",
+  "notes": [
+    "onboarded as a preset 2026-09-24 so pricing/model refreshes go through the importer instead of a one-off script (TR-064 pattern)",
+    ":batch variants are legitimate cheaper lanes (half price) and are imported as separate lanes",
+    "sentinel guard: openrouter/fusion reports pricing -1000000 (a router placeholder); _scaled_price keeps such values NULL rather than importing a price that would win every chain",
+    "capability flags (vision/thinking) are deliberately NOT mapped: OpenRouter exposes a modality STRING, and bool('text->text') is True for text-only models \u2014 mapping it would corrupt the flags"
+  ],
+  "normalized_from": "price_in",
+  "basis_note": "public_price = 0.96*in + 0.04*out (list blend); normalized_price = input price (normalized_from=price_in) \u2014 both measured against 347/347 existing openrouter lanes, so a refresh writes only REAL catalog changes."
+}

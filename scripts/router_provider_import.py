@@ -42,6 +42,36 @@ def dig(d, dotted):
     return cur
 
 
+#: Sanity ceiling for a per-1M-token lane price. A value above this is not a
+#: price — it is a sentinel or a scaling bug, and importing it would corrupt
+#: every chain it ranks in.
+MAX_LANE_PRICE_PER_M = 10000.0
+
+
+def _scaled_price(value, scale):
+    """Catalog price -> per-1M lane price, or None when it is not a real price.
+
+    NEVER a fabricated number: OpenRouter's `openrouter/fusion` pseudo-model
+    reports pricing -1000000 (a router placeholder), and a negative price sorts
+    ahead of every honest lane in the chain. Anything negative, non-finite or
+    over MAX_LANE_PRICE_PER_M stays None so the lane reads UNPRICED and the gap
+    is visible instead of silently winning every price-ordered chain.
+    """
+    if value is None:
+        return None
+    try:
+        v = float(value) * scale
+    except (TypeError, ValueError):
+        return None
+    if v != v or v in (float('inf'), float('-inf')):   # NaN / inf
+        return None
+    if v < 0 or v > MAX_LANE_PRICE_PER_M:
+        return None
+    # Round to 6dp: a per-token value multiplied back up lands on 0.7999999999999999
+    # otherwise, and that noise alone rewrites the whole provider on every refresh.
+    return round(v, 6)
+
+
 def normalize(catalog, preset):
     """catalog dict -> {model_id: lane dict} using the preset field map."""
     fmt = preset.get('catalog_format', 'openai_models_list')
@@ -50,6 +80,11 @@ def normalize(catalog, preset):
     else:
         entries = catalog if isinstance(catalog, list) else []
     blend_in, blend_out = preset.get('blend', [0.96, 0.04])
+    # price_scale: a catalog that quotes PER TOKEN (OpenRouter: pricing.prompt is
+    # USD per token) must declare 1_000_000 so the stored price is per 1M tokens
+    # like every other lane. Absent = 1.0 (catalogs that already quote per 1M,
+    # e.g. xKiro).
+    scale = float(preset.get('price_scale', 1.0) or 1.0)
     fm = preset['field_map']
     out = {}
     for e in entries:
@@ -57,20 +92,36 @@ def normalize(catalog, preset):
         if not mid:
             continue
         pin, pout = dig(e, fm['price_in']), dig(e, fm['price_out'])
+        pin, pout = _scaled_price(pin, scale), _scaled_price(pout, scale)
         price = None if pin is None or pout is None else round(blend_in * float(pin) + blend_out * float(pout), 6)
+        # normalized_price and public_price follow DIFFERENT bases in the
+        # existing data (measured 2026-09-24: 347/347 openrouter lanes have
+        # normalized == input while public == the blend). `normalized_from`
+        # lets a preset reproduce the provider's established convention instead
+        # of rewriting every lane to satisfy a formula.
+        norm_price = price
+        if preset.get('normalized_from') == 'price_in' and pin is not None:
+            norm_price = float(pin)
         cap_v = dig(e, fm.get('vision', ''))
         cap_t = dig(e, fm.get('thinking', ''))
         lane = {
             'provider': preset['id'],
             'model': mid,
-            'normalized_price': price,
+            'normalized_price': norm_price,
             'public_price': price,
             'public_in_per_m': None if pin is None else float(pin),
             'public_out_per_m': None if pout is None else float(pout),
             'context_limit': dig(e, fm['context']) if fm.get('context') else None,
-            'vision': bool(cap_v) if cap_v is not None else None,
-            'thinking': bool(cap_t) if cap_t is not None else None,
         }
+        # Capability flags are only written when the preset actually maps them:
+        # emitting `vision: None` for a provider whose catalog doesn't carry the
+        # field would diff every lane in the registry and churn 300+ rows on a
+        # refresh that is only about price. A catalog's modality STRING is not a
+        # vision flag either ("text+image->text" would read as True for anything).
+        if fm.get('vision'):
+            lane['vision'] = bool(cap_v) if cap_v is not None else None
+        if fm.get('thinking'):
+            lane['thinking'] = bool(cap_t) if cap_t is not None else None
         out[mid] = lane
     return out
 
