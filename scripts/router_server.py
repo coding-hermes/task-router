@@ -701,7 +701,10 @@ class RouterApplication:
             # The OpenAI chat path keeps its original handler.
             if path == "/v1/responses":
                 return _hermes_proxy_chat(body, headers)
-            return proxy_chat(path, body, headers)
+            # TR-145: the client surface drops the internal routing markers; the
+            # in-process consumers keep them (see _client_body).
+            chat_status, chat_payload = proxy_chat(path, body, headers)
+            return chat_status, _client_body(chat_payload)
         return 404, {"error": "not found"}
 
     def tools(self):
@@ -1255,6 +1258,8 @@ def _failure_envelope(meta, session_id, source_system, parent_session_id, ladder
             'served_by_reason': error_reason,
             'rolling': None,
             'rolling_reason': 'no served lane to average',
+            'gateway_session_id': None,
+            'gateway_session_reason': 'no hop produced a session id',
             'exhausted': True,
             'terminal_reason': terminal,
             'hops_attempted': len(tried),
@@ -1282,6 +1287,20 @@ def _proxy_hop_timeout_s():
     except (TypeError, ValueError):
         return 180.0
     return val if val > 0 else 180.0
+
+
+#: Internal routing markers. They are EVIDENCE for the caller's envelope and the
+#: ledger, and several in-process consumers read them off the payload — but a
+#: model-answer body is not the place for them: an OpenAI client would have to
+#: filter them out of `choices`. One place decides.
+_INTERNAL_BODY_KEYS = ('_router_hermes_session_id', '_router_stream')
+
+
+def _client_body(payload):
+    """The client-visible body: the answer plus `_router`, minus internal markers."""
+    if not isinstance(payload, dict):
+        return payload
+    return {k: v for k, v in payload.items() if k not in _INTERNAL_BODY_KEYS}
 
 
 def _stream_hops_enabled():
@@ -1452,6 +1471,19 @@ def _proxy_upstream_default(path, body, headers):
                 ctype = (resp.headers.get('Content-Type') or '')
             except Exception:  # noqa: BLE001 — test doubles may lack headers
                 ctype = ''
+            # TR-145: capture the GATEWAY's session id and hand it back with the
+            # payload, so the row can be joined to the Hermes session it served.
+            # The /v1/responses path has done this since TR-129, but chat
+            # completions — the shape every harness and the scheduler actually
+            # send — never captured it, so every row from that path carried
+            # gateway_session_id: null and "which Hermes session did this pay for"
+            # was unanswerable. The header rides the RESPONSE headers, so it is
+            # available before the body is read (streamed or not).
+            gw_session = ''
+            try:
+                gw_session = resp.headers.get('X-Hermes-Session-Id') or ''
+            except Exception:  # noqa: BLE001 — test doubles may lack headers
+                gw_session = ''
             # Assemble ONLY a real stream. Asking for one does not guarantee it:
             # an upstream that ignores `stream` answers with JSON, and treating
             # that body as SSE produced an empty answer (caught by the chat-shape
@@ -1459,7 +1491,10 @@ def _proxy_upstream_default(path, body, headers):
             # only a wish.
             if 'text/event-stream' in ctype:
                 watch = _HermesIdleWatch(_proxy_idle_budget_s())
-                return 200, _collect_openai_stream(_sse_lines(resp, watch), path, watch=watch)
+                payload = _collect_openai_stream(_sse_lines(resp, watch), path, watch=watch)
+                if gw_session:
+                    payload['_router_hermes_session_id'] = gw_session
+                return 200, payload
             raw = resp.read()
             status = resp.status
     except urllib.error.HTTPError as exc:      # a REAL response, not transport
@@ -1474,6 +1509,8 @@ def _proxy_upstream_default(path, body, headers):
         return (status if isinstance(status, int) else 200), {
             'error': 'upstream returned non-JSON',
             'raw': raw[:200].decode(errors='replace')}
+    if gw_session and isinstance(payload, dict) and not payload.get('_router_hermes_session_id'):
+        payload['_router_hermes_session_id'] = gw_session
     return (status if isinstance(status, int) else 200), payload
 
 
@@ -2084,6 +2121,15 @@ def proxy_chat(path, body, headers, max_hops=None, upstream=None):
             # have to filter them out.
             if isinstance(out, dict) and isinstance(out.get('_router_stream'), dict):
                 attempt['stream'] = out.pop('_router_stream')
+            # TR-145: read the marker BEFORE popping it — it is the value the
+            # envelope reports, and popping first is how the first version of
+            # this patch reported a session of None while holding the real id.
+            # TR-145: capture it into the envelope/row WITHOUT removing it — this
+            # ladder is shared, and the /v1/responses handler above reads this very
+            # marker off the payload we return. Popping it here reported a session
+            # of None in the chat envelope and broke the responses echo in the same
+            # edit. Stripping is the CLIENT surface's job (see _client_body).
+            gw_session_id = out.get('_router_hermes_session_id') if isinstance(out, dict) else None
             # TR-144: the caller learns how THIS lane has been performing for THIS
             # complexity band without a second round trip. None (with a reason on
             # the failure path) when the lane has no history yet — a first call
@@ -2101,6 +2147,10 @@ def proxy_chat(path, body, headers, max_hops=None, upstream=None):
                                               'session_id': session_id,
                                               'parent_session_id': parent_session_id},
                               'rolling': rolling,
+                              # TR-145: the Hermes session this call ran under, so a
+                              # caller can reconcile the envelope against the session
+                              # record without parsing the ledger.
+                              'gateway_session_id': gw_session_id,
                               'wall_time_s': wall}
             return 200, out
     status, payload = last or (502, {'error': 'no hops attempted'})
