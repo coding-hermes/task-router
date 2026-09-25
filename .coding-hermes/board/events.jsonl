@@ -253,3 +253,6 @@
 {"id": 1789971819, "timestamp": "2026-09-24T15:16:47Z", "event_type": "task_created", "task_id": "TR-126", "actor": "foreman", "detail": "{\"id\":\"TR-126\",\"status\":\"pending\"}"}
 {"id": 1789971820, "timestamp": "2026-09-24T15:16:47Z", "event_type": "task_created", "task_id": "TR-127", "actor": "foreman", "detail": "{\"id\":\"TR-127\",\"status\":\"pending\"}"}
 {"id": 1789971821, "timestamp": "2026-09-24T15:16:47Z", "event_type": "task_created", "task_id": "TR-128", "actor": "foreman", "detail": "{\"id\":\"TR-128\",\"status\":\"pending\"}"}
+{"id": 1789971822, "timestamp": "2026-09-24T17:54:22Z", "event_type": "task_created", "task_id": "TR-129", "actor": "kara", "detail": "{\"id\": \"TR-129\", \"status\": \"pending\"}"}
+{"id": 1789971823, "timestamp": "2026-09-24T17:55:39Z", "event_type": "task_updated", "task_id": "TR-129", "actor": "kara", "detail": "{\"id\": \"TR-129\", \"note\": \"operator contract clarification: ingest shape, chain order + fallback, idle budgets, stats in response (AC7/AC8)\"}"}
+{"id": 1789971824, "timestamp": "2026-09-24T18:02:53Z", "event_type": "task_updated", "task_id": "TR-129", "actor": "kara", "detail": "{\"id\": \"TR-129\", \"note\": \"live repro attached: complexity rating + chain-order fallback proven; F1 wall-clock kill at 180.1s/hop, F2 timeout misclassified, F3 envelope blind on failure\"}"}

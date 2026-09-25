@@ -344,3 +344,19 @@ tasks:
     dir>; full suite green
   status: in_progress
   created_at: '2026-09-21T06:04:07.501874+00:00'
+- id: TR-107
+  title: 'docs: circuit cooldown prose matches flat per-class runtime'
+  criteria:
+  - 'Commit ca1177b merged: docs/integration.md + scripts/router_circuit.py docstring
+    updated to CLASS_COOLDOWN_S table; test_tr107_circuit_docs.py 5/5 green'
+  status: complete
+  created_at: '2026-09-25T16:21:49.132798+00:00'
+  completed_at: '2026-09-25T17:03:44.047187+00:00'
+- id: TR-108
+  title: 'docs+fix: opt-in self-heal for freshness gate'
+  criteria:
+  - 'cdb7fb5 merged: router_validate.py --self-heal flag; stale-session hotpath fixed;
+    README.md + docs/registry-maintenance.md updated; guard PASS; full suite 917 passed.'
+  status: complete
+  created_at: '2026-09-25T16:56:41.017165+00:00'
+  completed_at: '2026-09-25T17:07:14.892058+00:00'
