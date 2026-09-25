@@ -278,3 +278,4 @@
 {"id": 1789971844, "timestamp": "2026-09-25T20:57:22Z", "event_type": "task_verified", "task_id": "TR-138", "actor": "kara", "detail": "{\"id\": \"TR-138\", \"live\": \"HTTP 200 in 232.05s\", \"stream_events\": 114, \"suite\": \"984 passed\"}"}
 {"id": 1789971845, "timestamp": "2026-09-25T21:00:02Z", "event_type": "task_completed", "task_id": "TR-142", "actor": "kara", "detail": "{\"id\": \"TR-142\", \"status\": \"complete\", \"commit\": \"90e0143\"}"}
 {"id": 1789971846, "timestamp": "2026-09-25T21:03:51Z", "event_type": "task_completed", "task_id": "TR-145", "actor": "kara", "detail": "{\"id\": \"TR-145\", \"status\": \"complete\", \"commit\": \"e4d784c\"}"}
+{"id": 1789971847, "timestamp": "2026-09-25T21:07:29Z", "event_type": "task_completed", "task_id": "TR-147", "actor": "kara", "detail": "{\"id\": \"TR-147\", \"status\": \"complete\", \"commit\": \"9d64956\", \"sites_fixed\": 10, \"files\": 8}"}
