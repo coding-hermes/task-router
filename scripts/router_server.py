@@ -87,6 +87,7 @@ def build_openapi():
     get_paths = {
         "/openapi.json": ("getOpenAPI", "Get the OpenAPI 3.1 schema", []),
         "/": ("getRoot", "Health + status surface (TR-087)", []),
+        "/v1/capabilities": ("getCapabilities", "Discover the upstream gateway's capabilities through the proxy (TR-140): live probe, else the startup probe marked stale, else an honest error", []),
         "/health": ("getHealth", "Control-plane health: identity, registry age (mtime) + freshness, router_validate gate verdict, gate states (TR-087, TR-REVIEW-001)", []),
         "/model_status": ("getModelStatus", "Per-model/provider status lookup: registry + probe + circuit joined per lane (TR-087)", [
             {
@@ -495,6 +496,21 @@ class RouterApplication:
                     "openapi": "/openapi.json",
                 }
                 return 200, payload
+            if path == "/v1/capabilities":
+                # TR-140: callers must be able to discover the upstream's surface
+                # through the proxy instead of guessing at it. Live probe first
+                # (so a restarted gateway is not misrepresented), then the
+                # startup probe, then an honest error — never an invented
+                # capability.
+                live = _hermes_capabilities_metadata(_hermes_upstream_base())
+                cached = getattr(self, 'hermes_capabilities', {}) or {}
+                if not live.get('error'):
+                    return 200, {'proxy': 'task-router', 'upstream': live, 'source': 'live'}
+                if cached:
+                    return 200, {'proxy': 'task-router', 'upstream': cached, 'source': 'startup-probe',
+                                 'stale': True, 'live_error': live.get('error')}
+                return 200, {'proxy': 'task-router', 'upstream': None, 'source': 'unavailable',
+                             'error': live.get('error') or 'capabilities unavailable'}
             if path == "/health":
                 return 200, router_health.health(mode=self.mode)
             if path == "/model_status":
@@ -601,6 +617,14 @@ class RouterApplication:
         proxy_passthrough = (path in PROXY_PATHS
                              and os.environ.get('ROUTER_PROXY_AUTH') == 'passthrough')
         if not proxy_passthrough:
+            # TR-140: a typo must read as a typo. The auth gate used to run
+            # first, so POSTing to an unknown path in read-only mode answered
+            # "read-only mode" — a wrong answer that hides the real problem and
+            # hides the surface the caller can use.
+            if not _is_known_post_path(path):
+                return 404, {"error": "not found", "path": path,
+                             "hint": "this is not a POST endpoint; GET /openapi.json lists the contract",
+                             "surface": known_post_paths()}
             auth_error = self._authorize(headers)
             if auth_error:
                 return auth_error
@@ -783,6 +807,40 @@ class RouterApplication:
 
 
 PROXY_PATHS = ("/v1/chat/completions", "/v1/responses")
+
+#: POST paths that are NOT in the OpenAPI contract because they are dynamic.
+_DYNAMIC_POST_PREFIXES = ("/listings/",)
+
+
+def known_post_paths():
+    """Every path this server answers a POST on (TR-140).
+
+    The auth gate runs before path resolution, so an unknown POST in read-only
+    mode used to answer "read-only mode" — a wrong answer to a question nobody
+    asked: the caller had a typo, not a permission problem. This is the surface
+    the 404 can name instead.
+    """
+    paths = set(PROXY_PATHS)
+    try:
+        for path, item in build_openapi().get("paths", {}).items():
+            if "post" in item:
+                paths.add(path)
+    except Exception:  # noqa: BLE001 — advisory: a broken contract must not block serving
+        pass
+    return sorted(paths)
+
+
+def _is_known_post_path(path):
+    if path in PROXY_PATHS:
+        return True
+    try:
+        if "post" in (build_openapi().get("paths", {}).get(path) or {}):
+            return True
+    except Exception:  # noqa: BLE001
+        return True          # fail-open: never turn a real endpoint into a 404
+    return any(path.startswith(p) and len(path) > len(p) for p in _DYNAMIC_POST_PREFIXES)
+
+
 
 #: TR-129: the upstream is the REAL Hermes gateway when ROUTER_PROXY_UPSTREAM
 #: points at one (the deployment recipe names the gateway's own port; the
