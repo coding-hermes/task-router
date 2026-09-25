@@ -130,6 +130,22 @@ router circuit record-success <provider> <model>
 - **`quota-state.json` bootstrapped all-OPEN is sample policy** — first-run
   bootstrap writes every provider `open`; gate for real before trusting
   gates.
+- **Profile version pinning DOES NOT EXIST — retagging shadows the old id.**
+  **Measured 2026-09-25 (TR-131):** with `P3_DOCS` (v1) and `P3_DOCS_V2`
+  (v2, both `tag: P3_DOCS`) seeded, `--profile P3_DOCS` resolves to V2 (tag
+  first), `--profile P3_DOCS:1` / `@1` → `PROFILE_NOT_FOUND`, and the v1
+  row's exact id is unreachable. The README's "pinned old versions still
+  resolve by version" is a false promise. Safe pattern: unique tag per
+  version (`P3_DOCS_V1`, `P3_DOCS_V2`), callers reference explicit tags —
+  never let two rows share a tag while you need both reachable.
+- **A provider_mappings rule is a report, not routing.** **Measured
+  2026-09-25 (TR-132):** a models lane under external provider `eu-openai`
+  + a literal `eu-openai -> <canonical>` rule seeds with a clean
+  reconciliation line, but the registry row KEEPS the external id and the
+  lane appears in zero chains. A renamed lane routes only if a real
+  `providers.jsonl` row also carries the external id. The seed docstring's
+  "keeps resolving to its canonical registry provider" describes the report,
+  not the resolver.
 - **Never hand-edit `data/tables/*.jsonl`** — generated files; edits are
   clobbered by the next seed. Rebuild via `router seed` and commit.
 - **Fail-open means silent degradation** — always check `fallback_used` and

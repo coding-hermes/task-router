@@ -269,3 +269,87 @@ The honest answer to "does it work / is it worth anything":
   cost-saving promise fails silently in the direction that costs money.
 - **Not verified here:** the classifier path itself (needs `ROUTER_CLASSIFIER_BASE_URL`
   + a key env name that exists) and the full 4-driver proxy integration suite (TR-071..075).
+
+---
+
+# Run 2026-09-25 — versioned/tagged profiles + provider-mapping rules (7th run)
+
+# Task-Router Diagnostics — how the versioning and mapping layers actually work
+
+(2026-09-25 dogfood, 7th run. Explains the machinery behind the two surfaces
+probed, why they look the way they do, and the traps they hide.)
+
+## How profile "versioning" is really built
+
+Layer by layer:
+
+1. `data/tables/task_profiles.jsonl` — one JSON object per profile row. The
+   versioning convention is NOT `id:version` refs; it is **distinct ids
+   sharing a tag** (`P3_DOCS` v1, `P3_DOCS_V2` v2, both `tag: P3_DOCS`).
+   This matches `tests/test_spawn_board_profile.py::test_tag_declaration_
+   resolves_to_the_version_row`.
+2. `router seed` inserts them into a DuckDB table whose PRIMARY KEY is
+   `(id)` only (scripts/router_seed.py:853) — so id must be distinct per
+   version; a duplicate id is a seed error, not a version bump.
+3. `task_profile_requirements.jsonl` keys requirements by `task_id` +
+   `category` with PK `(task_id, category)` — **no version column**. A v2's
+   stricter requirements are a new set of rows with the v2 task_id. This is
+   why "version" is a naming convention, not a storage dimension: resolve()
+   never sees a (profile, version) pair, only profile ids.
+4. `resolve()` builds `profiles = {row['id']: row}` (id-keyed dict) and
+   `_resolve_profile_tag()` first scans for `row['tag'] == ref` (picking the
+   highest `version` among tag matches), THEN falls back to exact id.
+
+The trap: because tag matching precedes exact-id matching and operates on
+the same input string, **retagging to v2 shadows the v1 row's own id**.
+`--profile P3_DOCS` after the retag resolves to `P3_DOCS_V2`. There is no
+`P3_DOCS:1`/`@1` syntax (PROFILE_NOT_FOUND), so the README's "pinned old
+versions still resolve by version" is unimplementable by any caller. The
+version-desc sort in `_resolve_profile_tag` (router_spawn.py:863) is
+effectively dead code: it orders rows that share a tag, but any caller who
+could name both would already have two distinct ids.
+
+Right way, today: if you need old-version resolution, do NOT reuse the old
+id as the old tag. Give every version a unique tag (`P3_DOCS_V1`,
+`P3_DOCS_V2`) and point callers at explicit tags — then nothing shadows.
+
+## How provider mapping is really wired
+
+`data/tables/provider_mappings.jsonl` rules are consumed by exactly two
+code paths, and they do different things with the same file:
+
+- `scripts/router_modelsdev.py` — applies rules to EXTERNAL models.dev
+  catalog provider ids so the catalog sync can find our registry provider
+  (`gw-foo -> foo`, `myrouter:zai-glm -> zai-glm`, plus ~100
+  `modelsdev-silence` rules that mark catalog families as deliberately not
+  imported). This path genuinely rewrites names.
+- `scripts/router_seed.py` (:357-375) — after building the registry, it
+  scans lane provider ids that are NOT canonical and prints either
+  `mapping: external lane X -> canonical Y` or `GAP: ... visible gap`.
+  **It only prints.** The models row keeps its external provider id, and
+  since chains are built from registry rows, a renamed lane never routes
+  unless a physical `providers.jsonl` row also exists for the external id.
+
+Right way, today (proven this run): a renamed gateway lane that must route
+needs BOTH (a) the mapping rule — for catalog sync and for the seed
+reconciliation report to stay gap-free — AND (b) an actual row in
+`providers.jsonl` carrying the external id. The rule alone is a report
+line, not routing.
+
+## The fail-open contract colors everything
+
+Every caller-path error above surfaced as `{"error": ..., "code":
+"PROFILE_NOT_FOUND"}` with **exit 0**. That is by design (the scheduler
+must never block on routing infra), but it means a caller who checks only
+exit codes will treat a mistyped version pin as success. Check `.head`
+presence, not `$?`. This is documented in the usage skill; it bears
+repeating because it turns "wrong pin syntax" from a loud failure into a
+silent one.
+
+## How this run was isolated (pattern for future runs)
+
+`TASK_ROUTER_HOME` (state), `ROUTING_NS` (scratch DuckBrain ns),
+`ROUTING_DATA_DIR` (copy of data/tables) redirect every writer. Nothing
+under the repo or the live `~/.hermes` / DuckBrain tree was touched; the
+one repo-visible side effect of `router seed` is the `synced data/tables`
+step, which only syncs when the data dir is repo-owned.
