@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "task-router"
-version = "0.1.0"
+version = "0.2.0"
 description = "Deterministic task router CLI for the coding-hermes fleet — wraps the scripts/ tools behind one `router` entry point with a configurable data home."
 readme = "README.md"
 requires-python = ">=3.11"

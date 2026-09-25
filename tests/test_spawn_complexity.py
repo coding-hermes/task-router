@@ -128,7 +128,65 @@ def test_main_uses_complexity_and_says_which_scorer(monkeypatch, capsys):
     assert out['resolved_as'] == 'adhoc', 'the complexity levels are the requirements'
 
 
-def test_main_degrades_to_the_profile_when_scoring_fails(monkeypatch, capsys):
+def _fixture_registry(tmp_path, profile='P1_CODING'):
+    """Mini registry.json faithful to router_seed.py's output shape — same
+    fixture pattern as tests/test_diversity.py: 3 models across 2 providers,
+    all tier-eligible for the fixture profile. Keeps this test hermetic: it
+    must not depend on a seeded registry.json or on ambient machine state.
+    """
+    cats = ("agent_tick", "debug")
+    reg = {"version": 3, "generated_at": "fixture",
+           "tables": {"models": [], "model_tier": [], "task_profiles": [],
+                      "task_profile_requirements": [], "projects": []}}
+    for prov, model, price in (("prov-a", "a1", 1.0), ("prov-a", "a2", 2.0),
+                               ("prov-b", "b1", 3.0)):
+        reg["tables"]["models"].append({
+            "provider": prov, "model": model, "normalized_price": price,
+            "token_factor": 1.0, "plan_tier": 0, "data_class": "zdr",
+            "valid_to": None, "archive": False})
+        for cat in cats:
+            reg["tables"]["model_tier"].append(
+                {"model": model, "category": cat, "tier": 5})
+    reg["tables"]["task_profiles"].append({
+        "id": profile, "title": "fixture", "created_at": None,
+        "max_consecutive_per_provider": None, "max_total_per_provider": None})
+    for cat in cats:
+        reg["tables"]["task_profile_requirements"].append(
+            {"task_id": profile, "category": cat, "level": 1})
+    path = tmp_path / "registry.json"
+    path.write_text(json.dumps(reg))
+    return str(path)
+
+
+def _open_state(tmp_path, providers):
+    """Hermetic state dir with every provider open. Production gates a
+    provider absent from quota-state 'providers' (fail-closed — see
+    test_diversity._open_providers), so an empty ROUTER_STATE_DIR yields an
+    empty chain by design; fixtures must mark providers open explicitly
+    (same shape as the CI fresh-clone smoke step)."""
+    d = tmp_path / "state"
+    d.mkdir(exist_ok=True)
+    (d / "quota-state.json").write_text(json.dumps(
+        {"updated": "test",
+         "providers": {p: {"status": "open"} for p in providers}}))
+    (d / "health-state.json").write_text(json.dumps(
+        {"providers": {p: {"status": "open"} for p in providers}}))
+    (d / "circuit-state.json").write_text(json.dumps({"pairs": {}}))
+    return str(d)
+
+
+def test_main_degrades_to_the_profile_when_scoring_fails(monkeypatch, capsys,
+                                                         tmp_path):
+    """Degraded scoring still falls back to the profile's chain (fail-open).
+
+    Hermetic (fixture registry + open state): this test used to rely on the
+    ambient state dir at ~/.hermes/model-router, so it passed on machines
+    with live state and failed in CI — a fresh checkout has no state, and
+    with no quota-state.json every provider is quota GATED (fail-closed),
+    leaving an empty chain.
+    """
+    monkeypatch.setattr(rs, 'REGISTRY', _fixture_registry(tmp_path))
+    monkeypatch.setattr(rs, 'MR', _open_state(tmp_path, ('prov-a', 'prov-b')))
     monkeypatch.setattr(rs, 'complexity_requirements',
                         lambda text, scorer='auto': (None, {'source': None, 'degraded': True,
                                                             'degrade_reason': 'classifier down'}))
