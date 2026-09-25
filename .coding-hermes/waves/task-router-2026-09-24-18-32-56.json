@@ -14,7 +14,7 @@
       "base_sha": "e342d5a",
       "model": "glm-5.3-flash",
       "provider": "zai-glm",
-      "status": "dispatched",
+      "status": "complete",
       "gitreins_id": "TR-107"
     },
     {
@@ -26,7 +26,7 @@
       "base_sha": "e342d5a",
       "model": "glm-5.3-flash",
       "provider": "zai-glm",
-      "status": "dispatched",
+      "status": "complete",
       "gitreins_id": "TR-108"
     },
     {
@@ -38,7 +38,7 @@
       "base_sha": "e342d5a",
       "model": "glm-5.3-flash",
       "provider": "zai-glm",
-      "status": "dispatched",
+      "status": "complete",
       "gitreins_id": "TR-124"
     },
     {
@@ -50,7 +50,7 @@
       "base_sha": "e342d5a",
       "model": "glm-5.3-flash",
       "provider": "zai-glm",
-      "status": "dispatched",
+      "status": "complete",
       "gitreins_id": "RELEASE-002"
     },
     {
@@ -62,7 +62,7 @@
       "base_sha": "e342d5a",
       "model": "glm-5.3-flash",
       "provider": "zai-glm",
-      "status": "dispatched",
+      "status": "complete",
       "gitreins_id": "INT-CI-001"
     },
     {
@@ -74,7 +74,7 @@
       "base_sha": "e342d5a",
       "model": "glm-5.3-flash",
       "provider": "zai-glm",
-      "status": "dispatched",
+      "status": "complete",
       "gitreins_id": "TR-126"
     },
     {
@@ -86,10 +86,14 @@
       "base_sha": "e342d5a",
       "model": "glm-5.3-flash",
       "provider": "zai-glm",
-      "status": "dispatched",
+      "status": "complete",
       "gitreins_id": "TR-129"
     }
   ],
-  "serial_after": ["TR-125"],
-  "notes": "Wave of 7 independent tasks. TR-125 (complexity=3, registry completeness) serialized after wave. BASE_SHA=e342d5a verified before dispatch."
+  "serial_after": [
+    "TR-125"
+  ],
+  "notes": "Wave of 7 independent tasks. TR-125 (complexity=3, registry completeness) serialized after wave. BASE_SHA=e342d5a verified before dispatch.",
+  "finished_at": "2026-09-25T16:35:00Z",
+  "status": "recovered"
 }

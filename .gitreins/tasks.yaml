@@ -359,4 +359,11 @@ tasks:
     README.md + docs/registry-maintenance.md updated; guard PASS; full suite 917 passed.'
   status: complete
   created_at: '2026-09-25T16:56:41.017165+00:00'
-  completed_at: '2026-09-25T17:07:14.892058+00:00'
+  completed_at: '2026-09-25T17:18:51.895159+00:00'
+- id: TR-126
+  title: 'scope: decide what connecting over muster protocol means'
+  criteria:
+  - 'f7d00ca merged: docs/muster-scope.md present with five-scope answers; board closed.'
+  status: complete
+  created_at: '2026-09-25T17:18:32.384678+00:00'
+  completed_at: '2026-09-25T17:18:41.394685+00:00'
