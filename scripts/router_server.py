@@ -1093,6 +1093,86 @@ def _hermes_proxy_chat(body, headers, upstream=None):
 _UPSTREAM_CALL = None
 
 
+#: Every way a hop can end without serving an answer (TR-137). A DEADLINE hit is
+#: deliberately its own class: measured 2026-09-24, every hop killed by the 180s
+#: budget reported `transport-failure`/status=0, so a slow-but-alive model was
+#: indistinguishable from a dead one — exactly the information a fallback
+#: decision needs. Keep this tuple the single source of the vocabulary; the
+#: tests import it so a new code cannot drift in unannounced.
+HOP_FAILURE_REASONS = (
+    "idle-timeout",      # the gateway SSE idle deadline fired (no real event in budget)
+    "hop-wall-timeout",  # the transport budget expired (slow, not necessarily dead)
+    "transport-error",   # connection refused / DNS / reset / TLS
+    "upstream-4xx",      # the upstream answered with a client error
+    "upstream-5xx",      # the upstream answered with a server error
+    "unservable-2xx",    # 2xx carrying an error envelope and no content
+    "no-hops",           # nothing eligible to attempt
+)
+
+
+def _classify_hop_failure(exc=None, status=None, unservable=False):
+    """(reason_code, detail) for one failed hop attempt.
+
+    Timeouts are matched by exception type AND by message, because the two
+    budgets surface differently: the SSE idle deadline raises the module's own
+    _HermesIdleTimeout, while the transport wall raises socket.timeout /
+    TimeoutError from urllib. Anything unrecognised degrades to
+    transport-error with the exception name in the detail — never to a code the
+    tuple does not define.
+    """
+    if unservable:
+        return "unservable-2xx", "2xx with an error envelope and no choices"
+    if exc is not None:
+        text = str(exc)
+        low = text.lower()
+        # The idle deadline is decided by its own message FIRST: the exception
+        # type varies (the gateway watch may surface a plain RuntimeError with
+        # the deadline text), and a message that says "idle" is decisive on its
+        # own. Checking the type before the text mislabelled it transport-error.
+        if "idle" in low:
+            return "idle-timeout", text or "no real SSE event inside the idle budget"
+        timeoutish = isinstance(exc, (TimeoutError,)) or type(exc).__name__ in (
+            "timeout", "Timeout", "socket.timeout", "_HermesIdleTimeout")
+        if timeoutish or "timed out" in low or "timeout" in low:
+            return "hop-wall-timeout", text or "transport budget expired"
+        return "transport-error", f"{type(exc).__name__}: {text}"[:200]
+    try:
+        code = int(status or 0)
+    except (TypeError, ValueError):
+        code = 0
+    if code <= 0:
+        return "transport-error", "no HTTP status (transport failure)"
+    if 400 <= code < 500:
+        return "upstream-4xx", f"upstream HTTP {code}"
+    if code >= 500:
+        return "upstream-5xx", f"upstream HTTP {code}"
+    return "transport-error", f"unclassified status {code}"
+
+
+def _failure_envelope(meta, session_id, source_system, parent_session_id, ladder_t0,
+                      terminal, tried, error_reason):
+    """The _router block for ANY path that served nothing (TR-136).
+
+    Measured 2026-09-24: a real proxied 502 returned served_by/usage/cost/
+    session/wall_time all null while the ledger held the chain, the hops and the
+    latencies. There are TWO such exits in this function (nothing eligible, and
+    an exhausted ladder) and both must explain themselves identically — which is
+    why the block lives here instead of being copied into each return.
+    """
+    return {**meta,
+            'served_by': None,
+            'served_by_reason': error_reason,
+            'exhausted': True,
+            'terminal_reason': terminal,
+            'hops_attempted': len(tried),
+            'usage': None, 'usage_reason': 'no hop produced a usage block',
+            'cost_usd': None, 'cost_reason': 'no served hop to price',
+            'session_id': session_id,
+            'outcome_row': {'source_system': source_system, 'session_id': session_id,
+                            'parent_session_id': parent_session_id},
+            'wall_time_s': round(time.time() - ladder_t0, 3)}
+
+
 def _proxy_hop_timeout_s():
     """Bounded per-hop timeout (seconds) for the upstream mirror.
 
@@ -1483,6 +1563,19 @@ def proxy_chat(path, body, headers, max_hops=None, upstream=None):
     # at all; they are named in `exclusions` with their `why`.) Honest count:
     # only entries that exist in the chain and exceed the bound.
     attempted_bound = max(0, min(len(chain), hops))
+    # TR-136: the ladder clock and the session identity are needed by EVERY exit
+    # from this function — including the early "nothing eligible" return, which
+    # used to leave the caller with no session id and no wall time at all. They
+    # are derived here (both are pure functions of the headers and the clock)
+    # rather than duplicated at each return.
+    ladder_t0 = time.time()
+    # Both are pure functions of the headers, so they move up with the clock: the
+    # early "nothing eligible" exit needs them too (TR-136).
+    declared_session = (headers.get('x-router-session') or '').strip()[:200]
+    parent_session_id = declared_session or None
+    session_id = (f'{source_system}:{declared_session}' if declared_session
+                  else f'{source_system}-{int(time.time() * 1000)}')
+
     meta = {'complexity_source': source, 'requirements': requirements,
             'sort': resolved.get('sort'), 'chain_length': len(chain),
             'max_hops': hops, 'ladder': [],
@@ -1500,7 +1593,13 @@ def proxy_chat(path, body, headers, max_hops=None, upstream=None):
             f'(reference provider compat; x-router-developer-role: preserve to keep)')
     if not chain:
         meta['gate'] = resolved.get('gate')
-        return 503, {'error': 'no open hop for this request', '_router': meta}
+        # TR-136: this is the OTHER blind exit — it returns before the ladder, so
+        # it needs the same envelope or a caller cannot tell it apart from a
+        # transport death.
+        return 503, {'error': 'no open hop for this request',
+                     '_router': _failure_envelope(meta, session_id, source_system,
+                                                  parent_session_id, ladder_t0,
+                                                  'no-hops', [], 'nothing eligible after gating')}
 
     # Load per-provider routing (last-mile): providers with api_base_url defined
     # get their own hop-level upstream; others fall back to the global upstream.
@@ -1520,7 +1619,6 @@ def proxy_chat(path, body, headers, max_hops=None, upstream=None):
     # (the Hermes session id) so the router's outcome row can be joined to the
     # session record — cost, provider, steps and tokens land on ONE task row that
     # grows as the session's steps are served (see router_outcomes.accumulate_row).
-    declared_session = (headers.get('x-router-session') or '').strip()[:200]
     # TR-122 fallback: the OpenAI `user` field (a stable client-side id) when the
     # header is absent.  This lets any OpenAI-shaped client send a session marker
     # without knowing the router's custom header name.
@@ -1528,10 +1626,6 @@ def proxy_chat(path, body, headers, max_hops=None, upstream=None):
         body_user = (body.get('user') or '').strip()
         if body_user:
             declared_session = body_user[:200]
-    parent_session_id = declared_session or None
-    session_id = (f'{source_system}:{declared_session}' if declared_session
-                  else f'{source_system}-{int(time.time() * 1000)}')
-    ladder_t0 = time.time()
     for hop in chain[:hops]:
         provider, model = hop.get('provider'), hop.get('model')
         attempt = {'hop': hop.get('hop'), 'provider': provider, 'model': model,
@@ -1543,10 +1637,12 @@ def proxy_chat(path, body, headers, max_hops=None, upstream=None):
         hdrs = {**headers, 'x-router-provider': str(provider)}
         t0 = time.time()
         hop_call = _hop_call(provider)
+        exc_seen = None
         try:
             status, payload = hop_call(path, fwd, hdrs)
         except Exception as exc:  # noqa: BLE001 — transport failure == ladder step
             status, payload = 0, {'error': str(exc)[:300]}
+            exc_seen = exc
         attempt['latency_s'] = round(time.time() - t0, 3)
         attempt['status'] = status
         ok = 200 <= int(status or 0) < 300
@@ -1558,8 +1654,25 @@ def proxy_chat(path, body, headers, max_hops=None, upstream=None):
             # instead of serving garbage with a green status.
             ok = False
             attempt['outcome'] = 'unservable-2xx'
-        attempt['outcome'] = ('ok' if ok
-                              else attempt.get('outcome') or 'transport-failure')
+        if ok:
+            attempt['outcome'] = 'ok'
+        else:
+            reason, detail = _classify_hop_failure(
+                exc=exc_seen, status=status,
+                unservable=(attempt.get('outcome') == 'unservable-2xx'))
+            attempt['reason'] = reason
+            attempt['reason_detail'] = detail
+            # TR-137: keep the legacy vocabulary for genuine transport/HTTP
+            # failures (consumers and tests read 'transport-failure' /
+            # 'unservable-2xx'), but a DEADLINE hit now says 'timeout' with the
+            # specific kind, so slow-but-alive stops looking dead.
+            if attempt.get('outcome') == 'unservable-2xx':
+                pass
+            elif reason in ('idle-timeout', 'hop-wall-timeout'):
+                attempt['outcome'] = 'timeout'
+                attempt['timeout_kind'] = reason
+            else:
+                attempt['outcome'] = 'transport-failure'
         meta['ladder'].append(attempt)
         last = (status, payload)
         # On success the row means "time to get an answer" (total ladder time);
@@ -1596,7 +1709,18 @@ def proxy_chat(path, body, headers, max_hops=None, upstream=None):
             return 200, out
     status, payload = last or (502, {'error': 'no hops attempted'})
     out = dict(payload) if isinstance(payload, dict) else {'upstream': payload}
-    out['_router'] = {**meta, 'served_by': None, 'exhausted': True}
+    # TR-136: the failure envelope must be as informative as the LEDGER. Measured
+    # 2026-09-24: a real proxied 502 returned served_by/usage/cost/session/
+    # wall_time all null while the ledger row for the same request held the
+    # chain, the three hops attempted and their latencies — the caller (a
+    # foreman) learned "timed out" and nothing else, and the operator could not
+    # audit the failed route. Every field below is either a real value or an
+    # explicit null WITH a reason; nothing is fabricated.
+    tried = meta.get('ladder') or []
+    terminal = (tried[-1].get('reason') if tried else None) or ('no-hops' if not tried else 'unknown')
+    out['_router'] = _failure_envelope(meta, session_id, source_system, parent_session_id,
+                                       ladder_t0, terminal, tried,
+                                       'no hop served a response')
     return (status if isinstance(status, int) and status >= 400 else 502), out
 
 
