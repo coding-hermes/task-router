@@ -256,3 +256,13 @@
 {"id": 1789971822, "timestamp": "2026-09-24T17:54:22Z", "event_type": "task_created", "task_id": "TR-129", "actor": "kara", "detail": "{\"id\": \"TR-129\", \"status\": \"pending\"}"}
 {"id": 1789971823, "timestamp": "2026-09-24T17:55:39Z", "event_type": "task_updated", "task_id": "TR-129", "actor": "kara", "detail": "{\"id\": \"TR-129\", \"note\": \"operator contract clarification: ingest shape, chain order + fallback, idle budgets, stats in response (AC7/AC8)\"}"}
 {"id": 1789971824, "timestamp": "2026-09-24T18:02:53Z", "event_type": "task_updated", "task_id": "TR-129", "actor": "kara", "detail": "{\"id\": \"TR-129\", \"note\": \"live repro attached: complexity rating + chain-order fallback proven; F1 wall-clock kill at 180.1s/hop, F2 timeout misclassified, F3 envelope blind on failure\"}"}
+{"id": 1789971825, "timestamp": "2026-09-25T19:45:44Z", "event_type": "task_created", "task_id": "TR-136", "actor": "kara", "detail": "{\"id\": \"TR-136\", \"status\": \"pending\"}"}
+{"id": 1789971826, "timestamp": "2026-09-25T19:45:44Z", "event_type": "task_created", "task_id": "TR-137", "actor": "kara", "detail": "{\"id\": \"TR-137\", \"status\": \"pending\"}"}
+{"id": 1789971827, "timestamp": "2026-09-25T19:45:44Z", "event_type": "task_created", "task_id": "TR-138", "actor": "kara", "detail": "{\"id\": \"TR-138\", \"status\": \"pending\"}"}
+{"id": 1789971828, "timestamp": "2026-09-25T19:45:44Z", "event_type": "task_created", "task_id": "TR-139", "actor": "kara", "detail": "{\"id\": \"TR-139\", \"status\": \"pending\"}"}
+{"id": 1789971829, "timestamp": "2026-09-25T19:45:44Z", "event_type": "task_created", "task_id": "TR-140", "actor": "kara", "detail": "{\"id\": \"TR-140\", \"status\": \"pending\"}"}
+{"id": 1789971830, "timestamp": "2026-09-25T19:45:44Z", "event_type": "task_created", "task_id": "TR-141", "actor": "kara", "detail": "{\"id\": \"TR-141\", \"status\": \"pending\"}"}
+{"id": 1789971831, "timestamp": "2026-09-25T19:45:44Z", "event_type": "task_created", "task_id": "TR-142", "actor": "kara", "detail": "{\"id\": \"TR-142\", \"status\": \"pending\"}"}
+{"id": 1789971832, "timestamp": "2026-09-25T19:45:44Z", "event_type": "task_created", "task_id": "TR-143", "actor": "kara", "detail": "{\"id\": \"TR-143\", \"status\": \"pending\"}"}
+{"id": 1789971833, "timestamp": "2026-09-25T19:45:44Z", "event_type": "task_created", "task_id": "TR-144", "actor": "kara", "detail": "{\"id\": \"TR-144\", \"status\": \"pending\"}"}
+{"id": 1789971834, "timestamp": "2026-09-25T19:45:44Z", "event_type": "task_created", "task_id": "TR-145", "actor": "kara", "detail": "{\"id\": \"TR-145\", \"status\": \"pending\"}"}
