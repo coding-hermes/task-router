@@ -266,3 +266,4 @@
 {"id": 1789971832, "timestamp": "2026-09-25T19:45:44Z", "event_type": "task_created", "task_id": "TR-143", "actor": "kara", "detail": "{\"id\": \"TR-143\", \"status\": \"pending\"}"}
 {"id": 1789971833, "timestamp": "2026-09-25T19:45:44Z", "event_type": "task_created", "task_id": "TR-144", "actor": "kara", "detail": "{\"id\": \"TR-144\", \"status\": \"pending\"}"}
 {"id": 1789971834, "timestamp": "2026-09-25T19:45:44Z", "event_type": "task_created", "task_id": "TR-145", "actor": "kara", "detail": "{\"id\": \"TR-145\", \"status\": \"pending\"}"}
+{"id": 1789971835, "timestamp": "2026-09-25T19:53:55Z", "event_type": "task_completed", "task_id": "TR-141", "actor": "kara", "detail": "{\"id\": \"TR-141\", \"status\": \"complete\", \"commit\": \"2abc14b\"}"}
