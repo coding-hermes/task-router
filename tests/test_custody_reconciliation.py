@@ -189,3 +189,26 @@ def test_a_missing_envelope_session_is_visible(session_store):
     reconciliation must SAY so rather than quietly pass."""
     got = _reconcile(None, {'gateway_session_id': None}, session_store)
     assert got['envelope_has_session'] is False
+
+
+def test_the_success_envelope_names_BOTH_sessions(monkeypatch, tmp_path):
+    """The row carried both ids while the envelope reported session_id: null —
+    a caller could not reconcile without parsing the ledger."""
+    ledger = tmp_path / 'outcomes.jsonl'
+    ledger.write_text('')
+    monkeypatch.setattr(ro, 'outcomes_path', lambda *a, **k: str(ledger))
+    monkeypatch.setattr(rsrv, '_proxy_requirements', lambda b, h, p: (
+        'classifier', {'matrix': {'code_gen': 3}, 'complexity_sig': 'sig', 'profile_id': None, 'problems': []}))
+    monkeypatch.setattr(rsrv, '_proxy_chain', lambda reqs, **k: _chain(('p1', 'm1')))
+
+    def upstream(path, body, headers):
+        return 200, {'choices': [{'message': {'content': 'ok'}}],
+                     '_router_hermes_session_id': 'gw-1'}
+    _, payload = rsrv.proxy_chat('/v1/chat/completions', {'messages': []},
+                                 {'x-router-session': 'caller-9'}, upstream=upstream)
+    router_session = payload['_router']['session_id']
+    assert router_session and 'caller-9' in router_session
+    assert payload['_router']['gateway_session_id'] == 'gw-1'
+    row = [json.loads(l) for l in open(ledger) if l.strip()][0]
+    assert row['session_id'] == router_session, 'envelope and row must agree on the session'
+    assert row['parent_session_id'] == payload['_router']['parent_session_id']

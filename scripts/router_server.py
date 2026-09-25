@@ -1260,6 +1260,9 @@ def _failure_envelope(meta, session_id, source_system, parent_session_id, ladder
             'rolling_reason': 'no served lane to average',
             'gateway_session_id': None,
             'gateway_session_reason': 'no hop produced a session id',
+            # the success envelope names the caller's declared session; the failure
+            # envelope must carry the same key or the superset contract breaks
+            'parent_session_id': parent_session_id,
             'exhausted': True,
             'terminal_reason': terminal,
             'hops_attempted': len(tried),
@@ -2147,9 +2150,13 @@ def proxy_chat(path, body, headers, max_hops=None, upstream=None):
                                               'session_id': session_id,
                                               'parent_session_id': parent_session_id},
                               'rolling': rolling,
-                              # TR-145: the Hermes session this call ran under, so a
-                              # caller can reconcile the envelope against the session
-                              # record without parsing the ledger.
+                              # TR-145: the router's OWN session id and the gateway's.
+                              # The row had both while the envelope reported
+                              # session_id: null, so a caller could not reconcile the
+                              # two without parsing the ledger — the whole point of
+                              # the custody check.
+                              'session_id': session_id,
+                              'parent_session_id': parent_session_id,
                               'gateway_session_id': gw_session_id,
                               'wall_time_s': wall}
             return 200, out
