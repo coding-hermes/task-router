@@ -98,6 +98,7 @@ def build_openapi():
             },
         ]),
         "/status": ("getStatus", "Server and registry status", []),
+        "/proxy/stats": ("getProxyStats", "Rolling per-model and per-complexity-band averages over the proxy's own traffic (TR-144): samples, success rate, cost/task, steps, wall time, cache ratio + failure reason mix. `windows` = hours (csv), `grouping` = model|band|model_band", []),
         "/profiles": ("listProfiles", "List task profiles", []),
         "/providers": ("listProviders", "List providers", []),
         "/circuit/status": ("getCircuitStatus", "List circuit breaker state", []),
@@ -510,6 +511,38 @@ class RouterApplication:
                     "providers": len(_read_jsonl("providers")),
                     "models": len(_read_jsonl("models")),
                 }
+            if path == "/proxy/stats":
+                # TR-144: the rolling averages the whole proxy exists to learn
+                # from, per model AND per complexity band. `windows` is the one
+                # knob (hours, comma separated); `grouping` collapses the keys.
+                # Every window discloses how much of the ledger it scanned and
+                # the cache AGE, so a stale number is visible as a stale number.
+                raw_windows = query.get("windows")
+                windows = None
+                if isinstance(raw_windows, list):
+                    raw_windows = raw_windows[0] if raw_windows else None
+                if raw_windows:
+                    windows = []
+                    for part in str(raw_windows).split(","):
+                        try:
+                            h = float(part)
+                        except ValueError:
+                            continue
+                        if h > 0:
+                            windows.append(h)
+                    windows = tuple(windows) or None
+                grouping = query.get("grouping")
+                if isinstance(grouping, list):
+                    grouping = grouping[0] if grouping else None
+                if grouping not in (None, "model", "band", "model_band"):
+                    return 400, {"error": "grouping must be model, band or model_band"}
+                try:
+                    import router_proxy_stats as rps
+                    import router_outcomes as _ro
+                    return 200, rps.get_rollup_cached(_ro.outcomes_path(), windows=windows,
+                                                      grouping=grouping or "model_band")
+                except Exception as exc:  # noqa: BLE001 — fail-open, like every read
+                    return 200, {"error": f"stats unavailable: {exc}"[:200], "windows": {}}
             if path == "/resolve":
                 project = query.get("project")
                 if isinstance(project, list):
@@ -1162,6 +1195,8 @@ def _failure_envelope(meta, session_id, source_system, parent_session_id, ladder
     return {**meta,
             'served_by': None,
             'served_by_reason': error_reason,
+            'rolling': None,
+            'rolling_reason': 'no served lane to average',
             'exhausted': True,
             'terminal_reason': terminal,
             'hops_attempted': len(tried),
@@ -1804,12 +1839,23 @@ def proxy_chat(path, body, headers, max_hops=None, upstream=None):
                       steps=len(meta['ladder']))
         if ok:
             out = dict(payload) if isinstance(payload, dict) else {'upstream': payload}
+            # TR-144: the caller learns how THIS lane has been performing for THIS
+            # complexity band without a second round trip. None (with a reason on
+            # the failure path) when the lane has no history yet — a first call
+            # must not read as a lane with a 0% success rate.
+            try:
+                import router_proxy_stats as rps
+                band, _ = rps.band_for({'required_categories': requirements.get('matrix')})
+                rolling = rps.rolling_for(str(provider), str(model), band)
+            except Exception:  # noqa: BLE001
+                rolling = None
             out['_router'] = {**meta, 'served_by': {'provider': provider, 'model': model,
                                                     'tokens_in': tokens_in, 'tokens_out': tokens_out,
                                                     'cost_usd': cost_usd, 'price_basis': price_basis},
                               'outcome_row': {'source_system': source_system,
                                               'session_id': session_id,
                                               'parent_session_id': parent_session_id},
+                              'rolling': rolling,
                               'wall_time_s': wall}
             return 200, out
     status, payload = last or (502, {'error': 'no hops attempted'})
