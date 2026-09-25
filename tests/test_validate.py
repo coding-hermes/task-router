@@ -290,3 +290,131 @@ def test_bare_run_at_repo_root_exits0_on_healthy_checkout(monkeypatch):
         os.path.join(REPO, "registry.json"))
     assert out["valid"] is True, out["issues"]
     assert proc.returncode == 0
+
+
+# ─── TR-108: the freshness gate gets an OPT-IN self-heal ────────────────────
+#
+# 2026-09-22 the refresh cron died mid-run ("Interrupted by shutdown before
+# terminal completion"), leaving probe_gaps.jsonl newer than registry.json —
+# every later `router validate` exited 1 until a human re-ran the seed. The
+# heal re-runs scripts/router_seed.py (deterministic, idempotent full rebuild)
+# BEFORE the verdict, but only when armed: --heal or ROUTER_VALIDATE_HEAL=1.
+# Default OFF because the health plane runs run_checks_dict() in-process on
+# every /health request and a monitor must never spawn seed subprocesses.
+
+def test_heal_is_opt_in(monkeypatch):
+    mod = _import_validate_fresh(monkeypatch)
+    monkeypatch.delenv("ROUTER_VALIDATE_HEAL", raising=False)
+    assert mod.heal_is_armed() is False
+    monkeypatch.setenv("ROUTER_VALIDATE_HEAL", "1")
+    assert mod.heal_is_armed() is True
+
+
+def test_heal_needed_matches_incident_shapes(monkeypatch):
+    """Exactly the two 2026-09-22 shapes heal: missing registry, stale
+    freshness. Corrupt state / profile breaks are NOT seed-repairable."""
+    mod = _import_validate_fresh(monkeypatch)
+    assert mod._heal_needed({
+        "issues": ["registry.exists: missing: /x — run scripts/router_seed.py"],
+        "checks": []}) is True
+    assert mod._heal_needed({
+        "issues": [],
+        "checks": [{"name": "freshness", "ok": False, "detail": "stale"}]}) is True
+    assert mod._heal_needed({
+        "issues": [],
+        "checks": [{"name": "freshness", "ok": True, "detail": "fresh"}]}) is False
+    assert mod._heal_needed({
+        "issues": ["state.circuit-state.json: corrupt: bad"],
+        "checks": []}) is False
+
+
+def test_heal_default_off_is_readonly(tmp_path):
+    """Without the flag a stale tree exits 1 and is left EXACTLY as found —
+    no heal check, no mtime touched, no seed side effects."""
+    reg, data_dir, state_dir = _valid_fixture(tmp_path)
+    past = time.time() - 3600
+    os.utime(reg, (past, past))
+    proc = _run(["--json"], _env(reg, data_dir, state_dir))
+    assert proc.returncode == 1
+    out = json.loads(proc.stdout)
+    assert not any(c["name"] == "heal" for c in out["checks"])
+    assert abs(os.path.getmtime(reg) - past) < 1.0  # untouched
+
+
+def test_heal_reseeds_missing_registry(seed_registry_copy, tmp_path):
+    """Fresh-clone shape: gitignored registry.json absent + --heal -> the seed
+    writes it and the SAME run exits 0 with a `heal` check proving it ran."""
+    env = dict(seed_registry_copy)
+    os.remove(env["ROUTING_REGISTRY"])
+    # seed_registry_copy ships the DATA PARENT (read-only consumers); seed and
+    # validate both want the tables dir itself.
+    env["ROUTING_DATA_DIR"] = os.path.join(env["ROUTING_DATA_DIR"], "tables")
+    env["ROUTING_NS"] = str(tmp_path / "ns")  # keep the ns export hermetic
+    proc = _run(["--json", "--heal"], env, timeout=300)
+    assert proc.returncode == 0, proc.stdout[:400] + proc.stderr[:200]
+    out = json.loads(proc.stdout)
+    assert out["valid"] is True
+    heal = next(c for c in out["checks"] if c["name"] == "heal")
+    assert heal["ok"] is True
+    assert os.path.exists(env["ROUTING_REGISTRY"])
+
+
+def test_heal_reseeds_stale_registry(seed_registry_copy, tmp_path):
+    """The 2026-09-22 shape: a table gained content the registry never
+    learned (cron updated tables, died before the re-seed) + --heal -> the
+    re-seed rebuilds the registry from the tables, verdict flips to valid.
+
+    Mtime lag ALONE is not enough (the TR-082 content tiebreak correctly
+    absorbs seed write-ordering), so this mutates content and PROVES the
+    before-state is stale first — a heal that never fires must fail loudly.
+    """
+    env = dict(seed_registry_copy)
+    tables_dir = os.path.join(env["ROUTING_DATA_DIR"], "tables")
+    env["ROUTING_DATA_DIR"] = tables_dir
+    reg = env["ROUTING_REGISTRY"]
+    # RED precondition: registry is older AND its content no longer matches
+    # the tables -> `router validate` must exit 1 with a stale issue.
+    past = time.time() - 3600
+    os.utime(reg, (past, past))
+    models_path = os.path.join(tables_dir, "models.jsonl")
+    with open(models_path) as f:
+        rows = [json.loads(l) for l in f if l.strip()]
+    rows[0]["tr108_probe_field"] = "registry-never-learned-this"
+    with open(models_path, "w") as f:
+        for r in rows:
+            f.write(json.dumps(r) + "\n")
+    before = _run(["--json"], env, timeout=120)
+    assert before.returncode == 1, before.stdout[:300]
+    before_out = json.loads(before.stdout)
+    before_fresh = next(c for c in before_out["checks"] if c["name"] == "freshness")
+    assert before_fresh["ok"] is False, before_fresh["detail"]
+    # The heal: re-seed converges the tree (the probe field is dropped by the
+    # seed's column projection — same content, fresh registry) -> exit 0.
+    env["ROUTING_NS"] = str(tmp_path / "ns")
+    proc = _run(["--json", "--heal"], env, timeout=300)
+    assert proc.returncode == 0, proc.stdout[:400] + proc.stderr[:200]
+    out = json.loads(proc.stdout)
+    fresh = next(c for c in out["checks"] if c["name"] == "freshness")
+    assert fresh["ok"] is True, fresh["detail"]
+    heal = next(c for c in out["checks"] if c["name"] == "heal")
+    assert heal["ok"] is True, heal["detail"]
+
+
+def test_heal_failure_keeps_original_issues(tmp_path):
+    """Fail-open: when the seed cannot run (no inputs anywhere), the run still
+    completes, reports the heal failure, and the ORIGINAL registry.exists
+    issue stands — a broken heal never masks the diagnosis."""
+    data_dir = tmp_path / "data" / "tables"
+    data_dir.mkdir(parents=True)
+    (data_dir / "task_profiles.jsonl").write_text(
+        json.dumps({"id": "P0_TEST", "title": "x"}) + "\n")
+    state_dir = tmp_path / "state"
+    state_dir.mkdir()
+    env = _env(tmp_path / "registry.json", data_dir, state_dir)
+    env["ROUTING_NS"] = str(tmp_path / "absent-ns")  # seed finds no inputs
+    proc = _run(["--json", "--heal"], env, timeout=300)
+    assert proc.returncode == 1
+    out = json.loads(proc.stdout)
+    assert any("registry.exists" in i for i in out["issues"])
+    assert any(i.startswith("heal:") for i in out["issues"])
+    assert "Traceback" not in proc.stderr

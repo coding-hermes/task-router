@@ -27,11 +27,20 @@ Output with --json is PURE machine-parseable JSON on stdout:
 Exit 0 when valid, exit 1 when any issue is found. A missing registry.json is
 reported as an issue (exit 1) with a detail pointing at router_seed.py — the
 validator never fabricates or repairs state.
+
+TR-108 self-heal (opt-in): `--heal` or ROUTER_VALIDATE_HEAL=1 makes the run
+re-seed via scripts/router_seed.py BEFORE the verdict when the registry is
+missing or genuinely stale (the two breaks the 2026-09-22 refresh-cron death
+produced). The re-graded verdict then describes the post-heal tree and an
+explicit `heal` check records what ran. Default OFF — without the flag the
+run is read-only (the health plane runs these checks in-process and must not
+spawn seed subprocesses).
 """
 import argparse
 import glob
 import json
 import os
+import subprocess
 import sys
 
 _HERE = os.path.dirname(os.path.realpath(__file__))
@@ -68,6 +77,10 @@ REGISTRY_VERSION = 3
 # itself as stale ("0s newer") and exit 1. Treat a lag up to this many seconds
 # as fresh; anything beyond it is a genuinely stale registry.
 FRESHNESS_SLACK_S = 1.0
+# TR-108: self-heal seed budget — sized like the suite's SEED_TIMEOUT (11s
+# idle measured; this box saturates routinely). The heal is armed opt-in, so
+# a hung seed surfaces as this timeout instead of blocking forever.
+HEAL_TIMEOUT_S = 600
 # Schema fields router_spawn.py's registry loader reads off every model row.
 MODEL_SCHEMA_FIELDS = ('provider', 'model', 'normalized_price', 'plan_tier',
                        'token_factor', 'data_class', 'disabled', 'archive')
@@ -194,6 +207,87 @@ def freshness_check(registry_path=None, data_dir=None):
                    detail=f'registry.json is at least as new as all {len(table_files)} data tables '
                           f'(tolerance {FRESHNESS_SLACK_S:.0f}s)')
     return out
+
+
+# TR-108 (worker 2026-09-24): the freshness gate had no self-heal. The daily
+# refresh cron died mid-run on 2026-09-22 and left probe_gaps.jsonl newer than
+# registry.json, so every later `router validate` exited 1 until a human re-ran
+# the seed. This heal is strictly OPT-IN: ROUTER_VALIDATE_HEAL=1 (or --heal).
+# Default OFF on purpose — the health plane (router_health.py) runs these same
+# checks IN-PROCESS on every /health request, and a read-only monitor must
+# never spawn seed subprocesses (writes data/tables, takes seconds, duckdb).
+HEAL_ENV = 'ROUTER_VALIDATE_HEAL'
+HEAL_SCRIPT = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                           'router_seed.py')
+
+
+def heal_is_armed():
+    """The heal runs only when the operator (or the cron RESUME block) asks."""
+    return bool(os.environ.get(HEAL_ENV)) or '--heal' in sys.argv
+
+
+def heal_registry(registry_path=None, data_dir=None):
+    """Self-heal the data plane: re-seed registry.json from data/tables.
+
+    Called AFTER run_checks() graded the tree and BEFORE the verdict is
+    printed, so the report describes the tree the caller actually gets. Seed
+    is deterministic and idempotent (full rebuild from the committed tables —
+    same reason the refresh-resume plan calls re-running it safe), so re-running
+    it converges: a fresh clone gets its gitignored registry.json written, a
+    stale-registry tree gets tables+registry rewritten in one second. Any
+    failure is fail-open: the heal detail is reported and the ORIGINAL issue
+    list stands untouched — a broken heal must never mask the diagnosis.
+    """
+    registry_path = registry_path or REGISTRY
+    data_dir = data_dir or DATA_DIR
+    pre_ok = os.path.exists(registry_path)
+    proc = subprocess.run(
+        [sys.executable, HEAL_SCRIPT], capture_output=True, text=True,
+        timeout=HEAL_TIMEOUT_S,
+        env=dict(os.environ, ROUTING_REGISTRY=registry_path,
+                 ROUTING_DATA_DIR=data_dir))
+    if proc.returncode != 0:
+        return {'ok': False,
+                'detail': f'self-heal seed failed (rc={proc.returncode}): '
+                          f'{(proc.stderr or proc.stdout or "")[-300:]}'}
+    ok = os.path.exists(registry_path)
+    return {'ok': ok,
+            'detail': ('seed completed; registry now present'
+                       if ok else
+                       'seed exited 0 but registry.json still absent'),
+            'seed_ran': True, 'registry_preexisting': pre_ok}
+
+
+def _heal_needed(report):
+    """True when the graded report describes a healable data-plane break.
+
+    Exactly the two conditions the refresh-cron incident produced: the
+    gitignored registry.json is MISSING (fresh clone / wiped tree), or the
+    freshness check went stale (cron died between the table writes and the
+    registry write). Anything else — corrupt state files, profile problems —
+    is not seed-repairable and must not trigger a seed run.
+    """
+    if any('registry.exists' in i for i in report.get('issues') or []):
+        return True
+    fresh = next((c for c in report.get('checks') or []
+                  if c.get('name') == 'freshness'), None)
+    return bool(fresh and not fresh.get('ok'))
+
+
+def run_heal():
+    """heal_registry() with every failure mode folded into the result dict.
+
+    Fail-open: a timeout, a missing seed script, duckdb unavailable on a bare
+    interpreter — all come back as {'ok': False, 'detail': ...} instead of an
+    exception, so the validate run itself always completes and reports.
+    """
+    try:
+        return heal_registry()
+    except subprocess.TimeoutExpired:
+        return {'ok': False,
+                'detail': f'self-heal seed timed out after {HEAL_TIMEOUT_S}s'}
+    except Exception as exc:  # noqa: BLE001 — a broken heal never breaks validate
+        return {'ok': False, 'detail': f'self-heal seed could not run: {exc}'}
 
 
 def run_checks():
@@ -371,10 +465,29 @@ def main():
         description='router validate — registry/state/profile integrity checks (stdlib only)')
     ap.add_argument('--json', action='store_true',
                     help='emit pure machine-parseable JSON on stdout')
+    ap.add_argument('--heal', action='store_true',
+                    help='TR-108 self-heal: when the registry is missing or stale, '
+                         're-run scripts/router_seed.py before the verdict (also '
+                         f'armed by {HEAL_ENV}=1). Default OFF: the check run stays '
+                         'read-only.')
     args = ap.parse_args()
 
     report = run_checks_dict()
     checks, issues, valid = report['checks'], report['issues'], report['valid']
+
+    heal_result = None
+    if heal_is_armed() and _heal_needed(report):
+        heal_result = run_heal()
+        if heal_result.get('ok'):
+            # Grade the tree the caller actually gets: a healed tree must exit
+            # 0, a failed heal must surface the ORIGINAL issues untouched.
+            report = run_checks_dict()
+            checks, issues, valid = (report['checks'], report['issues'],
+                                     report['valid'])
+        checks.append({'name': 'heal', 'ok': bool(heal_result.get('ok')),
+                       'detail': heal_result.get('detail', '')})
+        if not heal_result.get('ok'):
+            issues.append(f"heal: {heal_result.get('detail', '')}")
 
     if args.json:
         print(json.dumps(report))
