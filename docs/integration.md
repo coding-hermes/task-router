@@ -117,6 +117,23 @@ python3 scripts/router_spawn.py --profile-req 'code_gen=2 test=1' --format json
 ... --sort 'ratio:0.7*cost+0.3*turns'
 ```
 
+**The board row can declare its own profile (TR-124).** A task row carrying
+`"profile": "P1_CODING"` (exact id or tag) sets its own capability bar instead
+of the project's default:
+
+```bash
+python3 scripts/router_spawn.py <project> --profile-from-board <task-id> \
+    --board <workdir>/.coding-hermes/board/tasks.jsonl --format json
+```
+
+The row's declaration outranks the project row's default profile; rows without
+the field resolve exactly as before. Fail-open by contract: missing field, missing
+row, or an unknown profile id degrade VISIBLY to the normal profile path (the
+payload's `board_profile` block carries matched/declared/problems) — the router
+never blocks the scheduler over a board lookup. A matched declaration also skips
+complexity scoring entirely, mirroring the proxy's declared-complexity
+precedence (`x-router-profile`).
+
 Per hop the response carries: `provider`, `model`, `usd_1m` (PUBLIC list price —
 reporting), the chain position, `context_limit`, and `outcomes` (the stats
 provenance: `matched`, `complexity_sig`, `n_samples`, `stats_fallback`,

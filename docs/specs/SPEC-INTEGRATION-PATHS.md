@@ -19,6 +19,14 @@ R1. **Request shape (contract face).** The caller asks the router for a chain
     with the complexity it already has:
     - named profile: `POST /api/v1/spawn {"project": "..."}` (existing) or
       `router_spawn <project> --profile P1_CODING`
+    - **board-declared profile (TR-124):** the board task row itself may carry
+      `"profile": "<id-or-tag>"`; the spawn path passes the row id via
+      `router_spawn <project> --profile-from-board <task-id> [--board <path>]`,
+      and a MATCHED declaration outranks the project row's default profile.
+      Absent field, missing row, or unknown id degrade VISIBLY to the caller's
+      normal profile path (payload `board_profile` provenance) — fail-open,
+      no scheduler block. A matched declaration also skips complexity scoring
+      (mirrors Path B's declared-profile precedence, R7/R10).
     - ad-hoc set: `--profile-req code_gen=-2,test=0,debug=-3`
     - sort rule: `--sort predicted_cost_per_task|tokens_per_task|turns_per_task|
       wall_time_per_task|price|ratio:<expr>` (TR-065 §4), plus `--window-h`,
