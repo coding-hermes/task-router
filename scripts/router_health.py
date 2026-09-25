@@ -19,6 +19,7 @@ Data sources (all read-only, all already on disk):
   data/state/chains/ — latest chain snapshot via router_maintain export
 """
 import datetime
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -33,6 +34,45 @@ import router_validate  # noqa: E402  (TR-REVIEW-001: gate verdict + registry mt
 
 MR_DIR = Path(os.environ.get("ROUTER_MODEL_ROUTER_DIR",
                              str(Path.home() / ".hermes" / "model-router")))
+
+
+# ---------------------------------------------------------------------------
+# TR-141: LOADED vs LIVE code identity.
+#
+# Measured 2026-09-25: the running proxy process started 2026-09-23 19:29 while
+# scripts/router_server.py was last changed 2026-09-24 20:27 — 25 hours of stale
+# code serving live calls — and /health reported the REPO's HEAD commit, so the
+# service looked current. Deploy parity was invisible until someone remembered to
+# compare `ps -o lstart=` against a file mtime.
+#
+# Fix: a module imported by the server captures what THIS PROCESS actually loaded
+# (source hashes + the commit at boot). health() reports that as the identity and
+# flags `stale` when the files on disk — or HEAD — no longer match. The live
+# installs are symlinks, so a pull is not a deploy; this is how you tell.
+# ---------------------------------------------------------------------------
+
+#: Modules whose content defines the behaviour of the proxy/server process.
+IDENTITY_FILES = ("router_server.py", "router_health.py")
+
+
+def _file_sha(path):
+    """Short sha of one file, or None when it cannot be read (fail-open)."""
+    try:
+        return hashlib.sha256(path.read_bytes()).hexdigest()[:16]
+    except OSError:
+        return None
+
+
+def source_sha():
+    """Identity of the code ON DISK right now (the 'live' half of the compare)."""
+    parts = [f"{name}:{_file_sha(Path(__file__).resolve().parent / name) or '-'}"
+             for name in IDENTITY_FILES]
+    return hashlib.sha256("|".join(parts).encode()).hexdigest()[:16]
+
+
+# Inline (not _utc_now()): this runs at import, before that helper is defined.
+_LOADED_AT = datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds")
+_LOADED_SOURCE_SHA = source_sha()
 
 
 def _utc_now():
@@ -107,6 +147,37 @@ def git_commit():
 
 VERSION = "task-router/1.0"
 
+
+
+#: Commit this PROCESS was started from (captured once, at import).
+_LOADED_COMMIT = git_commit()
+
+
+def code_identity():
+    """LOADED (this process) vs LIVE (on disk / HEAD now) code identity.
+
+    `stale` is the deploy-parity verdict: True means the code serving requests is
+    NOT what a reader of the repo would expect — restart the service. Any field
+    that cannot be computed is None with an `error` key; the caller never sees a
+    fabricated match.
+    """
+    live_sha = source_sha()
+    repo_commit = git_commit()
+    err = None
+    if live_sha is None:
+        err = "source hash unavailable"
+    if not _LOADED_COMMIT or _LOADED_COMMIT == "unknown":
+        err = err or "loaded commit unknown at boot"
+    return {
+        "loaded_commit": _LOADED_COMMIT,
+        "loaded_source_sha": _LOADED_SOURCE_SHA,
+        "loaded_at": _LOADED_AT,
+        "repo_commit": repo_commit,
+        "live_source_sha": live_sha,
+        # Only a real comparison yields a verdict; an uncomputable half is None.
+        "stale": None if err else (live_sha != _LOADED_SOURCE_SHA or repo_commit != _LOADED_COMMIT),
+        "error": err,
+    }
 
 def registry_path():
     """The registry.json this process reads, resolved AT CALL TIME.
@@ -220,10 +291,23 @@ def health(mode="read-only", data_dir=None):
     """The /health payload. Fail-open: a broken block never kills the response."""
     data_dir = Path(data_dir) if data_dir else Path(
         os.environ.get("ROUTING_DATA_DIR", REPO / "data" / "tables"))
+    # TR-141 fail-open, like every other block in this payload: an identity that
+    # cannot be computed must degrade to unknown-flags, never turn /health into a
+    # 500 on the endpoint whose job is to REPORT the problem.
+    try:
+        identity = code_identity()
+    except Exception as exc:  # noqa: BLE001
+        identity = {"loaded_commit": _LOADED_COMMIT, "loaded_source_sha": _LOADED_SOURCE_SHA,
+                    "loaded_at": _LOADED_AT, "repo_commit": None, "live_source_sha": None,
+                    "stale": None, "error": f"identity block failed: {exc}"[:200]}
     out = {
         "status": "ok",
         "service": VERSION,
-        "commit": git_commit(),
+        # TR-141: this is the commit THIS PROCESS loaded, not the repo's HEAD —
+        # reporting the latter is how a 25h-stale proxy looked fresh.
+        "commit": identity["loaded_commit"],
+        "stale": identity["stale"],
+        "code": identity,
         "mode": mode,
         "ts": _utc_now(),
     }
