@@ -180,9 +180,20 @@ def test_upstream_uses_the_bounded_timeout(monkeypatch):
         return FakeResp()
     monkeypatch.setattr(rsrv.urllib.request, 'urlopen', fake_urlopen)
     monkeypatch.setenv('ROUTER_PROXY_HOP_TIMEOUT_S', '30')
+    # TR-138 changed WHICH bound applies to a gateway chat hop: the hop now asks
+    # to stream so the idle watch can replace the wall clock. The guard itself
+    # still holds — the timeout is always bounded, never open-ended.
+    monkeypatch.setenv('ROUTER_PROXY_STREAM_HOPS', '0')
     status, payload = rsrv._proxy_upstream_default('/v1/chat/completions', {'model': 'x'}, {})
     assert status == 200 and payload == {'ok': True}
-    assert seen['timeout'] == 30.0
+    assert seen['timeout'] == 30.0, 'streaming disabled -> the bounded wall still applies'
+
+    monkeypatch.delenv('ROUTER_PROXY_STREAM_HOPS', raising=False)
+    monkeypatch.setenv('ROUTER_PROXY_IDLE_TIMEOUT_S', '300')
+    monkeypatch.setenv('ROUTER_PROXY_HOP_WALL_S', '3600')
+    rsrv._proxy_upstream_default('/v1/chat/completions', {'model': 'x'}, {})
+    assert seen['timeout'] == 3600.0, 'streaming enabled -> the wall is a backstop, still bounded'
+    assert seen['timeout'] >= 300.0
 
 
 # ---------- session association (TR-120) ----------

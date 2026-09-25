@@ -1226,18 +1226,182 @@ def _proxy_hop_timeout_s():
     return val if val > 0 else 180.0
 
 
+def _stream_hops_enabled():
+    """Ask gateway hops to stream (TR-138). Default ON; 0/false disables."""
+    raw = (os.environ.get('ROUTER_PROXY_STREAM_HOPS') or '').strip().lower()
+    return raw not in ('0', 'false', 'no', 'off')
+
+
+def _proxy_idle_budget_s():
+    """Idle budget for a proxied HOP (TR-138). Distinct from the wall budget.
+
+    Measured 2026-09-24: a real long prompt through :9391 died at exactly
+    180.1s x 3 hops because the hop budget was a WALL clock — a turn that was
+    alive and working (the gateway was emitting tool progress and keepalives)
+    was killed for being slow. The gateway sends `: keepalive` every 10s
+    precisely so clients can use an idle deadline instead, so that is what we
+    use: as long as the hop keeps producing events it may run as long as it
+    needs, and a hop that goes quiet for the whole budget is genuinely dead.
+    """
+    raw = os.environ.get('ROUTER_PROXY_IDLE_TIMEOUT_S', '')
+    try:
+        val = float(raw)
+    except (TypeError, ValueError):
+        return _hermes_idle_timeout_s()
+    return val if val > 0 else _hermes_idle_timeout_s()
+
+
+def _proxy_wall_ceiling_s():
+    """The ABSOLUTE per-hop ceiling (a backstop, not the primary budget).
+
+    The idle watch bounds a stalled stream; this bounds a pathological one that
+    keeps dribbling events forever. Without it a runaway hop holds a caller's
+    whole tick indefinitely (the reason the wall existed at all).
+    """
+    raw = os.environ.get('ROUTER_PROXY_HOP_WALL_S', '3600')
+    try:
+        val = float(raw)
+    except (TypeError, ValueError):
+        return 3600.0
+    return val if val > 0 else 3600.0
+
+
+def _collect_openai_stream(lines, path='/v1/chat/completions', on_event=None, watch=None):
+    """Assemble an SSE stream into the buffered payload a non-streaming client expects.
+
+    Mirror semantics are preserved deliberately: the client asked for a buffered
+    answer (the proxy strips `stream` for that reason) and still gets one. What
+    changes is that we consume the upstream AS a stream, so the idle watch can
+    see progress and a long turn survives. Returns the accumulated
+    chat-completions (or responses) payload, with the live stream facts attached
+    so the row and the envelope can prove it streamed.
+    """
+    text, reasoning, role = [], [], None
+    usage, model, finish = None, None, None
+    events = 0
+
+    def handle(event_name, data):
+        nonlocal events, usage, model, finish
+        events += 1
+        # TR-138: a real frame is activity, so it resets the idle watch. Without
+        # this the watch would fire on a turn that is working steadily but takes
+        # longer than the budget — the exact defect this fix exists to remove.
+        # (Keepalives do not reset it: they are connection liveness, not work.)
+        if watch is not None:
+            watch.reset()
+        if on_event:
+            on_event(event_name, data)
+        if not isinstance(data, dict):
+            return
+        if isinstance(data.get('model'), str) and data['model']:
+            model = data['model']
+        if isinstance(data.get('usage'), dict):
+            usage = data['usage']
+        for choice in (data.get('choices') or []):
+            if not isinstance(choice, dict):
+                continue
+            if choice.get('finish_reason'):
+                finish = choice['finish_reason']
+            delta = choice.get('delta') or choice.get('message') or {}
+            if not isinstance(delta, dict):
+                continue
+            if isinstance(delta.get('role'), str):
+                role = delta['role']
+            for key, sink in (('content', text), ('reasoning_content', reasoning)):
+                v = delta.get(key)
+                if isinstance(v, str):
+                    sink.append(v)
+        # /v1/responses shape: a completed envelope carries the final text
+        if data.get('type') == 'response.completed':
+            resp = data.get('response') or {}
+            if isinstance(resp.get('model'), str):
+                model = resp['model']
+            if isinstance(resp.get('usage'), dict):
+                usage = resp['usage']
+            for item in (resp.get('output') or []):
+                for chunk in (item.get('content') or []) if isinstance(item, dict) else []:
+                    if isinstance(chunk, dict) and isinstance(chunk.get('text'), str):
+                        text.append(chunk['text'])
+
+    event_name, data_lines = '', []
+    for raw in lines:
+        if isinstance(raw, bytes):
+            raw = raw.decode('utf-8', errors='replace')
+        line = raw.rstrip('\r\n')
+        if line == '':
+            if data_lines:
+                blob = '\n'.join(data_lines)
+                try:
+                    parsed = json.loads(blob)
+                except ValueError:
+                    parsed = None
+                if parsed is not None:
+                    handle(event_name, parsed)
+            event_name, data_lines = '', []
+            continue
+        if line.startswith(':'):
+            continue    # keepalive: activity for the watch, not data for the answer
+        if line.startswith('event:'):
+            event_name = line[6:].strip()
+        elif line.startswith('data:'):
+            data_lines.append(line[5:].strip())
+
+    body = ''.join(text)   # deltas are text fragments: concatenate, never join
+    payload = {'choices': [{'index': 0, 'message': {'role': role or 'assistant', 'content': body},
+                            'finish_reason': finish or 'stop'}],
+               'model': model, 'usage': usage}
+    if reasoning:
+        payload['choices'][0]['message']['reasoning_content'] = ''.join(reasoning)
+    # the streamed facts, for the row/envelope (TR-138 evidence)
+    payload['_router_stream'] = {'events': events, 'streamed': True,
+                                 'idle_budget_s': _proxy_idle_budget_s(),
+                                 'wall_ceiling_s': _proxy_wall_ceiling_s()}
+    return payload
+
+
 def _proxy_upstream_default(path, body, headers):
     """POST the request to the upstream gateway (default: the Hermes gateway
     on localhost). Returns (status, payload-dict). Transport failure raises —
     the ladder treats it exactly like a 5xx."""
     base = os.environ.get('ROUTER_PROXY_UPSTREAM', 'http://127.0.0.1:8642')
+    # TR-138: ask the gateway to STREAM even though the client wants a buffered
+    # answer. Measured 2026-09-24: three live hops were killed at exactly 180.1s
+    # each (502 after 553s) because the budget was a wall clock, while the
+    # gateway was emitting tool progress and `: keepalive` every 10s — a
+    # slow-but-alive turn looked dead. A stream is the only way to see progress,
+    # so the idle watch can replace the wall. This decision lives HERE, in the
+    # gateway caller, not in the ladder: the ladder's body contract (TR-120
+    # strips the client's stream wish) and any provider-specific upstream are
+    # untouched, and the assembled answer is what the caller gets.
+    ask_stream = (_stream_hops_enabled() and str(path).rstrip('/').endswith('/chat/completions'))
+    send_body = {**body, 'stream': True} if ask_stream else body
     req = urllib.request.Request(
-        base.rstrip('/') + path, data=json.dumps(body).encode(),
+        base.rstrip('/') + path, data=json.dumps(send_body).encode(),
         headers={k: v for k, v in headers.items()
                  if k.lower() in ('authorization', 'x-api-key', 'content-type')}
         | {'Content-Type': 'application/json', 'User-Agent': 'task-router-proxy/1.0'})
+    # TR-138: when the hop asked the upstream to stream, the budget is the IDLE
+    # watch (plus the wall as a backstop), and the stream is assembled into the
+    # buffered payload the client asked for. A hop that cannot stream is
+    # unaffected: same wall, same buffered read.
+    want_stream = ask_stream or bool(body.get('stream'))
+    budget = (max(_proxy_idle_budget_s(), _proxy_wall_ceiling_s()) if want_stream
+              else _proxy_hop_timeout_s())
     try:
-        with urllib.request.urlopen(req, timeout=_proxy_hop_timeout_s()) as resp:
+        with urllib.request.urlopen(req, timeout=budget) as resp:
+            ctype = ''
+            try:
+                ctype = (resp.headers.get('Content-Type') or '')
+            except Exception:  # noqa: BLE001 — test doubles may lack headers
+                ctype = ''
+            # Assemble ONLY a real stream. Asking for one does not guarantee it:
+            # an upstream that ignores `stream` answers with JSON, and treating
+            # that body as SSE produced an empty answer (caught by the chat-shape
+            # regression guard). The content type is the fact, the request is
+            # only a wish.
+            if 'text/event-stream' in ctype:
+                watch = _HermesIdleWatch(_proxy_idle_budget_s())
+                return 200, _collect_openai_stream(_sse_lines(resp, watch), path, watch=watch)
             raw = resp.read()
             status = resp.status
     except urllib.error.HTTPError as exc:      # a REAL response, not transport
@@ -1697,6 +1861,11 @@ def proxy_chat(path, body, headers, max_hops=None, upstream=None):
             'degrade_reason': (requirements.get('problems') or [None])[0],
             'caller': source_system,
             'developer_role_rewrites': dev_rewrites,
+            # TR-138: disclose the budget MODE, because "the hop timed out" means
+            # something different under a wall clock than under an idle watch.
+            'stream_hops': _stream_hops_enabled(),
+            'idle_budget_s': _proxy_idle_budget_s(),
+            'wall_ceiling_s': _proxy_wall_ceiling_s(),
             'problems': list(caller_problems)}
     if dev_rewrites:
         # never silent: the caller's payload was adjusted
@@ -1839,6 +2008,12 @@ def proxy_chat(path, body, headers, max_hops=None, upstream=None):
                       steps=len(meta['ladder']))
         if ok:
             out = dict(payload) if isinstance(payload, dict) else {'upstream': payload}
+            # TR-138: the live-stream facts (events seen, idle budget, wall
+            # ceiling) are routing evidence, so they go in the ladder/envelope —
+            # never into the model's answer body, where an OpenAI client would
+            # have to filter them out.
+            if isinstance(out, dict) and isinstance(out.get('_router_stream'), dict):
+                attempt['stream'] = out.pop('_router_stream')
             # TR-144: the caller learns how THIS lane has been performing for THIS
             # complexity band without a second round trip. None (with a reason on
             # the failure path) when the lane has no history yet — a first call
