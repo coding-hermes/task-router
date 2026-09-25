@@ -566,6 +566,55 @@ def _model_limit(models_cfg, diversity, prov, model):
     return lim if lim is not None else None
 
 
+#: Machine-readable exclusion reasons (TR-142). The gate has always explained
+#: itself in PROSE ("health DOWN (...)", "model SLOW (7011ms)") which a human
+#: reads and a program cannot bucket — so "why is this lane not being used" could
+#: only be answered by regexing strings in a report. These codes are the same
+#: facts in a form a consumer (the proxy envelope, a dashboard, a count of gated
+#: lanes by cause) can group on. Prose is kept: this is additive.
+EXCLUSION_REASON_CODES = (
+    'quota-gated', 'health-down', 'health-slow', 'model-down', 'model-slow',
+    'circuit-open', 'model-busy', 'training-optin', 'consecutive-cap',
+    'chain-cap', 'duplicate-lane', 'unknown',
+)
+
+#: prefix -> code. Ordered: the FIRST match wins, so put the specific before the
+#: general ('health SLOW' before 'health').
+_REASON_PREFIXES = (
+    ('quota GATED', 'quota-gated'),
+    ('health DOWN', 'health-down'),
+    ('health SLOW', 'health-slow'),
+    ('model DOWN', 'model-down'),
+    ('model SLOW', 'model-slow'),
+    ('circuit OPEN', 'circuit-open'),
+    ('model busy', 'model-busy'),
+    ('training on prompts', 'training-optin'),
+    ('consecutive cap', 'consecutive-cap'),
+    ('chain cap', 'chain-cap'),
+    ('duplicate', 'duplicate-lane'),
+)
+
+
+def exclusion_codes(why):
+    """Map a `why` list (prose) to reason codes, one per entry.
+
+    Never returns an empty list for a non-empty `why`: an unmapped reason becomes
+    'unknown' rather than silently vanishing, because a cause that disappears is
+    worse than one that is merely unclassified — the whole point is that nothing
+    is excluded for a reason nobody can count.
+    """
+    codes = []
+    for entry in (why or []):
+        text = str(entry)
+        for prefix, code in _REASON_PREFIXES:
+            if text.startswith(prefix):
+                codes.append(code)
+                break
+        else:
+            codes.append('unknown')
+    return codes
+
+
 def _prune_diversity(out_chain, exclusions, reasons, cons_cap, tot_cap):
     """Walk the price-ordered survivor chain; drop diversity violators.
 
@@ -593,7 +642,8 @@ def _prune_diversity(out_chain, exclusions, reasons, cons_cap, tot_cap):
             why.append(f'chain cap {tot_cap}')
         if why:
             exclusions.append({'hop': ent['hop'], 'provider': prov,
-                               'model': ent['model'], 'why': why})
+                               'model': ent['model'], 'why': why,
+                               'codes': exclusion_codes(why)})
             reasons.append(f"hop {ent['hop']} {prov}/{ent['model']}: "
                            + '; '.join(why))
         else:
@@ -1784,7 +1834,8 @@ def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=DE
                 why.append('training on prompts/completions (opt in with '
                            'allow_training to include)')
         if why:
-            exclusions.append({'hop': hop, 'provider': prov, 'model': model, 'why': why})
+            exclusions.append({'hop': hop, 'provider': prov, 'model': model, 'why': why,
+                               'codes': exclusion_codes(why)})
             reasons.append(f'hop {hop} {prov}/{model}: ' + '; '.join(why))
         else:
             pub_usd, pub_in, pub_out = _pub_prices(mrow)

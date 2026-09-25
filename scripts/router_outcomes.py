@@ -252,27 +252,90 @@ def merge_average_rows(rows):
     return out
 
 
+def required_levels(profile_id=None, matrix=None, registry_path=None):
+    """THE authority for "what levels must a lane clear for this task" (TR-142).
+
+    Until now this derivation existed in several places — profile_signature here,
+    and three separate reads of `task_profile_requirements` in router_spawn — so
+    the levels a task must clear could drift between the path that picks a model
+    and the path that reports why. One function, one answer.
+
+    `profile_id` resolves the levels a named profile declares; `matrix` returns a
+    supplied set normalized to {category: int level}. Both may be given (the
+    matrix wins for whatever it names). Unknown profile / unusable input -> None,
+    never a guessed level set.
+    """
+    levels = {}
+    if matrix is not None:
+        levels.update(_normalize_levels(matrix))
+    if profile_id:
+        registry_path = registry_path or os.path.join(REPO, 'registry.json')
+        if os.path.exists(registry_path):
+            try:
+                tables = (json.load(open(registry_path)) or {}).get('tables', {})
+            except (ValueError, OSError):
+                tables = {}
+            known = {p.get('id') for p in tables.get('task_profiles') or []}
+            if profile_id in known:
+                for r in tables.get('task_profile_requirements') or []:
+                    if r.get('task_id') == profile_id and r.get('category') is not None:
+                        # The MATRIX wins: it is the live classification of the
+                        # actual prompt, so the profile may only fill in the
+                        # categories the matrix does not name. Overwriting here is
+                        # the drift this function exists to prevent (caught by the
+                        # test that supplies both).
+                        if str(r['category']) in levels:
+                            continue
+                        try:
+                            levels[str(r['category'])] = int(r.get('level', 0))
+                        except (TypeError, ValueError):
+                            continue
+            elif not levels:
+                return None      # unknown profile AND no matrix: refuse to guess
+    return levels or None
+
+
+def _normalize_levels(matrix):
+    """Accept the shapes the fleet actually emits: {cat: level},
+    [{category, level}], or {'cat=3', 'other=-2'}."""
+    out = {}
+    if isinstance(matrix, dict):
+        for k, v in matrix.items():
+            if isinstance(v, bool):
+                continue
+            if isinstance(v, (int, float)):
+                out[str(k)] = int(v)
+            elif isinstance(v, str) and '=' in str(k):
+                cat, _, val = str(k).partition('=')
+                try:
+                    out[cat] = int(val)
+                except ValueError:
+                    continue
+    elif isinstance(matrix, (list, tuple, set, frozenset)):   # the fleet emits sets too: {"c=3","d=-2"}
+        for item in matrix:
+            if isinstance(item, dict) and item.get('category') is not None:
+                try:
+                    out[str(item['category'])] = int(item.get('level', 0))
+                except (TypeError, ValueError):
+                    continue
+            elif isinstance(item, str) and '=' in item:
+                cat, _, val = item.partition('=')
+                try:
+                    out[cat] = int(val)
+                except ValueError:
+                    continue
+    return out
+
+
 def profile_signature(profile_id, registry_path=None):
     """The complexity reference: a task profile IS its declared per-category
     levels (Bane: "complexity part is the categories of the task so that it
     has a reference"). Returns {category: required_level} from the seeded
     registry, or None when the profile is unknown — never invent levels."""
-    registry_path = registry_path or os.path.join(REPO, 'registry.json')
-    if not os.path.exists(registry_path):
-        return None
-    d = json.load(open(registry_path))
-    tables = d.get('tables', {})
-    prof = next((p for p in tables.get('task_profiles', [])
-                 if p.get('id') == profile_id), None)
-    if prof is None:
-        return None
-    # requirements live in task_profile_requirements: one row per
-    # (profile_id, category, min_level) — the declared task categories
-    reqs = {}
-    for r in tables.get('task_profile_requirements') or []:
-        if r.get('task_id') == profile_id:
-            reqs[str(r['category'])] = int(r.get('level', 0))
-    return reqs
+    # TR-142: delegate to required_levels() — this function and the spawn path
+    # used to derive the same levels independently, which is how a reference can
+    # disagree with the thing it describes.
+    return required_levels(profile_id=profile_id, registry_path=registry_path)
 
 
 # ---------- IO ----------

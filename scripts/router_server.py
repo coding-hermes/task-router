@@ -1865,6 +1865,18 @@ def proxy_chat(path, body, headers, max_hops=None, upstream=None):
     except (TypeError, ValueError):
         hops = 3
     source, requirements = _proxy_requirements(body, headers, path)
+    # TR-142: the envelope states the LEVELS that admitted the served lane, resolved
+    # through the one authority (router_outcomes.required_levels) rather than being
+    # re-derived here. None when the levels are genuinely unknown (an unrated prompt
+    # with no profile) — never an invented set.
+    if isinstance(requirements, dict) and not requirements.get('levels'):
+        try:
+            import router_outcomes as _ro_levels
+            requirements['levels'] = _ro_levels.required_levels(
+                profile_id=requirements.get('profile_id'),
+                matrix=requirements.get('matrix'))
+        except Exception:  # noqa: BLE001 — advisory evidence, never fatal
+            requirements['levels'] = None
     if source == 'classifier' and not (requirements.get('matrix') or {}):
         # empty matrix = the task pressures no category. The router needs a
         # profile to build a chain, so use the default one — VISIBLY.
