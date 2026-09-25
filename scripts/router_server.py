@@ -1425,6 +1425,47 @@ def _proxy_usage(payload):
     return num('prompt_tokens', 'input_tokens'), num('completion_tokens', 'output_tokens')
 
 
+def _proxy_usage_full(payload):
+    """Every meter the wire reports, each None when unreported (TR-143).
+
+    The row was blind to cache traffic: 291 lanes now carry a published
+    cache-read rate (a5b0bf0) and the economics of a long agent turn are mostly
+    cache reads, so a cost-per-task average that ignores them overstates the
+    cost of exactly the workloads this proxy exists to serve. Both wire shapes
+    are read (OpenAI `prompt_tokens_details.cached_tokens`, OpenAI-compatible
+    `*_input_tokens` detail blocks) and an absent detail block stays None —
+    never 0, because 0 cached tokens and "the provider did not say" are
+    different facts and only one of them is free.
+    """
+    tokens_in, tokens_out = _proxy_usage(payload)
+    out = {'tokens_in': tokens_in, 'tokens_out': tokens_out,
+           'cache_read_tokens': None, 'cache_write_tokens': None,
+           'tokens_reasoning': None}
+    if not isinstance(payload, dict) or not isinstance(payload.get('usage'), dict):
+        return out
+    usage = payload['usage']
+
+    def deep(*path):
+        cur = usage
+        for key in path:
+            if not isinstance(cur, dict):
+                return None
+            cur = cur.get(key)
+        return cur if isinstance(cur, int) and not isinstance(cur, bool) else None
+
+    cache_read = (deep('prompt_tokens_details', 'cached_tokens')
+                  or deep('input_tokens_details', 'cached_tokens'))
+    if cache_read is None:
+        v = usage.get('cache_read_input_tokens')
+        cache_read = v if isinstance(v, int) and not isinstance(v, bool) else None
+    out['cache_read_tokens'] = cache_read
+    v = usage.get('cache_creation_input_tokens')
+    out['cache_write_tokens'] = v if isinstance(v, int) and not isinstance(v, bool) else None
+    out['tokens_reasoning'] = (deep('completion_tokens_details', 'reasoning_tokens')
+                               or deep('output_tokens_details', 'reasoning_tokens'))
+    return out
+
+
 def _proxy_cost(hop, tokens_in, tokens_out):
     """(cost_usd, basis) for one attempt, from the HOP's own prices.
 
@@ -1452,7 +1493,12 @@ def _proxy_cost(hop, tokens_in, tokens_out):
 def _proxy_record(provider, model, ok, requirements, reason='', latency_s=None,
                   source='router-proxy', session_id=None,
                   tokens_in=None, tokens_out=None, cost_usd=None,
-                  parent_session_id=None):
+                  parent_session_id=None, price_basis=None,
+                  cache_read_tokens=None, cache_write_tokens=None,
+                  tokens_reasoning=None, gateway_session_id=None,
+                  route_outcome=None, failure_reason=None, hops_attempted=None,
+                  served_by_hop=None, max_hops=None, complexity_source=None,
+                  degrade_reason=None, steps=None):
     """One outcome row per attempt + breaker evidence (best effort, fail-open).
 
     TR-071: `source` is the DRIVER identity when the caller declared one
@@ -1472,11 +1518,42 @@ def _proxy_record(provider, model, ok, requirements, reason='', latency_s=None,
                'session_id': session_id or f'proxy-{time.time()}',
                'parent_session_id': parent_session_id,
                'provider': provider, 'model': model,
+               # The store contract lists `complexity` AND `required_categories`
+               # (the latter is the matrix). Proxy rows only ever carried the
+               # richer pair (matrix + sig), so a row read through the documented
+               # STORE_FIELDS came up short; the alias is filled from the same
+               # matrix rather than invented.
+               'complexity': requirements.get('matrix'),
                'required_categories': requirements.get('matrix'),
                'complexity_sig': requirements.get('complexity_sig'),
                'profile_id': requirements.get('profile_id'),
-               'turns': None, 'steps': 1, 'tokens_in': tokens_in, 'tokens_out': tokens_out,
+               'turns': None,
+               # TR-143: steps used to be the constant 1 on every row, so a
+               # task that needed four fallback hops and one that answered
+               # first-try were the same row. Real step count (the ladder
+               # attempts this request made) is what makes the average
+               # meaningful.
+               'steps': steps if steps is not None else 1,
+               'tokens_in': tokens_in, 'tokens_out': tokens_out,
+               # Meters the proxy was blind to until TR-143: the economics of a
+               # long agent turn are mostly cache reads.
+               'cache_read_tokens': cache_read_tokens,
+               'cache_write_tokens': cache_write_tokens,
+               'tokens_reasoning': tokens_reasoning,
                'cost_usd': cost_usd, 'wall_time_s': latency_s, 'success': ok,
+               # Which price basis produced cost_usd (list vs plan-offset), so a
+               # reader can tell a cheap lane from a plan lane without guessing.
+               'price_basis': price_basis,
+               # The Hermes session this call ran under, when the driver could
+               # report it: the join key back to state.db (TR-129/TR-145).
+               'gateway_session_id': gateway_session_id or None,
+               # served | failed | no-hops — the row says which door it came out
+               # of, and a failure carries its reason CODE, not just prose.
+               'route_outcome': route_outcome,
+               'failure_reason': failure_reason,
+               'hops_attempted': hops_attempted, 'served_by_hop': served_by_hop,
+               'max_hops': max_hops, 'complexity_source': complexity_source,
+               'degrade_reason': degrade_reason,
                'task_label': reason[:200] or None, 'ts': time.time()}
         if parent_session_id:
             # Accumulate: one row per (source_system, session, model) that grows as
@@ -1596,6 +1673,14 @@ def proxy_chat(path, body, headers, max_hops=None, upstream=None):
         # TR-136: this is the OTHER blind exit — it returns before the ladder, so
         # it needs the same envelope or a caller cannot tell it apart from a
         # transport death.
+        _proxy_record('none', 'none', False, requirements,
+                      reason='no open hop for this request',
+                      latency_s=round(time.time() - ladder_t0, 3), source=source_system,
+                      session_id=session_id, parent_session_id=parent_session_id,
+                      route_outcome='no-hops', failure_reason='no-hops',
+                      hops_attempted=0, max_hops=hops, complexity_source=source,
+                      degrade_reason=(requirements.get('problems') or [None])[0],
+                      steps=0)
         return 503, {'error': 'no open hop for this request',
                      '_router': _failure_envelope(meta, session_id, source_system,
                                                   parent_session_id, ladder_t0,
@@ -1687,16 +1772,36 @@ def proxy_chat(path, body, headers, max_hops=None, upstream=None):
         # cost-per-task averages learn from real traffic. Without it every
         # proxied row was cost-blind and the ledger could only be filled by
         # post-hoc state.db imports (no prompt, no complexity, no cost).
-        tokens_in, tokens_out = _proxy_usage(payload if ok else None)
+        # Served hops only. The meters are still taken from the payload alone —
+        # never estimated — and a FAILED hop records None on purpose: a 5xx that
+        # echoes a usage block is not trustworthy evidence of spend, and letting
+        # it price the row would inflate exactly the failure costs an operator
+        # reads to decide whether a lane is worth keeping (test_proxy_metering
+        # pins this). TR-143 keeps that contract and adds the ladder facts.
+        meters = _proxy_usage_full(payload if ok else None)
+        tokens_in, tokens_out = meters['tokens_in'], meters['tokens_out']
         cost_usd, price_basis = _proxy_cost(hop, tokens_in, tokens_out)
         attempt['tokens_in'], attempt['tokens_out'] = tokens_in, tokens_out
+        attempt['cache_read_tokens'] = meters['cache_read_tokens']
         attempt['cost_usd'], attempt['price_basis'] = cost_usd, price_basis
         _proxy_record(str(provider), str(model), ok, requirements,
                       reason='' if ok else str(payload.get('error') if isinstance(payload, dict) else payload)[:200],
                       latency_s=wall,
                       source=source_system, session_id=session_id,
                       tokens_in=tokens_in, tokens_out=tokens_out, cost_usd=cost_usd,
-                      parent_session_id=parent_session_id)
+                      parent_session_id=parent_session_id,
+                      price_basis=price_basis,
+                      cache_read_tokens=meters['cache_read_tokens'],
+                      cache_write_tokens=meters['cache_write_tokens'],
+                      tokens_reasoning=meters['tokens_reasoning'],
+                      gateway_session_id=(payload.get('_router_hermes_session_id')
+                                          if isinstance(payload, dict) else None),
+                      route_outcome='served' if ok else 'failed',
+                      failure_reason=None if ok else attempt.get('reason'),
+                      hops_attempted=len(meta['ladder']), served_by_hop=(hop.get('hop') if ok else None),
+                      max_hops=hops, complexity_source=source,
+                      degrade_reason=(requirements.get('problems') or [None])[0],
+                      steps=len(meta['ladder']))
         if ok:
             out = dict(payload) if isinstance(payload, dict) else {'upstream': payload}
             out['_router'] = {**meta, 'served_by': {'provider': provider, 'model': model,
