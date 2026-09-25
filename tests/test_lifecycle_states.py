@@ -12,6 +12,13 @@ sys.path.insert(0, os.path.join(REPO, "scripts"))
 
 import router_spawn as rs  # noqa: E402
 
+# Frozen clock (TR-135): fixtures derive relative dates from the FROZEN day so
+# they cannot rot when real time crosses a hardcoded date. The code under test
+# consults the rs._today seam (see the two seam tests), which these tests
+# monkeypatch to _FROZEN_TODAY.
+_FROZEN_TODAY = "2026-09-19"
+_FROZEN_TODAY_PLUS_2 = "2026-09-21"
+
 
 # ---------------------------------------------------------------- state map
 def test_state_map_all_four_states_frozen_clock(monkeypatch):
@@ -71,10 +78,10 @@ def test_coming_soon_lane_never_routes_but_is_reported(monkeypatch, capsys):
 
 
 def test_retiring_lane_routes_with_warning_fields(monkeypatch, capsys):
-    monkeypatch.setattr(rs, "_today", lambda: "2026-09-19")
+    monkeypatch.setattr(rs, "_today", lambda: _FROZEN_TODAY)
     tables = _tables_with([
         {"provider": "ollama-cloud", "model": "deepseek-v4-flash:0731",
-         "normalized_price": 0.1, "valid_to": "2026-09-25",
+         "normalized_price": 0.1, "valid_to": _FROZEN_TODAY_PLUS_2,
          "replaced_by": "ollama-cloud/deepseek-v4.1-flash"},
     ])
     counts = {}
@@ -84,17 +91,17 @@ def test_retiring_lane_routes_with_warning_fields(monkeypatch, capsys):
     assert counts.get("retiring") == 1
     # the hop fields are added at the resolve layer, not _build_chain; the
     # row survives eligibility is the contract here
-    assert full["valid_to"] == "2026-09-25"
+    assert full["valid_to"] == _FROZEN_TODAY_PLUS_2
 
 
 def test_resolve_end_to_end_counts_and_hop_warnings(monkeypatch, tmp_path):
     """Full resolve() path: lifecycle_counts in the payload; retires_on +
     replaced_by ride the retiring hop."""
-    monkeypatch.setattr(rs, "_today", lambda: "2026-09-19")
+    monkeypatch.setattr(rs, "_today", lambda: _FROZEN_TODAY)
     tables = {"models": [
             {"provider": "prov", "model": "ok", "normalized_price": 1.0},
             {"provider": "prov", "model": "dying", "normalized_price": 0.2,
-             "valid_to": "2026-09-25", "replaced_by": "prov/successor"},
+             "valid_to": _FROZEN_TODAY_PLUS_2, "replaced_by": "prov/successor"},
         ], "tiers": {}, "providers": [], "fallback_lanes": [],
         "profiles": [], "task_profiles": [
             {"id": "P0_FORE", "description": "test default profile"}],
@@ -121,7 +128,7 @@ def test_resolve_end_to_end_counts_and_hop_warnings(monkeypatch, tmp_path):
     assert counts.get("retiring") == 1, f"counts missing/wrong: {counts}"
     assert counts.get("live") == 1
     hop = next(h for h in result["chain"] if h["model"] == "dying")
-    assert hop["retires_on"] == "2026-09-25"
+    assert hop["retires_on"] == _FROZEN_TODAY_PLUS_2
     assert hop["replaced_by"] == "prov/successor"
     # and the healthy lane carries NO lifecycle keys (additive-only contract)
     clean = next(h for h in result["chain"] if h["model"] == "ok")

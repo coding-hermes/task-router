@@ -162,7 +162,7 @@ def row_is_retired(row, today=None):
     if not vt:
         return False
     if today is None:
-        today = datetime.date.today().isoformat()
+        today = _today()
     return str(vt)[:10] <= str(today)[:10]
 
 
@@ -196,7 +196,7 @@ def lifecycle_state(row, today=None):
     Unknown dates stay None/absent = live: dates decide, nothing invented.
     """
     if today is None:
-        today = datetime.date.today().isoformat()
+        today = _today()  # clock seam (TR-135): frozen-clock tests must reach this path
     today = str(today)[:10]
     vt = row.get('valid_to')
     if vt and str(vt)[:10] <= today:
