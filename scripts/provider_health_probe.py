@@ -1,6 +1,15 @@
 #!/usr/bin/env python3
 """provider_health_probe.py v3 — hourly model battery + credit check (Bane 2026-08-31).
 
+v3.1 (TR-164, 2026-09-26): --only MERGES into health-state.json instead of
+replacing it — unprobed providers keep their previous entries verbatim. The
+file is a GATE input (router_spawn reads providers.<p>.status, absent =
+fail-open un-gate), so a partial run used to delete the fleet's gate state for
+every provider it did not probe. HTTP error bodies are now captured and
+reported with the status code (a quota condition says "Account budget
+exceeded", not just "HTTP 429" — the distinction between a config bug and a
+window to wait out is the whole point of the probe).
+
 v3 changes (Bane 08-31: "expand the list of providers", "each provider on a new
 line, up/down indented, up first then down alphabetical", "stop showing timeout
 scares for thinking models", "wire the daily model-name sync to the probe logs"):
@@ -261,12 +270,32 @@ def _req(base, key, model, params, timeout, extra_headers=None):
             r.read()
         return {'status': 'OK', 'latency_ms': int((time.time() - t0) * 1000)}
     except urllib.error.HTTPError as e:
-        return {'status': 'HTTPERR', 'code': e.code, 'latency_ms': int((time.time() - t0) * 1000)}
+        # TR-164: capture the body — quota/budget conditions ("Account budget
+        # exceeded", "rate limited", plan-window text) live there, and a bare
+        # "HTTP 429" reads as an outage while it is a window to wait out.
+        try:
+            body_txt = e.read().decode(errors='replace')[:300]
+        except Exception:
+            body_txt = ''
+        out = {'status': 'HTTPERR', 'code': e.code, 'latency_ms': int((time.time() - t0) * 1000)}
+        if body_txt:
+            out['http_body'] = body_txt
+        return out
     except Exception as e:
         msg = str(e)
         if isinstance(e, (socket.timeout, TimeoutError)) or 'timed out' in msg.lower() or 'timeout' in msg.lower():
             return {'status': 'TIMEOUT_ERR', 'latency_ms': int((time.time() - t0) * 1000)}
         return {'status': 'ERR', 'error': msg[:120], 'latency_ms': int((time.time() - t0) * 1000)}
+
+
+def _fmt_http_err(r):
+    """TR-164: an HTTP error says the code AND what the provider said about it —
+    a quota/budget condition must not render as a bare 'HTTP 429' outage."""
+    code = f'HTTP {r["code"]}'
+    body = (r.get('http_body') or '').strip()
+    if body:
+        return f'{code}: {body}'
+    return code
 
 
 def ping(base, key, model, params=None, extra_headers=None):
@@ -277,7 +306,8 @@ def ping(base, key, model, params=None, extra_headers=None):
         return {'status': 'SLOW' if r['latency_ms'] > SLOW_MS else 'OK', 'latency_ms': r['latency_ms']}
     if r['status'] == 'HTTPERR':
         if r['code'] == 503:
-            return {'status': 'OVERLOADED', 'error': 'HTTP 503 (overloaded)', 'latency_ms': r['latency_ms']}
+            err = _fmt_http_err(r) + ' (overloaded)' if r.get('http_body') else 'HTTP 503 (overloaded)'
+            return {'status': 'OVERLOADED', 'error': err, 'latency_ms': r['latency_ms']}
         if r['code'] >= 500:
             # one retry — 5xx is transient capacity, not an outage (Bane 08-28/08-31)
             r2 = _req(base, key, model, params, TIMEOUT_S, extra_headers)
@@ -285,11 +315,11 @@ def ping(base, key, model, params=None, extra_headers=None):
                 return {'status': 'SLOW' if r2['latency_ms'] > SLOW_MS else 'OK',
                         'latency_ms': r2['latency_ms'], 'note': f'ok on 5xx retry (first HTTP {r["code"]})'}
             if r2['status'] == 'HTTPERR' and r2['code'] < 500:
-                return {'status': 'DOWN', 'error': f'HTTP {r2["code"]} (after HTTP {r["code"]})',
+                return {'status': 'DOWN', 'error': _fmt_http_err(r2) + f' (after HTTP {r["code"]})',
                         'latency_ms': r2['latency_ms']}
-            return {'status': 'DOWN', 'error': f'HTTP {r["code"]} (persists after retry)',
+            return {'status': 'DOWN', 'error': _fmt_http_err(r) + ' (persists after retry)',
                     'latency_ms': r['latency_ms']}
-        return {'status': 'DOWN', 'error': f'HTTP {r["code"]}', 'latency_ms': r['latency_ms']}
+        return {'status': 'DOWN', 'error': _fmt_http_err(r), 'latency_ms': r['latency_ms']}
     if r['status'] == 'TIMEOUT_ERR':
         # thinking models need a long rope — retry once at LONG_TIMEOUT_S (Bane 08-31)
         r2 = _req(base, key, model, params, LONG_TIMEOUT_S, extra_headers)
@@ -299,7 +329,7 @@ def ping(base, key, model, params=None, extra_headers=None):
         if r2['status'] == 'TIMEOUT_ERR':
             return {'status': 'TIMEOUT', 'error': f'no response in {LONG_TIMEOUT_S}s (thinking?)', 'latency_ms': None}
         if r2['status'] == 'HTTPERR':
-            return {'status': 'DOWN', 'error': f'HTTP {r2["code"]} on slow retry', 'latency_ms': r2['latency_ms']}
+            return {'status': 'DOWN', 'error': _fmt_http_err(r2) + ' on slow retry', 'latency_ms': r2['latency_ms']}
         return {'status': 'DOWN', 'error': r2.get('error', 'error on slow retry'), 'latency_ms': r2.get('latency_ms')}
     return {'status': 'DOWN', 'error': r.get('error'), 'latency_ms': r.get('latency_ms')}
 
@@ -446,6 +476,7 @@ def main(config_path=None, only_providers=None, output_path=None, write=True):
     prev_provs = prev.get('providers', {})
 
     providers = load_providers()
+    data_providers = set(providers)  # data-file truth, before any --only narrowing
     if only_providers:
         providers = {p: v for p, v in providers.items() if p in only_providers}
     if not providers:
@@ -513,14 +544,29 @@ def main(config_path=None, only_providers=None, output_path=None, write=True):
                 alerts.append(f'✅ {prov} back UP ({stats["ok"]} models, '
                               f'{dflt.get("latency_ms")}ms)')
 
-    state = {'updated': ts, 'probe_version': 3, 'providers': results}
+    # TR-164: a partial run (--only) MERGES into the previous provider map
+    # instead of replacing it. health-state.json is a GATE input — router_spawn
+    # reads providers.<p>.status and treats an ABSENT provider as un-gated
+    # (fail-open) — so an --only run that rewrote the whole map deleted the
+    # fleet's gate state for every provider it did not probe. Probed providers
+    # overwrite their previous entry; unprobed providers keep theirs verbatim.
+    # Providers REMOVED from the data file (or disabled there) are the one
+    # legitimate deletion: prune them so they can never gate again, instead of
+    # keeping stale entries alive only because a partial run carried them.
+    merged_providers = {p: e for p, e in prev_provs.items() if p in data_providers}
+    merged_providers.update(results)
+    state = {'updated': ts, 'probe_version': 3, 'providers': merged_providers}
     if write:
+        out_dir = os.path.dirname(HEALTH_STATE)
+        if out_dir:
+            os.makedirs(out_dir, exist_ok=True)  # custom --output into a new dir
         tmp = HEALTH_STATE + '.tmp'
         with open(tmp, 'w') as f:
             json.dump(state, f, indent=1)
         os.replace(tmp, HEALTH_STATE)
         with open(HEALTH_JSONL, 'a') as f:
-            f.write(json.dumps({'ts': ts, 'probe_version': 3, 'providers': results}) + '\n')
+            f.write(json.dumps({'ts': ts, 'probe_version': 3,
+                                'providers': merged_providers}) + '\n')
 
     # ---- report: transitions, then full formatted listing --------------------
     out = []
