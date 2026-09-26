@@ -42,7 +42,7 @@
   <li><a href="#last">The last subgoal: re-evaluate, verify, and grow the tree</a></li>
   <li><a href="#quorum">What I am asking the quorum</a></li>
   <li><a href="#notdo">What I will not do</a></li>
-    <li><a href="#round1">Quorum round 1 &mdash; findings, and the tree it grew</a></li>
+    <li><a href="#round1">Pre-review round 1 (a deliberation, not a quorum) &mdash; findings, and the tree it grew</a></li>
 </ol>
 
 <h2 id="goal">1. The goal</h2>
@@ -196,4 +196,116 @@ price would have chosen — with the fleet healthy throughout.</p>
   <li>Not report a capability as working because a function exists.</li>
 </ul>
 
-</div></body></html>
+  <h2 id="round1">9. Pre-review round 1 (a deliberation, not a quorum) — findings, and the tree it grew</h2>
+  <p>Convened 2026-09-26 on this document (formation: <em>audit</em> — two workers plus a dedicated
+  audit stage). The merged verdict is kept below in substance; every item became a new subgoal or an
+  acceptance rewrite. This section exists because a plan that does not change when reviewed was not
+  reviewed.</p>
+  <p><strong>Provenance caveat, and it matters:</strong> this round ran as a multi-model
+  <em>deliberation</em>, NOT as a seat-based quorum. The canonical skill is explicit that a
+  deliberation call is not a quorum — a quorum is independent judge seats on full sessions, every
+  seat working the same claim checklist, with the coordinator re-verifying every CONTRADICTED lead
+  as the commit layer. Treat the verdicts below as strong leads, not rulings; a seat round is still
+  owed before this tree is frozen.</p>
+
+  <h3>9.1 The verdicts</h3>
+  <ul>
+    <li><strong>Q1 — Missing nodes (three, all silently absorbed by existing subgoals).</strong>
+      (a) <em>No ingress/cutover proof</em> that scheduler-dispatched calls actually enter the router
+      and that bypass stopped — S3 only persists a key if a call arrives, and S7 ramps a subset, not
+      the dispatch path. (b) <em>No call-density / amplification control</em>: the incident's real
+      mechanism (6.1&times; session density, 430 of 495 rows with zero upstream work) is unowned,
+      because S1 bounds concurrency <em>in flight</em> and the 44-cap never fired. (c) <em>No band
+      provenance</em>: S5's floor neither retires imported history nor stops median-n=1 bands from
+      contaminating the ordering S6 will switch to.</li>
+    <li><strong>Q2 — Wrong position: S7 is too early.</strong> Hidden edge S7 → S3+S4. With 0 of 601
+      rows carrying the tick id, any traffic before attribution produces permanently unattributed
+      rows that poison the very bands S6 sorts on. Second edge: S6 depends on S4, not only S5 —
+      ranking one task needs per-request session deltas, and session totals alone cannot rank.</li>
+    <li><strong>Q3 — Risk honesty: no.</strong> The sequence does not own the fact-5 mechanism. S1
+      must reproduce the density and zero-upstream signature under the harness; S7 must run at
+      &gt;44 concurrent callers and &ge;6.1&times; density, with the rollback drill <em>executed</em>,
+      before it names its first project.</li>
+    <li><strong>Q4 — Where "built" is being read as "done".</strong> Per subgoal: S1 ("the failures
+      are my test harness" is not evidence — run a black-box concurrency rig against the real
+      proxy); S2 (measure upstream provider requests per prompt hash, not cache hits — they diverge
+      under stampede, TTL expiry and retry); S3 (measure the live join rate, not "field added");
+      S5 (a stamped basis field is cosmetic — show a low-n band cannot become head); S6 (fact 1
+      stays unfixed unless a fleet process actually sets the variable — capture the env the spawn
+      really sees); S8 (a pane that is empty until S3 answers nothing).</li>
+    <li><strong>Q5 — A cheaper path exists; adopt it.</strong> (a) Do <em>not</em> set the ordering
+      variable live as the switch: run it in shadow — stamp the basis and record the cost-sort head
+      while still serving price. (b) A deterministic complexity classifier first, with the model on
+      a ~5% audit sample: fact 3's rating is ~$0.065 <em>input-side only</em>, and at 1M calls that
+      is &ge;$65k of model spend to classify. (c) Start traffic on projects that already map to
+      high-n bands (hermes median n=14, max 122,122) rather than on thin ones.</li>
+  </ul>
+
+  <h3>9.2 The grown tree</h3>
+  <table>
+    <tr><th>Subgoal</th><th>Outcome</th><th>Acceptance (checkable)</th></tr>
+    <tr>
+      <td><strong>S10</strong><br>Ingress and cutover proof</td>
+      <td>A dispatch-side counter and a one-value rollback, so "the fleet is routed" is a number and
+      not an assumption.</td>
+      <td>100% of scheduler-dispatched Hermes calls observed entering the proxy, bypass count 0; the
+      rollback flips the dispatch target in one step and is exercised, not just documented.</td>
+    </tr>
+    <tr>
+      <td><strong>S11</strong><br>Call-density and amplification gate</td>
+      <td>Per-session density bound and breaker — the mechanism that actually took the fleet down,
+      owned explicitly.</td>
+      <td>The harness reproduces the 6.1&times; density and the 430/495 zero-upstream signature;
+      excess density returns 429 + Retry-After with a rejected ledger row; the zero-upstream ratio
+      is bounded and alerted.</td>
+    </tr>
+    <tr>
+      <td><strong>S12</strong><br>Band provenance</td>
+      <td>Every band the ordering may use is traceable to live proxied traffic with a task join.</td>
+      <td>Every band S6 sorts on comes from live proxied rows carrying the S3/S4 joins with n &ge;
+      floor; imported aggregates are retired until refilled from live traffic; the basis is recorded
+      per row.</td>
+    </tr>
+  </table>
+
+  <h3>9.3 Acceptance rewrites accepted from the review</h3>
+  <ul>
+    <li><strong>S1</strong> — replace "tests 4 pass / 5 fail, the failures are my harness" with a
+      black-box concurrency rig: max in-flight &le; cap under N &gt; cap callers, 429 rows present
+      with a rejected outcome, and under-cap latency unchanged. <em>Built is not done.</em></li>
+    <li><strong>S2</strong> — measure provider request count per prompt hash and force a provider
+      failure to prove it is never cached; prove the raw endpoint by egress host/URL trace, not by a
+      config flag.</li>
+    <li><strong>S6</strong> — enter through the shadow path: record both heads for the same request,
+      then show the revert returns the price head. "Different heads" alone is not cost-per-task
+      proof, and the switch must never be a bet on thin bands.</li>
+    <li><strong>S8</strong> — an operator answering "why did this call go to this lane" requires S3
+      to be live first; the pane is empty until then, and that is stated rather than assumed.</li>
+  </ul>
+
+  <h3>9.4 Facts the panel challenged (to re-measure, not to defend)</h3>
+  <ul>
+    <li><strong>Fact 3 is under-specified:</strong> $0.065 is input-side only — the extra ~47k
+      tokens, retries and cache misses are unmeasured. Measure provider-billed cost per rating call
+      over N calls, split input vs output.</li>
+    <li><strong>Fact 2 mixes populations:</strong> the hermes median (n=14) hides the router-proxy
+      median (n=1). Report band depth split by source, and for live scheduler-dispatched traffic
+      only.</li>
+    <li><strong>Fact 6's custody boolean is not a measurement:</strong> measure per-session
+      state-DB diff and per-request delta sums across all rows, including sessions never ended and
+      sessions continued later.</li>
+    <li><strong>Fact 7's classifier parse state is not a success rate:</strong> measure parse
+      failure rate and the selected head against the recorded chain.</li>
+    <li><strong>Fact 10 names no threshold and no holdout:</strong> measure the actual regret of
+      below-floor estimates against list price on a live holdout.</li>
+    <li><strong>Fact 1 needs runtime proof:</strong> set the variable, spawn, and capture the env
+      the spawner actually sees — an import-time read can hide a stale environment.</li>
+  </ul>
+
+  <h3>9.5 What this changes in the sequence</h3>
+  <p>S3 and S4, green <em>and backfilled</em>, now gate S7 rather than merely precede it. S11 becomes
+  a precondition of any traffic at all, alongside S1. S6 moves behind S12 and enters through the
+  shadow path, so the ordering switch is never a bet. S7's first project set is chosen from bands
+  that already clear the floor. S10 is added because "we are routed" must be a measured number.</p>
+
+  </div></body></html>
