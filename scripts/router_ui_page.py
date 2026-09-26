@@ -76,6 +76,8 @@ PAGE = r"""<!doctype html>
   <select id="f_provider"><option value="">provider…</option></select>
   <select id="f_band"><option value="">band…</option></select>
   <select id="f_outcome"><option value="">outcome…</option><option>success</option><option>failed</option></select>
+  <input id="profile" list="profiles" placeholder="profile (e.g. P1_CODING)" size="22" autocomplete="off">
+  <datalist id="profiles"></datalist>
   <select id="series_group"><option value="total">all traffic</option><option value="band">by band</option><option value="lane">by lane</option></select>
   <select id="win"><option value="24">24h</option><option value="72">72h</option><option value="168">7d</option></select>
 </header>
@@ -96,6 +98,11 @@ PAGE = r"""<!doctype html>
       <h2>gates <span class="dim">quota · health · circuit</span></h2>
       <div class="body" id="gates"><span class="skel">loading…</span></div>
       <div class="note" id="gates_note">—</div>
+    </section>
+    <section>
+      <h2>why this lane <span class="dim" id="chain_window"></span></h2>
+      <div class="body" id="chain"><span class="skel">loading…</span></div>
+      <div class="note" id="chain_note">—</div>
     </section>
     <section>
       <h2>board <span class="dim" id="board_window"></span></h2>
@@ -241,6 +248,28 @@ async function gates(){
   }catch(e){ $('#gates').innerHTML = '<span class="bad">gates unavailable</span>'; $('#gates_note').textContent = e.message; }
 }
 
+/* ---- why this lane (TR-154) ------------------------------------------- */
+async function chainPanel(){
+  const prof = ($('#profile') && $('#profile').value.trim()) || 'P1_CODING';
+  $('#chain_window').textContent = 'profile '+prof;
+  try{
+    const d = await j('/api/ui/chain?profile='+encodeURIComponent(prof));
+    if(d.error){ $('#chain').innerHTML = '<span class="bad">'+esc(d.error)+'</span>'; $('#chain_note').textContent=''; return; }
+    const sum = (d.exclusion_summary||[]).map(s => '<tr><td>'+esc(s.code)+'</td><td class="num">'+esc(s.lanes)+'</td></tr>').join('');
+    const head = (d.chain||[]).slice(0,12).map(c => '<tr><td class="dim">'+esc(c.hop)+'</td><td>'+lane((c.lane||'/').split('/')[0], (c.lane||'/').split('/').slice(1).join('/'))+'</td>'
+      + '<td class="dim">'+esc(c.price_basis)+'</td><td class="num dim">'+esc(c.context_limit||'—')+'</td></tr>').join('');
+    $('#chain').innerHTML = '<div class="dim">head: '+lane(((d.head||{}).provider||''), ((d.head||{}).model||''))+' · sort '+esc(d.sort)
+      + ' · '+esc(d.chain_length)+' eligible · '+esc(d.excluded_total)+' excluded</div>'
+      + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px">'
+      + '<table><thead><tr><th>exclusion code</th><th class="num">lanes</th></tr></thead><tbody>'+sum+'</tbody></table>'
+      + '<table><thead><tr><th>hop</th><th>lane</th><th>price basis</th><th class="num">ctx</th></tr></thead><tbody>'+head+'</tbody></table>'
+      + '</div>';
+    $('#chain_note').textContent = d.note + ' · gate ' + esc(d.gate||'—')
+      + (d.warnings && d.warnings.length ? ' · warnings: '+esc(d.warnings.join('; ')) : '')
+      + (d.degraded_fallback ? ' · DEGRADED FALLBACK in effect' : '');
+  }catch(e){ $('#chain').innerHTML = '<span class="bad">chain unavailable</span>'; $('#chain_note').textContent = e.message; }
+}
+
 /* ---- board ------------------------------------------------------------ */
 async function board(){
   const q = $('#q').value.trim();
@@ -365,9 +394,16 @@ $('#q').addEventListener('input', () => { clearTimeout(t); t = setTimeout(refres
 ['#f_provider','#f_band','#f_outcome'].forEach(s => $(s).addEventListener('change', refresh));
 $('#win').addEventListener('change', function(){ traffic(); series(); });
 if($('#series_group')) $('#series_group').addEventListener('change', series);
+if($('#profile')) $('#profile').addEventListener('change', chainPanel);
+if($('#profile')) $('#profile').addEventListener('keydown', function(e){ if(e.key === 'Enter') chainPanel(); });
 
 async function filters(){
   try{
+    try{
+      const pl = await j('/profiles');
+      const names = (pl.profiles || pl || []).map(x => x.id || x.profile || x).filter(Boolean);
+      $('#profiles').innerHTML = names.map(x => '<option value="'+esc(x)+'">').join('');
+    }catch(e){}
     const p = await j('/providers');
     const list = (p.providers || p || []).map(x => x.id || x.provider || x).filter(Boolean);
     $('#f_provider').insertAdjacentHTML('beforeend', list.map(x => '<option>'+esc(x)+'</option>').join(''));
@@ -381,7 +417,7 @@ async function filters(){
 }
 
 function refresh(){ ledger(); board(); }
-identity(); traffic(); series(); gates(); filters().then(refresh); refresh();
+identity(); traffic(); series(); chainPanel(); gates(); filters().then(refresh); refresh();
 setInterval(identity, 60000);
 </script>
 </body>
@@ -712,3 +748,70 @@ def flow(query, store_path, now_s=None, session_fetch=None):
             'note': f'{len(rows)} ledger row(s) for this session in the newest {scan_limit} of '
                     f'{scanned} store rows',
             'rows_scanned': scanned, 'ledger_rows': rows[-50:]}
+
+
+# ------------------------------------------------------------------- TR-154 chain
+
+def chain_view(query, resolved, price_map=None, detail_limit=60):
+    """TR-154: the eligible chain in effective-price order, and EVERY exclusion with its code.
+
+    The resolver already emits both halves; what this view adds is the answer to "why this lane and
+    not that one": the exclusions summarised BY CODE (so 265 rows become a handful of reasons), each
+    lane's price basis (list vs the plan-effective figure it is actually ordered on), and a hard
+    statement of how much of the exclusion list is being shown rather than silently truncating it.
+    """
+    def one(name, default=None):
+        v = (query or {}).get(name)
+        if isinstance(v, list):
+            v = v[0] if v else None
+        return v if v not in (None, '') else default
+
+    if price_map is None:
+        try:
+            import router_outcomes
+            price_map = router_outcomes._registry_prices()
+        except Exception:  # noqa: BLE001 - the join is an enrichment, never a dependency
+            price_map = {}
+
+    chain = []
+    for e in (resolved.get('chain') or []):
+        key = (e.get('provider'), e.get('model'))
+        pin, pout, norm, pub = price_map.get(key, (None, None, None, None))
+        if norm is None and pub is None:
+            basis = 'no declared price for this lane'
+        elif norm is not None and pub is not None and norm != pub:
+            basis = f'plan-effective {norm:g}/M (list {pub:g}/M)'
+        else:
+            basis = f'list {(pub if pub is not None else norm):g}/M'
+        chain.append({'hop': e.get('hop'), 'lane': f"{e.get('provider')}/{e.get('model')}",
+                      'usd_1m_offered': e.get('usd_1m'), 'normalized_price': norm,
+                      'public_price': pub, 'price_basis': basis,
+                      'context_limit': e.get('context_limit'), 'data_class': e.get('data_class')})
+
+    ex = resolved.get('exclusions') or []
+    by_code = {}
+    for e in ex:
+        for c in (e.get('codes') or ['uncoded']):
+            by_code[c] = by_code.get(c, 0) + 1
+    summary = [{'code': c, 'lanes': n} for c, n in sorted(by_code.items(), key=lambda kv: -kv[1])]
+    detail = [{'hop': e.get('hop'), 'lane': f"{e.get('provider')}/{e.get('model')}",
+               'codes': e.get('codes'), 'why': e.get('why')} for e in ex[:detail_limit]]
+    return {
+        'project': resolved.get('project'), 'profile': resolved.get('profile'),
+        'resolved_as': resolved.get('resolved_as'), 'sort': resolved.get('sort'),
+        'sort_stats': resolved.get('sort_stats'),
+        'gate': resolved.get('gate'), 'gate_reasons': resolved.get('gate_reasons'),
+        'gates_loaded': resolved.get('gates_loaded'), 'quota_gates': resolved.get('quota_gates'),
+        'head': resolved.get('head'), 'chain_length': len(resolved.get('chain') or []),
+        'chain': chain,
+        'excluded_total': len(ex), 'excluded_shown': len(detail),
+        'exclusions_truncated': len(ex) > len(detail),
+        'exclusion_summary': summary,
+        'exclusions': detail,
+        'lifecycle_counts': resolved.get('lifecycle_counts'),
+        'degraded_fallback': resolved.get('degraded_fallback'),
+        'fallback_used': resolved.get('fallback_used'),
+        'warnings': resolved.get('warnings'),
+        'note': (f"{len(chain)} lane(s) eligible, {len(ex)} excluded across {len(summary)} code(s)"
+                 + (f' - showing the first {len(detail)} exclusions' if len(ex) > len(detail) else '')),
+    }

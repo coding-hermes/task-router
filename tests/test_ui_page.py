@@ -160,3 +160,43 @@ def test_the_flow_uses_an_injected_session_fetcher(tmp_path):
     r = up.flow({'id': 's-9'}, str(p), session_fetch=lambda gsid: {'id': gsid, 'messages': 12})
     assert r['artefacts_read']['gateway_session'] is True
     assert r['session'] == {'id': 'gw-1', 'messages': 12}
+
+
+def test_the_chain_view_summarises_exclusions_by_code():
+    resolved = {
+        'project': 'p', 'profile': 'P1_CODING', 'sort': 'price', 'head': {'provider': 'x', 'model': 'y'},
+        'chain': [{'hop': 1, 'provider': 'xkiro', 'model': 'openai/gpt-6-luna', 'usd_1m': 0.116,
+                   'context_limit': 1000}],
+        'exclusions': [
+            {'hop': 2, 'provider': 'a', 'model': 'b', 'codes': ['model-down'], 'why': ['DOWN']},
+            {'hop': 3, 'provider': 'c', 'model': 'd', 'codes': ['quota-gated'], 'why': ['gated']},
+            {'hop': 4, 'provider': 'e', 'model': 'f', 'codes': ['quota-gated'], 'why': ['gated']},
+        ],
+    }
+    import router_ui_page as up
+    v = up.chain_view({}, resolved, price_map={('xkiro', 'openai/gpt-6-luna'): (0.1, 0.5, 0.003867, 0.116)})
+    assert v['chain_length'] == 1 and v['excluded_total'] == 3
+    assert v['exclusion_summary'][0] == {'code': 'quota-gated', 'lanes': 2}
+    assert {s['code'] for s in v['exclusion_summary']} == {'quota-gated', 'model-down'}
+    # the AC asks for each lane's PRICE BASIS: plan offset vs list
+    assert 'plan-effective 0.003867' in v['chain'][0]['price_basis']
+    assert 'list 0.116' in v['chain'][0]['price_basis']
+    assert '3 excluded' in v['note'] and '2 code(s)' in v['note']
+
+
+def test_the_chain_view_says_when_it_is_not_showing_every_exclusion():
+    resolved = {'chain': [], 'exclusions': [
+        {'hop': i, 'provider': 'p', 'model': 'm' + str(i), 'codes': ['x'], 'why': ['w']} for i in range(80)]}
+    import router_ui_page as up
+    v = up.chain_view({}, resolved, price_map={}, detail_limit=60)
+    assert v['excluded_total'] == 80 and v['excluded_shown'] == 60
+    assert v['exclusions_truncated'] is True
+    assert 'showing the first 60' in v['note']
+
+
+def test_a_lane_with_no_declared_price_says_so_rather_than_showing_zero():
+    resolved = {'chain': [{'hop': 1, 'provider': 'unknown-prov', 'model': 'm'}], 'exclusions': []}
+    import router_ui_page as up
+    v = up.chain_view({}, resolved, price_map={})
+    assert v['chain'][0]['normalized_price'] is None
+    assert v['chain'][0]['price_basis'] == 'no declared price for this lane'

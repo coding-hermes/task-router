@@ -103,6 +103,11 @@ def build_openapi():
         "/status": ("getStatus", "Server and registry status", []),
         "/proxy/stats": ("getProxyStats", "Rolling per-model and per-complexity-band averages over the proxy's own traffic (TR-144): samples, success rate, cost/task, steps, wall time, cache ratio + failure reason mix. `windows` = hours (csv), `grouping` = model|band|model_band", []),
         "/ui": ("getUi", "TR-150: the Data Command Center page, served by this service (one self-contained document, no CDN, read-only)", []),
+        "/api/ui/chain": ("getUiChain", "TR-154: the eligible chain in effective-price order with each lane's price basis, plus EVERY excluded lane grouped by machine-readable exclusion code. Answers 'why this lane and not that one'.", [
+            {"name": "project", "in": "query", "required": False, "schema": string, "description": "Project id (default coding-hermes-scheduler)"},
+            {"name": "profile", "in": "query", "required": False, "schema": string, "description": "Profile id, e.g. P1_CODING"},
+            {"name": "sort", "in": "query", "required": False, "schema": string, "description": "Ordering passthrough (default price)"},
+        ]),
         "/api/ui/flow": ("getUiFlow", "TR-153: the whole story of ONE request (session id): rating -> requirements -> chain considered -> hops attempted -> served lane -> cost + basis, reconciled with the gateway session when it is reachable. Names which of the three artefacts it could read.", [
             {"name": "id", "in": "query", "required": True, "schema": string, "description": "session_id (the router proxy's own, or the caller's)"},
             {"name": "scan_limit", "in": "query", "required": False, "schema": integer, "description": "Store rows to tail-scan (default 200000)"},
@@ -542,6 +547,29 @@ class RouterApplication:
                                  'stale': True, 'live_error': live.get('error')}
                 return 200, {'proxy': 'task-router', 'upstream': None, 'source': 'unavailable',
                              'error': live.get('error') or 'capabilities unavailable'}
+            if path == "/api/ui/chain":
+                # TR-154: why this lane and not that one - the chain in order + every exclusion.
+                project = query.get("project")
+                if isinstance(project, list):
+                    project = project[0] if project else None
+                project = project or "coding-hermes-scheduler"
+                argv = [project, "--format", "json"]
+                prof = query.get("profile")
+                if isinstance(prof, list):
+                    prof = prof[0] if prof else None
+                if prof:
+                    argv += ["--profile", prof]
+                for key, flag in (("sort", "--sort"), ("window_h", "--window-h")):
+                    value = query.get(key)
+                    if isinstance(value, list):
+                        value = value[0] if value else None
+                    if isinstance(value, str) and value.strip():
+                        argv += [flag, value.strip()]
+                try:
+                    resolved = _subprocess_json("router_spawn.py", argv, timeout=90)
+                except Exception as exc:  # noqa: BLE001 - a failed resolve is a reported error
+                    return 200, {"error": f"resolve failed: {exc}", "chain": [], "exclusions": []}
+                return 200, router_ui_page.chain_view(query, resolved)
             if path == "/api/ui/flow":
                 # TR-153: one request end to end — envelope + ledger row + gateway session.
                 return 200, router_ui_page.flow(query, router_outcomes.outcomes_path())
