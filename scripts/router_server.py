@@ -100,6 +100,18 @@ def build_openapi():
         ]),
         "/status": ("getStatus", "Server and registry status", []),
         "/proxy/stats": ("getProxyStats", "Rolling per-model and per-complexity-band averages over the proxy's own traffic (TR-144): samples, success rate, cost/task, steps, wall time, cache ratio + failure reason mix. `windows` = hours (csv), `grouping` = model|band|model_band", []),
+        "/api/ui/ledger": ("getUiLedger", "TR-151: search the outcome ledger (free text q + outcome/complexity_source/provider/model/band/since/until filters). Every response reports rows_scanned, scan_limit and truncation so a search can never look complete when it was cut short.", [
+            {"name": "q", "in": "query", "required": False, "schema": string, "description": "Free text over provider, model, session, label, failure reason, band"},
+            {"name": "provider", "in": "query", "required": False, "schema": string, "description": "Exact provider id"},
+            {"name": "model", "in": "query", "required": False, "schema": string, "description": "Exact model id"},
+            {"name": "band", "in": "query", "required": False, "schema": string, "description": "complexity_sig to match"},
+            {"name": "outcome", "in": "query", "required": False, "schema": string, "description": "success | failed | a route_outcome value"},
+            {"name": "since", "in": "query", "required": False, "schema": number, "description": "Epoch seconds lower bound (inclusive)"},
+            {"name": "until", "in": "query", "required": False, "schema": number, "description": "Epoch seconds upper bound (inclusive)"},
+            {"name": "limit", "in": "query", "required": False, "schema": integer, "description": "Page size (default 50, max 500)"},
+            {"name": "offset", "in": "query", "required": False, "schema": integer, "description": "Matches to skip"},
+            {"name": "scan_limit", "in": "query", "required": False, "schema": integer, "description": "Rows to read before stopping (default 200000); reported back as rows_scanned"},
+        ]),
         "/profiles": ("listProfiles", "List task profiles", []),
         "/providers": ("listProviders", "List providers", []),
         "/circuit/status": ("getCircuitStatus", "List circuit breaker state", []),
@@ -511,6 +523,9 @@ class RouterApplication:
                                  'stale': True, 'live_error': live.get('error')}
                 return 200, {'proxy': 'task-router', 'upstream': None, 'source': 'unavailable',
                              'error': live.get('error') or 'capabilities unavailable'}
+            if path == "/api/ui/ledger":
+                # TR-151: the raw-data search. Reports how much of the store it read.
+                return 200, ui_ledger(query)
             if path == "/health":
                 return 200, router_health.health(mode=self.mode)
             if path == "/model_status":
@@ -997,6 +1012,123 @@ def _hermes_session_key_error(session_key):
         return f'Session key too long (max {_HERMES_MAX_SESSION_HEADER_LEN} chars)'
     return None
 
+
+
+# ---------------------------------------------------------------- TR-151 UI API
+
+_UI_LEDGER_DEFAULT_LIMIT = 50
+_UI_LEDGER_MAX_LIMIT = 500
+#: Rows the search will read before it stops. Reported back, never hidden: a search that silently
+#: truncated is exactly how a browser looks complete when it is not.
+_UI_LEDGER_SCAN_LIMIT = 200000
+
+
+def _ui_one(query, name, default=None):
+    v = (query or {}).get(name)
+    if isinstance(v, list):
+        v = v[0] if v else None
+    return v if v not in (None, '') else default
+
+
+def _ui_int(query, name, default):
+    try:
+        return int(str(_ui_one(query, name, default)).strip())
+    except (TypeError, ValueError, AttributeError):
+        return default
+
+
+def _ui_float(query, name):
+    v = _ui_one(query, name)
+    if v is None:
+        return None
+    try:
+        return float(str(v).strip())
+    except (TypeError, ValueError):
+        return None
+
+
+def ui_ledger(query):
+    """TR-151: search the outcome ledger and say how much of it was actually read.
+
+    The ledger is the raw data every other stats surface summarises, so the browser over it must not
+    be able to imply completeness it does not have: every response carries `rows_scanned`,
+    `scan_limit`, `scan_truncated` and `total_matched`, and `truncated` is true whenever either the
+    scan window or the page cut the result short.
+    """
+    q = (_ui_one(query, 'q') or '').lower()
+    f_outcome = _ui_one(query, 'outcome')
+    f_source = _ui_one(query, 'complexity_source')
+    f_provider = _ui_one(query, 'provider')
+    f_model = _ui_one(query, 'model')
+    f_band = _ui_one(query, 'band')
+    since = _ui_float(query, 'since')
+    until = _ui_float(query, 'until')
+    limit = max(1, min(_ui_int(query, 'limit', _UI_LEDGER_DEFAULT_LIMIT), _UI_LEDGER_MAX_LIMIT))
+    offset = max(0, _ui_int(query, 'offset', 0))
+    scan_limit = max(1, _ui_int(query, 'scan_limit', _UI_LEDGER_SCAN_LIMIT))
+
+    path = router_outcomes.outcomes_path()
+    size = os.path.getsize(path) if os.path.exists(path) else None
+    scanned = 0
+    matched = 0
+    page = []
+    scan_truncated = False
+    try:
+        with open(path, encoding='utf-8', errors='replace') as fh:
+            for line in fh:
+                line = line.strip()
+                if not line:
+                    continue
+                if scanned >= scan_limit:
+                    scan_truncated = True
+                    break
+                scanned += 1
+                try:
+                    d = json.loads(line)
+                except ValueError:
+                    continue
+                if f_provider and d.get('provider') != f_provider:
+                    continue
+                if f_model and d.get('model') != f_model:
+                    continue
+                if f_source and d.get('complexity_source') != f_source:
+                    continue
+                if f_band and str(d.get('complexity_sig') or '') != f_band:
+                    continue
+                if f_outcome:
+                    ok = d.get('success')
+                    outcome = ('success' if ok is True else
+                               'failed' if ok is False else
+                               str(d.get('route_outcome') or 'unknown'))
+                    if f_outcome not in (outcome, str(d.get('route_outcome') or '')):
+                        continue
+                ts = d.get('ts')
+                if since is not None and not (isinstance(ts, (int, float)) and ts >= since):
+                    continue
+                if until is not None and not (isinstance(ts, (int, float)) and ts <= until):
+                    continue
+                if q:
+                    hay = ' '.join(str(d.get(k) or '') for k in (
+                        'provider', 'model', 'session_id', 'task_label', 'failure_reason',
+                        'served_by_hop', 'complexity_sig', 'source_system', 'price_basis')).lower()
+                    if q not in hay:
+                        continue
+                matched += 1
+                if offset <= matched - 1 < offset + limit:
+                    page.append(d)
+    except OSError as e:
+        return {'error': f'ledger unreadable: {e}', 'store': path,
+                'rows': [], 'total_matched': 0, 'rows_scanned': 0,
+                'truncated': False, 'scan_truncated': False}
+    return {'rows': page, 'returned': len(page), 'total_matched': matched,
+            'rows_scanned': scanned, 'scan_limit': scan_limit,
+            'scan_truncated': scan_truncated,
+            'offset': offset, 'limit': limit,
+            'truncated': scan_truncated or matched > offset + len(page),
+            'store': path, 'store_bytes': size,
+            'filters': {'q': q or None, 'outcome': f_outcome, 'complexity_source': f_source,
+                        'provider': f_provider, 'model': f_model, 'band': f_band,
+                        'since': since, 'until': until}}
 
 def _hermes_capabilities_metadata(base, _opener=None):
     """Read session metadata from the upstream's /v1/capabilities at startup.
