@@ -37,27 +37,38 @@ PAGE_CEILING = 500
 DEFAULT_LIMIT = 50
 
 
-def _iter_jsonl(path: Path, max_scan: int = MAX_SCAN):
-    """Yield (lineno, dict) for each complete JSON line.
+def _iter_jsonl(path: Path, max_scan: int | None = None, stats: dict | None = None):
+    """Yield (lineno, dict) for each complete JSON line, at most `max_scan` rows.
 
     A live append can leave a torn final line; that line is skipped and counted,
-    never allowed to raise. Returns the count via the generator's .sent value
-    pattern is overkill here — callers use scan_stats() when they need totals.
+    never allowed to raise. `max_scan=None` means the module MAX_SCAN, resolved at
+    call time. When `stats` is given it receives {"scan_truncated": bool} — True
+    only when non-empty rows were left UNREAD past the cap (a cap that lands
+    exactly on the last row truncated nothing and must not claim it did).
     """
     if not path.exists():
+        if stats is not None:
+            stats["scan_truncated"] = False
         return
+    cap = MAX_SCAN if max_scan is None else max(1, int(max_scan))
     with path.open("r", encoding="utf-8", errors="replace") as fh:
+        yielded = 0
         for i, line in enumerate(fh, 1):
-            if i > max_scan:
-                return
             line = line.strip()
             if not line:
                 continue
+            if yielded >= cap:
+                if stats is not None:
+                    stats["scan_truncated"] = True
+                return
+            yielded += 1
             try:
                 yield i, json.loads(line)
             except (json.JSONDecodeError, ValueError):
                 # torn tail or corrupt row: skip, the scan counter still reports it
                 yield i, None
+        if stats is not None:
+            stats["scan_truncated"] = False
 
 
 def _row_ts(d: dict) -> float:
@@ -102,7 +113,8 @@ def ledger_search(q=None, outcome=None, source=None, provider=None, model=None,
            "provider": provider, "model": model, "band": band}
 
     rows, scanned, malformed, matched = [], 0, 0, 0
-    for _, d in _iter_jsonl(path):
+    scan_stats = {"scan_truncated": False}
+    for _, d in _iter_jsonl(path, stats=scan_stats):
         scanned += 1
         if d is None:
             malformed += 1
@@ -143,6 +155,7 @@ def ledger_search(q=None, outcome=None, source=None, provider=None, model=None,
         "window": {"since": since, "until": until},
         "truncated": offset + len(page) < matched,
         "scan_limit": MAX_SCAN,
+        "scan_truncated": scan_stats["scan_truncated"],
         "note": (None if matched else "no rows matched this query in the scanned window"),
     }
 
@@ -171,6 +184,12 @@ def series(hours=24, bucket="hour", path: Path = LEDGER, now=None) -> dict:
         hours = max(1, min(int(hours), 24 * 30))
     except (TypeError, ValueError):
         hours = 24
+    if bucket not in ("hour", "day"):
+        # an unknown bucket would otherwise be silently re-bucketed as a day and
+        # echoed back under its wrong name — the registry-category rule (TR-192):
+        # refuse with what the endpoint knows, never guess
+        return {"error": f"unknown bucket {bucket!r} (this endpoint knows "
+                         f"hour and day)", "known_buckets": ["hour", "day"]}
     step = 3600 if bucket == "hour" else 86400
     now = float(now if now is not None else time.time())
     start = now - hours * 3600
@@ -201,6 +220,7 @@ def series(hours=24, bucket="hour", path: Path = LEDGER, now=None) -> dict:
         }
         entry.update(_cost_stats(rs))
         entry["samples"] = len(rs)
+        entry["priced_samples"] = entry["cost_samples"]
         out.append(entry)
 
     return {
@@ -262,6 +282,15 @@ def flow(key, path: Path = LEDGER) -> dict:
     steps = row.get("steps")
     if steps is None:
         steps = len(ladder)
+    # TR-192: name which of the three chain-of-custody artefacts this answer could
+    # actually read — a drill-down that silently shows two of three is how a debug
+    # session goes wrong. Same vocabulary as the server-side flow (TR-153).
+    hermes = hermes_session(row.get("gateway_session_id"))
+    envelope = any(row.get(k) is not None for k in (
+        "complexity_source", "profile_id", "complexity_sig", "band",
+        "required_categories", "complexity_problems"))
+    artefacts = {"envelope": envelope, "ledger_row": True,
+                 "gateway_session": hermes.get("found") is True}
     outcome = {
         "id": key,
         "session_id": row.get("session_id"),
@@ -293,7 +322,9 @@ def flow(key, path: Path = LEDGER) -> dict:
         # TR-153/TR-145: the third artefact of the chain of custody, resolved for the
         # person looking at the screen. A UI that cannot say whether Hermes has a record
         # of the request cannot be used to debug one.
-        "hermes_session": hermes_session(row.get("gateway_session_id")),
+        "hermes_session": hermes,
+        "artefacts_available": sorted(k for k, v in artefacts.items() if v),
+        "artefacts_missing": sorted(k for k, v in artefacts.items() if not v),
         "raw": row,
     }
     return outcome
@@ -305,13 +336,14 @@ def _iso(ts: float) -> str | None:
     return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(ts))
 
 
-def hermes_session(gateway_session_id: str, db: Path = STATE_DB) -> dict:
+def hermes_session(gateway_session_id: str, db: Path | None = None) -> dict:
     """Does the gateway session the router recorded actually exist in Hermes?
 
     This is the third artefact of the chain of custody (TR-145). A missing row is
     reported as missing — the UI must never imply a request ran when Hermes has no
-    record of it.
+    record of it. `db=None` means the module STATE_DB, resolved at call time.
     """
+    db = db or STATE_DB
     if not gateway_session_id:
         return {"found": None, "reason": "no gateway session id recorded on this request"}
     if not db.exists():
@@ -362,11 +394,19 @@ def board(search=None, status=None, priority=None, owner=None, limit=100, offset
     return {
         "rows": sel[offset:offset + limit],
         "total_matched": len(sel),
+        "returned": len(sel[offset:offset + limit]),
+        "offset": offset,
+        "limit": limit,
         "board_rows": len(rows),
         "duplicate_ids": duplicates,
         "by_status": by_status,
         "rows_scanned": scanned,
         "rows_malformed": malformed,
         "source": str(path),
+        "truncated": len(sel) > offset + limit,
+        # TR-192: the board carries no owner field (measured), so `owner` cannot be a
+        # real filter. Name what is real and what is absent rather than implying both.
+        "filters_available": ["id (prefix)", "status", "priority", "search (q)"],
+        "filters_absent": ["owner (the board carries no owner field)"],
         "note": "board id census included: a duplicate id means two rows claim the same work",
     }
