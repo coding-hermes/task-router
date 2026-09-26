@@ -2203,7 +2203,12 @@ def _chain_evidence(resolved, chain):
     """
     def _hops(items, cap):
         out = []
-        for h in (items or [])[:cap]:
+        # TR-184: this is the row's fail-open boundary, so it must survive ANY payload shape.
+        # `(items or [])[:cap]` raised TypeError on an int payload - a malformed resolver response
+        # could take down the ledger row it was only supposed to be described by.
+        if not isinstance(items, (list, tuple)):
+            return []
+        for h in items[:cap]:
             if not isinstance(h, dict):
                 continue
             out.append({k: h.get(k) for k in
@@ -2212,12 +2217,16 @@ def _chain_evidence(resolved, chain):
         return out
     chain = chain or []
     excl = (resolved or {}).get('exclusions') or []
+    # TR-184: `_hops` is the fail-open filter (non-objects are dropped, not iterated as garbage -
+    # a malformed resolver output must not raise inside a ledger row). The same filtered list
+    # backs both the exclusions field and TR-158's skip detail, so the two can never disagree.
+    _skips = _hops(excl, _PROXY_EXCLUSION_ROW_CAP)
     return {
         'chain': _hops(chain, _PROXY_CHAIN_ROW_CAP),
         'chain_length': len(chain),
         'chain_truncated': len(chain) > _PROXY_CHAIN_ROW_CAP,
-        'exclusions': _hops(excl, _PROXY_EXCLUSION_ROW_CAP),
-        'exclusions_truncated': len(excl) > _PROXY_EXCLUSION_ROW_CAP,
+        'exclusions': _skips,
+        'exclusions_truncated': len(_skips) > _PROXY_EXCLUSION_ROW_CAP,
         # TR-158: the row records WHICH CHAIN POSITIONS WERE SKIPPED, and the gate that skipped each.
         # It used to read `resolved['skipped_hops']`, a key the resolver has never emitted (its payload
         # carries chain/exclusions/gate/gate_reasons and no skipped_hops), so the field was always
@@ -2225,11 +2234,16 @@ def _chain_evidence(resolved, chain):
         # contradiction. The skip evidence exists: every entry in `exclusions` carries the hop position
         # it occupies in the registry's enumeration plus the machine-readable gate code. A run with no
         # skips records an EMPTY LIST, never null-with-no-reason.
-        'skipped_hops': [
+        # TR-184: `skipped_hops` stays the COUNT the ledger's shape has always been (a consumer
+        # reading 0 breaks on a list), and TR-158's which-positions detail rides alongside it under
+        # its own key. Additive, never a replacement - and every entry is a real object, because a
+        # malformed exclusions payload must not raise here.
+        'skipped_hops': len(_skips),
+        'skipped_hops_detail': [
             {'hop': e.get('hop'), 'provider': e.get('provider'), 'model': e.get('model'),
              'codes': e.get('codes'), 'why': (e.get('why') or [])[:2]}
-            for e in excl[:_PROXY_EXCLUSION_ROW_CAP]],
-        'skipped_hops_truncated': len(excl) > _PROXY_EXCLUSION_ROW_CAP,
+            for e in _skips],
+        'skipped_hops_truncated': len(_skips) > _PROXY_EXCLUSION_ROW_CAP,
         'first_attempt_hop': (resolved or {}).get('first_attempt_hop'),
         'gate': (resolved or {}).get('gate'),
     }

@@ -293,14 +293,29 @@ def test_the_row_records_skipped_positions_with_their_gate_codes():
         ],
     }
     ce = rs._chain_evidence(resolved, resolved['chain'])
-    assert isinstance(ce['skipped_hops'], list) and len(ce['skipped_hops']) == 2
-    assert ce['skipped_hops'][0]['hop'] == 1 and ce['skipped_hops'][0]['codes'] == ['model-down']
+    # TR-184: the COUNT keeps the contract it always had, the DETAIL is additive alongside it.
+    assert ce['skipped_hops'] == 2, 'the count must stay a count - consumers read 0, not []'
+    detail = ce['skipped_hops_detail']
+    assert isinstance(detail, list) and len(detail) == 2
+    assert detail[0]['hop'] == 1 and detail[0]['codes'] == ['model-down']
+    assert detail[1]['codes'] == ['health-down', 'model-down']
+    # and a malformed exclusions payload must not raise: fail-open stays sacred (TR-184).
+    # The invariant is "no raise, and only objects survive" - NOT "everything is discarded":
+    # a dict in a mixed list is real evidence and must be kept.
+    for bad, keep in (('garbage', 0), (None, 0), (7, 0), ([{'hop': 1}, 'not-a-dict'], 1)):
+        ce2 = rs._chain_evidence({'chain': [], 'exclusions': bad}, [])
+        assert isinstance(ce2['exclusions'], list), bad
+        assert all(isinstance(e, dict) for e in ce2['exclusions']), bad
+        assert len(ce2['exclusions']) == keep, bad
+        assert ce2['skipped_hops'] == keep, bad
+        assert len(ce2['skipped_hops_detail']) == keep, bad
 
 
 def test_a_run_with_no_skips_records_an_empty_list_not_null():
     import router_server as rs
     ce = rs._chain_evidence({'chain': [], 'exclusions': []}, [])
-    assert ce['skipped_hops'] == [], 'AC: no skips is an EMPTY LIST, never null-with-no-reason'
+    assert ce['skipped_hops'] == 0 and ce['skipped_hops_detail'] == [], \
+        'AC: no skips is an EMPTY LIST, never null-with-no-reason'
 
 
 def test_the_flow_explains_a_served_position_beyond_the_attempt_count(tmp_path):
