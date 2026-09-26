@@ -1629,6 +1629,37 @@ def _normalize_developer_role(body, headers):
     return {**body, 'messages': out}, n
 
 
+_CATS_CACHE: list = []
+_CATS_CACHE_AT = 0.0
+
+
+def _registry_categories(registry_path=None):
+    """The registry's category list — data-driven: whatever the profiles declare.
+
+    Used to build a FLOOR requirement set when the classifier reports that a prompt
+    presses no category (TR-161). Returns [] when the registry cannot be read, so the
+    caller can fall back to the previous behaviour instead of inventing a scale.
+    """
+    global _CATS_CACHE_AT, _CATS_CACHE
+    ttl = 300.0
+    if registry_path is None and _CATS_CACHE and (time.time() - _CATS_CACHE_AT) < ttl:
+        return list(_CATS_CACHE)
+    path = Path(registry_path or os.environ.get("ROUTING_REGISTRY", REPO / "registry.json"))
+    try:
+        # 2.8 MB of generated registry: parse once per TTL, never per request.
+        tables = (json.loads(path.read_text()) or {}).get("tables", {})
+    except (ValueError, OSError):
+        return []
+    cats = []
+    for r in tables.get("task_profile_requirements") or []:
+        c = r.get("category")
+        if c and c not in cats:
+            cats.append(c)
+    if registry_path is None:
+        _CATS_CACHE_AT, _CATS_CACHE = time.time(), list(cats)
+    return cats
+
+
 def _proxy_requirements(body, headers, path):
     """Decide the complexity for this request. Returns (source, payload) where
     source ∈ declared | classifier | default, payload carries the matrix,
@@ -1931,12 +1962,34 @@ def proxy_chat(path, body, headers, max_hops=None, upstream=None):
         except Exception:  # noqa: BLE001 — advisory evidence, never fatal
             requirements['levels'] = None
     if source == 'classifier' and not (requirements.get('matrix') or {}):
-        # empty matrix = the task pressures no category. The router needs a
-        # profile to build a chain, so use the default one — VISIBLY.
-        source = 'classifier-empty'
-        requirements = {**requirements, 'profile_id': 'P0_FORE',
-                        'problems': (requirements.get('problems') or []) +
-                                    ['empty matrix -> default profile P0_FORE']}
+        # An empty matrix is a SUCCESSFUL rating that says "this prompt presses no
+        # category": any lane can serve it, so the chain must be built from a FLOOR
+        # requirement set (every category at the scale minimum). That yields the full
+        # eligible pool sorted by effective price, which puts the cheapest capable lane
+        # first. Probed: P0_FORE -> 16 lanes, head $0.108/M; a lenient requirement -> 166
+        # lanes, head $0.000/M (a free lane).
+        #
+        # This branch used to substitute P0_FORE, the PRICIEST profile, so "needs
+        # nothing" was billed as "needs the best": on live rows, degraded calls averaged
+        # $0.0654 against $0.0278 for rated calls, on a median of 10 output tokens.
+        # The fall-back for a genuine rating FAILURE is a separate question (TR-139) and
+        # is deliberately untouched below.
+        cats = _registry_categories()
+        if cats:
+            source = 'classifier-empty'
+            requirements = {**requirements, 'profile_id': None,
+                            'matrix': {c: -5 for c in cats},
+                            'problems': (requirements.get('problems') or []) +
+                                        ['empty matrix -> no category pressurised: floor '
+                                         'requirements, cheapest eligible lane']}
+        else:
+            # No category list available: keep the old, visible fall-back rather than
+            # guess a scale.
+            source = 'classifier-empty'
+            requirements = {**requirements, 'profile_id': 'P0_FORE',
+                            'problems': (requirements.get('problems') or []) +
+                                        ['empty matrix -> default profile P0_FORE '
+                                         '(registry categories unreadable)']}
     resolved = _proxy_chain(requirements, sort_spec=headers.get('x-router-sort'),
                             window_h=headers.get('x-router-window-h'))
     chain = resolved.get('chain') or []
