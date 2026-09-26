@@ -28,6 +28,16 @@ SPAWN = REPO / "scripts" / "router_spawn.py"
 
 EDIT_KEY_ENV = "ROUTER_EDIT_API_KEY"
 
+# TR-150: the data layer (ledger search / series / flow / board). Imported
+# fail-open on purpose — the existing preview + settings panes must keep working
+# even if the data module is missing or broken on a given box.
+try:
+    import router_ui_data as ui_data  # noqa: E402
+    UI_DATA_ERROR = None
+except Exception as _exc:  # noqa: BLE001
+    ui_data = None
+    UI_DATA_ERROR = str(_exc)[:200]
+
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 9093
 
@@ -201,8 +211,17 @@ class RouterWebHandler(BaseHTTPRequestHandler):
 
     # ---- helpers ---------------------------------------------------------- #
     def _send(self, code, payload, ctype="application/json"):
-        body = payload if isinstance(payload, (bytes, bytearray)) else \
-            json.dumps(payload).encode()
+        # TR-150: a str payload is the HTML page — serve it verbatim. It used to fall
+        # through json.dumps(), which wrapped the whole document in quotes and escaped
+        # every newline, so the browser received one JSON string: the markup half-rendered
+        # and the <script> body was unparseable. The UI was therefore never usable in a
+        # browser even though every endpoint behind it answered correctly.
+        if isinstance(payload, (bytes, bytearray)):
+            body = payload
+        elif isinstance(payload, str):
+            body = payload.encode("utf-8")
+        else:
+            body = json.dumps(payload).encode()
         self.send_response(code)
         self.send_header("Content-Type", ctype)
         self.send_header("Content-Length", str(len(body)))
@@ -257,6 +276,9 @@ class RouterWebHandler(BaseHTTPRequestHandler):
                 tin, tout = 1_000_000, 1_000_000
             self._send(200, resolve_preview(self.store, profile, project, tin, tout))
             return
+        if path.startswith("/api/ui/"):
+            self._ui_data(path, q)
+            return
         if path == "/api/settings/providers":
             self._send(200, {"rows": self.store.settings_providers()})
             return
@@ -265,6 +287,42 @@ class RouterWebHandler(BaseHTTPRequestHandler):
             return
         if path == "/api/settings/discounts":
             self._send(200, {"rows": self.store.settings_discounts()})
+            return
+        self._send(404, {"error": "not found"})
+
+    def _ui_data(self, path, q):
+        """TR-151..TR-156 read endpoints. Never raises into the socket."""
+        if ui_data is None:
+            self._send(503, {"error": "data layer unavailable", "reason": UI_DATA_ERROR})
+            return
+
+        def one(name, default=None):
+            return (q.get(name) or [default])[0]
+
+        try:
+            if path == "/api/ui/ledger":
+                self._send(200, ui_data.ledger_search(
+                    q=one("q"), outcome=one("outcome"), source=one("source"),
+                    provider=one("provider"), model=one("model"), band=one("band"),
+                    since=one("since"), until=one("until"), sort=one("sort", "ts"),
+                    desc=(one("desc", "1") not in ("0", "false", "no")),
+                    limit=one("limit", 50), offset=one("offset", 0)))
+                return
+            if path == "/api/ui/series":
+                self._send(200, ui_data.series(hours=one("hours", 24), bucket=one("bucket", "hour")))
+                return
+            if path == "/api/ui/flow":
+                res = ui_data.flow(one("id"))
+                code = int(res.pop("status", 200)) if isinstance(res.get("status"), int) else 200
+                self._send(code, res)
+                return
+            if path == "/api/ui/board":
+                self._send(200, ui_data.board(
+                    search=one("q"), status=one("status"), priority=one("priority"),
+                    owner=one("owner"), limit=one("limit", 100), offset=one("offset", 0)))
+                return
+        except Exception as exc:  # noqa: BLE001 — a bad query must not kill the UI
+            self._send(500, {"error": "data query failed", "reason": str(exc)[:200]})
             return
         self._send(404, {"error": "not found"})
 
@@ -400,7 +458,7 @@ def main(argv=None):
 # --------------------------------------------------------------------------- #
 # Inline single-page dark UI
 # --------------------------------------------------------------------------- #
-PAGE_HTML = """<!doctype html>
+PAGE_HTML = r"""<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -536,6 +594,58 @@ PAGE_HTML = """<!doctype html>
   </div>
 </div>
 
+
+<!-- TR-150: DATA — the command center. Same page, same edit gate, no second UI. -->
+<div class="pane" style="margin-top:14px">
+  <h2>Data — ledger search <span id="dHonest" class="mini"></span></h2>
+  <div class="row">
+    <input id="dq" placeholder="free text: session id, model, provider, failure reason…">
+    <input id="dOutcome" placeholder="outcome (served)">
+    <input id="dSource" placeholder="rating source (classifier)">
+    <input id="dProvider" placeholder="provider">
+    <input id="dLimit" type="number" value="25" style="max-width:90px">
+    <button id="dGo">search</button>
+  </div>
+  <div class="mini" id="dMeta">—</div>
+  <table id="dTable"><thead><tr>
+    <th>when</th><th>session</th><th>rating</th><th>lane</th><th>outcome</th>
+    <th>hops</th><th>in</th><th>out</th><th>cost</th><th>wall</th>
+  </tr></thead><tbody></tbody></table>
+  <div class="row"><button id="dPrev">prev</button><button id="dNext">next</button>
+    <span class="mini">click a row to trace that request end to end</span></div>
+</div>
+
+<div class="pane" style="margin-top:14px">
+  <h2>Data — traffic &amp; cost</h2>
+  <div class="row">
+    <div><label>window (hours)</label><input id="tHours" type="number" value="168"></div>
+    <div><label>bucket</label><select id="tBucket">
+      <option value="hour">hour</option><option value="day">day</option></select></div>
+    <button id="tGo">chart</button>
+  </div>
+  <div class="mini" id="tMeta">—</div>
+  <div id="tChart" style="margin-top:8px"></div>
+</div>
+
+<div class="pane" style="margin-top:14px">
+  <h2>Data — request flow <span class="mini">(why this lane, what else was tried)</span></h2>
+  <div class="json" id="fOut">pick a row above, or paste an id:</div>
+  <div class="row"><input id="fId" placeholder="router-proxy-… or a gateway session id">
+    <button id="fGo">trace</button></div>
+</div>
+
+<div class="pane" style="margin-top:14px">
+  <h2>Data — board <span class="mini" id="bHonest"></span></h2>
+  <div class="row">
+    <input id="bq" placeholder="search tasks: id, title, commit…">
+    <input id="bStatus" placeholder="status (pending)">
+    <button id="bGo">search</button>
+  </div>
+  <table id="bTable"><thead><tr>
+    <th>id</th><th>title</th><th>status</th><th>pri</th><th>created</th><th>commit</th>
+  </tr></thead><tbody></tbody></table>
+</div>
+
 <script>
 const K = localStorage.getItem('rw_key') || '';
 document.getElementById('apikey').value = K;
@@ -551,6 +661,127 @@ async function api(path,opts){
   return {r,j};
 }
 function jget(p){return api(p);}
+
+// ---- TR-150 DATA pane -------------------------------------------------------
+let dOffset = 0, dLast = 0;
+const esc = s => String(s==null?'':s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const when = ts => ts ? new Date(ts*1000).toISOString().replace('T',' ').slice(0,19) : '';
+
+async function dataSearch(reset){
+  if(reset) dOffset = 0;
+  const q = new URLSearchParams({
+    limit: document.getElementById('dLimit').value || 25,
+    offset: dOffset,
+    q: document.getElementById('dq').value,
+    outcome: document.getElementById('dOutcome').value,
+    source: document.getElementById('dSource').value,
+    provider: document.getElementById('dProvider').value,
+  });
+  const {r,j} = await jget('/api/ui/ledger?'+q.toString());
+  if(!j){ note('ledger query failed','err'); return; }
+  dLast = j.total_matched || 0;
+  const tb = document.querySelector('#dTable tbody'); tb.innerHTML='';
+  (j.rows||[]).forEach(row=>{
+    const tr = document.createElement('tr');
+    const cost = (row.cost_usd==null) ? '<span class="excl">unpriced</span>' : row.cost_usd;
+    tr.innerHTML = `<td>${esc(when(row.ts))}</td><td>${esc(row.session_id||'')}</td>`
+      +`<td>${esc(row.complexity_source||'')}</td>`
+      +`<td>${esc((row.provider||'')+'/'+(row.model||''))}</td>`
+      +`<td>${esc(row.route_outcome||'')}</td><td>${esc(row.steps==null?(row.hops_attempted||''):row.steps)}</td>`
+      +`<td>${esc(row.tokens_in||0)}</td><td>${esc(row.tokens_out||0)}</td>`
+      +`<td>${cost}</td><td>${esc(row.wall_time_s||'')}</td>`;
+    tr.style.cursor='pointer';
+    tr.onclick = ()=>{ document.getElementById('fId').value = row.session_id||''; showFlow(row.session_id); };
+    tb.appendChild(tr);
+  });
+  // the honesty line: a search must never look complete when it was truncated
+  document.getElementById('dMeta').textContent =
+    `${dLast} matched · showing ${dOffset+1}-${dOffset+(j.returned||0)}`
+    +` · scanned ${j.rows_scanned} rows`
+    +(j.rows_malformed?` · ${j.rows_malformed} torn line(s) skipped`:'')
+    +(j.truncated?' · MORE RESULTS EXIST':' · end of results')
+    +(j.source_exists?'':' · SOURCE FILE MISSING');
+}
+
+async function dataTraffic(){
+  const q = new URLSearchParams({hours:document.getElementById('tHours').value||168,
+                                bucket:document.getElementById('tBucket').value||'hour'});
+  const {j} = await jget('/api/ui/series?'+q.toString());
+  if(!j){ note('series query failed','err'); return; }
+  const s = j.series||[];
+  const max = Math.max(1, ...s.map(b=>b.requests));
+  const bars = s.map(b=>{
+    const h = Math.round(b.requests/max*90);
+    const frac = b.success_rate==null?0:b.success_rate;
+    const col = frac>=0.99 ? 'var(--ok)' : (frac>=0.8 ? 'var(--warn)' : 'var(--bad)');
+    return `<div title="${b.iso} · ${b.requests} req · ${b.unique_lanes} lanes · ok ${frac}"
+      style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100px">
+      <div style="width:100%;background:${col};height:${h}px;border-radius:2px 2px 0 0"></div>
+      <div class="mini" style="font-size:9px">${esc(b.iso.slice(11,16))}</div></div>`;
+  }).join('');
+  document.getElementById('tChart').innerHTML =
+    `<div style="display:flex;gap:2px;align-items:flex-end;height:112px">${bars}</div>`;
+  document.getElementById('tMeta').textContent =
+    `${j.requests_total} proxied requests · ${j.unique_lanes_total} distinct lanes`
+    +(j.note?` · ${j.note}`:'');
+}
+
+async function dataBoard(){
+  const q = new URLSearchParams({limit:200, q:document.getElementById('bq').value,
+                                 status:document.getElementById('bStatus').value});
+  const {j} = await jget('/api/ui/board?'+q.toString());
+  if(!j){ note('board query failed','err'); return; }
+  const tb = document.querySelector('#bTable tbody'); tb.innerHTML='';
+  (j.rows||[]).forEach(row=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${esc(row.id)}</td><td>${esc(row.title)}</td>`
+      +`<td>${esc(row.status)}</td><td>${esc(row.priority||'')}</td>`
+      +`<td>${esc(row.created_at||'')}</td><td>${esc(row.commit_hash||'')}</td>`;
+    tb.appendChild(tr);
+  });
+  const dups = Object.keys(j.duplicate_ids||{});
+  document.getElementById('bHonest').textContent =
+    `${j.board_rows} rows · ${j.total_matched} match`
+    +(dups.length?` · DUPLICATE IDS: ${dups.join(',')}`:' · no duplicate ids');
+}
+
+async function showFlow(id){
+  if(!id) return;
+  const {r,j} = await jget('/api/ui/flow?id='+encodeURIComponent(id));
+  const el = document.getElementById('fOut');
+  if(!j){ el.textContent = 'query failed'; return; }
+  if(r.status===404){ el.textContent = 'not found: searched for '+j.searched_for
+    +` across ${j.rows_scanned} ledger rows`; return; }
+  const hop = (j.ladder||[]).map((h,i)=>
+    `  ${i+1}. ${h.provider||'?'}/${h.model||'?'}  status=${h.status} outcome=${h.outcome||''}`
+    +` latency=${h.latency_s!=null?h.latency_s+'s':''} cost=${h.cost_usd!=null?h.cost_usd:''}`
+    +(h.strategy?` strategy=${h.strategy}`:'')).join(String.fromCharCode(10));
+  const cust = j.hermes_session||{};
+  el.textContent =
+`id            ${j.id}
+when          ${j.when}
+outcome       ${j.route_outcome}${j.failure_reason?' / '+j.failure_reason:''}${j.degrade_reason?' (degraded: '+j.degrade_reason+')':''}
+rating        ${(j.rating||{}).source}  profile=${(j.rating||{}).profile_id||'-'}  band=${(j.rating||{}).band||'-'}
+levels        ${JSON.stringify((j.rating||{}).required_categories||{})}
+served by     ${(j.served_by||{}).provider}/${(j.served_by||{}).model}
+chain         steps=${(j.chain||{}).steps} hops tried=${(j.chain||{}).hops_attempted} max=${(j.chain||{}).max_hops} served_hop=${(j.chain||{}).served_by_hop}
+tokens        in=${(j.tokens||{}).in} out=${(j.tokens||{}).out} cache_read=${(j.tokens||{}).cache_read} reasoning=${(j.tokens||{}).reasoning}
+cost          ${(j.cost||{}).usd==null?('unpriced ('+(j.cost||{}).reason+')'):(j.cost||{}).usd}  basis=${(j.cost||{}).basis||'-'}
+wall          ${j.wall_time_s}s
+hermes record ${cust.found===true?'FOUND ('+cust.source+', '+cust.model+')':(cust.found===false?'MISSING in state.db':'n/a — '+cust.reason)}
+hops
+${hop||'  (no per-hop detail in this row)'}`;
+}
+
+document.getElementById('dGo').onclick = ()=>dataSearch(true);
+document.getElementById('dNext').onclick = ()=>{ if(dOffset+(document.getElementById('dLimit').value|0) < dLast)
+  { dOffset += (document.getElementById('dLimit').value|0); dataSearch(false); } };
+document.getElementById('dPrev').onclick = ()=>{ dOffset = Math.max(0, dOffset-(document.getElementById('dLimit').value|0)); dataSearch(false); };
+document.getElementById('tGo').onclick = ()=>dataTraffic();
+document.getElementById('bGo').onclick = ()=>dataBoard();
+document.getElementById('fGo').onclick = ()=>showFlow(document.getElementById('fId').value.trim());
+window.addEventListener('load', ()=>{ dataSearch(true); dataTraffic(); dataBoard(); });
+
 
 async function loadMeta(){
   const {r,j}=await jget('/api/status');

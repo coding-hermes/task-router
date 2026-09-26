@@ -1,0 +1,20 @@
+[Unit]
+Description=Task Router web UI (TR-017 data command center, 127.0.0.1:9093)
+Documentation=file:///home/kara/task-router/docs/proxy-readiness-report-2026-09-26.html
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/kara/task-router
+Environment=PYTHONUNBUFFERED=1
+# read-only by default: writes require --mode edit AND the edit key. Flipping mode
+# is a deliberate operator action, never a side effect of a restart.
+Environment=MODE=read-only
+ExecStart=/home/kara/.hermes/venvs/board/bin/python3 /home/kara/.hermes/scripts/router_web.py --host 127.0.0.1 --port 9093 --mode ${MODE}
+Restart=always
+RestartSec=3
+StandardOutput=append:/home/kara/.hermes/logs/task-router-web.log
+StandardError=append:/home/kara/.hermes/logs/task-router-web.log
+
+[Install]
+WantedBy=default.target
