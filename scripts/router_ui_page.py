@@ -76,6 +76,8 @@ PAGE = r"""<!doctype html>
   <select id="f_provider"><option value="">provider…</option></select>
   <select id="f_band"><option value="">band…</option></select>
   <select id="f_outcome"><option value="">outcome…</option><option>success</option><option>failed</option></select>
+  <input id="reg_q" placeholder="registry lane…" size="18" autocomplete="off">
+  <select id="reg_cat"><option value="">any category</option></select>
   <input id="profile" list="profiles" placeholder="profile (e.g. P1_CODING)" size="22" autocomplete="off">
   <datalist id="profiles"></datalist>
   <select id="b_status"><option value="">any status</option><option>pending</option><option>complete</option><option>failed</option><option>done</option></select>
@@ -119,6 +121,11 @@ PAGE = r"""<!doctype html>
       <h2>ledger <span class="dim" id="ledger_window"></span></h2>
       <div class="body tall" id="ledger"><span class="skel">loading…</span></div>
       <div class="note" id="ledger_note">—</div>
+    </section>
+    <section>
+      <h2>registry <span class="dim" id="reg_window"></span></h2>
+      <div class="body" id="reg"><span class="skel">loading…</span></div>
+      <div class="note" id="reg_note">—</div>
     </section>
     <section>
       <h2>request flow <span class="dim">rating → requirements → chain → hops → served lane → cost</span></h2>
@@ -400,6 +407,41 @@ async function flow(r){
   }catch(e){ $('#flow_note').textContent = 'drill-down unavailable: ' + e.message; }
 }
 
+/* ---- registry reference (TR-155, read half) ---------------------------- */
+async function registryPanel(){
+  const q = ($('#reg_q') && $('#reg_q').value.trim()) || '';
+  const cat = ($('#reg_cat') && $('#reg_cat').value) || '';
+  const p = new URLSearchParams({limit:'30'});
+  if(q) p.set('q', q);
+  if(cat) p.set('category', cat);
+  $('#reg_window').textContent = 'read-only reference';
+  try{
+    const d = await j('/api/ui/registry?'+p.toString());
+    if(d.error){ $('#reg').innerHTML = '<span class="bad">'+esc(d.error)+'</span>'; $('#reg_note').textContent=''; return; }
+    if($('#reg_cat') && !$('#reg_cat').dataset.filled && (d.known_categories||[]).length){
+      $('#reg_cat').insertAdjacentHTML('beforeend', d.known_categories.map(c => '<option>'+esc(c)+'</option>').join(''));
+      $('#reg_cat').dataset.filled = '1';
+    }
+    const list = d.lanes || [];
+    $('#reg').innerHTML = list.length
+      ? '<table><thead><tr><th>lane</th><th class="num">tier</th><th class="num">ctx</th><th class="num">list $/M</th>'
+        + '<th class="num">plan $/M</th><th>lifecycle</th><th>levels</th></tr></thead><tbody>'
+        + list.map(r => {
+            const lv = (r.levels||[]).slice(0,4).map(x => esc(String(x.category).slice(0,10))+'<span class="dim">:'+esc(x.tier)+'</span>').join(' ') || '<span class="dim">none</span>';
+            const life = [r.valid_from ? 'from '+esc(r.valid_from) : '', r.valid_to ? '<span class="warn">to '+esc(r.valid_to)+'</span>' : ''].filter(Boolean).join(' ') || '<span class="dim">undated</span>';
+            const pub = (r.public_price===null||r.public_price===undefined) ? '<span class="dim">unpriced</span>' : num(r.public_price, 4);
+            const norm = (r.normalized_price===null||r.normalized_price===undefined) ? '<span class="dim">—</span>' : num(r.normalized_price, 6);
+            return '<tr title="'+esc(r.price_evidence||'')+'"><td>'+lane(r.provider, r.model)+'</td>'
+              + '<td class="num">'+esc(r.plan_tier===null?'—':r.plan_tier)+'</td>'
+              + '<td class="num dim">'+esc(r.context_limit||'—')+'</td>'
+              + '<td class="num">'+pub+'</td><td class="num">'+norm+'</td><td class="dim">'+life+'</td><td>'+lv+'</td></tr>';
+          }).join('') + '</tbody></table>'
+      : '<span class="dim">no lane matched</span>';
+    $('#reg_note').textContent = d.note + ' · levels from ' + (list[0] ? list[0].level_source_file : 'model_tier.jsonl')
+      + ' · READ-ONLY: an edit needs the edit key and this server runs read-only, so every write is refused 403 before it is read';
+  }catch(e){ $('#reg').innerHTML = '<span class="bad">registry unavailable</span>'; $('#reg_note').textContent = e.message; }
+}
+
 /* ---- keyboard -------------------------------------------------------- */
 document.addEventListener('keydown', (e) => {
   if(e.key === '/' && document.activeElement !== $('#q')){ e.preventDefault(); $('#q').focus(); return; }
@@ -417,6 +459,8 @@ if($('#b_commit')) $('#b_commit').addEventListener('change', board);
 $('#win').addEventListener('change', function(){ traffic(); series(); });
 if($('#series_group')) $('#series_group').addEventListener('change', series);
 if($('#profile')) $('#profile').addEventListener('change', chainPanel);
+if($('#reg_q')) $('#reg_q').addEventListener('change', registryPanel);
+if($('#reg_cat')) $('#reg_cat').addEventListener('change', registryPanel);
 if($('#profile')) $('#profile').addEventListener('keydown', function(e){ if(e.key === 'Enter') chainPanel(); });
 
 async function filters(){
@@ -439,7 +483,7 @@ async function filters(){
 }
 
 function refresh(){ ledger(); board(); }
-identity(); traffic(); series(); chainPanel(); gates(); filters().then(refresh); refresh();
+identity(); traffic(); series(); chainPanel(); registryPanel(); gates(); filters().then(refresh); refresh();
 setInterval(identity, 60000);
 </script>
 </body>
@@ -945,3 +989,273 @@ def chain_view(query, resolved, price_map=None, detail_limit=60):
         'note': (f"{len(chain)} lane(s) eligible, {len(ex)} excluded across {len(summary)} code(s)"
                  + (f' - showing the first {len(detail)} exclusions' if len(ex) > len(detail) else '')),
     }
+
+
+# ------------------------------------------------------------------ TR-155 registry
+
+#: The categories the ladder knows. A level outside the ladder is refused, never clamped.
+def _known_categories(category_levels):
+    return {r.get('category') for r in (category_levels or []) if r.get('category')}
+
+
+def _level_range(category_levels):
+    out = {}
+    for r in (category_levels or []):
+        c = r.get('category')
+        if not c:
+            continue
+        lvl = r.get('level')
+        if isinstance(lvl, int):
+            lo, hi = out.get(c, (0, 0))
+            out[c] = (min(lo, lvl), max(hi, lvl))
+    return out
+
+
+def registry_browse(query, tables, level_limit=None):
+    """TR-155 (read half): browse the registry, with a lane detail that is a JOIN, not a guess.
+
+    A lane's row in `models.jsonl` carries its prices and lifecycle; its per-category LEVELS live in
+    `model_tier.jsonl`, its estimates in `quality_estimates.jsonl` and its provider's plan/data class
+    in `providers.jsonl`. The detail view joins exactly those and states which file each part came
+    from, so a number on screen can always be traced back to a table.
+    """
+    def one(name, default=None):
+        v = (query or {}).get(name)
+        if isinstance(v, list):
+            v = v[0] if v else None
+        return v if v not in (None, '') else default
+
+    q = (one('q') or '').lower()
+    f_provider = one('provider')
+    f_category = one('category')
+    f_min_level = one('min_level')
+    f_plan = one('plan_tier')
+    f_lifecycle = one('lifecycle')          # dated | undated | retired
+    limit = 25
+    try:
+        limit = max(1, min(int(str(one('limit', 25))), 200))
+    except (TypeError, ValueError):
+        pass
+
+    models = tables.get('models') or []
+    tiers = tables.get('model_tier') or []
+    levels = tables.get('category_levels') or []
+    ests = tables.get('quality_estimates') or []
+    provs = {p.get('id'): p for p in (tables.get('providers') or [])}
+    by_model = {}
+    for r in tiers:
+        by_model.setdefault(r.get('model'), []).append(r)
+    est_by_model = {}
+    for r in ests:
+        est_by_model.setdefault(r.get('model'), []).append(r)
+    known = _known_categories(levels)
+    rng = _level_range(levels)
+
+    try:
+        min_level = int(str(f_min_level)) if f_min_level is not None else None
+    except (TypeError, ValueError):
+        min_level = None
+
+    def _level_of(row):
+        if f_category is None:
+            return None
+        for tr in by_model.get(row.get('model'), []):
+            if tr.get('category') == f_category:
+                return tr.get('tier')
+        return None
+
+    matched = []
+    for r in models:
+        if f_provider and r.get('provider') != f_provider:
+            continue
+        if f_plan is not None and str(r.get('plan_tier')) != str(f_plan):
+            continue
+        if f_lifecycle == 'dated' and not (r.get('valid_from') or r.get('valid_to')):
+            continue
+        if f_lifecycle == 'undated' and (r.get('valid_from') or r.get('valid_to')):
+            continue
+        if f_lifecycle == 'retired' and not r.get('valid_to'):
+            continue
+        if f_category is not None and f_category not in known:
+            return {'error': f'unknown category {f_category!r} (the ladder knows '
+                             f'{len(known)}: {", ".join(sorted(c for c in known if c))})',
+                    'lanes': [], 'rows_scanned': len(models)}
+        if f_category is not None:
+            lvl = _level_of(r)
+            if lvl is None or lvl < (min_level if min_level is not None else -99):
+                continue
+        if q:
+            hay = f"{r.get('provider')}/{r.get('model')} {r.get('price_evidence') or ''}".lower()
+            if q not in hay:
+                continue
+        matched.append(r)
+
+    lanes = []
+    for r in matched[:limit]:
+        lanes.append({
+            'lane': f"{r.get('provider')}/{r.get('model')}",
+            'provider': r.get('provider'), 'model': r.get('model'),
+            'plan_tier': r.get('plan_tier'), 'context_limit': r.get('context_limit'),
+            'public_price': r.get('public_price'), 'normalized_price': r.get('normalized_price'),
+            'public_in_per_m': r.get('public_in_per_m'), 'public_out_per_m': r.get('public_out_per_m'),
+            'valid_from': r.get('valid_from'), 'valid_to': r.get('valid_to'),
+            'lifecycle_source': r.get('lifecycle_source'),
+            'disabled': r.get('disabled'),
+            'price_evidence': r.get('price_evidence'),
+            'levels': sorted([{'category': x.get('category'), 'tier': x.get('tier'),
+                               'perf': x.get('perf'), 'tier_source': x.get('tier_source')}
+                              for x in by_model.get(r.get('model'), [])],
+                             key=lambda x: str(x.get('category'))),
+            'level_source_file': 'data/tables/model_tier.jsonl',
+            'estimates': (est_by_model.get(r.get('model')) or [None])[0],
+            'estimate_source_file': 'data/tables/quality_estimates.jsonl',
+            'provider_plan': (provs.get(r.get('provider')) or {}).get('plan'),
+            'provider_data_class': (provs.get(r.get('provider')) or {}).get('data_class'),
+            'provider_source_file': 'data/tables/providers.jsonl',
+        })
+    return {'lanes': lanes, 'returned': len(lanes), 'matched': len(matched),
+            'rows_scanned': len(models), 'truncated': len(matched) > len(lanes),
+            'known_categories': sorted(c for c in known if c),
+            'level_ranges': {k: list(v) for k, v in sorted(rng.items())},
+            'filters': {'q': q or None, 'provider': f_provider, 'category': f_category,
+                        'min_level': min_level, 'plan_tier': f_plan, 'lifecycle': f_lifecycle},
+            'note': f'{len(matched)} of {len(models)} lane(s) matched'
+                    + (' (showing the first %d)' % len(lanes) if len(matched) > len(lanes) else '')}
+
+
+def registry_edit(body, provided_key, expected_key, tables, overlay_path, audit_path,
+                  actor='ui', now_s=None):
+    """TR-155 (write half): a guarded, validated, audited, revertible edit.
+
+    Guarantees this returns, all of them testable:
+      * NO key (or the wrong one) -> refused, and the refusal is AUDITED (a refused write is an event);
+      * the generated JSONL tables are NEVER written - the change is appended to the overlay channel
+        (data/lifecycle.jsonl), which the seed path applies key-wise, so the UI cannot corrupt a
+        generated file;
+      * validation refuses nonsense rather than clamping it: an unknown category, a level outside the
+        ladder, a price an order of magnitude away from the published figure, a lifecycle date that is
+        not a date;
+      * every accepted change appends an audit row carrying actor, before, after and a timestamp, and
+        `revert_of` makes the inverse append a first-class operation;
+      * public_price and normalized_price stay DISTINCT fields - an edit that sets one never rewrites
+        the other, so a plan lane's reported cost cannot be changed silently.
+    """
+    import time as _time
+    now = float(now_s) if now_s is not None else _time.time()
+
+    def _audit(entry):
+        entry = dict(entry, ts=now, actor=actor)
+        try:
+            with open(audit_path, 'a', encoding='utf-8') as fh:
+                fh.write(json.dumps(entry) + '\n')
+        except OSError:
+            pass
+        return entry
+
+    if not expected_key:
+        _audit({'action': 'edit', 'outcome': 'refused', 'reason': 'no edit key configured on the server'})
+        return (403, {'error': 'this server has no edit key configured (read-only posture)',
+                      'audited': True}, {'check': 'mode'})
+    if not provided_key or provided_key != expected_key:
+        _audit({'action': 'edit', 'outcome': 'refused', 'reason': 'missing or wrong edit key',
+                'lane': f"{body.get('provider')}/{body.get('model')}"})
+        return (403, {'error': 'edit key required', 'audited': True}, {'check': 'key'})
+
+    body = body or {}
+    provider, model = body.get('provider'), body.get('model')
+    if not provider or not model:
+        _audit({'action': 'edit', 'outcome': 'refused', 'reason': 'provider and model are required'})
+        return (400, {'error': 'provider and model are required', 'audited': True}, {'check': 'identity'})
+
+    models = tables.get('models') or []
+    before = next((r for r in models if r.get('provider') == provider and r.get('model') == model), None)
+    if before is None:
+        _audit({'action': 'edit', 'outcome': 'refused', 'reason': 'unknown lane',
+                'lane': f'{provider}/{model}'})
+        return (404, {'error': f'no such lane: {provider}/{model}', 'audited': True}, {'check': 'lane'})
+
+    problems = []
+    known = _known_categories(tables.get('category_levels') or [])
+    rng = _level_range(tables.get('category_levels') or [])
+    category = body.get('category')
+    if category is not None:
+        if category not in known:
+            problems.append(f'unknown category {category!r}')
+        else:
+            lvl = body.get('level')
+            if not isinstance(lvl, int) or isinstance(lvl, bool):
+                problems.append('level must be an integer')
+            else:
+                lo, hi = rng.get(category, (-5, 5))
+                if not (lo <= lvl <= hi):
+                    problems.append(f'level {lvl} is outside the ladder for {category} ({lo}..{hi})')
+    for field, published in (('public_price', before.get('public_price')),
+                             ('normalized_price', before.get('normalized_price')),
+                             ('public_in_per_m', before.get('public_in_per_m')),
+                             ('public_out_per_m', before.get('public_out_per_m'))):
+        if field in body and body[field] is not None:
+            val = body[field]
+            if not isinstance(val, (int, float)) or isinstance(val, bool) or val < 0:
+                problems.append(f'{field} must be a non-negative number')
+            elif published and val:
+                ratio = val / published
+                if ratio > 10 or ratio < 0.1:
+                    problems.append(f'{field} ${val} is an order of magnitude off the published '
+                                    f'${published} (ratio {ratio:.3g}) - refusing rather than publishing '
+                                    f'a number nobody can believe')
+    for field in ('valid_from', 'valid_to'):
+        if field in body and body[field] is not None:
+            val = str(body[field])
+            if len(val) < 10 or val[4] != '-' or val[7] != '-':
+                problems.append(f'{field} must be an ISO date (YYYY-MM-DD), got {val!r}')
+    if body.get('lifecycle_stamp') and not (body.get('valid_from') or body.get('valid_to')):
+        problems.append('a lifecycle stamp requires a date (valid_from or valid_to)')
+    if body.get('revert_of') is not None:
+        pass  # a revert IS a valid edit; it needs no extra validation beyond the fields above
+
+    check = {'validated': not problems, 'problems': problems}
+    if problems:
+        _audit({'action': 'edit', 'outcome': 'invalid', 'reason': '; '.join(problems),
+                'lane': f'{provider}/{model}', 'incoming': body})
+        return (422, {'error': 'validation refused this edit', 'problems': problems,
+                      'audited': True}, check)
+
+    editable = ('public_price', 'normalized_price', 'public_in_per_m', 'public_out_per_m',
+                'valid_from', 'valid_to', 'lifecycle_source', 'plan_tier', 'context_limit',
+                'disabled')
+    overlay_row = {'provider': provider, 'model': model}
+    for k in editable:
+        if k in body:
+            overlay_row[k] = body[k]
+    if not (overlay_row.get('lifecycle_source') or body.get('revert_of') is not None):
+        problems.append('a lifecycle stamp needs provenance (lifecycle_source)')
+        _audit({'action': 'edit', 'outcome': 'invalid', 'reason': problems[-1],
+                'lane': f'{provider}/{model}', 'incoming': body})
+        return (422, {'error': 'validation refused this edit', 'problems': problems,
+                      'audited': True}, check)
+    if body.get('revert_of') is not None:
+        overlay_row['revert_of'] = body['revert_of']
+
+    # the overlay channel, NEVER the generated table
+    try:
+        with open(overlay_path, 'a', encoding='utf-8') as fh:
+            fh.write(json.dumps(overlay_row) + '\n')
+    except OSError as e:
+        _audit({'action': 'edit', 'outcome': 'error', 'reason': f'overlay append failed: {e}',
+                'lane': f'{provider}/{model}'})
+        return (500, {'error': f'overlay append failed: {e}'}, check)
+
+    after = dict(before)
+    after.update({k: overlay_row[k] for k in overlay_row if k not in ('provider', 'model')})
+    entry = _audit({'action': 'edit', 'outcome': 'accepted', 'lane': f'{provider}/{model}',
+                    'changed': sorted(k for k in overlay_row if k not in ('provider', 'model')),
+                    'before': {k: before.get(k) for k in overlay_row if k not in ('provider', 'model')},
+                    'after': {k: overlay_row[k] for k in overlay_row if k not in ('provider', 'model')},
+                    'overlay_row': overlay_row,
+                    'revert_of': body.get('revert_of')})
+    return (200, {'ok': True, 'lane': f'{provider}/{model}', 'overlay_appended': True,
+                  'generated_tables_touched': False, 'audit': entry,
+                  'revert': {'provider': provider, 'model': model,
+                             'lifecycle_source': 'revert of an audited edit',
+                             'revert_of': entry.get('ts')},
+                  'note': 'appended to the overlay channel; the seed path applies it key-wise'}, check)

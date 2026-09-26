@@ -103,6 +103,13 @@ def build_openapi():
         "/status": ("getStatus", "Server and registry status", []),
         "/proxy/stats": ("getProxyStats", "Rolling per-model and per-complexity-band averages over the proxy's own traffic (TR-144): samples, success rate, cost/task, steps, wall time, cache ratio + failure reason mix. `windows` = hours (csv), `grouping` = model|band|model_band", []),
         "/ui": ("getUi", "TR-150: the Data Command Center page, served by this service (one self-contained document, no CDN, read-only)", []),
+        "/api/ui/registry": ("getUiRegistry", "TR-155: browse the registry (search + filters) with a lane detail joined across models/model_tier/category_levels/quality_estimates/providers; each part names its file.", [
+            {"name": "q", "in": "query", "required": False, "schema": string, "description": "Free text over provider/model and price evidence"},
+            {"name": "provider", "in": "query", "required": False, "schema": string, "description": "Exact provider id"},
+            {"name": "category", "in": "query", "required": False, "schema": string, "description": "Filter to lanes with a level in this category (unknown categories are refused, not ignored)"},
+            {"name": "min_level", "in": "query", "required": False, "schema": integer, "description": "With category: minimum tier"},
+            {"name": "lifecycle", "in": "query", "required": False, "schema": string, "description": "dated | undated | retired"},
+        ]),
         "/api/ui/chain": ("getUiChain", "TR-154: the eligible chain in effective-price order with each lane's price basis, plus EVERY excluded lane grouped by machine-readable exclusion code. Answers 'why this lane and not that one'.", [
             {"name": "project", "in": "query", "required": False, "schema": string, "description": "Project id (default coding-hermes-scheduler)"},
             {"name": "profile", "in": "query", "required": False, "schema": string, "description": "Profile id, e.g. P1_CODING"},
@@ -207,6 +214,28 @@ def build_openapi():
             "Record circuit failure or success",
             {"provider": string, "model": string, "outcome": outcome, "reason": string},
             ["provider", "model", "outcome"],
+        )
+    }
+    paths["/api/ui/registry/edit"] = {
+        "post": _post_operation(
+            "postUiRegistryEdit",
+            "TR-155: guarded registry edit - needs the edit key, validates (unknown category / level "
+            "outside the ladder / a price an order of magnitude off / a non-date / missing provenance "
+            "all refuse), appends to the OVERLAY channel and never a generated table, and audits every "
+            "attempt including refusals. Read-only mode refuses before this handler is reached.",
+            {
+                "provider": string,
+                "model": string,
+                "public_price": number,
+                "normalized_price": number,
+                "valid_from": string,
+                "valid_to": string,
+                "lifecycle_source": string,
+                "category": string,
+                "level": integer,
+                "revert_of": number,
+            },
+            ["provider", "model"],
         )
     }
     paths["/ledger/start"] = {
@@ -389,6 +418,26 @@ def _read_jsonl(name):
         return []
 
 
+def _ui_registry_edit(body, headers, edit_key):
+    """TR-155: guarded edit - see router_ui_page.registry_edit for the guarantees."""
+    status, payload, _check = router_ui_page.registry_edit(
+        body,
+        headers.get("x-edit-key") or headers.get("x-api-key"),
+        edit_key,
+        {
+            "models": _read_jsonl("models"),
+            "model_tier": _read_jsonl("model_tier"),
+            "category_levels": _read_jsonl("category_levels"),
+            "quality_estimates": _read_jsonl("quality_estimates"),
+            "providers": _read_jsonl("providers"),
+        },
+        os.path.join(REPO, "data", "lifecycle.jsonl"),
+        os.path.join(REPO, "data", "registry-edits.jsonl"),
+        actor="ui",
+    )
+    return status, payload
+
+
 def _subprocess_json(script, args, timeout=60):
     proc = subprocess.run(
         [sys.executable, str(SCRIPTS / script), *[str(arg) for arg in args]],
@@ -547,6 +596,16 @@ class RouterApplication:
                                  'stale': True, 'live_error': live.get('error')}
                 return 200, {'proxy': 'task-router', 'upstream': None, 'source': 'unavailable',
                              'error': live.get('error') or 'capabilities unavailable'}
+            if path == "/api/ui/registry":
+                # TR-155 (read half): browse the registry with the lane detail as a JOIN across the
+                # tables, so every number on screen names the file it came from.
+                return 200, router_ui_page.registry_browse(query, {
+                    "models": _read_jsonl("models"),
+                    "model_tier": _read_jsonl("model_tier"),
+                    "category_levels": _read_jsonl("category_levels"),
+                    "quality_estimates": _read_jsonl("quality_estimates"),
+                    "providers": _read_jsonl("providers"),
+                })
             if path == "/api/ui/chain":
                 # TR-154: why this lane and not that one - the chain in order + every exclusion.
                 project = query.get("project")
@@ -721,6 +780,27 @@ class RouterApplication:
                 "outcome": outcome,
                 "output": output,
             }
+        if path == "/api/ui/registry/edit":
+            # TR-155 (write half). Read-only mode never reaches here: the auth gate above answers
+            # 403 "read-only mode" for every mutating request. In edit mode this enforces the edit
+            # key, validates (unknown category / level outside the ladder / a price an order of
+            # magnitude off / a non-date / missing provenance all refuse), appends to the OVERLAY
+            # channel - never a generated table - and audits every attempt including refusals.
+            return router_ui_page.registry_edit(
+                body,
+                headers.get("x-edit-key") or headers.get("x-api-key"),
+                self.edit_key or "",
+                {
+                    "models": _read_jsonl("models"),
+                    "model_tier": _read_jsonl("model_tier"),
+                    "category_levels": _read_jsonl("category_levels"),
+                    "quality_estimates": _read_jsonl("quality_estimates"),
+                    "providers": _read_jsonl("providers"),
+                },
+                os.path.join(REPO, "data", "lifecycle.jsonl"),
+                os.path.join(REPO, "data", "registry-edits.jsonl"),
+                actor="ui",
+            )[1] if False else _ui_registry_edit(body, headers, self.edit_key or "")
         if path == "/ledger/start":
             _required_strings(body, "provider", "model")
             args = ["start", "--provider", body["provider"], "--model", body["model"]]
