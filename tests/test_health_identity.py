@@ -49,8 +49,21 @@ def test_a_moved_head_is_stale_even_when_the_files_match(monkeypatch):
     assert rh.health(mode='read-only')['stale'] is True
 
 
-def test_matching_identity_is_not_stale():
-    """The normal, deployed state must read clean (no permanent false alarm)."""
+def test_matching_identity_is_not_stale(monkeypatch):
+    """The normal, deployed state must read clean (no permanent false alarm).
+
+    HERMETIC (TR-176). This case used to assert whatever the machine happened to hold, which
+    made it a race in a shared tree: router_health captures HEAD at import and compares it with
+    HEAD at call time, so ANY commit landing during the suite flips `stale` to True. Measured
+    2026-09-26 — a guard run started 05:42:48Z, a sibling committed at 05:45:39Z inside the run,
+    and the suite failed here with `assert True is False`. Standalone it always passed (0.4s, no
+    window to race). A unit test must not depend on live HEAD; the drift behaviour is covered by
+    the four monkeypatched cases above, and the live verdict is what /health is FOR.
+    """
+    monkeypatch.setattr(rh, 'source_sha', lambda: 'aaaa1111bbbb2222')
+    monkeypatch.setattr(rh, '_LOADED_SOURCE_SHA', 'aaaa1111bbbb2222')
+    monkeypatch.setattr(rh, 'git_commit', lambda: 'feed0000beef1111')
+    monkeypatch.setattr(rh, '_LOADED_COMMIT', 'feed0000beef1111')
     assert rh.health(mode='read-only')['stale'] is False
 
 

@@ -14,7 +14,10 @@
     "vision": "capabilities.vision",
     "thinking": "capabilities.reasoning"
   },
-  "blend": [0.96, 0.04],
+  "blend": [
+    0.96,
+    0.04
+  ],
   "plan_tier_policy": {
     "default": 0,
     "usage_multiplier": 30,
@@ -31,5 +34,6 @@
   "notes": [
     "onboarded live 2026-09-16 (115 lanes, 42 free-allowance)",
     "battery evidence lives in benchmarks.jsonl only - never perf_* (TR-054 percentile-corruption incident)"
-  ]
+  ],
+  "usage_multiplier": 30
 }
