@@ -385,3 +385,4 @@
 {"id": 20260926070417, "timestamp": "2026-09-26T17:56:33Z", "event_type": "task_completed", "task_id": "TR-190", "actor": "foreman", "detail": "{\"status\":\"complete\"}"}
 {"id": 20260926070418, "timestamp": "2026-09-26T17:56:33Z", "event_type": "task_completed", "task_id": "TR-192", "actor": "foreman", "detail": "{\"status\":\"complete\"}"}
 {"id": 20260926070419, "timestamp": "2026-09-26T17:56:33Z", "event_type": "task_updated", "task_id": "TR-189", "actor": "foreman", "detail": "{\"status\":\"pending\"}"}
+{"id": 20260926070420, "timestamp": "2026-09-26T18:46:56Z", "event_type": "task_completed", "task_id": "INT-CI-20260926-01", "actor": "foreman", "detail": "Root cause: provider_health_probe.py resolved DATA_DIR/REGISTRY home-relative, so a CI checkout read no data file. Production portability bug, not flakiness. Fixed at 4558290778be; reproduced with HOME=/tmp/fake-home. Live copy re-synced and verified."}
