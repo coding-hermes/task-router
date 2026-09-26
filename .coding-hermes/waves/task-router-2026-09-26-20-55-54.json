@@ -3,7 +3,7 @@
   "project": "task-router",
   "base_sha": "23d4280916383f331d82d870f860c0334778a978",
   "wave_budget": 2,
-  "status": "partial",
+  "status": "complete",
   "tasks": [
     {
       "id": "TR-134",
@@ -32,14 +32,14 @@
       ]
     }
   ],
-  "finished_at": "2026-09-26T21:12:00-05:00",
+  "finished_at": "2026-09-26T21:32:28Z",
   "outcomes": [
     {
       "id": "TR-134",
       "result": "merged",
       "commit": "a98cd3e068dcd1437ffb4cb7058137fea7a65994",
       "merge": "a8045ea1b6f9c267e9470d6cdff0a7c1ffa399f5",
-      "note": "Merged serially; guard started twice accidentally due overlapping launches. Full pytest gate still running at closeout; no completed verdict available."
+      "note": "Merged as a8045ea; merged-tree full-mode Tier 1 guard PASS (secrets + full test suite), log guard-20260926T213228.350783Z.log. CI for closeout commit was in progress at verification."
     },
     {
       "id": "TR-168",
