@@ -82,6 +82,7 @@ def build_openapi():
     """Return the static OpenAPI 3.1 contract used by HTTP and MCP."""
     string = {"type": "string"}
     integer = {"type": "integer"}
+    number = {"type": "number"}
     outcome = {"type": "string", "enum": ["failure", "success"]}
     ledger_outcome = {"type": "string", "enum": ["success", "failure", "error"]}
     get_paths = {
