@@ -46,7 +46,17 @@ def _request(port, path, *, method="GET", body=None, key=None):
     try:
         with urllib.request.urlopen(req, timeout=30) as resp:
             raw = resp.read()
-            return resp.status, (json.loads(raw) if raw else {})
+            ctype = (resp.headers.get("Content-Type") or "").lower()
+            if not raw:
+                return resp.status, {}
+            # TR-150: parse by CONTENT TYPE, not by hope. This helper used to
+            # json.loads() every body, which only appeared to work for the HTML page
+            # because the page was being served as a JSON-escaped string — the bug that
+            # made the UI unusable in a browser. Asserting the helper's old assumption
+            # kept that bug green. HTML comes back as text now, as it must.
+            if "html" in ctype:
+                return resp.status, raw.decode("utf-8", "replace")
+            return resp.status, json.loads(raw)
     except urllib.error.HTTPError as exc:
         raw = exc.read()
         try:
@@ -124,6 +134,11 @@ def test_read_only_serves_html_and_endpoints(data_dir):
         assert "router" in html.lower()
         assert "Resolve" in html
         assert "<!doctype html>" in html.lower()
+        # TR-150 regression lock: the page must arrive verbatim. It previously came
+        # back JSON-quoted with escaped newlines (one long string), which silently made
+        # every <script> on the page unparseable in a browser.
+        assert not html.lstrip().startswith('"'), "page served as a JSON string"
+        assert html.lstrip().lower().startswith("<!doctype"), "page must start as HTML"
 
         code, payload = _request(port, "/api/status")
         assert code == 200 and payload["mode"] == "read-only"
