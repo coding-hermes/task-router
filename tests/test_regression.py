@@ -217,22 +217,22 @@ def test_chain_invariants_per_profile(monkeypatch, tmp_path, pid):
     # TR-070 2026-09-19: ollama offsets re-derived from METERED usage (M=30.2x measured).
     # kimi-k3's old 0.067 stamp was 4.4x UNDER-priced (real effective 0.298), so it headed
     # P0_FORE as a fake-cheap burn trap; glm-5.3-flash (0.0108 effective) is the honest head.
-    # 2026-09-26 HEAD MOVE (three facts, isolated by re-running the resolver on
-    # three datasets: HEAD tables+HEAD lifecycle / worktree data with the
-    # lifecycle stamps stripped / worktree data+stamps — the last two are
-    # identical, so the LIFECYCLE PASS did NOT move P0_FORE or P2_AGENTIC):
-    #   (a) the 2026-09-26 models.dev sync in this same tree ADDED
-    #       xkiro/cohere/command-a-plus (normalized $0.0, 436k ctx, no
-    #       retirement date) which takes the (plan_tier, price, context)
-    #       tie-break in the hermetic prod mirror;
-    #   (b) the last-quarter lifecycle pass RETIRED stepfun/step-3.5-flash
-    #       (release_date 2026-01-29, 240d > 90d, superseded by step-3.7-flash;
-    #       Bane 2026-09-26 directive) so P2_AGENTIC could not keep it;
-    #   (c) P0_FORE's old head zai-glm/glm-5.3-flash is not retired — it is
-    #       simply outranked by the new $0 lane.
-    # Deliberate fixture update, not accidental drift: the old heads are
-    # reproducible from the pre-pass tree (see docs/lifecycle-prune-20260926.md).
-    ("P0_FORE", "xkiro/cohere/command-a-plus"),  # 2026-09-16: union-alpha lanes DISABLED at registry (Go=HTTP 500 broken, openrouter=keys expired) per Bane disable-broken-providers call — clinepass lane stays ENABLED and serves the P1_WORKER allow_slow profile; mirror fixed point reverts to the TR-042-era head
+    # 2026-09-26 P0_FORE HEAD (settled after the TR-178 fabricated-$0 fix):
+    #   (a) the pre-pass head zai-glm/glm-5.3-flash is NOT retired by the lifecycle
+    #       pass — the head simply re-sorted when the models.dev sync in this tree
+    #       added lanes and TR-178 cleared a FABRICATED $0 price on non-free plan
+    #       SKUs (xkiro/cohere/command-a-plus went $0.0 -> unpriced, so it no
+    #       longer takes the tie-break);
+    #   (b) the head that remains is a PLAN-PRICED lane:
+    #       xkiro/openai/gpt-6-luna at $0.003867/M
+    #       (price_evidence 'provider_import preset=xkiro $200 coding plan'), the
+    #       cheapest ELIGIBLE lane with real evidence behind its price;
+    #   (c) isolation method (three datasets — HEAD data + HEAD lifecycle /
+    #       worktree data with the lifecycle stamps stripped / worktree data +
+    #       stamps, the last two identical): the LIFECYCLE PASS did not move this
+    #       head. Deliberate fixture update, documented in
+    #       docs/lifecycle-prune-20260926.md.
+    ("P0_FORE", "xkiro/openai/gpt-6-luna"),  # 2026-09-16: union-alpha lanes DISABLED at registry (Go=HTTP 500 broken, openrouter=keys expired) per Bane disable-broken-providers call — clinepass lane stays ENABLED and serves the P1_WORKER allow_slow profile; mirror fixed point reverts to the TR-042-era head
     # 2026-09-16: Step Plan Flash Pro flat-sub repricing (plan_terms 39.4x lane,
     # commit afc774c) stamped step-3.5-flash at $0.0051 normalized — cheaper than
     # every other P1_CODING/P2_AGENTIC-eligible lane, so the price-ordered chain
@@ -244,7 +244,7 @@ def test_chain_invariants_per_profile(monkeypatch, tmp_path, pid):
     # normal eligibility to accommodate the emergency fallback — fallback is a
     # degraded path that reports requirements_unmet). P2/P4 head on models with
     # real long_horizon/security evidence.
-    ("P2_AGENTIC", "xkiro/cohere/command-a-plus"),  # 2026-09-26: stepfun/step-3.5-flash RETIRED by the last-quarter lifecycle pass (release_date 2026-01-29, 240d, superseded by step-3.7-flash); the new $0 xkiro lane (same sync as the P0_FORE move above) takes the tie-break. Was: stepfun/step-3.5-flash (2026-09-16: union-alpha registry-disabled, see P0_FORE note; stepfun restored)
+    ("P2_AGENTIC", "xkiro/openai/gpt-6-luna"),  # 2026-09-26: two facts, both documented in docs/lifecycle-prune-20260926.md — (1) stepfun/step-3.5-flash was RETIRED by the last-quarter lifecycle pass (release_date 2026-01-29, 240d, superseded by step-3.7-flash), so this profile can no longer hold it (was: stepfun/step-3.5-flash, 2026-09-16); (2) the head that replaces it is the plan-priced xkiro/openai/gpt-6-luna ($0.003867/M, 'provider_import preset=xkiro $200 coding plan'), the settled cheapest eligible lane after TR-178 cleared a fabricated $0 on non-free plan SKUs
     # Bane 2026-08-31: P4_SECURITY requires security >= 2. Only gpt-5.6-sol
     # clears that bar. 2026-09-10: commandcode provider added (Provider API,
     # no-markup, open in the prod mirror) — its gpt-5.6-sol lane clears
