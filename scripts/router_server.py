@@ -1266,6 +1266,8 @@ def _failure_envelope(meta, session_id, source_system, parent_session_id, ladder
             'exhausted': True,
             'terminal_reason': terminal,
             'hops_attempted': len(tried),
+            # TR-148: parity with the success envelope — one field, both paths.
+            'steps': len(tried),
             'usage': None, 'usage_reason': 'no hop produced a usage block',
             'cost_usd': None, 'cost_reason': 'no served hop to price',
             'session_id': session_id,
@@ -2158,6 +2160,12 @@ def proxy_chat(path, body, headers, max_hops=None, upstream=None):
                               'session_id': session_id,
                               'parent_session_id': parent_session_id,
                               'gateway_session_id': gw_session_id,
+                              # TR-148: the envelope carried the full per-hop ladder but
+                              # NOT the aggregate step count the ledger row records, so a
+                              # caller had to count hops to answer "how many attempts did
+                              # this take?". Same expression the row uses, so the two can
+                              # never disagree.
+                              'steps': len(meta['ladder']),
                               'wall_time_s': wall}
             return 200, out
     status, payload = last or (502, {'error': 'no hops attempted'})
