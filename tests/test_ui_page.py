@@ -254,3 +254,26 @@ def test_the_board_names_the_filter_it_cannot_offer(tmp_path):
     d = up.board_search({}, _board(tmp_path, [{'id': 'TR-1', 'title': 'a', 'status': 'x'}]))
     assert 'owner (the board carries no owner field)' in d['filters_absent']
     assert 'status' in d['filters_available']
+
+
+def test_a_text_blob_in_files_changed_is_not_walked_character_by_character(tmp_path):
+    """The false-alarm guard: iterating a string produced single-character 'paths'."""
+    rows = [{'id': 'TR-1', 'title': 'x', 'status': 'complete',
+             'files_changed': 'scripts/foo.py tests/test_foo.py'}]
+    import router_ui_page as up
+    d = up.board_search({'limit': '5'}, _board(tmp_path, rows))
+    r = d['rows'][0]
+    assert 'artifacts' not in r, 'a text blob must not be treated as a list of paths'
+    assert r['files_changed_note'].startswith('stored as text')
+    assert d['artifacts_missing'] == 0 and d['artifacts_checked'] == 0
+
+
+def test_a_json_list_stored_as_text_is_parsed(tmp_path):
+    rows = [{'id': 'TR-1', 'title': 'x', 'status': 'complete',
+             'files_changed': '["scripts/there.py"]'}]
+    repo = tmp_path / 'repo'
+    (repo / 'scripts').mkdir(parents=True)
+    (repo / 'scripts' / 'there.py').write_text('ok')
+    import router_ui_page as up
+    d = up.board_search({'limit': '5'}, _board(tmp_path, rows), repo_root=str(repo))
+    assert d['rows'][0]['artifacts'][0]['exists'] is True

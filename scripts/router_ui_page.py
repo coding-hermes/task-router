@@ -543,7 +543,24 @@ def board_search(query, path, repo_root=None, check_paths=200):
     for d in page:
         r = {k: d.get(k) for k in keep if k in d}
         arts = []
-        for p in (d.get('files_changed') or [])[:20]:
+        # `files_changed` is a LIST on newer rows and a text blob on some historical ones. Iterating
+        # the blob yields characters, which is how this check first reported 19 of 20 cites "missing"
+        # - a false integrity alarm, which is worse than no check at all.
+        _fc = d.get('files_changed')
+        _paths = []
+        if isinstance(_fc, list):
+            _paths = [str(p) for p in _fc]
+        elif isinstance(_fc, str) and _fc.strip():
+            try:
+                _parsed = json.loads(_fc)
+            except ValueError:
+                _parsed = None
+            if isinstance(_parsed, list):
+                _paths = [str(p) for p in _parsed]
+            else:
+                r['files_changed_raw'] = _fc[:400]
+                r['files_changed_note'] = 'stored as text, not a list - not treated as paths'
+        for p in _paths[:20]:
             if checked >= check_paths:
                 break
             checked += 1
