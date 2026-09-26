@@ -1064,10 +1064,14 @@ def _ui_float(query, name):
 def ui_ledger(query):
     """TR-151: search the outcome ledger and say how much of it was actually read.
 
-    The ledger is the raw data every other stats surface summarises, so the browser over it must not
-    be able to imply completeness it does not have: every response carries `rows_scanned`,
-    `scan_limit`, `scan_truncated` and `total_matched`, and `truncated` is true whenever either the
-    scan window or the page cut the result short.
+    The ledger is the raw data every other stats surface summarises, so a browser over it must not
+    imply completeness it does not have: every response carries rows_scanned, scan_limit,
+    scan_truncated and total_matched, and `truncated` is true whenever either the scan window or the
+    page cut the result short.
+
+    `order=recent` (the default) reads the newest scan_limit rows and serves them newest-first: a
+    browser over 325k rows has to start at the newest end, or it shows the oldest rows first and
+    looks empty of anything current. `order=oldest` walks from the head for replay-style reading.
     """
     q = (_ui_one(query, 'q') or '').lower()
     f_outcome = _ui_one(query, 'outcome')
@@ -1077,6 +1081,7 @@ def ui_ledger(query):
     f_band = _ui_one(query, 'band')
     since = _ui_float(query, 'since')
     until = _ui_float(query, 'until')
+    order = (_ui_one(query, 'order') or 'recent').lower()
     limit = max(1, min(_ui_int(query, 'limit', _UI_LEDGER_DEFAULT_LIMIT), _UI_LEDGER_MAX_LIMIT))
     offset = max(0, _ui_int(query, 'offset', 0))
     scan_limit = max(1, _ui_int(query, 'scan_limit', _UI_LEDGER_SCAN_LIMIT))
@@ -1087,62 +1092,79 @@ def ui_ledger(query):
     matched = 0
     page = []
     scan_truncated = False
-    try:
+
+    def _lines():
+        if order != 'recent':
+            with open(path, encoding='utf-8', errors='replace') as fh:
+                for line in fh:
+                    if line.strip():
+                        yield line
+            return
+        import collections
+        tail = collections.deque(maxlen=scan_limit)
         with open(path, encoding='utf-8', errors='replace') as fh:
             for line in fh:
-                line = line.strip()
-                if not line:
+                if line.strip():
+                    tail.append(line)
+        nonlocal scan_truncated
+        scan_truncated = len(tail) >= scan_limit
+        for line in reversed(tail):
+            yield line
+
+    try:
+        for line in _lines():
+            if scanned >= scan_limit:
+                scan_truncated = True
+                break
+            scanned += 1
+            try:
+                d = json.loads(line)
+            except ValueError:
+                continue
+            if f_provider and d.get('provider') != f_provider:
+                continue
+            if f_model and d.get('model') != f_model:
+                continue
+            if f_source and d.get('complexity_source') != f_source:
+                continue
+            if f_band and str(d.get('complexity_sig') or '') != f_band:
+                continue
+            if f_outcome:
+                ok = d.get('success')
+                outcome = ('success' if ok is True else
+                           'failed' if ok is False else
+                           str(d.get('route_outcome') or 'unknown'))
+                if f_outcome not in (outcome, str(d.get('route_outcome') or '')):
                     continue
-                if scanned >= scan_limit:
-                    scan_truncated = True
-                    break
-                scanned += 1
-                try:
-                    d = json.loads(line)
-                except ValueError:
+            ts = d.get('ts')
+            if since is not None and not (isinstance(ts, (int, float)) and ts >= since):
+                continue
+            if until is not None and not (isinstance(ts, (int, float)) and ts <= until):
+                continue
+            if q:
+                hay = ' '.join(str(d.get(k) or '') for k in (
+                    'provider', 'model', 'session_id', 'task_label', 'failure_reason',
+                    'served_by_hop', 'complexity_sig', 'source_system', 'price_basis')).lower()
+                if q not in hay:
                     continue
-                if f_provider and d.get('provider') != f_provider:
-                    continue
-                if f_model and d.get('model') != f_model:
-                    continue
-                if f_source and d.get('complexity_source') != f_source:
-                    continue
-                if f_band and str(d.get('complexity_sig') or '') != f_band:
-                    continue
-                if f_outcome:
-                    ok = d.get('success')
-                    outcome = ('success' if ok is True else
-                               'failed' if ok is False else
-                               str(d.get('route_outcome') or 'unknown'))
-                    if f_outcome not in (outcome, str(d.get('route_outcome') or '')):
-                        continue
-                ts = d.get('ts')
-                if since is not None and not (isinstance(ts, (int, float)) and ts >= since):
-                    continue
-                if until is not None and not (isinstance(ts, (int, float)) and ts <= until):
-                    continue
-                if q:
-                    hay = ' '.join(str(d.get(k) or '') for k in (
-                        'provider', 'model', 'session_id', 'task_label', 'failure_reason',
-                        'served_by_hop', 'complexity_sig', 'source_system', 'price_basis')).lower()
-                    if q not in hay:
-                        continue
-                matched += 1
-                if offset <= matched - 1 < offset + limit:
-                    page.append(d)
+            matched += 1
+            if offset <= matched - 1 < offset + limit:
+                page.append(d)
     except OSError as e:
-        return {'error': f'ledger unreadable: {e}', 'store': path,
-                'rows': [], 'total_matched': 0, 'rows_scanned': 0,
-                'truncated': False, 'scan_truncated': False}
+        return {'error': f'ledger unreadable: {e}', 'store': path, 'rows': [],
+                'total_matched': 0, 'rows_scanned': 0, 'truncated': False,
+                'scan_truncated': False}
     return {'rows': page, 'returned': len(page), 'total_matched': matched,
             'rows_scanned': scanned, 'scan_limit': scan_limit,
             'scan_truncated': scan_truncated,
+            'order': order, 'scan_window': 'newest-first' if order == 'recent' else 'oldest-first',
             'offset': offset, 'limit': limit,
             'truncated': scan_truncated or matched > offset + len(page),
             'store': path, 'store_bytes': size,
             'filters': {'q': q or None, 'outcome': f_outcome, 'complexity_source': f_source,
                         'provider': f_provider, 'model': f_model, 'band': f_band,
                         'since': since, 'until': until}}
+
 
 def _hermes_capabilities_metadata(base, _opener=None):
     """Read session metadata from the upstream's /v1/capabilities at startup.

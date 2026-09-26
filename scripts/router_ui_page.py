@@ -144,21 +144,37 @@ async function traffic(){
   $('#traffic_window').textContent = 'window '+win+'h';
   try{
     const d = await j('/proxy/stats?windows='+win+'&grouping=model_band');
-    const list = (d.averages || d.rows || []);
-    if(!list.length){ $('#traffic').innerHTML = '<span class="dim">no proxied traffic in this window</span>'; }
-    else {
-      $('#traffic').innerHTML = '<table><thead><tr><th>lane</th><th>band</th><th class="num">n</th>'
-        + '<th class="num">cost/task</th><th class="num">tokens</th><th class="num">success</th></tr></thead><tbody>'
-        + list.slice(0,40).map(r => {
-            const cost = r['avg_cost_task_'+win+'h'];
-            return '<tr><td>'+esc((r.provider||'')+'/'+(r.model||''))+'</td><td class="dim">'+esc(String(r.complexity_sig||'—').slice(0,18))+'</td>'
-              + '<td class="num">'+esc(r.n_samples)+'</td>'
-              + '<td class="num">'+(cost===null||cost===undefined ? '<span class="dim">no priced sample</span>' : num(cost,6))+'</td>'
-              + '<td class="num">'+num(r['avg_tokens_total_'+win+'h'],0)+'</td>'
-              + '<td class="num">'+(r.success_rate===null||r.success_rate===undefined ? '<span class="dim">unknown</span>' : num(r.success_rate*100,1)+'%')+'</td></tr>';
-          }).join('') + '</tbody></table>';
+    const w = (d.windows || {})[win+'h'] || {};
+    const groups = Object.values(w.groups || {});
+    if(!groups.length){
+      $('#traffic').innerHTML = '<span class="dim">no proxied traffic in this window</span>';
+      $('#traffic_note').textContent = 'scanned '+num(w.rows_scanned,0)+' ledger row(s) · '
+        + num(w.proxy_rows_matched,0)+' proxied row(s) · 0 inside the '+win+'h window · '
+        + 'computed '+num(d.age_s,1)+'s ago (ttl '+num(d.ttl_s,0)+'s)';
+      $('#traffic_note').className = 'note';
+      return;
     }
-    $('#traffic_note').textContent = (d.note || 'source: /proxy/stats') + ' · samples per row, cost rows disclose priced samples';
+    groups.sort((a,b) => (b.samples||0) - (a.samples||0));
+    $('#traffic').innerHTML = '<table><thead><tr><th>lane</th><th>band</th><th class="num">n</th>'
+      + '<th class="num">cost/task</th><th class="num">priced</th><th class="num">wall s</th>'
+      + '<th class="num">success</th><th>failures</th></tr></thead><tbody>'
+      + groups.slice(0,40).map(r => {
+          const cost = (r.cost_usd_per_task === null || r.cost_usd_per_task === undefined)
+            ? '<span class="dim" title="'+esc(r.cost_reason||'')+'">no priced sample</span>'
+            : num(r.cost_usd_per_task, 6);
+          const fails = Object.entries(r.failure_reasons || {}).map(([k,v]) => esc(k)+'×'+v).join(' ') || '<span class="dim">—</span>';
+          const band = r.band ? esc(String(r.band).slice(0,16)) : '<span class="dim">'+(esc(r.band_source)||'unknown')+'</span>';
+          return '<tr><td>'+esc(r.provider+'/'+r.model)+'</td><td>'+band+'</td>'
+            + '<td class="num">'+esc(r.samples)+'</td><td class="num">'+cost+'</td>'
+            + '<td class="num dim">'+(r.cost_samples===null||r.cost_samples===undefined?'—':esc(r.cost_samples))+'</td>'
+            + '<td class="num dim">'+(r.wall_time_s_per_task===null||r.wall_time_s_per_task===undefined?'—':num(r.wall_time_s_per_task,0))+'</td>'
+            + '<td class="num">'+(r.success_rate===null||r.success_rate===undefined ? '<span class="dim">unknown</span>' : num(r.success_rate*100,1)+'%')+'</td>'
+            + '<td class="dim">'+fails+'</td></tr>';
+        }).join('') + '</tbody></table>';
+    $('#traffic_note').textContent = 'window '+win+'h · '+num(w.rows_in_window,0)+' proxied row(s) in window · '
+      + num(w.proxy_rows_matched,0)+' of '+num(w.rows_scanned,0)+' scanned · computed '+num(d.age_s,1)+'s ago (ttl '+num(d.ttl_s,0)+'s)'
+      + ' · cost rows disclose priced samples';
+    $('#traffic_note').className = 'note';
   }catch(e){ $('#traffic').innerHTML = '<span class="bad">traffic unavailable</span>'; $('#traffic_note').className='note bad'; $('#traffic_note').textContent = e.message; }
 }
 
@@ -199,7 +215,7 @@ async function board(){
 /* ---- ledger search ---------------------------------------------------- */
 async function ledger(){
   const q = $('#q').value.trim();
-  const p = new URLSearchParams({limit:'50'});
+  const p = new URLSearchParams({limit:'50', order:'recent'});
   if(q) p.set('q', q);
   if($('#f_provider').value) p.set('provider', $('#f_provider').value);
   if($('#f_band').value) p.set('band', $('#f_band').value);
@@ -222,7 +238,7 @@ async function ledger(){
           }).join('') + '</tbody></table>'
       : '<span class="dim">no ledger row matched</span>';
     const n = $('#ledger_note');
-    n.textContent = 'scanned '+d.rows_scanned+' row(s) · matched '+d.total_matched+' · showing '+d.returned
+    n.textContent = (d.scan_window||'')+' · scanned '+d.rows_scanned+' row(s) · matched '+d.total_matched+' · showing '+d.returned
       + (d.scan_truncated ? ' · SCAN TRUNCATED at the scan limit' : '')
       + (d.truncated ? ' · more matches exist beyond this page' : '');
     n.className = 'note'+(d.truncated ? ' warn':'');
@@ -287,8 +303,9 @@ async function filters(){
     $('#f_provider').insertAdjacentHTML('beforeend', list.map(x => '<option>'+esc(x)+'</option>').join(''));
   }catch(e){}
   try{
-    const d = await j('/proxy/stats?windows=168&grouping=band');
-    const bands = [...new Set((d.averages||[]).map(r => r.complexity_sig).filter(Boolean))];
+    const d = await j('/proxy/stats?windows=168&grouping=model_band');
+    const w = (d.windows || {})['168h'] || {};
+    const bands = [...new Set(Object.values(w.groups || {}).map(r => r.band).filter(Boolean))];
     $('#f_band').insertAdjacentHTML('beforeend', bands.map(x => '<option>'+esc(x)+'</option>').join(''));
   }catch(e){}
 }
