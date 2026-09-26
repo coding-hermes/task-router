@@ -398,3 +398,9 @@
 {"id": 20260926202962, "timestamp": "2026-09-26T20:48:37Z", "event_type": "task_updated", "task_id": "TR-168", "actor": "foreman", "detail": "{\"status\":\"pending\"}"}
 {"id": 20260926202963, "timestamp": "2026-09-26T20:48:37Z", "event_type": "task_updated", "task_id": "TR-199", "actor": "foreman", "detail": "{\"status\":\"pending\"}"}
 {"id": 20260926202964, "timestamp": "2026-09-26T20:48:37Z", "event_type": "task_updated", "task_id": "TR-189", "actor": "foreman", "detail": "{\"status\":\"pending\"}"}
+{"id": 20260926202965, "timestamp": "2026-09-26T21:08:55Z", "event_type": "task_updated", "task_id": "TR-134", "actor": "foreman", "detail": "{\"status\":\"in_progress\"}"}
+{"id": 20260926202966, "timestamp": "2026-09-26T21:08:55Z", "event_type": "task_updated", "task_id": "TR-199", "actor": "foreman", "detail": "{\"status\":\"in_progress\"}"}
+{"id": 20260926202967, "timestamp": "2026-09-26T21:09:48Z", "event_type": "task_updated", "task_id": "TR-199", "actor": "foreman", "detail": "{\"status\":\"in_progress\"}"}
+{"id": 20260926202968, "timestamp": "2026-09-26T21:25:23Z", "event_type": "task_completed", "task_id": "TR-134", "actor": "foreman", "detail": "{\"status\":\"complete\"}"}
+{"id": 20260926202969, "timestamp": "2026-09-26T21:25:23Z", "event_type": "task_updated", "task_id": "TR-168", "actor": "foreman", "detail": "{\"status\":\"failed\"}"}
+{"id": 20260926202970, "timestamp": "2026-09-26T21:25:24Z", "event_type": "task_updated", "task_id": "TR-199", "actor": "foreman", "detail": "{\"status\":\"failed\"}"}

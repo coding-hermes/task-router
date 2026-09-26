@@ -3,10 +3,48 @@
   "project": "task-router",
   "base_sha": "0116f8c",
   "tasks": [
-    {"id": "TR-134", "worktree": "~/worktrees/task-router-TR-134", "branch": "wt/TR-134", "base_sha": "0116f8c", "model": "glm-5.3-flash", "provider": "zai-glm", "depends_on": [], "files": ["README.md"]},
-    {"id": "TR-168", "worktree": "~/worktrees/task-router-TR-168", "branch": "wt/TR-168", "base_sha": "0116f8c", "model": "glm-5.3-flash", "provider": "zai-glm", "depends_on": [], "files": ["data/tables/models.jsonl", "tests/*registry*data*"]},
-    {"id": "TR-199", "worktree": "~/worktrees/task-router-TR-199", "branch": "wt/TR-199", "base_sha": "0116f8c", "model": "glm-5.3-flash", "provider": "zai-glm", "depends_on": [], "files": ["scripts/router_lifecycle.py", "scripts/router_provider_import.py", "tests/*lifecycle*"]}
+    {
+      "id": "TR-134",
+      "worktree": "~/worktrees/task-router-TR-134",
+      "branch": "wt/TR-134",
+      "base_sha": "0116f8c",
+      "model": "glm-5.3-flash",
+      "provider": "zai-glm",
+      "depends_on": [],
+      "files": [
+        "README.md"
+      ]
+    },
+    {
+      "id": "TR-168",
+      "worktree": "~/worktrees/task-router-TR-168",
+      "branch": "wt/TR-168",
+      "base_sha": "0116f8c",
+      "model": "glm-5.3-flash",
+      "provider": "zai-glm",
+      "depends_on": [],
+      "files": [
+        "data/tables/models.jsonl",
+        "tests/*registry*data*"
+      ]
+    },
+    {
+      "id": "TR-199",
+      "worktree": "~/worktrees/task-router-TR-199",
+      "branch": "wt/TR-199",
+      "base_sha": "0116f8c",
+      "model": "glm-5.3-flash",
+      "provider": "zai-glm",
+      "depends_on": [],
+      "files": [
+        "scripts/router_lifecycle.py",
+        "scripts/router_provider_import.py",
+        "tests/*lifecycle*"
+      ]
+    }
   ],
   "wave_budget": 5,
-  "status": "prepared"
+  "status": "aborted",
+  "finished_at": "2026-09-26T20:55:54-05:00",
+  "recovery_note": "Recovery found zero workers dispatched, no task-specific worktrees (manifest paths absent), and branch tips at base with no commits. Prior tick recorded TR-134/TR-168/TR-199 as failed attempts with no usable diff and requeued them; no branch work existed to gate or merge. This manifest is closed without claiming task completion."
 }

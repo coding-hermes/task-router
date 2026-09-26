@@ -1,0 +1,56 @@
+{
+  "tick_id": "task-router-2026-09-26-20-55-54",
+  "project": "task-router",
+  "base_sha": "23d4280916383f331d82d870f860c0334778a978",
+  "wave_budget": 2,
+  "status": "partial",
+  "tasks": [
+    {
+      "id": "TR-134",
+      "worktree": "~/worktrees/task-router-TR-134",
+      "branch": "wt/TR-134",
+      "base_sha": "23d4280916383f331d82d870f860c0334778a978",
+      "model": "glm-5.3-flash",
+      "provider": "zai-glm",
+      "depends_on": [],
+      "files": [
+        "README.md"
+      ]
+    },
+    {
+      "id": "TR-199",
+      "worktree": "~/worktrees/task-router-TR-199",
+      "branch": "wt/TR-199",
+      "base_sha": "23d4280916383f331d82d870f860c0334778a978",
+      "model": "glm-5.3-flash",
+      "provider": "zai-glm",
+      "depends_on": [],
+      "files": [
+        "scripts/router_lifecycle.py",
+        "scripts/router_provider_import.py",
+        "tests/*lifecycle*"
+      ]
+    }
+  ],
+  "finished_at": "2026-09-26T21:12:00-05:00",
+  "outcomes": [
+    {
+      "id": "TR-134",
+      "result": "merged",
+      "commit": "a98cd3e068dcd1437ffb4cb7058137fea7a65994",
+      "merge": "a8045ea1b6f9c267e9470d6cdff0a7c1ffa399f5",
+      "note": "Merged serially; guard started twice accidentally due overlapping launches. Full pytest gate still running at closeout; no completed verdict available."
+    },
+    {
+      "id": "TR-168",
+      "result": "failed",
+      "reason": "Worker never started a first turn; no implementation commit or diff. Worktree/branch at base removed after verification."
+    },
+    {
+      "id": "TR-199",
+      "result": "failed",
+      "reason": "Worker never started a first turn; no implementation commit or diff. Worktree/branch at base removed after verification."
+    }
+  ],
+  "recovery_note": "Recovered TR-134 from the fresh tick worker; original recovery manifest had zero started workers. Closed TR-134 as merged but post-merge guard remained in flight. TR-168 and TR-199 had no work and are failed with reasons."
+}
