@@ -17,6 +17,7 @@ House rules this page follows, all of them from the row that asked for it:
   * read-only by construction: v1 exposes no write path at all.
 """
 import json
+import os
 
 #: The one page. Plain string; no templating, no build step, no external asset.
 PAGE = r"""<!doctype html>
@@ -298,7 +299,7 @@ function paint(){
 }
 
 /* ---- flow drill-down -------------------------------------------------- */
-function flow(r){
+function flowFromRow(r){
   if(!r){ $('#flow').innerHTML = '<span class="dim">select a ledger row</span>'; return; }
   const ce = r.chain_evidence || {};
   const cl = r.classifier || r.classifier_evidence || {};
@@ -326,6 +327,27 @@ function flow(r){
       + hops.map(x=>'<tr><td>'+esc(x.hop||'')+'</td><td>'+esc((x.provider||'')+'/'+(x.model||''))+'</td><td>'+esc(x.outcome||x.reason||'')+'</td><td class="dim">'+esc(x.latency_ms||'')+'</td></tr>').join('') + '</tbody></table></div>'; }
   $('#flow').innerHTML = h;
   $('#flow_note').textContent = 'raw row · ' + JSON.stringify(r).length + ' bytes · keys: ' + Object.keys(r).length;
+}
+
+async function flow(r){
+  flowFromRow(r);
+  if(!r || !r.session_id) return;
+  $('#flow_note').textContent = 'reconciling envelope + ledger row + gateway session…';
+  try{
+    const d = await j('/api/ui/flow?id='+encodeURIComponent(r.session_id));
+    if(!d.found){ $('#flow_note').textContent = d.note || 'no ledger row for this session'; return; }
+    const have = (d.artefacts_available||[]).map(x => '<span class="ok">'+esc(x)+'</span>').join(' + ');
+    const miss = (d.artefacts_missing||[]).map(x => '<span class="warn">'+esc(x)+' missing</span>').join(' · ');
+    const tl = (d.timeline||[]).map(x => '<tr><td class="dim">'+ts(x.ts)+'</td><td>'+lane((x.lane||'/').split('/')[0], (x.lane||'/').split('/')[1])+'</td>'
+      + '<td>'+esc(x.outcome)+(x.failure_reason?' <span class="dim">'+esc(x.failure_reason)+'</span>':'')+'</td>'
+      + '<td class="num dim">'+(x.cost_usd===null||x.cost_usd===undefined?'no price':num(x.cost_usd,8))+'</td></tr>').join('');
+    $('#flow').insertAdjacentHTML('afterbegin', '<div style="margin-bottom:6px">'
+      + '<span class="dim">reconciled:</span> ' + have + (miss ? ' · ' + miss : '')
+      + (d.session_error ? '<div class="dim">'+esc(d.session_error)+'</div>' : '')
+      + '</div>'
+      + (tl ? '<table><thead><tr><th>when</th><th>lane</th><th>outcome</th><th class="num">cost</th></tr></thead><tbody>'+tl+'</tbody></table>' : ''));
+    $('#flow_note').textContent = d.note + ' · artefacts read: ' + (d.artefacts_available||[]).join(', ');
+  }catch(e){ $('#flow_note').textContent = 'drill-down unavailable: ' + e.message; }
 }
 
 /* ---- keyboard -------------------------------------------------------- */
@@ -559,3 +581,134 @@ def series(query, store_path, now_s=None):
             'scan_window': f'newest {scan_limit} of {scanned} store rows',
             'window_start_ts': cutoff, 'window_end_ts': now,
             'store': store_path}
+
+
+# ------------------------------------------------------------------- TR-153 flow
+
+def _gateway_session(session_id, base, key):
+    """Read one session from the Hermes gateway. Returns (payload, error)."""
+    import urllib.request
+    import urllib.error
+    if not key:
+        return None, ('no gateway key in this process (set API_SERVER_KEY or '
+                      'HERMES_API_KEY for the router service) - the ledger row is all this '
+                      'drill-down can see')
+    url = base.rstrip('/') + '/api/sessions/' + session_id
+    req = urllib.request.Request(url, headers={'Authorization': 'Bearer ' + key,
+                                               'User-Agent': 'task-router-ui/1.0'})
+    try:
+        with urllib.request.urlopen(req, timeout=8) as resp:
+            return json.loads(resp.read()), None
+    except Exception as e:  # noqa: BLE001 — a drill-down must never raise
+        return None, f'{type(e).__name__}: {e}'
+
+
+def flow(query, store_path, now_s=None, session_fetch=None):
+    """TR-153: the whole story of ONE request — envelope, ledger row, gateway session.
+
+    Answers, for a session id: how was it rated, what chain was considered, which hops were tried,
+    which lane served it, what it cost and on what basis, and what the gateway session itself says.
+    The three artefacts are reconciled when they are all reachable and the response NAMES which ones
+    it could read — a drill-down that silently shows two of three is how a debug session goes wrong.
+    """
+    def one(name, default=None):
+        v = (query or {}).get(name)
+        if isinstance(v, list):
+            v = v[0] if v else None
+        return v if v not in (None, '') else default
+
+    sid = one('id') or one('session')
+    if not sid:
+        return {'error': 'id=<session_id> is required', 'ledger_rows': [], 'found': False}
+    scan_limit = int(_series_float(query, 'scan_limit', 200000) or 200000)
+
+    import collections
+    tail = collections.deque(maxlen=max(1, scan_limit))
+    scanned = 0
+    try:
+        with open(store_path, encoding='utf-8', errors='replace') as fh:
+            for line in fh:
+                if line.strip():
+                    tail.append(line)
+                    scanned += 1
+    except OSError as e:
+        return {'error': f'store unreadable: {e}', 'ledger_rows': [], 'found': False}
+
+    rows = []
+    for line in tail:
+        try:
+            d = json.loads(line)
+        except ValueError:
+            continue
+        if str(d.get('session_id')) == str(sid) or str(d.get('parent_session_id')) == str(sid):
+            rows.append(d)
+    rows.sort(key=lambda d: d.get('ts') or 0)
+    if not rows:
+        return {'found': False, 'session_id': sid, 'ledger_rows': [], 'rows_scanned': scanned,
+                'note': (f'no ledger row for session {sid} in the newest {scan_limit} of {scanned} '
+                         f'store rows — it may predate that window, or never reached the ledger')}
+
+    served = [r for r in rows if r.get('source_system') == 'router-proxy' and r.get('cost_usd') is not None]
+    proxied = [r for r in rows if r.get('source_system') == 'router-proxy']
+    last = rows[-1]
+    # The envelope belongs to the attempt that was ROUTED, which is not always the last row in the
+    # session: a session can log a later row from another source. Take the newest row that actually
+    # carries envelope fields, and fall back to the last row so an older shape still renders.
+    env = last
+    for r in reversed(rows):
+        if any(r.get(k) is not None for k in ('complexity_source', 'chain_evidence', 'hops_attempted',
+                                              'requirements', 'classifier')):
+            env = r
+            break
+    ce = env.get('chain_evidence') or {}
+    hops = ce.get('hops') or env.get('hops') or []
+    timeline = []
+    for r in rows:
+        timeline.append({'ts': r.get('ts'), 'source': r.get('source_system'),
+                         'lane': f"{r.get('provider')}/{r.get('model')}",
+                         'outcome': ('success' if r.get('success') is True else
+                                     'failed' if r.get('success') is False else
+                                     (r.get('route_outcome') or 'unknown')),
+                         'failure_reason': r.get('failure_reason'),
+                         'steps': r.get('steps'), 'cost_usd': r.get('cost_usd'),
+                         'price_basis': r.get('price_basis')})
+    gsid = next((r.get('gateway_session_id') for r in reversed(rows)
+                 if r.get('gateway_session_id')), None)
+    base = os.environ.get('ROUTER_PROXY_UPSTREAM') or 'http://127.0.0.1:8642'
+    key = os.environ.get('API_SERVER_KEY') or os.environ.get('HERMES_API_KEY')
+    if session_fetch is not None:
+        sess, sess_err = session_fetch(gsid), None
+    elif gsid:
+        sess, sess_err = _gateway_session(gsid, base, key)
+    else:
+        sess, sess_err = None, 'this request carries no gateway_session_id, so there is no session to read'
+    artefacts = {'envelope': True, 'ledger_row': True, 'gateway_session': sess is not None}
+    return {'found': True, 'session_id': sid, 'gateway_session_id': gsid,
+            'request': {'requests_logged': len(rows), 'proxied_rows': len(proxied),
+                        'served_rows': len([r for r in proxied if r.get('success') is True]),
+                        'failed_rows': len([r for r in proxied if r.get('success') is False]),
+                        'first_ts': rows[0].get('ts'), 'last_ts': last.get('ts'),
+                        'served_lane': (f"{last.get('provider')}/{last.get('model')}"
+                                        if last.get('source_system') == 'router-proxy' else None),
+                        'cost_usd': sum(r.get('cost_usd') for r in rows
+                                        if isinstance(r.get('cost_usd'), (int, float))) or None,
+                        'priced_rows': len(served)},
+            'rating': {'source': env.get('complexity_source'),
+                       'matrix': env.get('required_categories')
+                                 or (env.get('requirements') or {}).get('matrix'),
+                       'compliance': env.get('compliance')},
+            'chain': {'considered': ce.get('chain_length') or ce.get('considered'),
+                      'truncated': ce.get('truncated'), 'excluded': ce.get('excluded'),
+                      'gate': ce.get('gate'), 'exclusions': (ce.get('exclusions') or [])[:20]},
+            'hops': {'attempted': env.get('hops_attempted'), 'max': env.get('max_hops'),
+                     'detail': hops[:20], 'degrade_reason': env.get('degrade_reason'),
+                     'fallback': env.get('fallback')},
+            'classifier': env.get('classifier') or env.get('classifier_evidence'),
+            'timeline': timeline,
+            'session': sess, 'session_error': sess_err,
+            'artefacts_read': artefacts,
+            'artefacts_available': sorted(k for k, v in artefacts.items() if v),
+            'artefacts_missing': sorted(k for k, v in artefacts.items() if not v),
+            'note': f'{len(rows)} ledger row(s) for this session in the newest {scan_limit} of '
+                    f'{scanned} store rows',
+            'rows_scanned': scanned, 'ledger_rows': rows[-50:]}

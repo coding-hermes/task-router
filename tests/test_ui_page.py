@@ -109,3 +109,54 @@ def test_an_unreadable_store_is_reported_by_the_series(tmp_path):
     import router_ui_page as up
     r = up.series({}, str(tmp_path / 'nope.jsonl'))
     assert 'error' in r and r['buckets'] == []
+
+
+def test_the_flow_reconciles_what_it_can_and_names_what_it_cannot(tmp_path):
+    p = tmp_path / 'outcomes.jsonl'
+    rows = [
+        {'source_system': 'router-proxy', 'session_id': 's-1', 'provider': 'xkiro',
+         'model': 'openai/gpt-6-luna', 'ts': 1000.0, 'success': False, 'cost_usd': None,
+         'failure_reason': 'hop-wall-timeout', 'hops_attempted': 2, 'max_hops': 3,
+         'complexity_source': 'classifier', 'chain_evidence': {'chain_length': 200, 'truncated': True,
+                                                              'excluded': 30}},
+        {'source_system': 'router-proxy', 'session_id': 's-1', 'provider': 'stepfun',
+         'model': 'step-3.7-flash', 'ts': 1100.0, 'success': True, 'cost_usd': 0.02,
+         'price_basis': 'public split', 'steps': 3},
+    ]
+    p.write_text(''.join(json.dumps(r) + '\n' for r in rows))
+    import router_ui_page as up
+    r = up.flow({'id': 's-1'}, str(p))
+    assert r['found'] is True
+    assert r['request']['requests_logged'] == 2 and r['request']['served_lane'] == 'stepfun/step-3.7-flash'
+    assert r['rating']['source'] == 'classifier'
+    assert r['chain']['considered'] == 200 and r['chain']['truncated'] is True
+    assert len(r['timeline']) == 2 and r['timeline'][0]['outcome'] == 'failed'
+    assert r['artefacts_available'] == ['envelope', 'ledger_row']
+    assert r['artefacts_missing'] == ['gateway_session']
+    assert 'no gateway_session_id' in (r['session_error'] or '')
+
+
+def test_the_flow_reports_a_session_it_cannot_find(tmp_path):
+    p = tmp_path / 'outcomes.jsonl'
+    p.write_text(json.dumps({'source_system': 'router-proxy', 'session_id': 'other',
+                             'provider': 'a', 'model': 'b', 'ts': 1.0}) + '\n')
+    import router_ui_page as up
+    r = up.flow({'id': 'missing'}, str(p))
+    assert r['found'] is False and 'no ledger row' in r['note']
+
+
+def test_the_flow_requires_an_id(tmp_path):
+    import router_ui_page as up
+    r = up.flow({}, str(tmp_path / 'x.jsonl'))
+    assert 'id=<session_id> is required' in r['error']
+
+
+def test_the_flow_uses_an_injected_session_fetcher(tmp_path):
+    p = tmp_path / 'outcomes.jsonl'
+    p.write_text(json.dumps({'source_system': 'router-proxy', 'session_id': 's-9',
+                             'provider': 'a', 'model': 'b', 'ts': 1.0,
+                             'gateway_session_id': 'gw-1', 'success': True}) + '\n')
+    import router_ui_page as up
+    r = up.flow({'id': 's-9'}, str(p), session_fetch=lambda gsid: {'id': gsid, 'messages': 12})
+    assert r['artefacts_read']['gateway_session'] is True
+    assert r['session'] == {'id': 'gw-1', 'messages': 12}
