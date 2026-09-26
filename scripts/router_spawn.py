@@ -1724,10 +1724,17 @@ def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=DE
     if not isinstance(qdoc, dict):
         qdoc = {}
     caps = _effective_caps(profiles, qdoc, pid)
+    # TR-176: this used to return here — BEFORE the gate stage and BEFORE the fallback-lane
+    # section at 4.5, which is reachable only via `if not head:` after the gates. So the
+    # degraded path could not fire for the very case it exists for: a rating no model can
+    # satisfy. Measured 2026-09-26 on live traffic — a classifier rating of
+    # {spec_docs:2, reasoning:1, schema:1} returned {'error': 'no chain'} with ZERO exclusions,
+    # became `no-hops` in the ledger, and 503'd the caller, while _resolve_fallback would have
+    # served xkiro/openai/gpt-5.6-sol reporting requirements_unmet. Defer the verdict instead:
+    # let the gates and 4.5 run, and report honestly if the always-run lanes cannot serve either.
+    _had_eligible = bool(chain)
     if not chain:
-        return {'error': 'no chain — profile has no eligible models',
-                'profile': pid,
-                'data_home': _data_home_meta(src, fb)}
+        pass  # deferred to the post-fallback check below
 
     # --- 3. gates: quota + health + circuit + per-model busy --------------------
     qs = qdoc.get('providers') or {}
@@ -1905,6 +1912,19 @@ def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=DE
                 f'{head["provider"]}/{head["model"]} (always-run lane; '
                 f'DEGRADED — requirements_unmet: '
                 f'{[(c, lvl, have) for c, lvl, have in head.get("requirements_unmet", [])]})')
+
+    if not head and not _had_eligible:
+        # NOTHING was eligible (an unsatisfiable rating) and no always-run lane could serve
+        # either. Report it WITH the reasons — the old early return gave a bare message and an
+        # empty exclusion list, which is why the request could not explain itself in the ledger.
+        # Deliberately scoped: when lanes WERE eligible and all got gated, the contract is the
+        # structured fail-closed response (head None + the full exclusion list), never an error
+        # — pinned by test_absent_state_is_fail_closed_all_excluded.
+        return {'error': 'no chain — no eligible model and no fallback lane could serve',
+                'profile': pid,
+                'reasons': reasons[:12],
+                'exclusions': exclusions[:20],
+                'data_home': _data_home_meta(src, fb)}
 
     # TR-046: computed BEFORE the return; `fb` is the registry-loader's
     # fallback flag (data/tables sample read), never rebound by the
