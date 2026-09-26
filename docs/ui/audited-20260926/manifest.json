@@ -1,0 +1,27 @@
+{
+ "title": "\ud83d\udc34 task-router \u2014 data command center",
+ "url": "http://127.0.0.1:9092/ui",
+ "shots": [
+  {
+   "file": "01-identity-traffic.png",
+   "heading_visible": "traffic + cost window 24h",
+   "rows_in_expected_selector": 40,
+   "expect_sel": "#traffic tbody tr",
+   "ok": true
+  },
+  {
+   "file": "02-registry.png",
+   "heading_visible": "registry read-only reference",
+   "rows_in_expected_selector": 30,
+   "expect_sel": "#reg tbody tr",
+   "ok": true
+  },
+  {
+   "file": "03-ledger.png",
+   "heading_visible": "ledger filters: 1 active",
+   "rows_in_expected_selector": 50,
+   "expect_sel": "#ledger tbody tr",
+   "ok": true
+  }
+ ]
+}
