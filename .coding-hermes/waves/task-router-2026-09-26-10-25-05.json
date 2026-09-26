@@ -1,0 +1,79 @@
+{
+  "tick_id": "task-router-2026-09-26-10-25-05",
+  "project": "task-router",
+  "base_sha": "082e574d34bb08dc1b17d81e63adf38b057889b6",
+  "workers": [
+    {
+      "task_id": "TR-133",
+      "branch": "wt/TR-133",
+      "worktree": "~/worktrees/task-router-TR-133",
+      "model": "glm-5.3-flash",
+      "provider": "zai-glm",
+      "status": "merged",
+      "sha": "33ec2345b1e9266695f20f768e34fe12a53aee38",
+      "merge_commit": "04c2f69",
+      "guard": "PASS",
+      "focused_tests": "47 passed",
+      "merged_tree_guard": "1137 passed, 1 skipped",
+      "tier2": "unavailable: GitReins LLM credential missing; Tier 1-only verdict 0eb0b9ad"
+    },
+    {
+      "task_id": "TR-164",
+      "branch": "wt/TR-164",
+      "worktree": "~/worktrees/task-router-TR-164",
+      "model": "glm-5.3-flash",
+      "provider": "zai-glm",
+      "status": "merged",
+      "sha": "45958168311af02f10b16ecc989a43c8cfe33f10",
+      "merge_commit": "977a1dc",
+      "guard": "PASS",
+      "focused_tests": "53 passed",
+      "merged_tree_guard": "1137 passed, 1 skipped",
+      "tier2": "unavailable: GitReins LLM credential missing; Tier 1-only verdict 4186e0bd"
+    }
+  ],
+  "deferred": [
+    "TR-129",
+    "TR-131",
+    "TR-132",
+    "TR-139",
+    "TR-148",
+    "TR-162",
+    "TR-163",
+    "TR-165",
+    "TR-166",
+    "TR-167",
+    "TR-168",
+    "TR-169",
+    "TR-172",
+    "TR-173",
+    "TR-174",
+    "TR-175",
+    "TR-177",
+    "TR-178",
+    "TR-179",
+    "TR-183",
+    "TR-185"
+  ],
+  "outcomes": [
+    {
+      "task_id": "TR-133",
+      "result": "merged",
+      "branch": "wt/TR-133",
+      "sha": "33ec2345b1e9266695f20f768e34fe12a53aee38",
+      "merge_commit": "04c2f69",
+      "verdict": "0eb0b9ad",
+      "tier2": "skipped: missing credential"
+    },
+    {
+      "task_id": "TR-164",
+      "result": "merged",
+      "branch": "wt/TR-164",
+      "sha": "45958168311af02f10b16ecc989a43c8cfe33f10",
+      "merge_commit": "977a1dc",
+      "verdict": "4186e0bd",
+      "tier2": "skipped: missing credential"
+    }
+  ],
+  "finished_at": "2026-09-26T08:18:00-05:00"
+}
