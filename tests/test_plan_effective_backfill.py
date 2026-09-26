@@ -37,7 +37,7 @@ def test_it_prices_a_zero_row_and_leaves_a_priced_row_alone(tmp_path):
     assert out[0]['cost_usd'] > 0, 'a priced lane must stop reporting a driver zero'
     assert 'driver reported $0' in out[0]['price_basis']
     assert out[1]['cost_usd'] == 9.99, 'a row that already carries a cost is never touched'
-    assert out[2]['cost_usd'] in (0.0, 0), 'an unpriced lane is not given a made-up number'
+    assert out[2]['cost_usd'] is None, 'unpriced is NULL with a reason, never a bare zero'
     assert 'no declared price' in out[2]['price_basis']
     assert out[3]['cost_usd'] in (0.0, 0), 'proxy rows belong to the proxy path'
     first = out[0]['cost_usd']

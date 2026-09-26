@@ -59,10 +59,16 @@ def main():
                     if len(sample) < 5:
                         sample.append((d.get('provider'), d.get('model'), tin, tout, cost, basis))
                 else:
+                    # NO declared price -> NULL with the reason (Bane's metering law: unpriced is
+                    # None + reason, never a fake zero - an unknown price masquerading as free is
+                    # exactly how a burn trap hides). A lane that IS declared free keeps 0.0
+                    # because plan_effective_cost returns 0.0 for it, not None.
                     d['price_basis'] = basis
                     if 'no usage' in (basis or ''):
+                        d['cost_usd'] = None
                         no_usage += 1
                     else:
+                        d['cost_usd'] = None
                         unpriced += 1
             else:
                 untouched += 1
