@@ -76,11 +76,13 @@ def _write(name, rows):
     tmp = path + '.tmp'
     with open(tmp, 'w', encoding='utf-8') as fh:
         for r in rows:
-            # Canonical repo style is json.dumps DEFAULT spacing. Writing compact
-            # (separators=(',',':')) reformats every existing row: the 2026-09-26
-            # muse-code commit ballooned to 1804/1799 lines of pure churn and the
-            # maintain export then reverted the style, leaving the tree dirty.
-            fh.write(json.dumps(r) + '\n')
+            # Canonical repo style is json.dumps DEFAULT spacing AND
+            # ensure_ascii=FALSE (raw unicode). Writing ensure_ascii=True escapes
+            # every em dash in notes/plan strings, which creates mass churn and
+            # breaks tests/test_web.py::test_edit_is_surgical_and_restorable (its
+            # editor writes the unicode form, so one edited row shows as N changed
+            # lines). Verified the hard way on 2026-09-26.
+            fh.write(json.dumps(r, ensure_ascii=False) + '\n')
     os.replace(tmp, path)
 
 

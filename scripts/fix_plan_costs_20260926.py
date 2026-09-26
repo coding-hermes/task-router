@@ -53,7 +53,7 @@ for r in rows:
         r['plan_cost'] = cost
         r['note'] = f'PLAN COST CORRECTED {why} | ' + (r.get('note') or '')
         changed.append(f'plan_terms {prov}: plan_cost {old} -> {cost}')
-p.write_text('\n'.join(json.dumps(r) for r in rows) + '\n')
+p.write_text('\n'.join(json.dumps(r, ensure_ascii=False) for r in rows) + '\n')
 
 # providers
 p = TABLES / 'providers.jsonl'
@@ -64,7 +64,7 @@ for r in rows:
         old = r.get('plan')
         r['plan'] = PLAN_STRING_FIX[pid]
         changed.append(f'providers {pid}: plan "{old}" -> "{r["plan"]}"')
-p.write_text('\n'.join(json.dumps(r) for r in rows) + '\n')
+p.write_text('\n'.join(json.dumps(r, ensure_ascii=False) for r in rows) + '\n')
 
 print('\n'.join('  ' + c for c in changed))
 print(f'\n{len(changed)} field corrections applied')
