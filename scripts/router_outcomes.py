@@ -670,6 +670,82 @@ def ingest(payload, path=None, now_s=None):
     return out
 
 
+_PRICE_MAP = None
+
+
+_PRICE_MAP = None
+
+
+def _registry_prices():
+    """provider/model -> (public_in_per_m, public_out_per_m, normalized_price, public_price).
+
+    TR-070 divides the labour: a DRIVER reports what its own accounting knows (for a
+    subscription lane that is 0.0 by config), and PRICING A LANE IS THE ROUTER'S JOB. This is the
+    router's half, read once per import. The PLAN OFFSET is not a multiplier column - it is already
+    baked into `normalized_price` (xkiro luna: public_price 0.116 -> normalized 0.003867, exactly
+    /30; opencode-go mimo: 0.1456 -> 0.012757, its per-request bucket rate), so the lane's own
+    ratio is what scales a token split.
+    """
+    global _PRICE_MAP
+    if _PRICE_MAP is not None:
+        return _PRICE_MAP
+    tables = {'models': []}
+    try:
+        path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                            'data', 'tables', 'models.jsonl')
+        tables = {'models': [json.loads(l) for l in open(path, encoding='utf-8') if l.strip()]}
+    except Exception:  # noqa: BLE001
+        pass
+    m = {}
+    for d in (tables.get('models') or []):
+        pin, pout = d.get('public_in_per_m'), d.get('public_out_per_m')
+        norm, pub = d.get('normalized_price'), d.get('public_price')
+        if (pin is None and pout is None) and (norm is None):
+            continue
+        m[(d.get('provider'), d.get('model'))] = (
+            float(pin) if pin is not None else None,
+            float(pout) if pout is not None else None,
+            float(norm) if norm is not None else None,
+            float(pub) if pub is not None else None)
+    _PRICE_MAP = m
+    return m
+
+
+def plan_effective_cost(provider, model, tokens_in, tokens_out):
+    """(cost, basis) for a lane the driver priced at ZERO.
+
+    A driver's 0.0 is not a price: these providers are paid plans, and a plan lane must never
+    report free (Bane's pricing law - list on public_price, the plan offset on normalized_price).
+    When the lane declares a price and the session has usage, the router supplies the
+    plan-effective figure it is responsible for, scaled by the lane's own plan ratio
+    (normalized_price / public_price). Returns (None, reason) when no price is declared - the
+    honest NULL, never a made-up number - and a lane with no declared price keeps whatever the
+    driver said (a genuine free promo zero must not be overwritten).
+    """
+    got = _registry_prices().get((provider, model))
+    if got is None:
+        return None, 'no declared price for this lane; driver reported 0'
+    pin, pout, norm, pub = got
+    if not tokens_in and not tokens_out:
+        return None, 'no usage on the row; price not applied'
+    if pin is None and pout is None:
+        if norm is None:
+            return None, 'no declared price for this lane; driver reported 0'
+        # a blend-only lane: apply the all-in figure to the tokens actually used
+        total = (tokens_in or 0) + (tokens_out or 0)
+        return round(total / 1e6 * norm, 8), 'plan-effective blend (driver reported $0)'
+    list_cost = (tokens_in or 0) / 1e6 * (pin or 0.0) + (tokens_out or 0) / 1e6 * (pout or 0.0)
+    if norm is None:
+        return round(list_cost, 8), 'public split (driver reported $0)'
+    if not pub:
+        return round(list_cost, 8), 'public split (driver reported $0)'
+    ratio = norm / pub
+    basis = f'plan-effective: public split x plan ratio {ratio:.6g} (normalized/public; driver reported $0)'
+    if ratio == 1:
+        basis = 'public split (driver reported $0)'
+    return round(list_cost * ratio, 8), basis
+
+
 def import_hermes(db_path='~/.hermes/state.db'):
     """Hermes driver: session_model_usage -> outcome rows.
     complexity stays NULL (no declared profile at the gateway yet — TR-050's
@@ -736,12 +812,23 @@ def import_hermes(db_path='~/.hermes/state.db'):
             cost = None
         ts = float(t1) if t1 is not None else None
         wall = (float(t1) - float(t0)) if (t0 is not None and t1 is not None) else None
+        # TR-070: pricing a lane is the router's job, so a driver's zero is replaced by the
+        # plan-effective figure when the lane declares a price. Measured before this:
+        # 95 of 110 hermes cost buckets read exactly 0.0 (custom 131k samples, ollama-cloud 81k,
+        # opencode-go 11k, synthetic 7k ...) while the registry prices those very lanes, so the
+        # rolling cost-per-task the chain sort feeds on was zero across the whole fleet.
+        basis = None
+        if not cost:
+            _est, basis = plan_effective_cost(provider_of(base, prov), model,
+                                              tin or 0, tout or 0)
+            cost = _est
         out.append({'source_system': 'hermes', 'session_id': sid, 'task_label': task,
                     'complexity': None, 'profile_id': None,
                     'required_categories': None,
                     'provider': provider_of(base, prov), 'model': model,
                     'turns': calls, 'tokens_in': tin, 'tokens_out': tout,
                     'tokens_reasoning': treason, 'cost_usd': cost,
+                    'price_basis': basis,
                     'wall_time_s': wall, 'success': None, 'ts': ts})
     return out
 
