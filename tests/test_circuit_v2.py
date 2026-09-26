@@ -15,6 +15,7 @@ Acceptance criteria coverage:
 All tests are hermetic: ROUTER_STATE_DIR points at a tmp dir and no real
 provider calls are made.
 """
+import importlib.util
 import json
 import os
 import subprocess
@@ -58,6 +59,16 @@ def _state(tmp_path):
 def _write_state(tmp_path, st):
     with open(os.path.join(str(tmp_path), "circuit-state.json"), "w") as f:
         json.dump(st, f)
+
+
+def _state_or_none(tmp_path):
+    """State as written, or None when nothing was ever written (the file's
+    absence is itself evidence that no circuit event landed)."""
+    p = os.path.join(str(tmp_path), "circuit-state.json")
+    if not os.path.exists(p):
+        return None
+    with open(p) as f:
+        return json.load(f)
 
 
 # ---------------------------------------------------------------- AC1: classes --
@@ -356,3 +367,152 @@ def test_record_success_clears_provider_breaker(tmp_path):
     st = _state(tmp_path)
     assert "prov-s" not in st["v2"]["provider_breakers"]
     assert "prov-s/m0" not in st["pairs"]
+
+
+# ==================================================================== TR-190 ==
+# The failure-class mapping as a TEST TABLE, not a manual falsifier: the table
+# below is generated from FAILURE_CLASS_MAP itself, so a row added in the map
+# without a test (or a test without a map row) is a visible failure, and every
+# row's blast radius (class + window) is asserted from the same table.
+# -----------------------------------------------------------------------------
+
+_RC = None
+
+
+def _load_circuit_module():
+    """Import the real script once (test_circuit_hardening.py TR-078 pattern)."""
+    global _RC
+    if _RC is None:
+        spec = importlib.util.spec_from_file_location(
+            "router_circuit_under_test_tr190", SCRIPT)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        _RC = mod
+    return _RC
+
+
+# kind -> (class, window_s). Every kind the proxy can emit (the classification
+# seam's own vocabulary) with the class and window it must produce.
+EXPECTED_KIND_MAP = {
+    "timed out": ("overload", 120),
+    "hop-wall-timeout": ("overload", 120),
+    "idle-timeout": ("overload", 120),
+    "idle-timeout (no bytes for 180s)": ("overload", 120),
+    "429": ("quota_window", 300),
+    "429 from upstream": ("quota_window", 300),
+    "rate limit exceeded": ("quota_window", 300),
+    "connection refused": ("api_down", 1800),
+}
+
+
+def test_failure_class_table_map_exists_and_covers_expected_kinds():
+    """The centralized map exists, is frozen, and covers every expected kind."""
+    rc = _load_circuit_module()
+    mapping = getattr(rc, "FAILURE_CLASS_MAP", None)
+    assert isinstance(mapping, dict) and mapping, \
+        "router_circuit must expose a centralized FAILURE_CLASS_MAP"
+    assert mapping == EXPECTED_KIND_MAP, (
+        f"map drifted from the expected table:\n"
+        f"  missing kinds: {sorted(set(EXPECTED_KIND_MAP) - set(mapping))}\n"
+        f"  extra kinds:   {sorted(set(mapping) - set(EXPECTED_KIND_MAP))}")
+
+
+def test_failure_class_table_every_row_class_and_window():
+    """Rendered-table assertion: per kind, class + window (blast radius)."""
+    rc = _load_circuit_module()
+    rendered = []
+    for kind in sorted(EXPECTED_KIND_MAP):
+        fclass, window_s = rc.failure_class_for(kind)
+        rendered.append(f"{kind:<34} -> {fclass:<13} window={window_s}s")
+        assert fclass == EXPECTED_KIND_MAP[kind][0], kind
+        assert window_s == EXPECTED_KIND_MAP[kind][1], kind
+        # the window must be the class cooldown the circuit actually applies
+        assert rc.CLASS_COOLDOWN_S[fclass] == window_s, kind
+    print("\nTR-190 rendered mapping table:")
+    print("  kind                                 -> class         window")
+    for line in rendered:
+        print("  " + line)
+
+
+def test_failure_class_table_end_to_end_per_row(tmp_path):
+    """Each kind, driven through the real CLI, lands as its table row: class
+    on the pair, cooldown_s == window, and blast radius from the class."""
+    env = _env(tmp_path)
+    rc = _load_circuit_module()
+    provider = "prov-table"
+    for i, kind in enumerate(sorted(EXPECTED_KIND_MAP)):
+        model = f"m{i}"
+        p = run("record-failure", provider, model, "--kind", kind, "row", env_extra=env)
+        assert p.returncode == 0, (kind, p.stderr)
+        c = _state(tmp_path)["pairs"][f"{provider}/{model}"]
+        fclass, window_s = EXPECTED_KIND_MAP[kind]
+        assert c["class"] == fclass, kind
+        assert c["cooldown_s"] == window_s, kind
+        # blast radius cross-check against the live module taxonomy: the hard
+        # class is the one that can open provider-wide breakers.
+        assert rc.HARD_CLASSES == frozenset(("api_down", "out_of_credit"))
+        if fclass in rc.HARD_CLASSES:
+            assert rc.CLASS_COOLDOWN_S[fclass] == 1800 and fclass == "api_down", kind
+
+
+def test_unmapped_failure_kind_fails_loudly_not_hard_default():
+    """An unmapped kind must be an actionable error, never the hard default.
+
+    The old behavior coerced unknown classes to api_down: a typo or a new kind
+    silently opened PROVIDER-WIDE breakers — the 2026-09-25 lockup mechanism.
+    """
+    rc = _load_circuit_module()
+    with pytest.raises(ValueError) as ei:
+        rc.failure_class_for("socket hung up mid-stream")
+    msg = str(ei.value)
+    assert "socket hung up mid-stream" in msg, "error must name the unmapped kind"
+    assert "FAILURE_CLASS_MAP" in msg, "error must point at the map to extend"
+
+
+def test_cli_unmapped_kind_is_actionable_error_not_api_down(tmp_path):
+    """The CLI surfaces the unmapped kind as exit 1 + message, and records
+    nothing (no api_down pair, no provider breaker)."""
+    env = _env(tmp_path)
+    p = run("record-failure", "prov-typo", "m1", "--kind", "flaky-nic",
+            env_extra=env)
+    assert p.returncode == 1, (p.returncode, p.stdout, p.stderr)
+    assert "flaky-nic" in (p.stderr + p.stdout)
+    assert "FAILURE_CLASS_MAP" in (p.stderr + p.stdout)
+    st = _state_or_none(tmp_path)
+    assert not (st or {}).get("pairs"), "nothing may be recorded for an unmapped kind"
+    assert not (st or {}).get("v2", {}).get("provider_breakers", {}), \
+        "no provider breaker may open for an unmapped kind"
+
+
+def test_no_hop_ledger_row_can_never_open_a_provider_breaker(tmp_path):
+    """PRODUCTION INCIDENT GUARD (TR-182 lockup): a ledger row with no hop
+    (provider=none, model=none) must never open a provider-wide breaker,
+    no matter what class or reason reaches the state writer."""
+    env = _env(tmp_path)
+    # Seed an unrelated pair so the state file exists and the assertions below
+    # always run against real written state (never vacuous).
+    p = run("record-failure", "real-prov", "real-model", "--class", "overload",
+            "seed", env_extra=env)
+    assert p.returncode == 0, p.stderr
+    for fclass in ("api_down", "out_of_credit", "overload", "quota_window"):
+        p = run("record-failure", "none", "none", "--class", fclass,
+                "no open hop for this request", env_extra=env)
+        assert p.returncode == 0, (fclass, p.stderr)
+        assert "SKIPPED" in p.stdout, (fclass, p.stdout)
+    st = _state_or_none(tmp_path)
+    assert st is not None, "the seeded pair must have written state"
+    assert "real-prov/real-model" in st.get("pairs", {}), \
+        "the guard must not interfere with real lanes"
+    assert "none/none" not in st.get("pairs", {}), \
+        "a no-hop row recorded a pair event"
+    assert "none" not in (st.get("v2", {}).get("provider_breakers") or {}), \
+        "a no-hop row opened a provider-wide breaker"
+    assert (st.get("v2", {}).get("classes") or {}).get("none") is None, \
+        "a no-hop row recorded class events"
+
+
+def test_failure_class_for_is_case_insensitive_and_strips(kind="Timed Out "):
+    """Reason text arrives lowercased/stripped already, but the map must not
+    depend on that: mixed case and stray spaces resolve to the same row."""
+    rc = _load_circuit_module()
+    assert rc.failure_class_for(kind) == ("overload", 120)

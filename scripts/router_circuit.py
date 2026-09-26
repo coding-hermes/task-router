@@ -51,12 +51,17 @@ Pruning (TR-027 / TR-014):
   (re-failure after natural cooldown continues the streak).
   Provider breakers are pruned the same way when their open_until expires.
 
-CLI (argparse, TR-027 / TR-014):
-  record-failure <provider> <model> [--class CLASS] [reason...]
+CLI (argparse, TR-027 / TR-014 / TR-190):
+  record-failure <provider> <model> [--class CLASS | --kind KIND] [reason...]
   record-success <provider> <model>
   status [provider] [--json]
   clear <provider> <model> | --all
-  Exit codes: 0 ok, 2 usage error (argparse). --help on every subcommand.
+  Exit codes: 0 ok, 1 runtime error (e.g. unmapped kind/class — actionable
+  message on stderr, nothing recorded), 2 usage error (argparse). --help on
+  every subcommand. TR-190: --kind resolves free-text failure kinds through
+  FAILURE_CLASS_MAP and fails LOUDLY on an unmapped kind — never a silent
+  api_down default. A no-hop identity (provider/model 'none', '' etc.) is
+  declined before any state write (fail-open exit 0).
   Positional forms are unchanged from the pre-argparse CLI — the scheduler
   Go client (circuit_client.go) invokes record-failure/record-success with
   the exact same argv.
@@ -102,6 +107,89 @@ if _ENV_OVERRIDE:
     except Exception:
         pass
 PROVIDER_FAILURE_THRESHOLD = 3
+
+# ---------------------------------------------------------------------------
+# TR-190: the failure-kind -> class mapping as ONE table.
+#
+# The classification seam (router_server._circuit_class and the proxy's failure
+# envelope) emits failure KINDS — "hop-wall-timeout", "429 from upstream",
+# "connection refused" — and this table is the single authoritative mapping
+# kind -> (class, cooldown window). The class IS the blast radius:
+#   overload / quota_window  — SOFT: only the (provider, model) pair gates.
+#   api_down / out_of_credit — HARD: >=3 within the window open a
+#                               PROVIDER-WIDE breaker.
+# "connection refused" -> api_down (provider-wide) is the legitimate case: a
+# transport-level refusal really is every lane of that provider failing.
+#
+# BEFORE this table, record_failure coerced every unrecognized class to
+# api_down (the hard default): three slow hops or three rate-limited hops
+# removed a whole provider for 30 minutes — the measured mechanism of the
+# 2026-09-25 lockup. The seam must never silently invent a class again: an
+# unmapped kind is an actionable error (see failure_class_for), and a new kind
+# means adding a row HERE and to the test table in tests/test_circuit_v2.py
+# (EXPECTED_KIND_MAP), which pins every row's class + window.
+FAILURE_CLASS_MAP = {
+    'timed out': ('overload', 120),
+    'hop-wall-timeout': ('overload', 120),
+    'idle-timeout': ('overload', 120),
+    'idle-timeout (no bytes for 180s)': ('overload', 120),
+    '429': ('quota_window', 300),
+    '429 from upstream': ('quota_window', 300),
+    'rate limit exceeded': ('quota_window', 300),
+    'connection refused': ('api_down', 1800),
+}
+
+# A ledger row with no hop is not a provider event. The proxy records such rows
+# as (provider, model) = ('none', 'none') with the router's own error text as
+# the reason; these placeholder identities must never open a breaker of any
+# radius (TR-182: observed live — a breaker for a provider literally called
+# `none` gated nothing useful and confused the audit).
+NOT_A_LANE_IDENTITIES = frozenset(('', 'none', 'unknown', 'n/a', 'null'))
+
+
+def failure_class_for(kind=None, fclass=None):
+    """Resolve the failure KIND to (class, cooldown_seconds) — loudly.
+
+    Exactly one of `kind` (free text from the failure envelope / --kind) or
+    `fclass` (an explicit circuit class / --class) must be given.
+
+    - kind: looked up in FAILURE_CLASS_MAP (case-insensitive, stripped).
+      Unmapped text raises ValueError naming the kind and the table to extend
+      — NEVER the hard default: a silent api_down fallback is how a typo or a
+      new failure kind opened provider-wide breakers (2026-09-25 lockup).
+    - fclass: must be a member of CLASSES; unknown values raise the same way
+      (the CLI's argparse choices already guard this, and explicit callers get
+      the same loud contract).
+    """
+    if (kind is None) == (fclass is None):
+        raise ValueError(
+            "failure_class_for needs exactly one of kind= or fclass= "
+            f"(got kind={kind!r}, fclass={fclass!r})")
+    if fclass is not None:
+        c = (fclass or '').strip().lower()
+        if c not in CLASSES:
+            raise ValueError(
+                f"unmapped failure class {fclass!r}: not one of "
+                f"{sorted(CLASSES)} — extend FAILURE_CLASS_MAP in "
+                f"scripts/router_circuit.py and its test table "
+                f"(tests/test_circuit_v2.py EXPECTED_KIND_MAP) for a new kind")
+        return c, CLASS_COOLDOWN_S.get(c, BASE_COOLDOWN_S)
+    k = (kind or '').strip().lower()
+    if not k:
+        raise ValueError(
+            "failure kind is required: pass --class <"
+            f"{'|'.join(sorted(CLASSES))}> for an explicit class, or a "
+            "failure kind present in FAILURE_CLASS_MAP")
+    if k in FAILURE_CLASS_MAP:
+        c, _window = FAILURE_CLASS_MAP[k]
+        return c, CLASS_COOLDOWN_S.get(c, BASE_COOLDOWN_S)
+    raise ValueError(
+        f"unmapped failure kind {kind!r}: no row in FAILURE_CLASS_MAP "
+        f"(scripts/router_circuit.py). Add it there AND to the test table "
+        f"(tests/test_circuit_v2.py EXPECTED_KIND_MAP), or pass an explicit "
+        f"--class {'|'.join(sorted(CLASSES))}. Refusing to default to "
+        f"api_down: the class decides the blast radius "
+        f"(provider-wide for hard classes).")
 
 
 def load():
@@ -253,18 +341,40 @@ def _open_provider_breaker(st, provider, fclass, now):
     return cd, open_until
 
 
-def record_failure(provider, model, reason='', fclass='api_down'):
+def record_failure(provider, model, reason='', fclass='api_down', kind=None):
     """Record a failure for (provider, model) with class fclass.
+
+    TR-190 classification seam (loud, never silent):
+      - kind (free text, e.g. "hop-wall-timeout", "429 from upstream") is
+        resolved through FAILURE_CLASS_MAP via failure_class_for(); an unmapped
+        kind raises ValueError naming the kind and the table to extend. It is
+        NEVER coerced to the hard default.
+      - an explicit-but-unknown fclass raises the same way (the old behavior
+        silently rewrote it to api_down — the 2026-09-25 lockup mechanism).
+
+    No-hop ledger rows (TR-182): placeholder identities (provider or model in
+    NOT_A_LANE_IDENTITIES, e.g. the proxy's ('none', 'none') no-hops row) are
+    declined BEFORE any state write — a router-internal outcome is not a
+    provider event and can never open a breaker. Fail-open: exit 0.
 
     For hard classes (api_down/out_of_credit) the provider-level breaker opens
     when >=3 failures of the same class occur within the class cooldown window
     across any model of that provider.  Soft classes (overload/quota_window)
     only open the specific (provider, model) pair with a short cooldown.
     """
-    fclass = (fclass or 'api_down').lower()
-    if fclass not in CLASSES:
-        # Unknown class falls back to today's api_down behavior (fail-open).
-        fclass = 'api_down'
+    # --- no-hop guard: before the lock, before any state touch.
+    _p = (provider or '').strip().lower()
+    _m = (model or '').strip().lower()
+    if _p in NOT_A_LANE_IDENTITIES or _m in NOT_A_LANE_IDENTITIES:
+        print(f'SKIPPED {provider or ""}/{model or ""} — not a lane (no-hop '
+              f'ledger row); no circuit event recorded')
+        return 0
+    # --- loud classification: validate or raise, never hard-default.
+    fclass = fclass if fclass is not None else 'api_down'
+    if kind is not None:
+        fclass, _ = failure_class_for(kind=kind)
+    else:
+        fclass, _ = failure_class_for(fclass=fclass)
     key = f'{provider}/{model}'
     lf = _acquire_lock()
     try:
@@ -441,7 +551,9 @@ def main(argv=None):
         opts, rest = [], []
         i = 1
         while i < len(argv):
-            if argv[i] == '--class':
+            # --class and --kind both consume a value (TR-190 added --kind);
+            # move option+value pairs to the END so positionals stay contiguous.
+            if argv[i] in ('--class', '--kind') and i + 1 < len(argv):
                 opts.extend(argv[i:i + 2])
                 i += 2
             elif argv[i].startswith('--'):
@@ -464,10 +576,15 @@ def main(argv=None):
     pf.add_argument('--class', dest='fclass', default='api_down',
                     choices=sorted(CLASSES),
                     help='failure class (default: api_down)')
+    pf.add_argument('--kind', dest='kind', default=None,
+                    help='failure kind resolved through FAILURE_CLASS_MAP '
+                         '(TR-190); unmapped kinds fail loudly instead of '
+                         'defaulting to api_down')
     pf.add_argument('reason', nargs='*', default='',
                     help='optional failure reason (multiple words are joined)')
     pf.set_defaults(func=lambda a: record_failure(a.provider, a.model,
-                                                  ' '.join(a.reason), fclass=a.fclass))
+                                                  ' '.join(a.reason),
+                                                  fclass=a.fclass, kind=a.kind))
 
     ps = sub.add_parser('record-success', help='close the circuit for a pair')
     ps.add_argument('provider')
