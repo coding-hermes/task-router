@@ -333,3 +333,38 @@ def test_the_flow_says_so_plainly_when_nothing_was_skipped(tmp_path):
     r = up.flow({'id': 's-2'}, str(p))
     assert r['skipped_hops'] == []
     assert 'empty list, not missing data' in r['skipped_explanation']
+
+
+def test_the_flow_reads_the_flattened_row_shape(tmp_path):
+    """The REAL row shape: evidence is flattened into the row, not nested under chain_evidence.
+    Measured on a live row: skipped_hops is a top-level list and chain_evidence does not exist."""
+    p = tmp_path / 'outcomes.jsonl'
+    row = {'source_system': 'router-proxy', 'session_id': 'router-proxy-1', 'provider': 'xkiro',
+           'model': 'openai/gpt-6-luna', 'ts': 1790412512.0, 'success': True, 'cost_usd': 0.01,
+           'served_by_hop': 2, 'hops_attempted': 1, 'max_hops': 3, 'steps': 1,
+           'chain_length': 68, 'chain_truncated': False, 'gate': 'OPEN',
+           'exclusions': [{'hop': 1, 'provider': 'xkiro', 'model': 'minimax/minimax-m3:free',
+                           'codes': ['model-down'], 'why': ['model DOWN (2026-09-26T08:01:00+00:00)']}],
+           'skipped_hops': [{'hop': 1, 'provider': 'xkiro', 'model': 'minimax/minimax-m3:free',
+                             'codes': ['model-down'], 'why': ['model DOWN (2026-09-26T08:01:00+00:00)']}]}
+    p.write_text(json.dumps(row) + '\n')
+    import router_ui_page as up
+    r = up.flow({'id': 'router-proxy-1'}, str(p))
+    assert r['chain']['considered'] == 68 and r['chain']['gate'] == 'OPEN'
+    assert len(r['skipped_hops']) == 1 and r['skipped_hops'][0]['codes'] == ['model-down']
+    assert r['hops']['served_position'] == 2 and r['hops']['attempted'] == 1
+    assert 'SKIPPED BY GATES' in r['skipped_explanation'] and 'model-down' in r['skipped_explanation']
+
+
+def test_an_older_row_without_the_field_is_still_explained(tmp_path):
+    """Flatten form, written before skipped_hops existed: derive it from the exclusions present."""
+    p = tmp_path / 'outcomes.jsonl'
+    row = {'source_system': 'router-proxy', 'session_id': 'old-1', 'provider': 'a', 'model': 'b',
+           'ts': 1.0, 'success': True, 'served_by_hop': 3, 'hops_attempted': 1,
+           'exclusions': [{'hop': 1, 'provider': 'p', 'model': 'm', 'codes': ['quota-gated'],
+                           'why': ['gated']}]}
+    p.write_text(json.dumps(row) + '\n')
+    import router_ui_page as up
+    r = up.flow({'id': 'old-1'}, str(p))
+    assert len(r['skipped_hops']) == 1
+    assert 'quota-gated' in r['skipped_explanation']

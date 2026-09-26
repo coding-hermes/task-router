@@ -796,7 +796,11 @@ def flow(query, store_path, now_s=None, session_fetch=None):
                                               'requirements', 'classifier')):
             env = r
             break
-    ce = env.get('chain_evidence') or {}
+    # Rows FLATTEN the chain evidence into the row itself (chain, chain_length, chain_truncated,
+    # exclusions, gate, skipped_hops...). Older/other writers nest it under chain_evidence. Read both.
+    ce = env.get('chain_evidence')
+    if not isinstance(ce, dict) or not ce:
+        ce = env
     hops = ce.get('hops') or env.get('hops') or []
     timeline = []
     for r in rows:
@@ -808,8 +812,12 @@ def flow(query, store_path, now_s=None, session_fetch=None):
                          'failure_reason': r.get('failure_reason'),
                          'steps': r.get('steps'), 'cost_usd': r.get('cost_usd'),
                          'price_basis': r.get('price_basis')})
-    skipped = ce.get('skipped_hops')
-    if skipped is None:
+    skipped = env.get('skipped_hops')
+    if not isinstance(skipped, list):
+        skipped = ce.get('skipped_hops')
+    if not isinstance(skipped, list):
+        # the flatten form omits it only on rows written before the field existed: derive it from the
+        # exclusions that ARE there, so an older row is still explained rather than left ambiguous
         skipped = [{'hop': e.get('hop'), 'provider': e.get('provider'), 'model': e.get('model'),
                     'codes': e.get('codes'), 'why': (e.get('why') or [])[:2]}
                    for e in (ce.get('exclusions') or [])]
@@ -852,7 +860,8 @@ def flow(query, store_path, now_s=None, session_fetch=None):
                                  or (env.get('requirements') or {}).get('matrix'),
                        'compliance': env.get('compliance')},
             'chain': {'considered': ce.get('chain_length') or ce.get('considered'),
-                      'truncated': ce.get('truncated'), 'excluded': ce.get('excluded'),
+                      'truncated': ce.get('chain_truncated') if ce.get('chain_truncated') is not None else ce.get('truncated'),
+                      'excluded': (len(ce.get('exclusions') or []) if ce.get('exclusions') is not None else ce.get('excluded')),
                       'gate': ce.get('gate'), 'exclusions': (ce.get('exclusions') or [])[:20]},
             'hops': {'attempted': attempts, 'max': env.get('max_hops'),
                      'served_position': served_pos,
