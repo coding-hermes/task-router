@@ -2221,6 +2221,13 @@ def _chain_evidence(resolved, chain):
     # a malformed resolver output must not raise inside a ledger row). The same filtered list
     # backs both the exclusions field and TR-158's skip detail, so the two can never disagree.
     _skips = _hops(excl, _PROXY_EXCLUSION_ROW_CAP)
+    # TR-184: a resolver that emits its own skip COUNT is the authority on the count (that is the
+    # field's documented shape); the detail is always the filtered exclusions. Which of the two
+    # produced the number is recorded, so a row whose count and detail disagree is auditable
+    # instead of mysterious.
+    _resolver_skips = (resolved or {}).get('skipped_hops')
+    _skip_count = _resolver_skips if isinstance(_resolver_skips, int) else len(_skips)
+    _skip_source = 'resolver' if isinstance(_resolver_skips, int) else 'derived-from-exclusions'
     return {
         'chain': _hops(chain, _PROXY_CHAIN_ROW_CAP),
         'chain_length': len(chain),
@@ -2238,7 +2245,8 @@ def _chain_evidence(resolved, chain):
         # reading 0 breaks on a list), and TR-158's which-positions detail rides alongside it under
         # its own key. Additive, never a replacement - and every entry is a real object, because a
         # malformed exclusions payload must not raise here.
-        'skipped_hops': len(_skips),
+        'skipped_hops': _skip_count,
+        'skipped_hops_source': _skip_source,
         'skipped_hops_detail': [
             {'hop': e.get('hop'), 'provider': e.get('provider'), 'model': e.get('model'),
              'codes': e.get('codes'), 'why': (e.get('why') or [])[:2]}
