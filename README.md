@@ -65,6 +65,22 @@ visible, editable policy file instead of a silent zero-chain surprise. Edit it
 to gate providers; delete it and spawn fails closed (nothing resolves) rather
 than guessing.
 
+### Verify your install
+
+```bash
+# One-command overview: registry source/freshness, health, quota, circuit, in-flight, gaps.
+router status
+
+# End-to-end resolve: profile → eligibility → price sort → gates → head hop.
+router spawn --profile P0_FORE --format json | jq .head
+```
+
+A clean `router status` overview plus a non-null `head` object from `spawn`
+prove the installed CLI dispatches, the profile registry and gates load, and a
+full resolve produces a concrete first hop — no credentials, seeding, or
+network required (a fresh clone resolves against the committed sample tables
+until you run `router seed`; `jq` is only there to slice out the head).
+
 Useful read-only checks:
 
 ```bash
