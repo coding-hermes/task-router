@@ -1930,6 +1930,115 @@ def _chain_evidence(resolved, chain):
     }
 
 
+# ---------------------------------------------------------------------------
+# TR-172 Session stats in the ledger.
+#
+# Bane's design intent: the end-of-request reply carries the SESSION's accounting
+# (tokens, time, turns, other stats) and that belongs in the JSONL.
+#
+# Measured against the live gateway (2026-09-26) on both wire shapes: the reply does
+# NOT carry them. A /v1/chat/completions body is {choices, created, id, model, object,
+# usage{prompt_tokens, completion_tokens, total_tokens}}, the streamed /v1/responses
+# final event is {id, object, status, created_at, model, output[], usage{input_tokens,
+# output_tokens, total_tokens}}, and the only session fact either one sends is the
+# `X-Hermes-Session-Id` HEADER. Turns, cumulative session tokens, cache/reasoning
+# splits, duration, tool calls and cost are all absent — the per-request `usage` is
+# coarse (47,030/2 on a measured one-word turn) while the session's own fine-grained
+# meters live in the gateway's state.db.
+#
+# So the router FETCHES them for the session it just used and stamps them on the row.
+# Read-only, one bounded lookup per request, and every field None when the session
+# cannot be read — a missing measurement is never an invented 0.
+# ---------------------------------------------------------------------------
+def _hermes_state_db():
+    """The gateway's state.db path (env override wins, then the standard location)."""
+    return (os.environ.get('ROUTER_HERMES_STATE_DB')
+            or str(Path.home() / '.hermes' / 'state.db'))
+
+
+#: Columns the row wants, in the shape state.db stores them. Kept as data so a schema
+#: move shows up as a missing field rather than an exception in the request path.
+_SESSION_FIELDS = ('message_count', 'tool_call_count', 'input_tokens', 'output_tokens',
+                   'cache_read_tokens', 'cache_write_tokens', 'reasoning_tokens',
+                   'api_call_count', 'started_at', 'last_activity_at', 'title',
+                   'billing_provider', 'billing_base_url', 'estimated_cost_usd',
+                   'actual_cost_usd', 'cost_status', 'cost_source')
+
+
+def _hermes_session_stats(gateway_session_id, timeout_s=3.0):
+    """The session's own accounting, straight from the gateway's state.db.
+
+    Returns None when there is no id to look up, the session is not there yet, or the
+    database cannot be read — the caller stamps None and says nothing false. Never
+    raises and never blocks the request path beyond `timeout_s`.
+    """
+    if not gateway_session_id:
+        return None
+    import sqlite3
+    db = _hermes_state_db()
+    con = None
+    try:
+        con = sqlite3.connect(f'file:{db}?mode=ro', uri=True, timeout=timeout_s)
+        cur = con.execute(
+            'SELECT ' + ', '.join(_SESSION_FIELDS) + ' FROM sessions WHERE id = ?',
+            (gateway_session_id,))
+        row = cur.fetchone()
+        if not row:
+            return None
+        stats = dict(zip(_SESSION_FIELDS, row))
+
+        def _num(v):
+            """state.db may store these as TEXT; a tokens field that is a string breaks
+            every downstream sum silently, so coerce, and leave an unparseable value
+            alone rather than inventing one."""
+            if v is None or isinstance(v, (int, float)):
+                return v
+            try:
+                f = float(v)
+            except (TypeError, ValueError):
+                return v
+            return int(f) if f.is_integer() else f
+
+        for _k in ('message_count', 'tool_call_count', 'input_tokens', 'output_tokens',
+                   'cache_read_tokens', 'cache_write_tokens', 'reasoning_tokens',
+                   'api_call_count', 'started_at', 'last_activity_at',
+                   'estimated_cost_usd', 'actual_cost_usd'):
+            if _k in stats:
+                stats[_k] = _num(stats[_k])
+        # turns: the session's own api_call_count IS the turn count. `turns` has been a
+        # hardcoded None on every proxy row since the field was added; this is the fact
+        # it was waiting for.
+        stats['turns'] = stats.get('api_call_count')
+        # duration: measured from the session's own clock, only when both ends are
+        # present (state.db stores epoch seconds).
+        try:
+            if stats.get('started_at') is not None and stats.get('last_activity_at') is not None:
+                stats['duration_s'] = round(
+                    float(stats['last_activity_at']) - float(stats['started_at']), 3)
+        except (TypeError, ValueError):
+            stats['duration_s'] = None
+        # per-model split: what this session actually ran on, and how much of it.
+        try:
+            models = con.execute(
+                'SELECT model, billing_provider, api_call_count, input_tokens, output_tokens '
+                'FROM session_model_usage WHERE session_id = ? ORDER BY api_call_count DESC',
+                (gateway_session_id,)).fetchall()
+            stats['models'] = [{'model': m, 'provider': p, 'api_calls': c,
+                                'tokens_in': ti, 'tokens_out': to} for m, p, c, ti, to in models]
+        except Exception:  # noqa: BLE001
+            stats['models'] = None
+        stats['source'] = 'state.db'
+        return stats
+    except Exception:  # noqa: BLE001 — the ledger must never fail a served request
+        return None
+    finally:
+        try:
+            if con is not None:
+                con.close()
+        except Exception:  # noqa: BLE001
+            pass
+
+
 def _proxy_record(provider, model, ok, requirements, reason='', latency_s=None,
                   source='router-proxy', session_id=None,
                   tokens_in=None, tokens_out=None, cost_usd=None,
@@ -1940,7 +2049,7 @@ def _proxy_record(provider, model, ok, requirements, reason='', latency_s=None,
                   served_by_hop=None, max_hops=None, complexity_source=None,
                   degrade_reason=None, steps=None, chain_evidence=None,
                   classifier_evidence=None, attempts=None,
-                  prompt_chars=None, prompt_sha=None):
+                  prompt_chars=None, prompt_sha=None, session_stats=None):
     """One outcome row per attempt + breaker evidence (best effort, fail-open).
 
     TR-071: `source` is the DRIVER identity when the caller declared one
@@ -1970,6 +2079,14 @@ def _proxy_record(provider, model, ok, requirements, reason='', latency_s=None,
                'complexity_sig': requirements.get('complexity_sig'),
                'profile_id': requirements.get('profile_id'),
                'turns': None,
+               # TR-172: the SESSION's own accounting (its turn count, cumulative
+               # tokens, duration, tool calls, cost) fetched from the gateway's
+               # state.db, because the reply only carries per-request usage plus a
+               # session-id header. Deliberately NOT folded into `turns`: that field
+               # already means the accumulated turns of THIS ledger row, and two
+               # different quantities under one name is how a column stops being
+               # trustworthy.
+               'session': session_stats,
                # TR-143: steps used to be the constant 1 on every row, so a
                # task that needed four fallback hops and one that answered
                # first-try were the same row. Real step count (the ladder
@@ -2299,6 +2416,9 @@ def proxy_chat(path, body, headers, max_hops=None, upstream=None):
                       tokens_reasoning=meters['tokens_reasoning'],
                       gateway_session_id=(payload.get('_router_hermes_session_id')
                                           if isinstance(payload, dict) else None),
+                      session_stats=_hermes_session_stats(
+                          payload.get('_router_hermes_session_id')
+                          if isinstance(payload, dict) else None),
                       route_outcome='served' if ok else 'failed',
                       failure_reason=None if ok else attempt.get('reason'),
                       hops_attempted=len(meta['ladder']), served_by_hop=(hop.get('hop') if ok else None),
