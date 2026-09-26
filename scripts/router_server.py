@@ -35,6 +35,7 @@ MAX_BODY_BYTES = 1024 * 1024
 if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 import router_outcomes  # noqa: E402  (stdlib-only sibling script module)
+import router_ui_page  # noqa: E402  (TR-150: the one self-contained page)
 import router_health  # noqa: E402  (TR-087 health plane)
 
 JSON_RESPONSE = {
@@ -101,6 +102,13 @@ def build_openapi():
         ]),
         "/status": ("getStatus", "Server and registry status", []),
         "/proxy/stats": ("getProxyStats", "Rolling per-model and per-complexity-band averages over the proxy's own traffic (TR-144): samples, success rate, cost/task, steps, wall time, cache ratio + failure reason mix. `windows` = hours (csv), `grouping` = model|band|model_band", []),
+        "/ui": ("getUi", "TR-150: the Data Command Center page, served by this service (one self-contained document, no CDN, read-only)", []),
+        "/api/ui/board": ("getUiBoard", "TR-150/156: search the board JSONL for the UI. Reports total_rows/total_matched like the ledger search.", [
+            {"name": "q", "in": "query", "required": False, "schema": string, "description": "Free text over id, title, status, reasoning, notes"},
+            {"name": "status", "in": "query", "required": False, "schema": string, "description": "Exact board status"},
+            {"name": "limit", "in": "query", "required": False, "schema": integer, "description": "Page size (default 25, max 200)"},
+            {"name": "offset", "in": "query", "required": False, "schema": integer, "description": "Matches to skip"},
+        ]),
         "/api/ui/ledger": ("getUiLedger", "TR-151: search the outcome ledger (free text q + outcome/complexity_source/provider/model/band/since/until filters). Every response reports rows_scanned, scan_limit and truncation so a search can never look complete when it was cut short.", [
             {"name": "q", "in": "query", "required": False, "schema": string, "description": "Free text over provider, model, session, label, failure reason, band"},
             {"name": "provider", "in": "query", "required": False, "schema": string, "description": "Exact provider id"},
@@ -524,6 +532,11 @@ class RouterApplication:
                                  'stale': True, 'live_error': live.get('error')}
                 return 200, {'proxy': 'task-router', 'upstream': None, 'source': 'unavailable',
                              'error': live.get('error') or 'capabilities unavailable'}
+            if path == "/api/ui/board":
+                # TR-150/156: the board panel's search over the repo's JSONL board.
+                return 200, router_ui_page.board_search(
+                    query, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                                        '.coding-hermes', 'board', 'tasks.jsonl'))
             if path == "/api/ui/ledger":
                 # TR-151: the raw-data search. Reports how much of the store it read.
                 return 200, ui_ledger(query)
@@ -2704,9 +2717,23 @@ class RouterHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(encoded)
 
+    def _send_html(self, status, html):
+        encoded = html.encode('utf-8')
+        self.send_response(status)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Length", str(len(encoded)))
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+        self.wfile.write(encoded)
+
     def do_GET(self):
         try:
             parsed = urlparse(self.path)
+            if parsed.path in ('/ui', '/ui/'):
+                # TR-150: the data command center, served by this service itself. No separate build,
+                # no second deploy, and nothing fetched from the network at view time.
+                self._send_html(200, router_ui_page.page_html())
+                return
             if parsed.path in ('/v1/models', '/models'):
                 # Interop: every OpenAI-compatible client probes the model list
                 # first, and Hermes does too. A 404 here reads as "provider is
