@@ -764,7 +764,7 @@ outcome       ${j.route_outcome}${j.failure_reason?' / '+j.failure_reason:''}${j
 rating        ${(j.rating||{}).source}  profile=${(j.rating||{}).profile_id||'-'}  band=${(j.rating||{}).band||'-'}
 levels        ${JSON.stringify((j.rating||{}).required_categories||{})}
 served by     ${(j.served_by||{}).provider}/${(j.served_by||{}).model}
-chain         steps=${(j.chain||{}).steps} hops tried=${(j.chain||{}).hops_attempted} max=${(j.chain||{}).max_hops} served_hop=${(j.chain||{}).served_by_hop}
+chain         steps=${(j.chain||{}).steps} hops tried=${(j.chain||{}).hops_attempted} max=${(j.chain||{}).max_hops} served_hop=${(j.chain||{}).served_by_hop} (CHAIN POSITION not attempt number - earlier lanes can be skipped by gates)
 tokens        in=${(j.tokens||{}).in} out=${(j.tokens||{}).out} cache_read=${(j.tokens||{}).cache_read} reasoning=${(j.tokens||{}).reasoning}
 cost          ${(j.cost||{}).usd==null?('unpriced ('+(j.cost||{}).reason+')'):(j.cost||{}).usd}  basis=${(j.cost||{}).basis||'-'}
 wall          ${j.wall_time_s}s
