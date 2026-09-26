@@ -250,8 +250,12 @@ def apply_lanes(path, provider, new_lanes, plan_tier, price_evidence, drift=None
                     note = (f' | {today} catalog sticker $0; window_cost KEPT '
                             f'({r.get("normalized_price")})')
                 elif 'window-cost-pending' not in str(r.get('price_evidence') or '').lower():
-                    note = (f' | {today} window-cost-pending: zero-price SKU, no '
-                            f'established sibling cost')
+                    # Wording follows the trapfix vocabulary the pricing audit
+                    # greps for ('no paid sibling' / 'reseller catalog listings'):
+                    # a pending tag must name WHY, or the class report and the
+                    # audit stop agreeing. See tests/test_pricing_audit_classes.py.
+                    note = (f' | {today} window-cost-pending: zero-price SKU, no paid '
+                            f'sibling in any carrier catalog to price against')
                 if note:
                     incoming['price_evidence'] = (r.get('price_evidence') or '') + note
             lane.update(incoming)
