@@ -1,0 +1,12 @@
+{
+  "tick_id": "task-router-2026-09-26-20-27-32",
+  "project": "task-router",
+  "base_sha": "0116f8c",
+  "tasks": [
+    {"id": "TR-134", "worktree": "~/worktrees/task-router-TR-134", "branch": "wt/TR-134", "base_sha": "0116f8c", "model": "glm-5.3-flash", "provider": "zai-glm", "depends_on": [], "files": ["README.md"]},
+    {"id": "TR-168", "worktree": "~/worktrees/task-router-TR-168", "branch": "wt/TR-168", "base_sha": "0116f8c", "model": "glm-5.3-flash", "provider": "zai-glm", "depends_on": [], "files": ["data/tables/models.jsonl", "tests/*registry*data*"]},
+    {"id": "TR-199", "worktree": "~/worktrees/task-router-TR-199", "branch": "wt/TR-199", "base_sha": "0116f8c", "model": "glm-5.3-flash", "provider": "zai-glm", "depends_on": [], "files": ["scripts/router_lifecycle.py", "scripts/router_provider_import.py", "tests/*lifecycle*"]}
+  ],
+  "wave_budget": 5,
+  "status": "prepared"
+}
