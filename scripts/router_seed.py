@@ -194,6 +194,22 @@ try:
         _lc_rows = [json.loads(_l) for _l in _f if _l.strip()]
 except FileNotFoundError:
     pass
+def overlay_update(overlay, updatable):
+    """(columns, args) for ONE lifecycle overlay — ONLY the keys it names.
+
+    TR-180: this used to be `SET <every column> = _o.get(c)`, so any column the
+    overlay did not mention was set to None. Measured on the real data: the
+    4-key retirement notice for ollama-cloud/deepseek-v4-flash:0731 left that
+    lane with 31 of its 37 fields NULL — its price, context_limit, plan_tier and
+    every perf field gone — because a notice about ONE DATE rewrote the row.
+
+    A key-wise merge is the honest contract: you touch what you name, and naming
+    a key with null still clears it explicitly. Nothing vanishes silently.
+    """
+    cols = [c for c in updatable if c in overlay]
+    return cols, [overlay[c] for c in cols]
+
+
 for _o in _lc_rows:
     _prov, _mod = _o.get('provider'), _o.get('model')
     if not _prov or not _mod:
@@ -202,9 +218,11 @@ for _o in _lc_rows:
         raise SystemExit(f'lifecycle overlay without provenance (R4): {_prov}/{_mod}')
     if con.execute('SELECT 1 FROM models WHERE provider=? AND model=?',
                    [_prov, _mod]).fetchone():
-        _sets = ', '.join(f'{c} = ?' for c in _LC_UPDATABLE)
-        _args = [_o.get(c) for c in _LC_UPDATABLE] + [_prov, _mod]
-        con.execute(f'UPDATE models SET {_sets} WHERE provider=? AND model=?', _args)
+        _cols, _vals = overlay_update(_o, _LC_UPDATABLE)
+        if _cols:
+            _sets = ', '.join(f'{c} = ?' for c in _cols)
+            con.execute(f'UPDATE models SET {_sets} WHERE provider=? AND model=?',
+                        _vals + [_prov, _mod])
     else:
         # announced lane not yet in any catalog — insert it (NULLs where unknown)
         con.execute(f"INSERT INTO models VALUES ({','.join('?' * len(_LC_COLS))})",
