@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Task Router → Scheduler: Proxy Readiness Report — 2026-09-26</title>
+<style>
+  :root{--ink:#101418;--dim:#5b6672;--line:#e2e7ec;--good:#0f7b3f;--bad:#b3261e;--warn:#8a5a00;--bg:#fbfcfd;--card:#fff}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;padding:28px 18px 80px}
+  .wrap{max-width:980px;margin:0 auto}
+  h1{font-size:30px;line-height:1.2;margin:0 0 6px}
+  .sub{color:var(--dim);font-size:14px;margin-bottom:26px}
+  h2{font-size:21px;margin:38px 0 12px;padding-bottom:7px;border-bottom:2px solid var(--line)}
+  h3{font-size:16px;margin:22px 0 8px}
+  p{margin:10px 0}
+  code,pre{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13px}
+  code{background:#eef2f6;padding:1px 5px;border-radius:4px}
+  pre{background:#0f1419;color:#e6edf3;padding:14px;border-radius:8px;overflow-x:auto;line-height:1.5}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px 18px;margin:14px 0}
+  .verdict{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:18px 0}
+  @media(max-width:720px){.verdict{grid-template-columns:1fr}}
+  .v{border-radius:10px;padding:15px 17px;border:1px solid var(--line);background:#fff}
+  .v.ok{border-left:5px solid var(--good)}
+  .v.no{border-left:5px solid var(--bad)}
+  .v .tag{font-size:12px;letter-spacing:.09em;text-transform:uppercase;color:var(--dim);font-weight:700}
+  .v .say{font-size:19px;font-weight:700;margin:5px 0 4px}
+  .ok .say{color:var(--good)} .no .say{color:var(--bad)}
+  table{width:100%;border-collapse:collapse;margin:12px 0;font-size:14px}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--dim);background:#f4f7fa}
+  td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .pill{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;border:1px solid currentColor}
+  .pill.g{color:var(--good)} .pill.b{color:var(--bad)} .pill.w{color:var(--warn)}
+  nav{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px 18px;margin:20px 0}
+  nav ol{margin:6px 0 0 20px;padding:0}
+  nav li{margin:3px 0}
+  .kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:16px 0}
+  @media(max-width:720px){.kpi{grid-template-columns:1fr 1fr}}
+  .k{background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+  .k .num{font-size:23px;font-weight:700;line-height:1.15}
+  .k .lbl{font-size:12px;color:var(--dim);margin-top:3px}
+  .bad-sn{background:#fff5f4;border:1px solid #f3c9c5}
+  .note{font-size:13px;color:var(--dim)}
+  ol.dec li{margin:9px 0}
+  footer{margin-top:46px;padding-top:14px;border-top:1px solid var(--line);color:var(--dim);font-size:13px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Proxying the Scheduler through Task Router</h1>
+<div class="sub">Readiness report · 26 September 2026 · evidence from live service on this box · task-router @ <code>83b3461</code></div>
+
+<div class="verdict">
+  <div class="v ok">
+    <div class="tag">Plumbing</div>
+    <div class="say">READY</div>
+    <div>The router accepts the scheduler's exact call shape, survives its long turns, and reports honest failures, stats and session custody.</div>
+  </div>
+  <div class="v no">
+    <div class="tag">Model selection on that shape</div>
+    <div class="say">NOT READY</div>
+    <div>On <code>/v1/responses</code> every request fell through to the <b>priciest</b> profile (<code>P0_FORE</code>) because the classifier's reply could not be parsed. One fix, then it selects.</div>
+  </div>
+</div>
+
+<div class="kpi">
+  <div class="k"><div class="num">200</div><div class="lbl">scheduler shape accepted, live</div></div>
+  <div class="k"><div class="num">232 s</div><div class="lbl">longest proven turn (old wall: 180 s)</div></div>
+  <div class="k"><div class="num">1006</div><div class="lbl">tests passing, 0 failing</div></div>
+  <div class="k"><div class="num">$0.0652</div><div class="lbl">cost of a 3-token answer, unrated</div></div>
+</div>
+
+<nav>
+  <b>Contents</b>
+  <ol>
+    <li><a href="#flip">The flip — what changes, and how to undo it</a></li>
+    <li><a href="#contract">What the scheduler actually sends (the contract we built against)</a></li>
+    <li><a href="#proof">Evidence: the ten things that had to be true</a></li>
+    <li><a href="#blocker">The blocker in detail: why the scheduler's shape is unrated</a></li>
+    <li><a href="#ui">Does task-router have a web UI?</a></li>
+    <li><a href="#decisions">Decisions that are yours</a></li>
+    <li><a href="#left">What remains, and what it costs</a></li>
+    <li><a href="#raw">Appendix: raw evidence</a></li>
+  </ol>
+</nav>
+
+<h2 id="flip">1. The flip</h2>
+<p>The scheduler calls Hermes at <code>gateway.url</code>, default <code>http://127.0.0.1:8642</code>. Today that value is unset, so ticks talk to Hermes directly and the router is only in the loop for <i>model selection</i> (<code>router_spawn.py</code>), not for the calls themselves.</p>
+<p>Pointing it at the proxy puts the router in the middle of every Hermes call:</p>
+<pre>SCHEDULER_GATEWAY_URL=http://127.0.0.1:9391     # the proxy; revert by unsetting
+
+# same path, same key, same body — the proxy mirrors /v1/responses and
+# returns the gateway's own headers and session id unchanged.</pre>
+<div class="card">
+  <b>Two operational notes before you flip.</b>
+  <ul>
+    <li><b>A proxy restart drops in-flight proxied traffic.</b> Measured today: a long run died at 84.7 s because a deploy restarted the proxy mid-request. Deploy the proxy outside tick windows, or accept that a restart costs the calls in flight.</li>
+    <li><b>Fail-open is deliberate.</b> The proxy never blocks a caller: any internal error returns an envelope with the reason and the tiers it tried, so a router fault degrades selection, not the tick.</li>
+  </ul>
+</div>
+
+<h2 id="contract">2. What the scheduler actually sends</h2>
+<p>Established from the scheduler's own Go source (<code>internal/scheduler/gateway_stream.go</code>) and reproduced live against the proxy:</p>
+<table>
+  <tr><th>Property</th><th>Value</th></tr>
+  <tr><td>Method &amp; path</td><td><code>POST /v1/responses</code></td></tr>
+  <tr><td>Body</td><td><code>{"input": "...", "stream": true}</code></td></tr>
+  <tr><td>Session headers</td><td><code>X-Hermes-Session-Key</code> / <code>X-Hermes-Session-Id</code></td></tr>
+  <tr><td>Streaming</td><td>SSE keepalives roughly every 10 s</td></tr>
+  <tr><td>Timeout semantics</td><td><b>idle</b> deadline, not a wall clock</td></tr>
+</table>
+
+<h2 id="proof">3. Evidence: the ten things that had to be true</h2>
+<table>
+  <tr><th>#</th><th>Requirement</th><th>Measurement</th><th>?</th></tr>
+  <tr><td>1</td><td>Scheduler's shape accepted end to end</td><td>HTTP <b>200 in 5.74 s</b>; <code>Content-Type: text/event-stream</code>; <code>X-Hermes-Session-Id: 7b32285c…</code>; frames <code>response.created → response.completed → [DONE]</code></td><td><span class="pill g">PASS</span></td></tr>
+  <tr><td>2</td><td>Long turns survive (idle budget, not wall)</td><td>A <b>~225 s</b> shell turn returned <b>200 in 232.05 s</b> — the old 180 s wall killed every live hop at 180.1 s. 114 stream events, <code>streamed: true</code>, served <code>stepfun/step-3.5-flash</code> (hop 3)</td><td><span class="pill g">PASS</span></td></tr>
+  <tr><td>3</td><td>Failure path is honest, not blind</td><td>Reason codes <code>idle-timeout</code> / <code>hop-wall-timeout</code> / <code>transport-error</code> / <code>upstream-4xx|5xx</code> / <code>unservable-2xx</code> / <code>no-hops</code>; deadline kills carry <code>outcome=timeout</code> + <code>timeout_kind</code></td><td><span class="pill g">PASS</span></td></tr>
+  <tr><td>4</td><td>A failed call leaves a ledger row too</td><td>Exhausted-route envelope: hops attempted, per-hop reasons, terminal reason, session, wall time; cost/usage as explicit <code>null</code> with reason. No-eligible-hop exit also records</td><td><span class="pill g">PASS</span></td></tr>
+  <tr><td>5</td><td>Per-request statistics on success <i>and</i> failure</td><td>Row carries <code>price_basis</code>, cache read tokens, reasoning tokens, session id, <code>route_outcome</code>, <code>failure_reason</code>, hops attempted / served / max, complexity source, real <b>step count</b></td><td><span class="pill g">PASS</span></td></tr>
+  <tr><td>6</td><td>Rolling averages in JSONL</td><td><code>GET /proxy/stats</code>: scanned <b>323,332</b> ledger rows, matched <b>53</b> proxy rows, 18 groups, keyed by model <i>and</i> complexity band over 24 h / 7 d</td><td><span class="pill g">PASS</span></td></tr>
+  <tr><td>7</td><td>Chain of custody: envelope ↔ ledger ↔ Hermes session</td><td>One live request: envelope <code>session_id</code> and <code>gateway_session_id</code> match the ledger row (wall time agreeing to the millisecond), and the gateway session exists in <code>state.db</code> (<code>source: api_server</code>)</td><td><span class="pill g">PASS</span></td></tr>
+  <tr><td>8</td><td>Health tells the truth about what is loaded</td><td><code>/health</code> reports the <b>loaded</b> commit plus a <code>stale</code> flag. Appending one newline to a source file flipped it to <code>stale: true</code> with no restart — the 25-hour-stale proxy that looked fresh can no longer hide</td><td><span class="pill g">PASS</span></td></tr>
+  <tr><td>9</td><td>Unknown paths say so, with the surface</td><td>Unknown POST now answers <b>404 + the full 9-endpoint surface</b> instead of a misleading 403; <code>GET /v1/capabilities</code> is served</td><td><span class="pill g">PASS</span></td></tr>
+  <tr><td>10</td><td>Selection evidence is countable</td><td><b>33</b> exclusions, every one carrying a machine-readable code, zero unknown: <code>{quota-gated 25, health-down 15, model-down 7, circuit-open 1, model-slow 1}</code>; one authority now owns requirement levels</td><td><span class="pill g">PASS</span></td></tr>
+</table>
+<p class="note">Test suite at this commit: <b>1006 passed, 1 skipped, 0 failed</b> (5:00). Progression during this work: 849 → 927 → 940 → 963 → 984 → 996 → 1006, every step from added contracts rather than relaxed ones.</p>
+
+<h2 id="blocker">4. The blocker: why the scheduler's shape is unrated</h2>
+<p>Same box, same minute, two prompts, two different paths — this is the whole problem in two rows:</p>
+<table>
+  <tr><th>Live call</th><th>complexity_source</th><th>Profile chosen</th><th>Tokens in / out</th><th>Cost</th></tr>
+  <tr><td>chat path — “haiku about a broken pipe”</td><td><code>classifier</code></td><td><code>{creative: 0}</code></td><td class="n">46,325 / 202</td><td class="n">$0.0657</td></tr>
+  <tr class="bad-sn"><td><b>/v1/responses — the scheduler's shape</b></td><td><code>default</code></td><td><b><code>P0_FORE</code></b> (priciest)</td><td class="n">46,596 / <b>3</b></td><td class="n">$0.0652</td></tr>
+</table>
+<p>The stated reason is on the row itself:</p>
+<pre>"problems": ["no JSON object in classifier output"]</pre>
+<p>The classifier <i>ran</i> (<code>model: deepseek-flash</code>, <code>prompt_version: v1</code>); it answered in prose instead of JSON, the extractor found no object, the rating was abandoned, and the request fell back to the most expensive profile available. The answer itself was three tokens. The bill was <b>46,596 input tokens at a frontier price</b> — because the gateway injects a large context into every call, profile choice multiplies over a big number.</p>
+<div class="card bad-sn">
+  <b>Two parts to the fix, and they are independent:</b>
+  <ol>
+    <li><b>Make the parse survive prose.</b> Strip code fences, take the outermost balanced object, and retry once with a JSON-only instruction before giving up. The failure mode is a formatting slip, not an inability to rate.</li>
+    <li><b>Make the fallback cheap instead of precious.</b> This is the decision below (TR-139). A bad cheap choice is recoverable; a silent jump to the priciest lane bills frontier prices for a haiku.</li>
+  </ol>
+</div>
+<p class="note"><b>Honest limits of this number.</b> 65 proxied rows exist; 53 predate the stats row and carry no verdict, 10 are my own probes that <i>declared</i> a profile (which bypasses the classifier entirely), 1 was rated, 1 was this parse miss. The mechanism is proven; the failure <i>rate</i> is not yet measurable, and I will not quote one. That is also why the fix ships with a counter (rated vs fell-back, by path), so the rate becomes visible instead of inferred.</p>
+
+<h2 id="ui">5. Does task-router have a web UI?</h2>
+<p><b>No.</b> There is no built-out UI. The repo contains exactly one HTML file, and it is a test plan I authored for review (<code>docs/proxy-test-plan-2026-09-25.html</code>); no JavaScript, CSS, component, template or static directory exists, and the server exposes no HTML or dashboard route.</p>
+<p>What exists instead is a clean JSON surface, which is what a UI would be built on:</p>
+<table>
+  <tr><th>Endpoint</th><th>Shows</th></tr>
+  <tr><td><code>GET /health</code></td><td>loaded commit + <code>stale</code> flag — is the running code the committed code?</td></tr>
+  <tr><td><code>GET /proxy/stats</code></td><td>rolling cost / steps / wall time / success rate / cache ratio, by model <i>and</i> complexity band, 24 h and 7 d</td></tr>
+  <tr><td><code>GET /v1/capabilities</code></td><td>the served surface and the proxy's mirror capabilities</td></tr>
+  <tr><td>chains / outcomes / circuit</td><td>per-project chains, eligibility exclusions with codes, circuit state</td></tr>
+</table>
+<p>If you want one, the honest scoping is: <b>a single self-contained page</b> (no build step, no framework) that reads those endpoints and renders live chains with their exclusion reasons, the rolling cost table, proxied traffic with outcome and failure code, and the loaded-commit banner. Roughly a day of work, and it needs no new backend — the endpoints are already there and already honest. Say the word and I will build it; I would not build it unasked.</p>
+
+<h2 id="decisions">6. Decisions that are yours</h2>
+<ol class="dec">
+  <li><b>TR-139 — what should happen when the rating step fails?</b><br>
+  <span class="ok"><b>Recommended:</b> fall back to the <i>cheapest eligible</i> profile and raise an alert.</span> A cheap mispick is recoverable and visible; today's behaviour silently bills frontier prices on a formatting slip. The alternative — keep <code>P0_FORE</code> and alert — protects quality on genuinely complex work but spends max on every classifier hiccup.</li>
+  <li><b>TR-146 — where should the proxy read the gateway credential for its capabilities probe?</b> The probe has never authenticated (401 at every boot), so capability discovery has been empty since day one. Options: read it from the service environment at start, or read it from a runtime file. This is a placement decision about a secret, so it is yours, not mine.</li>
+  <li><b>Scheduler spawn credential.</b> <code>POST /projects/{ns}/spawn</code> needs an operator credential (<code>SCHED-GAP-1602</code>) and returns 401. Without it I cannot trigger the foreman deliberately and must wait for ticks. Tell me where the credential lives (name only) and I will wire it read-only.</li>
+  <li><b>Rotation.</b> Five key <i>names</i> were travelling through <code>ps</code>-visible argv across 8 fleet scripts — fixed today, but rotating them is your call: <code>DAGGER_API_TOKEN</code>, the scheduler <code>KEY</code>, the <code>sub-scout-dry</code> provider keys, <code>API_KEY</code> (Tailscale), <code>OPENROUTER_API_KEY</code>.</li>
+</ol>
+
+<h2 id="left">7. What remains, and what it costs</h2>
+<table>
+  <tr><th>Work</th><th>Size</th><th>Blocks the flip?</th></tr>
+  <tr><td>Classifier parse robustness (fences, outermost object, one retry)</td><td>small — code + contracts + deploy</td><td><b>Yes</b> — it is the difference between selecting and defaulting</td></tr>
+  <tr><td>TR-139 direction applied + rated-vs-fell-back counter in <code>/proxy/stats</code></td><td>small</td><td>Yes (the counter is what makes the rate visible)</td></tr>
+  <tr><td>TR-146 capabilities probe credential</td><td>small, once you choose the source</td><td>No</td></tr>
+  <tr><td>Scheduler spawn credential</td><td>small, once you name the source</td><td>No — ticks pick work up regardless</td></tr>
+  <tr><td>Web UI (if wanted)</td><td>~1 day, no backend changes</td><td>No</td></tr>
+</table>
+
+<h2 id="raw">8. Appendix: raw evidence</h2>
+<h3>The scheduler's shape, accepted live</h3>
+<pre>$ curl -sN -X POST http://127.0.0.1:9391/v1/responses -H 'content-type: application/json' \
+    -H "x-hermes-session-key: tr-resp-…" -d '{"model":"router","input":"Reply with exactly the word READY…","stream":true}'
+
+HTTP/1.0 200 OK
+Content-Type: text/event-stream; charset=utf-8
+X-Hermes-Session-Id: 7b32285c-bc06-4f34-9b88-88a74f93027b
+
+event: response.created
+data: {"type": "response.created", "response": {"id": "resp_cefe1859dc254c65a365de8e7ae7", …}}
+data: {"type": "response.completed", …, "model": "glm-5.3", …}
+data: [DONE]</pre>
+
+<h3>The ledger row that call produced</h3>
+<pre>ts                  = 1790390091.3379576
+session_id          = router-proxy-1790390089653
+gateway_session_id  = 7b32285c-bc06-4f34-9b88-88a74f93027b
+profile_id          = P0_FORE          &lt;-- unrated fallback
+complexity_source   = default
+route_outcome       = served
+steps               = 1
+max_hops / tried    = 3 / 1
+wall_time_s         = 1.683
+tokens_in / out     = 46596 / 3
+cost_usd            = 0.0652476
+price_basis         = public split (in_per_m/out_per_m)</pre>
+
+<h3>The long-turn proof</h3>
+<pre>HTTP 200 in 232.05s   (old wall clock killed live hops at 180.1s)
+served_by   : stepfun / step-3.5-flash   (hop 3 of the chain)
+streamed    : true   |   stream events: 114
+latency     : 231.704s
+tokens      : 189,879 in / 1,055 out      cost: $0.0193 (price basis attached)
+agent output: "Command completed, exit code 0. Verbatim output: tick-1 … tick-5"</pre>
+
+<h3>Selection exclusions, live, every one coded</h3>
+<pre>{ "quota-gated": 25, "health-down": 15, "model-down": 7, "circuit-open": 1, "model-slow": 1 }
+unknown codes: 0        (33 exclusions total)</pre>
+
+<h3>Credentials out of argv (landed alongside)</h3>
+<pre>new pattern: curl -s -m 6 -K /dev/fd/63 http://10.255.255.1:9/          &lt;-- no secret
+old pattern: curl -s -m 6 -H Authorization: Bearer &lt;token&gt; http://…      &lt;-- secret in argv
+10 sites / 8 scripts fixed; 0 inline credential sites remain.
+Three of those scripts were RUNNING during the edit, so each file was written to a
+sibling and moved with mv(1) — atomic — because bash re-reads a script by byte offset.</pre>
+
+<footer>
+  Built from live measurements on this box. Commits: task-router <code>83b3461</code> · /home/kara <code>9d64956</code>.
+  Board: TR-136 … TR-147 closed with evidence; TR-139, TR-146 open on your decisions.
+</footer>
+</div>
+</body>
+</html>
