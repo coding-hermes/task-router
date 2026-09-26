@@ -59,6 +59,16 @@ def _patch_opener(monkeypatch, resp):
 
 # ---------- capture ----------
 
+
+@pytest.fixture(autouse=True)
+def _isolated_router_state(tmp_path, monkeypatch):
+    """TR-182: this file drives proxy_chat with fake upstreams that RAISE, and every failed
+    hop is reported to the circuit. Without an isolated state dir those failures land in the
+    LIVE ~/.hermes/model-router/circuit-state.json as p1/bad, p1/m1, p2/m2 -- measured there,
+    next to a real doctrine pin. A unit test must not write the router's live gates."""
+    monkeypatch.setenv('ROUTER_STATE_DIR', str(tmp_path))
+    monkeypatch.setenv('ROUTING_OUTCOMES_FILE', str(tmp_path / 'outcomes.jsonl'))
+
 def test_the_buffered_path_captures_the_gateway_session(monkeypatch):
     _patch_opener(monkeypatch, _Resp(json.dumps({'choices': [{'message': {'content': 'x'}}]}).encode()))
     monkeypatch.setenv('ROUTER_PROXY_STREAM_HOPS', '0')

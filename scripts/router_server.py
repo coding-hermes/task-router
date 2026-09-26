@@ -2039,6 +2039,30 @@ def _hermes_session_stats(gateway_session_id, timeout_s=3.0):
             pass
 
 
+_NOT_A_LANE = frozenset(('', 'none', 'unknown', 'n/a', 'null'))
+
+
+def _circuit_class(reason):
+    """Decide the failure CLASS, because the class decides the blast radius (TR-182).
+
+    HARD (api_down 1800s / out_of_credit 14400s) opens a PROVIDER-WIDE breaker once >=3 of
+    the same class land inside the class window, across any model of that provider; SOFT
+    (overload 120s / quota_window 300s) gates only the (provider, model) pair.
+
+    Every proxy failure used to be recorded with NO class, so all of them took the hard
+    default: three slow hops or three rate-limited hops removed a whole provider for 30
+    minutes. That is the mechanism measured in the 2026-09-25 lockup -- 65 failed rows
+    became provider-wide breakers, then every chain was gated, then every request died as
+    "no open hop". A timeout is not a provider outage, so it must not be recorded as one.
+    """
+    r = (reason or '').lower()
+    if any(t in r for t in ('timeout', 'timed out', 'idle', 'deadline', 'too slow')):
+        return 'overload'
+    if any(t in r for t in ('429', 'quota', 'rate limit', 'rate-limit', 'rate_limit')):
+        return 'quota_window'
+    return 'api_down'
+
+
 def _proxy_record(provider, model, ok, requirements, reason='', latency_s=None,
                   source='router-proxy', session_id=None,
                   tokens_in=None, tokens_out=None, cost_usd=None,
@@ -2142,9 +2166,23 @@ def _proxy_record(provider, model, ok, requirements, reason='', latency_s=None,
     except Exception:  # noqa: BLE001
         pass
     try:
-        verb = 'record-success' if ok else 'record-failure'
-        args = [verb, provider, model] + ([] if ok else [reason or 'transport failure'])
-        _subprocess_text("router_circuit.py", args)
+        _p = (provider or '').strip()
+        _m = (model or '').strip()
+        if _p.lower() in _NOT_A_LANE or _m.lower() in _NOT_A_LANE:
+            # TR-182: a router-internal outcome is NOT a provider event. The no-hops row
+            # calls _proxy_record('none', 'none', ...) with the router's own error string
+            # as the reason, and this branch shelled out unchanged -- so it opened a
+            # breaker for a provider called `none` whose reason read "no open hop for
+            # this request". Observed live in circuit-state.json (open_until in the
+            # future), i.e. the router was gating traffic on its own failure text.
+            pass
+        elif ok:
+            _subprocess_text("router_circuit.py", ['record-success', _p, _m])
+        else:
+            _subprocess_text("router_circuit.py",
+                             ['record-failure', _p, _m,
+                              '--class', _circuit_class(reason),
+                              reason or 'transport failure'])
     except Exception:  # noqa: BLE001
         pass
 

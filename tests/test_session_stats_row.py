@@ -71,6 +71,16 @@ def _rows(path):
     return [json.loads(l) for l in open(path) if l.strip()]
 
 
+
+@pytest.fixture(autouse=True)
+def _isolated_router_state(tmp_path, monkeypatch):
+    """TR-182: this file drives proxy_chat with fake upstreams that RAISE, and every failed
+    hop is reported to the circuit. Without an isolated state dir those failures land in the
+    LIVE ~/.hermes/model-router/circuit-state.json as p1/bad, p1/m1, p2/m2 -- measured there,
+    next to a real doctrine pin. A unit test must not write the router's live gates."""
+    monkeypatch.setenv('ROUTER_STATE_DIR', str(tmp_path))
+    monkeypatch.setenv('ROUTING_OUTCOMES_FILE', str(tmp_path / 'outcomes.jsonl'))
+
 def test_the_lookup_reads_turns_tokens_time_and_cost(gateway_db):
     st = rsrv._hermes_session_stats('api-abc123')
     assert st['turns'] == 7, 'turns IS the session api_call_count'
