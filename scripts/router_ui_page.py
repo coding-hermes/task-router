@@ -75,6 +75,7 @@ PAGE = r"""<!doctype html>
   <select id="f_provider"><option value="">provider…</option></select>
   <select id="f_band"><option value="">band…</option></select>
   <select id="f_outcome"><option value="">outcome…</option><option>success</option><option>failed</option></select>
+  <select id="series_group"><option value="total">all traffic</option><option value="band">by band</option><option value="lane">by lane</option></select>
   <select id="win"><option value="24">24h</option><option value="72">72h</option><option value="168">7d</option></select>
 </header>
 
@@ -84,6 +85,11 @@ PAGE = r"""<!doctype html>
       <h2>traffic + cost <span class="dim" id="traffic_window"></span></h2>
       <div class="body" id="traffic"><span class="skel">loading…</span></div>
       <div class="note" id="traffic_note">—</div>
+    </section>
+    <section>
+      <h2>over time <span class="dim" id="series_window"></span></h2>
+      <div class="body" id="series"><span class="skel">loading…</span></div>
+      <div class="note" id="series_note">—</div>
     </section>
     <section>
       <h2>gates <span class="dim">quota · health · circuit</span></h2>
@@ -182,6 +188,40 @@ async function traffic(){
       + ' · cost rows disclose priced samples';
     $('#traffic_note').className = 'note';
   }catch(e){ $('#traffic').innerHTML = '<span class="bad">traffic unavailable</span>'; $('#traffic_note').className='note bad'; $('#traffic_note').textContent = e.message; }
+}
+
+/* ---- traffic over time (TR-152) ---------------------------------------- */
+const BAR = (n, max) => {
+  if(!max || !n) return '<span class="dim">·</span>';
+  const chars = '▁▂▃▄▅▆▇█';
+  const i = Math.max(0, Math.min(chars.length-1, Math.round((n/max)*(chars.length-1))));
+  return '<span class="ok">'+chars[i].repeat(Math.max(1, Math.min(12, Math.ceil(n/max*12))))+'</span>';
+};
+async function series(){
+  const win = $('#win').value;
+  const grouping = $('#series_group') ? $('#series_group').value : 'total';
+  $('#series_window').textContent = 'hourly · window '+win+'h · by '+grouping;
+  try{
+    const d = await j('/api/ui/series?bucket=hour&window_h='+win+'&group='+grouping);
+    const buckets = d.buckets || [];
+    if(!buckets.length){ $('#series').innerHTML = '<span class="dim">no buckets in this window</span>'; }
+    else {
+      const max = Math.max(...buckets.map(b => b.requests || 0), 1);
+      $('#series').innerHTML = '<table><thead><tr><th>hour</th><th>key</th><th>req</th><th></th>'
+        + '<th class="num">served</th><th class="num">failed</th><th class="num">cost</th><th class="num">priced</th></tr></thead><tbody>'
+        + buckets.slice(-40).map(b => {
+            const cost = (b.cost_usd === null || b.cost_usd === undefined)
+              ? '<span class="dim" title="'+esc(b.cost_reason||'')+'">no priced sample</span>' : num(b.cost_usd, 4);
+            return '<tr><td class="dim">'+new Date(b.start_ts*1000).toLocaleString(undefined,{month:'2-digit',day:'2-digit',hour:'2-digit'})+'</td>'
+              + '<td class="dim">'+esc(b.key||'all')+'</td><td class="num">'+esc(b.requests)+'</td><td>'+BAR(b.requests, max)+'</td>'
+              + '<td class="num '+(b.served?'ok':'dim')+'">'+esc(b.served)+'</td>'
+              + '<td class="num '+(b.failed?'bad':'dim')+'">'+esc(b.failed)+'</td>'
+              + '<td class="num">'+cost+'</td><td class="num dim">'+esc(b.cost_samples)+'</td></tr>';
+          }).join('') + '</tbody></table>';
+    }
+    $('#series_note').textContent = d.rows_in_window + ' row(s) in the '+d.window_h+'h window · '
+      + d.rows_scanned + ' store row(s) scanned (' + (d.scan_window||'') + ') · every bucket carries its own sample and priced count';
+  }catch(e){ $('#series').innerHTML = '<span class="bad">series unavailable</span>'; $('#series_note').textContent = e.message; }
 }
 
 /* ---- gates ----------------------------------------------------------- */
@@ -301,7 +341,8 @@ document.addEventListener('keydown', (e) => {
 let t = null;
 $('#q').addEventListener('input', () => { clearTimeout(t); t = setTimeout(refresh, 250); });
 ['#f_provider','#f_band','#f_outcome'].forEach(s => $(s).addEventListener('change', refresh));
-$('#win').addEventListener('change', traffic);
+$('#win').addEventListener('change', function(){ traffic(); series(); });
+if($('#series_group')) $('#series_group').addEventListener('change', series);
 
 async function filters(){
   try{
@@ -318,7 +359,7 @@ async function filters(){
 }
 
 function refresh(){ ledger(); board(); }
-identity(); traffic(); gates(); filters().then(refresh); refresh();
+identity(); traffic(); series(); gates(); filters().then(refresh); refresh();
 setInterval(identity, 60000);
 </script>
 </body>
@@ -388,3 +429,133 @@ def board_search(query, path):
             'rows_scanned': total_rows, 'total_matched': matched,
             'scan_truncated': False, 'truncated': matched > offset + len(trimmed),
             'limit': limit, 'offset': offset, 'path': path}
+
+
+# ------------------------------------------------------------------ TR-152 series
+
+def _series_float(query, name, default=None):
+    v = (query or {}).get(name)
+    if isinstance(v, list):
+        v = v[0] if v else None
+    try:
+        return float(v) if v not in (None, '') else default
+    except (TypeError, ValueError):
+        return default
+
+
+def series(query, store_path, now_s=None):
+    """TR-152: traffic and cost over time, bucketed, by lane / by band / total.
+
+    Every bucket carries its own sample count AND how many of its samples were priced, because a cost
+    column built from unpriced rows would read as free. Buckets with no traffic are emitted as empty
+    rather than omitted, so a quiet hour is visible as a quiet hour instead of a gap in the axis.
+    The response names the window it read and how many rows it scanned.
+    """
+    def one(name, default=None):
+        v = (query or {}).get(name)
+        if isinstance(v, list):
+            v = v[0] if v else None
+        return v if v not in (None, '') else default
+
+    bucket = (one('bucket') or 'hour').lower()
+    if bucket not in ('hour', 'day'):
+        bucket = 'hour'
+    width = 3600.0 if bucket == 'hour' else 86400.0
+    window_h = _series_float(query, 'window_h', 24.0)
+    group = (one('group') or 'total').lower()
+    scan_limit = int(_series_float(query, 'scan_limit', 200000) or 200000)
+    window_s = max(1.0, window_h) * 3600.0
+
+    import collections
+    import time as _time
+    # injectable clock: a fixed timestamp is how a caller (or a test) pins a window
+    now = float(now_s) if now_s is not None else _time.time()
+    cutoff = now - window_s
+    # tail-scan: the newest scan_limit rows cover the requested window for any realistic window
+    tail = collections.deque(maxlen=max(1, scan_limit))
+    scanned = 0
+    bad = 0
+    try:
+        with open(store_path, encoding='utf-8', errors='replace') as fh:
+            for line in fh:
+                if line.strip():
+                    tail.append(line)
+                    scanned += 1
+    except OSError as e:
+        return {'error': f'store unreadable: {e}', 'buckets': [], 'rows_scanned': 0}
+
+    rows = []
+    parse_failed = 0
+    for line in tail:
+        try:
+            d = json.loads(line)
+        except ValueError:
+            parse_failed += 1
+            continue
+        ts = d.get('ts')
+        if not isinstance(ts, (int, float)) or ts < cutoff:
+            continue
+        rows.append(d)
+
+    keys = collections.defaultdict(lambda: {
+        'requests': 0, 'served': 0, 'failed': 0, 'unknown': 0, 'lanes': set(),
+        'tokens_in': 0, 'tokens_out': 0, 'cost': 0.0, 'cost_samples': 0,
+        'hops': collections.Counter(), 'bands': collections.Counter()})
+    for d in rows:
+        b = int(d['ts'] // width) * width
+        lane = f"{d.get('provider')}/{d.get('model')}"
+        band = d.get('complexity_sig') or 'unknown'
+        if group == 'band':
+            k = band
+        elif group == 'lane':
+            k = lane
+        else:
+            k = 'all'
+        g = keys[(b, k)]
+        g['requests'] += 1
+        if d.get('success') is True:
+            g['served'] += 1
+        elif d.get('success') is False:
+            g['failed'] += 1
+        else:
+            g['unknown'] += 1
+        g['lanes'].add(lane)
+        g['tokens_in'] += int(d.get('tokens_in') or 0)
+        g['tokens_out'] += int(d.get('tokens_out') or 0)
+        g['bands'][band] += 1
+        c = d.get('cost_usd')
+        if isinstance(c, (int, float)):
+            g['cost'] += float(c)
+            g['cost_samples'] += 1
+        hops = d.get('hops_attempted')
+        if hops is None:
+            hops = 'no-hops' if d.get('route_outcome') == 'no-hops' else 'unknown'
+        g['hops'][str(hops)] += 1
+
+    # emit every bucket in the window, including the quiet ones
+    first = int(cutoff // width) * width
+    buckets = []
+    b = first
+    while b <= int(now // width) * width:
+        labels = sorted({k for (bb, k) in keys if bb == b})
+        if not labels:
+            buckets.append({'start_ts': b, 'group': group, 'requests': 0, 'served': 0, 'failed': 0,
+                            'unknown': 0, 'lanes': 0, 'tokens_in': 0, 'tokens_out': 0,
+                            'cost_usd': None, 'cost_samples': 0, 'hops': {}, 'note': 'no traffic in this bucket'})
+        for k in labels:
+            g = keys[(b, k)]
+            buckets.append({'start_ts': b, 'group': group, 'key': k,
+                            'requests': g['requests'], 'served': g['served'], 'failed': g['failed'],
+                            'unknown': g['unknown'], 'lanes': len(g['lanes']),
+                            'tokens_in': g['tokens_in'], 'tokens_out': g['tokens_out'],
+                            'cost_usd': (round(g['cost'], 8) if g['cost_samples'] else None),
+                            'cost_samples': g['cost_samples'],
+                            'cost_reason': (None if g['cost_samples'] else 'no priced sample in this bucket'),
+                            'hops': dict(g['hops'])})
+        b += int(width)
+    return {'bucket': bucket, 'bucket_s': width, 'window_h': window_h, 'group': group,
+            'buckets': buckets, 'bucket_count': len(buckets),
+            'rows_in_window': len(rows), 'rows_scanned': scanned, 'parse_failed': parse_failed,
+            'scan_window': f'newest {scan_limit} of {scanned} store rows',
+            'window_start_ts': cutoff, 'window_end_ts': now,
+            'store': store_path}

@@ -62,3 +62,50 @@ def test_board_search_reports_what_it_scanned(tmp_path):
 def test_board_search_on_a_missing_board_is_an_error_not_an_empty_board(tmp_path):
     r = ui.board_search({}, str(tmp_path / 'nope.jsonl'))
     assert 'error' in r and r['total_rows'] == 0
+
+
+def test_the_series_buckets_are_honest_about_samples(tmp_path):
+    p = tmp_path / 'outcomes.jsonl'
+    now = 1_800_000_000.0
+    rows = [
+        {'source_system': 'router-proxy', 'provider': 'a', 'model': 'm', 'ts': now - 60,
+         'success': True, 'cost_usd': 0.5, 'tokens_in': 10, 'tokens_out': 2},
+        {'source_system': 'router-proxy', 'provider': 'a', 'model': 'm', 'ts': now - 120,
+         'success': False, 'cost_usd': None, 'tokens_in': 5, 'tokens_out': 1},
+    ]
+    p.write_text(''.join(json.dumps(r) + '\n' for r in rows))
+    import router_ui_page as up
+    r = up.series({'bucket': 'hour', 'window_h': '6', 'group': 'total'}, str(p), now_s=now)
+    live = [b for b in r['buckets'] if b.get('requests')]
+    assert len(live) == 1
+    b = live[0]
+    assert b['requests'] == 2 and b['served'] == 1 and b['failed'] == 1
+    assert b['cost_samples'] == 1, 'a bucket must disclose how many samples were priced'
+    assert b['cost_usd'] == 0.5 and 'no priced sample' not in (b.get('cost_reason') or '')
+    # quiet buckets are present, and say they are quiet rather than reading as zero traffic
+    quiet = [x for x in r['buckets'] if not x.get('requests')]
+    assert quiet and all(x['note'] == 'no traffic in this bucket' for x in quiet)
+    assert r['rows_scanned'] == 2
+
+
+def test_the_series_can_group_by_band_and_by_lane(tmp_path):
+    p = tmp_path / 'outcomes.jsonl'
+    now = 1_800_000_000.0
+    rows = [
+        {'source_system': 'router-proxy', 'provider': 'a', 'model': 'm1', 'ts': now - 60,
+         'complexity_sig': 'band-x', 'cost_usd': 0.1},
+        {'source_system': 'router-proxy', 'provider': 'b', 'model': 'm2', 'ts': now - 60,
+         'complexity_sig': 'band-y', 'cost_usd': 0.2},
+    ]
+    p.write_text(''.join(json.dumps(r) + '\n' for r in rows))
+    import router_ui_page as up
+    by_band = {b['key'] for b in up.series({'group': 'band'}, str(p), now_s=now)['buckets'] if b.get('key')}
+    by_lane = {b['key'] for b in up.series({'group': 'lane'}, str(p), now_s=now)['buckets'] if b.get('key')}
+    assert by_band == {'band-x', 'band-y'}
+    assert by_lane == {'a/m1', 'b/m2'}
+
+
+def test_an_unreadable_store_is_reported_by_the_series(tmp_path):
+    import router_ui_page as up
+    r = up.series({}, str(tmp_path / 'nope.jsonl'))
+    assert 'error' in r and r['buckets'] == []

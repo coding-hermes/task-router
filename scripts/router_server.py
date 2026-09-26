@@ -103,6 +103,12 @@ def build_openapi():
         "/status": ("getStatus", "Server and registry status", []),
         "/proxy/stats": ("getProxyStats", "Rolling per-model and per-complexity-band averages over the proxy's own traffic (TR-144): samples, success rate, cost/task, steps, wall time, cache ratio + failure reason mix. `windows` = hours (csv), `grouping` = model|band|model_band", []),
         "/ui": ("getUi", "TR-150: the Data Command Center page, served by this service (one self-contained document, no CDN, read-only)", []),
+        "/api/ui/series": ("getUiSeries", "TR-152: traffic + cost over time, bucketed hourly or daily, by lane / band / total. Every bucket carries its sample count and how many samples were priced.", [
+            {"name": "bucket", "in": "query", "required": False, "schema": string, "description": "hour (default) | day"},
+            {"name": "window_h", "in": "query", "required": False, "schema": number, "description": "How far back to read (default 24)"},
+            {"name": "group", "in": "query", "required": False, "schema": string, "description": "total (default) | lane | band"},
+            {"name": "scan_limit", "in": "query", "required": False, "schema": integer, "description": "Store rows to tail-scan (default 200000)"},
+        ]),
         "/api/ui/board": ("getUiBoard", "TR-150/156: search the board JSONL for the UI. Reports total_rows/total_matched like the ledger search.", [
             {"name": "q", "in": "query", "required": False, "schema": string, "description": "Free text over id, title, status, reasoning, notes"},
             {"name": "status", "in": "query", "required": False, "schema": string, "description": "Exact board status"},
@@ -532,6 +538,10 @@ class RouterApplication:
                                  'stale': True, 'live_error': live.get('error')}
                 return 200, {'proxy': 'task-router', 'upstream': None, 'source': 'unavailable',
                              'error': live.get('error') or 'capabilities unavailable'}
+            if path == "/api/ui/series":
+                # TR-152: traffic and cost over time, bucketed, with per-bucket sample counts.
+                return 200, router_ui_page.series(
+                    query, router_outcomes.outcomes_path())
             if path == "/api/ui/board":
                 # TR-150/156: the board panel's search over the repo's JSONL board.
                 return 200, router_ui_page.board_search(
