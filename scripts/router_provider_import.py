@@ -95,6 +95,13 @@ def normalize(catalog, preset):
         pin, pout = dig(e, fm['price_in']), dig(e, fm['price_out'])
         pin, pout = _scaled_price(pin, scale), _scaled_price(pout, scale)
         price = None if pin is None or pout is None else round(blend_in * float(pin) + blend_out * float(pout), 6)
+        if price == 0 and ':free' not in str(mid):
+            # A carrier catalog that prices a NON-free SKU at $0 has told us nothing about its
+            # value (plan-included SKU). A literal 0.0 is a fake zero: it sorts the lane to the
+            # head of every chain it clears — the burn trap the golden heads exist to catch.
+            # Unpriced is the honest state; the preset's sticker table may still price it.
+            price = None
+            pin = pout = None
         if price is None:
             # A carrier whose catalog has no pricing block (commandcode) declares
             # the vendor sticker as DATA in the preset (`sticker_prices`); the
@@ -129,6 +136,8 @@ def normalize(catalog, preset):
             norm_price = float(pin)
         cap_v = dig(e, fm.get('vision', ''))
         cap_t = dig(e, fm.get('thinking', ''))
+        if norm_price == 0 and ':free' not in str(mid):
+            norm_price = None
         lane = {
             'provider': preset['id'],
             'model': mid,
@@ -254,6 +263,21 @@ def apply_lanes(path, provider, new_lanes, plan_tier, price_evidence, drift=None
                             f'established sibling cost')
                 if note:
                     incoming['price_evidence'] = (r.get('price_evidence') or '') + note
+            elif (not priced_from_catalog and not (incoming.get('normalized_price') or 0)
+                  and (r.get('normalized_price') or 0) == 0):
+                # TR-176: an EXISTING non-free lane carrying a literal $0 is a fake zero — the
+                # carrier catalog reports no price for it, so an earlier import invented one and
+                # it sorted the lane to the head of every chain it cleared (the burn trap).
+                # Clear it to UNPRICED with a reason. Note the None-filter above drops incoming
+                # Nones at construction, so this must be assigned explicitly to reach the row.
+                incoming['normalized_price'] = None
+                incoming['public_price'] = None
+                incoming['public_in_per_m'] = None
+                incoming['public_out_per_m'] = None
+                priced_from_catalog = False
+                incoming['price_evidence'] = (r.get('price_evidence') or '') + (
+                    f' | {today} fake $0 CLEARED: non-free SKU, carrier catalog reports no '
+                    f'price — unpriced (unknown, never free)')
             lane.update(incoming)
             lane['provider'] = provider
             lane['model'] = r['model']

@@ -1153,12 +1153,16 @@ def _legacy_sort_key(m):
     loader into tables['_payg_providers'] (no I/O in the sort path). The
     bucket key goes BEFORE plan_tier so even tier-1 plan hops rank ahead of
     PAYG, and public prices are untouched (reporting stays official)."""
+    priced = 0 if m.get('normalized_price') is not None else 1
     if m.get('_payg'):
-        return (1, 1 << 30, 0, _effective_price(m), _context_sort_key(m),
+        return (1, 1 << 30, priced, _effective_price(m), _context_sort_key(m),
                 m.get('model') or '', m.get('provider') or '')
     return (0,
             m.get('plan_tier') if m.get('plan_tier') is not None else 1 << 30,
-            0,
+            # TR-176: the 3rd slot was an unused literal 0. It now separates PRICED lanes from
+            # unpriced ones, so an unknown price stops tying with a genuine $0 lane at the head
+            # of the chain (the fake-cheap burn trap). Unknown sinks; it is never the cheapest.
+            priced,
             _effective_price(m), _context_sort_key(m),
             m.get('model') or '', m.get('provider') or '')
 
