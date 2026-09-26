@@ -290,7 +290,8 @@ async function board(){
         + list.map(r => {
             const arts = (r.artifacts||[]).map(a => a.exists
               ? '<span class="ok" title="'+esc(a.path)+'">ok</span>'
-              : '<span class="bad" title="'+esc(a.path)+' - '+esc(a.note||'')+'">missing</span>').join(' ') || '<span class="dim">—</span>';
+              : '<span class="bad" title="'+esc(a.path)+' - '+esc(a.note||'')+'">missing</span>').join(' ')
+              || (r.files_changed_note ? '<span class="warn" title="'+esc(r.files_changed_raw||'')+'">text</span>' : '<span class="dim">—</span>');
             return '<tr><td>'+esc(r.id)+'</td><td>'+esc(r.status)+'</td><td class="dim">'+esc(r.priority)+'</td>'
               + '<td>'+esc(String(r.title||'').slice(0,58))+'</td><td class="dim">'+esc(String(r.commit_hash||'—').slice(0,9))+'</td>'
               + '<td>'+arts+'</td></tr>';
