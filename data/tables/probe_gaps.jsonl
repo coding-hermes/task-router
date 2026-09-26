@@ -117,3 +117,9 @@
 {"provider": "commandcode", "model": "xiaomi/mimo-v2.5-pro", "error": "HTTP 400", "candidate": null, "ts": "2026-09-25T09:00:40+00:00", "source": "auto", "action": "fix-not-working (agent)"}
 {"provider": "commandcode", "model": "z-ai/glm-5.3-flash", "error": "HTTP 400", "candidate": null, "ts": "2026-09-25T09:00:40+00:00", "source": "auto", "action": "fix-not-working (agent)"}
 {"provider": "openai-codex", "model": "gpt-6-luna", "error": "HTTP 400", "candidate": null, "ts": "2026-09-25T09:00:40+00:00", "source": "auto", "action": "verify (catalog serves id \u2014 likely transient/auth)"}
+{"provider": "clinepass", "model": "gemma-4-31b-it:free", "error": "HTTP 400", "candidate": null, "ts": "2026-09-26T10:00:47+00:00", "source": "auto", "action": "fix-not-working (agent)"}
+{"provider": "commandcode", "model": "gpt-6-luna", "error": "HTTP 400", "candidate": null, "ts": "2026-09-26T10:00:47+00:00", "source": "auto", "action": "verify (catalog serves id \u2014 likely transient/auth)"}
+{"provider": "openai-codex", "model": "gpt-6-luna", "error": "HTTP 400", "candidate": null, "ts": "2026-09-26T10:00:47+00:00", "source": "auto", "action": "fix-not-working (agent)"}
+{"provider": "openrouter", "model": "google/lyria-3-pro-preview", "error": "HTTP 400", "candidate": null, "ts": "2026-09-26T10:00:47+00:00", "source": "auto", "action": "verify (catalog serves id \u2014 likely transient/auth)"}
+{"provider": "openrouter", "model": "nex-agi/nex-n2.5-mini:free", "error": "HTTP 404", "candidate": "cohere/north-mini-code:free", "ts": "2026-09-26T10:00:47+00:00", "source": "auto", "action": "replace-or-exclude (agent)"}
+{"provider": "openrouter", "model": "nex-agi/nex-n2.5-pro:free", "error": "HTTP 404", "candidate": "cohere/north-mini-code:free", "ts": "2026-09-26T10:00:47+00:00", "source": "auto", "action": "replace-or-exclude (agent)"}
