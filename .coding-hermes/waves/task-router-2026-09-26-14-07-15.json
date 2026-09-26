@@ -1,0 +1,1 @@
+{"tick":"task-router-2026-09-26-14-07-15","budget":1,"tasks":[{"id":"TR-172","worktree":"/home/kara/proj-wt-tr171","branch":"wt/TR-171","model":"glm-5.3-flash","provider":"zai-glm","reuse_reason":"Existing isolated wt/TR-171 contains the verified uncommitted TR-172 helper seam; no worker process is active."}]}
