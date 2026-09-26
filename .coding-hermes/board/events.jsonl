@@ -306,3 +306,5 @@
 {"id": 20260926040006, "timestamp": "2026-09-26T05:00:23Z", "event_type": "task_completed", "task_id": "TR-170", "actor": "kara", "detail": "{\"id\": \"TR-170\", \"priority\": \"P1\"}"}
 {"id": 20260926040007, "timestamp": "2026-09-26T05:20:07Z", "event_type": "task_completed", "task_id": "TR-171", "actor": "kara", "detail": "{\"id\": \"TR-171\"}"}
 {"id": 20260926040008, "timestamp": "2026-09-26T05:20:07Z", "event_type": "task_filed", "task_id": "TR-172", "actor": "kara", "detail": "{\"id\": \"TR-172\"}"}
+{"id": 20260926040009, "timestamp": "2026-09-26T05:25:56Z", "event_type": "task_filed", "task_id": "TR-173", "actor": "kara", "detail": "{\"id\": \"TR-173\", \"kind\": \"design\"}"}
+{"id": 20260926040010, "timestamp": "2026-09-26T05:25:56Z", "event_type": "task_filed", "task_id": "TR-174", "actor": "kara", "detail": "{\"id\": \"TR-174\", \"kind\": \"design\"}"}
