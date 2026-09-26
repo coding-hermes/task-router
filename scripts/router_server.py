@@ -1319,11 +1319,22 @@ def _proxy_idle_budget_s():
 
     Measured 2026-09-24: a real long prompt through :9391 died at exactly
     180.1s x 3 hops because the hop budget was a WALL clock — a turn that was
-    alive and working (the gateway was emitting tool progress and keepalives)
-    was killed for being slow. The gateway sends `: keepalive` every 10s
-    precisely so clients can use an idle deadline instead, so that is what we
-    use: as long as the hop keeps producing events it may run as long as it
-    needs, and a hop that goes quiet for the whole budget is genuinely dead.
+    alive and working was killed for being slow. An idle deadline is the better
+    shape: a hop that keeps producing events may run as long as it needs.
+
+    DO NOT justify this budget by "the gateway keepalives keep a slow hop warm".
+    Measured 2026-09-26 that premise is false: a turn whose TOOL ran quietly for
+    330s produced no events at all and died at ~305s on two hops
+    (failure_reason=idle-timeout). An idle deadline cannot tell a slow tool from
+    a dead upstream, so the budget must come from the CALLER's tolerance, never
+    from a hope about keepalives.
+
+    CALLER TOLERANCE RULE: this budget must be >= the caller's per-turn
+    tolerance (the scheduler's SCHEDULER_GATEWAY_RESPONSE_TIMEOUT, 30m default,
+    idle mode). A middle layer that is stricter than its caller does not protect
+    anything — it converts a working turn into a failure and burns the fallback
+    hops doing it (3 hops x 5m of the caller's tick, observed). Set from
+    ROUTER_PROXY_IDLE_TIMEOUT_S; the live value is 1800s.
     """
     raw = os.environ.get('ROUTER_PROXY_IDLE_TIMEOUT_S', '')
     try:

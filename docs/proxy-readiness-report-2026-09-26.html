@@ -101,6 +101,35 @@
   </ul>
 </div>
 
+<div class="card bad-sn">
+  <b>CORRECTION, 2026-09-26 (measured after this report was first written).</b> Row 2 below
+  originally stood as proof that long turns are safe. It is not sufficient, and the ledger
+  says why: the 232s turn never reached the idle boundary, and when a turn's tool goes
+  <i>quiet</i> the boundary is real. A probe whose tool slept 330s in silence was killed
+  <b>twice</b>, each hop dying at <b>~305s</b> with <code>failure_reason: idle-timeout</code>:
+</div>
+<pre>ts=1790391498  wall=305.263s  outcome=failed  failure=idle-timeout  hops=1/3  provider=stepfun
+ts=1790391806  wall=307.055s  outcome=failed  failure=idle-timeout  hops=2/3  provider=xkiro</pre>
+<div class="card">
+  <b>Two things were wrong, and both are now fixed.</b>
+  <ol>
+    <li><b>The idle budget was 300s — six times stricter than its caller.</b> It defaulted to the
+    Hermes-side idle timeout while the scheduler's own per-turn tolerance is <b>30 minutes</b>
+    (<code>SCHEDULER_GATEWAY_RESPONSE_TIMEOUT</code>, idle mode). A middle layer must never be the
+    narrowest link; it also meant one quiet tool burned <b>three hops × 5 minutes</b> of the
+    caller's tick before failing. Aligned to <b>1800s</b> via a systemd drop-in
+    (<code>ROUTER_PROXY_IDLE_TIMEOUT_S=1800</code>), wall ceiling 3600s kept as the backstop.
+    Live envelope now reports <code>idle_budget_s: 1800</code>.</li>
+    <li><b>The documented premise was false.</b> The idle watch was justified by "the gateway sends
+    <code>: keepalive</code> every 10s, so a slow hop is never mistaken for a dead one".
+    <b>During a tool run it does not</b> — that is precisely how the probe died at 305s. The
+    docstring now says the honest thing: an idle deadline does <i>not</i> distinguish a slow tool
+    from a dead upstream, so the budget must be set from the caller's tolerance, not from a
+    hope about keepalives.</li>
+  </ol>
+  <b>Proof of the fix</b>: the same shape with a <b>400s</b> silent tool run — which died at 305s
+  before — is running against the aligned budget. Result recorded when it lands.
+</div>
 <h2 id="contract">2. What the scheduler actually sends</h2>
 <p>Established from the scheduler's own Go source (<code>internal/scheduler/gateway_stream.go</code>) and reproduced live against the proxy:</p>
 <table>
