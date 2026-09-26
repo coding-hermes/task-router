@@ -181,3 +181,84 @@ def test_board_search_by_text(tmp_path):
     p.write_text(json.dumps({"id": "TR-9", "title": "data command center", "status": "pending"}) + "\n")
     r = uid.board(search="command center", path=p)
     assert r["total_matched"] == 1
+
+
+# ---- TR-192: every honesty flag is FORCED to flip, not merely seen false ---- #
+
+def test_ledger_forced_scan_past_max_scan_flips_scan_truncated(tmp_path, monkeypatch):
+    p = _ledger(tmp_path, [_row(sid=f"router-proxy-{i}", ts=1000.0 + i) for i in range(5)])
+    monkeypatch.setattr(uid, "MAX_SCAN", 2)
+    r = uid.ledger_search(path=p)
+    assert r["rows_scanned"] == 2 and r["scan_limit"] == 2
+    assert r["total_matched"] == 2
+    assert r["scan_truncated"] is True, "rows were left unread: the response must say so"
+    # exactly at the cap nothing was left unread, and the flag must say so too
+    monkeypatch.setattr(uid, "MAX_SCAN", 5)
+    r2 = uid.ledger_search(path=p)
+    assert r2["rows_scanned"] == 5 and r2["scan_truncated"] is False
+
+
+def test_series_forced_unpriced_sample_flips_priced_samples_below_samples(tmp_path):
+    now = 10_000_000.0
+    p = _ledger(tmp_path, [_row(sid="router-proxy-a", ts=now - 60, cost=0.02),
+                           _row(sid="router-proxy-b", ts=now - 90, cost=None)])
+    b = uid.series(hours=24, path=p, now=now)["series"][0]
+    assert b["samples"] == 2 and b["priced_samples"] == 1, \
+        "a bucket must disclose how many of its samples were priced"
+    assert b["cost_usd_per_task"] == pytest.approx(0.02)
+
+
+def test_series_unknown_bucket_is_refused_with_the_known_set(tmp_path):
+    now = 10_000_000.0
+    p = _ledger(tmp_path, [_row(sid="router-proxy-a", ts=now - 60)])
+    r = uid.series(bucket="fortnight", path=p, now=now)
+    assert "error" in r and "fortnight" in r["error"]
+    assert r["known_buckets"] == ["hour", "day"], "the refusal must say what the endpoint knows"
+    assert "series" not in r and "buckets" not in r, "a refused query must chart nothing"
+
+
+def test_flow_forced_without_a_gateway_session_id_names_the_missing_artefact(tmp_path):
+    p = _ledger(tmp_path, [_row(sid="router-proxy-noart")])
+    f = uid.flow("router-proxy-noart", path=p)
+    assert f["artefacts_available"] == ["envelope", "ledger_row"]
+    assert f["artefacts_missing"] == ["gateway_session"]
+    assert f["hermes_session"]["found"] is None and f["hermes_session"]["reason"]
+
+
+def test_flow_forced_gateway_session_in_the_store_flips_artefacts_available(tmp_path, monkeypatch):
+    import sqlite3
+    db = tmp_path / "state.db"
+    con = sqlite3.connect(db)
+    con.execute("CREATE TABLE sessions (id TEXT, source TEXT, model TEXT)")
+    con.execute("INSERT INTO sessions VALUES ('gw-art', 'cli', 'test-model')")
+    con.commit()
+    con.close()
+    monkeypatch.setattr(uid, "STATE_DB", db)
+    p = _ledger(tmp_path, [_row(sid="router-proxy-art", gateway_session_id="gw-art")])
+    f = uid.flow("router-proxy-art", path=p)
+    assert f["artefacts_missing"] == []
+    assert f["artefacts_available"] == ["envelope", "gateway_session", "ledger_row"]
+    assert f["hermes_session"]["found"] is True
+
+
+def test_board_forced_tiny_limit_flips_truncated(tmp_path):
+    p = tmp_path / "tasks.jsonl"
+    p.write_text("".join(json.dumps({"id": f"TR-{i}", "title": "t", "status": "pending"}) + "\n"
+                         for i in range(5)))
+    r = uid.board(limit=2, path=p)
+    assert r["returned"] == 2 and r["total_matched"] == 5
+    assert r["truncated"] is True, "a page cut must be visible as a cut"
+    r2 = uid.board(limit=10, path=p)
+    assert r2["returned"] == 5 and r2["truncated"] is False
+
+
+def test_board_names_the_filter_it_cannot_offer(tmp_path):
+    p = tmp_path / "tasks.jsonl"
+    p.write_text(json.dumps({"id": "TR-1", "title": "t", "status": "pending"}) + "\n")
+    r = uid.board(path=p)
+    assert "owner (the board carries no owner field)" in r["filters_absent"]
+    assert "status" in r["filters_available"]
+    # an owner filter must not silently pretend to be a real search over real fields
+    r2 = uid.board(owner="someone", path=p)
+    assert r2["total_matched"] == 0
+    assert any("owner" in f for f in r2["filters_absent"])
