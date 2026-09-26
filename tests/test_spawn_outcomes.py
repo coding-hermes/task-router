@@ -149,7 +149,9 @@ def test_predicted_cost_per_task_reorders_by_stats(monkeypatch, tmp_path):
     _wire(monkeypatch, tmp_path, averages=[
         _row("prov-a", "a-expensive", cost=0.01),   # cheap per TASK, dear per token
     ])
-    r = router_spawn.resolve(project="proj", sort="predicted_cost_per_task")
+    # The coverage gate is disabled on purpose: the subject here is the reordering RULE.
+    # That the gate protects an under-measured chain is test_sort_sufficiency_floor.py's job.
+    r = router_spawn.resolve(project="proj", sort="predicted_cost_per_task:3:0")
     assert _order(r)[0] == "prov-a/a-expensive"
     # a lane with no sample keeps its price-proxy rank instead of sorting free
     assert _order(r)[1:] == ["prov-b/b-cheap", "prov-c/c-mid"]
@@ -158,12 +160,15 @@ def test_predicted_cost_per_task_reorders_by_stats(monkeypatch, tmp_path):
 def test_backend_isolation_changes_the_order(monkeypatch, tmp_path):
     """Isolated stats (hermes only) vs merged stats pick different heads."""
     _wire(monkeypatch, tmp_path, averages=[
-        _row("prov-a", "a-expensive", cost=0.01, n=1, source="hermes"),
+        # n must clear the sufficiency floor (TR-183): a ONE-sample row is deliberately not
+        # usable as a measurement, which is tested in test_sort_sufficiency_floor.py. This test
+        # is about backend isolation, so its rows carry enough samples to be measured at all.
+        _row("prov-a", "a-expensive", cost=0.01, n=5, source="hermes"),
         _row("prov-c", "c-mid", cost=0.0001, n=99, source="opencode"),
     ])
-    merged = router_spawn.resolve(project="proj", sort="predicted_cost_per_task")
+    merged = router_spawn.resolve(project="proj", sort="predicted_cost_per_task:3:0")
     assert _order(merged)[0] == "prov-c/c-mid"           # merged: c wins
-    isolated = router_spawn.resolve(project="proj", sort="predicted_cost_per_task",
+    isolated = router_spawn.resolve(project="proj", sort="predicted_cost_per_task:3:0",
                                     backend="hermes")
     assert isolated["sort_stats"]["backend"] == "hermes"
     assert _order(isolated)[0] == "prov-a/a-expensive"   # c has no hermes sample
@@ -258,3 +263,21 @@ def test_sort_dispatch_dict_is_the_only_switch():
     assert set(router_spawn.SORT_KEYS) == {
         "price", "predicted_cost_per_task", "wall_time", "turns", "ratio"}
     assert router_spawn.DEFAULT_SORT in router_spawn.SORT_KEYS
+
+def test_the_response_says_how_much_of_the_order_rested_on_measurement(monkeypatch, tmp_path):
+    """TR-183 precondition: 'ranked by measured cost' must be auditable from the response."""
+    _wire(monkeypatch, tmp_path, averages=[
+        _row("prov-a", "a-expensive", cost=0.01, n=5),        # clears the floor
+        _row("prov-b", "b-cheap", cost=0.9, n=1),             # one sample -> not evidence
+    ])
+    r = router_spawn.resolve(project="proj", sort="predicted_cost_per_task")
+    sup = r["sort_stats"]["sufficiency"]
+    assert sup["floor_samples"] == 3
+    assert sup["ranked_on_measurement"] == 1 and sup["fell_back_to_price"] == 2
+    assert sup["lanes"] == 3
+    # 1 of 3 candidates measured is under the coverage bar, so the ordering degrades and SAYS so
+    assert sup["effective"] == "price" and sup["reason"] == "below-coverage-floor"
+    assert sup["coverage"] == round(1 / 3, 4)
+    # and the price sort reports no sufficiency claim at all, rather than a zero
+    legacy = router_spawn.resolve(project="proj")
+    assert legacy["sort_stats"]["sufficiency"] is None

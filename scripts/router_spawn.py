@@ -1172,12 +1172,105 @@ def _sort_price(arg, lanes, ctx):
     return _legacy_sort_key
 
 
+#: TR-183 precondition: a measured cost is only EARNED with enough samples. 169 of the store's 289
+#: stats rows hold exactly ONE completed task, and a "cheapest per task" ordering built on a single
+#: observation is a coin flip dressed as evidence. Below the floor a lane falls back to its
+#: price-proxy rank, which is the honest state: unmeasured, not measured-cheap. The floor is 3 by
+#: default, settable per call (`predicted_cost_per_task:5`) or per environment
+#: (ROUTER_SORT_MIN_SAMPLES); 0 restores the pre-floor behaviour exactly.
+MEASURED_MIN_SAMPLES = int(os.environ.get('ROUTER_SORT_MIN_SAMPLES') or 3)
+
+#: TR-183: how much of a chain must rest on measurement before the measured ordering may be
+#: applied at all. Measured live: 2 of 65 lanes cleared the sample floor, and those two
+#: decided the head. Below the bar the ordering degrades to price and names the reason.
+MEASURED_MIN_COVERAGE = float(os.environ.get('ROUTER_SORT_MIN_COVERAGE') or 0.5)
+
+
+def measured_basis(m, ctx, floor=None):
+    """(value, basis) for a lane's measured cost per task.
+
+    `basis` is the provenance a caller needs to judge the ordering: the floor in
+    force, the sample count behind the number, how the row was matched, and the
+    window. A lane that does not clear the floor returns a value of None WITH the
+    reason, so 'fell back to price' is distinguishable from 'measured at zero'."""
+    ctx = ctx or {}
+    if floor is None:
+        floor = MEASURED_MIN_SAMPLES
+    value, prov = lane_metric(m, ctx, 'cost')
+    prov = dict(prov or {})
+    n = prov.get('n_samples')
+    n = n if isinstance(n, int) else 0
+    base = {'floor_samples': floor, 'n_samples': n or None,
+            'match': prov.get('match'), 'window_h': prov.get('window_h')}
+    if value is None:
+        return None, dict(base, basis='no-sample')
+    if n < floor:
+        return None, dict(base, basis='below-floor')
+    return value, dict(base, basis='measured')
+
+
 def _sort_predicted_cost_per_task(arg, lanes, ctx):
-    """Cheapest measured cost PER COMPLETED TASK first. A lane with no sample
-    keeps its price-proxy rank — unknown is not free."""
+    """Cheapest measured cost PER COMPLETED TASK first — for lanes that clear the sample
+    floor, and ONLY when enough of the chain is measured to make the ordering evidence
+    rather than a head-swap. Unknown is not free and one sample is not evidence (TR-183).
+
+    MEASURED ON THE LIVE STORE: with the floor at 3, 2 of 65 lanes carried a usable
+    measured cost and the head moved (luna -> mistral-large) on those two; at floor 1 it
+    was 4 lanes and a different head; at floor 10, one lane and a third head. A "better
+    ordering" decided by 3 of 65 candidates is a coin flip wearing a lab coat, so the
+    ordering must CLEAR A COVERAGE BAR or it degrades to price and says why. The bar is
+    MEASURED_MIN_COVERAGE (0.5 by default), settable via ROUTER_SORT_MIN_COVERAGE or the
+    spec's second field (`predicted_cost_per_task:3:0.2`); 0 disables the gate for an
+    experiment, which the response then reports as such.
+
+    Whether the ordering is worth APPLYING is a doctrine call (the default sort stays
+    `price`); whether its evidence can carry that decision is not - that part is measured.
+    """
+    ctx = ctx if isinstance(ctx, dict) else {}
+    floor, min_cov = MEASURED_MIN_SAMPLES, MEASURED_MIN_COVERAGE
+    parts = str(arg if arg not in (None, '') else '').split(':')
+    if parts and parts[0] not in ('', 'None'):
+        try:
+            floor = int(parts[0])
+        except ValueError:
+            pass
+    if len(parts) > 1 and parts[1] not in ('', 'None'):
+        try:
+            min_cov = float(parts[1])
+        except ValueError:
+            pass
+    floor = max(0, floor)
+    min_cov = max(0.0, min_cov)
+
+    # Pre-pass: compute each candidate's basis ONCE, decide the ordering, THEN rank. Sorting
+    # on side effects of the key function would make the result depend on call order.
+    basis_by_lane, measured = {}, {}
+    for m in lanes:
+        value, b = measured_basis(m, ctx, floor)
+        key0 = (m.get('provider'), m.get('model'))
+        basis_by_lane[key0] = (value, b)
+        measured[key0] = b
+    ranked = sum(1 for v, _b in basis_by_lane.values() if v is not None)
+    lanes_n = len(basis_by_lane)
+    coverage = (ranked / lanes_n) if lanes_n else 0.0
+    use_measured = bool(lanes_n) and coverage >= min_cov
+
+    basis = {'sort': 'predicted_cost_per_task', 'floor_samples': floor,
+             'coverage': round(coverage, 4), 'min_coverage': min_cov,
+             'ranked_on_measurement': ranked, 'fell_back_to_price': lanes_n - ranked,
+             'lanes': lanes_n, 'effective': 'measured' if use_measured else 'price'}
+    if not use_measured:
+        basis['reason'] = 'no-lanes' if not lanes_n else 'below-coverage-floor'
+
     def key(m):
-        value, _prov = lane_metric(m, ctx, 'cost')
-        return _effective_price(m) if value is None else value
+        key0 = (m.get('provider'), m.get('model'))
+        value, _b = basis_by_lane.get(key0, (None, None))
+        if use_measured and value is not None:
+            return (0, value)
+        return (1, _effective_price(m))
+
+    ctx['_sort_basis'] = basis
+    ctx['_sort_measurements'] = measured
     return key
 
 
@@ -2001,6 +2094,9 @@ def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=DE
                 'path': (sort_ctx or {}).get('meta', {}).get('path'),
                 'problem': (sort_ctx or {}).get('meta', {}).get('error'),
                 'warning': (sort_ctx or {}).get('warning'),
+                # TR-183 precondition: how much of THIS ordering actually rested on measurement.
+                # Absent (None) for the price sort — never a fabricated zero.
+                'sufficiency': (sort_ctx or {}).get('_sort_basis'),
             },
             # TR-021: carry the raw chain rows to the metrics hook without
             # recomputing.  This key is intentionally NOT part of the public
