@@ -1762,9 +1762,19 @@ def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=DE
     if not pid and not adhoc:
         pid = 'P0_FORE'
     if pid and pid not in profiles:
-        return {'error': f'profile {pid} not in registry',
-                'code': 'PROFILE_NOT_FOUND', 'retryable': False,
-                'data_home': _data_home_meta(src, fb)}
+        err = {'error': f'profile {pid} not in registry',
+               'code': 'PROFILE_NOT_FOUND', 'retryable': False,
+               'data_home': _data_home_meta(src, fb)}
+        # TR-133: the --profile arm gets the same case-insensitive near-miss
+        # hint the project slot has had since TR-059 — same typo class, same
+        # helper, bonus keys only on a real match (never a false hint).
+        near = _profile_near_miss(profiles, pid)
+        if near:
+            err['error'] += (f' — matches profile {near}, '
+                             f'use --profile {near}')
+            err['hint'] = f'use --profile {near}'
+            err['matched_profile'] = near
+        return err
 
     # TR-054 (Bane 2026-09-16): latency-tolerant lanes. allow_slow resolves in
     # the same precedence as allow_training: explicit per-call arg wins, else

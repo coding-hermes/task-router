@@ -508,3 +508,32 @@ def test_estimate_without_a_project_is_still_a_usage_error(tmp_path):
     assert p.returncode == 2, p.stdout + p.stderr
     assert "a project is required" in p.stderr
 
+
+# =================================================== TR-133: --profile hint ==
+
+def test_profile_flag_case_mismatched_profile_name_gets_a_hint(tmp_path):
+    """TR-133 — the TR-059 near-miss hint must fire on the --profile error path
+    too. Lowercase `p3_docs` names no profile, but it IS a case-insensitive
+    exact match of the P3_DOCS tag/id, so the PROFILE_NOT_FOUND error gains the
+    same visible did-you-mean the project slot already produces: the error
+    names the match, `hint` carries the canonical form, and the fail-open
+    contract (pure JSON, exit 0) is untouched."""
+    env = _open_state_env(tmp_path)
+    _, data = _spawn(["--profile", "p3_docs", "--format", "json"], env)
+    assert data["code"] == "PROFILE_NOT_FOUND"
+    assert data["retryable"] is False
+    assert data["error"] == ("profile p3_docs not in registry — matches "
+                             "profile P3_DOCS, use --profile P3_DOCS")
+    assert data["hint"] == "use --profile P3_DOCS"
+    assert data["matched_profile"] == "P3_DOCS"
+
+
+def test_profile_flag_bogus_profile_still_gets_no_hint(tmp_path):
+    """A name that is no real match of any profile keeps the exact pre-TR-133
+    error with no hint — a false did-you-mean is worse than none (TR-059)."""
+    _, data = _spawn_err(["--profile", "NOT_A_PROFILE"], tmp_path)
+    assert "not in registry" in data["error"]
+    assert data["code"] == "PROFILE_NOT_FOUND"
+    assert "hint" not in data and "matched_profile" not in data
+    assert set(data) == {"error", "code", "retryable", "data_home"}
+
