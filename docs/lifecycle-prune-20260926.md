@@ -720,14 +720,17 @@ Three consequences, checked rather than assumed:
    `retired`, digest still `live 1383 / retiring 0 / retired 226`**. That is this pass's
    durability claim demonstrated against a real concurrent rewrite instead of in theory.
 2. **The P0_FORE / P2_AGENTIC heads moved a second time and the fixtures were re-updated.**
-   The `$0.0` price on `xkiro/cohere/command-a-plus` was itself the TR-178 defect; with it
-   cleared that lane is unpriced, and the settled head is **`xkiro/openai/gpt-6-luna` at
-   $0.003867/M** (`price_evidence: provider_import preset=xkiro $200 coding plan`) for both
-   profiles. The isolation table earlier in this report therefore describes the INTERMEDIATE
-   state; the fixture comment in `tests/test_regression.py` carries the final sequence. Two
-   heads moved and neither moved because of a lifecycle stamp: P2_AGENTIC could not keep
+   The `$0.0` price on `xkiro/cohere/command-a-plus` was itself the TR-178 defect; with the
+   fabricated zero cleared that lane carries the internal /30 plan price ($0.01/M, from the
+   $0.3/$1.5 vendor sticker) and `mistralai/mistral-large-2512` sits at $0.016667, so the
+   settled cheapest eligible lane is **`xkiro/openai/gpt-6-luna` at $0.003867/M**
+   (`price_evidence: provider_import preset=xkiro $200 coding plan`) for both profiles. The
+   isolation table earlier in this report therefore describes the INTERMEDIATE state; the
+   fixture comment in `tests/test_regression.py` carries the final sequence. Two heads moved
+   and neither moved because of a lifecycle stamp: P2_AGENTIC could not keep
    `stepfun/step-3.5-flash` (retired here, Bane's own named case) and both profiles re-sorted
-   on the pricing fix.
+   on pricing evidence. Re-checked against the session's later commits
+   (`59592f8`, `3399db9`): the four golden fixtures still pass.
 3. **CI is red independently of this pass, and is filed as TR-177.**
    `tests/test_envelope_step_count.py::test_success_envelope_reports_the_step_count` fails in
    CI (`steps == 0`: the proxy resolves an empty ladder there) while the same tree passes
