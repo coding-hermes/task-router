@@ -122,6 +122,12 @@ PAGE = r"""<!doctype html>
 const $ = (s) => document.querySelector(s);
 const esc = (v) => String(v === null || v === undefined ? '' : v).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const num = (v, d) => (v === null || v === undefined) ? '<span class="dim">null</span>' : Number(v).toFixed(d === undefined ? 2 : d);
+/* a raw epoch in a table is unreadable; local time is what you debug with */
+const ts = (v) => (v === null || v === undefined || isNaN(Number(v))) ? '<span class="dim">—</span>'
+  : new Date(Number(v) * 1000).toLocaleString(undefined, {month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', second:'2-digit'});
+/* the router records a request that had no hop under the pseudo-lane none/none; say so rather than
+   letting it read as a real lane in a traffic view */
+const lane = (p, m) => (!p || p === 'none') ? '<span class="warn">(no hop)</span>' : esc(p + '/' + m);
 let rows = [], sel = 0;
 
 async function j(url){ const r = await fetch(url, {headers:{'accept':'application/json'}}); if(!r.ok) throw new Error(url+' -> '+r.status); return r.json(); }
@@ -164,7 +170,7 @@ async function traffic(){
             : num(r.cost_usd_per_task, 6);
           const fails = Object.entries(r.failure_reasons || {}).map(([k,v]) => esc(k)+'×'+v).join(' ') || '<span class="dim">—</span>';
           const band = r.band ? esc(String(r.band).slice(0,16)) : '<span class="dim">'+(esc(r.band_source)||'unknown')+'</span>';
-          return '<tr><td>'+esc(r.provider+'/'+r.model)+'</td><td>'+band+'</td>'
+          return '<tr><td>'+lane(r.provider, r.model)+'</td><td>'+band+'</td>'
             + '<td class="num">'+esc(r.samples)+'</td><td class="num">'+cost+'</td>'
             + '<td class="num dim">'+(r.cost_samples===null||r.cost_samples===undefined?'—':esc(r.cost_samples))+'</td>'
             + '<td class="num dim">'+(r.wall_time_s_per_task===null||r.wall_time_s_per_task===undefined?'—':num(r.wall_time_s_per_task,0))+'</td>'
@@ -203,7 +209,7 @@ async function board(){
     const list = d.rows || [];
     $('#board').innerHTML = list.length
       ? '<table><thead><tr><th>id</th><th>status</th><th>title</th><th>updated</th></tr></thead><tbody>'
-        + list.map(r => '<tr><td>'+esc(r.id)+'</td><td>'+esc(r.status)+'</td><td>'+esc(String(r.title||'').slice(0,64))+'</td><td class="dim">'+esc(String(r.updated_at||r.completed_at||'').slice(0,19))+'</td></tr>').join('')
+        + list.map(r => '<tr><td>'+esc(r.id)+'</td><td>'+esc(r.status)+'</td><td>'+esc(String(r.title||'').slice(0,64))+'</td><td class="dim">'+esc(String(r.updated_at||r.completed_at||'').replace('T',' ').slice(0,19))+'</td></tr>').join('')
         + '</tbody></table>'
       : '<span class="dim">no matching board rows</span>';
     $('#board_note').textContent = 'scanned '+d.rows_scanned+' of '+d.total_rows+' board row(s) · matched '+d.total_matched
@@ -231,8 +237,8 @@ async function ledger(){
             const ok = r.success === true ? '<span class="ok">ok</span>' : (r.success === false ? '<span class="bad">fail</span>' : '<span class="dim">'+(esc(r.route_outcome)||'unknown')+'</span>');
             const cost = (r.cost_usd === null || r.cost_usd === undefined)
               ? '<span class="dim" title="'+esc(r.price_basis||'')+'">no price</span>' : num(r.cost_usd, 6);
-            return '<tr data-i="'+i+'"><td class="dim">'+esc(String(r.ts||'').slice(0,19))+'</td><td class="dim">'+esc(r.source_system)+'</td>'
-              + '<td>'+esc((r.provider||'')+'/'+(r.model||''))+'</td><td class="dim">'+esc(String(r.complexity_sig||'—').slice(0,14))+'</td>'
+            return '<tr data-i="'+i+'"><td class="dim">'+ts(r.ts)+'</td><td class="dim">'+esc(r.source_system)+'</td>'
+              + '<td>'+lane(r.provider, r.model)+'</td><td class="dim">'+esc(String(r.complexity_sig||'—').slice(0,14))+'</td>'
               + '<td>'+ok+'</td><td class="num">'+esc(r.steps===undefined?'—':r.steps)+'</td>'
               + '<td class="num dim">'+esc((r.tokens_in||0)+'/'+(r.tokens_out||0))+'</td><td class="num">'+cost+'</td></tr>';
           }).join('') + '</tbody></table>'
@@ -261,8 +267,9 @@ function flow(r){
   const hops = (ce.hops || r.hops || []);
   const line = (k,v) => '<div>'+esc(k)+'</div><div>'+v+'</div>';
   let h = '<div class="kv">';
+  h += line('when', ts(r.ts));
   h += line('session', esc(r.session_id||'—'));
-  h += line('lane', '<b>'+esc((r.provider||'')+'/'+(r.model||''))+'</b>');
+  h += line('lane', (r.provider && r.provider !== 'none') ? '<b>'+esc(r.provider+'/'+(r.model||''))+'</b>' : '<span class="warn">(no hop — nothing eligible after gating)</span>');
   h += line('outcome', r.success===true?'<span class="ok">success</span>':(r.success===false?'<span class="bad">'+(esc(r.failure_reason)||'failed')+'</span>':'<span class="dim">'+esc(r.route_outcome||'unknown')+'</span>'));
   h += line('cost', (r.cost_usd===null||r.cost_usd===undefined)?'<span class="dim">no price on this hop</span>':num(r.cost_usd,8)+' <span class="dim">'+(esc(r.price_basis)||'')+'</span>');
   h += line('rating', req ? esc(JSON.stringify(req)) : '<span class="dim">none recorded</span>');
