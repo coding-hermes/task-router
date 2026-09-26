@@ -17,6 +17,7 @@ from pathlib import Path
 import re
 import subprocess
 import sys
+import threading
 import time
 import urllib.error
 import urllib.request
@@ -646,7 +647,12 @@ class RouterApplication:
                 # TR-151: the raw-data search. Reports how much of the store it read.
                 return 200, ui_ledger(query)
             if path == "/health":
-                return 200, router_health.health(mode=self.mode)
+                payload = router_health.health(mode=self.mode)
+                # TR-172: expose this process's admission and rating-cache state.
+                if isinstance(payload, dict):
+                    payload['admission'] = _admission_stats()
+                    payload['classify_cache'] = classify_cache_stats()
+                return 200, payload
             if path == "/model_status":
                 provider = query.get("provider")
                 if isinstance(provider, list):
@@ -1954,6 +1960,195 @@ def _registry_categories(registry_path=None):
     return cats
 
 
+# ---------------------------------------------------------------------------
+# TR-171 Admission control: a proxy that accepts EVERYTHING can turn a caller's
+# retries into an outage.
+#
+# Measured on 2026-09-25: after the fleet was pointed at this proxy, the gateway
+# saturated and the scheduler's ticks failed in a loop. Root cause is asymmetric
+# to the caller's own design: the scheduler bounds work by ACCEPTED SLOTS (it
+# queues the rest and stays healthy), so a FAILING call costs it almost nothing
+# and its bounded retry (4 POSTs with exponential backoff) fires immediately. On
+# this side, every one of those attempts was accepted and then spent an upstream
+# model call — including a rating call that carries the caller's whole context
+# (~46k tokens) — so a broken path multiplied instead of shedding load.
+#
+# The contract this adds: bound the work IN FLIGHT, bound the QUEUE, and when
+# both are full REFUSE with a retryable status that says so. Refusal is a
+# deliberate answer with a ledger row, never a silent drop — an overloaded
+# proxy that reports nothing is the failure mode that hid in this incident.
+#
+# All three are env-tunable so an operator can size them for a real fleet:
+#   ROUTER_PROXY_MAX_INFLIGHT  (default 8)  concurrently executing requests
+#   ROUTER_PROXY_QUEUE_MAX     (default 32) requests allowed to WAIT
+#   ROUTER_PROXY_QUEUE_WAIT_S  (default 20) how long one may wait before refusal
+# ---------------------------------------------------------------------------
+class _ProxyOverloaded(Exception):
+    """Raised when admission is refused: the caller should retry later."""
+
+
+_ADMISSION = {'lock': threading.Lock(), 'waiting': 0, 'accepted': 0,
+              'rejected': 0, 'peak_inflight': 0, 'inflight': 0}
+_ADMISSION_SEM = None
+
+
+def _admission_limits():
+    def _num(name, default, low=1):
+        try:
+            v = int(os.environ.get(name) or default)
+        except (TypeError, ValueError):
+            return default
+        return v if v >= low else default
+    return (_num('ROUTER_PROXY_MAX_INFLIGHT', 8),
+            _num('ROUTER_PROXY_QUEUE_MAX', 32, 0),
+            float(_num('ROUTER_PROXY_QUEUE_WAIT_S', 20)))
+
+
+def _admission_semaphore():
+    global _ADMISSION_SEM
+    if _ADMISSION_SEM is None:
+        _ADMISSION_SEM = threading.BoundedSemaphore(_admission_limits()[0])
+    return _ADMISSION_SEM
+
+
+def _admission_stats():
+    """Live admission numbers for /health — an operator must be able to SEE the bound."""
+    cap, qmax, wait_s = _admission_limits()
+    with _ADMISSION['lock']:
+        d = dict(_ADMISSION)
+    d.pop('lock', None)
+    d.update({'max_inflight': cap, 'queue_max': qmax, 'queue_wait_s': wait_s})
+    return d
+
+
+class _admission(object):
+    """Context manager bounding concurrent work; raises _ProxyOverloaded when full.
+
+    Deliberately NOT a silent queue-forever: an unbounded wait would just move the
+    saturation one layer up, where it is harder to see. A refusal carries the reason.
+    """
+
+    def __enter__(self):
+        _cap, qmax, wait_s = _admission_limits()
+        # Take an immediately available slot before counting queue capacity. The
+        # queue bound is for callers that must WAIT; a zero-sized queue must not
+        # reject the first request merely because no one is waiting.
+        acquired = _admission_semaphore().acquire(blocking=False)
+        if not acquired:
+            with _ADMISSION['lock']:
+                if _ADMISSION['waiting'] >= qmax:
+                    _ADMISSION['rejected'] += 1
+                    raise _ProxyOverloaded(f'queue full ({qmax} waiting)')
+                _ADMISSION['waiting'] += 1
+            try:
+                acquired = _admission_semaphore().acquire(timeout=wait_s)
+            finally:
+                with _ADMISSION['lock']:
+                    _ADMISSION['waiting'] -= 1
+            if not acquired:
+                with _ADMISSION['lock']:
+                    _ADMISSION['rejected'] += 1
+                raise _ProxyOverloaded(f'no slot within {wait_s}s')
+        with _ADMISSION['lock']:
+            _ADMISSION['inflight'] += 1
+            _ADMISSION['accepted'] += 1
+            if _ADMISSION['inflight'] > _ADMISSION['peak_inflight']:
+                _ADMISSION['peak_inflight'] = _ADMISSION['inflight']
+        return self
+
+    def __exit__(self, *exc):
+        try:
+            _admission_semaphore().release()
+        finally:
+            with _ADMISSION['lock']:
+                if _ADMISSION['inflight'] > 0:
+                    _ADMISSION['inflight'] -= 1
+        return False
+
+
+# ---------------------------------------------------------------------------
+# TR-171 Rating cache. The rating step is a model call, so an identical prompt
+# must not be rated twice: fleet ticks repeat their prompts almost verbatim
+# (nudges, retries, resumed ticks), and during the incident 430 of 495 rows made
+# NO upstream hop while still paying for a classification each.
+#
+# Only SUCCESSFUL ratings are cached ('classifier'/'jev' with a matrix, and
+# 'classifier-empty'). A failure is never frozen — a broken scorer must recover
+# on the next request, and a cached failure would quietly become policy.
+# Bounded (max entries) and TTL'd so it cannot grow without limit or serve a
+# rating from a model/registry generation that has moved.
+# ---------------------------------------------------------------------------
+_CLASSIFY_CACHE = {}
+_CLASSIFY_CACHE_AT = {}
+_CLASSIFY_STATS = {'hits': 0, 'misses': 0, 'puts': 0, 'evictions': 0}
+_CLASSIFY_LOCK = threading.Lock()
+
+
+def _classify_cache_limits():
+    def _num(name, default, low=1):
+        try:
+            v = int(os.environ.get(name) or default)
+        except (TypeError, ValueError):
+            return default
+        return v if v >= low else default
+    return _num('ROUTER_CLASSIFY_CACHE_MAX', 512), float(_num('ROUTER_CLASSIFY_CACHE_TTL_S', 900))
+
+
+def _classify_cache_key(text):
+    import hashlib as _hl
+    return _hl.sha256((text or '').encode('utf-8', 'replace')).hexdigest()
+
+
+def classify_cache_get(text):
+    """(hit: bool, value). Expired entries are dropped on read, never served."""
+    key = _classify_cache_key(text)
+    maxn, ttl = _classify_cache_limits()
+    now = time.time()
+    with _CLASSIFY_LOCK:
+        at = _CLASSIFY_CACHE_AT.get(key)
+        if at is None:
+            _CLASSIFY_STATS['misses'] += 1
+            return False, None
+        if (now - at) > ttl:
+            _CLASSIFY_CACHE.pop(key, None)
+            _CLASSIFY_CACHE_AT.pop(key, None)
+            _CLASSIFY_STATS['misses'] += 1
+            return False, None
+        val = _CLASSIFY_CACHE.get(key)
+        _CLASSIFY_STATS['hits'] += 1
+        return True, val
+
+
+def classify_cache_put(text, value):
+    """Cache a SUCCESSFUL rating only (see the block comment above)."""
+    if not isinstance(value, dict) or value.get('matrix') is None:
+        return False
+    key = _classify_cache_key(text)
+    maxn, _ttl = _classify_cache_limits()
+    with _CLASSIFY_LOCK:
+        if len(_CLASSIFY_CACHE) >= maxn and key not in _CLASSIFY_CACHE:
+            oldest = min(_CLASSIFY_CACHE_AT, key=_CLASSIFY_CACHE_AT.get, default=None)
+            if oldest is not None:
+                _CLASSIFY_CACHE.pop(oldest, None)
+                _CLASSIFY_CACHE_AT.pop(oldest, None)
+                _CLASSIFY_STATS['evictions'] += 1
+        _CLASSIFY_CACHE[key] = value
+        _CLASSIFY_CACHE_AT[key] = time.time()
+        _CLASSIFY_STATS['puts'] += 1
+    return True
+
+
+def classify_cache_stats():
+    with _CLASSIFY_LOCK:
+        d = dict(_CLASSIFY_STATS)
+        d['entries'] = len(_CLASSIFY_CACHE)
+    maxn, ttl = _classify_cache_limits()
+    d.update({'max_entries': maxn, 'ttl_s': ttl})
+    total = d['hits'] + d['misses']
+    d['hit_rate'] = round(d['hits'] / total, 4) if total else None
+    return d
+
+
 def _proxy_requirements(body, headers, path):
     """Decide the complexity for this request. Returns (source, payload) where
     source ∈ declared | classifier | default, payload carries the matrix,
@@ -2000,7 +2195,14 @@ def _proxy_requirements(body, headers, path):
                        'model': jres.get('model'), 'problems': jres.get('problems') or []}
     try:
         import router_classify
-        res = router_classify.classify(text)
+        # TR-171: an identical prompt is rated ONCE, not once per attempt.
+        _hit, _cached = classify_cache_get(text)
+        if _hit:
+            res = dict(_cached)
+            res['cached'] = True
+        else:
+            res = router_classify.classify(text)
+            classify_cache_put(text, res)
     except Exception as exc:  # noqa: BLE001
         return 'default', {'profile_id': 'P0_FORE', 'matrix': None, 'complexity_sig': None,
                            'problems': [f'classifier unavailable: {str(exc)[:200]}']}
@@ -2495,6 +2697,10 @@ def _proxy_record(provider, model, ok, requirements, reason='', latency_s=None,
     try:
         _p = (provider or '').strip()
         _m = (model or '').strip()
+        if route_outcome in ('rejected', 'no-hops') or (source == 'router-proxy' and provider == 'none'):
+            # TR-172: router-generated refusals and no-hop outcomes must never open
+            # a provider-wide breaker from the router's own failure response.
+            return
         if _p.lower() in _NOT_A_LANE or _m.lower() in _NOT_A_LANE:
             # TR-182: a router-internal outcome is NOT a provider event. The no-hops row
             # calls _proxy_record('none', 'none', ...) with the router's own error string
@@ -2515,7 +2721,48 @@ def _proxy_record(provider, model, ok, requirements, reason='', latency_s=None,
 
 
 def proxy_chat(path, body, headers, max_hops=None, upstream=None):
-    """TR-067 Path B entry point. Never raises: any internal failure returns a
+    """TR-172 admission-bounded entry point for every proxied request.
+
+    Bounds in-flight work and queue depth, and REFUSES with 429 when both are full —
+    a deliberate answer with a ledger row, never a silent drop. Measured reason this
+    exists (2026-09-25 incident): the scheduler bounds work by accepted slots and its
+    own failure retry is bounded and backed off, so a failing call cost it almost
+    nothing; on THIS side every attempt was accepted and spent an upstream model call,
+    so a broken path multiplied instead of shedding load until the gateway saturated.
+
+    Callers that stream (/v1/responses) and callers inside the process (tests) both
+    come through here, so admission applies to every proxied request whatever the shape.
+    """
+    try:
+        with _admission():
+            return _proxy_chat_inner(path, body, headers, max_hops=max_hops, upstream=upstream)
+    except _ProxyOverloaded as exc:
+        hdrs = {k.lower(): v for k, v in (headers or {}).items()}
+        session_id = hdrs.get('x-router-session') or f'router-proxy-{int(time.time() * 1000)}'
+        reason = f'proxy overloaded: {exc}'
+        try:
+            _proxy_record('none', 'none', False, {}, reason=reason, latency_s=0.0,
+                          source='router-proxy', session_id=session_id,
+                          route_outcome='rejected', failure_reason='overloaded',
+                          hops_attempted=0, max_hops=0, steps=0)
+        except Exception:  # noqa: BLE001 — a refusal must still be answerable
+            pass
+        retry_s = 5
+        return 429, {
+            'error': reason,
+            'retry_after_s': retry_s,
+            '_router': {
+                'outcome': 'rejected', 'failure_reason': 'overloaded',
+                'retry_after_s': retry_s, 'admission': _admission_stats(),
+                'session_id': session_id, 'terminal_reason': reason,
+                'note': ('admission refused: the proxy bounds work in flight and queue depth, '
+                         'and refuses rather than accepting a load it cannot serve'),
+                'usage': None, 'cost_usd': None,
+            }}
+
+
+def _proxy_chat_inner(path, body, headers, max_hops=None, upstream=None):
+    """TR-067 Path B implementation. Never raises: any internal failure returns a
     shaped error with the ladder trail (fail-open, the caller is a live client)."""
     headers = {k.lower(): v for k, v in (headers or {}).items()}
     body = body if isinstance(body, dict) else {}
@@ -2893,7 +3140,17 @@ class RouterHandler(BaseHTTPRequestHandler):
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
         self.send_header("Content-Length", str(len(encoded)))
-        for name, value in (extra_headers or {}).items():
+        headers = dict(extra_headers or {})
+        # TR-172: an overload refusal has to be actionable BEFORE the caller parses
+        # anything — a real client honours Retry-After, and the scheduler's own retry
+        # reads that hint. Body-only backpressure is a hint nobody is obliged to see.
+        if status == 429 and 'Retry-After' not in headers:
+            ra = (payload or {}).get('retry_after_s') if isinstance(payload, dict) else None
+            try:
+                headers['Retry-After'] = str(max(1, int(ra or 5)))
+            except (TypeError, ValueError):
+                headers['Retry-After'] = '5'
+        for name, value in headers.items():
             self.send_header(name, value)
         self.end_headers()
         self.wfile.write(encoded)
