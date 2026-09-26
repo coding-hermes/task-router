@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scheduler → Task Router wiring: GOAL + subgoals (2026-09-26)</title>
+<style>
+  :root { --bg:#0f1117; --fg:#e6e8ee; --mut:#9aa3b2; --acc:#7cc4ff; --warn:#ffb86b; --bad:#ff7b72; --good:#7ee787; --line:#252a36; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; }
+  .wrap { max-width:980px; margin:0 auto; padding:28px 20px 80px; }
+  h1 { font-size:26px; margin:0 0 6px; }
+  h2 { font-size:19px; margin:34px 0 10px; border-bottom:1px solid var(--line); padding-bottom:6px; }
+  h3 { font-size:16px; margin:20px 0 6px; }
+  .sub { color:var(--mut); margin:0 0 20px; }
+  .goal { background:#151a24; border-left:3px solid var(--acc); padding:14px 16px; border-radius:6px; margin:16px 0; }
+  table { width:100%; border-collapse:collapse; margin:10px 0 18px; font-size:14px; }
+  th,td { text-align:left; padding:7px 9px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { color:var(--mut); font-weight:600; }
+  code { background:#1b202b; padding:1px 5px; border-radius:4px; font-size:13px; }
+  ul { margin:6px 0 6px 18px; padding:0; }
+  li { margin:3px 0; }
+  .ok { color:var(--good); } .no { color:var(--bad); } .warn { color:var(--warn); }
+  .tag { display:inline-block; font-size:11px; padding:1px 7px; border-radius:99px; border:1px solid var(--line); color:var(--mut); margin-right:6px; }
+  ol.toc { margin:10px 0 0 18px; }
+  .box { border:1px solid var(--line); border-radius:6px; padding:12px 14px; margin:10px 0; }
+  .muted { color:var(--mut); }
+</style>
+</head>
+<body><div class="wrap">
+
+<h1>Scheduler → Task Router: the wiring goal</h1>
+<p class="sub">2026-09-26 · task-router · written after the 09-25/26 incident · for quorum pre-review</p>
+
+<h2 id="toc">Contents</h2>
+<ol class="toc">
+  <li><a href="#goal">The goal (one sentence, measurable)</a></li>
+  <li><a href="#today">What is true today, measured</a></li>
+  <li><a href="#why">Why the fleet is not routed yet (the blockers, in order)</a></li>
+  <li><a href="#tree">Subgoal tree (each with outcome acceptance)</a></li>
+  <li><a href="#sequence">Execution sequence and gates</a></li>
+  <li><a href="#last">The last subgoal: re-evaluate, verify, and grow the tree</a></li>
+  <li><a href="#quorum">What I am asking the quorum</a></li>
+  <li><a href="#notdo">What I will not do</a></li>
+</ol>
+
+<h2 id="goal">1. The goal</h2>
+<div class="goal">
+  <strong>Route every scheduler-dispatched Hermes call through the task router, with a stats/metrics
+  system complete enough that the chain is ordered by <em>measured cost per task</em> by complexity
+  band — and prove it on live fleet traffic without ever taking the fleet down.</strong>
+</div>
+<p>Success is not "the router is wired". Success is: a scheduler tick's call is served by a lane the
+router chose <em>on evidence</em>, the row explains that choice (options, gates, rating, cost, the tick
+it served), the same number is queryable later, and the ordering demonstrably differs from what raw
+price would have chosen — with the fleet healthy throughout.</p>
+
+<h2 id="today">2. What is true today, measured</h2>
+<table>
+<tr><th>Fact</th><th>Measurement</th><th>Where it came from</th></tr>
+<tr><td>Sort is built but <strong>unreachable</strong></td>
+    <td><code>DEFAULT_SORT = os.environ.get('ROUTER_SPAWN_SORT') or 'price'</code>; nothing in the fleet sets that var (scheduler env: 0 occurrences)</td>
+    <td><code>router_spawn.py:149</code>; live <code>/proc/&lt;pid&gt;/environ</code></td></tr>
+<tr><td>Cost-per-task data is <strong>imported history, not proxied traffic</strong></td>
+    <td>271 aggregates: <code>hermes</code> 102 bands (median n=14, max 122,122), <code>opencode</code> 13, <code>pi</code> 9, <strong><code>router-proxy</code> 147 bands at median n=1</strong></td>
+    <td><code>data/state/outcomes-averages.jsonl</code></td></tr>
+<tr><td>Rating step costs a full-context model call</td>
+    <td>~47,030 input tokens / ~$0.065 <em>to classify</em>; the reply then carries ~47k more</td>
+    <td>live probes; <code>proxy-acceptance</code> artifacts</td></tr>
+<tr><td>No throttling or queueing at the proxy</td>
+    <td>zero admission/rate-limit constructs existed; gateway's own cap (44) never fired during the incident, so nothing refused</td>
+    <td>code census; gateway logs 09-25 22:20–24:00</td></tr>
+<tr><td>The incident's real signature was <strong>call density</strong></td>
+    <td>api calls per api_server session <strong>6.5 → 40 (6.1×)</strong>; 495 proxied rows, <strong>430 no-hops (zero upstream work)</strong>, zero served</td>
+    <td><code>state.db</code> sessions + ledger, three windows</td></tr>
+<tr><td>Session accounting is <span class="ok">now in the ledger</span></td>
+    <td>row carries <code>session{turns, tokens, cache_read, duration_s, models[]}</code>; custody verified against <code>state.db</code> = True</td>
+    <td>TR-171, <code>c7ee012</code></td></tr>
+<tr><td>Chain + gate evidence is <span class="ok">now in the ledger</span></td>
+    <td>row carries the option chain (58 candidates observed), exclusions with codes, classifier parse state</td>
+    <td>TR-170, <code>85b2349</code></td></tr>
+<tr><td>The per-<strong>task</strong> join is <span class="no">missing</span></td>
+    <td>threshold: every row has <code>gateway_session_id</code>; <strong>none</strong> carries the tick id, although the scheduler sends it and the router receives it</td>
+    <td>field census over 601 rows; <code>gateway_stream.go:186/277</code></td></tr>
+</table>
+
+<h2 id="why">3. Why the fleet is not routed yet</h2>
+<ol>
+  <li><strong>Safety:</strong> pointing 332 prompt-mode lanes at the proxy once already saturated the gateway and looped failures (TR-169). Without admission control the proxy converts a caller's bounded retries into an unbounded pile of upstream calls.</li>
+  <li><strong>Cost:</strong> each proxied request pays an extra full-context rating call. Rating must be cached and/or move off the gateway (raw provider endpoint) before fleet volume.</li>
+  <li><strong>Attribution:</strong> without the tick key there is no "per task" — only "per request". The sort cannot be evaluated honestly.</li>
+  <li><strong>Data depth:</strong> the bands the sort would use have median n=1; sorting on that is worse than price.</li>
+  <li><strong>Reversibility:</strong> the flip must be one env value with a proven revert; today it is unreachable either way.</li>
+</ol>
+
+<h2 id="tree">4. Subgoal tree</h2>
+<p class="muted">Each subgoal is stated as an OUTCOME with checkable acceptance. A subgoal is done when the outcome is measured on live traffic — not when code is committed (the failure this list exists to stop).</p>
+
+<h3>S1 — The proxy bounds its own work <span class="tag">in flight</span></h3>
+<table>
+<tr><th>Why</th><td>Without it, S7 (traffic) re-runs the incident.</td></tr>
+<tr><th>Deliverable</th><td>Admission: bounded in-flight + bounded queue + explicit retryable refusal; visible in <code>/health</code>; refusals write a ledger row.</td></tr>
+<tr><th>Acceptance</th><td>N concurrent callers &gt; cap ⇒ never more than the cap in flight, excess gets 429 with <code>Retry-After</code>; a row with <code>route_outcome=rejected</code>; work under the cap unaffected.</td></tr>
+<tr><th>State</th><td>Code written and wired (gate, refusal, <code>/health</code>). Tests: 4 pass / 5 fail — failing cases are my test harness, not the code; must be green before S7.</td></tr>
+</table>
+
+<h3>S2 — Rating is cheap and stable</h3>
+<table>
+<tr><th>Why</th><td>The rating is a model call carrying the caller's whole context; 430 of 495 incident rows paid it for zero work.</td></tr>
+<tr><th>Deliverable</th><td>(a) identical prompts rated once (cache keyed by prompt hash, TTL, bounded, success-only); (b) the classifier calls a RAW provider endpoint instead of the gateway.</td></tr>
+<tr><th>Acceptance</th><td>Same prompt N times ⇒ 1 rating call (measured); a failed rating is never cached; live evidence the classifier's upstream is not the gateway (its own tokens no longer carry injected context).</td></tr>
+</table>
+
+<h3>S3 — Every row names the TASK it served <span class="tag">smallest, highest leverage</span></h3>
+<table>
+<tr><th>Why</th><td>The scheduler sends the tick id in <code>X-Hermes-Session-Key</code>; the router reads it and discards it. Without it, cost-per-task is unanswerable.</td></tr>
+<tr><th>Deliverable</th><td>Persist the caller key on the row; join to tick → project → board task.</td></tr>
+<tr><th>Acceptance</th><td>A row can be traced to its tick from the ledger alone; a caller sending no key stays null.</td></tr>
+</table>
+
+<h3>S4 — Session truth is settled, and per-request shares are honest</h3>
+<table>
+<tr><th>Why</th><td>An inline snapshot of a running session is a floor; session identity is the prompt hash, so meters are cumulative and per-row attribution double-counts.</td></tr>
+<tr><th>Deliverable</th><td>Reconciler (timer, off the request path) reading the <strong>session API</strong> (<code>GET /api/sessions/{id}</code>), settling on <strong>idle ≥ N</strong> (only 6.8% of sessions ever get <code>ended_at</code>), appending snapshots; deltas between snapshots give per-request shares; backfills existing rows.</td></tr>
+<tr><th>Acceptance</th><td>Settled totals match <code>state.db</code>; the sum of per-request deltas equals the session total; a snapshot is never served for a session that continued after it.</td></tr>
+</table>
+
+<h3>S5 — Bands earn the right to be sorted on</h3>
+<table>
+<tr><th>Why</th><td>158 of 271 bands sit at n=1 today.</td></tr>
+<tr><th>Deliverable</th><td>A sufficiency floor per band; below it the effective estimate blends toward list price; the row records which basis ordered its chain.</td></tr>
+<tr><th>Acceptance</th><td>A band with n&lt;floor cannot outrank a priced lane on noisy evidence; the blend is visible in the envelope and the row.</td></tr>
+</table>
+
+<h3>S6 — The ordering is cost-per-task, proven by diff</h3>
+<table>
+<tr><th>Why</th><td>The sort exists and is unreachable; TR-049/TR-065 were marked complete with no effect.</td></tr>
+<tr><th>Deliverable</th><td>Switch the default ordering, guarded by S5.</td></tr>
+<tr><th>Acceptance</th><td>Same request under old and new ordering ⇒ <strong>different heads, both recorded</strong>; reverting is one env value and the revert is proven by a resolve; the sort basis is stamped on every row.</td></tr>
+</table>
+
+<h3>S7 — Traffic ramps on evidence, not on enthusiasm</h3>
+<table>
+<tr><th>Why</th><td>The last full flip took the fleet down inside ~17 minutes.</td></tr>
+<tr><th>Deliverable</th><td>Route a NAMED subset of projects first (start small), with the dummy-scheduler harness reproducing their shape at real concurrency, then expand per measured result.</td></tr>
+<tr><th>Acceptance</th><td>Gateway latency and refusal rate stay within bounds at each step; each expansion is justified by that step's numbers; a rollback drill is executed, not just documented.</td></tr>
+</table>
+
+<h3>S8 — The system is observable by a human</h3>
+<table>
+<tr><th>Why</th><td>The incident was found by my own probing, not by the surfaces.</td></tr>
+<tr><th>Deliverable</th><td><code>/health</code> (admission, cache, sort basis) + UI panes; the ledger queryable for tasks, times, chains, refusals.</td></tr>
+<tr><th>Acceptance</th><td>An operator can answer "why did this call go to this lane" and "is the proxy refusing work" from the UI alone.</td></tr>
+</table>
+
+<h2 id="sequence">5. Execution sequence and gates</h2>
+<ol>
+  <li><strong>S1 + S2</strong> (safety + rating cost) — the gate for any traffic.</li>
+  <li><strong>S3 + S4</strong> (attribution + session truth) — the gate for honest per-task numbers.</li>
+  <li><strong>S5</strong> (sufficiency) — the gate for trusting the ordering.</li>
+  <li><strong>S7 at a small scale</strong> — real traffic begins; bands fill.</li>
+  <li><strong>S6</strong> once bands clear the floor — switch, prove by diff, keep revert proven.</li>
+  <li><strong>S8</strong> alongside, not last.</li>
+  <li><strong>S9</strong> — the re-evaluation below.</li>
+</ol>
+
+<h2 id="last">6. The last subgoal: re-evaluate, verify, then grow the tree</h2>
+<div class="box">
+  <strong>S9 — Full re-evaluation.</strong> Re-run every measurement that justified the tree and compare to the claim made when each subgoal closed:
+  <ul>
+    <li>acceptance battery + full suite green on a frozen tree;</li>
+    <li>band depth (how many bands clear the floor) before/after traffic;</li>
+    <li>rating cost per request (tokens + $) before/after the cache and the raw-endpoint classifier;</li>
+    <li>refusal rate and gateway latency under load from the dummy harness;</li>
+    <li>a real resolve diff: old ordering vs new, same request, both heads;</li>
+    <li>per-task attribution: does the sum of deltas equal the settled session total?</li>
+  </ul>
+  Then, as instructed: <strong>derive NEW subgoals from whatever the evaluation exposes</strong> — including negative results — and file them before reporting done.
+</div>
+
+<h2 id="quorum">7. What I am asking the quorum</h2>
+<ol>
+  <li>What is missing from this tree that would stop the goal being reached?</li>
+  <li>Which subgoal is in the wrong position (a hidden dependency)?</li>
+  <li>Is the sequencing honest about the risk that took the fleet down — what would you add before S7?</li>
+  <li>Where am I still measuring the wrong thing, or marking something done that is only built?</li>
+  <li>Is there a cheaper path to the same outcome that this list ignores?</li>
+</ol>
+
+<h2 id="notdo">8. What I will not do</h2>
+<ul>
+  <li>Not switch the ordering on thin data (median n=1) to have something to show.</li>
+  <li>Not route the fleet again without S1 proven under real concurrency.</li>
+  <li>Not mark a subgoal complete on committed code; the outcome must be measured on live traffic.</li>
+  <li>Not report a capability as working because a function exists.</li>
+</ul>
+
+</div></body></html>
