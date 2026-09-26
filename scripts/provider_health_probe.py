@@ -67,11 +67,28 @@ import json, os, socket, sys, time, datetime, urllib.request, urllib.error
 
 # Env-overridable paths (same convention as router_spawn.py) so calibration runs
 # and tests can be hermetic; defaults are byte-identical to the historical paths.
+# REPO is resolved through realpath so this module works BOTH from the repo and from its live
+# symlink at ~/.hermes/scripts/ (abspath would give ~/.hermes and read the wrong tree).
+_REPO = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 MR = os.environ.get('ROUTER_STATE_DIR', os.path.expanduser('~/.hermes/model-router'))
 HEALTH_JSONL = f'{MR}/health.jsonl'
 HEALTH_STATE = f'{MR}/health-state.json'
-REGISTRY = os.environ.get('ROUTING_REGISTRY', os.path.expanduser('~/task-router/registry.json'))
-DATA_DIR = os.environ.get('ROUTING_DATA_DIR', os.path.expanduser('~/task-router/data/tables'))
+# TR-CI: the registry and the data tables live IN THE REPO, so their defaults must be repo-relative.
+# A home-relative default (`~/task-router/...`) silently reads nothing in any other checkout - CI
+# caught it as a missing session header, but the same default would have made a probe run from a
+# worktree or a second clone read NO providers at all and report them missing instead of reading them.
+# The live install is a byte-identical COPY under ~/.hermes/scripts/, NOT a symlink, so a
+# repo-relative default is wrong THERE and a home-relative default is wrong in CI (the checkout is
+# under /home/runner/work/...). Both locations must work, so resolve by CANDIDATE ORDER - repo first
+# (CI and any worktree), then the historical home path (the live copy) - with the env override winning.
+_DATA_CANDIDATES = (os.path.join(_REPO, 'data', 'tables'),
+                    os.path.expanduser('~/task-router/data/tables'))
+DATA_DIR = os.environ.get('ROUTING_DATA_DIR') or next(
+    (d for d in _DATA_CANDIDATES if os.path.isdir(d)), _DATA_CANDIDATES[0])
+_REGISTRY_CANDIDATES = (os.path.join(_REPO, 'registry.json'),
+                        os.path.expanduser('~/task-router/registry.json'))
+REGISTRY = os.environ.get('ROUTING_REGISTRY') or next(
+    (f for f in _REGISTRY_CANDIDATES if os.path.exists(f)), _REGISTRY_CANDIDATES[0])
 TIMEOUT_S = 8        # fast path
 LONG_TIMEOUT_S = 60  # slow path — thinking models
 SLOW_MS = 10000
