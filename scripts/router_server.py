@@ -579,9 +579,10 @@ class RouterApplication:
                     query, router_outcomes.outcomes_path())
             if path == "/api/ui/board":
                 # TR-150/156: the board panel's search over the repo's JSONL board.
+                _repo = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
                 return 200, router_ui_page.board_search(
-                    query, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-                                        '.coding-hermes', 'board', 'tasks.jsonl'))
+                    query, os.path.join(_repo, '.coding-hermes', 'board', 'tasks.jsonl'),
+                    repo_root=_repo)
             if path == "/api/ui/ledger":
                 # TR-151: the raw-data search. Reports how much of the store it read.
                 return 200, ui_ledger(query)

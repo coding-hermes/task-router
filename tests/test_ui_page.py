@@ -200,3 +200,57 @@ def test_a_lane_with_no_declared_price_says_so_rather_than_showing_zero():
     v = up.chain_view({}, resolved, price_map={})
     assert v['chain'][0]['normalized_price'] is None
     assert v['chain'][0]['price_basis'] == 'no declared price for this lane'
+
+
+def _board(tmp_path, rows):
+    p = tmp_path / 'tasks.jsonl'
+    p.write_text(''.join(json.dumps(r) + '\n' for r in rows))
+    return str(p)
+
+
+def test_the_board_census_surfaces_duplicate_ids(tmp_path):
+    rows = [{'id': 'TR-1', 'title': 'a', 'status': 'complete'},
+            {'id': 'TR-2', 'title': 'b', 'status': 'pending'},
+            {'id': 'TR-2', 'title': 'b again', 'status': 'pending'},
+            {'id': 'TR-10', 'title': 'c', 'status': 'complete'}]
+    import router_ui_page as up
+    d = up.board_search({'limit': '10'}, _board(tmp_path, rows))
+    assert d['census']['rows'] == 4
+    assert d['census']['duplicate_ids'] == [{'id': 'TR-2', 'count': 2}]
+    assert d['census']['max_id'] == 'TR-10'
+    assert 'DUPLICATE' in d['note']
+
+
+def test_a_missing_artifact_is_flagged_not_linked(tmp_path):
+    repo = tmp_path / 'repo'
+    (repo / 'scripts').mkdir(parents=True)
+    (repo / 'scripts' / 'there.py').write_text('ok')
+    rows = [{'id': 'TR-1', 'title': 'x', 'status': 'complete',
+             'files_changed': ['scripts/there.py', 'scripts/gone.py']}]
+    import router_ui_page as up
+    d = up.board_search({'limit': '5'}, _board(tmp_path, rows), repo_root=str(repo))
+    arts = {a['path']: a for a in d['rows'][0]['artifacts']}
+    assert arts['scripts/there.py']['exists'] is True
+    assert arts['scripts/gone.py']['exists'] is False
+    assert 'not found' in arts['scripts/gone.py']['note']
+    assert d['artifacts_missing'] == 1
+
+
+def test_the_board_filters_by_id_status_priority_and_commit(tmp_path):
+    rows = [{'id': 'TR-1', 'title': 'a', 'status': 'complete', 'priority': 'P1',
+             'commit_hash': 'abc1234'},
+            {'id': 'TR-2', 'title': 'b', 'status': 'pending', 'priority': 'P2'},
+            {'id': 'TR-15', 'title': 'c', 'status': 'pending', 'priority': 'P1'}]
+    import router_ui_page as up
+    p = _board(tmp_path, rows)
+    assert up.board_search({'id': 'TR-1'}, p)['total_matched'] == 2
+    assert up.board_search({'status': 'pending'}, p)['total_matched'] == 2
+    assert up.board_search({'priority': 'P1'}, p)['total_matched'] == 2
+    assert up.board_search({'commit': 'abc12'}, p)['total_matched'] == 1
+
+
+def test_the_board_names_the_filter_it_cannot_offer(tmp_path):
+    import router_ui_page as up
+    d = up.board_search({}, _board(tmp_path, [{'id': 'TR-1', 'title': 'a', 'status': 'x'}]))
+    assert 'owner (the board carries no owner field)' in d['filters_absent']
+    assert 'status' in d['filters_available']

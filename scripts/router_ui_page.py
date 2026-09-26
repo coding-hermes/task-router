@@ -78,6 +78,9 @@ PAGE = r"""<!doctype html>
   <select id="f_outcome"><option value="">outcome…</option><option>success</option><option>failed</option></select>
   <input id="profile" list="profiles" placeholder="profile (e.g. P1_CODING)" size="22" autocomplete="off">
   <datalist id="profiles"></datalist>
+  <select id="b_status"><option value="">any status</option><option>pending</option><option>complete</option><option>failed</option><option>done</option></select>
+  <select id="b_priority"><option value="">any priority</option><option>P0</option><option>P1</option><option>P2</option></select>
+  <input id="b_commit" placeholder="commit" size="10" autocomplete="off">
   <select id="series_group"><option value="total">all traffic</option><option value="band">by band</option><option value="lane">by lane</option></select>
   <select id="win"><option value="24">24h</option><option value="72">72h</option><option value="168">7d</option></select>
 </header>
@@ -273,18 +276,34 @@ async function chainPanel(){
 /* ---- board ------------------------------------------------------------ */
 async function board(){
   const q = $('#q').value.trim();
-  $('#board_window').textContent = q ? 'filter: '+q : 'all rows';
+  const p = new URLSearchParams({limit:'25'});
+  if(q) p.set('q', q);
+  if($('#b_status').value) p.set('status', $('#b_status').value);
+  if($('#b_priority').value) p.set('priority', $('#b_priority').value);
+  if($('#b_commit').value.trim()) p.set('commit', $('#b_commit').value.trim());
+  $('#board_window').textContent = [...p.keys()].filter(k=>k!=='limit').length + ' filter(s)';
   try{
-    const d = await j('/api/ui/board?limit=25'+(q ? '&q='+encodeURIComponent(q) : ''));
+    const d = await j('/api/ui/board?'+p.toString());
     const list = d.rows || [];
     $('#board').innerHTML = list.length
-      ? '<table><thead><tr><th>id</th><th>status</th><th>title</th><th>updated</th></tr></thead><tbody>'
-        + list.map(r => '<tr><td>'+esc(r.id)+'</td><td>'+esc(r.status)+'</td><td>'+esc(String(r.title||'').slice(0,64))+'</td><td class="dim">'+esc(String(r.updated_at||r.completed_at||'').replace('T',' ').slice(0,19))+'</td></tr>').join('')
-        + '</tbody></table>'
+      ? '<table><thead><tr><th>id</th><th>status</th><th>pri</th><th>title</th><th>commit</th><th>artifacts</th></tr></thead><tbody>'
+        + list.map(r => {
+            const arts = (r.artifacts||[]).map(a => a.exists
+              ? '<span class="ok" title="'+esc(a.path)+'">ok</span>'
+              : '<span class="bad" title="'+esc(a.path)+' - '+esc(a.note||'')+'">missing</span>').join(' ') || '<span class="dim">—</span>';
+            return '<tr><td>'+esc(r.id)+'</td><td>'+esc(r.status)+'</td><td class="dim">'+esc(r.priority)+'</td>'
+              + '<td>'+esc(String(r.title||'').slice(0,58))+'</td><td class="dim">'+esc(String(r.commit_hash||'—').slice(0,9))+'</td>'
+              + '<td>'+arts+'</td></tr>';
+          }).join('') + '</tbody></table>'
       : '<span class="dim">no matching board rows</span>';
-    $('#board_note').textContent = 'scanned '+d.rows_scanned+' of '+d.total_rows+' board row(s) · matched '+d.total_matched
-      + (d.scan_truncated ? ' · SCAN TRUNCATED' : '');
-    $('#board_note').className = 'note'+(d.scan_truncated?' warn':'');
+    const c = d.census || {};
+    const dupes = (c.duplicate_ids||[]).length;
+    const n = $('#board_note');
+    n.textContent = 'census: '+c.rows+' row(s) · max id '+c.max_id+' · '+(dupes ? dupes+' DUPLICATE id(s)' : 'no duplicate ids')
+      + ' · matched '+d.total_matched+' of '+d.total_rows+' scanned'
+      + ' · artifacts: '+d.artifacts_checked+' checked, '+d.artifacts_missing+' missing'
+      + ' · cannot filter by: '+(d.filters_absent||[]).join('; ');
+    n.className = 'note'+(dupes || d.artifacts_missing ? ' warn' : '');
   }catch(e){ $('#board').innerHTML = '<span class="bad">board unavailable</span>'; $('#board_note').textContent = e.message; }
 }
 
@@ -391,7 +410,8 @@ document.addEventListener('keydown', (e) => {
 
 let t = null;
 $('#q').addEventListener('input', () => { clearTimeout(t); t = setTimeout(refresh, 250); });
-['#f_provider','#f_band','#f_outcome'].forEach(s => $(s).addEventListener('change', refresh));
+['#f_provider','#f_band','#f_outcome','#b_status','#b_priority'].forEach(s => $(s).addEventListener('change', function(){ ledger(); board(); }));
+if($('#b_commit')) $('#b_commit').addEventListener('change', board);
 $('#win').addEventListener('change', function(){ traffic(); series(); });
 if($('#series_group')) $('#series_group').addEventListener('change', series);
 if($('#profile')) $('#profile').addEventListener('change', chainPanel);
@@ -430,11 +450,17 @@ def page_html():
     return PAGE
 
 
-def board_search(query, path):
-    """Search the board JSONL for the page's board panel.
+def board_search(query, path, repo_root=None, check_paths=200):
+    """Search the board JSONL for the page's board panel (TR-156).
 
-    Same honesty contract as the ledger search: report how much was read, so a filtered view cannot
-    imply it looked at the whole board when it stopped early.
+    Same honesty contract as the ledger search - it reports how much it read - plus the two things
+    that make a board view trustworthy: an ID CENSUS (rows + duplicate ids, because a duplicated id
+    is how two agents overwrite each other's row) and ARTIFACT CHECKING, where a cited file is
+    verified to exist and a missing one is flagged rather than linked as if it were there.
+
+    The board carries no `owner` field (measured: ids, titles, status, priority, timestamps,
+    commit_hash, files_changed, notes...). Rather than invent one, `filters_available` names what is
+    real and `filters_absent` names what is not.
     """
     def one(name, default=None):
         v = (query or {}).get(name)
@@ -449,12 +475,17 @@ def board_search(query, path):
             return default
 
     q = (one('q') or '').lower()
-    status = one('status')
+    f_id = one('id')
+    f_status = one('status')
+    f_priority = one('priority')
+    f_commit = (one('commit') or '').lower()
     limit = max(1, min(as_int('limit', 25), 200))
     offset = max(0, as_int('offset', 0))
+    rows = []
     total_rows = 0
-    matched = 0
-    page = []
+    duplicates = {}
+    by_status = {}
+    ids = []
     try:
         with open(path, encoding='utf-8', errors='replace') as fh:
             for line in fh:
@@ -466,30 +497,80 @@ def board_search(query, path):
                     d = json.loads(line)
                 except ValueError:
                     continue
-                if status and d.get('status') != status:
+                rid = str(d.get('id') or '')
+                ids.append(rid)
+                st = d.get('status') or 'unknown'
+                by_status[st] = by_status.get(st, 0) + 1
+                duplicates[rid] = duplicates.get(rid, 0) + 1
+                if f_id and not rid.startswith(str(f_id)):
+                    continue
+                if f_status and d.get('status') != f_status:
+                    continue
+                if f_priority and d.get('priority') != f_priority:
+                    continue
+                if f_commit and f_commit not in str(d.get('commit_hash') or '').lower():
                     continue
                 if q:
                     hay = ' '.join(str(d.get(k) or '') for k in
-                                   ('id', 'title', 'status', 'priority', 'reasoning',
-                                    'foreman_note', 'files_changed')).lower()
+                                   ('id', 'title', 'description', 'status', 'priority', 'reasoning',
+                                    'foreman_note', 'notes', 'worker_summary', 'files_changed',
+                                    'commit_hash', 'capability_tags')).lower()
                     if q not in hay:
                         continue
-                matched += 1
-                if offset <= matched - 1 < offset + limit:
-                    page.append(d)
+                rows.append(d)
     except OSError as e:
         return {'error': f'board unreadable: {e}', 'rows': [], 'total_rows': 0,
                 'total_matched': 0, 'rows_scanned': 0, 'scan_truncated': False}
+
+    dupes = [{'id': k, 'count': v} for k, v in sorted(duplicates.items()) if v > 1]
+
+    def _idnum(s):
+        try:
+            return int(str(s).split('-')[1])
+        except (IndexError, ValueError):
+            return -1
+
+    tr_ids = [i for i in ids if isinstance(i, str) and i.startswith('TR-')]
+    max_id = max(tr_ids, key=_idnum) if tr_ids else None
+
     keep = ('id', 'title', 'status', 'priority', 'worker_status', 'created_at', 'updated_at',
-            'completed_at', 'foreman_note')
-    trimmed = [{k: d.get(k) for k in keep if k in d} for d in page]
-    return {'rows': trimmed, 'returned': len(trimmed), 'total_rows': total_rows,
-            'rows_scanned': total_rows, 'total_matched': matched,
-            'scan_truncated': False, 'truncated': matched > offset + len(trimmed),
-            'limit': limit, 'offset': offset, 'path': path}
+            'completed_at', 'completed', 'commit_hash', 'guard_result', 'ci_result', 'attempts',
+            'blocked_reason', 'foreman_note')
+    page = rows[offset:offset + limit]
+    out_rows = []
+    missing = 0
+    checked = 0
+    for d in page:
+        r = {k: d.get(k) for k in keep if k in d}
+        arts = []
+        for p in (d.get('files_changed') or [])[:20]:
+            if checked >= check_paths:
+                break
+            checked += 1
+            p = str(p)
+            target = p if os.path.isabs(p) else os.path.join(repo_root or '', p)
+            exists = os.path.exists(target)
+            if not exists:
+                missing += 1
+            arts.append({'path': p, 'exists': exists,
+                         'note': None if exists else 'cited path not found on disk'})
+        if arts:
+            r['artifacts'] = arts
+        out_rows.append(r)
+    return {'rows': out_rows, 'returned': len(out_rows), 'total_rows': total_rows,
+            'rows_scanned': total_rows, 'total_matched': len(rows),
+            'scan_truncated': False, 'truncated': len(rows) > offset + len(out_rows),
+            'limit': limit, 'offset': offset, 'path': path,
+            'census': {'rows': total_rows, 'duplicate_ids': dupes, 'by_status': by_status,
+                       'max_id': max_id},
+            'artifacts_checked': checked, 'artifacts_missing': missing,
+            'filters_available': ['id (prefix)', 'status', 'priority', 'commit', 'q'],
+            'filters_absent': ['owner (the board carries no owner field)'],
+            'note': (f'{total_rows} board row(s), {len(rows)} matched'
+                     + (f', {len(dupes)} DUPLICATE id(s)' if dupes else ', no duplicate ids')
+                     + (f', {missing} cited path(s) missing' if missing else ''))}
 
 
-# ------------------------------------------------------------------ TR-152 series
 
 def _series_float(query, name, default=None):
     v = (query or {}).get(name)
