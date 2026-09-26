@@ -671,10 +671,100 @@ def apply_category_estimates():
             n += 1
     return n
 
+
+# ---------- 4a-bis. TR-181: a benchmark row's OWN category ----------------
+#: registry categories that own a percentile scale — a benchmark row may only
+#: contribute to one of these (CATS is the seed's canonical list, section 2).
+_BRIDGE_CATS = tuple(CATS)
+#: sources whose values are degenerate BY CONSTRUCTION and must never become a
+#: tier:
+#:   battery-T4-INSTR-floor  — a pass/fail floor test: 40+ models at 1.0, the
+#:                             exact degeneracy the TR-002 quality estimates
+#:                             exist to replace;
+#:   xkiro-live-battery      — the perfcols rows say they are 'already carried
+#:                             via the perf_* columns' and the 09-16 probe row
+#:                             says 'no overlay pattern BY DESIGN'.
+_BRIDGE_EXCLUDE_SRC = ('battery-T4-INSTR-floor', 'xkiro-live-battery')
+#: ...and rows whose OWN source text declares that it is NOT to be overlaid.
+#: Three live examples: the 09-19 Z.AI FlashX DeepSWE row ('inert by design -
+#: no overlay pattern in the source string; vendor scale, shared Flash stack'),
+#: the 09-19 Qwen agentic-terminal row ('held INERT deliberately') and the
+#: 09-25 composite-tracker row ('source token withheld by design'). The
+#: declaration IS data: a pass that silently overrides it would rewrite a
+#: documented decision — and for FlashX specifically it would re-land the parent
+#: Flash stack's number as if it were FlashX's own measurement.
+_BRIDGE_INERT_MARKERS = ('inert', 'by design', 'no overlay pattern')
+
+
+def apply_benchmark_categories():
+    """Carry the benchmark table's OWN category labels into model_perf.
+
+    The overlay above maps a benchmark SOURCE to categories (BENCH_OVERLAY).
+    Every benchmark row whose category is itself a registry category but whose
+    source carries no pattern sat INERT: CoWorkBench (agent_tick), DeepSWE
+    (long_horizon), HLE (reasoning), NL2Repo (long_horizon), AutomationBench
+    (agent_tick) — and the 61-row battery blocks, whose own rows are labelled
+    agent-tick / delegation / debug / schema while the overlay only ever read
+    them as tool_use and code_gen. The evidence is committed; only the carrier
+    was missing (the GPQA / MCP-Atlas / AA-index evidence-trap class again).
+
+    Deliberately conservative, so this pass can only ADD coverage:
+      * the label must BE a registry category after '-' -> '_' normalization
+        ('agent-tick' -> 'agent_tick'); 'sentiment' and other non-registry
+        labels are ignored;
+      * the model must be served by a live lane (same rule as the estimate
+        passes — a name with no lane cannot carry a tier row);
+      * _BRIDGE_EXCLUDE_SRC never contributes;
+      * INSERT ONLY — an existing (measured / estimate / alias / overlay) value
+        is never overwritten. When a benchmark table carries several values for
+        the same (model, category) the window picks max(rel) with explicit
+        tie-breaks (source, model) so the output stays byte-stable.
+    Returns the number of rows inserted.
+    """
+    live = ("(SELECT DISTINCT lower(model) FROM models "
+            "WHERE (valid_to IS NULL OR valid_to > CURRENT_DATE) "
+            "AND (available_from IS NULL OR available_from <= CURRENT_DATE) "
+            "AND archive = false)")
+    ex = ' '.join(f"AND source NOT LIKE '%{p}%'" for p in _BRIDGE_EXCLUDE_SRC)
+    ex += ' ' + ' '.join(f"AND lower(source) NOT LIKE '%{p}%'"
+                         for p in _BRIDGE_INERT_MARKERS)
+    cats = ', '.join(f"'{c}'" for c in _BRIDGE_CATS)
+    before = con.execute("SELECT count(*) FROM model_perf").fetchone()[0]
+    con.execute(f"""
+        INSERT INTO model_perf (model, category, perf, source, source_ref)
+        SELECT b.model, b.cat, b.rel, 'bench', 'bench:' || b.src FROM (
+          SELECT model, replace(category, '-', '_') AS cat,
+                 score / max_score AS rel, source AS src,
+                 row_number() OVER (PARTITION BY lower(model), replace(category, '-', '_')
+                                    ORDER BY score / max_score DESC, source ASC,
+                                             model ASC) AS rn
+          FROM benchmarks
+          WHERE max_score IS NOT NULL AND score IS NOT NULL AND max_score <> 0
+            AND lower(model) IN {live}
+            AND replace(category, '-', '_') IN ({cats})
+            {ex}
+        ) AS b
+        WHERE b.rn = 1
+          AND NOT EXISTS (SELECT 1 FROM model_perf p
+                          WHERE lower(p.model) = lower(b.model) AND p.category = b.cat)
+    """).fetchall()
+    return con.execute("SELECT count(*) FROM model_perf").fetchone()[0] - before
+
+
 def apply_quality_estimates():
     """TR-002: replace degenerate guard/mock/multilingual perfs with documented
     estimates. Only values in {0.0, 1.0} (guard/mock) or 0.50 (multilingual) are
-    replaced - surveyed mid values are preserved. Returns rows updated."""
+    replaced - surveyed mid values are preserved. Returns rows updated.
+
+    TR-181 (2026-09-26): when a model has NO row at all for one of these three
+    categories the documented estimate was dropped on the floor — the file is
+    model-keyed and the estimate exists, but only the REPLACE path could consume
+    it. Measured before the fix: multilingual 40/40 values inert (the category
+    had ZERO perf rows in the whole registry, so any rating asking `multilingual`
+    was unsatisfiable by construction), guard 14/42, mock 14/42. The insert path
+    below installs the SAME documented value with the SAME provenance; nothing is
+    invented and surveyed values still win over the estimate.
+    """
     n = 0
     for name, (g, m, ml) in QUALITY_ESTIMATES.items():
         for cat, v in (('guard', g), ('mock', m), ('multilingual', ml)):
@@ -684,6 +774,18 @@ def apply_quality_estimates():
                 "SELECT perf FROM model_perf WHERE model=? AND category=?",
                 [name, cat]).fetchone()
             if not cur:
+                # TR-181: gap-fill (never a replace). Same live-lane rule as the
+                # other estimate passes: a name with no live lane cannot carry a
+                # tier row, so an estimate for it would be noise.
+                if con.execute("SELECT 1 FROM models WHERE model=? AND "
+                               "(valid_to IS NULL OR valid_to > CURRENT_DATE) AND "
+                               "(available_from IS NULL OR available_from <= CURRENT_DATE) "
+                               "AND archive = false LIMIT 1", [name]).fetchone():
+                    con.execute(
+                        "INSERT INTO model_perf (model, category, perf, source, source_ref) "
+                        "VALUES (?,?,?,?,?)",
+                        [name, cat, float(v), 'estimate', 'QUALITY_ESTIMATES'])
+                    n += 1
                 continue
             degenerate = (cat in ('guard', 'mock') and cur[0] in (0.0, 1.0)) or \
                          (cat == 'multilingual' and abs(cur[0] - 0.50) < 0.001)
@@ -694,6 +796,7 @@ def apply_quality_estimates():
                     [v, name, cat])
                 n += 1
     return n
+
 
 def seed_estimates():
     """Insert profile-tag estimates for NEW categories (skip cats already in model_perf).
@@ -774,6 +877,11 @@ def apply_overlay():
 
 seed_estimates()
 apply_overlay()
+# TR-181: measured benchmark evidence (a row's OWN category) lands BEFORE the
+# estimate passes, so an estimate can never shadow a measurement for the same
+# (model, category) — the same precedence apply_overlay already enforces.
+n_bridge = apply_benchmark_categories()
+print('benchmark-category rows carried into model_perf (TR-181):', n_bridge)
 n_est = apply_quality_estimates()
 print('quality estimate rows updated (TR-002):', n_est)
 n_cat_est = apply_category_estimates()
@@ -785,6 +893,25 @@ print('category estimate rows inserted (TR-039):', n_cat_est)
 # base's perf (never overrides existing rows). Data policy documented in
 # docs/category-data-quality.md ("aliases/variants inherit the sibling value").
 def apply_aliases():
+    """Variant -> base perf inheritance, TRANSITIVELY (TR-181).
+
+    data/tables/model_aliases.jsonl maps serving-lane variants / HF mirrors to
+    their base weights; a variant with NO evidence in a category inherits the
+    base's perf (never overrides existing rows).
+
+    Two gaps fixed here (both measured 2026-09-26):
+      * TRANSITIVITY — the resolver walks the whole alias chain at spawn time
+        (`_alias_chain`, TR-043) but this pass applied exactly ONE hop, so a
+        variant whose base is itself a variant inherited nothing: 12 chains,
+        e.g. `~z-ai/glm-latest -> accounts/fireworks/routers/glm-latest ->
+        glm-5.3` and `deepseek-v4-flash-flex -> deepseek-v4-flash ->
+        deepseek-flash`. The rows existed; only the carrier stopped early.
+      * ORDER — a variant visited before its base had received rows (from the
+        estimate passes or from another alias) silently inherited nothing, so
+        8 (variant, category) pairs stayed empty although the base carried the
+        value. The pass now repeats to a fixed point.
+    Provenance names the model the value actually came from (`alias:<base>`).
+    """
     path = os.path.join(DATA_DIR, 'model_aliases.jsonl')
     n = 0
     if not os.path.exists(path):
@@ -794,23 +921,82 @@ def apply_aliases():
         line = line.strip()
         if line:
             aliases.append(json.loads(line))
+    amap = {}
+    # The VARIANT SPELLINGS come from the file's own rows, in file order and
+    # WITHOUT collapsing case: the registry carries several casings of one lane
+    # (`Qwen/Qwen3.8-Flash` and `qwen/qwen3.8-flash` are two ids to the resolver's
+    # exact-match tiers lookup), and the previous version of this pass keyed the
+    # work list by `lower(model)`, so a later row silently REPLACED an earlier
+    # spelling's work item — the replaced spelling then lost its inherited rows
+    # (measured: `Qwen/Qwen3.8-Flash` lost its reasoning row). The chain itself
+    # is case-folded, matching `router_spawn._alias_chain`.
+    variants = []
     for a in aliases:
-        var, base = a['model'], a['inherits']
-        base_cats = con.execute(
-            "SELECT category, perf FROM model_perf WHERE lower(model)=?", [base.lower()]).fetchall()
-        if not base_cats:
-            print(f'  alias: {var} -> {base} (base has no perf rows, skipped)')
+        var = a.get('model') or a.get('variant')
+        base = a.get('inherits') or a.get('base')
+        if not var or not base or str(var).lower() == str(base).lower():
             continue
-        for cat, perf in base_cats:
-            if con.execute("SELECT 1 FROM model_perf WHERE lower(model)=? AND category=?",
-                           [var.lower(), cat]).fetchone():
-                continue
-            con.execute("INSERT INTO model_perf (model, category, perf, source, source_ref) "
-                        "VALUES (?,?,?,?,?)", [var, cat, perf, 'family', f'alias:{base}'])
-            n += 1
+        amap[str(var).lower()] = str(base).lower()
+        if str(var) not in variants:
+            variants.append(str(var))
+
+    def chain(v):
+        """[v, base, base-of-base, ...] — cycle-guarded (the resolver's rule)."""
+        out, seen, cur = [v], {v}, v
+        while True:
+            nxt = amap.get(cur)
+            if not nxt or nxt in seen:
+                break
+            seen.add(nxt)
+            out.append(nxt)
+            cur = nxt
+        return out
+
+    def perfs_exact(name):
+        """Rows stored under EXACTLY this spelling = the variant's own evidence.
+
+        The skip test must be spelling-exact: `perfs_fold` below matches ANY
+        casing, and the registry deliberately carries several casings of one
+        lane as separate ids (`qwen/qwen3.8-flash` next to `Qwen/Qwen3.8-Flash`).
+        A case-folded skip test therefore let ONE spelling's row suppress the
+        OTHER spelling's inheritance — the replaced spelling silently lost
+        (measured: `Qwen/Qwen3.8-Flash` lost its reasoning row).
+        """
+        return dict(con.execute("SELECT category, perf FROM model_perf "
+                               "WHERE model=?", [name]).fetchall())
+
+    def perfs_fold(lower_name):
+        """Rows for any casing of a name — the resolver's view of a BASE
+        (`router_spawn._alias_tiers` falls back to a case-folded lookup). First
+        row in table order wins for a duplicate category (deterministic)."""
+        return dict(con.execute("SELECT category, perf FROM model_perf "
+                                "WHERE lower(model)=?", [lower_name]).fetchall())
+
+    for _ in range(len(amap) + 1):
+        added = 0
+        for name in variants:
+            merged = perfs_exact(name)
+            for alt in chain(name.lower())[1:]:
+                for cat, perf in perfs_fold(alt).items():
+                    if cat in merged:
+                        continue
+                    con.execute("INSERT INTO model_perf (model, category, perf, source, source_ref) "
+                                "VALUES (?,?,?,?,?)",
+                                [name, cat, perf, 'family', f'alias:{alt}'])
+                    merged[cat] = perf
+                    added += 1
+        n += added
+        if not added:
+            break
     if n:
-        print(f'aliases: {len(aliases)} variants, {n} inherited perfs')
+        print(f'aliases: {len(variants)} variants, {n} inherited perfs')
+    # Visible gap, never silent: a variant whose chain carries no evidence at
+    # all cannot tier (its base is not a lane model in this registry).
+    for name in variants:
+        if not perfs_fold(name.lower()):
+            print(f'  alias: {name} -> {amap[name.lower()]} (base has no perf rows, skipped)')
     return n
+
 
 apply_aliases()
 
