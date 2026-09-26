@@ -391,6 +391,7 @@ async function flow(r){
       + '<td>'+esc(x.outcome)+(x.failure_reason?' <span class="dim">'+esc(x.failure_reason)+'</span>':'')+'</td>'
       + '<td class="num dim">'+(x.cost_usd===null||x.cost_usd===undefined?'no price':num(x.cost_usd,8))+'</td></tr>').join('');
     $('#flow').insertAdjacentHTML('afterbegin', '<div style="margin-bottom:6px">'
+      + (d.skipped_explanation ? '<div class="'+(d.skipped_hops&&d.skipped_hops.length?'warn':'dim')+'">'+esc(d.skipped_explanation)+'</div>' : '')
       + '<span class="dim">reconciled:</span> ' + have + (miss ? ' · ' + miss : '')
       + (d.session_error ? '<div class="dim">'+esc(d.session_error)+'</div>' : '')
       + '</div>'
@@ -807,6 +808,24 @@ def flow(query, store_path, now_s=None, session_fetch=None):
                          'failure_reason': r.get('failure_reason'),
                          'steps': r.get('steps'), 'cost_usd': r.get('cost_usd'),
                          'price_basis': r.get('price_basis')})
+    skipped = ce.get('skipped_hops')
+    if skipped is None:
+        skipped = [{'hop': e.get('hop'), 'provider': e.get('provider'), 'model': e.get('model'),
+                    'codes': e.get('codes'), 'why': (e.get('why') or [])[:2]}
+                   for e in (ce.get('exclusions') or [])]
+    served_pos = env.get('served_by_hop')
+    attempts = env.get('hops_attempted')
+    explanation = None
+    if served_pos is not None:
+        if skipped:
+            codes = sorted({c for s_ in skipped for c in (s_.get('codes') or [])})
+            explanation = (f"served at chain position {served_pos} after {attempts} attempt(s): "
+                           f"{len(skipped)} earlier position(s) were SKIPPED BY GATES "
+                           f"({', '.join(codes) or 'uncoded'}) - a skip is a gate decision, "
+                           f"not a failed attempt")
+        else:
+            explanation = (f"served at chain position {served_pos} after {attempts} attempt(s); "
+                           f"no earlier position was skipped (empty list, not missing data)")
     gsid = next((r.get('gateway_session_id') for r in reversed(rows)
                  if r.get('gateway_session_id')), None)
     base = os.environ.get('ROUTER_PROXY_UPSTREAM') or 'http://127.0.0.1:8642'
@@ -835,9 +854,12 @@ def flow(query, store_path, now_s=None, session_fetch=None):
             'chain': {'considered': ce.get('chain_length') or ce.get('considered'),
                       'truncated': ce.get('truncated'), 'excluded': ce.get('excluded'),
                       'gate': ce.get('gate'), 'exclusions': (ce.get('exclusions') or [])[:20]},
-            'hops': {'attempted': env.get('hops_attempted'), 'max': env.get('max_hops'),
+            'hops': {'attempted': attempts, 'max': env.get('max_hops'),
+                     'served_position': served_pos,
                      'detail': hops[:20], 'degrade_reason': env.get('degrade_reason'),
                      'fallback': env.get('fallback')},
+            'skipped_hops': skipped,
+            'skipped_explanation': explanation,
             'classifier': env.get('classifier') or env.get('classifier_evidence'),
             'timeline': timeline,
             'session': sess, 'session_error': sess_err,

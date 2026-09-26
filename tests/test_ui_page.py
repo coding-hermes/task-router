@@ -277,3 +277,59 @@ def test_a_json_list_stored_as_text_is_parsed(tmp_path):
     import router_ui_page as up
     d = up.board_search({'limit': '5'}, _board(tmp_path, rows), repo_root=str(repo))
     assert d['rows'][0]['artifacts'][0]['exists'] is True
+
+
+def test_the_row_records_skipped_positions_with_their_gate_codes():
+    """TR-158: the resolver never emitted `skipped_hops`, so the row always stored null. The skip
+    evidence is in `exclusions` (hop position + machine-readable code)."""
+    import router_server as rs
+    resolved = {
+        'chain': [{'hop': 1, 'provider': 'a', 'model': 'b'}],
+        'exclusions': [
+            {'hop': 1, 'provider': 'xkiro', 'model': 'minimax/minimax-m3:free',
+             'codes': ['model-down'], 'why': ['model DOWN (2026-09-26T08:01:00+00:00)']},
+            {'hop': 2, 'provider': 'kimi-for-coding', 'model': 'kimi-k2.7-code',
+             'codes': ['health-down', 'model-down'], 'why': ['health DOWN', 'model DOWN']},
+        ],
+    }
+    ce = rs._chain_evidence(resolved, resolved['chain'])
+    assert isinstance(ce['skipped_hops'], list) and len(ce['skipped_hops']) == 2
+    assert ce['skipped_hops'][0]['hop'] == 1 and ce['skipped_hops'][0]['codes'] == ['model-down']
+
+
+def test_a_run_with_no_skips_records_an_empty_list_not_null():
+    import router_server as rs
+    ce = rs._chain_evidence({'chain': [], 'exclusions': []}, [])
+    assert ce['skipped_hops'] == [], 'AC: no skips is an EMPTY LIST, never null-with-no-reason'
+
+
+def test_the_flow_explains_a_served_position_beyond_the_attempt_count(tmp_path):
+    """The contradiction TR-158 was filed from: 'served_by_hop=28 with 1 attempt'."""
+    p = tmp_path / 'outcomes.jsonl'
+    row = {'source_system': 'router-proxy', 'session_id': 's-1', 'provider': 'xkiro',
+           'model': 'openai/gpt-6-luna', 'ts': 1.0, 'success': True, 'cost_usd': 0.01,
+           'hops_attempted': 1, 'max_hops': 3, 'served_by_hop': 28,
+           'chain_evidence': {'chain_length': 68, 'exclusions': [
+               {'hop': 1, 'provider': 'xkiro', 'model': 'minimax/minimax-m3:free',
+                'codes': ['model-down'], 'why': ['DOWN']}]}}
+    p.write_text(json.dumps(row) + '\n')
+    import router_ui_page as up
+    r = up.flow({'id': 's-1'}, str(p))
+    assert len(r['skipped_hops']) == 1
+    assert r['hops']['served_position'] == 28
+    why = r['skipped_explanation']
+    assert 'position 28' in why and '1 attempt' in why
+    assert 'SKIPPED BY GATES' in why and 'model-down' in why
+    assert 'not a failed attempt' in why
+
+
+def test_the_flow_says_so_plainly_when_nothing_was_skipped(tmp_path):
+    p = tmp_path / 'outcomes.jsonl'
+    row = {'source_system': 'router-proxy', 'session_id': 's-2', 'provider': 'a', 'model': 'b',
+           'ts': 1.0, 'success': True, 'hops_attempted': 1, 'served_by_hop': 1,
+           'chain_evidence': {'chain_length': 5, 'exclusions': []}}
+    p.write_text(json.dumps(row) + '\n')
+    import router_ui_page as up
+    r = up.flow({'id': 's-2'}, str(p))
+    assert r['skipped_hops'] == []
+    assert 'empty list, not missing data' in r['skipped_explanation']

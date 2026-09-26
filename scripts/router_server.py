@@ -2138,7 +2138,18 @@ def _chain_evidence(resolved, chain):
         'chain_truncated': len(chain) > _PROXY_CHAIN_ROW_CAP,
         'exclusions': _hops(excl, _PROXY_EXCLUSION_ROW_CAP),
         'exclusions_truncated': len(excl) > _PROXY_EXCLUSION_ROW_CAP,
-        'skipped_hops': (resolved or {}).get('skipped_hops'),
+        # TR-158: the row records WHICH CHAIN POSITIONS WERE SKIPPED, and the gate that skipped each.
+        # It used to read `resolved['skipped_hops']`, a key the resolver has never emitted (its payload
+        # carries chain/exclusions/gate/gate_reasons and no skipped_hops), so the field was always
+        # null - which is why a flow view could show "served at hop 28 with 1 attempt" and read as a
+        # contradiction. The skip evidence exists: every entry in `exclusions` carries the hop position
+        # it occupies in the registry's enumeration plus the machine-readable gate code. A run with no
+        # skips records an EMPTY LIST, never null-with-no-reason.
+        'skipped_hops': [
+            {'hop': e.get('hop'), 'provider': e.get('provider'), 'model': e.get('model'),
+             'codes': e.get('codes'), 'why': (e.get('why') or [])[:2]}
+            for e in excl[:_PROXY_EXCLUSION_ROW_CAP]],
+        'skipped_hops_truncated': len(excl) > _PROXY_EXCLUSION_ROW_CAP,
         'first_attempt_hop': (resolved or {}).get('first_attempt_hop'),
         'gate': (resolved or {}).get('gate'),
     }
