@@ -95,7 +95,8 @@ def normalize(catalog, preset):
         pin, pout = dig(e, fm['price_in']), dig(e, fm['price_out'])
         pin, pout = _scaled_price(pin, scale), _scaled_price(pout, scale)
         price = None if pin is None or pout is None else round(blend_in * float(pin) + blend_out * float(pout), 6)
-        if price == 0 and ':free' not in str(mid):
+        _plan_preset = float(preset.get('usage_multiplier') or 1.0) != 1.0
+        if price == 0 and ':free' not in str(mid) and _plan_preset:
             # A carrier catalog that prices a NON-free SKU at $0 has told us nothing about its
             # value (plan-included SKU). A literal 0.0 is a fake zero: it sorts the lane to the
             # head of every chain it clears — the burn trap the golden heads exist to catch.
@@ -136,7 +137,7 @@ def normalize(catalog, preset):
             norm_price = float(pin)
         cap_v = dig(e, fm.get('vision', ''))
         cap_t = dig(e, fm.get('thinking', ''))
-        if norm_price == 0 and ':free' not in str(mid):
+        if norm_price == 0 and ':free' not in str(mid) and _plan_preset:
             norm_price = None
         lane = {
             'provider': preset['id'],
@@ -263,7 +264,8 @@ def apply_lanes(path, provider, new_lanes, plan_tier, price_evidence, drift=None
                             f'established sibling cost')
                 if note:
                     incoming['price_evidence'] = (r.get('price_evidence') or '') + note
-            elif (not priced_from_catalog and not (incoming.get('normalized_price') or 0)
+            elif (mult != 1.0 and not priced_from_catalog
+                  and not (incoming.get('normalized_price') or 0)
                   and (r.get('normalized_price') or 0) == 0):
                 # TR-176: an EXISTING non-free lane carrying a literal $0 is a fake zero — the
                 # carrier catalog reports no price for it, so an earlier import invented one and
