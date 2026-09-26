@@ -1,0 +1,55 @@
+[Unit]
+Description=Coding Hermes Fleet Scheduler (user)
+After=network.target
+
+[Service]
+Type=simple
+# Rebuild from source first — stale binaries re-drift operator cooldowns
+ExecStartPre=/home/kara/.hermes/scripts/schedulerd-build.sh
+ExecStart=/home/kara/coding-hermes-scheduler/coding-herms-scheduler/bin/schedulerd \
+  -db /home/kara/.hermes/coding-hermes/scheduler.db \
+  -config /home/kara/.hermes/fleet.toml \
+  -listen 127.0.0.1:9090 \
+  --namespace-mode \
+  --max-concurrent 12 \
+  --min-interval 30s \
+  --tick-timeout 7200s \
+  --gateway-url=http://127.0.0.1:8642 \
+  --no-exec-fallback \
+  --auto-disable-failure-rate 0.9 \
+  --groups-file /home/kara/.hermes/coding-hermes/groups.jsonl \
+  --templates-file /home/kara/.hermes/coding-hermes/templates.jsonl
+Restart=on-failure
+RestartSec=30
+StandardOutput=journal
+StandardError=journal
+Environment=HOME=%h
+Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin
+# Foreman model/provider defaults: the task router is the DEFAULT resolver
+# at spawn; when the router is down/unavailable the spawn chain falls back
+# to these global tiers. PLAN LANES FIRST, PAYG LAST (Bane 2026-09-19): the
+# tiers below are the xkiro plan lane and the 9router pool (2 opencode-go
+# accounts rotating inside the router), so a router miss no longer books the
+# dedicated deepseek-foreman PAYG key. That key now sits at the END of the
+# Hermes-side chain in foreman/config.yaml, after the plan lanes.
+# No placeholder values: a placeholder provider rejects and falls through.
+Environment=SCHEDULER_FOREMAN_MODEL=z-ai/glm-5.3-flash
+Environment=SCHEDULER_FOREMAN_PROVIDER=xkiro
+# Global tier pair (Bane 2026-09-19): PRIMARY = plan lane (xkiro); FALLBACK =
+# PAYG ULTIMATE on the dedicated foreman key — reached only after the router
+# hops AND the primary both fail. The opencode-go/commandcode pools live in
+# the router chain + degraded fallback path (registry), not here: these two
+# slots are the terminal rungs, and PAYG must be the last one.
+Environment=SCHEDULER_FOREMAN_FALLBACK_MODEL=deepseek-flash
+Environment=SCHEDULER_FOREMAN_FALLBACK_PROVIDER=deepseek-foreman
+# Official deepseek list prices (api-docs.deepseek.com/quick_start/pricing,
+# 2026-09-19): flash off-peak $0.15/$0.60, pro $0.66/$1.98, peak = 2x.
+# Applied at boot by ApplyModelRatesFile — refresh stickers without a rebuild.
+Environment=SCHEDULER_MODEL_RATES_FILE=/home/kara/.hermes/coding-hermes/model-rates.json
+# Gateway key comes ONLY from the 0600 env file below (API_SERVER_KEY) —
+# never pass --gateway-key on the command line (ps-readable by any local user).
+# main.go defaults --gateway-key to $API_SERVER_KEY, so no flag is needed.
+EnvironmentFile=-/etc/coding-hermes/gateway.env
+
+[Install]
+WantedBy=default.target
