@@ -290,3 +290,5 @@
 {"id": 1789971856, "timestamp": "2026-09-26T02:48:37Z", "event_type": "task_filed", "task_id": "TR-156", "actor": "kara", "detail": "{\"id\": \"TR-156\", \"title\": \"UI: board browser (find the tasks, their times, their rows)\", \"priority\": \"P2\"}"}
 {"id": 1789971857, "timestamp": "2026-09-26T03:06:07Z", "event_type": "task_completed", "task_id": "TR-157", "actor": "kara", "detail": "{\"id\": \"TR-157\", \"status\": \"complete\", \"commit\": \"2c3cf30\"}"}
 {"id": 1789971858, "timestamp": "2026-09-26T03:07:38Z", "event_type": "task_filed", "task_id": "TR-158", "actor": "kara", "detail": "{\"id\": \"TR-158\", \"priority\": \"P2\"}"}
+{"id": 1789971859, "timestamp": "2026-09-26T03:17:51Z", "event_type": "task_filed", "task_id": "TR-159", "actor": "kara", "detail": "{\"id\": \"TR-159\", \"status\": \"complete\"}"}
+{"id": 1789971860, "timestamp": "2026-09-26T03:17:51Z", "event_type": "task_filed", "task_id": "TR-160", "actor": "kara", "detail": "{\"id\": \"TR-160\", \"status\": \"pending\"}"}

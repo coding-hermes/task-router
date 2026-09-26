@@ -1,0 +1,140 @@
+{
+  "ran_at": "2026-09-26T03:17:15Z",
+  "proxy": "http://127.0.0.1:9391",
+  "web": "http://127.0.0.1:9093",
+  "passed": 11,
+  "failed": 0,
+  "skipped": 0,
+  "gates": [
+    {
+      "gate": "scheduler_shape_stream",
+      "status": "PASS",
+      "detail": "POST /v1/responses stream -> 200, text/event-stream, session header present, frames ['response.created', 'response.completed']",
+      "measurement": {
+        "status": 200,
+        "ctype": "text/event-stream; charset=utf-8",
+        "session_header": true,
+        "frames": [
+          "response.created",
+          "response.completed"
+        ]
+      },
+      "measured_at": "2026-09-26T03:17:15Z"
+    },
+    {
+      "gate": "documented_correction",
+      "status": "PASS",
+      "detail": "the report carries the measured 305s idle-timeout correction",
+      "measurement": null,
+      "measured_at": "2026-09-26T03:17:15Z"
+    },
+    {
+      "gate": "session_keying",
+      "status": "PASS",
+      "detail": "identical prompt twice -> SAME session (api-c35824f319b9e27d, message_count=4); two different prompts -> two sessions (no bleed) | identity = hash(system prompt + first user message), session headers ignored",
+      "measurement": {
+        "same_prompt_ids": [
+          "api-c35824f319b9e27d",
+          "api-c35824f319b9e27d"
+        ],
+        "distinct_prompt_ids": [
+          "api-5a4e7700102c3f4a",
+          "api-932381ef1cfdd267"
+        ],
+        "message_count": 4
+      },
+      "measured_at": "2026-09-26T03:17:15Z"
+    },
+    {
+      "gate": "failure_honesty",
+      "status": "PASS",
+      "detail": "newest real failure: reason='idle-timeout', hops_attempted=2, steps=2, cost=None (null on a failed hop, not 0)",
+      "measurement": {
+        "session_id": "router-proxy-1790391193117",
+        "reason": "idle-timeout",
+        "hops": 2,
+        "steps": 2,
+        "cost": null,
+        "wall_time_s": 307.055
+      },
+      "measured_at": "2026-09-26T03:17:15Z"
+    },
+    {
+      "gate": "surface_404",
+      "status": "PASS",
+      "detail": "unknown path -> 404 with the surface listed",
+      "measurement": {
+        "status": 404
+      },
+      "measured_at": "2026-09-26T03:17:15Z"
+    },
+    {
+      "gate": "health_truth",
+      "status": "PASS",
+      "detail": "/health reports loaded 6b786969f48e == HEAD 6b78696, stale=False",
+      "measurement": {
+        "loaded": "6b786969f48e",
+        "head": "6b78696",
+        "stale": false
+      },
+      "measured_at": "2026-09-26T03:17:15Z"
+    },
+    {
+      "gate": "budget_alignment",
+      "status": "PASS",
+      "detail": "proxy idle budget 1800.0s vs the scheduler's per-turn tolerance 1800.0s (wall ceiling 3600.0s)",
+      "measurement": {
+        "idle_budget_s": 1800.0,
+        "wall_ceiling_s": 3600.0,
+        "caller_tolerance_s": 1800.0
+      },
+      "measured_at": "2026-09-26T03:17:15Z"
+    },
+    {
+      "gate": "custody_chain",
+      "status": "PASS",
+      "detail": "ledger row router-proxy-1790392605688 carries the gateway session; state.db has it",
+      "measurement": {
+        "row_session": "router-proxy-1790392605688",
+        "state_db": [
+          "836d3167-5d0b-4fcd-a180-c0e88e786bab",
+          "api_server"
+        ]
+      },
+      "measured_at": "2026-09-26T03:17:15Z"
+    },
+    {
+      "gate": "long_run_silence",
+      "status": "PASS",
+      "detail": "RECORDED (not re-run): a 400s silent tool run returned 200 with wall=408.629s, idle budget 1800.0s - the same shape that died at ~305s before the fix",
+      "measurement": {
+        "proof_file": "/tmp/idle_proof.json",
+        "recorded": true,
+        "wall": 408.629,
+        "survived": true
+      },
+      "measured_at": "2026-09-26T03:17:15Z"
+    },
+    {
+      "gate": "stats_live",
+      "status": "PASS",
+      "detail": "/proxy/stats 168h reports 88 proxied rows, 27 groups, scan 324016 rows, cache ttl 60.0s",
+      "measurement": {
+        "matched": 88,
+        "groups": 27,
+        "scanned": 324016
+      },
+      "measured_at": "2026-09-26T03:17:15Z"
+    },
+    {
+      "gate": "write_safety",
+      "status": "PASS",
+      "detail": "unauthenticated mutation on the UI service -> 403",
+      "measurement": {
+        "status": 403,
+        "body": "{\"error\": \"read-only mode \\u2014 edits disabled\"}"
+      },
+      "measured_at": "2026-09-26T03:17:15Z"
+    }
+  ]
+}
