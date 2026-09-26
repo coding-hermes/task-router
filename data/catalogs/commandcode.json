@@ -1,0 +1,43 @@
+{
+  "id": "commandcode",
+  "name": "CommandCode gateway (NDJSON stream-only API, per-token PAYG pass-through)",
+  "catalog_url": "https://api.commandcode.ai/provider/v1/models",
+  "catalog_format": "openai_models_list",
+  "user_agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36",
+  "user_agent_reason": "carrier edge blocks default-script UAs on some routes; a real client UA is harmless on the keyless catalog GET",
+  "keyless_catalog": true,
+  "keyless_reason": "GET /provider/v1/models answers 200 without auth (verified 2026-09-25); only inference needs COMMANDCODE_API_KEY",
+  "field_map": {
+    "model": "id",
+    "price_in": "pricing.input",
+    "price_out": "pricing.output",
+    "context": "context_length"
+  },
+  "blend": [0.96, 0.04],
+  "plan_tier_policy": {
+    "default": null,
+    "reason": "CommandCode is per_token PAYG pass-through (plan_terms: 'per_token PAYG pass-through at 1:1 vs models.dev stickers'), NOT a subscription pool — plan_tier stays null like the other 67 commandcode lanes (a numeric tier re-buckets PAYG lanes and changes chain order)"
+  },
+  "data_class": "zdr",
+  "sticker_prices": {
+    "_note": "CommandCode's /models catalog carries NO pricing block. Its contract is documented 1:1 pass-through of the VENDOR list sticker (see the rows' 'research:commandcode-no-markup models.dev-sticker' evidence), so net-new lanes take the modal models.dev sticker for that exact model id (counted across providers 2026-09-25). Prices in USD per 1M tokens. A model absent here stays UNPRICED (documented gap) rather than guessed.",
+    "gpt-6-luna": {"in": 0.1, "out": 0.5, "cache_read": 0.01, "agree": 20},
+    "gpt-6-sol": {"in": 2.0, "out": 10.0, "cache_read": 0.2, "agree": 20},
+    "gpt-6-astra": {"in": 10.0, "out": 50.0, "cache_read": 1.0, "agree": 24},
+    "xai/grok-4.7": {"in": 2.0, "out": 6.0, "cache_read": 0.5, "agree": 8},
+    "claude-opus-5-5": {"in": 4.0, "out": 20.0, "cache_read": 0.2, "agree": 9},
+    "xiaomi/mimo-v2.6-flash": {"in": 0.14, "out": 0.28, "cache_read": 0.0028, "agree": 10},
+    "xiaomi/mimo-v2.6-pro": {"in": 0.435, "out": 0.87, "cache_read": 0.0036, "agree": 10},
+    "xiaomi/mimo-v2.6-pro-ultraspeed": {"in": 4.35, "out": 8.7, "cache_read": 0.036, "agree": 5},
+    "Qwen/Qwen3.8-Omni-Flash": {"in": 0.15, "out": 0.47, "cache_read": 0.016, "agree": 4},
+    "meituan/LongCat-2.0": {"in": 0.75, "out": 3.0, "cache_read": 0.015, "agree": 2},
+    "stepfun/Step-5-Preview": {"in": 1.0, "out": 2.7, "cache_read": 0.05, "agree": 4},
+    "z-ai/glm-5.3-flashx": {"in": 0.37, "out": 1.25, "cache_read": 0.075, "agree": 3},
+    "stealth/space-bunny-alpha": {"in": 0.0, "out": 0.0, "cache_read": 0.0, "agree": 2}
+  },
+  "notes": [
+    "onboarded as a preset 2026-09-25 so commandcode refreshes stop being one-off edits: the carrier is NOT on models.dev (no provider id), so the catalog + sticker_prices block are its only data sources",
+    "the :free lanes and stealth lanes keep the F3 window-cost rule (a $0 sticker never flattens an established window cost)",
+    "supported_endpoints in the catalog is metadata only — never mapped to registry columns (a list value in a typed column kills the seed)"
+  ]
+}

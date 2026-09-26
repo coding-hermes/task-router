@@ -286,6 +286,18 @@ BENCH_OVERLAY = {
     'live-probe-2026-09-16': ['agent_tick', 'reasoning', 'debug', 'schema',
                               'code_gen', 'test', 'delegation', 'long_doc',
                               'tool_use', 'long_horizon'],
+    # 2026-09-25 (new-model onboarding: gpt-6 trio, grok-4.7, mimo-v2.6,
+    # claude-opus-5.5, glm-5.3-flashx, qwen3.8-omni-flash, longcat-2.0,
+    # command-a-plus, aion-3.5, mistral-large-2512): the newest lanes shipped
+    # with zero perf rows, so every one of them read tier -1 and could not
+    # clear a single P0_FORE bar (agent_tick>=2, delegation>=2, schema>=1,
+    # reasoning>=0, long_doc>=0) — new models were in the registry but
+    # unroutable. Same small-n deterministic battery as the 09-16 precedent
+    # (n=1 probe per category, score 0.85*checks_passed/checks_total, never
+    # family-filled).
+    'live-probe-2026-09-25': ['agent_tick', 'reasoning', 'debug', 'schema',
+                              'code_gen', 'test', 'delegation', 'long_doc',
+                              'tool_use', 'long_horizon'],
 }
 overlay = []  # (provider, model, category, rel_score, bench_source)
 for src, cats in BENCH_OVERLAY.items():
@@ -419,6 +431,8 @@ PROFILE_MODELS = {
     'gpt-5.6 sol': [('openai-codex', 'gpt-5.6-sol')],
     'gpt-5.6 terra': [('openai-codex', 'gpt-5.6-terra')],
     'gpt-5.6 luna': [('openai-codex', 'gpt-5.6-luna')],
+    'gpt-6 sol': [('openai-codex', 'gpt-6-sol')],
+    'gpt-6 luna': [('openai-codex', 'gpt-6-luna')],
     'step 3': [('stepfun', 'step-3.7-flash'), ('stepfun', 'step-3.5-flash')],
     'grok 4.6': [],  # not in registry models yet
     'grok 4.5': [('grok-build', 'grok-4.5'), ('opencode-go', 'grok-4.5')],

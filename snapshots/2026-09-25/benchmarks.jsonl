@@ -1,0 +1,664 @@
+{"model": "MiniMax-M3", "category": "code_gen", "score": 0.59, "max_score": 1.0, "source": "SWE-bench Pro research-bench-2026-08-27", "valid_from": "2026-08-27"}
+{"model": "MiniMax-M3", "category": "code_gen", "score": 0.805, "max_score": 1.0, "source": "SWE-bench Verified research-bench-2026-08-27", "valid_from": "2026-08-27"}
+{"model": "MiniMax-M3", "category": "sentiment", "score": 0.8, "max_score": 1.0, "source": "research-bench-2026-08-27", "valid_from": "2026-08-27"}
+{"model": "MiniMax-M3", "category": "terminal", "score": 0.66, "max_score": 1.0, "source": "Terminal-Bench research-bench-2026-08-27", "valid_from": "2026-08-27"}
+{"model": "MiniMax-M3", "category": "tool_use", "score": 0.742, "max_score": 1.0, "source": "MCP Atlas research-bench-2026-08-27", "valid_from": "2026-08-27"}
+{"model": "cline-pass/deepseek-v4-flash", "category": "agent-tick", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "cline-pass/deepseek-v4-flash", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "cline-pass/deepseek-v4-flash", "category": "debug", "score": 3.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
+{"model": "cline-pass/deepseek-v4-flash", "category": "delegation", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "cline-pass/deepseek-v4-flash", "category": "guard", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "cline-pass/deepseek-v4-flash", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "cline-pass/deepseek-v4-flash", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "cline-pass/deepseek-v4-pro", "category": "agent-tick", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "cline-pass/deepseek-v4-pro", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "cline-pass/deepseek-v4-pro", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
+{"model": "cline-pass/deepseek-v4-pro", "category": "delegation", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "cline-pass/deepseek-v4-pro", "category": "guard", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "cline-pass/deepseek-v4-pro", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "cline-pass/deepseek-v4-pro", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "cline-pass/glm-5.3", "category": "agent-tick", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "cline-pass/glm-5.3", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "cline-pass/glm-5.3", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
+{"model": "cline-pass/glm-5.3", "category": "delegation", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "cline-pass/glm-5.3", "category": "guard", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "cline-pass/glm-5.3", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "cline-pass/glm-5.3", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "cline-pass/kimi-k2.6", "category": "agent-tick", "score": 2.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "cline-pass/kimi-k2.6", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "cline-pass/kimi-k2.6", "category": "debug", "score": 3.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
+{"model": "cline-pass/kimi-k2.6", "category": "delegation", "score": 2.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "cline-pass/kimi-k2.6", "category": "guard", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "cline-pass/kimi-k2.6", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "cline-pass/kimi-k2.6", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "cline-pass/kimi-k2.7-code", "category": "agent-tick", "score": 2.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "cline-pass/kimi-k2.7-code", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "cline-pass/kimi-k2.7-code", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
+{"model": "cline-pass/kimi-k2.7-code", "category": "delegation", "score": 2.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "cline-pass/kimi-k2.7-code", "category": "guard", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "cline-pass/kimi-k2.7-code", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "cline-pass/kimi-k2.7-code", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "cline-pass/kimi-k3", "category": "agent-tick", "score": 2.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "cline-pass/kimi-k3", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "cline-pass/kimi-k3", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
+{"model": "cline-pass/kimi-k3", "category": "delegation", "score": 2.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "cline-pass/kimi-k3", "category": "guard", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "cline-pass/kimi-k3", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "cline-pass/kimi-k3", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "cline-pass/mimo-v2.5-pro", "category": "agent-tick", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "cline-pass/mimo-v2.5-pro", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "cline-pass/mimo-v2.5-pro", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
+{"model": "cline-pass/mimo-v2.5-pro", "category": "delegation", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "cline-pass/mimo-v2.5-pro", "category": "guard", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "cline-pass/mimo-v2.5-pro", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "cline-pass/mimo-v2.5-pro", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "cline-pass/minimax-m3", "category": "agent-tick", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "cline-pass/minimax-m3", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "cline-pass/minimax-m3", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
+{"model": "cline-pass/minimax-m3", "category": "delegation", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "cline-pass/minimax-m3", "category": "guard", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "cline-pass/minimax-m3", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "cline-pass/minimax-m3", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "cline-pass/qwen3.7-max", "category": "agent-tick", "score": 2.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "cline-pass/qwen3.7-max", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "cline-pass/qwen3.7-max", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
+{"model": "cline-pass/qwen3.7-max", "category": "delegation", "score": 2.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "cline-pass/qwen3.7-max", "category": "guard", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "cline-pass/qwen3.7-max", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "cline-pass/qwen3.7-max", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "cline-pass/qwen3.7-plus", "category": "agent-tick", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "cline-pass/qwen3.7-plus", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "cline-pass/qwen3.7-plus", "category": "debug", "score": 3.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
+{"model": "cline-pass/qwen3.7-plus", "category": "delegation", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "cline-pass/qwen3.7-plus", "category": "guard", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "cline-pass/qwen3.7-plus", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "cline-pass/qwen3.7-plus", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "cline-pass/qwen3.8-max", "category": "agent-tick", "score": 2.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "cline-pass/qwen3.8-max", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "cline-pass/qwen3.8-max", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
+{"model": "cline-pass/qwen3.8-max", "category": "delegation", "score": 2.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "cline-pass/qwen3.8-max", "category": "guard", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "cline-pass/qwen3.8-max", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "cline-pass/qwen3.8-max", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "deepseek-ai/DeepSeek-V4-Flash", "category": "agent-tick", "score": 2.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "deepseek-ai/DeepSeek-V4-Flash", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "deepseek-ai/DeepSeek-V4-Flash", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
+{"model": "deepseek-ai/DeepSeek-V4-Flash", "category": "delegation", "score": 2.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "deepseek-ai/DeepSeek-V4-Flash", "category": "guard", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "deepseek-ai/DeepSeek-V4-Flash", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "deepseek-ai/DeepSeek-V4-Flash", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "deepseek-flash", "category": "agent-tick", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "deepseek-flash", "category": "agent_tick", "score": 0.451, "max_score": 1.0, "source": "CoWorkBench research-bench-2026-08-27", "valid_from": "2026-08-27"}
+{"model": "deepseek-flash", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "deepseek-flash", "category": "debug", "score": 3.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
+{"model": "deepseek-flash", "category": "delegation", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "deepseek-flash", "category": "guard", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "deepseek-flash", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "deepseek-flash", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "deepseek-flash", "category": "sentiment", "score": 0.55, "max_score": 1.0, "source": "research-bench-2026-09-01", "valid_from": "2026-09-01"}
+{"model": "deepseek-flash", "category": "sentiment", "score": 0.6, "max_score": 1.0, "source": "research-bench-2026-09-07", "valid_from": "2026-09-07"}
+{"model": "deepseek-flash", "category": "sentiment", "score": 0.72, "max_score": 1.0, "source": "research-bench-2026-08-27", "valid_from": "2026-08-27"}
+{"model": "deepseek-flash", "category": "terminal", "score": 0.827, "max_score": 1.0, "source": "Terminal-Bench research-bench-2026-08-27", "valid_from": "2026-08-27"}
+{"model": "deepseek-v4-flash", "category": "code_gen", "score": 0.79, "max_score": 1.0, "source": "SWE-bench Verified 79.0% (vendor, zenmux.ai roundup) research-bench-2026-09-11", "valid_from": "2026-09-11"}
+{"model": "deepseek-v4-flash", "category": "long_horizon", "score": 0.544, "max_score": 1.0, "source": "DeepSWE 54.4 (0731 post-training re-run on identical weights, regolo.ai roundup) research-bench-2026-09-11 — post-training gain, NOT architectural; treat as 0731-generation evidence", "valid_from": "2026-09-11"}
+{"model": "deepseek-v4-flash", "category": "sentiment", "score": 0.7, "max_score": 1.0, "source": "research-bench-2026-09-11: batch/default-pipeline consensus (morphllm); AA Intelligence 35 vs Pro-0813 36 — within 1pt; terminal/agentic gap vs Pro corroborated", "valid_from": "2026-09-11"}
+{"model": "deepseek-v4-flash", "category": "sentiment", "score": 0.7, "max_score": 1.0, "source": "research-bench-2026-09-24: independent review consensus (deepseek.ai) — strong on standard tests, less consistent in practical use; community leaderboards agree. V4.1 Flash (released Sep 10) agent-benchmark wins are a DIFFERENT model's evidence and are NOT merged into V4-Flash rows", "valid_from": "2026-09-24"}
+{"model": "deepseek-v4-flash", "category": "terminal", "score": 82.7, "max_score": 100.0, "source": "Terminal-Bench 2.1 82.7 official GA build (deepseek.ai blog; corroborated flowtivity.ai + deepseekreasonix.com) research-bench-2026-09-21", "valid_from": "2026-09-21"}
+{"model": "deepseek-v4-flash-vision-exp", "category": "agent-tick", "score": 2.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "deepseek-v4-flash-vision-exp", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "deepseek-v4-flash-vision-exp", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
+{"model": "deepseek-v4-flash-vision-exp", "category": "delegation", "score": 2.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "deepseek-v4-flash-vision-exp", "category": "guard", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "deepseek-v4-flash-vision-exp", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "deepseek-v4-flash-vision-exp", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "deepseek-v4-flash:0731", "category": "agent-tick", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "deepseek-v4-flash:0731", "category": "agent_tick", "score": 0.451, "max_score": 1.0, "source": "CoWorkBench research-bench-2026-08-27", "valid_from": "2026-08-27"}
+{"model": "deepseek-v4-flash:0731", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "deepseek-v4-flash:0731", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
+{"model": "deepseek-v4-flash:0731", "category": "delegation", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "deepseek-v4-flash:0731", "category": "e2e-vision", "score": 36.5, "max_score": 78.0, "source": "ApexBench (flash-vision-exp)", "valid_from": null}
+{"model": "deepseek-v4-flash:0731", "category": "guard", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "deepseek-v4-flash:0731", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "deepseek-v4-flash:0731", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "deepseek-v4-flash:0731", "category": "sentiment", "score": 0.72, "max_score": 1.0, "source": "research-bench-2026-08-27", "valid_from": "2026-08-27"}
+{"model": "deepseek-v4-flash:0731", "category": "terminal", "score": 0.827, "max_score": 1.0, "source": "Terminal-Bench research-bench-2026-08-27", "valid_from": "2026-08-27"}
+{"model": "deepseek-v4-pro", "category": "agent-tick", "score": 2.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "deepseek-v4-pro", "category": "code_gen", "score": 0.55, "max_score": 1.0, "source": "SWE-bench Pro (independent) research-bench-2026-08-28", "valid_from": "2026-08-28"}
+{"model": "deepseek-v4-pro", "category": "code_gen", "score": 0.806, "max_score": 1.0, "source": "SWE-bench Verified (vendor) research-bench-2026-08-28", "valid_from": "2026-08-28"}
+{"model": "deepseek-v4-pro", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "deepseek-v4-pro", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
+{"model": "deepseek-v4-pro", "category": "delegation", "score": 2.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "deepseek-v4-pro", "category": "guard", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "deepseek-v4-pro", "category": "long_horizon", "score": 0.08, "max_score": 1.0, "source": "DeepSWE (community repro) research-bench-2026-08-28", "valid_from": "2026-08-28"}
+{"model": "deepseek-v4-pro", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "deepseek-v4-pro", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "deepseek-v4-pro", "category": "sentiment", "score": 0.62, "max_score": 1.0, "source": "research-bench-2026-08-28", "valid_from": "2026-08-28"}
+{"model": "deepseek-v4-pro", "category": "sentiment", "score": 0.7, "max_score": 1.0, "source": "research-bench-2026-09-07", "valid_from": "2026-09-07"}
+{"model": "deepseek-v4-pro", "category": "sentiment", "score": 0.7, "max_score": 1.0, "source": "research-bench-2026-09-10: webscraft migration analysis — SWE-bench gap Flash vs Pro only 1.6pts but Terminal-Bench 2.0 gap 11pts: Pro's edge is autonomous terminal/agentic work, not static codegen (where Flash at 0.0795 repriced wins economically). BenchLM #32/231 overall, reasoning #13. Supports keeping v4-pro as the agentic-deepseek hop while flash serves volume.", "valid_from": "2026-09-10"}
+{"model": "deepseek-v4-pro", "category": "sentiment", "score": 0.7, "max_score": 1.0, "source": "research-bench-2026-09-24: late-September standing corroborates the 08-28 independent SWE-bench Pro split — strong knowledge profile (its best BenchLM eligible category) while coding is its weakest; community reviews place agentic performance strong but not absolute frontier; hold 0.70", "valid_from": "2026-09-24"}
+{"model": "deepseek-v4-pro", "category": "spec_docs", "score": 66.4, "max_score": 100.0, "source": "BenchLM composite benchlm.ai 2026-09-14 (deepseek-v4-pro-0813, rank #32/232, 40 rows; strongest Reasoning #15). Agentic-terminal edge over Flash corroborated (morphllm batch/default consensus; TB2 gap >> SWE-bench gap) research-bench-2026-09-14", "valid_from": "2026-09-14"}
+{"model": "deepseek-v4-pro", "category": "terminal", "score": 0.721, "max_score": 1.0, "source": "Terminal-Bench 2.1 research-bench-2026-08-28", "valid_from": "2026-08-28"}
+{"model": "deepseek-v4-pro-0813", "category": "agent-tick", "score": 1.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "deepseek-v4-pro-0813", "category": "debug", "score": 1.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "deepseek-v4-pro-0813", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
+{"model": "deepseek-v4-pro-0813", "category": "delegation", "score": 1.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "deepseek-v4-pro-0813", "category": "guard", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "deepseek-v4-pro-0813", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "deepseek-v4-pro-0813", "category": "schema", "score": 1.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "deepseek-v4.1-flash", "category": "long_horizon", "score": 0.742, "max_score": 1.0, "source": "research-bench-2026-09-23: DeepSWE v1.1 74.2 vs GPT-6 Sol 73.0, AutomationBench 54.8 vs 45.8, Agent's Last Exam 31.8 vs 26.7, CyberGym 88.1 vs 84.5 (flowtivity.ai analysis of DeepSeek V4.1 Flash launch data; VENDOR-REPORTED)", "valid_from": "2026-09-23"}
+{"model": "gemma-4-31b", "category": "agent-tick", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "gemma-4-31b", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "gemma-4-31b", "category": "debug", "score": 3.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
+{"model": "gemma-4-31b", "category": "delegation", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "gemma-4-31b", "category": "guard", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "gemma-4-31b", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "gemma-4-31b", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "glm-4.7", "category": "agent-tick", "score": 1.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "glm-4.7", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "glm-4.7", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
+{"model": "glm-4.7", "category": "delegation", "score": 1.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "glm-4.7", "category": "guard", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "glm-4.7", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "glm-4.7", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "glm-4.7-flash", "category": "mock", "score": 0.804, "max_score": 0.804, "source": "SOB ValueAcc", "valid_from": null}
+{"model": "glm-5-turbo", "category": "agent-tick", "score": 2.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "glm-5-turbo", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "glm-5-turbo", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
+{"model": "glm-5-turbo", "category": "delegation", "score": 2.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "glm-5-turbo", "category": "guard", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "glm-5-turbo", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "glm-5-turbo", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "glm-5.1", "category": "agent-tick", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "glm-5.1", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "glm-5.1", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
+{"model": "glm-5.1", "category": "delegation", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "glm-5.1", "category": "guard", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "glm-5.1", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "glm-5.1", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "glm-5.2", "category": "agent-tick", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "glm-5.2", "category": "code_gen", "score": 0.621, "max_score": 1.0, "source": "SWE-bench Pro (vendor) research-bench-2026-08-29", "valid_from": "2026-08-29"}
+{"model": "glm-5.2", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "glm-5.2", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
+{"model": "glm-5.2", "category": "debug", "score": 62.9, "max_score": 100.0, "source": "SWE-rebench v2 (pass@5 81.1)", "valid_from": "2026-09-03"}
+{"model": "glm-5.2", "category": "delegation", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "glm-5.2", "category": "guard", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "glm-5.2", "category": "math", "score": 99.2, "max_score": 100.0, "source": "AIME 2026 99.2 (bitsminds review roundup, vendor figures relayed) research-bench-2026-09-15", "valid_from": "2026-09-15"}
+{"model": "glm-5.2", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "glm-5.2", "category": "reasoning", "score": 91.2, "max_score": 100.0, "source": "GPQA Diamond 91.2 (bitsminds review roundup, vendor figures relayed) research-bench-2026-09-15", "valid_from": "2026-09-15"}
+{"model": "glm-5.2", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "glm-5.2", "category": "sentiment", "score": 0.72, "max_score": 1.0, "source": "research-bench-2026-09-03", "valid_from": "2026-09-03"}
+{"model": "glm-5.2", "category": "sentiment", "score": 0.75, "max_score": 1.0, "source": "research-sent-2026-08-27", "valid_from": "2026-08-27"}
+{"model": "glm-5.2", "category": "spec_docs", "score": 68.1, "max_score": 100.0, "source": "BenchLM composite benchlm.ai 2026-09-15 (rank #26/232, 25 rows; strongest category Coding #19) research-bench-2026-09-15", "valid_from": "2026-09-15"}
+{"model": "glm-5.2", "category": "terminal", "score": 81.0, "max_score": 100.0, "source": "Terminal-Bench 2.1 81.0 (official HF card via emergent.sh roundup; true % scale) research-bench-2026-09-08", "valid_from": "2026-09-08"}
+{"model": "glm-5.2", "category": "tool_use", "score": 77.0, "max_score": 100.0, "source": "MCP-Atlas 77.0 (technology.org roundup; ahead of gpt-5.5 75.3, ~tied with opus-4.8 77.8) research-bench-2026-09-15", "valid_from": "2026-09-15"}
+{"model": "glm-5.2-short-fast", "category": "agent-tick", "score": 2.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "glm-5.2-short-fast", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "glm-5.2-short-fast", "category": "debug", "score": 3.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
+{"model": "glm-5.2-short-fast", "category": "delegation", "score": 2.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "glm-5.2-short-fast", "category": "guard", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "glm-5.2-short-fast", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "glm-5.2-short-fast", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "glm-5.3", "category": "long-doc", "score": 75.0, "max_score": 100.0, "source": "BrowseComp-class (vendor, ~0.83 rel) | denominator repair 2026-09-08: best-known-denominator 90.4 -> true scale 100 (rel 0.83->0.75; provenance class, grok-4.6 09-06 precedent)", "valid_from": null}
+{"model": "glm-5.3", "category": "reasoning", "score": 92.0, "max_score": 100.0, "source": "GPQA-D (vendor)", "valid_from": null}
+{"model": "glm-5.3", "category": "review", "score": 54.4, "max_score": 76.5, "source": "ExploitBench (independent)", "valid_from": null}
+{"model": "glm-5.3", "category": "security", "score": 0.544, "max_score": 1.0, "source": "ExploitBench research-bench-2026-08-27", "valid_from": "2026-08-27"}
+{"model": "glm-5.3", "category": "sentiment", "score": 0.8, "max_score": 1.0, "source": "research-bench-2026-08-27", "valid_from": "2026-08-27"}
+{"model": "glm-5.3-flash", "category": "agent_tick", "score": 0.488, "max_score": 1.0, "source": "AutomationBench research-bench-2026-08-27", "valid_from": "2026-08-27"}
+{"model": "glm-5.3-flash", "category": "code_gen", "score": 0.634, "max_score": 1.0, "source": "DeepSWE research-bench-2026-08-27", "valid_from": "2026-08-27"}
+{"model": "glm-5.3-flash", "category": "long_horizon", "score": 0.563, "max_score": 1.0, "source": "NL2Repo research-bench-2026-08-27", "valid_from": "2026-08-27"}
+{"model": "glm-5.3-flash", "category": "reasoning", "score": 0.553, "max_score": 1.0, "source": "HLE research-bench-2026-08-27", "valid_from": "2026-08-27"}
+{"model": "glm-5.3-flash", "category": "sentiment", "score": 0.71, "max_score": 1.0, "source": "research-bench-2026-09-17", "valid_from": "2026-09-17"}
+{"model": "glm-5.3-flash", "category": "sentiment", "score": 0.78, "max_score": 1.0, "source": "research-bench-2026-08-27", "valid_from": "2026-08-27"}
+{"model": "glm-5.3-flash", "category": "terminal", "score": 0.843, "max_score": 1.0, "source": "Terminal-Bench research-bench-2026-08-27", "valid_from": "2026-08-27"}
+{"model": "glm-5.3-flash-offpeak", "category": "agent_tick", "score": 0.488, "max_score": 1.0, "source": "AutomationBench research-bench-2026-08-27", "valid_from": "2026-08-27"}
+{"model": "glm-5.3-flash-offpeak", "category": "code_gen", "score": 0.634, "max_score": 1.0, "source": "DeepSWE research-bench-2026-08-27", "valid_from": "2026-08-27"}
+{"model": "glm-5.3-flash-offpeak", "category": "long_horizon", "score": 0.563, "max_score": 1.0, "source": "NL2Repo research-bench-2026-08-27", "valid_from": "2026-08-27"}
+{"model": "glm-5.3-flash-offpeak", "category": "reasoning", "score": 0.553, "max_score": 1.0, "source": "HLE research-bench-2026-08-27", "valid_from": "2026-08-27"}
+{"model": "glm-5.3-flash-offpeak", "category": "sentiment", "score": 0.78, "max_score": 1.0, "source": "research-bench-2026-08-27", "valid_from": "2026-08-27"}
+{"model": "glm-5.3-flash-offpeak", "category": "terminal", "score": 0.843, "max_score": 1.0, "source": "Terminal-Bench research-bench-2026-08-27", "valid_from": "2026-08-27"}
+{"model": "glm-5.3-flashx", "category": "code_gen", "score": 63.4, "max_score": 100.0, "source": "research-bench-2026-09-19 VENDOR Z.AI DeepSWE v1.1 pass@1 (inert by design - no overlay pattern in the source string; vendor scale, shared Flash stack)", "valid_from": "2026-09-19"}
+{"model": "glm-5.3-flashx", "category": "sentiment", "score": 0.7, "max_score": 1.0, "source": "research-bench-2026-09-19: Flash/FlashX stack (official docs pair them on one page, same native-multimodal 320B/18B-active Flash weights, FlashX = faster serving at 2.5x list). Independent: Artificial Analysis Intelligence Index 57 vs GLM-5.3 60 (3 pts behind). Vendor Z.AI: agentic-terminal eval 84.3 + DeepSWE v1.1 63.4 - already carried on the glm-5.3-flash rows (0.843/1.0, research-bench-2026-08-27), so NOT re-landed here. No first-hand agent evidence; no plan coverage (not on the coding plan).", "valid_from": "2026-09-19"}
+{"model": "glm-5.3-offpeak", "category": "security", "score": 0.544, "max_score": 1.0, "source": "ExploitBench research-bench-2026-08-27", "valid_from": "2026-08-27"}
+{"model": "glm-5.3-offpeak", "category": "sentiment", "score": 0.8, "max_score": 1.0, "source": "research-bench-2026-08-27", "valid_from": "2026-08-27"}
+{"model": "gpt-5.5", "category": "agent-tick", "score": 2.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "gpt-5.5", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "gpt-5.5", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
+{"model": "gpt-5.5", "category": "delegation", "score": 2.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "gpt-5.5", "category": "guard", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "gpt-5.5", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "gpt-5.5", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "gpt-5.6-luna", "category": "agent-tick", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "gpt-5.6-luna", "category": "agent_tick", "score": 0.746, "max_score": 1.0, "source": "AA Coding Agent Index research-bench-2026-09-07", "valid_from": "2026-09-07"}
+{"model": "gpt-5.6-luna", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "gpt-5.6-luna", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
+{"model": "gpt-5.6-luna", "category": "delegation", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "gpt-5.6-luna", "category": "e2e-vision", "score": 78.0, "max_score": 78.0, "source": "106 hard browser tasks (vendor)", "valid_from": null}
+{"model": "gpt-5.6-luna", "category": "guard", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "gpt-5.6-luna", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "gpt-5.6-luna", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "gpt-5.6-luna", "category": "sentiment", "score": 0.75, "max_score": 1.0, "source": "research-bench-2026-08-28", "valid_from": "2026-08-28"}
+{"model": "gpt-5.6-luna", "category": "sentiment", "score": 0.8, "max_score": 1.0, "source": "research-bench-2026-09-10: coderabbit tier guide — 'Luna is the tier to watch for top-of-funnel agent work' (cheap first pass that reduces load before Terra/Sol escalation; key = low reasoning). r/codex first-hand: very reliable, excellent at catching subtle state bugs, slower. OpenAI upgraded Codex CLI auto-review 5.4->Luna (vellum). Capability ceiling below Terra/Sol — escalation-tier workhorse, not premium reasoning.", "valid_from": "2026-09-10"}
+{"model": "gpt-5.6-luna", "category": "sentiment", "score": 0.82, "max_score": 1.0, "source": "research-bench-2026-09-16: r/OpenaiCodex 'underrated' value consensus + 2026-07-30 OpenAI price cut (Luna -80%)", "valid_from": "2026-09-16"}
+{"model": "gpt-5.6-luna", "category": "sentiment", "score": 0.84, "max_score": 1.0, "source": "research-bench-2026-09-25: openai.com price-performance post — Luna 40% faster and 40% cheaper than the previous default; extends the 09-16 r/OpenaiCodex underrated-value consensus", "valid_from": "2026-09-25"}
+{"model": "gpt-5.6-sol", "category": "agent-tick", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "gpt-5.6-sol", "category": "agent_tick", "score": 0.8, "max_score": 1.0, "source": "AA Coding Agent Index research-bench-2026-09-07", "valid_from": "2026-09-07"}
+{"model": "gpt-5.6-sol", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "gpt-5.6-sol", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
+{"model": "gpt-5.6-sol", "category": "debug", "score": 62.3, "max_score": 62.9, "source": "SWE-rebench v2", "valid_from": null}
+{"model": "gpt-5.6-sol", "category": "delegation", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "gpt-5.6-sol", "category": "guard", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "gpt-5.6-sol", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "gpt-5.6-sol", "category": "reasoning", "score": 94.9, "max_score": 100.0, "source": "GPQA-D", "valid_from": null}
+{"model": "gpt-5.6-sol", "category": "review", "score": 76.5, "max_score": 76.5, "source": "ExploitBench (independent)", "valid_from": null}
+{"model": "gpt-5.6-sol", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "gpt-5.6-sol", "category": "sentiment", "score": 0.82, "max_score": 1.0, "source": "research-bench-2026-08-28", "valid_from": "2026-08-28"}
+{"model": "gpt-5.6-sol", "category": "sentiment", "score": 0.86, "max_score": 1.0, "source": "research-bench-2026-09-17", "valid_from": "2026-09-17"}
+{"model": "gpt-5.6-sol", "category": "sentiment", "score": 0.88, "max_score": 1.0, "source": "research-bench-2026-09-05", "valid_from": "2026-09-05"}
+{"model": "gpt-5.6-sol", "category": "sentiment", "score": 0.88, "max_score": 1.0, "source": "research-bench-2026-09-10: standing confirmed (AA Coding Agent Index 80, leads all three evals; kingy.ai model specs 1.05M ctx/128K out). NEW FACT: OpenAI model page says Sol promo pricing holds 'at least through November 21, 2026' (yottalabs roundup) — normalized sub price $0.4 is promo-dependent; re-check lane economics on/after Nov 21. Community: deepest analysis but slowest/most exhaustive (r/codex multi-model bench).", "valid_from": "2026-09-10"}
+{"model": "gpt-5.6-terra", "category": "agent-tick", "score": 1.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "gpt-5.6-terra", "category": "agent_tick", "score": 0.774, "max_score": 1.0, "source": "AA Coding Agent Index research-bench-2026-09-07", "valid_from": "2026-09-07"}
+{"model": "gpt-5.6-terra", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "gpt-5.6-terra", "category": "debug", "score": 3.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
+{"model": "gpt-5.6-terra", "category": "delegation", "score": 1.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "gpt-5.6-terra", "category": "guard", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "gpt-5.6-terra", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "gpt-5.6-terra", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "gpt-5.6-terra", "category": "sentiment", "score": 0.78, "max_score": 1.0, "source": "research-bench-2026-08-28", "valid_from": "2026-08-28"}
+{"model": "gpt-5.6-terra", "category": "sentiment", "score": 0.82, "max_score": 1.0, "source": "research-bench-2026-09-10: r/codex multi-model coding-agent bench (sol/terra/luna/flash-3.7) — Terra performed BEST first-hand; vellum: Terra/Sonnet-5 traded near-parity during Sonnet intro window, Terra cheaper after Aug 31. Confirms 08-28 0.78 standing; small bump not a regime shift.", "valid_from": "2026-09-10"}
+{"model": "gpt-5.6-terra", "category": "sentiment", "score": 0.85, "max_score": 1.0, "source": "research-bench-2026-09-25: r/codex multi-model coding-agent bench (sol/terra/luna/flash-3.7) — Terra won; speed of iteration named the cause (completion speed, not tokens/s); corroborates 09-10 sentiment 0.82", "valid_from": "2026-09-25"}
+{"model": "gpt-5.6-terra", "category": "terminal", "score": 87.4, "max_score": 100.0, "source": "research-bench-2026-09-16 Terminal-Bench 2.1 (DataCamp Terra-vs-Sonnet-5 comparison, Sep 2026)", "valid_from": "2026-09-16"}
+{"model": "gpt-6-luna", "category": "long_horizon", "score": 0.666, "max_score": 1.0, "source": "research-bench-2026-09-23: DeepSWE v1.1 66.6% at max reasoning effort, edging GPT-6 Sol at high effort at a fraction of the price (Vellum launch analysis; VENDOR-REPORTED)", "valid_from": "2026-09-23"}
+{"model": "gpt-6-sol", "category": "sentiment", "score": 0.85, "max_score": 1.0, "source": "research-sent-2026-09-23: AA Intelligence Index 48 at max effort (level with GPT-5.6 Sol 47), Coding Agent Index +2 over 5.6 Sol; 'push the cost efficiency frontier' at half price (artificialanalysis.ai, officechai)", "valid_from": "2026-09-23"}
+{"model": "gpt-6-sol", "category": "terminal", "score": 43.0, "max_score": 100.0, "source": "research-bench-2026-09-23: Terminal-Bench 4.0 43% at max effort vs GPT-5.6 Sol 37% (Artificial Analysis, via explainx.ai + officechai)", "valid_from": "2026-09-23"}
+{"model": "gpt-oss:120b", "category": "agent-tick", "score": 1.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "gpt-oss:120b", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "gpt-oss:120b", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
+{"model": "gpt-oss:120b", "category": "delegation", "score": 1.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "gpt-oss:120b", "category": "guard", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "gpt-oss:120b", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "gpt-oss:120b", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "gpt-oss:20b", "category": "agent-tick", "score": 0.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "gpt-oss:20b", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "gpt-oss:20b", "category": "debug", "score": 3.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
+{"model": "gpt-oss:20b", "category": "delegation", "score": 0.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "gpt-oss:20b", "category": "guard", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "gpt-oss:20b", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "gpt-oss:20b", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "greg-2-ultra", "category": "agent-tick", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "greg-2-ultra", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "greg-2-ultra", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
+{"model": "greg-2-ultra", "category": "delegation", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "greg-2-ultra", "category": "guard", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "greg-2-ultra", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "greg-2-ultra", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "grok-4.20-0309-reasoning", "category": "agent-tick", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "grok-4.20-0309-reasoning", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "grok-4.20-0309-reasoning", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
+{"model": "grok-4.20-0309-reasoning", "category": "delegation", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "grok-4.20-0309-reasoning", "category": "guard", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "grok-4.20-0309-reasoning", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "grok-4.20-0309-reasoning", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "grok-4.20-multi-agent-0309", "category": "guard", "score": 0.83, "max_score": 1.0, "source": "research-bench-2026-09-03 (IFBench 83 1st place)", "valid_from": "2026-09-03"}
+{"model": "grok-4.3", "category": "agent-tick", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "grok-4.3", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "grok-4.3", "category": "debug", "score": 3.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
+{"model": "grok-4.3", "category": "delegation", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "grok-4.3", "category": "guard", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "grok-4.3", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "grok-4.3", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "grok-4.5", "category": "agent-tick", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "grok-4.5", "category": "agent_tick", "score": 0.62, "max_score": 1.0, "source": "DeepSWE 1.0 research-bench-2026-08-28", "valid_from": "2026-08-28"}
+{"model": "grok-4.5", "category": "code_gen", "score": 0.29, "max_score": 1.0, "source": "SWE Marathon resolve pass@1 (official) research-bench-2026-08-30", "valid_from": "2026-08-30"}
+{"model": "grok-4.5", "category": "code_gen", "score": 0.647, "max_score": 1.0, "source": "SWE-bench Pro research-bench-2026-08-28", "valid_from": "2026-08-28"}
+{"model": "grok-4.5", "category": "debug", "score": 3.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "grok-4.5", "category": "debug", "score": 3.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
+{"model": "grok-4.5", "category": "delegation", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "grok-4.5", "category": "guard", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "grok-4.5", "category": "long_horizon", "score": 0.53, "max_score": 1.0, "source": "DeepSWE 1.1 research-bench-2026-08-28", "valid_from": "2026-08-28"}
+{"model": "grok-4.5", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "grok-4.5", "category": "schema", "score": 3.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "grok-4.5", "category": "sentiment", "score": 0.52, "max_score": 1.0, "source": "AA-measured hallucination 54% vs 25% (grok-4.3) + SWE-bench Pro ~15pt gap vs TB-tier peers, offset by GDPVal+ wins + 60% token efficiency research-bench-2026-09-08", "valid_from": "2026-09-08"}
+{"model": "grok-4.5", "category": "sentiment", "score": 0.66, "max_score": 1.0, "source": "research-bench-2026-09-14: launch-data split decision — DataCurve/apidog vs Opus 4.8: 2 wins (DeepSWE 1.0 +6.25, Terminal-Bench +4.4) 2 losses (DeepSWE 1.1 -6, SWE-bench Pro -4.5); leads SWE Marathon pass@1 29.0% but highest SWE Marathon 20-task attrition = long-horizon durability concern; prior 54%-hallucination AA measure kept in older 0.52 row", "valid_from": "2026-09-14"}
+{"model": "grok-4.5", "category": "sentiment", "score": 0.72, "max_score": 1.0, "source": "research-bench-2026-08-28", "valid_from": "2026-08-28"}
+{"model": "grok-4.5", "category": "spec_docs", "score": 68.1, "max_score": 100.0, "source": "BenchLM composite benchlm.ai 2026-09-14 (rank #27/232, 15 rows; strongest category Knowledge #14) research-bench-2026-09-14", "valid_from": "2026-09-14"}
+{"model": "grok-4.5", "category": "terminal", "score": 0.833, "max_score": 1.0, "source": "Terminal-Bench 2.1 research-bench-2026-08-28", "valid_from": "2026-08-28"}
+{"model": "grok-4.5", "category": "terminal", "score": 83.3, "max_score": 100.0, "source": "Terminal-Bench 2.1 (xAI vendor, corroborated by layer3labs + datacamp roundups; within 1pt of the two highest scores) research-bench-2026-09-14", "valid_from": "2026-09-14"}
+{"model": "grok-4.6", "category": "agent-tick", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "grok-4.6", "category": "agent-tick", "score": 88.0, "max_score": 100.0, "source": "Terminal-Bench v2.1 (max_score 88->100 overflow repair 2026-09-06: absolute % scale must carry true max; was 88/88 rel=1.0 tier-5 overflow class, glm-5.2 09-03 precedent)", "valid_from": null}
+{"model": "grok-4.6", "category": "code_gen", "score": 0.613, "max_score": 1.0, "source": "FrontierCode v1.1 Extended High (vendor, VENDOR-REPORTED) research-bench-2026-09-06", "valid_from": "2026-09-06"}
+{"model": "grok-4.6", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "grok-4.6", "category": "debug", "score": 3.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
+{"model": "grok-4.6", "category": "delegation", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "grok-4.6", "category": "guard", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "grok-4.6", "category": "long_horizon", "score": 0.659, "max_score": 1.0, "source": "DeepSWE v1.1 High (vendor, VENDOR-REPORTED) research-bench-2026-09-06", "valid_from": "2026-09-06"}
+{"model": "grok-4.6", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "grok-4.6", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "grok-4.6", "category": "sentiment", "score": 0.86, "max_score": 1.0, "source": "research-bench-2026-09-06", "valid_from": "2026-09-06"}
+{"model": "grok-4.6", "category": "terminal", "score": 0.26, "max_score": 1.0, "source": "Terminal-Bench v3.0 High (vendor, VENDOR-REPORTED) research-bench-2026-09-06", "valid_from": "2026-09-06"}
+{"model": "grok-build-0.1", "category": "agent-tick", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "grok-build-0.1", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "grok-build-0.1", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
+{"model": "grok-build-0.1", "category": "delegation", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "grok-build-0.1", "category": "guard", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "grok-build-0.1", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "grok-build-0.1", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "hy3", "category": "agent-tick", "score": 2.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "hy3", "category": "code_gen", "score": 0.579, "max_score": 1.0, "source": "SWE-bench Pro (vendor, MarkTechPost release coverage) research-bench-2026-09-12", "valid_from": "2026-09-12"}
+{"model": "hy3", "category": "code_gen", "score": 0.744, "max_score": 1.0, "source": "SWE-bench Verified (vendor) research-bench-2026-08-29", "valid_from": "2026-08-29"}
+{"model": "hy3", "category": "code_gen", "score": 0.758, "max_score": 1.0, "source": "SWE-bench Multilingual (vendor) research-bench-2026-09-12", "valid_from": "2026-09-12"}
+{"model": "hy3", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "hy3", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
+{"model": "hy3", "category": "delegation", "score": 2.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "hy3", "category": "guard", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "hy3", "category": "long-doc", "score": 0.671, "max_score": 1.0, "source": "BrowseComp (vendor) research-bench-2026-08-29", "valid_from": "2026-08-29"}
+{"model": "hy3", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "hy3", "category": "reasoning", "score": 0.702, "max_score": 1.0, "source": "WideSearch (vendor) research-bench-2026-08-29", "valid_from": "2026-08-29"}
+{"model": "hy3", "category": "reasoning", "score": 89.7, "max_score": 100.0, "source": "GPQA Diamond 89.7 rank 39/464 (benchmarklist.com aggregator) research-bench-2026-09-21", "valid_from": "2026-09-21"}
+{"model": "hy3", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "hy3", "category": "sentiment", "score": 0.6, "max_score": 1.0, "source": "research-bench-2026-09-09: benchlm Hy3-preview 43.8/100 #174/226 (agentic #76); vendor update relays SWE-bench Pro 46.0->57.9 + Terminal Bench 58.0->71.7 (explainx/medium, scale-ambiguous — NOT overlaid); HF card touts ClawEval/WildClawBench practicality; community sees a real agentic coder but mid-pack overall rank", "valid_from": "2026-09-09"}
+{"model": "hy3", "category": "sentiment", "score": 0.7, "max_score": 1.0, "source": "research-sent-2026-08-27", "valid_from": "2026-08-27"}
+{"model": "hy3", "category": "terminal", "score": 0.544, "max_score": 1.0, "source": "Terminal-Bench 2.0 (vendor) research-bench-2026-08-29", "valid_from": "2026-08-29"}
+{"model": "hy4-preview", "category": "code_gen", "score": 0.657, "max_score": 1.0, "source": "SWE-Bench Pro (vendor, VENDOR-REPORTED) research-bench-2026-09-04", "valid_from": "2026-09-04"}
+{"model": "hy4-preview", "category": "code_gen", "score": 0.829, "max_score": 1.0, "source": "SWE-bench Multilingual (vendor) research-bench-2026-08-31", "valid_from": "2026-08-31"}
+{"model": "hy4-preview", "category": "long_horizon", "score": 0.643, "max_score": 1.0, "source": "Deep-SWE (vendor, VENDOR-REPORTED) research-bench-2026-09-04", "valid_from": "2026-09-04"}
+{"model": "hy4-preview", "category": "long_horizon", "score": 0.643, "max_score": 1.0, "source": "DeepSWE (vendor) research-bench-2026-08-31", "valid_from": "2026-08-31"}
+{"model": "hy4-preview", "category": "reasoning", "score": 0.923, "max_score": 1.0, "source": "GPQA Diamond (vendor) research-bench-2026-08-31", "valid_from": "2026-08-31"}
+{"model": "hy4-preview", "category": "reasoning", "score": 0.923, "max_score": 1.0, "source": "GPQA Diamond (vendor, VENDOR-REPORTED) research-bench-2026-09-04", "valid_from": "2026-09-04"}
+{"model": "hy4-preview", "category": "sentiment", "score": 0.75, "max_score": 1.0, "source": "community r/opencodeCLI: ~on par w/ GLM-5.3 + Kimi K3, slight edge in blind eng evals research-sent-2026-09-04", "valid_from": "2026-09-04"}
+{"model": "hy4-preview", "category": "sentiment", "score": 0.75, "max_score": 1.0, "source": "research-bench-2026-09-15: standing re-confirmed — vendor Hy4 numbers corroborated by eesel/aitoolsreview/thelec roundups (SWE-multilingual 82.9 vs Hy3 75.8, TB2 85.4, DeepSWE 64.3, GPQA-D 92.3; K3-level perf at ~30% size per thelec); r/singularity reports a post-preview update shipped (unmeasured). No first-hand agent evidence yet -> keep 0.75, refresh-of-record only.", "valid_from": "2026-09-15"}
+{"model": "hy4-preview", "category": "sentiment", "score": 0.78, "max_score": 1.0, "source": "research-sent-2026-08-31", "valid_from": "2026-08-31"}
+{"model": "hy4-preview", "category": "spec_docs", "score": 61.2, "max_score": 100.0, "source": "BenchLM composite benchlm.ai 2026-09-15 (rank #56/232, 28 rows; strongest category Coding #24) research-bench-2026-09-15", "valid_from": "2026-09-15"}
+{"model": "hy4-preview", "category": "terminal", "score": 0.854, "max_score": 1.0, "source": "Terminal-Bench 2.1 (vendor) research-bench-2026-08-31", "valid_from": "2026-08-31"}
+{"model": "hy4-preview", "category": "terminal", "score": 0.854, "max_score": 1.0, "source": "Terminal-Bench 2.1 (vendor, VENDOR-REPORTED) research-bench-2026-09-04", "valid_from": "2026-09-04"}
+{"model": "k3-256k", "category": "agent-tick", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "k3-256k", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "k3-256k", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
+{"model": "k3-256k", "category": "delegation", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "k3-256k", "category": "guard", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "k3-256k", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "k3-256k", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "kimi-for-coding", "category": "agent-tick", "score": 2.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "kimi-for-coding", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "kimi-for-coding", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
+{"model": "kimi-for-coding", "category": "delegation", "score": 2.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "kimi-for-coding", "category": "guard", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "kimi-for-coding", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "kimi-for-coding", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "kimi-for-coding-highspeed", "category": "agent-tick", "score": 2.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "kimi-for-coding-highspeed", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "kimi-for-coding-highspeed", "category": "debug", "score": 3.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
+{"model": "kimi-for-coding-highspeed", "category": "delegation", "score": 2.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "kimi-for-coding-highspeed", "category": "guard", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "kimi-for-coding-highspeed", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "kimi-for-coding-highspeed", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "kimi-k2.5", "category": "agent-tick", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "kimi-k2.5", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "kimi-k2.5", "category": "debug", "score": 3.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
+{"model": "kimi-k2.5", "category": "delegation", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "kimi-k2.5", "category": "guard", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "kimi-k2.5", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "kimi-k2.5", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "kimi-k2.6", "category": "agent-tick", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "kimi-k2.6", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "kimi-k2.6", "category": "debug", "score": 3.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
+{"model": "kimi-k2.6", "category": "delegation", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "kimi-k2.6", "category": "guard", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "kimi-k2.6", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "kimi-k2.6", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "kimi-k2.6-fast", "category": "agent-tick", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "kimi-k2.6-fast", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "kimi-k2.6-fast", "category": "debug", "score": 3.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
+{"model": "kimi-k2.6-fast", "category": "delegation", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "kimi-k2.6-fast", "category": "guard", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "kimi-k2.6-fast", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "kimi-k2.6-fast", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "kimi-k2.7-code", "category": "agent-tick", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "kimi-k2.7-code", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "kimi-k2.7-code", "category": "debug", "score": 3.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
+{"model": "kimi-k2.7-code", "category": "delegation", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "kimi-k2.7-code", "category": "guard", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "kimi-k2.7-code", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "kimi-k2.7-code", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "kimi-k3", "category": "agent-tick", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "kimi-k3", "category": "agent-tick", "score": 81.1, "max_score": 88.0, "source": "Terminal-Bench-class (pass@5 proxy)", "valid_from": null}
+{"model": "kimi-k3", "category": "agent_tick", "score": 0.883, "max_score": 1.0, "source": "Terminal-Bench 2.1 (vendor, kili-technology independent roundup) research-bench-2026-09-13", "valid_from": "2026-09-13"}
+{"model": "kimi-k3", "category": "code_gen", "score": 0.62, "max_score": 1.0, "source": "Kimi Code Bench v2 (via wan27.org roundup; 62.0 vs GPT-5.5 69.0 — harness-specific, INDEPENDENT of FrontierSWE 0.812) research-bench-2026-09-13", "valid_from": "2026-09-13"}
+{"model": "kimi-k3", "category": "code_gen", "score": 0.812, "max_score": 1.0, "source": "FrontierSWE (vendor) research-bench-2026-08-29", "valid_from": "2026-08-29"}
+{"model": "kimi-k3", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "kimi-k3", "category": "debug", "score": 3.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
+{"model": "kimi-k3", "category": "delegation", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "kimi-k3", "category": "guard", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "kimi-k3", "category": "long-doc", "score": 90.4, "max_score": 100.0, "source": "BrowseComp @1M (vendor) | overflow repair 2026-09-08: absolute % scale must carry true max 100 (was 90.4/90.4 rel=1.0 tier-5 overflow class; glm-5.2 09-03 + grok-4.6 09-06 precedent)", "valid_from": null}
+{"model": "kimi-k3", "category": "long-doc", "score": 91.2, "max_score": 100.0, "source": "BrowseComp 91.2 (kili-technology + techsy, independent of moonshot @1M 90.4; true % scale) research-bench-2026-09-08", "valid_from": "2026-09-08"}
+{"model": "kimi-k3", "category": "long_horizon", "score": 0.42, "max_score": 1.0, "source": "SWE Marathon (vendor, 20 multi-hour tasks hidden checks) research-bench-2026-09-13", "valid_from": "2026-09-13"}
+{"model": "kimi-k3", "category": "long_horizon", "score": 0.675, "max_score": 1.0, "source": "DeepSWE (vendor) research-bench-2026-08-29", "valid_from": "2026-08-29"}
+{"model": "kimi-k3", "category": "long_horizon", "score": 0.685, "max_score": 1.0, "source": "DeepSWE pass@1 68.5 within 1.4 points of Claude Fable 5; pass@4 89.4 highest multi-attempt of any tested model (dev.to community roundup, Sep 2026) research-bench-2026-09-24", "valid_from": "2026-09-24"}
+{"model": "kimi-k3", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "kimi-k3", "category": "reasoning", "score": 0.935, "max_score": 1.0, "source": "GPQA Diamond (vendor) research-bench-2026-08-29", "valid_from": "2026-08-29"}
+{"model": "kimi-k3", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "kimi-k3", "category": "sentiment", "score": 0.7, "max_score": 1.0, "source": "research-bench-2026-09-01", "valid_from": "2026-09-01"}
+{"model": "kimi-k3", "category": "sentiment", "score": 0.8, "max_score": 1.0, "source": "research-sent-2026-08-27", "valid_from": "2026-08-27"}
+{"model": "kimi-k3", "category": "sentiment", "score": 0.85, "max_score": 1.0, "source": "research-bench-2026-09-05", "valid_from": "2026-09-05"}
+{"model": "kimi-k3", "category": "sentiment", "score": 0.86, "max_score": 1.0, "source": "research-bench-2026-09-13 — BenchLM #7/232 (74.82, 48 rows); multi-source coding-agent guide consensus", "valid_from": "2026-09-13"}
+{"model": "kimi-k3", "category": "sentiment", "score": 0.86, "max_score": 1.0, "source": "research-bench-2026-09-24: MindStudio hands-on — output quality near Opus-4.8 on simple tasks, Opus meaningfully more reliable on complex/adversarial ones (~8pp failure gap); #1 on a frontend code arena; holds the 09-13 BenchLM #7/232 standing — no upgrade, nuance recorded", "valid_from": "2026-09-24"}
+{"model": "kimi-k3", "category": "sentiment", "score": 0.87, "max_score": 1.0, "source": "research-sent-2026-09-23: LMArena Frontend Code Arena first place 1679 pts (blind human preference, independent — Tom's Hardware + layer3labs); Moonshot claims beats GPT-5.5/Claude Opus 4.8 across coding+agentic suite (VENDOR-REPORTED); BenchLM #7/231 74.36/100", "valid_from": "2026-09-23"}
+{"model": "kimi-k3", "category": "spec_docs", "score": 74.9, "max_score": 100.0, "source": "BenchLM composite benchlm.ai 2026-09-05 (rank #7/232, 47 rows)", "valid_from": "2026-09-05"}
+{"model": "kimi-k3", "category": "terminal", "score": 0.883, "max_score": 1.0, "source": "Terminal-Bench 2.1 (vendor) research-bench-2026-08-29", "valid_from": "2026-08-29"}
+{"model": "kimi-k3", "category": "terminal", "score": 88.3, "max_score": 100.0, "source": "Terminal-Bench 2.1 moonshot-vendor-2026-09-05", "valid_from": "2026-09-05"}
+{"model": "longcat-2.0", "category": "code_gen", "score": 0.595, "max_score": 1.0, "source": "SWE-bench Pro (vendor) research-bench-2026-08-31", "valid_from": "2026-08-31"}
+{"model": "longcat-2.0", "category": "sentiment", "score": 0.62, "max_score": 1.0, "source": "research-sent-2026-08-31", "valid_from": "2026-08-31"}
+{"model": "longcat-2.0", "category": "terminal", "score": 0.708, "max_score": 1.0, "source": "Terminal-Bench (vendor) research-bench-2026-08-31", "valid_from": "2026-08-31"}
+{"model": "mimo-v2.5", "category": "agent-tick", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "mimo-v2.5", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "mimo-v2.5", "category": "debug", "score": 3.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
+{"model": "mimo-v2.5", "category": "delegation", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "mimo-v2.5", "category": "guard", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "mimo-v2.5", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "mimo-v2.5", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "mimo-v2.5", "category": "sentiment", "score": 0.6, "max_score": 1.0, "source": "research-sent-2026-08-27", "valid_from": "2026-08-27"}
+{"model": "mimo-v2.5-pro", "category": "code_gen", "score": 0.572, "max_score": 1.0, "source": "BenchLM coding average research-bench-2026-08-31", "valid_from": "2026-08-31"}
+{"model": "mimo-v2.5-pro", "category": "sentiment", "score": 0.75, "max_score": 1.0, "source": "research-sent-2026-08-31", "valid_from": "2026-08-31"}
+{"model": "mimo-v2.5-pro", "category": "terminal", "score": 0.684, "max_score": 1.0, "source": "Terminal-Bench 2.0 (BenchLM) research-bench-2026-08-31", "valid_from": "2026-08-31"}
+{"model": "minimax-m2.5", "category": "agent-tick", "score": 2.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "minimax-m2.5", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "minimax-m2.5", "category": "debug", "score": 3.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
+{"model": "minimax-m2.5", "category": "delegation", "score": 2.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "minimax-m2.5", "category": "guard", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "minimax-m2.5", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "minimax-m2.5", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "minimax-m2.7", "category": "agent-tick", "score": 2.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "minimax-m2.7", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "minimax-m2.7", "category": "debug", "score": 3.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
+{"model": "minimax-m2.7", "category": "delegation", "score": 2.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "minimax-m2.7", "category": "guard", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "minimax-m2.7", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "minimax-m2.7", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "minimax-m3", "category": "agent-tick", "score": 2.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "minimax-m3", "category": "agent_tick", "score": 0.421, "max_score": 1.0, "source": "BenchLM agentic-tool-use composite 42.1, rank #107/152 research-bench-2026-09-13", "valid_from": "2026-09-13"}
+{"model": "minimax-m3", "category": "code_gen", "score": 0.5, "max_score": 1.0, "source": "SWE-bench Pro >50% (vendor-run, independent pending) research-bench-2026-08-30", "valid_from": "2026-08-30"}
+{"model": "minimax-m3", "category": "code_gen", "score": 0.59, "max_score": 1.0, "source": "SWE-bench Pro (independent confirmations: VentureBeat + ZAKA) research-bench-2026-09-13", "valid_from": "2026-09-13"}
+{"model": "minimax-m3", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
+{"model": "minimax-m3", "category": "debug", "score": 3.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "minimax-m3", "category": "delegation", "score": 2.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "minimax-m3", "category": "guard", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "minimax-m3", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "minimax-m3", "category": "schema", "score": 3.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "minimax-m3", "category": "sentiment", "score": 0.75, "max_score": 1.0, "source": "research-bench-2026-09-09: ZAKA agentic-workflow eval \"results are complicated\" (SWE-bench Pro 59.0 vendor-reported, pending independent); benchlm agentic-tool #106/151 43.2/100 mid-pack; wiegold \"strong coder, strong agent\"; techmymoney found long-ctx+price useful for house-style training; open-weight 1M-ctx multimodal value play consensus — slight cool from 0.78 on agentic noise", "valid_from": "2026-09-09"}
+{"model": "minimax-m3", "category": "sentiment", "score": 0.75, "max_score": 1.0, "source": "research-bench-2026-09-13 — vendor strong-benchmarks vs community \"complicated\" agentic results (ZAKA follow-up); AA v4.3 30 << GLM-5.2 39", "valid_from": "2026-09-13"}
+{"model": "minimax-m3", "category": "sentiment", "score": 0.78, "max_score": 1.0, "source": "research-bench-2026-09-05", "valid_from": "2026-09-05"}
+{"model": "minimax-m3", "category": "sentiment", "score": 0.78, "max_score": 1.0, "source": "research-bench-2026-09-24: Artificial Analysis Intelligence Index 29 (median 18, well above average) + continued strong coverage; Medium analysis warns the vendor SWE-bench Pro 59.0 headline is already out of date and community agentic results diverge from vendor numbers — hold 0.78, do not raise", "valid_from": "2026-09-24"}
+{"model": "minimax-m3", "category": "sentiment", "score": 0.8, "max_score": 1.0, "source": "research-bench-2026-08-27", "valid_from": "2026-08-27"}
+{"model": "minimax-m3", "category": "spec_docs", "score": 55.3, "max_score": 100.0, "source": "BenchLM composite rank #60/196 at 55.3/100, strongest eligible category Multimodal & Grounded #36 (benchlm.ai, Sep 2026) research-bench-2026-09-24", "valid_from": "2026-09-24"}
+{"model": "minimax-m3", "category": "spec_docs", "score": 68.17, "max_score": 100.0, "source": "BenchLM composite benchlm.ai 2026-09-05 (rank #27/231, 22 rows)", "valid_from": "2026-09-05"}
+{"model": "minimax-m3", "category": "tool_use", "score": 74.2, "max_score": 100.0, "source": "MCP Atlas minimax-vendor-2026-09-05 (VENDOR-REPORTED)", "valid_from": "2026-09-05"}
+{"model": "minimax/minimax-m2.5:free", "category": "code_gen", "score": 1.0, "max_score": 1.0, "source": "xkiro-live-battery-2026-09-16 (pass/fail probe; no overlay pattern by design)", "valid_from": "2026-09-16"}
+{"model": "minimax/minimax-m2.5:free", "category": "debug", "score": 1.0, "max_score": 1.0, "source": "xkiro-live-battery-perfcols (audit row; flows via perf_* columns)", "valid_from": "2026-09-16"}
+{"model": "minimax/minimax-m2.5:free", "category": "delegation", "score": 1.0, "max_score": 1.0, "source": "xkiro-live-battery-perfcols (audit row; flows via perf_* columns)", "valid_from": "2026-09-16"}
+{"model": "minimax/minimax-m2.5:free", "category": "reasoning", "score": 1.0, "max_score": 1.0, "source": "xkiro-live-battery-perfcols (audit row; flows via perf_* columns)", "valid_from": "2026-09-16"}
+{"model": "minimax/minimax-m2.5:free", "category": "schema", "score": 1.0, "max_score": 1.0, "source": "xkiro-live-battery-perfcols (audit row; flows via perf_* columns)", "valid_from": "2026-09-16"}
+{"model": "minimax/minimax-m2.7-highspeed:free", "category": "code_gen", "score": 1.0, "max_score": 1.0, "source": "xkiro-live-battery-2026-09-16 (pass/fail probe; no overlay pattern by design)", "valid_from": "2026-09-16"}
+{"model": "minimax/minimax-m2.7-highspeed:free", "category": "debug", "score": 1.0, "max_score": 1.0, "source": "xkiro-live-battery-perfcols (audit row; flows via perf_* columns)", "valid_from": "2026-09-16"}
+{"model": "minimax/minimax-m2.7-highspeed:free", "category": "delegation", "score": 1.0, "max_score": 1.0, "source": "xkiro-live-battery-perfcols (audit row; flows via perf_* columns)", "valid_from": "2026-09-16"}
+{"model": "minimax/minimax-m2.7-highspeed:free", "category": "long_horizon", "score": 1.0, "max_score": 1.0, "source": "xkiro-live-battery-2026-09-16 (pass/fail probe; no overlay pattern by design)", "valid_from": "2026-09-16"}
+{"model": "minimax/minimax-m2.7-highspeed:free", "category": "reasoning", "score": 1.0, "max_score": 1.0, "source": "xkiro-live-battery-perfcols (audit row; flows via perf_* columns)", "valid_from": "2026-09-16"}
+{"model": "minimax/minimax-m2.7-highspeed:free", "category": "schema", "score": 1.0, "max_score": 1.0, "source": "xkiro-live-battery-perfcols (audit row; flows via perf_* columns)", "valid_from": "2026-09-16"}
+{"model": "mistral-large-3:675b", "category": "agent-tick", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "mistral-large-3:675b", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "mistral-large-3:675b", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
+{"model": "mistral-large-3:675b", "category": "delegation", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "mistral-large-3:675b", "category": "guard", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "mistral-large-3:675b", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "mistral-large-3:675b", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "nemotron-3-nano:30b", "category": "agent-tick", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "nemotron-3-nano:30b", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "nemotron-3-nano:30b", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
+{"model": "nemotron-3-nano:30b", "category": "delegation", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "nemotron-3-nano:30b", "category": "guard", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "nemotron-3-nano:30b", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "nemotron-3-nano:30b", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "nemotron-3-super", "category": "agent-tick", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "nemotron-3-super", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "nemotron-3-super", "category": "debug", "score": 3.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
+{"model": "nemotron-3-super", "category": "delegation", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "nemotron-3-super", "category": "guard", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "nemotron-3-super", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "nemotron-3-super", "category": "reasoning", "score": 80.0, "max_score": 100.0, "source": "GPQA-D (verify-dspro)", "valid_from": null}
+{"model": "nemotron-3-super", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "nemotron-3-super", "category": "schema", "score": 68.3, "max_score": 80.0, "source": "BenchLM", "valid_from": null}
+{"model": "nemotron-3-ultra", "category": "agent-tick", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "nemotron-3-ultra", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "nemotron-3-ultra", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
+{"model": "nemotron-3-ultra", "category": "delegation", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "nemotron-3-ultra", "category": "guard", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "nemotron-3-ultra", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "nemotron-3-ultra", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "ox-alpha-free", "category": "agent-tick", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "ox-alpha-free", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "ox-alpha-free", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
+{"model": "ox-alpha-free", "category": "delegation", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "ox-alpha-free", "category": "guard", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "ox-alpha-free", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "ox-alpha-free", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "qwen/qwen3.8-flash", "category": "agent-tick", "score": 55.7, "max_score": 100.0, "source": "qwen-official-2026-08-26", "valid_from": null}
+{"model": "qwen/qwen3.8-flash", "category": "agent-tick", "score": 73.5, "max_score": 100.0, "source": "qwen-official-2026-08-26", "valid_from": null}
+{"model": "qwen/qwen3.8-flash", "category": "agent-tick", "score": 73.9, "max_score": 100.0, "source": "qwen-official-2026-08-26", "valid_from": null}
+{"model": "qwen/qwen3.8-flash", "category": "debug", "score": 58.7, "max_score": 100.0, "source": "qwen-official-2026-08-26", "valid_from": null}
+{"model": "qwen/qwen3.8-flash", "category": "debug", "score": 62.5, "max_score": 100.0, "source": "qwen-official-2026-08-26", "valid_from": null}
+{"model": "qwen/qwen3.8-flash", "category": "debug", "score": 91.9, "max_score": 100.0, "source": "qwen-official-2026-08-26", "valid_from": null}
+{"model": "qwen/qwen3.8-flash", "category": "e2e-vision", "score": 19.4, "max_score": 100.0, "source": "qwen-official-2026-08-26", "valid_from": null}
+{"model": "qwen/qwen3.8-flash", "category": "e2e-vision", "score": 84.5, "max_score": 100.0, "source": "qwen-official-2026-08-26", "valid_from": null}
+{"model": "qwen/qwen3.8-flash", "category": "long-doc", "score": 81.0, "max_score": 100.0, "source": "qwen-official-2026-08-26", "valid_from": null}
+{"model": "qwen/qwen3.8-flash", "category": "reasoning", "score": 35.9, "max_score": 100.0, "source": "qwen-official-2026-08-26", "valid_from": null}
+{"model": "qwen/qwen3.8-flash", "category": "reasoning", "score": 91.7, "max_score": 100.0, "source": "qwen-official-2026-08-26", "valid_from": null}
+{"model": "qwen3.5-397b", "category": "agent-tick", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "qwen3.5-397b", "category": "debug", "score": 3.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "qwen3.5-397b", "category": "debug", "score": 3.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
+{"model": "qwen3.5-397b", "category": "delegation", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "qwen3.5-397b", "category": "guard", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "qwen3.5-397b", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "qwen3.5-397b", "category": "schema", "score": 3.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "qwen3.5-397b-a17b", "category": "agent-tick", "score": 2.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "qwen3.5-397b-a17b", "category": "debug", "score": 1.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "qwen3.5-397b-a17b", "category": "debug", "score": 3.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
+{"model": "qwen3.5-397b-a17b", "category": "delegation", "score": 2.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "qwen3.5-397b-a17b", "category": "guard", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "qwen3.5-397b-a17b", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "qwen3.5-397b-a17b", "category": "schema", "score": 1.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "qwen3.5:397b", "category": "reasoning", "score": 88.4, "max_score": 100.0, "source": "GPQA-D (verify-dspro)", "valid_from": null}
+{"model": "qwen3.5:397b", "category": "reasoning", "score": 91.3, "max_score": 91.3, "source": "AIME26", "valid_from": null}
+{"model": "qwen3.5:397b", "category": "schema", "score": 80.0, "max_score": 80.0, "source": "BenchLM", "valid_from": null}
+{"model": "qwen3.6-35b-fast", "category": "agent-tick", "score": 2.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "qwen3.6-35b-fast", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "qwen3.6-35b-fast", "category": "debug", "score": 3.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
+{"model": "qwen3.6-35b-fast", "category": "delegation", "score": 2.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "qwen3.6-35b-fast", "category": "guard", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "qwen3.6-35b-fast", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "qwen3.6-35b-fast", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "qwen3.6-plus", "category": "agent-tick", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "qwen3.6-plus", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "qwen3.6-plus", "category": "debug", "score": 3.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
+{"model": "qwen3.6-plus", "category": "delegation", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "qwen3.6-plus", "category": "guard", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "qwen3.6-plus", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "qwen3.6-plus", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "qwen3.7-max", "category": "code_gen", "score": 0.606, "max_score": 1.0, "source": "SWE-bench Pro (vendor) research-bench-2026-08-31", "valid_from": "2026-08-31"}
+{"model": "qwen3.7-max", "category": "code_gen", "score": 0.804, "max_score": 1.0, "source": "SWE-bench Verified (vendor) research-bench-2026-08-31", "valid_from": "2026-08-31"}
+{"model": "qwen3.7-max", "category": "reasoning", "score": 0.924, "max_score": 1.0, "source": "GPQA Diamond (vendor) research-bench-2026-08-31", "valid_from": "2026-08-31"}
+{"model": "qwen3.7-max", "category": "sentiment", "score": 0.8, "max_score": 1.0, "source": "research-sent-2026-08-31", "valid_from": "2026-08-31"}
+{"model": "qwen3.7-max", "category": "terminal", "score": 0.697, "max_score": 1.0, "source": "Terminal-Bench 2.0 (vendor) research-bench-2026-08-31", "valid_from": "2026-08-31"}
+{"model": "qwen3.7-plus", "category": "agent-tick", "score": 2.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "qwen3.7-plus", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "qwen3.7-plus", "category": "debug", "score": 3.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
+{"model": "qwen3.7-plus", "category": "delegation", "score": 2.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "qwen3.7-plus", "category": "guard", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "qwen3.7-plus", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "qwen3.7-plus", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "qwen3.8-27b", "category": "code_gen", "score": 0.88, "max_score": 1.0, "source": "research-bench-2026-09-03 (llmcompare 10-task judged, orcarouter)", "valid_from": "2026-09-03"}
+{"model": "qwen3.8-27b", "category": "sentiment", "score": 0.68, "max_score": 1.0, "source": "research-bench-2026-09-03 (excellent but default-overthinks — simonw; arena #1-open I2WD/#9 CodeArena WebDev)", "valid_from": "2026-09-03"}
+{"model": "qwen3.8-flash", "category": "agent_tick", "score": 0.739, "max_score": 1.0, "source": "CoWorkBench research-bench-2026-08-27", "valid_from": "2026-08-27"}
+{"model": "qwen3.8-flash", "category": "code_gen", "score": 0.587, "max_score": 1.0, "source": "DeepSWE research-bench-2026-08-27", "valid_from": "2026-08-27"}
+{"model": "qwen3.8-flash", "category": "code_gen", "score": 0.625, "max_score": 1.0, "source": "SWE-bench Pro research-bench-2026-08-27", "valid_from": "2026-08-27"}
+{"model": "qwen3.8-flash", "category": "code_gen", "score": 0.919, "max_score": 1.0, "source": "LiveCodeBench research-bench-2026-08-27", "valid_from": "2026-08-27"}
+{"model": "qwen3.8-flash", "category": "long_horizon", "score": 0.481, "max_score": 1.0, "source": "NL2Repo research-bench-2026-08-27", "valid_from": "2026-08-27"}
+{"model": "qwen3.8-flash", "category": "multilingual", "score": 0.81, "max_score": 1.0, "source": "SWE-bench Multilingual research-bench-2026-08-27", "valid_from": "2026-08-27"}
+{"model": "qwen3.8-flash", "category": "reasoning", "score": 0.917, "max_score": 1.0, "source": "GPQA research-bench-2026-08-27", "valid_from": "2026-08-27"}
+{"model": "qwen3.8-flash", "category": "sentiment", "score": 0.75, "max_score": 1.0, "source": "research-bench-2026-08-27", "valid_from": "2026-08-27"}
+{"model": "qwen3.8-flash", "category": "tool_use", "score": 0.735, "max_score": 1.0, "source": "Toolathlon research-bench-2026-08-27", "valid_from": "2026-08-27"}
+{"model": "qwen3.8-max", "category": "code_gen", "score": 67.7, "max_score": 100.0, "source": "research-bench-2026-09-19 VENDOR Qwen SWE-bench Pro (inert by design - vendor scale)", "valid_from": "2026-09-19"}
+{"model": "qwen3.8-max", "category": "sentiment", "score": 0.78, "max_score": 1.0, "source": "research-bench-2026-09-06", "valid_from": "2026-09-06"}
+{"model": "qwen3.8-max", "category": "sentiment", "score": 0.82, "max_score": 1.0, "source": "research-bench-2026-09-19: independent bench-lm.ai composite rank #8/230 at 73.17/100 from 60 source rows (up from the 09-06 0.78 row) - strongest independent standing of any lane in the fleet's qwen family. Vendor Qwen: agentic-terminal eval 86.6, PaperBench 93.0, against SWE-bench Pro 67.7 and Toolathlon Verified 72.5 = real strengths and real weak spots, not a universal win (evolink/nxcode read the same balance). Upgrade 0.78 -> 0.82.", "valid_from": "2026-09-19"}
+{"model": "qwen3.8-max", "category": "terminal", "score": 86.6, "max_score": 100.0, "source": "research-bench-2026-09-19 VENDOR Qwen agentic-terminal eval 86.6/100 (held INERT deliberately: the source text is written WITHOUT the overlay pattern token, so this vendor number does not move the shared terminal quantiles in the same tick as other data changes; re-land it with independent confirmation)", "valid_from": "2026-09-19"}
+{"model": "step-3.5-flash", "category": "agent-tick", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "step-3.5-flash", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "step-3.5-flash", "category": "debug", "score": 3.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
+{"model": "step-3.5-flash", "category": "delegation", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "step-3.5-flash", "category": "guard", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "step-3.5-flash", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "step-3.5-flash", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "step-3.7-flash", "category": "agent-tick", "score": 1.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "step-3.7-flash", "category": "code_gen", "score": 0.563, "max_score": 1.0, "source": "SWE-bench Pro (independent, flowtivity DGX Spark) research-bench-2026-08-30", "valid_from": "2026-08-30"}
+{"model": "step-3.7-flash", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "step-3.7-flash", "category": "debug", "score": 3.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
+{"model": "step-3.7-flash", "category": "delegation", "score": 1.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "step-3.7-flash", "category": "e2e-vision", "score": 75.82, "max_score": 78.0, "source": "BrowseComp multimodal (vendor)", "valid_from": null}
+{"model": "step-3.7-flash", "category": "guard", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "step-3.7-flash", "category": "long_horizon", "score": 0.6187, "max_score": 1.0, "source": "Android Daily (vendor) research-bench-2026-08-30", "valid_from": "2026-08-30"}
+{"model": "step-3.7-flash", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "step-3.7-flash", "category": "reasoning", "score": 80.9, "max_score": 100.0, "source": "research-bench-2026-09-16 GPQA Diamond (DeepInfra vendor card)", "valid_from": "2026-09-16"}
+{"model": "step-3.7-flash", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "step-3.7-flash", "category": "sentiment", "score": 0.58, "max_score": 1.0, "source": "research-bench-2026-08-28", "valid_from": "2026-08-28"}
+{"model": "step-3.7-flash", "category": "sentiment", "score": 0.62, "max_score": 1.0, "source": "research-bench-2026-09-05", "valid_from": "2026-09-05"}
+{"model": "step-3.7-flash", "category": "sentiment", "score": 0.72, "max_score": 1.0, "source": "research-bench-2026-09-09: ClawEval-1.1 67.1 leader confirmed (HF card: next best 59.8) AND first-hand flowtivity DGX Spark run (100% tool-call success, SWE-bench Pro 56.3, ClawEval 67.1) — independent replication of the 08-28 row; designforonline #26/303 agentic; high execution reliability consensus", "valid_from": "2026-09-09"}
+{"model": "step-3.7-flash", "category": "spec_docs", "score": 41.3, "max_score": 100.0, "source": "research-bench-2026-09-25: composite tracker score 41.3/100, rank 109 of 196 (agentic best category 56) — source token withheld by design (inert-row doctrine: no overlay pattern in source)", "valid_from": "2026-09-25"}
+{"model": "step-3.7-flash", "category": "terminal", "score": 59.55, "max_score": 100.0, "source": "Terminal-Bench 2.1 stepfun-vendor-2026-09-05", "valid_from": "2026-09-05"}
+{"model": "step-3.7-flash", "category": "tool_use", "score": 0.671, "max_score": 1.0, "source": "ClawEval-1.1 research-bench-2026-08-28", "valid_from": "2026-08-28"}
+{"model": "syn:large:text", "category": "agent-tick", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "syn:large:text", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
+{"model": "syn:large:text", "category": "debug", "score": 3.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "syn:large:text", "category": "delegation", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "syn:large:text", "category": "guard", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "syn:large:text", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
+{"model": "syn:large:text", "category": "schema", "score": 3.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "union-alpha", "category": "agent_tick", "score": 0.85, "max_score": 1.0, "source": "live-probe-2026-09-16 3-step CI plan, exact format (n=1-2 small-probe, NOT large-bench; clinepass stealth/union-alpha stream-only lane)", "valid_from": "2026-09-16"}
+{"model": "union-alpha", "category": "code_gen", "score": 0.85, "max_score": 1.0, "source": "live-probe-2026-09-16 is_balanced stack algorithm correct (2 takes) (n=1-2 small-probe, NOT large-bench; clinepass stealth/union-alpha stream-only lane)", "valid_from": "2026-09-16"}
+{"model": "union-alpha", "category": "debug", "score": 0.85, "max_score": 1.0, "source": "live-probe-2026-09-16 IndexError off-by-one explained correctly (n=1-2 small-probe, NOT large-bench; clinepass stealth/union-alpha stream-only lane)", "valid_from": "2026-09-16"}
+{"model": "union-alpha", "category": "delegation", "score": 0.85, "max_score": 1.0, "source": "live-probe-2026-09-16 3-line assignment format exact, sensible (n=1-2 small-probe, NOT large-bench; clinepass stealth/union-alpha stream-only lane)", "valid_from": "2026-09-16"}
+{"model": "union-alpha", "category": "long_doc", "score": 0.85, "max_score": 1.0, "source": "live-probe-2026-09-16 3-question comprehension over ~1.5k-char notes, 3/3 correct (n=1 small-probe, NOT large-bench; clinepass stealth lane)", "valid_from": "2026-09-16"}
+{"model": "union-alpha", "category": "long_horizon", "score": 0.85, "max_score": 1.0, "source": "live-probe-2026-09-16 DONE/NEXT/BLOCKED resume note, exact format (n=1 small-probe)", "valid_from": "2026-09-16"}
+{"model": "union-alpha", "category": "reasoning", "score": 0.85, "max_score": 1.0, "source": "live-probe-2026-09-16 catch-up train word problem: 6:00 correct (n=1-2 small-probe, NOT large-bench; clinepass stealth/union-alpha stream-only lane)", "valid_from": "2026-09-16"}
+{"model": "union-alpha", "category": "schema", "score": 0.85, "max_score": 1.0, "source": "live-probe-2026-09-16 valid JSON Ada/36 (n=1-2 small-probe, NOT large-bench; clinepass stealth/union-alpha stream-only lane)", "valid_from": "2026-09-16"}
+{"model": "union-alpha", "category": "test", "score": 0.85, "max_score": 1.0, "source": "live-probe-2026-09-16 pytest 4 asserts, 4 requested classes, correct (n=1-2 small-probe, NOT large-bench; clinepass stealth/union-alpha stream-only lane)", "valid_from": "2026-09-16"}
+{"model": "union-alpha", "category": "tool_use", "score": 0.85, "max_score": 1.0, "source": "live-probe-2026-09-16 ordered 3-tool plan, correct sequence+why (n=1 small-probe)", "valid_from": "2026-09-16"}
+{"model": "z-ai/glm-5.3-flash", "category": "agent-tick", "score": 48.8, "max_score": 100.0, "source": "zai-official-2026-08-26", "valid_from": null}
+{"model": "z-ai/glm-5.3-flash", "category": "agent-tick", "score": 78.4, "max_score": 100.0, "source": "zai-official-2026-08-26", "valid_from": null}
+{"model": "z-ai/glm-5.3-flash", "category": "code_gen", "score": 1.0, "max_score": 1.0, "source": "xkiro-live-battery-2026-09-16 (pass/fail probe; no overlay pattern by design)", "valid_from": "2026-09-16"}
+{"model": "z-ai/glm-5.3-flash", "category": "debug", "score": 1.0, "max_score": 1.0, "source": "xkiro-live-battery-perfcols (audit row; flows via perf_* columns)", "valid_from": "2026-09-16"}
+{"model": "z-ai/glm-5.3-flash", "category": "debug", "score": 63.4, "max_score": 100.0, "source": "zai-official-2026-08-26", "valid_from": null}
+{"model": "z-ai/glm-5.3-flash", "category": "debug", "score": 84.3, "max_score": 100.0, "source": "Terminal-Bench zai-official-2026-08-26", "valid_from": null}
+{"model": "z-ai/glm-5.3-flash", "category": "delegation", "score": 1.0, "max_score": 1.0, "source": "xkiro-live-battery-perfcols (audit row; flows via perf_* columns)", "valid_from": "2026-09-16"}
+{"model": "z-ai/glm-5.3-flash", "category": "long-doc", "score": 55.3, "max_score": 100.0, "source": "zai-official-2026-08-26", "valid_from": null}
+{"model": "z-ai/glm-5.3-flash", "category": "long_horizon", "score": 1.0, "max_score": 1.0, "source": "xkiro-live-battery-2026-09-16 (pass/fail probe; no overlay pattern by design)", "valid_from": "2026-09-16"}
+{"model": "z-ai/glm-5.3-flash", "category": "reasoning", "score": 1.0, "max_score": 1.0, "source": "xkiro-live-battery-perfcols (audit row; flows via perf_* columns)", "valid_from": "2026-09-16"}
+{"model": "z-ai/glm-5.3-flash", "category": "review", "score": 1773.0, "max_score": 2000.0, "source": "zai-official-2026-08-26", "valid_from": null}
+{"model": "z-ai/glm-5.3-flash", "category": "schema", "score": 1.0, "max_score": 1.0, "source": "xkiro-live-battery-perfcols (audit row; flows via perf_* columns)", "valid_from": "2026-09-16"}
+{"model": "z-ai/glm-5.3-flash", "category": "schema", "score": 29.0, "max_score": 29.5, "source": "zai-official-2026-08-26", "valid_from": null}

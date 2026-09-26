@@ -95,6 +95,30 @@ def normalize(catalog, preset):
         pin, pout = dig(e, fm['price_in']), dig(e, fm['price_out'])
         pin, pout = _scaled_price(pin, scale), _scaled_price(pout, scale)
         price = None if pin is None or pout is None else round(blend_in * float(pin) + blend_out * float(pout), 6)
+        if price is None:
+            # A carrier whose catalog has no pricing block (commandcode) declares
+            # the vendor sticker as DATA in the preset (`sticker_prices`); the
+            # provider's established convention for such pass-through lanes is
+            # normalized == public == the IN sticker (measured on all 67 live
+            # commandcode rows). No sticker declared = the lane stays UNPRICED
+            # (a visible gap), never a guess.
+            sticker = (preset.get('sticker_prices') or {}).get(mid)
+            if isinstance(sticker, dict) and sticker.get('in') is not None:
+                st_in = float(sticker['in'])
+                st_out = None if sticker.get('out') is None else float(sticker['out'])
+                lane = {
+                    'provider': preset['id'],
+                    'model': mid,
+                    'normalized_price': st_in,
+                    'public_price': st_in,
+                    'public_in_per_m': st_in,
+                    'public_out_per_m': st_out,
+                    'context_limit': dig(e, fm['context']) if fm.get('context') else None,
+                }
+                if sticker.get('cache_read') is not None:
+                    lane['public_cache_read_per_m'] = float(sticker['cache_read'])
+                out[mid] = lane
+                continue
         # normalized_price and public_price follow DIFFERENT bases in the
         # existing data (measured 2026-09-24: 347/347 openrouter lanes have
         # normalized == input while public == the blend). `normalized_from`
@@ -158,22 +182,56 @@ def diff(existing, new):
     return {'added': added, 'changed': changed, 'unchanged': unchanged, 'removed': removed}
 
 
-def apply_lanes(path, provider, new_lanes, plan_tier, price_evidence, drift=None, variant_notes=None):
+def apply_lanes(path, provider, new_lanes, plan_tier, price_evidence, drift=None,
+                variant_notes=None, usage_multiplier=None):
     """Update models.jsonl in place: update matching rows, append net-new.
     Returns (updated, appended). Row order of existing file is preserved.
     Evidence discipline: existing rows KEEP their price_evidence (a no-drift
     reimport must not rewrite provenance); rows with catalog drift get a dated
-    drift stamp appended; only net-new rows carry the import evidence."""
+    drift stamp appended; only net-new rows carry the import evidence.
+
+    usage_multiplier (2026-09-25): a preset whose provider is a flat plan
+    (xkiro: $200/mo = 30x usage) declares the multiplier as DATA; a catalog
+    refresh then writes the plan-EFFECTIVE price for plan-covered lanes
+    (normalized = list blend / multiplier) and the raw list for wallet-only
+    lanes (plan_tier NULL), which is what the original onboarding did by hand.
+    Without it a refresh rewrites normalized_price to the raw list — 30x too
+    expensive — and every lane silently loses its chain position.
+    """
     rows = [json.loads(l) for l in open(path) if l.strip()]
     updated = appended = 0
     seen = set()
     out = []
+    mult = float(usage_multiplier or 1.0)
+
+    def plan_effective(lane, priced_from_catalog=True):
+        """Apply the plan multiplier to a lane whose price came from the
+        catalog in THIS pass. A lane whose price was preserved (catalog had no
+        price) or kept for its window-cost story must NOT be divided again."""
+        if not priced_from_catalog or mult == 1.0 or lane.get('plan_tier') is None:
+            return lane
+        if not (lane.get('normalized_price') or 0) > 0:
+            return lane
+        lane['normalized_price'] = round(float(lane['normalized_price']) / mult, 6)
+        note = f' | internal /{mult:g} per {mult:g}x usage multiplier'
+        if note not in (lane.get('price_evidence') or ''):
+            lane['price_evidence'] = (lane.get('price_evidence') or '') + note
+        return lane
+
     for r in rows:
         if r.get('provider') == provider and r['model'] in new_lanes:
             # merge: existing row is the base (keeps provenance, evidence cols,
             # plan stamps, disabled state); catalog fields overwrite as facts
             lane = dict(r)
-            incoming = dict(new_lanes[r['model']])
+            # A catalog that OMITS a fact is not evidence the fact changed
+            # (2026-09-25): several fleet carriers serve a /models catalog with
+            # no pricing block (commandcode, opencode-go) or no context field.
+            # Merging their Nones verbatim NULLs an established price and the
+            # lane drops out of every price-ordered chain on a refresh that was
+            # only about model ids. Preserve the established value; a catalog
+            # value — including a genuine 0/0.0 — always wins.
+            incoming = {k: v for k, v in new_lanes[r['model']].items()
+                        if not (v is None and r.get(k) is not None)}
             # F3 (Bane's rule, enforced by test_feedback_invariants): a `:free`
             # lane is NOT free — it draws the metered window at list-equivalent
             # value. So a catalog's $0 sticker must never overwrite an
@@ -182,11 +240,13 @@ def apply_lanes(path, provider, new_lanes, plan_tier, price_evidence, drift=None
             # 13 free lanes (e.g. gemma-4-26b-it:free 0.195 -> 0.0,
             # nemotron-3-ultra:free 1.5 -> 0.0) and broke the invariant.
             today = datetime.date.today().isoformat()
+            priced_from_catalog = new_lanes[r['model']].get('normalized_price') is not None
             if ':free' in str(r['model']) and (incoming.get('normalized_price') or 0) == 0:
                 note = ''
                 if (r.get('normalized_price') or 0) > 0:
                     incoming['normalized_price'] = r.get('normalized_price')
                     incoming['public_price'] = r.get('public_price')
+                    priced_from_catalog = False
                     note = (f' | {today} catalog sticker $0; window_cost KEPT '
                             f'({r.get("normalized_price")})')
                 elif 'window-cost-pending' not in str(r.get('price_evidence') or '').lower():
@@ -211,6 +271,7 @@ def apply_lanes(path, provider, new_lanes, plan_tier, price_evidence, drift=None
             note = (variant_notes or {}).get(r['model'])
             if note and note not in (lane.get('price_evidence') or ''):
                 lane['price_evidence'] = (lane.get('price_evidence') or '') + ' | ' + note
+            lane = plan_effective(lane, priced_from_catalog)
             out.append(lane)
             seen.add(r['model'])
             updated += 1
@@ -236,6 +297,7 @@ def apply_lanes(path, provider, new_lanes, plan_tier, price_evidence, drift=None
         row['perf_guard'] = None
         row['perf_mock'] = None
         row['perf_reasoning'] = None
+        row = plan_effective(row)          # net-new: price always from catalog
         out.append(row)
         appended += 1
     with open(path, 'w') as f:
@@ -301,7 +363,30 @@ def main():
             existing[(preset['id'], r['model'])] = r
     print(f"registry: {len(existing)} existing {preset['id']} lanes")
 
-    d = diff(existing, new_lanes)
+    # Dry-run preview must show what APPLY would write (2026-09-25):
+    #  * a plan carrier writes the plan-effective price (list / multiplier) on
+    #    plan-covered lanes — previewing the raw list made the xkiro diff look
+    #    like a 30x price hike when the apply is a near no-op;
+    #  * a catalog that omits a fact (commandcode/opencode-go publish no pricing
+    #    block) does NOT null the established value — previewing the raw merge
+    #    reported ~500 lanes as 'price -> None' on a refresh that touches none.
+    # Preview on a copy — the apply path applies both rules itself.
+    policy = preset.get('plan_tier_policy', {}) or {}
+    mult = float(policy.get('usage_multiplier') or 1.0)
+    preview = {}
+    for m, l in new_lanes.items():
+        lane = dict(l)
+        row = existing.get((preset['id'], m))
+        if row:
+            lane = {k: v for k, v in lane.items()
+                    if not (v is None and row.get(k) is not None)}
+        if mult != 1.0:
+            tier = row.get('plan_tier') if row else policy.get('default')
+            if tier is not None and (lane.get('normalized_price') or 0) > 0:
+                lane['normalized_price'] = round(float(lane['normalized_price']) / mult, 6)
+        preview[m] = lane
+
+    d = diff(existing, preview)
     print(f"diff: +{len(d['added'])} added, ~{len(d['changed'])} changed, "
           f"{len(d['unchanged'])} unchanged, -{len(d['removed'])} removed")
     for mid, touched in d['changed'][:10]:
@@ -330,7 +415,8 @@ def main():
     plan_tier = policy.get('default')
     evidence = f"provider_import preset={preset['id']} " + policy.get('reason', '')
     updated, appended = apply_lanes(mpath, preset['id'], new_lanes, plan_tier, evidence,
-                                   variant_notes=preset.get('variant_notes'))
+                                   variant_notes=preset.get('variant_notes'),
+                                   usage_multiplier=policy.get('usage_multiplier'))
     print(f'applied: {updated} updated, {appended} appended (plan_tier={plan_tier})')
 
     if ensure_probe_row(os.path.join(TABLES, 'probe_providers.jsonl'), preset):

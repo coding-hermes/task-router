@@ -1,0 +1,30 @@
+{
+  "id": "opencode-go-2",
+  "name": "opencode zen/go — second subscription account (same $12/5h plan)",
+  "catalog_url": "https://opencode.ai/zen/go/v1/models",
+  "catalog_format": "openai_models_list",
+  "user_agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36",
+  "keyless_catalog": true,
+  "keyless_reason": "GET /models answers 200 without auth (verified 2026-09-25); inference needs OPENCODE_GO_API_KEY_2",
+  "field_map": {
+    "model": "id",
+    "price_in": "pricing.input",
+    "price_out": "pricing.output",
+    "context": "context_length"
+  },
+  "plan_tier_policy": {
+    "default": null,
+    "reason": "the mirror lane carries the SAME plan_tier values as its primary account (muse-spark-1.3-contributor etc. are tier-less in the registry); the preset declares null so a refresh never stamps a tier onto these PAYG-labelled mirror rows"
+  },
+  "probe": {
+    "base_url": "https://opencode.ai/zen/go/v1",
+    "key_env": "OPENCODE_GO_API_KEY_2",
+    "default_model": "glm-5.3-flash",
+    "note": "2nd opencode-go account — mirror lane of opencode-go (same plan, separate quota); catalog has no pricing block (per_request plan prices come from the pricing engine)"
+  },
+  "data_class": "unknown",
+  "notes": [
+    "onboarded 2026-09-25: the mirror account's lane list had drifted 5 models behind its primary (gpt-6-luna, grok-4.7, mimo-v2.6-flash/pro, space-bunny-free) — a mirror that trails loses the second-account capacity exactly when the primary is throttled",
+    "catalog carries NO price/context fields: the price-preserve rule keeps the engine-priced normalized_price on refresh, and net-new lanes get priced by the per_request engine (blended sticker fallback) on the next reprice"
+  ]
+}

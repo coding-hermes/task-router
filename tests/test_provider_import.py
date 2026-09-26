@@ -125,6 +125,74 @@ def test_ensure_probe_row_idempotent(tmp_path):
     assert len([json.loads(l) for l in open(p) if l.strip()]) == 2
 
 
+def test_catalog_omitting_a_price_does_not_null_an_established_price(tmp_path):
+    """A catalog that carries no pricing block must not erase a priced lane.
+
+    Several fleet carriers publish /models without pricing (commandcode,
+    opencode-go): merging those Nones verbatim NULLed normalized_price and the
+    lane dropped out of every price-ordered chain on a refresh that was only
+    about model ids (2026-09-25).
+    """
+    p = tmp_path / 'models.jsonl'
+    p.write_text(json.dumps({
+        'provider': 'provtest', 'model': 'prov/alpha', 'normalized_price': 7.5,
+        'public_price': 9.0, 'public_in_per_m': 9.0, 'context_limit': 123000,
+        'plan_tier': None, 'price_evidence': 'research-2026-09-20'}) + '\n')
+    preset = dict(PRESET)
+    preset['field_map'] = {'model': 'id', 'price_in': 'pricing.input',
+                           'price_out': 'pricing.output', 'context': 'context_length'}
+    lanes = rpi.normalize({'data': [{'id': 'prov/alpha'}]}, preset)   # no price, no ctx
+    rpi.apply_lanes(str(p), 'provtest', lanes, plan_tier=None, price_evidence='import')
+    row = json.loads(open(p).read().strip())
+    assert row['normalized_price'] == 7.5        # established price preserved
+    assert row['context_limit'] == 123000        # established context preserved
+    assert row['price_evidence'] == 'research-2026-09-20'  # provenance preserved
+
+
+def test_plan_multiplier_applies_to_plan_covered_lanes_only(tmp_path):
+    """xkiro's $200 plan = 30x usage: the effective price is list/30 for
+    plan-covered lanes, but a wallet-only lane (plan_tier NULL) keeps list.
+    A refresh that wrote the raw list would make every plan lane 30x too
+    expensive and drop it from its chain position (2026-09-25)."""
+    p = tmp_path / 'models.jsonl'
+    prior = [
+        {'provider': 'provtest', 'model': 'prov/plan', 'plan_tier': 0,
+         'normalized_price': 0.1, 'price_evidence': 'x'},
+        {'provider': 'provtest', 'model': 'prov/wallet', 'plan_tier': None,
+         'normalized_price': 0.1, 'price_evidence': 'x'},
+    ]
+    with open(p, 'w') as f:
+        for r in prior:
+            f.write(json.dumps(r) + '\n')
+    cat = {'data': [{'id': m, 'pricing': {'input': 3.0, 'output': 6.0},
+                     'context_length': 1000} for m in ('prov/plan', 'prov/wallet')]}
+    lanes = rpi.normalize(cat, PRESET)           # blend 3.12
+    rpi.apply_lanes(str(p), 'provtest', lanes, plan_tier=0, price_evidence='import',
+                    usage_multiplier=30)
+    rows = {json.loads(l)['model']: json.loads(l) for l in open(p) if l.strip()}
+    assert rows['prov/plan']['normalized_price'] == pytest.approx(3.12 / 30)
+    assert rows['prov/plan']['public_price'] == pytest.approx(3.12)   # list kept
+    assert rows['prov/wallet']['normalized_price'] == pytest.approx(3.12)
+
+
+def test_sticker_prices_fill_a_price_less_catalog():
+    """commandcode's /models has no pricing block; the preset declares the
+    vendor sticker as data. An undeclared model stays UNPRICED (visible gap)."""
+    preset = dict(PRESET)
+    preset['field_map'] = {'model': 'id', 'price_in': 'pricing.input',
+                           'price_out': 'pricing.output', 'context': 'context_length'}
+    preset['sticker_prices'] = {'prov/alpha': {'in': 0.5, 'out': 2.0, 'cache_read': 0.05}}
+    cat = {'data': [{'id': 'prov/alpha', 'context_length': 999}, {'id': 'prov/gamma'}]}
+    lanes = rpi.normalize(cat, preset)
+    a = lanes['prov/alpha']
+    assert a['normalized_price'] == 0.5        # basis: normalized == public == in sticker
+    assert a['public_price'] == 0.5
+    assert a['public_in_per_m'] == 0.5 and a['public_out_per_m'] == 2.0
+    assert a['public_cache_read_per_m'] == 0.05
+    assert a['context_limit'] == 999
+    assert lanes['prov/gamma']['normalized_price'] is None   # undeclared -> unpriced gap
+
+
 def test_preset_file_loads_and_matches_live_catalog_shape():
     """The committed xkiro preset must parse and normalize the SAVED live catalog
     snapshot identically to what we shipped by hand (115 lanes)."""
