@@ -1831,6 +1831,105 @@ def _proxy_cost(hop, tokens_in, tokens_out):
     return None, 'no price on this hop; cost unknown'
 
 
+
+#: How much of the option chain and the gate evidence a row carries. A chain can hold
+#: 160+ lanes; a row is read by a human or a query, and an unbounded list makes both
+#: useless (and the ledger huge). Truncation is EXPLICIT (chain_truncated) — a capped
+#: list that does not say it was capped is a lie about the resolver's options.
+_PROXY_CHAIN_ROW_CAP = 20
+_PROXY_EXCLUSION_ROW_CAP = 30
+
+
+def _prompt_evidence(body):
+    """(chars, sha256-hex) of the caller's prompt text — never the text itself.
+
+    Rows are queried by GROUPING: a fleet tick's prompt recurs almost verbatim across
+    nudges, so the hash lets a reader ask "how many requests shared this prompt" without
+    the ledger becoming a store of everything the fleet has ever been asked. Returns
+    (None, None) when no text can be found — an unmeasured row says nothing, like every
+    other meter here.
+    """
+    try:
+        parts = []
+        if isinstance(body, dict):
+            for m in (body.get('messages') or []):
+                if isinstance(m, dict):
+                    c = m.get('content')
+                    if isinstance(c, str):
+                        parts.append(c)
+                    elif isinstance(c, list):
+                        parts.extend(str(x.get('text') or '') for x in c if isinstance(x, dict))
+            for m in (body.get('input') or []):
+                if isinstance(m, dict):
+                    c = m.get('content')
+                    if isinstance(c, str):
+                        parts.append(c)
+        text = '\n'.join(parts) if parts else ''
+        if not text:
+            return None, None
+        import hashlib as _hl
+        return len(text), _hl.sha256(text.encode('utf-8', 'replace')).hexdigest()
+    except Exception:  # noqa: BLE001 — evidence gathering never fails a request
+        return None, None
+
+
+def _classifier_evidence(requirements, source):
+    """Why the rating is what it is, from the row alone.
+
+    `parse` is the single word a reader needs: ok (the classifier produced a usable
+    matrix), empty-matrix (it ran and said this prompt presses no category),
+    no-json (it answered in prose and the parse failed -> fail-open),
+    declared (the CALLER named a profile, so the classifier never ran).
+    """
+    if source in ('classifier', 'jev'):
+        parse = 'ok'
+    elif source == 'classifier-empty':
+        parse = 'empty-matrix'
+    elif source == 'declared':
+        parse = 'declared'
+    else:
+        parse = 'no-json'
+    try:
+        problems = list(requirements.get('problems') or [])[:6]
+    except Exception:  # noqa: BLE001
+        problems = []
+    return {'source': source, 'parse': parse, 'model': requirements.get('model'),
+            'prompt_version': requirements.get('prompt_version'),
+            'confidence': requirements.get('confidence'),
+            'problems': problems}
+
+
+def _chain_evidence(resolved, chain):
+    """The OPTION CHAIN as resolvable evidence: what the resolver offered, in order.
+
+    Shipped after the 2026-09-26 incident: a row read 'route_outcome no-hops,
+    hops_attempted 0' and could not say WHY nothing was eligible — the exclusions had
+    been computed and handed to the envelope, then dropped on the floor before the row
+    was written. The ledger is the artefact that survives; it has to explain itself.
+    """
+    def _hops(items, cap):
+        out = []
+        for h in (items or [])[:cap]:
+            if not isinstance(h, dict):
+                continue
+            out.append({k: h.get(k) for k in
+                        ('hop', 'provider', 'model', 'why', 'codes', 'price', 'effective_price')
+                        if k in h})
+        return out
+    chain = chain or []
+    excl = (resolved or {}).get('exclusions') or []
+    return {
+        'chain': _hops(chain, _PROXY_CHAIN_ROW_CAP),
+        'chain_length': len(chain),
+        'chain_truncated': len(chain) > _PROXY_CHAIN_ROW_CAP,
+        'exclusions': _hops(excl, _PROXY_EXCLUSION_ROW_CAP),
+        'exclusions_truncated': len(excl) > _PROXY_EXCLUSION_ROW_CAP,
+        'skipped_hops': (resolved or {}).get('skipped_hops'),
+        'first_attempt_hop': (resolved or {}).get('first_attempt_hop'),
+        'gate': (resolved or {}).get('gate'),
+    }
+
+
 def _proxy_record(provider, model, ok, requirements, reason='', latency_s=None,
                   source='router-proxy', session_id=None,
                   tokens_in=None, tokens_out=None, cost_usd=None,
@@ -1839,7 +1938,9 @@ def _proxy_record(provider, model, ok, requirements, reason='', latency_s=None,
                   tokens_reasoning=None, gateway_session_id=None,
                   route_outcome=None, failure_reason=None, hops_attempted=None,
                   served_by_hop=None, max_hops=None, complexity_source=None,
-                  degrade_reason=None, steps=None):
+                  degrade_reason=None, steps=None, chain_evidence=None,
+                  classifier_evidence=None, attempts=None,
+                  prompt_chars=None, prompt_sha=None):
     """One outcome row per attempt + breaker evidence (best effort, fail-open).
 
     TR-071: `source` is the DRIVER identity when the caller declared one
@@ -1895,6 +1996,23 @@ def _proxy_record(provider, model, ok, requirements, reason='', latency_s=None,
                'hops_attempted': hops_attempted, 'served_by_hop': served_by_hop,
                'max_hops': max_hops, 'complexity_source': complexity_source,
                'degrade_reason': degrade_reason,
+               # TR-163: the OPTION CHAIN, the gate evidence, and the rating's own
+               # explanation. Without these the row could say a request was served from
+               # hop 3 but not what hops 1-2 were or why they were skipped, and a
+               # 'no-hops' row could not say why nothing was eligible — which is exactly
+               # the question the 2026-09-26 incident needed answered from disk.
+               'chain': (chain_evidence or {}).get('chain'),
+               'chain_length': (chain_evidence or {}).get('chain_length'),
+               'chain_truncated': (chain_evidence or {}).get('chain_truncated'),
+               'exclusions': (chain_evidence or {}).get('exclusions'),
+               'exclusions_truncated': (chain_evidence or {}).get('exclusions_truncated'),
+               'skipped_hops': (chain_evidence or {}).get('skipped_hops'),
+               'first_attempt_hop': (chain_evidence or {}).get('first_attempt_hop'),
+               'gate': (chain_evidence or {}).get('gate'),
+               'classifier': classifier_evidence,
+               'attempts': attempts,
+               # A HASH and a length, never the prompt text.
+               'prompt_chars': prompt_chars, 'prompt_sha': prompt_sha,
                'task_label': reason[:200] or None, 'ts': time.time()}
         if parent_session_id:
             # Accumulate: one row per (source_system, session, model) that grows as
@@ -1949,6 +2067,8 @@ def proxy_chat(path, body, headers, max_hops=None, upstream=None):
     except (TypeError, ValueError):
         hops = 3
     source, requirements = _proxy_requirements(body, headers, path)
+    # TR-163: one measurement per request, reused by every row this request writes.
+    _prompt_stats = _prompt_evidence(body)
     # TR-142: the envelope states the LEVELS that admitted the served lane, resolved
     # through the one authority (router_outcomes.required_levels) rather than being
     # re-derived here. None when the levels are genuinely unknown (an unrated prompt
@@ -2060,7 +2180,10 @@ def proxy_chat(path, body, headers, max_hops=None, upstream=None):
                       route_outcome='no-hops', failure_reason='no-hops',
                       hops_attempted=0, max_hops=hops, complexity_source=source,
                       degrade_reason=(requirements.get('problems') or [None])[0],
-                      steps=0)
+                      steps=0,
+                      chain_evidence=_chain_evidence(resolved, chain),
+                      classifier_evidence=_classifier_evidence(requirements, source),
+                      prompt_chars=_prompt_stats[0], prompt_sha=_prompt_stats[1])
         return 503, {'error': 'no open hop for this request',
                      '_router': _failure_envelope(meta, session_id, source_system,
                                                   parent_session_id, ladder_t0,
@@ -2181,7 +2304,11 @@ def proxy_chat(path, body, headers, max_hops=None, upstream=None):
                       hops_attempted=len(meta['ladder']), served_by_hop=(hop.get('hop') if ok else None),
                       max_hops=hops, complexity_source=source,
                       degrade_reason=(requirements.get('problems') or [None])[0],
-                      steps=len(meta['ladder']))
+                      steps=len(meta['ladder']),
+                      chain_evidence=_chain_evidence(resolved, chain),
+                      classifier_evidence=_classifier_evidence(requirements, source),
+                      attempts=list(meta['ladder']),
+                      prompt_chars=_prompt_stats[0], prompt_sha=_prompt_stats[1])
         if ok:
             out = dict(payload) if isinstance(payload, dict) else {'upstream': payload}
             # TR-138: the live-stream facts (events seen, idle budget, wall
