@@ -64,3 +64,74 @@ jobs:
           assert tables['task_profiles'] >= 8, tables
           print('data/tables ok:', {k: v for k, v in sorted(tables.items())})
           EOF
+
+      # ---------------------------------------------------------------------
+      # Proxy-path harnesses (TR-186): scripts/proxy_acceptance.py,
+      # scripts/proxy_smoke.py, scripts/dummy_scheduler.py.
+      #
+      # NONE of the three runs as a CI leg, deliberately:
+      #
+      # * proxy_acceptance.py is LIVE-ONLY by design, not hermetic. Its own
+      #   docstring: "Every check measures the LIVE services — no fixtures,
+      #   no simulated upstreams pretending to be the fleet." It measures the
+      #   live proxy (ROUTER_PROXY_URL, default 127.0.0.1:9391) and web UI
+      #   (:9093), reads the gateway credential from ~/.hermes/.env, asserts
+      #   custody against the LIVE fleet ledger (data/state/outcomes.jsonl)
+      #   and ~/.hermes/state.db, and its health gate requires a proxy whose
+      #   loaded commit equals this checkout's HEAD and stale=false. A scratch
+      #   instance with fake upstreams cannot satisfy those gates, and pointed
+      #   at a dead port the battery crashes red in <1s (uncaught URLError;
+      #   measured 2026-09-26). A CI leg would be guaranteed red and mean
+      #   nothing. Run it by hand before repointing the scheduler — see
+      #   docs/proxy-readiness-report-2026-09-26.html.
+      #
+      # * proxy_smoke.py sends real model traffic at --base (default: the live
+      #   proxy) and refuses to run without a credential from ~/.hermes/.env
+      #   (exit 2, measured in a CI-shaped HOME). There is no scratch proxy in
+      #   this repo to point it at, so there is no bounded CI leg to add. The
+      #   bounded shape, if one ever exists, is:
+      #     timeout 120 python3 scripts/proxy_smoke.py --n 2 --concurrency 1
+      #       --timeout 20 --base http://127.0.0.1:<scratch-port>
+      #
+      # * dummy_scheduler.py must NEVER run in CI. It is a LOAD GENERATOR: it
+      #   exists to reproduce the TR-164 incident (proxied tick traffic
+      #   amplified into real upstream model calls, saturated the gateway and
+      #   tripped provider circuits fleet-wide). Every request costs real
+      #   upstream tokens; on a runner it would hammer whatever answers on its
+      #   default port and burn quota for zero signal.
+      #
+      # The step below guards that decision instead: it byte-compiles all three
+      # harnesses (cheap syntax-rot gate — nothing in the pytest import graph
+      # imports them) and fails the job if a run section in THIS workflow ever
+      # starts invoking any of the three.
+      - name: Proxy harness guard (compile + no-live-harness tripwire)
+        run: |
+          python3 - <<'EOF'
+          import os, py_compile, re, tempfile
+          for s in ("proxy_acceptance.py", "proxy_smoke.py", "dummy_scheduler.py"):
+              with tempfile.NamedTemporaryFile(suffix=".py", delete=False) as tf:
+                  dst = tf.name
+              try:
+                  py_compile.compile(os.path.join("scripts", s), cfile=dst, doraise=True)
+              finally:
+                  os.unlink(dst)
+          print("compile clean: scripts/proxy_acceptance.py, scripts/proxy_smoke.py,"
+                " scripts/dummy_scheduler.py")
+          run_blocks, cur = [], None
+          for line in open(".github/workflows/ci.yml"):
+              m = re.match(r"\s*-\s*name:\s*(.+)$", line)
+              if m:
+                  cur = m.group(1).strip()
+              elif cur is not None and re.match(r"\s*run:", line):
+                  run_blocks.append(cur)
+                  cur = None
+          assert len(run_blocks) >= 5, (
+              "tripwire parsed only %d run sections - parser drift, fix it" % len(run_blocks))
+          banned = [n for n in run_blocks
+                    if re.search(r"proxy_acceptance|proxy_smoke|dummy_scheduler", n)]
+          assert not banned, (
+              "live-only proxy harnesses must NOT run in CI (see the TR-186 comment): %s"
+              % banned)
+          print("tripwire ok: %d run sections, none invokes the live-only proxy harnesses"
+                % len(run_blocks))
+          EOF
