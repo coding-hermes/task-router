@@ -54,7 +54,7 @@ router spawn P1_CODING --format json
 # One-command overview of registry, gates, circuit, and gaps.
 router status
 
-# Run the test suite (748 tests). The suite imports duckdb too, so run it with
+# Run the test suite. The suite imports duckdb too, so run it with
 # an interpreter that has duckdb — the board venv on the fleet hosts:
 #   ~/.hermes/venvs/board/bin/python3 -m pytest -q tests/
 python3 -m pytest -q tests/
