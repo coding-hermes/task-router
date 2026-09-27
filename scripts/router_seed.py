@@ -343,6 +343,17 @@ BENCH_OVERLAY = {
     'live-probe-2026-09-27/T2-CODE': ['code_gen'],
     'live-probe-2026-09-27/T3-REASON': ['reasoning'],
     'live-probe-2026-09-27/T5-DEBUG': ['debug'],
+    # 2026-09-27 (muse-code, agentic round): the first battery left six categories
+    # the fleet actually gates on unmeasured (agent_tick, delegation, schema,
+    # long_doc, long_horizon, test), so muse-spark-1.1/-1.3 still could not clear
+    # the top foreman profiles even after being ranked. Same damped small-n
+    # convention; one key per category for the same reason as above.
+    'live-probe-2026-09-27/AGENT-TICK': ['agent_tick'],
+    'live-probe-2026-09-27/DELEGATION': ['delegation'],
+    'live-probe-2026-09-27/SCHEMA': ['schema'],
+    'live-probe-2026-09-27/LONG-DOC': ['long_doc'],
+    'live-probe-2026-09-27/LONG-HORIZON': ['long_horizon'],
+    'live-probe-2026-09-27/TEST': ['test'],
 }
 overlay = []  # (provider, model, category, rel_score, bench_source)
 for src, cats in BENCH_OVERLAY.items():
