@@ -277,9 +277,9 @@ def main():
         if prov in SKIP_REASON:
             skipped[prov] = SKIP_REASON[prov]
             continue
-        base, key, why = resolve(prov, prov_cfg, env)
+        base, key, extra = resolve(prov, prov_cfg, env)   # 3rd slot = extra headers, or the reason
         if not base:
-            skipped[prov] = why or 'unresolvable provider'    # reason is in the 3rd slot
+            skipped[prov] = extra or 'unresolvable provider'
             continue
         for m in models:
             if m['provider'] != prov:
