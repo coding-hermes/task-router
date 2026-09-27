@@ -447,3 +447,4 @@
 {"id": 20260927083002, "timestamp": "2026-09-27T12:07:44Z", "event_type": "task_completed", "task_id": "README-1", "actor": "foreman", "detail": "{\"status\":\"complete\"}"}
 {"id": 20260927083003, "timestamp": "2026-09-27T14:21:15Z", "event_type": "task_updated", "task_id": "TR-194", "actor": "foreman", "detail": "{\"status\":\"pending\"}"}
 {"id": 20260927083004, "timestamp": "2026-09-27T14:21:15Z", "event_type": "task_updated", "task_id": "TR-194", "actor": "foreman", "detail": "{\"tick\":\"task-router-2026-09-27-13-50-32\",\"worker_model\":\"glm-5.3-flash\",\"worker_provider\":\"zai-glm\",\"result\":\"no_commit\",\"gitreins\":\"tier1_pass_tier2_skipped\",\"verdict_id\":\"e153db8f\"}"}
+{"id": 20260927083005, "timestamp": "2026-09-27T14:23:04Z", "event_type": "task_created", "task_id": "INT-CI-20260927-03", "actor": "foreman", "detail": "{\"id\":\"INT-CI-20260927-03\",\"status\":\"pending\"}"}
