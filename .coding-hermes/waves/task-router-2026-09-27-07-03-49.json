@@ -6,10 +6,51 @@
   "worker_provider": "zai-glm",
   "base_sha": "777c7dc",
   "tasks": [
-    {"task_id":"TR-206","branch":"wt/TR-206","worktree":"~/worktrees/task-router-TR-206","base_sha":"777c7dc","pid":3785936,"status":"running"},
-    {"task_id":"TR-207","branch":"wt/TR-207","worktree":"~/worktrees/task-router-TR-207","base_sha":"777c7dc","pid":4033298,"status":"running"},
-    {"task_id":"TR-209","branch":"wt/TR-209","worktree":"~/worktrees/task-router-TR-209","base_sha":"777c7dc","pid":4040958,"status":"running"}
+    {
+      "task_id": "TR-206",
+      "branch": "wt/TR-206",
+      "worktree": "~/worktrees/task-router-TR-206",
+      "base_sha": "777c7dc",
+      "pid": 3785936,
+      "status": "failed",
+      "reason": "Worker terminated after session-storage-busy boot failure or no production delivery; no commit landed."
+    },
+    {
+      "task_id": "TR-207",
+      "branch": "wt/TR-207",
+      "worktree": "~/worktrees/task-router-TR-207",
+      "base_sha": "777c7dc",
+      "pid": 4033298,
+      "status": "failed",
+      "reason": "Worker terminated after session-storage-busy boot failure or no production delivery; no commit landed."
+    },
+    {
+      "task_id": "TR-209",
+      "branch": "wt/TR-209",
+      "worktree": "~/worktrees/task-router-TR-209",
+      "base_sha": "777c7dc",
+      "pid": 4040958,
+      "status": "failed",
+      "reason": "Worker terminated after session-storage-busy boot failure or no production delivery; no commit landed."
+    }
   ],
-  "outcomes": [],
-  "created_at": "2026-09-27T07:03:49-05:00"
+  "outcomes": [
+    {
+      "task_id": "TR-206",
+      "status": "failed",
+      "reason": "Worker session reached the repo but produced no diff or commit before termination; log only reported unknown toolset warning."
+    },
+    {
+      "task_id": "TR-207",
+      "status": "failed",
+      "reason": "Worker exited at boot with session storage busy; retry also failed at boot; no diff or commit."
+    },
+    {
+      "task_id": "TR-209",
+      "status": "failed",
+      "reason": "Worker exited at boot with session storage busy; retry also failed at boot; no diff or commit."
+    }
+  ],
+  "created_at": "2026-09-27T07:03:49-05:00",
+  "finished_at": "2026-09-27T07:03:49-05:00"
 }
