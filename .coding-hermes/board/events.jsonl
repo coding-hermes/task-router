@@ -459,3 +459,4 @@
 {"id": 20260927083014, "timestamp": "2026-09-27T20:43:32Z", "event_type": "task_verified", "task_id": "TR-146", "actor": "foreman", "detail": "{\"commit\":\"1154aa4bedccde7e4130165545d1a2bfe5c006b5\",\"verdict\":\"e0443c01\",\"tier1\":\"PASS\",\"tier2\":\"SKIP\",\"focused_tests\":\"43 passed\",\"remote_parity\":0}"}
 {"id": 20260927083015, "timestamp": "2026-09-27T20:43:32Z", "event_type": "task_updated", "task_id": "TR-187", "actor": "foreman", "detail": "{\"status\":\"failed\"}"}
 {"id": 20260927083016, "timestamp": "2026-09-27T20:43:32Z", "event_type": "task_updated", "task_id": "TR-187", "actor": "foreman", "detail": "{\"status\":\"failed\",\"reason\":\"worker stalled before implementation; no commit\",\"verdict\":\"e1256d1d\",\"tier1\":\"PASS\",\"tier2\":\"SKIP\"}"}
+{"id": 20260927083017, "timestamp": "2026-09-27T20:48:40Z", "event_type": "task_updated", "task_id": "TR-187", "actor": "foreman", "detail": "{\"status\":\"pending\"}"}
