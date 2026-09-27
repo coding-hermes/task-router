@@ -316,6 +316,16 @@ BENCH_OVERLAY = {
     'live-probe-2026-09-25': ['agent_tick', 'reasoning', 'debug', 'schema',
                               'code_gen', 'test', 'delegation', 'long_doc',
                               'tool_use', 'long_horizon'],
+    # 2026-09-27 (muse-code onboarding): the Muse family shipped with almost no
+    # tier data — muse-spark-1.1 and 1.3 carried a single 'test' row (1 of 24
+    # categories), so every other category read tier -1 and they could only
+    # clear lenient profiles. The subscription lane was live, healthy and
+    # reachable, yet received ZERO sessions: unranked, not broken. Same small-n
+    # damped convention as the 09-16/09-25 probes (0.85 * checks/total, n=1,
+    # never family-filled). Only the four categories the 5-task battery
+    # actually measures are claimed; T4-INSTR is omitted on purpose (floor-test
+    # class, already excluded as battery-T4-INSTR-floor).
+    'live-probe-2026-09-27': ['tool_use', 'code_gen', 'reasoning', 'debug'],
 }
 overlay = []  # (provider, model, category, rel_score, bench_source)
 for src, cats in BENCH_OVERLAY.items():
