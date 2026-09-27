@@ -65,6 +65,9 @@ def main():
     ap.add_argument('--rosters', default=DEFAULT_ROSTERS)
     ap.add_argument('--commit', action='store_true', help='write models.jsonl (default: dry run)')
     ap.add_argument('--force', action='store_true', help='override an existing release_date on conflict')
+    ap.add_argument('--retire-strict', action='store_true',
+                    help='also retire old lanes whose successor is ranked AT LEAST as well '
+                         '(strict upgrade). Regressions are reported, never retired.')
     ap.add_argument('--report', default=os.path.expanduser('~/model_bench/roster_backfill_report.json'))
     args = ap.parse_args()
 
@@ -130,7 +133,7 @@ def main():
         m['release_date'] = d
 
     # supersession PROPOSALS (never executed here)
-    proposals, blocked = [], []
+    proposals, blocked, regressions = [], [], []
     seen = set()
     for old_key, new_keys in supersedes.items():
         for m in models:
@@ -149,21 +152,56 @@ def main():
                     seen.add(key)
                     rec = {'provider': m['provider'], 'old': m['model'], 'new': s['model'],
                            'new_ranked': len(tiers.get(s['model'], ())), 'old_ranked': len(tiers.get(m['model'], ()))}
-                    (proposals if len(tiers.get(s['model'], ())) >= 6 else blocked).append(rec)
+                    if len(tiers.get(s['model'], ())) < 6:
+                        # successor not ranked enough to take over yet
+                        blocked.append(rec)
+                    elif rec['new_ranked'] < rec['old_ranked']:
+                        # RANK FIRST: the successor is NEWER but measured weaker —
+                        # usually because a newly onboarded model has only a few
+                        # categories so far (gpt-5.6-sol 18t -> gpt-6-sol 10t), or
+                        # because the "successor" is a serving variant rather than
+                        # a capability step (glm-5.3-flash 21t -> flashx 10t).
+                        # Retiring here would delete a better-ranked lane.
+                        regressions.append(rec)
+                    else:
+                        proposals.append(rec)
+
+    retired = []
+    if args.retire_strict:
+        today = datetime.date.today().isoformat()
+        by_pair = {(p['provider'], p['old'], p['new']) for p in proposals}
+        for m in models:
+            for prov, old, new in by_pair:
+                if m['provider'] == prov and m['model'] == old and active(m):
+                    m['valid_to'] = today
+                    m['replaced_by'] = f'{prov}/{new}'
+                    m['lifecycle_source'] = (
+                        f'rank-supersession {today}: {new} carries >= the tier coverage of {old} '
+                        f'({len(tiers.get(new, ()))}t vs {len(tiers.get(old, ()))}t) and the vendor roster '
+                        f'links it as the successor; retired so the fleet stops selecting last generation')
+                    m['lifecycle_checked_at'] = today
+                    retired.append({'provider': prov, 'old': old, 'new': new})
+                    break
 
     print(f'\nrows stamped: {stamped}   rows already correct/unchanged: '
           f'{sum(1 for m in models if by_model.get(norm(m["model"])))}')
     print(f'conflicts (existing date disagrees): {len(conflicts)}')
     print(f'roster names matched nothing in the registry: '
           f'{len([1 for k in by_model if not any(norm(m["model"]) == k for m in models)])}')
-    print(f'proposed retirements (successor ranked): {len(proposals)}')
-    print(f'BLOCKED retirements (rank the successor first): {len(blocked)}')
+    print(f'strict-upgrade retirements available: {len(proposals)}')
+    print(f'HOLD — successor measured weaker (rank it first): {len(regressions)}')
+    print(f'HOLD — successor not ranked enough yet: {len(blocked)}')
     for p in proposals[:10]:
         print(f"   {p['provider']:14s} {p['old'][:34]:34s} ({p['old_ranked']}t) -> {p['new'][:30]:30s} ({p['new_ranked']}t)")
+    if args.retire_strict:
+        print(f'\nRETIRED this run: {len(retired)}')
+        for p in retired:
+            print(f"   {p['provider']:14s} {p['old'][:34]:34s} -> {p['new'][:34]}")
 
     report = {'generated_at': datetime.datetime.now(datetime.timezone.utc).isoformat(timespec='seconds'),
               'roster_files': files, 'stamped': stamped, 'conflicts': conflicts,
-              'unparseable': bad, 'retire_proposals': proposals, 'retire_blocked': blocked,
+              'unparseable': bad, 'retire_proposals': proposals, 'retire_hold_regression': regressions,
+              'retire_hold_blocked': blocked, 'retired_this_run': retired,
               'roster_gaps': gaps, 'rows_without_roster_date_by_provider': dict(missing.most_common(15))}
     with open(args.report, 'w', encoding='utf-8') as fh:
         json.dump(report, fh, indent=1, ensure_ascii=False)
