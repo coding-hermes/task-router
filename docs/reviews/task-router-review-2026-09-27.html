@@ -44,7 +44,7 @@ a{color:var(--blu)}
 <body><div class="wrap">
 
 <div class="cover">
-<b>TO</b> Bane (owner) &nbsp;·&nbsp; <b>FROM</b> Hermes (the agent that works in this repo daily) &nbsp;·&nbsp; <b>RE</b> hands-on review of <code>coding-hermes/task-router</code> @ <code>1dc5d6a</code><br>
+<b>TO</b> Bane (owner) &nbsp;·&nbsp; <b>FROM</b> this thread — KaraHermes · Set, topic <i>task router</i> (Telegram thread 137810) &nbsp;·&nbsp; <b>RE</b> hands-on review of <code>coding-hermes/task-router</code> @ <code>1dc5d6a</code><br>
 <b>One-line verdict:</b> <span class="warn">an unusually honest and unusually well-tested routing engine that currently cannot pass its own CI, cannot be used from its published install path, and does not isolate itself from the host it runs on.</span><br>
 Reviewed as a stranger would: fresh clone, its own build path, its own commands. Every number below is labelled by method; nothing was reviewed from docs alone. Offered on request: re-run after the fixes, or extend to the proxy path (<code>:9391</code>) that a clone deliberately cannot reach.
 </div>
@@ -242,6 +242,23 @@ Multi-tenancy: 0 matches for tenant / per-user / organization in the server</pre
 <li><b>Publish the state schemas.</b> <code>registry.json</code>, the outcome ledger rows, and the circuit/quota state files are the actual interface between this project and everything else in the fleet, but their shapes exist only in code. A schema file per artifact turns three integrations into validation calls.</li>
 <li><b>One-command smoke in CI for the fresh-clone path.</b> The most valuable test in this repo is the one nobody has written: clone → install → seed → status → assert <code>fallback_used: false</code>. That single test would have caught finding #2 and would keep the bootstrap honest forever.</li>
 </ol>
+<h3 style="margin-top:22px">The files that carry this project's fate</h3>
+<table>
+<tr><th>File</th><th>Weight <span class="m">measured</span></th><th>Why the verdict hangs on it</th></tr>
+<tr><td><code>scripts/router_spawn.py</code></td><td>2,529 lines · 58 defs</td><td>The resolver and the pricing law. <code>DEFAULT_SORT</code> (:149), the historical <code>(plan_tier, effective price)</code> order (:1146), and the PAYG-LAST sentinel (:70) all live here — change an ordering rule in this one file and every chain in the fleet moves. It is also the file the scheduler depends on, so its fail-open contract is a fleet-stability contract.</td></tr>
+<tr><td><code>scripts/router_server.py</code></td><td>3,615 lines · 75 defs</td><td>The service surface and the write path: 29 routes, the ledger row projection, admission counters, and the proxy record path. Two of the three defects in this review live in or are reached through it, and it is the file that must be restarted in both services after any edit.</td></tr>
+<tr><td><code>data/tables/models.jsonl</code> (+ siblings)</td><td>1,839 rows</td><td>Not code, but where the truth actually lives: 881 active lanes and their prices/tiers/lifecycle. The repo's own rule here is right — regenerate, never hand-edit.</td></tr>
+</table>
+<h3>Time cost of the top fixes (estimates, with their basis)</h3>
+<table>
+<tr><th>Fix</th><th>Estimate</th><th>Basis <span class="m2">read</span></th></tr>
+<tr><td>CI green on main</td><td>0.5–1 day</td><td>The two known failures are already board rows and one is fixed; the remainder needs the failing test identified from a CI log I could not fetch in this session, so this carries the widest error bar in the table.</td></tr>
+<tr><td>Console-script root resolution</td><td>~30 min + 1 test</td><td>One function at <code>cli.py:114</code>, plus the fresh-clone smoke below as its regression guard.</td></tr>
+<tr><td>State isolation (honour a data home)</td><td>~half a day</td><td>A handful of state paths in the status/health readers plus tests; the plumbing (<code>data_home</code>) already exists.</td></tr>
+<tr><td>A Makefile front door</td><td>~1 hour</td><td>Eight targets wrapping commands that all already exist and are documented.</td></tr>
+<tr><td>Fresh-clone smoke test in CI</td><td>~2 hours</td><td>clone → install → seed → status → assert <code>fallback_used: false</code>; it would have caught the console-script defect.</td></tr>
+<tr><td>Publish state schemas</td><td>~half a day</td><td>Three artifacts (registry, ledger row, circuit/quota state); the shapes already exist in code and need only extraction.</td></tr>
+</table>
 <p><b>Prior art worth stealing:</b> LiteLLM's virtual-key/budget layer for the outer boundary (so this router never has to grow auth); OpenRouter's <code>error.metadata.limit_source</code> for naming <i>which</i> limit refused a request — the same shape as this repo's exclusion codes, and worth adopting verbatim in the new quota layer; and Prometheus/LiteLLM-style spend metrics keyed by model × key × window, which is what makes budget questions answerable at 3 a.m.</p>
 </div>
 
@@ -291,7 +308,7 @@ Multi-tenancy: 0 matches for tenant / per-user / organization in the server</pre
 <p><b>Try it now if</b> you are routing your own fleet's tasks among subscription plans and you need to justify every choice after the fact — the registry, the exclusion codes, the dry-run, and the honesty fields are genuinely good, and nothing else in this space prices a <i>plan offset</i> at all.</p>
 <p><b>Watch it if</b> you are an outsider: red CI on the tip commit, a broken published install path, host-coupled state, and no build front door mean the first hour with this repo is friction that has nothing to do with the idea. All four are days of work, not months — this is a project whose design is ahead of its packaging.</p>
 <p><b>The bar to bet on it:</b> (1) CI green on main with the fresh-clone smoke test in it, (2) the console script works from a clean <code>pip install</code>, (3) state paths honour a data home so a clone is hermetic. Clear those three and the remaining risk is ordinary engineering risk.</p>
-<p><b>Method honesty:</b> this review was done hands-on — fresh clone, its own build, its own commands, its own API — but one intended step (live API negatives + a latency sample) was blocked by my own harness and is reported as missing rather than estimated. The incumbents in §3 were compared statically. Two companion skills named by the method (<code>frontend-design</code>, <code>find-skills</code>) could not be installed in this session — the skills CLI cancelled even with its own suggested non-interactive flags — so this report is designed to the method's structural requirements rather than by that skill, and <code>impeccable</code> (which did install) was run over it instead.</p>
+<p><b>Method attribution:</b> the method is filed under the label <i>carter</i> (<code>carterlasalle-project-review</code>). That skill's own frontmatter flags that identical text also appears in another repository under AGPL-3.0 and that "carterlasalle" is not a verified authorship claim — so treat the label as a filing bucket, and resolve licensing before republishing this method or this report's method section.<br><br><b>Method honesty:</b> this review was done hands-on — fresh clone, its own build, its own commands, its own API — but one intended step (live API negatives + a latency sample) was blocked by my own harness and is reported as missing rather than estimated. The incumbents in §3 were compared statically. Two companion skills named by the method (<code>frontend-design</code>, <code>find-skills</code>) could not be installed in this session — the skills CLI cancelled even with its own suggested non-interactive flags — so this report is designed to the method's structural requirements rather than by that skill, and <code>impeccable</code> (which did install) was run over it instead.</p>
 </div>
 
 <div class="foot">
