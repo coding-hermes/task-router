@@ -37,6 +37,12 @@ pip install -e .
 # subcommand runs on the stdlib alone.
 pip install duckdb          # or: uv pip install duckdb
 
+# Seed the compiled registry (registry.json) from the committed tables.
+# A fresh clone has none: reads fall back to the committed data/tables
+# SAMPLE tables (spawn still resolves, with a loud fallback warning) and
+# `router validate` exits 1 until registry.json exists.
+router seed
+
 # Resolve a configured project to its gated, price-ordered chain.
 router spawn my-project --format json
 
@@ -57,7 +63,9 @@ python3 -m pytest -q tests/
 Skipping the `duckdb` step is not fatal: only `router seed` fails, and it fails
 loudly (`router: dispatch failed: No module named 'duckdb'`) instead of writing
 a partial registry; the test suite needs it too (see above). Every other
-subcommand works without it.
+subcommand works without it — but with no successful `router seed` there is
+no `registry.json`, so `router status` keeps reporting the sample-table
+fallback and `router validate` keeps exiting 1 (seed to clear both).
 
 On first run the CLI creates a data home and bootstraps a starter state file
 (`quota-state.json`) with every provider explicitly **open** — you get a
@@ -75,11 +83,20 @@ router status
 router spawn --profile P0_FORE --format json | jq .head
 ```
 
-A clean `router status` overview plus a non-null `head` object from `spawn`
-prove the installed CLI dispatches, the profile registry and gates load, and a
-full resolve produces a concrete first hop — no credentials, seeding, or
-network required (a fresh clone resolves against the committed sample tables
-until you run `router seed`; `jq` is only there to slice out the head).
+A non-null `head` object from `spawn` proves the installed CLI dispatches,
+the committed sample tables and gates load, and a full resolve produces a
+concrete first hop — no credentials or network required. But it is **not**
+proof of a healthy registry: on a fresh clone spawn resolves against the
+committed data/tables SAMPLE tables and reports `"source": "data/tables"`
+with `fallback_used: true` until you run `router seed` (`jq` only slices
+out the head). The clean, seeded signal is:
+
+- `router status` → `registry.source == "registry.json"`, `fallback_used`
+  false, no registry warning (a pre-seed run instead reports the fallback
+  with a `run 'router seed' for real state` note — intended, not an error);
+- `router validate` → exit 0, all checks ok. Pre-seed it exits 1 with
+  `registry.exists: missing … run scripts/router_seed.py once`, which
+  `router seed` (or its opt-in self-heal, `router validate --heal`) clears.
 
 Useful read-only checks:
 
