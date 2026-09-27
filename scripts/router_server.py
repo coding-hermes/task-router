@@ -1321,19 +1321,69 @@ def ui_ledger(query):
                         'since': since, 'until': until}}
 
 
+#: TR-146: the capabilities probe authenticates the way the rest of the fleet
+#: does — a Bearer gateway credential resolved at runtime. Env names first
+#: (the deployment artifact), then the same names in the hermes env file (the
+#: source the fleet's own tools read). The value is never hardcoded, never
+#: logged, and never echoed into a response body or error string.
+GATEWAY_CREDENTIAL_ENV_VARS = ('GATEWAY_API_KEY', 'HERMES_API_KEY',
+                               'API_SERVER_KEY')
+_GATEWAY_ENV_FILE = os.path.join(os.path.expanduser('~'), '.hermes', '.env')
+
+
+def _hermes_gateway_credential():
+    """Resolve the gateway credential at runtime; '' when none is configured.
+
+    Order: GATEWAY_API_KEY > HERMES_API_KEY > API_SERVER_KEY in the
+    environment, then the same names in the hermes env file. The value is
+    never printed, logged, or embedded in an error.
+    """
+    for name in GATEWAY_CREDENTIAL_ENV_VARS:
+        value = (os.environ.get(name) or '').strip()
+        if value:
+            return value
+    try:
+        with open(_GATEWAY_ENV_FILE, 'r', errors='replace') as fh:
+            for line in fh:
+                line = line.strip()
+                if not line or line.startswith('#') or '=' not in line:
+                    continue
+                name, _, value = line.partition('=')
+                if name.strip() in GATEWAY_CREDENTIAL_ENV_VARS:
+                    value = value.strip().strip('"').strip("'").strip()
+                    if value:
+                        return value
+    except OSError:
+        pass
+    return ''
+
+
 def _hermes_capabilities_metadata(base, _opener=None):
     """Read session metadata from the upstream's /v1/capabilities at startup.
 
+    TR-146: the probe authenticates like the rest of the fleet — the gateway
+    credential is resolved at runtime and sent as the Bearer header. Where no
+    credential is configured the recorded error is exactly "no gateway
+    credential configured" and the doomed unauthenticated call is not fired.
+
     Fails OPEN: any problem is recorded in the returned dict as `error` and
     the proxy serves /v1/responses anyway (the capabilities endpoint is
-    advisory; the wire behavior does not depend on it).
+    advisory; the wire behavior does not depend on it). The credential never
+    appears in an error string, log line, or response body.
     """
     opener = _opener or urllib.request.urlopen
+    credential = _hermes_gateway_credential()
+    if not credential:
+        # TR-146: no credential configured — say precisely that instead of
+        # firing a call that can only end in a bare 401.
+        return {'error': 'no gateway credential configured'}
     out = {}
+    headers = {'User-Agent': 'task-router-proxy/1.0',
+               'Authorization': 'Bearer ' + credential}
     try:
         req = urllib.request.Request(
             base.rstrip('/') + '/v1/capabilities',
-            headers={'User-Agent': 'task-router-proxy/1.0'})
+            headers=headers)
         with opener(req, timeout=10) as resp:
             doc = json.loads(resp.read())
         if not isinstance(doc, dict):
