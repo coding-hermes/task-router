@@ -147,8 +147,10 @@ def main():
 
     models = load('models')
     tiers = collections.defaultdict(set)
+    tier_map = collections.defaultdict(dict)
     for r in load('model_tier'):
         tiers[r['model']].add(r['category'])
+        tier_map[r['model']][r['category']] = r['tier']
 
     def active(m):
         return not (m.get('archive') or m.get('valid_to') or m.get('disabled')) and m.get('normalized_price') is not None
@@ -211,16 +213,25 @@ def main():
                     seen.add(key)
                     rec = {'provider': m['provider'], 'old': m['model'], 'new': s['model'],
                            'new_ranked': len(tiers.get(s['model'], ())), 'old_ranked': len(tiers.get(m['model'], ()))}
-                    if len(tiers.get(s['model'], ())) < 6:
+                    old_t = tier_map.get(m['model'], {})
+                    new_t = tier_map.get(s['model'], {})
+                    if len(new_t) < 6:
                         # successor not ranked enough to take over yet
+                        rec['reason'] = 'successor not ranked enough yet'
                         blocked.append(rec)
-                    elif rec['new_ranked'] < rec['old_ranked']:
-                        # RANK FIRST: the successor is NEWER but measured weaker —
-                        # usually because a newly onboarded model has only a few
-                        # categories so far (gpt-5.6-sol 18t -> gpt-6-sol 10t), or
-                        # because the "successor" is a serving variant rather than
-                        # a capability step (glm-5.3-flash 21t -> flashx 10t).
-                        # Retiring here would delete a better-ranked lane.
+                        continue
+                    # Compare PER CATEGORY, not by count. Counting conflates two
+                    # very different things: a successor that has not been
+                    # MEASURED on a category (gpt-6-sol: 10 categories vs the
+                    # incumbent's 18) versus one that was measured and came out
+                    # WORSE (glm-5.3-flashx is a serving-speed variant).
+                    unmeasured = sorted(set(old_t) - set(new_t))
+                    weaker = sorted(c for c in (set(old_t) & set(new_t)) if new_t[c] < old_t[c])
+                    if unmeasured or weaker:
+                        rec['reason'] = ('successor unmeasured on ' + ','.join(unmeasured[:4])) if unmeasured \
+                            else ('successor weaker on ' + ','.join(weaker[:4]))
+                        rec['unmeasured'] = unmeasured
+                        rec['weaker'] = weaker
                         regressions.append(rec)
                     else:
                         proposals.append(rec)
