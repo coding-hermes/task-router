@@ -422,6 +422,11 @@ for repo-relative use.
 | `router modelsdev` | models.dev sync: `fetch`, `sync` (`--all` to include disabled; `--dry-run`), `mappings` |
 | `router pricing` | Price table diagnostics (`--json`, `--dry-run`) |
 | `router gaps` | Registry data-quality gaps (`--json`, `--lacking`, `--top`) |
+| `router chain-run` | Execute a named routing chain for a request and record the resulting hop outcomes |
+| `router lifecycle` | Inspect and manage the router's lifecycle state and operational transitions |
+| `router outcomes` | Inspect recorded request outcomes and outcome-derived routing statistics |
+| `router pricing-audit` | Audit registry pricing evidence and report stale or inconsistent price data |
+| `router quota` | Inspect provider quota and policy-gate state used during resolution |
 | `router maintain` | Reprice / seed / export / snapshot / commit maintenance (`--dry-run`) |
 | `router probe` | Provider health probe (`--only <provider>`, `--no-write` / `--dry-run`) |
 | `router probefix` | Repair 404/400 model ids from probe logs |
