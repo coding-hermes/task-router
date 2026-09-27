@@ -436,3 +436,4 @@
 {"id": 20260927015515, "timestamp": "2026-09-27T04:41:09Z", "event_type": "task_updated", "task_id": "DOC-1", "actor": "foreman", "detail": "{\"status\":\"pending\"}"}
 {"id": 20260927015516, "timestamp": "2026-09-27T04:41:09Z", "event_type": "audit", "task_id": "DOC-1", "actor": "foreman", "detail": "{\"worker\":\"glm-5.3-flash@zai-glm\",\"outcome\":\"no work landed\",\"evidence\":\"isolated wt/DOC-1 had clean status and unchanged HEAD after ~5m; worker process terminated\",\"next\":\"retry on a later tick\"}"}
 {"id": 20260927015517, "timestamp": "2026-09-27T05:16:27Z", "event_type": "task_created", "task_id": "TR-205", "actor": "foreman", "detail": "{\"id\":\"TR-205\",\"status\":\"pending\"}"}
+{"id": 20260927015518, "timestamp": "2026-09-27T06:18:55Z", "event_type": "task_created", "task_id": "RELEASE-003", "actor": "foreman", "detail": "{\"id\":\"RELEASE-003\",\"status\":\"pending\"}"}
