@@ -411,19 +411,24 @@ for repo-relative use.
 | Command | Purpose |
 |---|---|
 | `router spawn` | Resolve a project or ad-hoc capability profile into a gated fallback chain. Flags: `<project>`, `--profile`, `--profile-req`, `--list-profiles`, `--explain`, `--format`, `--no-health`. A profile id/tag passed as `<project>` resolves as that profile (TR-059) |
+| `router chain-run` | Side-channel executor (TR-066): resolve a chain for a declared complexity, then walk it hop by hop, running your `--cmd` template per attempt with `ROUTER_PROVIDER` / `ROUTER_MODEL` / `ROUTER_HOP` in the environment (you keep auth). Exit 0 stops the walk; a non-zero attempt advances to the next hop up to `--max-hops 3`; content dissatisfaction is never a retry trigger. Records breaker evidence + one outcome row per attempt unless `--dry-run`. Also: `<project>`/`--profile`/`--profile-req`, `--timeout-s 1800`, `--format text\|json` |
 | `router status` | One-command overview: registry source/freshness, health, quota, circuit, in-flight, gaps (`--format json\|text`) |
 | `router estimate` | Cost preview for a project's chain at given token volumes (`<project>` positional or `--project`; profile id/tag accepted), head + top alternates, PAYG vs subscription annotated |
 | `router diff` | Chain snapshot diff between two dates: head moves, new/dropped lanes, price deltas |
 | `router validate` | Integrity check: registry schema/freshness, state files, profile integrity (`--json`; exit 1 on issues). Self-heal opt-in: `--heal` / `ROUTER_VALIDATE_HEAL=1` re-runs `router seed` first when the registry is missing or stale (TR-108), then grades the healed tree — default OFF, the bare run stays read-only |
 | `router circuit` | Circuit breakers: `record-failure` (`--class`), `record-success`, `status`, `clear` |
 | `router ledger` | Spawn lifecycle: `start`, `end`, `status` (in-flight counts, trace ids) |
+| `router lifecycle` | Model lifecycle digest (TR-069): which lanes are coming soon, retiring (with date and successor), or retired — the human view of the same registry the resolver reads, including what it counts but hides. Informational, always exit 0. Flags: `--json`, `--all` (also list the last 20 retired), `--today YYYY-MM-DD` (frozen clock) |
+| `router outcomes` | Cost-per-task outcome store (TR-049): append-only JSONL at `data/state/outcomes.jsonl` feeding the rolling averages `router spawn` orders by. Subcommands: `import-hermes`, `import-pi`, `import-opencode`, `import-openclaw` (idempotent row pulls), `averages` (recompute `outcomes-averages.jsonl`; `--merge-backends` to merge across backends, off by default), `query` (`--provider`, `--model`, `--merge-backends`) |
 | `router metrics` | Usage counters: `--top-providers`, `--top-models`, `--top-pairs`, `--profile`, `--since`, `--json` |
 | `router seed` | Rebuild `registry.json` from committed tables (requires `duckdb`; derives `ROUTING_NS` under the data home) |
 | `router modelsdev` | models.dev sync: `fetch`, `sync` (`--all` to include disabled; `--dry-run`), `mappings` |
 | `router pricing` | Price table diagnostics (`--json`, `--dry-run`) |
+| `router pricing-audit` | Mechanized pricing audit (TR-070): classifies every active priced lane by evidence class (measured-offset, official, estimate, unbased, free-window-pending, …), flags burn traps (stale/unsourced offsets) and lanes >3x off models.dev list. Takes no flags — `router pricing-audit --help` RUNS the audit; exit 1 = traps found, 0 = clean |
 | `router gaps` | Registry data-quality gaps (`--json`, `--lacking`, `--top`) |
 | `router maintain` | Reprice / seed / export / snapshot / commit maintenance (`--dry-run`) |
 | `router probe` | Provider health probe (`--only <provider>`, `--no-write` / `--dry-run`) |
+| `router quota` | Plan-window quota gates (TR-060): record a provider's 429 exhaustion with its own reset time so the resolver skips the lane until the plan refills, instead of re-picking it every 30-minute circuit cool-down. Subcommands: `set <provider> <reason> <reset_at>` (`--detected-at`), `clear <provider>\|--all`, `status [<provider>]`, each with `--json`; `--state-file`/`--state-dir` to target a non-default store. Deliberately resolves the script default `~/.hermes/model-router/quota-state.json` — the same file the fleet spawn path reads (see docs/quota-gate.md) |
 | `router probefix` | Repair 404/400 model ids from probe logs |
 | `router clinepass` | Cline Pass catalog sync (`--dry-run`, `--commit`) |
 | `router plan-sweep` | Report/disable lanes outside flat plans (`--apply`) |
@@ -485,6 +490,10 @@ The full rule, the measurement table and the follow-up compaction row are in
 - Profile layer: `task_profiles` (versioned + tagged), `task_profile_requirements`.
 - Provider operations: `provider_rules`, `probe_providers`, `probe_fixes`, `probe_excludes`, `probe_gaps`, `fallback_lanes`, `plan_terms`.
 - Catalog enrichment: `provider_mappings`, `model_aliases`, `model_notes`, `model_catalog`, `temporary_discounts`, `quality_estimates`.
+- Outcome-store sample: `sample-outcomes` — a small synthetic copy of the
+  cost-per-task outcome-store row shape (TR-049), kept as the docs example and
+  test fixture; the live `data/state/outcomes.jsonl` store is per-user data and
+  stays gitignored. See [outcomes schema](docs/outcomes-schema.md).
 
 The JSONL tables are generated — change them through the data/seed workflow,
 never by hand:
