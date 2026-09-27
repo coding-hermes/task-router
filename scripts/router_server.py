@@ -2677,6 +2677,13 @@ def _proxy_record(provider, model, ok, requirements, reason='', latency_s=None,
                'exclusions': (chain_evidence or {}).get('exclusions'),
                'exclusions_truncated': (chain_evidence or {}).get('exclusions_truncated'),
                'skipped_hops': (chain_evidence or {}).get('skipped_hops'),
+               # TR-191: WHICH authority produced the skip count — the resolver's
+               # own count ('resolver') or a count derived from the exclusions
+               # ('derived-from-exclusions'). _chain_evidence always computes it,
+               # but the fixed projection above dropped it, so the row could not
+               # say whether a skip count and its detail disagreed by design or
+               # by accident. Same key the envelope already carries.
+               'skipped_hops_source': (chain_evidence or {}).get('skipped_hops_source'),
                'first_attempt_hop': (chain_evidence or {}).get('first_attempt_hop'),
                'gate': (chain_evidence or {}).get('gate'),
                'classifier': classifier_evidence,
