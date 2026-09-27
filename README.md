@@ -171,8 +171,33 @@ ROUTER_EDIT_API_KEY=... router server --mode edit
 ```
 
 - `GET /openapi.json` — the OpenAPI 3.1 description of every endpoint.
-- Reads (all modes): `/status`, `/resolve?project=X`, `/profiles`,
-  `/providers`, `/circuit/status`, `/gaps`, `/pricing`, `/chains`.
+- Reads (all modes):
+  - **Health plane** — `/` (health + status surface with a `_links` index),
+    `/health` (running commit, registry mtime age + freshness verdict,
+    `router validate` gate verdict; TR-172 adds the process's admission and
+    classify-cache stats — the canary contract is
+    [docs/health-plane.md](docs/health-plane.md)), `/model_status`
+    (per-model/provider status joined from registry + probe + circuit;
+    filter with `?provider=<id>`), `/status` (server mode + table counts).
+  - **Routing reads** — `/resolve?project=X`, `/profiles`, `/providers`,
+    `/circuit/status`, `/gaps`, `/pricing`, `/chains`.
+  - **Proxy ops** — `/v1/capabilities` (TR-140 freshness ladder: a live
+    probe of the upstream first; if that fails, the startup-probe result
+    returned marked `stale: true`; if neither exists, an honest
+    `source: unavailable` error — never an invented capability),
+    `/proxy/stats` (TR-144 rolling per-model and per-complexity-band
+    averages over the proxy's own traffic; `?windows=` comma-separated
+    hours, `?grouping=` `model|band|model_band` (default `model_band`);
+    each window discloses how much ledger it scanned and the cache age).
+  - **UI reads** — `/ui` (or `/ui/`; the self-contained Data Command Center
+    page, HTML) and the JSON behind it: `/api/ui/registry` (registry
+    browse + lane detail), `/api/ui/chain` (ordered chain + every
+    exclusion), `/api/ui/flow?id=<session>` (one request end to end),
+    `/api/ui/series` (traffic + cost buckets), `/api/ui/board` (board
+    search), `/api/ui/ledger` (ledger search; truncation always
+    disclosed).
+  - **Interop** — `/v1/models` (alias `/models`): the OpenAI-compatible
+    model list every client probes first.
 - Writes (edit mode + `X-API-Key` header only): `POST /circuit/record`,
   `/ledger/start`, `/ledger/end`, `/listings/provider|model|profile`.
   Read-only mode answers mutations with `403`; edit mode without the right
