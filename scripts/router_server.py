@@ -2684,6 +2684,12 @@ def _proxy_record(provider, model, ok, requirements, reason='', latency_s=None,
                # say whether a skip count and its detail disagreed by design or
                # by accident. Same key the envelope already carries.
                'skipped_hops_source': (chain_evidence or {}).get('skipped_hops_source'),
+               # TR-189/TR-184: the DETAIL and the truncation flag were computed by _chain_evidence and
+               # dropped here, so a live row carried the count and its source but not WHICH positions were
+               # skipped - the exact intent of TR-158/TR-184, half-delivered. Same projection bug class as
+               # skipped_hops_source, found by the write-path isolation test (TR-191) in the first instance.
+               'skipped_hops_detail': (chain_evidence or {}).get('skipped_hops_detail'),
+               'skipped_hops_truncated': (chain_evidence or {}).get('skipped_hops_truncated'),
                'first_attempt_hop': (chain_evidence or {}).get('first_attempt_hop'),
                'gate': (chain_evidence or {}).get('gate'),
                'classifier': classifier_evidence,

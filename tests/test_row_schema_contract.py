@@ -13,7 +13,9 @@ Contract notes:
   `chain_evidence` key on new rows; `chain`, `exclusions`, `skipped_hops`,
   `skipped_hops_source`, ... are top-level row fields (router_server
   `_proxy_record`).
-- `skipped_hops_detail` is NOT a row field: it rides on the chain-evidence
+- `skipped_hops_detail` is BOTH: it rides on the chain-evidence structure AND, since the projection
+  bug was fixed, reaches the row itself - the row must be able to say WHICH positions were skipped,
+  not only how many.
   structure `_chain_evidence()` builds, which the failure envelope and the
   flow view read (see tests/test_ui_page.py). It is pinned at the same source.
 - a malformed resolver payload must still produce a row: fail-open is sacred
@@ -42,6 +44,8 @@ import router_server as rsrv   # noqa: E402
 ROW_FIELD_TYPES = (
     ('skipped_hops', (int,)),
     ('skipped_hops_source', (str,)),
+    ('skipped_hops_detail', (list,)),
+    ('skipped_hops_truncated', (bool,)),
     ('exclusions', (list,)),
     ('chain', (list, type(None))),
     ('cost_usd', (float, type(None))),
@@ -74,7 +78,9 @@ def _assert_contract(row, evidence=None):
     """
     for field, allowed in ROW_FIELD_TYPES:
         value = row.get(field)
-        ok = isinstance(value, allowed) and not isinstance(value, bool)
+        # bool is a subclass of int, so int fields must reject it — but a field whose contract IS
+        # bool must accept it. Exclude bool only when bool is not an allowed type.
+        ok = isinstance(value, allowed) and (True if bool in allowed else not isinstance(value, bool))
         assert ok, _type_violation(field, allowed, value)
     for field in LIST_OF_OBJECTS_FIELDS:
         items = row.get(field)
@@ -85,7 +91,9 @@ def _assert_contract(row, evidence=None):
     if evidence is not None:
         for field, allowed in EVIDENCE_FIELD_TYPES:
             value = evidence.get(field)
-            ok = isinstance(value, allowed) and not isinstance(value, bool)
+            # bool is a subclass of int in Python, so the int fields must reject it — but a field
+            # whose contract IS bool must accept it. Exclude bool only when it is not allowed.
+            ok = isinstance(value, allowed) and (True if bool in allowed else not isinstance(value, bool))
             assert ok, _type_violation(field, allowed, value)
             assert all(isinstance(e, dict) for e in value), (
                 f"row schema contract: field '{field}' must be a list of objects, "
