@@ -51,7 +51,27 @@ consumers must read by key, never by position.
 | `cost_usd` | number \| null | no | task cost in USD. Wire alias: `cost`. `null` = unknown, never `0` as a stand-in. Values above `$1000` for a single task are rejected by the Hermes driver as corrupted. |
 | `wall_time_s` | number \| null | no | wall-clock seconds. Wire alias: `wall_time`. Sort key `wall_time`. |
 | `success` | boolean \| null | no | did the task complete? `null` = the source does not report completion (the Hermes gateway does not) — never inferred. |
+| `caller_session_key` | string \| null | no | **the caller's own join key (TR-173)**: the `X-Hermes-Session-Key` the caller sent, when it sent one — for the scheduler this is the TICK the call served. Validated with the same rules the forwarded header answers to (no control characters, ≤256 chars); a value the gateway itself would reject is never persisted, and the drop is named in the response envelope's `_router.problems`. `null` = the caller sent no key (or one that failed validation) — never a synthesized placeholder, never `""` standing in for "unknown". Together with `session_id`, `parent_session_id`, `provider`, `model` and `cost_usd`, this single ledger line answers "what did tick X route to, and what did it cost" without guessing. |
 | `ts` | number | **yes** | epoch seconds; the decay anchor. Defaults to the ingest time when absent. |
+
+### Joining a routed call to the task that asked for it (TR-173)
+
+A caller that speaks the gateway's session protocol (the scheduler does) sends
+its own id as `X-Hermes-Session-Key` — for the scheduler, the TICK id. The
+proxy stores that value verbatim (after validation) in `caller_session_key`,
+next to the router's own identities:
+
+| field | whose id it is |
+|---|---|
+| `caller_session_key` | the CALLER's key from the request headers — the per-TASK join key |
+| `session_id` | the ROUTER's row identity (`x-router-session` derived, or generated) |
+| `gateway_session_id` | the UPSTREAM Hermes session id from the response headers |
+
+So "what did tick `tg:…:2` route to, and what did it cost" is one grep over
+the store — no guessing, no cross-file join. The web UI flow view
+(`scripts/router_ui_data.flow`) exposes the same field in its outcome block,
+and its search matches on it, so an operator can paste a tick key straight
+into the trace box.
 
 ## Ingest API
 

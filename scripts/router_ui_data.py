@@ -296,6 +296,11 @@ def flow(key, path: Path = LEDGER) -> dict:
         "session_id": row.get("session_id"),
         "gateway_session_id": row.get("gateway_session_id"),
         "parent_session_id": row.get("parent_session_id"),
+        # TR-173: the caller's own X-Hermes-Session-Key (the scheduler's TICK
+        # id). This is the join key that ties the routed call to the tick it
+        # served; null = the caller sent no key. The search above already
+        # matches on it, so the operator can trace by tick key directly.
+        "caller_session_key": row.get("caller_session_key"),
         "when": _iso(_row_ts(row)),
         "route_outcome": row.get("route_outcome"),
         "failure_reason": row.get("failure_reason"),
