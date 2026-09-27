@@ -350,17 +350,30 @@ def main():
                     content, lat = call(base, key, model, prompt, extra)
                     v5[tid] = scorer(content)
                     v5[tid + '_lat'] = round(lat, 1)
+                    if not (content or '').strip():
+                        v5[tid + '_empty'] = True     # gap, not a zero score
                 for cat, prompt, checks in AGENTIC:
                     content, lat = call(base, key, model, prompt, extra)
                     passed = [n for n, fn in checks if fn(content)]
                     ag[cat] = {'passed': len(passed), 'total': len(checks), 'lat': round(lat, 1),
                                'failed': [n for n, _ in checks if n not in passed]}
+                    if not (content or '').strip():
+                        ag[cat]['empty'] = True
             if args.extended:
                 for cat, prompt, checks in EXTENDED:
                     content, lat = call(base, key, model, prompt, extra)
                     passed = [n for n, fn in checks if fn(content)]
                     ext[cat] = {'passed': len(passed), 'total': len(checks), 'lat': round(lat, 1),
                                 'failed': [n for n, _ in checks if n not in passed]}
+                    # A response with nothing in it is NOT a score of zero. An
+                    # empty answer usually means truncation, a refusal, or a
+                    # context error; recording it as 0.0 makes "we could not
+                    # measure this" indistinguishable from "it failed", and the
+                    # tier scale then drops the lane to the floor. Ten zero-flat
+                    # lanes on neuralwatt (a PAID sub) exist for exactly this
+                    # reason. The flag lets the ingester file it as a gap.
+                    if not (content or '').strip():
+                        ext[cat]['empty'] = True
             print(f'done {prov}/{model}', flush=True)
         except Exception as e:  # noqa: BLE001
             v5['error'] = ag['error'] = ext['error'] = str(e)[:140]

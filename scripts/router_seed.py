@@ -275,6 +275,24 @@ FROM (
 )
 """)
 
+# ---- placeholder zeros are not measurements --------------------------------
+# `WHERE perf IS NOT NULL` above treats a literal 0.0 as MEASURED, and the tier
+# scale reads that as "scored zero on everything" — which floors the lane. Ten
+# neuralwatt lanes (a PAID sub) and gpt-oss-20b sit at tier -5 for exactly this
+# reason: their perf_* columns were filled with 0.0 as a default by an import and
+# never corroborated by a single benchmark row. Dropping the whole model's perf
+# when EVERY value is 0.0 turns "we don't know" into UNRANKED (which the audit
+# reports as a gap to fill) instead of a fake verdict; a model with a real zero in
+# one category and real numbers elsewhere keeps it.
+_allzero = [r[0] for r in con.execute(
+    "SELECT model FROM model_perf GROUP BY model HAVING max(perf) = 0 AND min(perf) = 0").fetchall()]
+if _allzero:
+    con.execute("DELETE FROM model_perf WHERE model IN (%s)"
+                % ','.join('?' * len(_allzero)), _allzero)
+    print(f'placeholder perf dropped (all-zero, unranked not floored): {len(_allzero)} lanes')
+    for _m in sorted(_allzero)[:8]:
+        print(f'   {_m}')
+
 # ---------- 3. benchmark overlays for NEW categories --------------------------
 # source substring -> new category (rel score reused from benchmarks table)
 BENCH_OVERLAY = {

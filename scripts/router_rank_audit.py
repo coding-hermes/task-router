@@ -159,6 +159,49 @@ def family_pairs(models, tiers):
     return entries, unorderable
 
 
+def provenance_audit(models, perf, tiers):
+    """Find lanes whose rank rests on evidence too thin to rank them.
+
+    Two live cases produced this: muse-spark-1.3 was effectively UNRANKED (1 of 24
+    categories) and gpt-6-sol ranked below the model it supersedes because its
+    entire evidence was ONE flat battery — 0.85 in nine categories — plus a single
+    0.21 tool_use reading that rendered as tier -5. Measured properly, that same
+    lane scored tool_use +5. A flat score cannot express "better at tools, worse
+    at code", and on a RELATIVE scale a uniform value reads as "worse everywhere"
+    wherever the field scores higher.
+
+    So this section names the lanes where that can still happen:
+      flat      — every perf value identical across >= 3 categories (one battery
+                  of uniform difficulty, or one saturated battery)
+      inherited — every value copied from another lane via `alias:`; real
+                  provenance is the base lane, and the base's evidence may not
+                  transfer (different provider, different serving stack)
+      thin      — 1-2 categories of real measurement
+    """
+    by_model = collections.defaultdict(dict)
+    for r in perf:
+        by_model[r['model']].setdefault(r['category'], r)
+
+    flat, inherited, thin = [], [], []
+    for m in models:
+        cats = by_model.get(m['model']) or {}
+        if not cats:
+            continue
+        vals = {c: r.get('perf') for c, r in cats.items()}
+        srcs = [str(r.get('source_ref') or r.get('source') or '') for r in cats.values()]
+        rec = {'provider': m['provider'], 'model': m['model'], 'cats': len(cats),
+               'price': m.get('normalized_price')}
+        if cats and all(s.startswith('alias:') for s in srcs):
+            rec['base'] = srcs[0].split(':', 1)[1]
+            inherited.append(rec)
+        elif len(cats) >= 3 and len(set(vals.values())) == 1:
+            rec['value'] = next(iter(vals.values()))
+            flat.append(rec)
+        elif len(tiers.get(m['model'], ())) <= 2:
+            thin.append(rec)
+    return flat, inherited, thin
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--json', action='store_true', help='machine-readable output')
@@ -187,6 +230,7 @@ def main():
             decay_blocked.append(entry)   # successor unranked -> rank first
 
     birthdays = [m for m in models if not m.get('release_date')]
+    flat, inherited, thin_ev = provenance_audit(active, load('model_perf'), tiers)
 
     if args.json:
         print(json.dumps({
@@ -194,6 +238,8 @@ def main():
             'inversions': len(inversions), 'decay_safe': len(decay_safe),
             'decay_blocked': len(decay_blocked), 'unorderable': len(unorderable),
             'no_release_date': len(birthdays),
+            'flat_evidence': len(flat), 'alias_only': len(inherited),
+            'thin_evidence': len(thin_ev),
         }, indent=1))
         return 0
 
@@ -241,6 +287,19 @@ def main():
     for e in unorderable[:6]:
         print(f"      {e['provider']:14s} {e['family'][:26]:26s} "
               + ', '.join(f'{n}({t}t)' for n, t in e['models'][:3]))
+
+    print()
+    print('=' * 74)
+    print('5) UNDER-EVIDENCED — ranks resting on evidence too thin to rank them')
+    print('=' * 74)
+    print(f'   FLAT: every perf value identical across >=3 categories (one uniform'
+          f' or saturated battery): {len(flat)} lanes')
+    for e in sorted(flat, key=lambda x: -x['cats'])[:8]:
+        print(f"      {e['provider']:14s} {e['model'][:40]:40s} {e['cats']} cats all={e['value']}")
+    print(f'   ALIAS-ONLY: every value inherited from another lane (not measured): {len(inherited)} lanes')
+    for e in sorted(inherited, key=lambda x: -x['cats'])[:8]:
+        print(f"      {e['provider']:14s} {e['model'][:34]:34s} <- {str(e.get('base'))[:26]}")
+    print(f'   THIN: <=2 measured categories: {len(thin_ev)} lanes')
     return 0
 
 

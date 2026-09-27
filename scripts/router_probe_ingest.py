@@ -91,7 +91,7 @@ def main():
 
     have = {(r['model'], r['category'], key_of(r.get('source'))) for r in existing}
 
-    new_rows, skipped, errors = [], 0, []
+    new_rows, skipped, errors, empty = [], 0, [], []
     for row in results:
         model = row.get('model')
         if not model:
@@ -104,10 +104,20 @@ def main():
             if v is None:
                 continue
             if isinstance(v, dict):                      # agentic shape
+                if v.get('empty'):
+                    # Nothing came back: file it as a GAP, never as a 0.0 score.
+                    # A zero would drop the lane to the tier floor, which is how
+                    # ten paid neuralwatt lanes ended up ranked as if they had
+                    # failed everything they were asked.
+                    empty.append({'model': model, 'category': category, 'field': field})
+                    continue
                 passed, total = v.get('passed'), v.get('total')
                 damped = round(0.85 * passed / total, 3) if total else None
                 detail = f'{passed}/{total}'
             else:                                        # v5 shape
+                if row.get(field + '_empty'):
+                    empty.append({'model': model, 'category': category, 'field': field})
+                    continue
                 damped = round(0.85 * v / maxpts, 3)
                 detail = f'{v}/{maxpts}'
             if damped is None:
@@ -127,6 +137,10 @@ def main():
         print(f"   {r['model']:18s} {r['category']:12s} {r['score']}")
     for e in errors:
         print(f"   ERROR {e['model']}: {e['error'][:70]}")
+    if empty:
+        print(f'   EMPTY RESPONSES filed as gaps (NOT scored 0.0): {len(empty)}')
+        for e in empty[:8]:
+            print(f"      {e['model'][:26]:26s} {e['category']}")
     if new_rows:
         print('NOTE: BENCH_OVERLAY must contain each key or the rows are INERT.'
               f' Keys used: {sorted({key_of(r["source"]) for r in new_rows})}')
