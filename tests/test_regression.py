@@ -482,6 +482,8 @@ def test_registry_integrity():
                 "model_aliases",
                 # TR-019 external provider-name mapping rules (2026-09-01)
                 "provider_mappings",
+                # Quota-layers spec L0 declaration table (docs/quota-layers-spec.md)
+                "provider_quota",
                 # TR-049 outcome-store SAMPLE (docs/data example, not a
                 # registry table — the live store stays gitignored)
                 "sample-outcomes",
