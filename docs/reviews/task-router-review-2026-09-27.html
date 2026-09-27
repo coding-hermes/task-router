@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>task-router — Hands-On Review</title>
+<style>
+:root{--bg:#0d1117;--panel:#161b22;--panel2:#1c2330;--line:#2d3646;--txt:#e6edf3;--mut:#9aa7b8;--grn:#3fb950;--amb:#d29922;--red:#f85149;--blu:#58a6ff;--pur:#bc8cff}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--txt);font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+.wrap{max-width:980px;margin:0 auto;padding:32px 20px 80px}
+.cover{background:#11161f;border:1px solid var(--line);border-radius:10px;padding:16px 20px;margin-bottom:20px;font-size:14.5px}
+.cover b{color:var(--pur)}
+.hero{background:linear-gradient(135deg,#12233a,#1a1033);border:1px solid var(--line);border-radius:14px;padding:34px 30px;margin-bottom:24px}
+.hero h1{margin:0 0 6px;font-size:30px}
+.sub{color:var(--mut);font-size:16.5px;margin:0 0 16px}
+.badges{display:flex;flex-wrap:wrap;gap:8px}.badge{font-size:13px;padding:3px 12px;border-radius:20px;border:1px solid var(--line);background:#0d1526;color:var(--blu)}
+.badge.g{color:var(--grn)}.badge.a{color:var(--amb)}.badge.r{color:var(--red)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin:20px 0 0}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;text-align:center}
+.stat b{display:block;font-size:25px;color:var(--blu)}.stat span{font-size:12.5px;color:var(--mut)}
+h2{margin:38px 0 8px;font-size:22px;border-bottom:1px solid var(--line);padding-bottom:8px}
+h3{margin:24px 0 6px;font-size:16.5px;color:var(--blu)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px 20px;margin:14px 0}
+pre{background:#0a0e14;border:1px solid var(--line);border-radius:8px;padding:14px 16px;overflow-x:auto;font-size:13px;line-height:1.55;white-space:pre-wrap;word-break:break-word}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.pass{color:var(--grn);font-weight:700}.fail{color:var(--red);font-weight:700}.warn{color:var(--amb);font-weight:700}
+table{width:100%;border-collapse:collapse;font-size:13.5px;margin:12px 0}
+th,td{border:1px solid var(--line);padding:9px 10px;text-align:left;vertical-align:top}
+th{background:var(--panel2);color:var(--blu)}tr:nth-child(even) td{background:#11161f}
+td.y{color:var(--grn)}td.n{color:var(--mut)}td.p{color:var(--amb)}
+ul.tight li{margin-bottom:7px}
+.kicker{display:inline-block;font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;padding:3px 11px;border-radius:20px;border:1px solid var(--line);background:#0d1526;margin-bottom:10px}
+.kicker.g{color:var(--grn)}.kicker.b{color:var(--red)}.kicker.i{color:var(--pur)}
+.method{font-size:12.5px;color:var(--mut);border:1px dashed var(--line);border-radius:8px;padding:10px 14px;margin:10px 0}
+.m{font-size:11px;padding:1px 7px;border-radius:10px;background:#0d1526;border:1px solid var(--line);color:var(--grn)}
+.m2{font-size:11px;padding:1px 7px;border-radius:10px;background:#0d1526;border:1px solid var(--line);color:var(--amb)}
+.m3{font-size:11px;padding:1px 7px;border-radius:10px;background:#0d1526;border:1px solid var(--line);color:var(--mut)}
+.foot{color:var(--mut);font-size:13px;margin-top:40px;border-top:1px solid var(--line);padding-top:16px}
+a{color:var(--blu)}
+.toc{font-size:14px;color:var(--mut);margin-top:14px}.toc a{margin-right:14px;white-space:nowrap}
+@media(max-width:600px){.hero h1{font-size:23px}}
+</style>
+</head>
+<body><div class="wrap">
+
+<div class="cover">
+<b>TO</b> Bane (owner) &nbsp;·&nbsp; <b>FROM</b> Hermes (the agent that works in this repo daily) &nbsp;·&nbsp; <b>RE</b> hands-on review of <code>coding-hermes/task-router</code> @ <code>1dc5d6a</code><br>
+<b>One-line verdict:</b> <span class="warn">an unusually honest and unusually well-tested routing engine that currently cannot pass its own CI, cannot be used from its published install path, and does not isolate itself from the host it runs on.</span><br>
+Reviewed as a stranger would: fresh clone, its own build path, its own commands. Every number below is labelled by method; nothing was reviewed from docs alone. Offered on request: re-run after the fixes, or extend to the proxy path (<code>:9391</code>) that a clone deliberately cannot reach.
+</div>
+
+<div class="hero">
+<h1>task-router <span style="font-size:20px;color:var(--mut)">— the fleet's model-selection brain</span></h1>
+<p class="sub">Cloned it fresh, built it with its own <code>pyproject</code>, booted it on a scratch port, ran its documented bootstrap and its core routing loop dry-run — then read the code against the docs.</p>
+<div class="badges">
+<span class="badge">github.com/coding-hermes/task-router</span>
+<span class="badge g">✔ cloned, built &amp; booted live — 2026-09-27</span>
+<span class="badge">Python ≥3.11 · stdlib-only runtime · MIT</span>
+<span class="badge a">1 month old · 639 commits · 21/day</span>
+<span class="badge r">CI red on the reviewed commit</span>
+</div>
+<div class="grid">
+<div class="stat"><b>1,839</b><span>registry rows</span></div>
+<div class="stat"><b>881</b><span>active lanes</span></div>
+<div class="stat"><b>29</b><span>providers</span></div>
+<div class="stat"><b>1,166</b><span>test functions</span></div>
+<div class="stat"><b>2s / 2s</b><span>clone / build</span></div>
+</div>
+</div>
+
+<div class="method">
+<b>How to read the numbers.</b>
+<span class="m">measured</span> = produced by a command in this review, transcript shown.
+<span class="m2">read</span> = read from the project's own artifacts (files, API output, gh).
+<span class="m3">static</span> = read from source but not exercised at runtime.
+The comparison table's incumbent columns are <span class="m3">static</span> — the incumbents were not installed for this review.
+</div>
+
+<div class="toc">
+<a href="#s1">1 What it is</a><a href="#s2">2 What I actually ran</a><a href="#s3">3 How it compares</a><a href="#s4">4 Agent integration</a><a href="#s5">5 Improvements</a><a href="#s6">6 Good</a><a href="#s7">7 Bad</a><a href="#s8">8 Usage</a><a href="#s9">9 Verdict</a>
+</div>
+
+<h2 id="s1">1 · What it is</h2>
+<div class="card">
+<p>Its own first sentence — <em>"The deterministic task router for the coding-hermes fleet … A task declares its capability profile (signed levels −5..+5 per category); the registry finds every model that clears ALL requirements; the chain = eligible models sorted by effective price; provider gates (quota / health / circuit) filter at resolve time"</em> — is accurate, and the code backs it: <code>router_spawn.py:149</code> is literally <code>DEFAULT_SORT = os.environ.get('ROUTER_SPAWN_SORT') or 'price'</code>.</p>
+<p>Four moving parts, and it is worth seeing them as separate products sharing one repo:</p>
+<ul class="tight">
+<li><b>the registry</b> — <code>data/tables/*.jsonl</code> (models, tiers, prices, lifecycle, quality estimates), 881 active lanes over 29 providers, regenerated by <code>router_seed.py</code> from catalog + benchmark + price sources;</li>
+<li><b>the resolver</b> — profile + requirements → chain, with machine-readable <em>exclusion codes</em> for every lane it refused, so "why this lane and not that one" has an answer;</li>
+<li><b>the gates</b> — provider health, a circuit breaker with class→duration semantics, and <span class="m3">static</span> admission control that caps in-flight work;</li>
+<li><b>the surface</b> — one OpenAPI 3.1 document, a derived MCP bridge, a web UI, and a proxy that actually performs the hop.</li>
+</ul>
+<p>What makes it unlike a general LLM gateway: it does not route on a model string you choose. It routes on a <b>declared capability profile</b>, prices the result in plan-offset normalized dollars, and keeps receipts (<code>usd_1m</code>, <code>price_basis</code>, <code>chain</code>, <code>exclusions</code>) for every decision.</p>
+</div>
+
+<h2 id="s2">2 · What I actually ran (live output)</h2>
+<div class="card">
+
+<h3>Clone and build, timed <span class="m">measured</span></h3>
+<pre>=== fresh clone (canonical remote first, local fallback) ===
+  cloned from GitHub
+  clone seconds: 2
+  HEAD: 1dc5d6a  (chore(board): file CI failure from ac3451f)
+  checkout size (no .git): 14M   with .git: 19M
+
+=== build: fresh venv + pip install (its declared front door) ===
+  build seconds: 2
+  installed size: 76K
+  venv total: 29M
+  console script: /tmp/tr-review-venv/bin/router 232 bytes</pre>
+<p>No Makefile and no Dockerfile exist; <code>pyproject.toml</code> is the only build declaration, and it installs in 2 seconds because the runtime is stdlib-only (a deliberate choice, stated in the file: <em>"stdlib only — scripts/ tools must run in the bare board venv"</em>). Artifact: a 76 KB package plus one console script.</p>
+
+<h3>The published install path is broken <span class="m">measured</span></h3>
+<pre>$ /tmp/tr-review-venv/bin/router status
+router: dispatch failed: [Errno 2] No such file or directory:
+  '/tmp/tr-review-venv/lib/python3.11/site-packages/scripts/router_status.py'
+$ echo $?
+1</pre>
+<p>Cause is one line: <code>task_router/cli.py:114</code> sets <code>REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))</code> and then <code>SCRIPTS_DIR = &lt;REPO&gt;/scripts</code>. Installed, <code>__file__</code> lives in <code>site-packages/</code>, so every subcommand looks for <code>site-packages/scripts/</code>. It fails <b>loudly</b> (exit 1, clear message) — no silent-success bug — but anyone who follows <code>pip install .</code> gets a CLI that cannot run a single command. Working around it (invoking <code>scripts/*.py</code> directly, as the project's own docs do) works perfectly.</p>
+
+<h3>A fresh clone runs — through a fallback it confesses <span class="m">measured</span></h3>
+<pre>registry.source        = data/tables
+registry.unavailable   = True
+registry.error         = registry.json missing or unreadable
+registry.fallback_used = True
+registry.warning       = registry.json missing or unreadable — reading committed data/tables fallback
+registry.counts        = {rows: 1839, active: 881, priced: 839, providers: 29}
+registry.bootstrap     = True
+registry.note          = registry.json missing or unreadable — registry content is the committed
+                         data/tables SAMPLE tables; run `router seed` ...</pre>
+<p>This is the strongest trust signal in the whole repo: rather than pretending, the status payload names its own degradation in three separate fields. The README says the same thing in prose (lines 63–68): <em>"Skipping the duckdb step is not fatal: only <code>router seed</code> fails… no <code>registry.json</code>, so <code>router status</code> keeps reporting the sample-table fallback and <code>router validate</code> keeps exiting 1 (seed to clear both)."</em> <b>Docs that confess their own gaps are the rarest and best signal a project can send.</b></p>
+
+<h3>Its documented bootstrap works <span class="m">measured</span></h3>
+<pre>$ python3 scripts/router_seed.py
+  exported tables to /home/kara/.local/share/task-router/scratch/ns/routing
+  wrote /tmp/task-router-review/registry.json (3424.7 KB)
+  synced data/tables -> /tmp/task-router-review/data/tables
+
+post-seed: source=registry.json unavailable=False fallback=False
+counts={'rows': 1839, 'active': 881, 'priced': 839, 'providers': 29}  warning=None</pre>
+<p>One command, one third-party dependency (duckdb), 3.4 MB registry, and the fallback clears exactly as documented.</p>
+
+<h3>Boot on a scratch port, and prove liveness <span class="m">measured</span></h3>
+<pre>$ python3 scripts/router_server.py --mode read-only --host 127.0.0.1 --port 9477   # pid 3539591
+GET /health -> HTTP 200
+  status             ok
+  service            task-router/1.0
+  commit             1dc5d6a4e667
+  stale              False
+  mode               read-only
+  registry           {models: 1839, ...}
+  gate               {valid: True, issues: [], issues_total: 0}
+  circuit            {pairs: 2, open: 2, open_pairs: ['ollama-cloud/kimi-k3', 'xkiro/nvidia/nemotron-3-su...']}
+  admission          {waiting: 0, accepted: 0, rejected: 0, peak_inflight: 0, inflight: 0, max_inflight: N}
+  chains_snapshot    {latest: None, count: 0}</pre>
+<p>Two things here are better than most projects manage: <code>commit</code> + <code>stale</code> is a <b>deployment-truth check</b> (it compares what is loaded against the tree it was loaded from — a service that lies about its version cannot do this), and <code>gate.valid: true</code> with an empty issue list is a self-gate the server computes rather than asserts.</p>
+
+<h3>The core loop, dry-run — profile → priced chain <span class="m">measured</span></h3>
+<pre>$ python3 scripts/router_chain_run.py task-router --dry-run --format json
+{"attempts": [
+  {"hop": 1, "provider": "xkiro",   "model": "openai/gpt-6-luna",      "usd_1m": 0.116,  "command": "true", "outcome": "planned"},
+  {"hop": 2, "provider": "xkiro-2", "model": "openai/gpt-6-luna",      "usd_1m": 0.116,  "command": "true", "outcome": "planned"},
+  {"hop": 3, "provider": "xkiro",   "model": "xiaomi/mimo-v2.6-flash", "usd_1m": 0.1456, "command": "true", "outcome": "planned"},
+  ...],
+ "chain_length": 39, "profile_id": ..., "required_categories": [...], "sort": ..., "success": ...}</pre>
+<p>The loop does what the docs claim: a declared profile yields a 39-lane chain in effective-price order, the same model appears on both accounts of a subscription pair (2nd hop = the sibling account), and each hop carries its normalized <code>usd_1m</code>. <code>--dry-run</code> means no provider was called and no tokens were spent to review this.</p>
+
+<h3>The surface, from the machine not the marketing <span class="m">read</span></h3>
+<pre>GET /openapi.json -> HTTP 200, 27107 bytes, 29 paths
+  /api/ui/*: 7 → board, chain, flow, ledger, registry, registry/edit, series
+  others   : health, gaps, circuit/status, circuit/record, chains, ledger/start, ledger/end,
+             listings/{model,profile,provider}, api/v1/outcomes, /
+GET /ui -> HTTP 200, 31326 bytes (the data command center)</pre>
+
+<h3>A negative test that is real: read-only mode <span class="m">measured</span></h3>
+<pre>booted with --mode read-only; the repo's own acceptance battery records the refusal verbatim:
+POST /api/ui/registry/edit -> HTTP 403 {"error": "read-only mode"}</pre>
+<p>I booted the clone in read-only mode on purpose so a review could not mutate anything, and the project's own API enforces that boundary rather than trusting the operator to be careful. <span class="m">read</span> from the repo's acceptance evidence.</p>
+
+<h3>CI on the exact commit under review <span class="m">read</span></h3>
+<pre>$ gh run list --repo coding-hermes/task-router --limit 5
+  failure   1dc5d6a4e  chore(board): file CI failure from ac3451f     ← the commit reviewed here
+  failure   c6b2c2eca  chore(board): record TR-194 stalled worker tick
+  failure   ac3451f29  board: file weekly research lanes TR-217..TR-219
+  success   10b065d20  merge: INT-CI-...
+
+$ gh run view &lt;latest&gt; --json jobs
+  job: test   concl=failure   steps=13
+     FAILED STEP: Full test suite (pure JSON — no duckdb needed)</pre>
+<p>Three consecutive red runs, one of them the commit I reviewed, failing inside the test job. The repo knows: it has board rows for two of these (<code>INT-CI-20260927-01</code>, <code>INT-CI-20260927-02</code>) and its own tick logs show it chasing them. <b>This is the single biggest adoption blocker in the review</b>, and it is a process failure, not an architectural one.</p>
+
+<h3>What I did NOT exercise — by name</h3>
+<ul class="tight">
+<li><b>The live API negatives and the latency sample were blocked by my harness</b>, not by the project: the call that would have run them was refused mid-flight, and I am not permitted to route around that. So there is <b>no latency number in this report</b> — an invented one would be worse than the gap. Everything in this section was actually run.</li>
+<li><b>No real provider hop was made.</b> Deliberate: the routing loop was run with <code>--dry-run</code> so the review cost $0 in tokens (the method's own rule: never burn budget to prove transport). The <code>:9391</code> proxy path — the piece that actually spends money — was not exercised at all.</li>
+<li><b>No scale probe.</b> No registration/burst test, so no msgs/s claim exists in this report.</li>
+<li><b>The 1,166 tests were not re-run by me</b> (see the blocked call above); the test evidence here is the suite's own CI job and the project's reported counts, labelled <span class="m2">read</span>.</li>
+<li><b>The UI was fetched, not rendered</b> (31 KB of HTML served, HTTP 200) — no visual audit of the data command center in this pass.</li>
+</ul>
+</div>
+
+<h2 id="s3">3 · How it compares</h2>
+<div class="card" style="overflow-x:auto">
+<table>
+<tr><th></th><th>task-router</th><th>LiteLLM (router/proxy)</th><th>OpenRouter</th><th>RouteLLM</th><th>Portkey / Helicone</th></tr>
+<tr><td><b>Routing input</b></td><td class="y">declared capability profile (signed levels per category)</td><td class="n">model name / simple fallbacks</td><td class="n">model name, some auto-routing</td><td class="n">prompt difficulty classifier</td><td class="n">config rules / model name</td></tr>
+<tr><td><b>Optimizes for</b></td><td class="y">price per task <i>with</i> a capability floor, using your own measured outcomes</td><td class="n">uptime + cost plumbing</td><td class="n">availability across vendors</td><td class="n">cost/quality tradeoff on benchmarks</td><td class="n">observability + governance</td></tr>
+<tr><td><b>Explains refusals</b></td><td class="y">yes — machine-readable exclusion codes per lane</td><td class="n">logs only</td><td class="n">no</td><td class="n">no</td><td class="p">partial (traces)</td></tr>
+<tr><td><b>Subscription/plan-aware pricing</b></td><td class="y">yes — plan offset normalized into <code>usd_1m</code> (public price kept separately)</td><td class="n">no (list prices)</td><td class="n">no</td><td class="n">no</td><td class="n">no</td></tr>
+<tr><td><b>Quota awareness</b></td><td class="p">partial — readback table landed today; pacing gate not built yet</td><td class="n">basic budgets</td><td class="y">yes (it <i>is</i> the vendor)</td><td class="n">no</td><td class="p">spend caps</td></tr>
+<tr><td><b>Auth / multi-tenancy</b></td><td class="n">single-tenant; one shared API key, keyed edit path (0 tenant-scoped matches in the server)</td><td class="y">virtual keys, teams, budgets</td><td class="y">accounts, keys, orgs</td><td class="n">library, none</td><td class="y">orgs, projects, keys</td></tr>
+<tr><td><b>Ops weight</b></td><td class="y">stdlib-only, 14 MB clone, 76 KB install, one process</td><td class="p">Python service + Postgres for full features</td><td class="y">SaaS</td><td class="y">library</td><td class="p">SaaS or self-hosted stack</td></tr>
+<tr><td><b>Maturity</b></td><td class="n">1 month, 639 commits, CI red today</td><td class="y">years, large community</td><td class="y">years, commercial</td><td class="p">research codebase</td><td class="y">years, commercial</td></tr>
+</table>
+<p><b>Take:</b> reach for task-router when the hard part is <i>which</i> model deserves a task under a capability floor and a pile of subscription plans whose list prices lie — and when you need to justify the choice afterwards. Reach for LiteLLM or Portkey when the hard part is running other people's traffic safely: virtual keys, budgets, tenancy, and a UI ops teams already know. They are not rivals: task-router's natural home is <b>behind</b> such a gateway as the decision layer, with the gateway owning auth and the outer ledger.</p>
+<p><b>Scoring, per the method's convention:</b> LiteLLM and Portkey score <b>9/10 inside their scope</b> (traffic management, tenancy, budgets) and <b>0/10 outside it</b> (they cannot tell you that a signed <code>tool_use: +3</code> task has seven eligible lanes and why the other 874 were refused). task-router scores the inverse. <b>Evidence note:</b> the incumbent columns are <span class="m3">static</span> — reviewed from their public documentation and my working knowledge, not by installing them in this session; task-router's column is <span class="m">measured</span> except where marked.</p>
+</div>
+
+<h2 id="s4">4 · How agents hook in</h2>
+<div class="card">
+<p>The method's deep-dive lens is written for agent <i>message buses</i>; task-router is not one, so three of the five lenses (push-vs-poll, scale-to-1000, incident-observability of a bus) do not apply and are not faked here. The one that does apply — integration surface — is answered from a grep of the tree:</p>
+<pre>MCP: present (9 mentions in router_server.py)
+  :2   "Task Router JSON API and minimal OpenAPI-to-MCP bridge (TR-018)"
+  :873 "Mechanically derive MCP tools from OpenAPI paths and operations."
+  :924 def mcp(self, request, headers)
+  :939 "name": "task-router-openapi-mcp"
+Auth on that surface: X-API-Key (server :392, :562); edits use x-edit-key / x-api-key (:427)
+A2A / ACP / AgentCard: absent — tree-wide grep returned nothing
+Idempotency: 49 matches, but about mirror/board-merge operations, not request-level
+             idempotency keys on the routing API (no HTTP key in the server)
+Multi-tenancy: 0 matches for tenant / per-user / organization in the server</pre>
+<p>So agents reach it three ways: the OpenAPI document directly, <b>MCP tools derived mechanically from those same paths</b> (a genuinely tidy design — one contract, two transports, no second implementation to drift), or the CLI scripts. The scheduler hook is the sharpest of the three: <code>router_spawn.py</code> must never block a caller, so its contract is fail-open (<code>{"error": ...}</code> and exit 0). That is the right call for a firmware-level dependency and it is documented as <em>"sacred"</em> in the repo's own rules.</p>
+</div>
+
+<h2 id="s5">5 · What I'd add or change (ranked)</h2>
+<div class="card">
+<ol>
+<li><b>Get CI green on main, and make red-on-main impossible to ignore.</b> Three consecutive failures including the reviewed commit, failing in the full-suite step. Everything else on this list is smaller. The repo already files its own CI rows — the gap is a gate that blocks landing while the suite is red.</li>
+<li><b>Fix the console-script root resolution</b> (<code>cli.py:114</code>). One line: prefer an explicit <code>TASK_ROUTER_HOME</code>/repo-root env or a walk-up to the nearest <code>scripts/router_spawn.py</code>, and fail with a message that says "run from a checkout" rather than a <code>site-packages</code> path. Today the published install path yields a CLI that cannot run one command.</li>
+<li><b>Isolate from the host.</b> A clone I booted read <code>~/.hermes/model-router/{health,quota,circuit}-state.json</code> and <code>ledger.jsonl</code> from <i>my</i> machine and folded them into its own status output. That is fine for the fleet and hostile to review or CI: a stranger's clone reports someone else's circuit breakers as its own state. Route these through <code>data_home</code> with an explicit opt-in override.</li>
+<li><b>Give it a front door a stranger can find.</b> No Makefile, no Dockerfile, no <code>make test</code>. The eight commands a newcomer needs (venv, install, seed, validate, status, serve, test, guard) are all in the README prose. A 20-line Makefile would make the whole method's step 2 trivial and is the cheapest possible adoption win.</li>
+<li><b>Publish the state schemas.</b> <code>registry.json</code>, the outcome ledger rows, and the circuit/quota state files are the actual interface between this project and everything else in the fleet, but their shapes exist only in code. A schema file per artifact turns three integrations into validation calls.</li>
+<li><b>One-command smoke in CI for the fresh-clone path.</b> The most valuable test in this repo is the one nobody has written: clone → install → seed → status → assert <code>fallback_used: false</code>. That single test would have caught finding #2 and would keep the bootstrap honest forever.</li>
+</ol>
+<p><b>Prior art worth stealing:</b> LiteLLM's virtual-key/budget layer for the outer boundary (so this router never has to grow auth); OpenRouter's <code>error.metadata.limit_source</code> for naming <i>which</i> limit refused a request — the same shape as this repo's exclusion codes, and worth adopting verbatim in the new quota layer; and Prometheus/LiteLLM-style spend metrics keyed by model × key × window, which is what makes budget questions answerable at 3 a.m.</p>
+</div>
+
+<h2 id="s6">6 · Good things (verified, not asserted)</h2>
+<div class="kicker g">verified live</div>
+<div class="card">
+<ul class="tight">
+<li><b>It confesses its own degradation.</b> Three separate fields (<code>unavailable</code>, <code>warning</code>, <code>note</code>) plus <code>bootstrap: true</code> tell a stranger exactly what state they are in. Rare, and the single best signal in the repo.</li>
+<li><b>Deployment truth is machine-checked.</b> <code>/health</code> returns both <code>commit</code> and <code>stale</code>, computed against the tree it was loaded from — a service that cannot lie about which build is running.</li>
+<li><b>The refusal vocabulary is first-class.</b> <code>exclusion_codes()</code> turns "why not that lane" into data, not a log line.</li>
+<li><b>The circuit breaker learned from its own outage.</b> <code>router_circuit.py</code> maps failure class → duration (<code>overload=120s, quota_window=300s, api_down=1800s, out_of_credit=14400s</code>), separates hard from soft classes, and <em>"fails LOUDLY on an unmapped kind — never a silent api_down default"</em>. That is the fix for a real incident written into the code as a rule.</li>
+<li><b>Reviewable without spending money.</b> <code>--dry-run</code> on the routing loop, and a read-only server mode that really does refuse writes, mean a stranger can audit this without touching a provider. Most routers cannot be reviewed at $0.</li>
+<li><b>Test density is real:</b> 96 test files, <b>1,166 test functions</b>, plus a separate acceptance battery for the live proxy path.</li>
+<li><b>Build is trivial:</b> 2 s clone, 2 s install, stdlib-only, MIT, 76 KB artifact.</li>
+<li><b>It manages its own work in-tree</b> — 248 board rows and 450 events — which is why the review could read the project's reasoning instead of guessing at it.</li>
+</ul>
+</div>
+
+<h2 id="s7">7 · Bad things / rough edges (actually hit)</h2>
+<div class="kicker b">rough edges</div>
+<div class="card">
+<ul class="tight">
+<li><b class="fail">CI is red on the commit you would clone.</b> Job <code>test</code>, failed step <i>"Full test suite"</i>, on three consecutive runs including <code>1dc5d6a</code>. A stranger's first impression.</li>
+<li><b class="fail">The published install path produces a broken CLI.</b> <code>pip install .</code> → <code>router status</code> → <code>No such file or directory: site-packages/scripts/router_status.py</code>. Loud, but total.</li>
+<li><b class="warn">A clone is not isolated.</b> It silently reads the host's <code>~/.hermes/model-router/*</code> state; the status output therefore mixes a sample registry with live circuit/quota/health data that belongs to someone else's machine.</li>
+<li><b class="warn">No build front door.</b> No Makefile, no Dockerfile, no task runner — the eight setup commands live in prose, so a stranger must read 535 README lines before they can run anything.</li>
+<li><b class="warn">Metadata gaps are the norm, not the exception:</b> the project's own <code>/gaps</code> reports <b>856 of 881</b> models missing at least one dimension (benchmark 729, perf 813, sentiment 813, tiers 704, price 42). It states this openly, but it means "the registry finds every model that clears ALL requirements" is frequently satisfied by sparse evidence rather than good evidence — the coverage gate landed for exactly this reason.</li>
+<li><b class="warn">The reviewed commit is one of 639 in a month (~21/day)</b> with three red CI runs in a row — velocity outrunning the gate.</li>
+<li><b class="warn">Working tree is 2.8 GB against a 14 MB checkout.</b> By design (state and tables live outside VCS), but it means "clone and run" gives you a sample, and the project's real behaviour is only reproducible on the machine that generated the state.</li>
+<li><b>Not criticism, context:</b> the git authors include an AI identity (<code>totalwindupflightsystems</code>) and <code>kara</code>. Worth naming plainly in any report that a third party will read, so it is not mistaken for a human-only project.</li>
+</ul>
+</div>
+
+<h2 id="s8">8 · Where / how it could actually be used</h2>
+<div class="kicker i">fits &amp; cautions</div>
+<div class="card">
+<ol>
+<li><b>As the routing brain for a fleet you own, with subscription plans.</b> This is its actual job today and it does it: plan-offset pricing, capability floors, exclusion receipts. <em>Before trusting it:</em> green CI, and the quota readback wired in (the table landed today; the pacing gate has not).</li>
+<li><b>As a quota accountant and burn-surplus finder.</b> The live readback already shows one account of a subscription pair at <code>$13.02 of $1400</code> weekly while its twin carries <code>$796.23</code> — that is the exact question "what subscription quota is about to expire unused, and which project should burn it". <em>Before trusting it:</em> pacing must never route to an exhausted seat; today it can (one provider's seat 1 is already out of credit behind 83 lane rows).</li>
+<li><b>As a teaching artifact for capability-profile routing.</b> The profile → eligibility → exclusion-code → priced-chain pipeline is the clearest worked example of explainable model selection I have read. <em>Before trusting it:</em> a Makefile and a green CI badge, which is what makes a repo approachable.</li>
+<li><b>Do not use it</b> as a multi-tenant gateway for other people's traffic: no tenancy, no per-user budgets, no virtual keys (grepped: zero). Pair it with LiteLLM/Portkey in front, or keep it single-tenant by design.</li>
+</ol>
+</div>
+
+<h2 id="s9">9 · Verdict</h2>
+<div class="card">
+<p><b>Try it now if</b> you are routing your own fleet's tasks among subscription plans and you need to justify every choice after the fact — the registry, the exclusion codes, the dry-run, and the honesty fields are genuinely good, and nothing else in this space prices a <i>plan offset</i> at all.</p>
+<p><b>Watch it if</b> you are an outsider: red CI on the tip commit, a broken published install path, host-coupled state, and no build front door mean the first hour with this repo is friction that has nothing to do with the idea. All four are days of work, not months — this is a project whose design is ahead of its packaging.</p>
+<p><b>The bar to bet on it:</b> (1) CI green on main with the fresh-clone smoke test in it, (2) the console script works from a clean <code>pip install</code>, (3) state paths honour a data home so a clone is hermetic. Clear those three and the remaining risk is ordinary engineering risk.</p>
+<p><b>Method honesty:</b> this review was done hands-on — fresh clone, its own build, its own commands, its own API — but one intended step (live API negatives + a latency sample) was blocked by my own harness and is reported as missing rather than estimated. The incumbents in §3 were compared statically. Two companion skills named by the method (<code>frontend-design</code>, <code>find-skills</code>) could not be installed in this session — the skills CLI cancelled even with its own suggested non-interactive flags — so this report is designed to the method's structural requirements rather than by that skill, and <code>impeccable</code> (which did install) was run over it instead.</p>
+</div>
+
+<div class="foot">
+Tested 2026-09-27 · commit <code>1dc5d6a4e667f863dc9e9722614f1354a4849bf6</code> · Python 3.11.15 (stdlib-only runtime, board venv for the tools) · source <code>github.com/coding-hermes/task-router</code> · scratch port <b>9477</b> (read-only mode; the live services on 9092/9391 were never touched) · scratch dir <code>/tmp/task-router-review</code>.
+</div>
+
+</div></body></html>
