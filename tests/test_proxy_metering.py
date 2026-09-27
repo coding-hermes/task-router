@@ -230,6 +230,13 @@ def test_caller_session_is_associated_and_accumulated(monkeypatch, tmp_path):
 
 
 def test_without_a_declared_session_each_request_stands_alone(monkeypatch, tmp_path):
+    """Two undeclared-session requests = two standalone rows, EVEN under a frozen
+    clock. The fallback identity used to be a pure function of the wall clock
+    (``router-proxy-<epoch-ms>``), so two requests inside the same millisecond
+    collided and the store's bounded-tail dedupe swallowed the second row
+    (CI 36301868291: 1 row instead of 2). The clock is frozen here to prove the
+    identity no longer depends on it; the declared-session path below is the
+    one that must keep collapsing rows (accumulation), not this one."""
     store = tmp_path / 'outcomes.jsonl'
     monkeypatch.setenv('ROUTING_OUTCOMES_FILE', str(store))
     import importlib
@@ -239,7 +246,76 @@ def test_without_a_declared_session_each_request_stands_alone(monkeypatch, tmp_p
     _chain(monkeypatch, [{'hop': 1, 'provider': 'p', 'model': 'm', 'usd_1m': 1.0}])
     monkeypatch.setattr(rsrv, '_subprocess_text', lambda *a, **k: '')
     up = lambda p, b, h: (200, {'usage': {'prompt_tokens': 10, 'completion_tokens': 10}})
+    monkeypatch.setattr(rsrv.time, 'time', lambda: 1790390089.653001)
+    session_ids = []
     for _ in range(2):
-        rsrv.proxy_chat('/v1/chat/completions', {'model': 'auto', 'messages': []}, {}, upstream=up)
+        status, out = rsrv.proxy_chat('/v1/chat/completions',
+                                      {'model': 'auto', 'messages': []}, {}, upstream=up)
+        assert status == 200
+        session_ids.append(out['_router']['session_id'])
+    assert session_ids[0] != session_ids[1], \
+        'a frozen clock must not fuse two requests into one session identity'
     rows = [json.loads(l) for l in open(store) if l.strip()]
     assert len(rows) == 2 and all(r['parent_session_id'] is None for r in rows)
+    assert len({r['session_id'] for r in rows}) == 2, \
+        'the store dedupe must never see a second request as a re-POST of the first'
+
+
+def test_fallback_identity_helper_is_collision_free_under_a_frozen_clock():
+    """The helper itself: same source_system, frozen clock -> distinct ids, and
+    the ledger-sortable millisecond stamp stays in the id."""
+    frozen = 1790390089.653001
+    real_time = rsrv.time.time
+    rsrv.time.time = lambda: frozen
+    try:
+        a = rsrv._fallback_proxy_session_id('router-proxy')
+        b = rsrv._fallback_proxy_session_id('router-proxy')
+    finally:
+        rsrv.time.time = real_time
+    assert a != b
+    assert a.startswith('router-proxy-') and b.startswith('router-proxy-')
+    stamp = 'router-proxy-1790390089653'
+    assert a.startswith(stamp + '-') or a.startswith(stamp + '.'), \
+        f'keep the epoch-ms stamp for ledger sortability, got {a!r}'
+    assert rsrv._fallback_proxy_session_id('hermes').startswith('hermes-')
+
+
+def test_overload_refusal_identity_is_unique_under_a_frozen_clock(monkeypatch, tmp_path):
+    """Same collision class on the OTHER undeclared-session exit: an admission
+    refusal builds its id outside the ladder. Two refusals under a frozen clock
+    must land as two distinct ledger rows, not one deduped row."""
+    store = tmp_path / 'outcomes.jsonl'
+    monkeypatch.setenv('ROUTING_OUTCOMES_FILE', str(store))
+    import importlib
+    import router_outcomes as ro
+    importlib.reload(ro)
+    monkeypatch.setattr(rsrv, 'router_outcomes', ro, raising=False)
+    monkeypatch.setattr(rsrv, '_REAL_PROXY_REQUIREMENTS', rsrv._proxy_requirements, raising=False)
+    monkeypatch.setattr(rsrv, '_proxy_requirements', lambda b, h, p: (
+        'classifier', {'matrix': {'code_gen': 1}, 'complexity_sig': 'sig',
+                       'profile_id': None, 'problems': []}))
+    monkeypatch.setattr(rsrv, '_proxy_chain', lambda reqs, **k: {
+        'chain': [{'hop': 1, 'provider': 'p1', 'model': 'm1'}], 'sort': 'price'})
+    monkeypatch.setattr(rsrv, '_ADMISSION_SEM', None)
+    for k in ('accepted', 'rejected', 'waiting', 'inflight', 'peak_inflight'):
+        rsrv._ADMISSION[k] = 0
+    monkeypatch.setenv('ROUTER_PROXY_MAX_INFLIGHT', '1')
+    monkeypatch.setenv('ROUTER_PROXY_QUEUE_MAX', '0')     # no waiting room: instant refusal
+    monkeypatch.setenv('ROUTER_PROXY_QUEUE_WAIT_S', '0')
+    monkeypatch.setattr(rsrv.time, 'time', lambda: 1790390089.653001)
+    gate = rsrv._admission()
+    gate.__enter__()                                      # occupy the only slot
+    try:
+        refused_ids = []
+        for _ in range(2):
+            status, payload = rsrv.proxy_chat('/v1/chat/completions',
+                                              {'messages': []}, {}, upstream=None)
+            assert status == 429, payload
+            refused_ids.append(payload['_router']['session_id'])
+    finally:
+        gate.__exit__()
+    assert refused_ids[0] != refused_ids[1]
+    rows = [json.loads(l) for l in open(store) if l.strip()]
+    assert len(rows) == 2, 'two refusals = two ledger rows (dedupe must not swallow one)'
+    assert all(r['failure_reason'] == 'overloaded' for r in rows)
+    assert len({r['session_id'] for r in rows}) == 2

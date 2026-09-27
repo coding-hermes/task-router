@@ -22,6 +22,7 @@ import time
 import urllib.error
 import urllib.request
 from urllib.parse import parse_qs, urlparse
+import uuid
 
 REPO = Path(__file__).resolve().parents[1]
 SCRIPTS = REPO / "scripts"
@@ -2757,6 +2758,43 @@ def _proxy_record(provider, model, ok, requirements, reason='', latency_s=None,
         pass
 
 
+#: Fallback-identity uniqueness state (INT-CI-20260927-01): a process-local
+#: counter (list-box: rebound in place, never reassigned) under a lock, so two
+#: requests in one millisecond still get distinct ids. The uuid4 fragment is
+#: the belt to the counter's suspenders (fork/multi-process safety).
+_FALLBACK_SESSION_SEQ = [0]
+_FALLBACK_SESSION_LOCK = threading.Lock()
+
+
+def _fallback_proxy_session_id(source_system, _clock=None, _uuid4=None,
+                               _lock=None):
+    """Identity for a request whose caller declared NO session.
+
+    Was ``f'{source_system}-{int(time.time() * 1000)}'``: two requests inside
+    the same millisecond collided, and the store's bounded-tail dedupe
+    (same source_system + session_id + model) silently swallowed the second
+    row (CI 36301868291). Uniqueness is now carried by a process-local counter
+    under a lock plus a uuid4 fragment; the epoch-ms stamp is kept FIRST so the
+    id still sorts by time in the ledger. The seam parameters are resolved
+    LATE (None -> module-level clock/uuid) so a test that freezes
+    ``rsrv.time.time`` moves the stamp the same way it moves every other
+    clock read in this module (tests/test_proxy_metering.py).
+
+    The DECLARED-session id (``<caller>:<x-router-session>``) is a different
+    surface with accumulation semantics and is NOT built here.
+    """
+    if _clock is None:
+        _clock = time.time                   # late-bound: a frozen test clock applies
+    if _uuid4 is None:
+        _uuid4 = uuid.uuid4
+    if _lock is None:
+        _lock = _FALLBACK_SESSION_LOCK
+    with _lock:
+        n = _FALLBACK_SESSION_SEQ[0] + 1
+        _FALLBACK_SESSION_SEQ[0] = n
+    return f'{source_system}-{int(_clock() * 1000)}-{n:04d}-{_uuid4().hex[:8]}'
+
+
 def proxy_chat(path, body, headers, max_hops=None, upstream=None):
     """TR-172 admission-bounded entry point for every proxied request.
 
@@ -2775,7 +2813,7 @@ def proxy_chat(path, body, headers, max_hops=None, upstream=None):
             return _proxy_chat_inner(path, body, headers, max_hops=max_hops, upstream=upstream)
     except _ProxyOverloaded as exc:
         hdrs = {k.lower(): v for k, v in (headers or {}).items()}
-        session_id = hdrs.get('x-router-session') or f'router-proxy-{int(time.time() * 1000)}'
+        session_id = hdrs.get('x-router-session') or _fallback_proxy_session_id('router-proxy')
         reason = f'proxy overloaded: {exc}'
         refusal_key = None                   # bound even if the block below fails
         try:
@@ -2929,7 +2967,7 @@ def _proxy_chat_inner(path, body, headers, max_hops=None, upstream=None):
     declared_session = (headers.get('x-router-session') or '').strip()[:200]
     parent_session_id = declared_session or None
     session_id = (f'{source_system}:{declared_session}' if declared_session
-                  else f'{source_system}-{int(time.time() * 1000)}')
+                  else _fallback_proxy_session_id(source_system))
 
     meta = {'complexity_source': source, 'requirements': requirements,
             'sort': resolved.get('sort'), 'chain_length': len(chain),
