@@ -225,7 +225,26 @@ EXTENDED = [
 ]
 
 
-def call(base, key, model, prompt, extra, max_tokens=3000, retries=3):
+def err_class(e):
+    """Classify a failure so it cannot be mistaken for a capability signal.
+
+    A 429 says the PROVIDER throttled us; a 404/403 says the lane is not served at
+    all. Neither is evidence about the model, and only one of them is evidence
+    about the row being real. Recording both as 'error' (as this tool first did)
+    would make a rate-limited lane look broken and a fictional lane look merely
+    unlucky.
+    """
+    code = getattr(e, 'code', None)
+    if code == 429:
+        return 'rate_limited'
+    if code in (403, 404):
+        return 'not_served'
+    if code:
+        return f'http_{code}'
+    return 'transport'
+
+
+def call(base, key, model, prompt, extra, max_tokens=3000, retries=4):
     body = {"model": model, "messages": [{"role": "user", "content": prompt}], "max_tokens": max_tokens}
     headers = {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key,
                'User-Agent': 'hermes-bench/5.0'}
@@ -240,7 +259,15 @@ def call(base, key, model, prompt, extra, max_tokens=3000, retries=3):
             break
         except urllib.error.HTTPError as e:
             if e.code in (429, 500, 502, 503) and attempt < retries - 1:
-                time.sleep(2 * (attempt + 1))
+                # Honor Retry-After when the provider sends it; otherwise back off
+                # harder than 2s/4s, which a per-key concurrency cap outlasts —
+                # that cap is what turned 6 xkiro lanes into false failures.
+                ra = e.headers.get('Retry-After') if e.headers else None
+                try:
+                    wait = float(ra) if ra else 0
+                except (TypeError, ValueError):
+                    wait = 0
+                time.sleep(max(wait, 5 * (attempt + 1)))
                 continue
             raise
     lat = time.time() - t0
@@ -262,6 +289,9 @@ def main():
     ap.add_argument('--models', default='',
                     help='comma-separated model ids to probe even if already ranked (for fills)')
     ap.add_argument('--tag', default='', help='suffix for the result filenames')
+    ap.add_argument('--workers', type=int, default=4,
+                    help='concurrent lanes; lower it for providers with a tight per-key '
+                         'concurrency cap (xkiro throttled 4 workers into 429s)')
     ap.add_argument('--dry-run', action='store_true')
     args = ap.parse_args()
 
@@ -334,13 +364,14 @@ def main():
             print(f'done {prov}/{model}', flush=True)
         except Exception as e:  # noqa: BLE001
             v5['error'] = ag['error'] = ext['error'] = str(e)[:140]
-            print(f'ERR  {prov}/{model}: {str(e)[:90]}', flush=True)
+            v5['error_class'] = ag['error_class'] = ext['error_class'] = err_class(e)
+            print(f'ERR  {prov}/{model}: [{err_class(e)}] {str(e)[:80]}', flush=True)
         with lock:
             results_v5.append(v5)
             results_ag.append(ag)
             results_ext.append(ext)
 
-    with cf.ThreadPoolExecutor(max_workers=4) as pool:
+    with cf.ThreadPoolExecutor(max_workers=args.workers) as pool:
         list(pool.map(lambda t: one(*t), targets))
 
     tag = f'_{args.tag}' if args.tag else ''
