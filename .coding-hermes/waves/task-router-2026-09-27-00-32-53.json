@@ -1,0 +1,13 @@
+{
+  "tick": "task-router-2026-09-27-00-32-53",
+  "project": "task-router",
+  "base": "origin/main",
+  "budget": 5,
+  "tasks": [
+    {"id":"TR-131","worktree":"/home/kara/worktrees/task-router-TR-131","branch":"wt/TR-131"},
+    {"id":"TR-132","worktree":"/home/kara/worktrees/task-router-TR-132","branch":"wt/TR-132"},
+    {"id":"TR-139","worktree":"/home/kara/worktrees/task-router-TR-139","branch":"wt/TR-139"},
+    {"id":"TR-196","worktree":"/home/kara/worktrees/task-router-TR-196","branch":"wt/TR-196"},
+    {"id":"TR-203","worktree":"/home/kara/worktrees/task-router-TR-203","branch":"wt/TR-203"}
+  ]
+}

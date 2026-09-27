@@ -1,0 +1,30 @@
+{
+  "scheduler_tick_id": "task-router-2026-09-26-16-41-16",
+  "project": "task-router",
+  "base_sha": "d730cabb8c41b65656f08c65449b8cbb1a93224d",
+  "wave_budget": 9,
+  "tasks": [
+    {
+      "id": "TR-189",
+      "worktree": "~/worktrees/task-router-TR-189",
+      "branch": "wt/TR-189",
+      "base_sha": "d730cabb8c41b65656f08c65449b8cbb1a93224d",
+      "files": ["tests/test_contract.py", "tests/test_ledger.py", "tests/test_proxy_failure_envelope.py"]
+    },
+    {
+      "id": "TR-190",
+      "worktree": "~/worktrees/task-router-TR-190",
+      "branch": "wt/TR-190",
+      "base_sha": "d730cabb8c41b65656f08c65449b8cbb1a93224d",
+      "files": ["tests/test_circuit_v2.py", "scripts/router_circuit.py"]
+    },
+    {
+      "id": "TR-192",
+      "worktree": "~/worktrees/task-router-TR-192",
+      "branch": "wt/TR-192",
+      "base_sha": "d730cabb8c41b65656f08c65449b8cbb1a93224d",
+      "files": ["tests/test_ui_data.py", "scripts/router_ui_data.py"]
+    }
+  ],
+  "status": "prepared"
+}
