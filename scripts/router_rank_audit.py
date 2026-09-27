@@ -101,27 +101,20 @@ def family(name):
     return re.sub(r'[-_]{2,}', '-', n).strip('-')
 
 
-def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument('--json', action='store_true', help='machine-readable output')
-    args = ap.parse_args()
+def family_pairs(models, tiers):
+    """Order every (provider, family) sibling group into (old, new) pairs.
 
-    models = load('models')
-    tiers = collections.defaultdict(set)
-    for r in load('model_tier'):
-        tiers[r['model']].add(r['category'])
-    total_cats = len({r['category'] for r in load('category_levels')}) or 24
-
-    active = [m for m in models if state(m) == 'active']
-    unranked = [m for m in active if not tiers.get(m['model'])]
-    thin = [m for m in active if 0 < len(tiers.get(m['model'], set())) < 6]
-
-    # ---- 2 + 4: inversions and decay
+    ONE matcher, two consumers: this audit CLASSIFIES the pairs (inversions,
+    decay) and router_release_backfill.py EXECUTES them under a per-category
+    gate. It lives here because a second copy drifts: 16 families sat detected
+    as "decay_safe" for weeks and were never acted on precisely because the
+    detector used tier COUNTS while the executor required per-category coverage.
+    """
     groups = collections.defaultdict(list)
-    for m in active:
+    for m in models:
         groups[(m['provider'], family(m['model']))].append(m)
 
-    inversions, decay_safe, decay_blocked, unorderable = [], [], [], []
+    entries, unorderable = [], []
     for (prov, fam), ms in groups.items():
         if len(ms) < 2:
             continue
@@ -157,13 +150,38 @@ def main():
         newest, oldest = rows[-1], rows[0]
         if newest['key'] == oldest['key']:
             continue
-        entry = {'provider': prov, 'family': fam,
-                 'basis': 'release_date' if all(r['rd'] for r in rows) else 'version',
-                 'old': {'model': oldest['model'], 'tiers': oldest['tiers'], 'release_date': oldest['rd']},
-                 'new': {'model': newest['model'], 'tiers': newest['tiers'], 'release_date': newest['rd']}}
-        if newest['tiers'] < oldest['tiers']:
+        entries.append({'provider': prov, 'family': fam,
+                        'basis': 'release_date' if all(r['rd'] for r in rows) else 'version',
+                        'old': {'model': oldest['model'], 'tiers': oldest['tiers'],
+                                'release_date': oldest['rd']},
+                        'new': {'model': newest['model'], 'tiers': newest['tiers'],
+                                'release_date': newest['rd']}})
+    return entries, unorderable
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument('--json', action='store_true', help='machine-readable output')
+    args = ap.parse_args()
+
+    models = load('models')
+    tiers = collections.defaultdict(set)
+    for r in load('model_tier'):
+        tiers[r['model']].add(r['category'])
+    total_cats = len({r['category'] for r in load('category_levels')}) or 24
+
+    active = [m for m in models if state(m) == 'active']
+    unranked = [m for m in active if not tiers.get(m['model'])]
+    thin = [m for m in active if 0 < len(tiers.get(m['model'], set())) < 6]
+
+    # ---- 2 + 4: inversions and decay (pairs come from the SHARED matcher, so the
+    # detector and the executor can never disagree about what a pair is again)
+    pairs, unorderable = family_pairs(active, tiers)
+    inversions, decay_safe, decay_blocked = [], [], []
+    for entry in pairs:
+        if entry['new']['tiers'] < entry['old']['tiers']:
             inversions.append(entry)
-        elif newest['tiers'] >= 6:
+        elif entry['new']['tiers'] >= 6:
             decay_safe.append(entry)      # successor ranked -> retire the old one
         else:
             decay_blocked.append(entry)   # successor unranked -> rank first

@@ -196,6 +196,47 @@ def main():
     # supersession PROPOSALS (never executed here)
     proposals, blocked, regressions = [], [], []
     seen = set()
+
+    def classify(m, s):
+        """The per-category retirement gate. A candidate is not a verdict.
+
+        Compare PER CATEGORY, not by count: counting conflates a successor that
+        has not been MEASURED on a category (gpt-6-sol: 10 vs the incumbent's 18)
+        with one that was measured and came out WORSE (glm-5.3-flashx, a
+        serving-speed variant). Counting made 32 holds look like regressions.
+        """
+        key = (m['provider'], m['model'], s['model'])
+        if key in seen:
+            return
+        seen.add(key)
+        rec = {'provider': m['provider'], 'old': m['model'], 'new': s['model'],
+               'new_ranked': len(tiers.get(s['model'], ())), 'old_ranked': len(tiers.get(m['model'], ()))}
+        old_t = tier_map.get(m['model'], {})
+        new_t = tier_map.get(s['model'], {})
+        if len(new_t) < 6:
+            rec['reason'] = 'successor not ranked enough yet'
+            blocked.append(rec)
+            return
+        unmeasured = sorted(set(old_t) - set(new_t))
+        weaker = sorted(c for c in (set(old_t) & set(new_t)) if new_t[c] < old_t[c])
+        if unmeasured or weaker:
+            # Report BOTH when both hold: a successor can be simultaneously
+            # unmeasured on some categories and measured WORSE on others
+            # (muse-spark-1.3 vs 1.2). Naming only the first hides the stronger
+            # reason, and "weaker" is the one that must not be retired past.
+            parts = []
+            if weaker:
+                parts.append('successor weaker on ' + ','.join(weaker[:4]))
+            if unmeasured:
+                parts.append('unmeasured on ' + ','.join(unmeasured[:4]))
+            rec['reason'] = ' + '.join(parts)
+            rec['unmeasured'] = unmeasured
+            rec['weaker'] = weaker
+            regressions.append(rec)
+        else:
+            proposals.append(rec)
+
+    # CANDIDATE SOURCE 1 — roster `supersedes` links (vendor-declared handoffs)
     for old_key, new_keys in supersedes.items():
         for m in models:
             if norm(m['model']) != old_key or not active(m):
@@ -205,36 +246,30 @@ def main():
                 # found (an early break here silently produced zero proposals)
                 sibs = [s for s in models if norm(s['model']) == nk and s['provider'] == m['provider']]
                 for s in sibs:
-                    if not active(s):
-                        continue
-                    key = (m['provider'], m['model'], s['model'])
-                    if key in seen:
-                        continue
-                    seen.add(key)
-                    rec = {'provider': m['provider'], 'old': m['model'], 'new': s['model'],
-                           'new_ranked': len(tiers.get(s['model'], ())), 'old_ranked': len(tiers.get(m['model'], ()))}
-                    old_t = tier_map.get(m['model'], {})
-                    new_t = tier_map.get(s['model'], {})
-                    if len(new_t) < 6:
-                        # successor not ranked enough to take over yet
-                        rec['reason'] = 'successor not ranked enough yet'
-                        blocked.append(rec)
-                        continue
-                    # Compare PER CATEGORY, not by count. Counting conflates two
-                    # very different things: a successor that has not been
-                    # MEASURED on a category (gpt-6-sol: 10 categories vs the
-                    # incumbent's 18) versus one that was measured and came out
-                    # WORSE (glm-5.3-flashx is a serving-speed variant).
-                    unmeasured = sorted(set(old_t) - set(new_t))
-                    weaker = sorted(c for c in (set(old_t) & set(new_t)) if new_t[c] < old_t[c])
-                    if unmeasured or weaker:
-                        rec['reason'] = ('successor unmeasured on ' + ','.join(unmeasured[:4])) if unmeasured \
-                            else ('successor weaker on ' + ','.join(weaker[:4]))
-                        rec['unmeasured'] = unmeasured
-                        rec['weaker'] = weaker
-                        regressions.append(rec)
-                    else:
-                        proposals.append(rec)
+                    if active(s):
+                        classify(m, s)
+
+    # CANDIDATE SOURCE 2 — the family matcher in router_rank_audit.py.
+    # Roster links only exist where a vendor TOLD us about the handoff; the family
+    # matcher derives the same relationship from ids and launch dates. Without
+    # this, the audit detected 16 "successor ranked -> retire the old" families
+    # for weeks while this executor — reading rosters only — proposed none of
+    # them. One matcher, two consumers: the detector and the executor cannot
+    # disagree about what a pair is.
+    try:
+        import sys as _sys
+        _sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+        import router_rank_audit as _audit
+        _pairs, _ = _audit.family_pairs([m for m in models if active(m)], tiers)
+    except Exception as exc:   # noqa: BLE001
+        print(f'NOTE: family matcher unavailable ({str(exc)[:60]}); roster links only')
+        _pairs = []
+    for e in _pairs:
+        m = next((x for x in models if x['provider'] == e['provider'] and x['model'] == e['old']['model']), None)
+        s = next((x for x in models if x['provider'] == e['provider'] and x['model'] == e['new']['model']), None)
+        if m and s and active(m) and active(s):
+            classify(m, s)
+    print(f'candidate pairs evaluated (roster + family matcher): {len(seen)}')
 
     retired = []
     if args.retire_strict:
