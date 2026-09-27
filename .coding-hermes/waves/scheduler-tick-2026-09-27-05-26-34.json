@@ -1,0 +1,15 @@
+{
+  "tick_id": "scheduler-tick-2026-09-27-05-26-34",
+  "project": "task-router",
+  "base": "origin/main",
+  "worker_model": "glm-5.3-flash",
+  "worker_provider": "zai-glm",
+  "budget": 11,
+  "tasks": [
+    {"id": "DOC-2", "worktree": "/home/kara/worktrees/task-router-DOC-2", "branch": "wt/DOC-2", "dispatch_pid": 748695},
+    {"id": "DOC-3", "worktree": "/home/kara/worktrees/task-router-DOC-3", "branch": "wt/DOC-3", "dispatch_pid": 749110},
+    {"id": "README-3", "worktree": "/home/kara/worktrees/task-router-README-3", "branch": "wt/README-3", "dispatch_pid": 749420},
+    {"id": "README-4", "worktree": "/home/kara/worktrees/task-router-README-4", "branch": "wt/README-4", "dispatch_pid": 749970}
+  ],
+  "note": "Manifest recorded after dispatch because the unattended shell gate initially blocked the required worker launch form; all worktrees and dispatch pids are retained for audit. README-3 produced a commit; the other three workers were stopped after a 10-minute zero-write stall."
+}
