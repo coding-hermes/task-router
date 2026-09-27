@@ -52,6 +52,36 @@ def norm(name):
     return re.sub(r':(free|batch|latest)$', '', n)
 
 
+def superseded_ids(text):
+    """Model ids out of a free-text `supersedes` field.
+
+    Rosters write this field in prose — "deepseek-v4-flash-0731 and
+    deepseek-v4-flash-vision-exp (both RETIRED)", "grok-4.3 (as flagship coding
+    model)", "Llama 4 Maverick / Scout". Taking the string literally produced a
+    key that matched nothing, so a real supersession link was silently dropped
+    (measured: deepseek-foreman/deepseek-v4-flash-vision-exp stayed ACTIVE).
+    Split on separators, strip parentheticals and trailing prose, drop the
+    sentences that carry no id.
+    """
+    if not text:
+        return []
+    s = str(text)
+    s = re.sub(r'\([^)]*\)', ' ', s)                 # (both RETIRED), (as flagship...)
+    parts = re.split(r'\s*(?:,|;|\+|/|\band\b|\bor\b|\bvs\b)\s*', s)
+    out = []
+    for p in parts:
+        p = p.strip().strip('.').strip()
+        # keep only tokens that look like a model id, not prose
+        if not p or ' ' in p:
+            continue
+        if re.fullmatch(r'(none|n/?a|nothing|same|unknown|-+)', p, re.I):
+            continue
+        if not re.search(r'[a-z]', p) or not re.search(r'\d', p):
+            continue
+        out.append(p)
+    return out
+
+
 def plausible(d):
     try:
         dt = datetime.date.fromisoformat(d)
@@ -106,8 +136,8 @@ def main():
             bad.append({'model': name, 'release_date': d, 'reason': f'roster disagrees with {by_model[k]}'})
             continue
         by_model[k] = d
-        if e.get('supersedes'):
-            supersedes.setdefault(norm(e['supersedes']), set()).add(k)
+        for old_id in superseded_ids(e.get('supersedes')):
+            supersedes.setdefault(norm(old_id), set()).add(k)
 
     models = load('models')
     tiers = collections.defaultdict(set)
