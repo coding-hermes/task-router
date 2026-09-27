@@ -1,0 +1,15 @@
+{
+  "tick_id": "task-router-2026-09-27-07-03-49",
+  "project": "task-router",
+  "wave": 1,
+  "worker_model": "glm-5.3-flash",
+  "worker_provider": "zai-glm",
+  "base_sha": "777c7dc",
+  "tasks": [
+    {"task_id":"TR-206","branch":"wt/TR-206","worktree":"~/worktrees/task-router-TR-206","base_sha":"777c7dc","pid":3785936,"status":"running"},
+    {"task_id":"TR-207","branch":"wt/TR-207","worktree":"~/worktrees/task-router-TR-207","base_sha":"777c7dc","pid":4033298,"status":"running"},
+    {"task_id":"TR-209","branch":"wt/TR-209","worktree":"~/worktrees/task-router-TR-209","base_sha":"777c7dc","pid":4040958,"status":"running"}
+  ],
+  "outcomes": [],
+  "created_at": "2026-09-27T07:03:49-05:00"
+}
