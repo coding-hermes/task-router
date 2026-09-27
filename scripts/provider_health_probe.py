@@ -100,10 +100,14 @@ UA = 'hermes-provider-health-probe/3.0'
 # key: provider id in probe_providers.jsonl. url: absolute. All GET with Bearer key.
 CREDIT_ENDPOINTS = {
     'deepseek':   ('https://api.deepseek.com/user/balance', 'DEEPSEEK_API_KEY'),
-    'stepfun':    ('https://api.stepfun.ai/billing/balance', 'STEPFUN_STEP_PLAN_KEY'),
-    'zai-glm':    ('https://api.z.ai/user/balance', 'ZAI_API_KEY'),
-    'neuralwatt': ('https://api.neuralwatt.com/v1/balance', 'NEURALWATT_API_KEY'),
-    'minimax':    ('https://api.minimax.io/v1/query/balance', 'MINIMAX_API_KEY'),
+    'stepfun':    ('https://api.stepfun.ai/v1/accounts', 'STEPFUN_STEP_PLAN_KEY'),
+    # zai-glm intentionally ABSENT: api.z.ai/user/balance is 404 (verified 2026-09-27, plus the
+    # /api/paas/v4 and open.bigmodel.cn variants) and the GLM Coding Plan has NO readback at all -
+    # docs are dashboard-only and the coding endpoint emits no rate-limit headers. Its quota state is
+    # knowable only by self-accounting (credits consumed) plus 429 business codes 1308/1310/1316/1317,
+    # which carry {next_flush_time} in the message body. See data/tables/provider_quota.jsonl.
+    'neuralwatt': ('https://api.neuralwatt.com/v1/quota', 'NEURALWATT_API_KEY'),
+    'minimax':    ('https://api.minimax.io/v1/token_plan/remains', 'MINIMAX_API_KEY'),
     'openrouter': ('https://openrouter.ai/api/v1/credits', 'OPENROUTER_API_KEY'),
 }
 
