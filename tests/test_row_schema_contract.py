@@ -51,6 +51,9 @@ ROW_FIELD_TYPES = (
     ('cost_usd', (float, type(None))),
     ('hops_attempted', (int, type(None))),
     ('session_id', (str,)),
+    # TR-173: the caller's own X-Hermes-Session-Key — str when the caller sent
+    # one (validated), None when it sent none. Never '' standing for "unknown".
+    ('caller_session_key', (str, type(None))),
 )
 
 #: The evidence structure's own fields consumers read (`_chain_evidence` output).

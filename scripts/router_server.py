@@ -1159,6 +1159,28 @@ def _hermes_session_key_error(session_key):
     return None
 
 
+def _caller_session_key(headers):
+    """The caller's X-Hermes-Session-Key for the LEDGER (TR-173).
+
+    Returns (key_or_None, error_or_None). The key is the caller's own join id —
+    for the scheduler that is the TICK it is serving — validated with the SAME
+    rules the forwarded header is (`_hermes_session_key_error`), so a value the
+    gateway itself would reject is never persisted either. Absent header ->
+    (None, None); a value that fails validation -> (None, reason). Never
+    invents a placeholder: "no key" is None, on purpose.
+    """
+    if not isinstance(headers, dict):
+        return None, None
+    raw = headers.get('X-Hermes-Session-Key')
+    if raw is None:
+        raw = headers.get('x-hermes-session-key')
+    if not raw:
+        return None, None
+    key_error = _hermes_session_key_error(raw)
+    if key_error is not None:
+        return None, key_error
+    return str(raw).strip(), None
+
 
 # ---------------------------------------------------------------- TR-151 UI API
 
@@ -1445,16 +1467,10 @@ def _hermes_proxy_chat(body, headers, upstream=None):
     envelope plus additive _router metadata with the session echo.
     """
     upstream = upstream or _UPSTREAM_CALL or _hermes_responses_call
-    hermes_session_key = None
-    key_error = None
-    if isinstance(headers, dict):
-        raw_key = headers.get('X-Hermes-Session-Key')
-        if raw_key is None:
-            raw_key = headers.get('x-hermes-session-key')
-        if raw_key:
-            key_error = _hermes_session_key_error(raw_key)
-            if key_error is None:
-                hermes_session_key = str(raw_key).strip()
+    # TR-173: ONE reader for the caller's key (parse + validate); the 400
+    # contract below is unchanged — an invalid key never reaches the ladder,
+    # and (proven by tests/test_proxy_caller_session_key.py) never the ledger.
+    hermes_session_key, key_error = _caller_session_key(headers)
     if key_error:
         return 400, {'error': key_error}
     t0 = time.time()
@@ -2602,7 +2618,8 @@ def _proxy_record(provider, model, ok, requirements, reason='', latency_s=None,
                   served_by_hop=None, max_hops=None, complexity_source=None,
                   degrade_reason=None, steps=None, chain_evidence=None,
                   classifier_evidence=None, attempts=None,
-                  prompt_chars=None, prompt_sha=None, session_stats=None):
+                  prompt_chars=None, prompt_sha=None, session_stats=None,
+                  caller_session_key=None):
     """One outcome row per attempt + breaker evidence (best effort, fail-open).
 
     TR-071: `source` is the DRIVER identity when the caller declared one
@@ -2696,6 +2713,13 @@ def _proxy_record(provider, model, ok, requirements, reason='', latency_s=None,
                'attempts': attempts,
                # A HASH and a length, never the prompt text.
                'prompt_chars': prompt_chars, 'prompt_sha': prompt_sha,
+               # TR-173: the caller's own X-Hermes-Session-Key — for the
+               # scheduler, the TICK the call served — validated with the same
+               # rules as the forwarded header. null = the caller sent no key
+               # (or one the gateway itself would reject); never a placeholder.
+               # This is the per-task join key the ledger was missing: one line
+               # names the tick AND the lane/cost facts already on the row.
+               'caller_session_key': caller_session_key,
                'task_label': reason[:200] or None, 'ts': time.time()}
         if parent_session_id:
             # Accumulate: one row per (source_system, session, model) that grows as
@@ -2753,9 +2777,15 @@ def proxy_chat(path, body, headers, max_hops=None, upstream=None):
         hdrs = {k.lower(): v for k, v in (headers or {}).items()}
         session_id = hdrs.get('x-router-session') or f'router-proxy-{int(time.time() * 1000)}'
         reason = f'proxy overloaded: {exc}'
+        refusal_key = None                   # bound even if the block below fails
         try:
+            # TR-173: headers ARE in scope on this exit, so the caller's key is
+            # honestly available and lands on the refusal row too (validated by
+            # the same rules; an invalid value stays off the ledger).
+            refusal_key, _refusal_key_err = _caller_session_key(headers)
             _proxy_record('none', 'none', False, {}, reason=reason, latency_s=0.0,
                           source='router-proxy', session_id=session_id,
+                          caller_session_key=refusal_key,
                           route_outcome='rejected', failure_reason='overloaded',
                           hops_attempted=0, max_hops=0, steps=0)
         except Exception:  # noqa: BLE001 — a refusal must still be answerable
@@ -2768,6 +2798,7 @@ def proxy_chat(path, body, headers, max_hops=None, upstream=None):
                 'outcome': 'rejected', 'failure_reason': 'overloaded',
                 'retry_after_s': retry_s, 'admission': _admission_stats(),
                 'session_id': session_id, 'terminal_reason': reason,
+                'caller_session_key': refusal_key,
                 'note': ('admission refused: the proxy bounds work in flight and queue depth, '
                          'and refuses rather than accepting a load it cannot serve'),
                 'usage': None, 'cost_usd': None,
@@ -2799,6 +2830,16 @@ def _proxy_chat_inner(path, body, headers, max_hops=None, upstream=None):
             caller_problems.append(f'caller lookup failed: {str(exc)[:120]}')
             caller = ''
     source_system = caller or 'router-proxy'
+    # TR-173: read the caller's X-Hermes-Session-Key ONCE, validated by the
+    # same rules the forwarded header answers to (`_hermes_session_key_error`).
+    # The chat path never rejected this header and fail-open stays — but a
+    # value the gateway itself would reject is never persisted either; the
+    # drop is named in the envelope's `problems` (reason visible, never
+    # silent). No key at all stays (None, None): the row's field is null.
+    caller_session_key, caller_key_error = _caller_session_key(headers)
+    if caller_key_error:
+        caller_problems.append(
+            f'caller X-Hermes-Session-Key not persisted: {caller_key_error}')
     # TR-074/TR-075: normalize `role:developer` -> `role:system` BEFORE the walk.
     # A payload the upstream rejects must not burn every hop, and the rewrite is
     # the same for all five drivers (spec §1: one place, not five).
@@ -2919,6 +2960,7 @@ def _proxy_chat_inner(path, body, headers, max_hops=None, upstream=None):
                       reason='no open hop for this request',
                       latency_s=round(time.time() - ladder_t0, 3), source=source_system,
                       session_id=session_id, parent_session_id=parent_session_id,
+                      caller_session_key=caller_session_key,
                       route_outcome='no-hops', failure_reason='no-hops',
                       hops_attempted=0, max_hops=hops, complexity_source=source,
                       degrade_reason=(requirements.get('problems') or [None])[0],
@@ -3035,6 +3077,7 @@ def _proxy_chat_inner(path, body, headers, max_hops=None, upstream=None):
                       source=source_system, session_id=session_id,
                       tokens_in=tokens_in, tokens_out=tokens_out, cost_usd=cost_usd,
                       parent_session_id=parent_session_id,
+                      caller_session_key=caller_session_key,
                       price_basis=price_basis,
                       cache_read_tokens=meters['cache_read_tokens'],
                       cache_write_tokens=meters['cache_write_tokens'],
