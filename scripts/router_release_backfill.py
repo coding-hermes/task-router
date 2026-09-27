@@ -98,6 +98,12 @@ def main():
     ap.add_argument('--retire-strict', action='store_true',
                     help='also retire old lanes whose successor is ranked AT LEAST as well '
                          '(strict upgrade). Regressions are reported, never retired.')
+    ap.add_argument('--openrouter-catalog', action='store_true',
+                    help='fill STILL-BLANK dates from the live OpenRouter catalog `created` '
+                         'field. These are aggregator LISTING dates, not vendor launch dates, '
+                         'so they never override a researched date and the provenance is '
+                         'written to model_notes.')
+    ap.add_argument('--catalog-file', default=None, help='use a cached catalog JSON instead of fetching')
     ap.add_argument('--report', default=os.path.expanduser('~/model_bench/roster_backfill_report.json'))
     args = ap.parse_args()
 
@@ -161,6 +167,29 @@ def main():
         if cur != d:
             stamped += 1
         m['release_date'] = d
+
+    # ---- aggregator LISTING dates for rows still blank (opt-in, never overriding)
+    catalog_filled = 0
+    if args.openrouter_catalog:
+        import urllib.request
+        if args.catalog_file:
+            doc = json.load(open(args.catalog_file, encoding='utf-8'))
+        else:
+            with urllib.request.urlopen('https://openrouter.ai/api/v1/models', timeout=60) as resp:
+                doc = json.load(resp)
+        created = {}
+        for row in doc.get('data') or []:
+            if row.get('id') and row.get('created'):
+                created[row['id']] = datetime.datetime.fromtimestamp(
+                    row['created'], datetime.timezone.utc).date().isoformat()
+        for m in models:
+            if m['provider'] != 'openrouter' or m.get('release_date'):
+                continue                       # researched dates always win
+            d = created.get(m['model'])
+            if d and plausible(d):
+                m['release_date'] = d
+                catalog_filled += 1
+        print(f'OpenRouter LISTING dates applied to blank rows: {catalog_filled}')
 
     # supersession PROPOSALS (never executed here)
     proposals, blocked, regressions = [], [], []
@@ -246,6 +275,24 @@ def main():
     with open(path, 'w', encoding='utf-8') as fh:
         for m in models:
             fh.write(json.dumps(m, ensure_ascii=False) + '\n')
+
+    if catalog_filled:
+        # Provenance, because release_date must never quietly mean two things.
+        note_path = os.path.join(DATA_DIR, 'model_notes.jsonl')
+        today = datetime.date.today().isoformat()
+        note = {
+            'provider': 'openrouter', 'model': '*',
+            'note': (f'{catalog_filled} openrouter lanes had NO vendor launch date and were given the '
+                     f'OpenRouter catalog `created` value instead — that is the aggregator LISTING date, '
+                     f'NOT the maker release date. Rows with a researched date were never touched. '
+                     f'Use for ordering/age only; treat as a lower-confidence bound. Source: '
+                     f'https://openrouter.ai/api/v1/models'),
+            'source': f'catalog-listing-date-{today}', 'valid_from': today,
+        }
+        with open(note_path, 'a', encoding='utf-8') as fh:
+            fh.write(json.dumps(note, ensure_ascii=False) + '\n')
+        print(f'provenance note appended to model_notes.jsonl')
+
     print(f'\nCOMMITTED to working tree: {path} ({len(models)} rows). Re-seed next.')
     return 0
 
