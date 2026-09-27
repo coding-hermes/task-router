@@ -460,3 +460,6 @@
 {"id": 20260927083015, "timestamp": "2026-09-27T20:43:32Z", "event_type": "task_updated", "task_id": "TR-187", "actor": "foreman", "detail": "{\"status\":\"failed\"}"}
 {"id": 20260927083016, "timestamp": "2026-09-27T20:43:32Z", "event_type": "task_updated", "task_id": "TR-187", "actor": "foreman", "detail": "{\"status\":\"failed\",\"reason\":\"worker stalled before implementation; no commit\",\"verdict\":\"e1256d1d\",\"tier1\":\"PASS\",\"tier2\":\"SKIP\"}"}
 {"id": 20260927083017, "timestamp": "2026-09-27T20:48:40Z", "event_type": "task_updated", "task_id": "TR-187", "actor": "foreman", "detail": "{\"status\":\"pending\"}"}
+{"id": 20260927083018, "timestamp": "2026-09-27T22:03:09Z", "event_type": "task_completed", "task_id": "TR-196", "actor": "foreman", "detail": "{\"status\":\"complete\"}"}
+{"id": 20260927083019, "timestamp": "2026-09-27T22:03:09Z", "event_type": "task_updated", "task_id": "TR-177", "actor": "foreman", "detail": "{\"status\":\"pending\"}"}
+{"id": 20260927083020, "timestamp": "2026-09-27T22:03:09Z", "event_type": "task_updated", "task_id": "TR-203", "actor": "foreman", "detail": "{\"status\":\"pending\"}"}
