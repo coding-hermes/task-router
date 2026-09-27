@@ -111,7 +111,51 @@ import sys
 
 from task_router import paths
 
-REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # repo root
+def _parents(path):
+    """Yield path, then its parent, then its grandparent... stopping at the root."""
+    while True:
+        yield path
+        parent = os.path.dirname(path)
+        if parent == path:
+            return
+        path = parent
+
+
+def _resolve_repo_root():
+    """Locate the checkout that holds scripts/.
+
+    The scripts/ tools ship with the CHECKOUT, not the wheel, so this cannot be
+    derived from __file__ alone: an installed `router` lives in site-packages/,
+    and deriving from there produced `site-packages/scripts/...` for every
+    subcommand (measured 2026-09-27: `pip install .` gave a CLI where not one
+    command ran). Resolution order, most explicit first:
+
+      1. TASK_ROUTER_REPO / TASK_ROUTER_HOME -- an operator override wins.
+      2. walk UP from the current working directory -- the common case: you are
+         standing in the checkout, or in a directory under it.
+      3. walk up from this file -- the source-checkout / editable-install case.
+
+    Returns the best candidate even when nothing matches, so cli.REPO keeps its
+    historical meaning for callers that read it. dispatch() is what refuses to
+    run, with a message a human can act on.
+    """
+    explicit = os.environ.get("TASK_ROUTER_REPO") or os.environ.get("TASK_ROUTER_HOME")
+    candidates = []
+    if explicit:
+        candidates.append(os.path.abspath(os.path.expanduser(explicit)))
+    candidates.extend(_parents(os.path.abspath(os.getcwd())))
+    candidates.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    seen = set()
+    for cand in candidates:
+        if cand in seen:
+            continue
+        seen.add(cand)
+        if os.path.isfile(os.path.join(cand, "scripts", "router_spawn.py")):
+            return cand
+    return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # historical fallback
+
+
+REPO = _resolve_repo_root()
 SCRIPTS_DIR = os.path.join(REPO, "scripts")
 
 # Subcommand name -> script basename. `validate` is reserved for a future
@@ -383,6 +427,21 @@ def _bootstrap_state_dir(state_dir):
 def dispatch(cmd, argv):
     """Run scripts/<script> as __main__ with argv rewritten. Never returns."""
     script = os.path.join(SCRIPTS_DIR, COMMANDS[cmd])
+    if not os.path.isfile(script):
+        # Installed-from-wheel case (or a wrong TASK_ROUTER_REPO): say what to do
+        # instead of dying with a site-packages path nobody can act on.
+        print(
+            "router: cannot find the task-router checkout.\n"
+            f"  looked for: {script}\n"
+            "  The scripts/ tools ship with the checkout, not with the installed wheel.\n"
+            "  Fix one of these ways:\n"
+            "    * run `router` from inside a checkout (any subdirectory works), or\n"
+            "    * point at one explicitly: TASK_ROUTER_REPO=/path/to/task-router router "
+            f"{cmd} ..., or\n"
+            "    * use the checkout's own entry point: python3 scripts/"
+            f"{COMMANDS[cmd]} ...",
+            file=sys.stderr)
+        raise SystemExit(USAGE_ERROR)
     sys.argv = [os.path.basename(script), *argv]
     runpy.run_path(script, run_name="__main__")
 
