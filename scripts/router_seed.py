@@ -322,19 +322,38 @@ BENCH_OVERLAY = {
     # clear lenient profiles. The subscription lane was live, healthy and
     # reachable, yet received ZERO sessions: unranked, not broken. Same small-n
     # damped convention as the 09-16/09-25 probes (0.85 * checks/total, n=1,
-    # never family-filled). Only the four categories the 5-task battery
-    # actually measures are claimed; T4-INSTR is omitted on purpose (floor-test
-    # class, already excluded as battery-T4-INSTR-floor).
-    'live-probe-2026-09-27': ['tool_use', 'code_gen', 'reasoning', 'debug'],
+    # never family-filled).
+    #
+    # HAZARD (measured, not theoretical): the overlay below applies a source's
+    # WHOLE category list to EVERY row carrying that source — the row's own
+    # `category` column is ignored. A multi-task battery therefore credits each
+    # category with its BEST task (muse code_gen read 0.85 from a 2/3 code task
+    # until these keys were split). A multi-category source key is only sound
+    # when every row is itself a per-category probe (the 09-16/09-25 shape).
+    # So: one key per measured category, and the score lands only where earned.
+    'live-probe-2026-09-27/T1-TOOL': ['tool_use'],
+    'live-probe-2026-09-27/T2-CODE': ['code_gen'],
+    'live-probe-2026-09-27/T3-REASON': ['reasoning'],
+    'live-probe-2026-09-27/T5-DEBUG': ['debug'],
 }
 overlay = []  # (provider, model, category, rel_score, bench_source)
 for src, cats in BENCH_OVERLAY.items():
     rows = con.execute("SELECT model, category, score, max_score FROM benchmarks WHERE source LIKE ?",
                        [f'%{src}%']).fetchall()
-    for model, _, score, mx in rows:
+    for model, row_cat, score, mx in rows:
         if not mx:
             continue
-        for c in cats:
+        # RANK-FIDELITY (2026-09-27): when a source's list names several
+        # categories AND the row declares one of them, the row's own category
+        # wins. Applying the whole list to every row credited each category
+        # with the source's BEST row — measured: aion-3.5's long_doc probe
+        # scored 0.64 while its model_perf read 0.85, because nine sibling
+        # probe rows at 0.85 fed the same category list. Rows whose `category`
+        # is not in the list (legacy shapes, e.g. battery-T1-TOOL rows tagged
+        # 'agent-tick') keep the old list-wide behaviour, so nothing silently
+        # loses evidence that used to land.
+        eff = [row_cat] if row_cat in cats else cats
+        for c in eff:
             overlay.append((model, c, float(score) / float(mx), src))
 # map benchmark model names (e.g. cline-pass/glm-5.3) to registry (provider, model)
 model_ids = {}
