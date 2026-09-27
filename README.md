@@ -426,6 +426,11 @@ for repo-relative use.
 | `router pricing` | Price table diagnostics (`--json`, `--dry-run`) |
 | `router pricing-audit` | Mechanized pricing audit (TR-070): classifies every active priced lane by evidence class (measured-offset, official, estimate, unbased, free-window-pending, …), flags burn traps (stale/unsourced offsets) and lanes >3x off models.dev list. Takes no flags — `router pricing-audit --help` RUNS the audit; exit 1 = traps found, 0 = clean |
 | `router gaps` | Registry data-quality gaps (`--json`, `--lacking`, `--top`) |
+| `router chain-run` | Execute a named routing chain for a request and record the resulting hop outcomes |
+| `router lifecycle` | Inspect and manage the router's lifecycle state and operational transitions |
+| `router outcomes` | Inspect recorded request outcomes and outcome-derived routing statistics |
+| `router pricing-audit` | Audit registry pricing evidence and report stale or inconsistent price data |
+| `router quota` | Inspect provider quota and policy-gate state used during resolution |
 | `router maintain` | Reprice / seed / export / snapshot / commit maintenance (`--dry-run`) |
 | `router probe` | Provider health probe (`--only <provider>`, `--no-write` / `--dry-run`) |
 | `router quota` | Plan-window quota gates (TR-060): record a provider's 429 exhaustion with its own reset time so the resolver skips the lane until the plan refills, instead of re-picking it every 30-minute circuit cool-down. Subcommands: `set <provider> <reason> <reset_at>` (`--detected-at`), `clear <provider>\|--all`, `status [<provider>]`, each with `--json`; `--state-file`/`--state-dir` to target a non-default store. Deliberately resolves the script default `~/.hermes/model-router/quota-state.json` — the same file the fleet spawn path reads (see docs/quota-gate.md) |
