@@ -323,16 +323,25 @@ def _caps_response(body=None, status=200):
                              json.dumps(doc).encode())
 
 
-def test_capabilities_metadata_is_read_from_the_upstream():
+def test_capabilities_metadata_is_read_from_the_upstream(monkeypatch):
+    # TR-146 credential gate: with no gateway credential configured the probe
+    # returns {'error': 'no gateway credential configured'} WITHOUT firing the
+    # call, so on CI (no credential env) seen['url'] was never set and the
+    # assert below KeyError'd. Stub the first env var the resolver checks
+    # (GATEWAY_CREDENTIAL_ENV_VARS[0]) with a dummy value — the probe path
+    # then executes and no real credential is needed or used.
+    monkeypatch.setenv(rsrv.GATEWAY_CREDENTIAL_ENV_VARS[0], 'test-cred')
     seen = {}
 
     def opener(req, timeout=None):
         seen['url'] = req.full_url
+        seen['auth'] = req.get_header('Authorization')
         return _caps_response()
 
     meta = rsrv._hermes_capabilities_metadata('http://127.0.0.1:8642',
                                               _opener=opener)
     assert seen['url'] == 'http://127.0.0.1:8642/v1/capabilities'
+    assert seen['auth'] == 'Bearer test-cred'  # TR-146: probe authenticates
     assert meta['responses_endpoint'] == '/v1/responses'
     assert meta['responses_api'] is True
     assert meta['session_key_header'] == 'X-Hermes-Session-Key'

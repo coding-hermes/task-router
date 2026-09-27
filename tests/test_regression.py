@@ -232,7 +232,13 @@ def test_chain_invariants_per_profile(monkeypatch, tmp_path, pid):
     #       stamps, the last two identical): the LIFECYCLE PASS did not move this
     #       head. Deliberate fixture update, documented in
     #       docs/lifecycle-prune-20260926.md.
-    ("P0_FORE", "xkiro/openai/gpt-6-luna"),  # 2026-09-16: union-alpha lanes DISABLED at registry (Go=HTTP 500 broken, openrouter=keys expired) per Bane disable-broken-providers call — clinepass lane stays ENABLED and serves the P1_WORKER allow_slow profile; mirror fixed point reverts to the TR-042-era head
+    # 2026-09-27 INT-CI-20260927-03: gpt-6-luna tool_use was downgraded
+    #     0.85 -> 0.21 (tier 5 -> -5) on bench:live-probe-2026-09-25
+    #     evidence; P0_FORE requires tool_use >= 0, so the capability bars
+    #     now exclude it. New head xkiro/xiaomi/mimo-v2.6-flash
+    #     (tool_use 0.64, bench:live-probe-2026-09-25) taken from the live
+    #     router_spawn resolve 2026-09-27.
+    ("P0_FORE", "xkiro/xiaomi/mimo-v2.6-flash"),  # 2026-09-16: union-alpha lanes DISABLED at registry (Go=HTTP 500 broken, openrouter=keys expired) per Bane disable-broken-providers call — clinepass lane stays ENABLED and serves the P1_WORKER allow_slow profile; mirror fixed point reverts to the TR-042-era head
     # 2026-09-16: Step Plan Flash Pro flat-sub repricing (plan_terms 39.4x lane,
     # commit afc774c) stamped step-3.5-flash at $0.0051 normalized — cheaper than
     # every other P1_CODING/P2_AGENTIC-eligible lane, so the price-ordered chain
@@ -244,7 +250,12 @@ def test_chain_invariants_per_profile(monkeypatch, tmp_path, pid):
     # normal eligibility to accommodate the emergency fallback — fallback is a
     # degraded path that reports requirements_unmet). P2/P4 head on models with
     # real long_horizon/security evidence.
-    ("P2_AGENTIC", "xkiro/openai/gpt-6-luna"),  # 2026-09-26: two facts, both documented in docs/lifecycle-prune-20260926.md — (1) stepfun/step-3.5-flash was RETIRED by the last-quarter lifecycle pass (release_date 2026-01-29, 240d, superseded by step-3.7-flash), so this profile can no longer hold it (was: stepfun/step-3.5-flash, 2026-09-16); (2) the head that replaces it is the plan-priced xkiro/openai/gpt-6-luna ($0.003867/M, 'provider_import preset=xkiro $200 coding plan'), the settled cheapest eligible lane after TR-178 cleared a fabricated $0 on non-free plan SKUs
+    # 2026-09-27 INT-CI-20260927-03: the same gpt-6-luna tool_use downgrade
+    #     (0.85 -> 0.21, tier -5, bench:live-probe-2026-09-25) excludes it
+    #     here too (tool_use >= 0 bar). New head xkiro/z-ai/glm-5.3-flash
+    #     (tool_use 0.85, family alias:glm-5.3-flash) per live router_spawn
+    #     resolve 2026-09-27.
+    ("P2_AGENTIC", "xkiro/z-ai/glm-5.3-flash"),  # 2026-09-26: two facts, both documented in docs/lifecycle-prune-20260926.md — (1) stepfun/step-3.5-flash was RETIRED by the last-quarter lifecycle pass (release_date 2026-01-29, 240d, superseded by step-3.7-flash), so this profile can no longer hold it (was: stepfun/step-3.5-flash, 2026-09-16); (2) the head that replaces it is the plan-priced xkiro/openai/gpt-6-luna ($0.003867/M, 'provider_import preset=xkiro $200 coding plan'), the settled cheapest eligible lane after TR-178 cleared a fabricated $0 on non-free plan SKUs
     # Bane 2026-08-31: P4_SECURITY requires security >= 2. Only gpt-5.6-sol
     # clears that bar. 2026-09-10: commandcode provider added (Provider API,
     # no-markup, open in the prod mirror) — its gpt-5.6-sol lane clears
@@ -489,7 +500,10 @@ def test_registry_integrity():
                 "sample-outcomes",
                 # TR-049 seed-derived averages (per-user data; empty on a
                 # clone without an outcome store)
-                "model_outcomes"}
+                "model_outcomes",
+                # Provider quota ledger (commit 777c7dc, 2026-09-26):
+                # commandcode rollover correction — data sidecar like plan_terms
+                "provider_quota"}
     assert core <= set(tables), f"missing core tables: {core - set(tables)}"
     assert set(tables) - core <= sidecars, f"unexpected tables: {set(tables) - core - sidecars}"
     models = tables["models"]
