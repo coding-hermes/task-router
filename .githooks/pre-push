@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# Pre-push gate: refuse to land on a branch whose CI is red.
+#
+# Installed by scripts/install-hooks.sh (sets core.hooksPath). Git passes the
+# refs being pushed on stdin as: <local ref> <local sha> <remote ref> <remote sha>
+#
+# Scope is deliberately narrow: this only gates pushes that UPDATE the gated
+# branch (default: main). Feature branches and throwaway worktrees push freely —
+# the point is not to slow down work, it is to stop stacking more commits on a
+# branch that is already failing in CI.
+#
+# Escape hatch: ALLOW_RED_PUSH=1 (or CI_GATE_BYPASS=1). It prints a warning and
+# proceeds; no gate in this repo may be bypassed silently.
+set -uo pipefail
+cd "$(dirname "$0")/.."
+
+GATED_BRANCH="${CI_GATE_BRANCH:-main}"
+PY="${PYTHON:-python3}"
+
+blocked=0
+checked=0
+while read -r local_ref local_sha remote_ref remote_sha; do
+  case "$remote_ref" in
+    "refs/heads/$GATED_BRANCH") ;;
+    *) continue ;;
+  esac
+  checked=$((checked + 1))
+  if ! "$PY" scripts/ci_gate_check.py --branch "$GATED_BRANCH" --sha "$local_sha" 2>&1; then
+    blocked=$((blocked + 1))
+  fi
+done
+
+if [ "$checked" -eq 0 ]; then
+  exit 0
+fi
+if [ "$blocked" -gt 0 ]; then
+  echo ""
+  echo "pre-push: refused ($blocked of $checked push(es) to $GATED_BRANCH had red CI)."
+  echo "pre-push: fix main's CI, or re-run with ALLOW_RED_PUSH=1 to override loudly."
+  exit 1
+fi
+exit 0

@@ -28,3 +28,18 @@ if [ "$RC" -ne 0 ]; then
   echo "ERROR: pytest failed (exit $RC) — see output above."
   exit 1
 fi
+
+# ---------------------------------------------------------------------------
+# CI gate (see docs/ci-gate.md). This suite runs WITH this box's live state
+# present; CI runs it with none, so a green run here is not evidence about CI.
+# Three consecutive red CI runs on main landed anyway because nothing looked.
+# Skips (announced) when gh is missing/unauthenticated/offline — a network blip
+# must never wedge the fleet. Override loudly with CI_GATE_BYPASS=1.
+# ---------------------------------------------------------------------------
+if [ -f scripts/ci_gate_check.py ]; then
+  "$PY" scripts/ci_gate_check.py || {
+    echo "ERROR: CI is not green for the branch tip — do not land more work."
+    echo "       Fix it, or proceed deliberately with CI_GATE_BYPASS=1."
+    exit 1
+  }
+fi
