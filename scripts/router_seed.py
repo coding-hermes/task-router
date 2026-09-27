@@ -105,6 +105,14 @@ BASE_COLUMNS = {
                ('perf_delegation', 'DOUBLE'), ('perf_guard', 'DOUBLE'),
                ('perf_mock', 'DOUBLE'), ('perf_reasoning', 'DOUBLE'),
                ('valid_from', 'DATE'), ('available_from', 'DATE'), ('valid_to', 'DATE'), ('archive', 'BOOLEAN'),
+               # release_date = when the MODEL was released by its maker. NOT
+               # valid_from (that is when this row entered our registry — this
+               # database is new, so nearly every row is "recent" and valid_from
+               # cannot order generations). Bane 2026-09-27: without real launch
+               # days you cannot tell a superseded model from a current one, so
+               # the fleet keeps routing last generation's ids. NULL = launch
+               # date not yet researched (never guess it).
+               ('release_date', 'DATE'),
                ('lifecycle_source', 'VARCHAR'), ('lifecycle_checked_at', 'VARCHAR'),
                ('replaced_by', 'VARCHAR'),
                ('token_factor', 'DOUBLE'),
