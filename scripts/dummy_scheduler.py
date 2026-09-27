@@ -41,12 +41,47 @@ from pathlib import Path
 LEDGER = Path('/home/kara/task-router/data/state/outcomes.jsonl')
 RAW_OUT = Path('/home/kara/task-router/data/state/dummy-scheduler-runs.jsonl')
 
-# A foreman-ish prompt: real ticks are thousands of chars. Kept configurable so the harness can
-# reproduce both a trivial probe and a realistic tick without me guessing.
+# Synthetic load must not resemble an actionable agent instruction. The previous prompt
+# named a fictional project, skill, and board task; it triggered real worker sessions during
+# a rehearsal. Preserve prompt size only with explicitly inert filler below.
 DEFAULT_PROMPT = (
-    "You are the dummy-scheduler harness ticking project <proj>. Load skills dummy-foreman, "
-    "read the board, pick the highest-priority open row, implement it, run the guard, commit.\n"
+    "Synthetic rehearsal payload from task-router/scripts/dummy_scheduler.py. "
+    "This is not a work order. There is no project, board, task, or skill to act on. "
+    "Do not read files, make edits, dispatch workers, or commit. Reply with one-line "
+    "acknowledgement only.\n"
 )
+
+
+def synthetic_prompt(target_chars):
+    """Return a foreman-sized but non-actionable synthetic prompt."""
+    prompt = DEFAULT_PROMPT
+    while len(prompt) < target_chars:
+        prompt += f"[synthetic filler {len(prompt)}] no task; no action.\n"
+    return prompt
+
+
+def summarize_results(results, requested, ledger_delta, elapsed_s):
+    """Machine-readable load outcome; a missing response counts as a dropped request."""
+    statuses = {}
+    for result in results:
+        status = str(result.get('status'))
+        statuses[status] = statuses.get(status, 0) + 1
+    completed = len(results)
+    successful = sum(1 for result in results if result.get('status') == 200)
+    return {
+        'requested': requested,
+        'completed': completed,
+        'successful': successful,
+        'failed': completed - successful,
+        'dropped': max(0, requested - completed),
+        'statuses': statuses,
+        'elapsed_s': round(elapsed_s, 3),
+        'ledger_rows': ledger_delta,
+        'ledger_rows_per_completed_request': round(ledger_delta / max(1, completed), 4),
+    }
+
+
+# The prompt is deliberately inert; length padding never adds plausible task text.
 
 
 def read_secret(name):
@@ -150,9 +185,7 @@ def main():
     if not key:
         print('no API key found by name (API_SERVER_KEY) — refuse to guess'); return 2
 
-    prompt = DEFAULT_PROMPT
-    while len(prompt) < args.prompt_chars:
-        prompt += f'board row DUMMY-{len(prompt)}: fix it.\n'
+    prompt = synthetic_prompt(args.prompt_chars)
 
     before = ledger_count()
     load_before = open('/proc/loadavg').read().split()[:3]
@@ -175,11 +208,26 @@ def main():
     wall = time.time() - t0
 
     after = ledger_count()
+    summary = summarize_results(results, args.n, after - before, wall)
     print()
-    print(f'  completed {len(results)} requests in {wall:.1f}s')
+    print(f'  completed {len(results)}/{args.n} requests in {wall:.1f}s')
     ok = [r for r in results if r.get('status') == 200]
     print(f'  HTTP 200: {len(ok)}/{len(results)} | statuses: '
           f'{sorted({str(r.get("status")) for r in results})}')
+    print(f'  failed: {summary["failed"]} | dropped: {summary["dropped"]}')
+    print(f'  p50 latency: {statistics.median([r["wall_s"] for r in results]):.3f}s' if results else '  p50 latency: n/a')
+    print('  result_json: ' + json.dumps(summary, sort_keys=True))
+    if args.label:
+        summary['label'] = args.label
+        summary['base'] = args.base
+        summary['prompt_chars'] = len(prompt)
+        with RAW_OUT.open('a') as f:
+            f.write(json.dumps({'run_summary': summary}, sort_keys=True) + '\\n')
+    else:
+        summary['base'] = args.base
+        summary['prompt_chars'] = len(prompt)
+        with RAW_OUT.open('a') as f:
+            f.write(json.dumps({'run_summary': summary}, sort_keys=True) + '\\n')
     if ok:
         print(f'  wall time  min {min(r["wall_s"] for r in ok):.1f}s  '
               f'median {statistics.median(r["wall_s"] for r in ok):.1f}s  '
