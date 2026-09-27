@@ -354,6 +354,18 @@ BENCH_OVERLAY = {
     'live-probe-2026-09-27/LONG-DOC': ['long_doc'],
     'live-probe-2026-09-27/LONG-HORIZON': ['long_horizon'],
     'live-probe-2026-09-27/TEST': ['test'],
+    # 2026-09-27 (blocking-category round) — DELIBERATELY NOT REGISTERED.
+    # The six probes exist in scripts/router_probe_run.py (--extended) and their
+    # rows are in benchmarks.jsonl, but they SATURATED: 7 of 7 lanes scored a
+    # perfect 4/4 on every one of them. A source key here would bridge that into
+    # a top tier for guard/mock/review/spec_docs/mechanical/multilingual on every
+    # model — over-ranking with zero signal. Same defect class as
+    # battery-T4-INSTR-floor ("40+ models at 1.0"). The rows stay as evidence that
+    # a lane CLEARS the floor; no key, so they are INERT by construction rather
+    # than excluded by a second mechanism (which is what I tried first and it did
+    # not apply: _BRIDGE_EXCLUDE_SRC only guards the SQL bridge path).
+    # To bridge these categories you need DISCRIMINATING probes, not floor tests.
+    #   'live-probe-2026-09-27/GUARD': ['guard'], ... (see git history 2026-09-27)
 }
 overlay = []  # (provider, model, category, rel_score, bench_source)
 for src, cats in BENCH_OVERLAY.items():
@@ -732,7 +744,20 @@ _BRIDGE_CATS = tuple(CATS)
 #:   xkiro-live-battery      — the perfcols rows say they are 'already carried
 #:                             via the perf_* columns' and the 09-16 probe row
 #:                             says 'no overlay pattern BY DESIGN'.
-_BRIDGE_EXCLUDE_SRC = ('battery-T4-INSTR-floor', 'xkiro-live-battery')
+_BRIDGE_EXCLUDE_SRC = ('battery-T4-INSTR-floor', 'xkiro-live-battery',
+                       # 2026-09-27: the six blocking-category probes SATURATED —
+                       # 7 of 7 lanes scored a perfect 4/4 on all of them, so they
+                       # carry no ranking signal and would hand every model a top
+                       # tier in guard/mock/review/spec_docs/mechanical/
+                       # multilingual. Same defect class as battery-T4-INSTR-floor
+                       # ("40+ models at 1.0"): a floor test, not a discriminator.
+                       # The rows stay in benchmarks.jsonl as evidence that a lane
+                       # CLEARS the floor; they just must not set a tier.
+                       # guard/mock/multilingual are already excluded from
+                       # CATEGORY_ESTIMATES for the same reason.
+                       'live-probe-2026-09-27/GUARD', 'live-probe-2026-09-27/MOCK',
+                       'live-probe-2026-09-27/REVIEW', 'live-probe-2026-09-27/SPEC-DOCS',
+                       'live-probe-2026-09-27/MECHANICAL', 'live-probe-2026-09-27/MULTILINGUAL')
 #: ...and rows whose OWN source text declares that it is NOT to be overlaid.
 #: Three live examples: the 09-19 Z.AI FlashX DeepSWE row ('inert by design -
 #: no overlay pattern in the source string; vendor scale, shared Flash stack'),

@@ -50,6 +50,16 @@ BATTERIES = {
         'long_horizon': ('LONG-HORIZON', 'long_horizon', None),
         'test': ('TEST', 'test', None),
     },
+    # the six categories that BLOCK the held retirements; e2e_vision is absent on
+    # purpose — a text-only probe cannot measure vision and must not pretend to.
+    'extended': {
+        'guard': ('GUARD', 'guard', None),
+        'mock': ('MOCK', 'mock', None),
+        'review': ('REVIEW', 'review', None),
+        'spec_docs': ('SPEC-DOCS', 'spec_docs', None),
+        'mechanical': ('MECHANICAL', 'mechanical', None),
+        'multilingual': ('MULTILINGUAL', 'multilingual', None),
+    },
 }
 
 
