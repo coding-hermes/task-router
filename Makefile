@@ -41,7 +41,7 @@ install: venv
 	@$(ROUTER) --help >/dev/null && echo "router installed: $(ROUTER)"
 
 seed: install
-	@$(ROUTER) seed
+	@$(VENV_PY) scripts/router_seed.py
 
 validate: install
 	@$(ROUTER) validate --json

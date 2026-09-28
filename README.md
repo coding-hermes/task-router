@@ -43,6 +43,13 @@ pip install duckdb          # or: uv pip install duckdb
 # `router validate` exits 1 until registry.json exists.
 router seed
 
+# Path note: the installed `router seed` CLI writes the registry under the
+# per-user data home, while the Makefile targets stay repo-relative —
+# `make seed` runs scripts/router_seed.py directly and writes the repo-root
+# registry.json that `make serve` (scripts/router_server.py) reads. Use the
+# make targets (or export ROUTING_REGISTRY) to keep one checkout
+# self-contained; mixing the two paths splits it.
+
 # Resolve a configured project to its gated, price-ordered chain.
 router spawn my-project --format json
 
