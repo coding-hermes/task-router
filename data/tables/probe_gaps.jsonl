@@ -137,3 +137,7 @@
 {"provider": "xkiro-2", "model": "moonshotai/kimi-k2.5", "error": "[not_served] HTTP Error 404: Not Found"}
 {"provider": "xkiro-2", "model": "moonshotai/kimi-k2.6", "error": "[not_served] HTTP Error 404: Not Found"}
 {"provider": "commandcode-2", "model": "claude-opus-5-5", "error": "[not_in_plan] HTTP 403 permission_error MODEL_NOT_IN_PLAN (re-classified 2026-09-27: the original [not_served] reading came from Cloudflare 1010 on the Anthropic Messages path before it sent a User-Agent — a blocked client, not a missing model; re-probed with the UA fixed the provider answers MODEL_NOT_IN_PLAN)"}
+{"provider": "commandcode-2", "model": "claude-fable-5", "error": "[not_in_plan] HTTP Error 403: Forbidden"}
+{"provider": "commandcode-2", "model": "google/gemini-3.6-flash", "error": "[not_in_plan] HTTP Error 403: Forbidden"}
+{"provider": "commandcode-2", "model": "claude-fable-5-1", "error": "[not_in_plan] HTTP Error 403: Forbidden"}
+{"provider": "commandcode-2", "model": "gpt-6-sol", "error": "[not_in_plan] HTTP Error 403: Forbidden"}
