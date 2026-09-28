@@ -165,7 +165,7 @@
 {"model": "accounts/fireworks/models/deepseek-v4p1-flash", "category": "refactor", "perf": 0.5, "tier": 1, "tier_source": "family", "source_ref": "alias:deepseek-flash"}
 {"model": "accounts/fireworks/models/deepseek-v4p1-flash", "category": "review", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:deepseek-v4.1-flash"}
 {"model": "accounts/fireworks/models/deepseek-v4p1-flash", "category": "schema", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:deepseek-v4.1-flash"}
-{"model": "accounts/fireworks/models/deepseek-v4p1-flash", "category": "spec_docs", "perf": 0.85, "tier": 1, "tier_source": "family", "source_ref": "alias:deepseek-v4.1-flash"}
+{"model": "accounts/fireworks/models/deepseek-v4p1-flash", "category": "spec_docs", "perf": 0.85, "tier": 2, "tier_source": "family", "source_ref": "alias:deepseek-v4.1-flash"}
 {"model": "accounts/fireworks/models/deepseek-v4p1-flash", "category": "terminal", "perf": 0.85, "tier": 1, "tier_source": "family", "source_ref": "alias:deepseek-flash"}
 {"model": "accounts/fireworks/models/deepseek-v4p1-flash", "category": "test", "perf": 0.72, "tier": -1, "tier_source": "estimate", "source_ref": "CATEGORY_ESTIMATES"}
 {"model": "accounts/fireworks/models/deepseek-v4p1-flash", "category": "tool_use", "perf": 0.567, "tier": -2, "tier_source": "family", "source_ref": "alias:deepseek-v4.1-flash"}
@@ -198,7 +198,7 @@
 {"model": "accounts/fireworks/models/glm-5p3", "category": "long_doc", "perf": 0.8296, "tier": -2, "tier_source": "family", "source_ref": "alias:glm-5.3"}
 {"model": "accounts/fireworks/models/glm-5p3", "category": "long_horizon", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:glm-5.3"}
 {"model": "accounts/fireworks/models/glm-5p3", "category": "mock", "perf": 0.6, "tier": -3, "tier_source": "family", "source_ref": "alias:glm-5.3"}
-{"model": "accounts/fireworks/models/glm-5p3", "category": "multilingual", "perf": 0.9, "tier": 3, "tier_source": "family", "source_ref": "alias:glm-5.3"}
+{"model": "accounts/fireworks/models/glm-5p3", "category": "multilingual", "perf": 0.9, "tier": 2, "tier_source": "family", "source_ref": "alias:glm-5.3"}
 {"model": "accounts/fireworks/models/glm-5p3", "category": "reasoning", "perf": 0.92, "tier": 3, "tier_source": "family", "source_ref": "alias:glm-5.3"}
 {"model": "accounts/fireworks/models/glm-5p3", "category": "refactor", "perf": 0.72, "tier": 2, "tier_source": "family", "source_ref": "alias:glm-5.3"}
 {"model": "accounts/fireworks/models/glm-5p3", "category": "review", "perf": 0.7111, "tier": -2, "tier_source": "family", "source_ref": "alias:glm-5.3"}
@@ -380,7 +380,7 @@
 {"model": "accounts/fireworks/routers/deepseek-flash-latest", "category": "long_horizon", "perf": 0.544, "tier": -4, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash"}
 {"model": "accounts/fireworks/routers/deepseek-flash-latest", "category": "mechanical", "perf": 0.72, "tier": -1, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash"}
 {"model": "accounts/fireworks/routers/deepseek-flash-latest", "category": "mock", "perf": 0.87, "tier": 3, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash"}
-{"model": "accounts/fireworks/routers/deepseek-flash-latest", "category": "multilingual", "perf": 0.9, "tier": 3, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash"}
+{"model": "accounts/fireworks/routers/deepseek-flash-latest", "category": "multilingual", "perf": 0.9, "tier": 2, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash"}
 {"model": "accounts/fireworks/routers/deepseek-flash-latest", "category": "reasoning", "perf": 0.85, "tier": 2, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash"}
 {"model": "accounts/fireworks/routers/deepseek-flash-latest", "category": "refactor", "perf": 0.5, "tier": 1, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash"}
 {"model": "accounts/fireworks/routers/deepseek-flash-latest", "category": "review", "perf": 0.72, "tier": -1, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash"}
@@ -437,7 +437,7 @@
 {"model": "accounts/fireworks/routers/glm-5p3-fast", "category": "long_doc", "perf": 0.8296, "tier": -2, "tier_source": "family", "source_ref": "alias:glm-5.3"}
 {"model": "accounts/fireworks/routers/glm-5p3-fast", "category": "long_horizon", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:glm-5.3"}
 {"model": "accounts/fireworks/routers/glm-5p3-fast", "category": "mock", "perf": 0.6, "tier": -3, "tier_source": "family", "source_ref": "alias:glm-5.3"}
-{"model": "accounts/fireworks/routers/glm-5p3-fast", "category": "multilingual", "perf": 0.9, "tier": 3, "tier_source": "family", "source_ref": "alias:glm-5.3"}
+{"model": "accounts/fireworks/routers/glm-5p3-fast", "category": "multilingual", "perf": 0.9, "tier": 2, "tier_source": "family", "source_ref": "alias:glm-5.3"}
 {"model": "accounts/fireworks/routers/glm-5p3-fast", "category": "reasoning", "perf": 0.92, "tier": 3, "tier_source": "family", "source_ref": "alias:glm-5.3"}
 {"model": "accounts/fireworks/routers/glm-5p3-fast", "category": "refactor", "perf": 0.72, "tier": 2, "tier_source": "family", "source_ref": "alias:glm-5.3"}
 {"model": "accounts/fireworks/routers/glm-5p3-fast", "category": "review", "perf": 0.7111, "tier": -2, "tier_source": "family", "source_ref": "alias:glm-5.3"}
@@ -456,7 +456,7 @@
 {"model": "accounts/fireworks/routers/glm-fast-latest", "category": "long_doc", "perf": 0.8296, "tier": -2, "tier_source": "family", "source_ref": "alias:glm-5.3"}
 {"model": "accounts/fireworks/routers/glm-fast-latest", "category": "long_horizon", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:glm-5.3"}
 {"model": "accounts/fireworks/routers/glm-fast-latest", "category": "mock", "perf": 0.6, "tier": -3, "tier_source": "family", "source_ref": "alias:glm-5.3"}
-{"model": "accounts/fireworks/routers/glm-fast-latest", "category": "multilingual", "perf": 0.9, "tier": 3, "tier_source": "family", "source_ref": "alias:glm-5.3"}
+{"model": "accounts/fireworks/routers/glm-fast-latest", "category": "multilingual", "perf": 0.9, "tier": 2, "tier_source": "family", "source_ref": "alias:glm-5.3"}
 {"model": "accounts/fireworks/routers/glm-fast-latest", "category": "reasoning", "perf": 0.92, "tier": 3, "tier_source": "family", "source_ref": "alias:glm-5.3"}
 {"model": "accounts/fireworks/routers/glm-fast-latest", "category": "refactor", "perf": 0.72, "tier": 2, "tier_source": "family", "source_ref": "alias:glm-5.3"}
 {"model": "accounts/fireworks/routers/glm-fast-latest", "category": "review", "perf": 0.7111, "tier": -2, "tier_source": "family", "source_ref": "alias:glm-5.3"}
@@ -496,7 +496,7 @@
 {"model": "accounts/fireworks/routers/glm-latest", "category": "long_doc", "perf": 0.8296, "tier": -2, "tier_source": "family", "source_ref": "alias:glm-5.3"}
 {"model": "accounts/fireworks/routers/glm-latest", "category": "long_horizon", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:glm-5.3"}
 {"model": "accounts/fireworks/routers/glm-latest", "category": "mock", "perf": 0.6, "tier": -3, "tier_source": "family", "source_ref": "alias:glm-5.3"}
-{"model": "accounts/fireworks/routers/glm-latest", "category": "multilingual", "perf": 0.9, "tier": 3, "tier_source": "family", "source_ref": "alias:glm-5.3"}
+{"model": "accounts/fireworks/routers/glm-latest", "category": "multilingual", "perf": 0.9, "tier": 2, "tier_source": "family", "source_ref": "alias:glm-5.3"}
 {"model": "accounts/fireworks/routers/glm-latest", "category": "reasoning", "perf": 0.92, "tier": 3, "tier_source": "family", "source_ref": "alias:glm-5.3"}
 {"model": "accounts/fireworks/routers/glm-latest", "category": "refactor", "perf": 0.72, "tier": 2, "tier_source": "family", "source_ref": "alias:glm-5.3"}
 {"model": "accounts/fireworks/routers/glm-latest", "category": "review", "perf": 0.7111, "tier": -2, "tier_source": "family", "source_ref": "alias:glm-5.3"}
@@ -848,7 +848,7 @@
 {"model": "deepseek-flash", "category": "refactor", "perf": 0.5, "tier": 1, "tier_source": "bench", "source_ref": "bench:battery-T2-CODE"}
 {"model": "deepseek-flash", "category": "review", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/REVIEW-V2"}
 {"model": "deepseek-flash", "category": "schema", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/SCHEMA"}
-{"model": "deepseek-flash", "category": "spec_docs", "perf": 0.85, "tier": 1, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/SPEC-DOCS-V3"}
+{"model": "deepseek-flash", "category": "spec_docs", "perf": 0.85, "tier": 2, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/SPEC-DOCS-V3"}
 {"model": "deepseek-flash", "category": "terminal", "perf": 0.85, "tier": 1, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:deepseek v4 flash"}
 {"model": "deepseek-flash", "category": "test", "perf": 0.85, "tier": 4, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:deepseek v4 flash"}
 {"model": "deepseek-flash", "category": "tool_use", "perf": 0.85, "tier": 5, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:deepseek v4 flash"}
@@ -869,7 +869,7 @@
 {"model": "deepseek-v4-1-flash", "category": "refactor", "perf": 0.5, "tier": 1, "tier_source": "family", "source_ref": "alias:deepseek-flash"}
 {"model": "deepseek-v4-1-flash", "category": "review", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:deepseek-v4.1-flash"}
 {"model": "deepseek-v4-1-flash", "category": "schema", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:deepseek-v4.1-flash"}
-{"model": "deepseek-v4-1-flash", "category": "spec_docs", "perf": 0.85, "tier": 1, "tier_source": "family", "source_ref": "alias:deepseek-v4.1-flash"}
+{"model": "deepseek-v4-1-flash", "category": "spec_docs", "perf": 0.85, "tier": 2, "tier_source": "family", "source_ref": "alias:deepseek-v4.1-flash"}
 {"model": "deepseek-v4-1-flash", "category": "terminal", "perf": 0.85, "tier": 1, "tier_source": "family", "source_ref": "alias:deepseek-flash"}
 {"model": "deepseek-v4-1-flash", "category": "test", "perf": 0.72, "tier": -1, "tier_source": "estimate", "source_ref": "CATEGORY_ESTIMATES"}
 {"model": "deepseek-v4-1-flash", "category": "tool_use", "perf": 0.567, "tier": -2, "tier_source": "family", "source_ref": "alias:deepseek-v4.1-flash"}
@@ -884,7 +884,7 @@
 {"model": "deepseek-v4-flash", "category": "long_horizon", "perf": 0.544, "tier": -4, "tier_source": "bench", "source_ref": "bench:DeepSWE 54.4 (0731 post-training re-run on identical weights, regolo.ai roundup) research-bench-2026-09-11 — post-training gain, NOT architectural; treat as 0731-generation evidence"}
 {"model": "deepseek-v4-flash", "category": "mechanical", "perf": 0.72, "tier": -1, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:deepseek v4 flash"}
 {"model": "deepseek-v4-flash", "category": "mock", "perf": 0.87, "tier": 3, "tier_source": "estimate", "source_ref": "QUALITY_ESTIMATES"}
-{"model": "deepseek-v4-flash", "category": "multilingual", "perf": 0.9, "tier": 3, "tier_source": "estimate", "source_ref": "QUALITY_ESTIMATES"}
+{"model": "deepseek-v4-flash", "category": "multilingual", "perf": 0.9, "tier": 2, "tier_source": "estimate", "source_ref": "QUALITY_ESTIMATES"}
 {"model": "deepseek-v4-flash", "category": "reasoning", "perf": 0.85, "tier": 2, "tier_source": "measured", "source_ref": "models.jsonl:perf_reasoning"}
 {"model": "deepseek-v4-flash", "category": "refactor", "perf": 0.5, "tier": 1, "tier_source": "family", "source_ref": "alias:deepseek-flash"}
 {"model": "deepseek-v4-flash", "category": "review", "perf": 0.72, "tier": -1, "tier_source": "measured", "source_ref": "models.jsonl:perf_review"}
@@ -910,7 +910,7 @@
 {"model": "deepseek-v4-flash-flex", "category": "long_horizon", "perf": 0.544, "tier": -4, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash"}
 {"model": "deepseek-v4-flash-flex", "category": "mechanical", "perf": 0.72, "tier": -1, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash"}
 {"model": "deepseek-v4-flash-flex", "category": "mock", "perf": 0.87, "tier": 3, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash"}
-{"model": "deepseek-v4-flash-flex", "category": "multilingual", "perf": 0.9, "tier": 3, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash"}
+{"model": "deepseek-v4-flash-flex", "category": "multilingual", "perf": 0.9, "tier": 2, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash"}
 {"model": "deepseek-v4-flash-flex", "category": "reasoning", "perf": 0.85, "tier": 2, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash"}
 {"model": "deepseek-v4-flash-flex", "category": "refactor", "perf": 0.5, "tier": 1, "tier_source": "family", "source_ref": "alias:deepseek-flash"}
 {"model": "deepseek-v4-flash-flex", "category": "review", "perf": 0.72, "tier": -1, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash"}
@@ -985,7 +985,7 @@
 {"model": "deepseek-v4.1-flash", "category": "refactor", "perf": 0.5, "tier": 1, "tier_source": "family", "source_ref": "alias:deepseek-flash"}
 {"model": "deepseek-v4.1-flash", "category": "review", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/REVIEW-V2"}
 {"model": "deepseek-v4.1-flash", "category": "schema", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/SCHEMA"}
-{"model": "deepseek-v4.1-flash", "category": "spec_docs", "perf": 0.85, "tier": 1, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/SPEC-DOCS-V3"}
+{"model": "deepseek-v4.1-flash", "category": "spec_docs", "perf": 0.85, "tier": 2, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/SPEC-DOCS-V3"}
 {"model": "deepseek-v4.1-flash", "category": "terminal", "perf": 0.85, "tier": 1, "tier_source": "family", "source_ref": "alias:deepseek-flash"}
 {"model": "deepseek-v4.1-flash", "category": "test", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/TEST"}
 {"model": "deepseek-v4.1-flash", "category": "tool_use", "perf": 0.567, "tier": -2, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T1-TOOL"}
@@ -1015,7 +1015,7 @@
 {"model": "deepseek/deepseek-v4-flash", "category": "long_horizon", "perf": 0.544, "tier": -4, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash"}
 {"model": "deepseek/deepseek-v4-flash", "category": "mechanical", "perf": 0.72, "tier": -1, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash"}
 {"model": "deepseek/deepseek-v4-flash", "category": "mock", "perf": 0.87, "tier": 3, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash"}
-{"model": "deepseek/deepseek-v4-flash", "category": "multilingual", "perf": 0.9, "tier": 3, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash"}
+{"model": "deepseek/deepseek-v4-flash", "category": "multilingual", "perf": 0.9, "tier": 2, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash"}
 {"model": "deepseek/deepseek-v4-flash", "category": "reasoning", "perf": 0.85, "tier": 2, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash"}
 {"model": "deepseek/deepseek-v4-flash", "category": "refactor", "perf": 0.5, "tier": 1, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash"}
 {"model": "deepseek/deepseek-v4-flash", "category": "review", "perf": 0.72, "tier": -1, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash"}
@@ -1035,7 +1035,7 @@
 {"model": "deepseek/deepseek-v4-flash-fast", "category": "long_horizon", "perf": 0.544, "tier": -4, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash"}
 {"model": "deepseek/deepseek-v4-flash-fast", "category": "mechanical", "perf": 0.72, "tier": -1, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash"}
 {"model": "deepseek/deepseek-v4-flash-fast", "category": "mock", "perf": 0.87, "tier": 3, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash"}
-{"model": "deepseek/deepseek-v4-flash-fast", "category": "multilingual", "perf": 0.9, "tier": 3, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash"}
+{"model": "deepseek/deepseek-v4-flash-fast", "category": "multilingual", "perf": 0.9, "tier": 2, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash"}
 {"model": "deepseek/deepseek-v4-flash-fast", "category": "reasoning", "perf": 0.85, "tier": 2, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash"}
 {"model": "deepseek/deepseek-v4-flash-fast", "category": "refactor", "perf": 0.5, "tier": 1, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash"}
 {"model": "deepseek/deepseek-v4-flash-fast", "category": "review", "perf": 0.72, "tier": -1, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash"}
@@ -1088,7 +1088,7 @@
 {"model": "deepseek/deepseek-v4.1-flash", "category": "refactor", "perf": 0.5, "tier": 1, "tier_source": "family", "source_ref": "alias:deepseek-flash"}
 {"model": "deepseek/deepseek-v4.1-flash", "category": "review", "perf": 0.637, "tier": -3, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/REVIEW-V2"}
 {"model": "deepseek/deepseek-v4.1-flash", "category": "schema", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/SCHEMA"}
-{"model": "deepseek/deepseek-v4.1-flash", "category": "spec_docs", "perf": 0.85, "tier": 1, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/SPEC-DOCS-V3"}
+{"model": "deepseek/deepseek-v4.1-flash", "category": "spec_docs", "perf": 0.85, "tier": 2, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/SPEC-DOCS-V3"}
 {"model": "deepseek/deepseek-v4.1-flash", "category": "terminal", "perf": 0.85, "tier": 1, "tier_source": "family", "source_ref": "alias:deepseek-flash"}
 {"model": "deepseek/deepseek-v4.1-flash", "category": "tool_use", "perf": 0.567, "tier": -2, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T1-TOOL"}
 {"model": "deepseek/deepseek-v4.1-flash", "category": "vision", "perf": 0.45, "tier": -1, "tier_source": "family", "source_ref": "alias:deepseek-flash"}
@@ -1179,7 +1179,7 @@
 {"model": "glm-5-3", "category": "long_doc", "perf": 0.8296, "tier": -2, "tier_source": "family", "source_ref": "alias:glm-5.3"}
 {"model": "glm-5-3", "category": "long_horizon", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:glm-5.3"}
 {"model": "glm-5-3", "category": "mock", "perf": 0.6, "tier": -3, "tier_source": "family", "source_ref": "alias:glm-5.3"}
-{"model": "glm-5-3", "category": "multilingual", "perf": 0.9, "tier": 3, "tier_source": "family", "source_ref": "alias:glm-5.3"}
+{"model": "glm-5-3", "category": "multilingual", "perf": 0.9, "tier": 2, "tier_source": "family", "source_ref": "alias:glm-5.3"}
 {"model": "glm-5-3", "category": "reasoning", "perf": 0.92, "tier": 3, "tier_source": "family", "source_ref": "alias:glm-5.3"}
 {"model": "glm-5-3", "category": "refactor", "perf": 0.72, "tier": 2, "tier_source": "family", "source_ref": "alias:glm-5.3"}
 {"model": "glm-5-3", "category": "review", "perf": 0.7111, "tier": -2, "tier_source": "family", "source_ref": "alias:glm-5.3"}
@@ -1215,7 +1215,7 @@
 {"model": "glm-5-turbo", "category": "delegation", "perf": 0.5, "tier": -2, "tier_source": "bench", "source_ref": "bench:battery-T1-TOOL"}
 {"model": "glm-5-turbo", "category": "guard", "perf": 0.78, "tier": -3, "tier_source": "estimate", "source_ref": "QUALITY_ESTIMATES"}
 {"model": "glm-5-turbo", "category": "mock", "perf": 0.72, "tier": -2, "tier_source": "estimate", "source_ref": "QUALITY_ESTIMATES"}
-{"model": "glm-5-turbo", "category": "multilingual", "perf": 0.82, "tier": -3, "tier_source": "estimate", "source_ref": "QUALITY_ESTIMATES"}
+{"model": "glm-5-turbo", "category": "multilingual", "perf": 0.82, "tier": -2, "tier_source": "estimate", "source_ref": "QUALITY_ESTIMATES"}
 {"model": "glm-5-turbo", "category": "refactor", "perf": 0.5, "tier": 1, "tier_source": "bench", "source_ref": "bench:battery-T2-CODE"}
 {"model": "glm-5-turbo", "category": "schema", "perf": 0.5, "tier": -2, "tier_source": "bench", "source_ref": "bench:battery-T2-CODE"}
 {"model": "glm-5-turbo", "category": "tool_use", "perf": 0.5, "tier": -3, "tier_source": "bench", "source_ref": "bench:T1-TOOL"}
@@ -1373,7 +1373,7 @@
 {"model": "glm-5.3", "category": "long_doc", "perf": 0.8296, "tier": -2, "tier_source": "measured", "source_ref": "models.jsonl:perf_long_doc"}
 {"model": "glm-5.3", "category": "long_horizon", "perf": 0.85, "tier": 4, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:glm-5.3"}
 {"model": "glm-5.3", "category": "mock", "perf": 0.6, "tier": -3, "tier_source": "measured", "source_ref": "models.jsonl:perf_mock"}
-{"model": "glm-5.3", "category": "multilingual", "perf": 0.9, "tier": 3, "tier_source": "estimate", "source_ref": "QUALITY_ESTIMATES"}
+{"model": "glm-5.3", "category": "multilingual", "perf": 0.9, "tier": 2, "tier_source": "estimate", "source_ref": "QUALITY_ESTIMATES"}
 {"model": "glm-5.3", "category": "reasoning", "perf": 0.92, "tier": 3, "tier_source": "bench", "source_ref": "bench:GPQA"}
 {"model": "glm-5.3", "category": "refactor", "perf": 0.72, "tier": 2, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:glm-5.3"}
 {"model": "glm-5.3", "category": "review", "perf": 0.7111, "tier": -2, "tier_source": "measured", "source_ref": "models.jsonl:perf_review"}
@@ -1434,7 +1434,7 @@
 {"model": "glm-5.3-flashx", "category": "reasoning", "perf": 0.85, "tier": 2, "tier_source": "family", "source_ref": "alias:z-ai/glm-5.3-flashx"}
 {"model": "glm-5.3-flashx", "category": "review", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:z-ai/glm-5.3-flashx"}
 {"model": "glm-5.3-flashx", "category": "schema", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:z-ai/glm-5.3-flashx"}
-{"model": "glm-5.3-flashx", "category": "spec_docs", "perf": 0.85, "tier": 1, "tier_source": "family", "source_ref": "alias:z-ai/glm-5.3-flashx"}
+{"model": "glm-5.3-flashx", "category": "spec_docs", "perf": 0.85, "tier": 2, "tier_source": "family", "source_ref": "alias:z-ai/glm-5.3-flashx"}
 {"model": "glm-5.3-flashx", "category": "test", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:z-ai/glm-5.3-flashx"}
 {"model": "glm-5.3-flashx", "category": "tool_use", "perf": 0.85, "tier": 5, "tier_source": "family", "source_ref": "alias:z-ai/glm-5.3-flashx"}
 {"model": "glm-5.3-flex", "category": "agent_tick", "perf": 0.637, "tier": 0, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/AGENT-TICK"}
@@ -1485,7 +1485,7 @@
 {"model": "gpt-5.6-luna", "category": "long_doc", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-DOC"}
 {"model": "gpt-5.6-luna", "category": "long_horizon", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-HORIZON"}
 {"model": "gpt-5.6-luna", "category": "mock", "perf": 0.8, "tier": -1, "tier_source": "estimate", "source_ref": "QUALITY_ESTIMATES"}
-{"model": "gpt-5.6-luna", "category": "multilingual", "perf": 0.82, "tier": -3, "tier_source": "estimate", "source_ref": "QUALITY_ESTIMATES"}
+{"model": "gpt-5.6-luna", "category": "multilingual", "perf": 0.82, "tier": -2, "tier_source": "estimate", "source_ref": "QUALITY_ESTIMATES"}
 {"model": "gpt-5.6-luna", "category": "reasoning", "perf": 0.85, "tier": 2, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T3-REASON"}
 {"model": "gpt-5.6-luna", "category": "refactor", "perf": 0.5, "tier": 1, "tier_source": "bench", "source_ref": "bench:battery-T2-CODE"}
 {"model": "gpt-5.6-luna", "category": "review", "perf": 0.72, "tier": -1, "tier_source": "measured", "source_ref": "models.jsonl:perf_review"}
@@ -1510,7 +1510,7 @@
 {"model": "gpt-5.6-sol", "category": "review", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/REVIEW-V2"}
 {"model": "gpt-5.6-sol", "category": "schema", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/SCHEMA"}
 {"model": "gpt-5.6-sol", "category": "security", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:ExploitBench"}
-{"model": "gpt-5.6-sol", "category": "spec_docs", "perf": 0.85, "tier": 1, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/SPEC-DOCS-V3"}
+{"model": "gpt-5.6-sol", "category": "spec_docs", "perf": 0.85, "tier": 2, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/SPEC-DOCS-V3"}
 {"model": "gpt-5.6-sol", "category": "terminal", "perf": 0.95, "tier": 5, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:gpt-5.6 sol"}
 {"model": "gpt-5.6-sol", "category": "test", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/TEST"}
 {"model": "gpt-5.6-sol", "category": "tool_use", "perf": 0.85, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T1-TOOL"}
@@ -1522,7 +1522,7 @@
 {"model": "gpt-5.6-terra", "category": "guard", "perf": 0.88, "tier": 3, "tier_source": "estimate", "source_ref": "QUALITY_ESTIMATES"}
 {"model": "gpt-5.6-terra", "category": "long_doc", "perf": 0.0, "tier": -5, "tier_source": "measured", "source_ref": "models.jsonl:perf_long_doc"}
 {"model": "gpt-5.6-terra", "category": "mock", "perf": 0.82, "tier": -1, "tier_source": "estimate", "source_ref": "QUALITY_ESTIMATES"}
-{"model": "gpt-5.6-terra", "category": "multilingual", "perf": 0.82, "tier": -3, "tier_source": "estimate", "source_ref": "QUALITY_ESTIMATES"}
+{"model": "gpt-5.6-terra", "category": "multilingual", "perf": 0.82, "tier": -2, "tier_source": "estimate", "source_ref": "QUALITY_ESTIMATES"}
 {"model": "gpt-5.6-terra", "category": "reasoning", "perf": 0.0, "tier": -5, "tier_source": "measured", "source_ref": "models.jsonl:perf_reasoning"}
 {"model": "gpt-5.6-terra", "category": "refactor", "perf": 0.5, "tier": 1, "tier_source": "bench", "source_ref": "bench:battery-T2-CODE"}
 {"model": "gpt-5.6-terra", "category": "review", "perf": 0.0, "tier": -3, "tier_source": "measured", "source_ref": "models.jsonl:perf_review"}
@@ -1554,7 +1554,7 @@
 {"model": "gpt-6-luna", "category": "reasoning", "perf": 0.85, "tier": 2, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T3-REASON"}
 {"model": "gpt-6-luna", "category": "review", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/REVIEW-V2"}
 {"model": "gpt-6-luna", "category": "schema", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/SCHEMA"}
-{"model": "gpt-6-luna", "category": "spec_docs", "perf": 0.85, "tier": 1, "tier_source": "bench", "source_ref": "bench:SPEC-DOCS"}
+{"model": "gpt-6-luna", "category": "spec_docs", "perf": 0.85, "tier": 2, "tier_source": "bench", "source_ref": "bench:SPEC-DOCS"}
 {"model": "gpt-6-luna", "category": "test", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/TEST"}
 {"model": "gpt-6-luna", "category": "tool_use", "perf": 0.85, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T1-TOOL"}
 {"model": "gpt-6-sol", "category": "agent_tick", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:openai/gpt-6-sol"}
@@ -1570,7 +1570,7 @@
 {"model": "gpt-6-sol", "category": "reasoning", "perf": 0.85, "tier": 2, "tier_source": "family", "source_ref": "alias:openai/gpt-6-sol"}
 {"model": "gpt-6-sol", "category": "review", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:openai/gpt-6-sol"}
 {"model": "gpt-6-sol", "category": "schema", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:openai/gpt-6-sol"}
-{"model": "gpt-6-sol", "category": "spec_docs", "perf": 0.85, "tier": 1, "tier_source": "family", "source_ref": "alias:openai/gpt-6-sol"}
+{"model": "gpt-6-sol", "category": "spec_docs", "perf": 0.85, "tier": 2, "tier_source": "family", "source_ref": "alias:openai/gpt-6-sol"}
 {"model": "gpt-6-sol", "category": "test", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:openai/gpt-6-sol"}
 {"model": "gpt-6-sol", "category": "tool_use", "perf": 0.85, "tier": 5, "tier_source": "family", "source_ref": "alias:openai/gpt-6-sol"}
 {"model": "gpt-oss-120b", "category": "code_gen", "perf": 0.72, "tier": 0, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:gpt-oss"}
@@ -1578,7 +1578,7 @@
 {"model": "gpt-oss-120b", "category": "refactor", "perf": 0.72, "tier": 2, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:gpt-oss"}
 {"model": "gpt-oss-120b", "category": "test", "perf": 0.72, "tier": -1, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:gpt-oss"}
 {"model": "gpt-oss-120b", "category": "tool_use", "perf": 0.85, "tier": 5, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:gpt-oss"}
-{"model": "gpt-oss-20b", "category": "guard", "perf": 0.68, "tier": -3, "tier_source": "estimate", "source_ref": "QUALITY_ESTIMATES"}
+{"model": "gpt-oss-20b", "category": "guard", "perf": 0.68, "tier": -4, "tier_source": "estimate", "source_ref": "QUALITY_ESTIMATES"}
 {"model": "gpt-oss-20b", "category": "mock", "perf": 0.68, "tier": -3, "tier_source": "estimate", "source_ref": "QUALITY_ESTIMATES"}
 {"model": "gpt-oss-20b", "category": "multilingual", "perf": 0.68, "tier": -5, "tier_source": "estimate", "source_ref": "QUALITY_ESTIMATES"}
 {"model": "gpt-oss:120b", "category": "agent_tick", "perf": 0.25, "tier": -5, "tier_source": "bench", "source_ref": "bench:battery-T1-TOOL"}
@@ -1592,7 +1592,7 @@
 {"model": "gpt-oss:20b", "category": "code_gen", "perf": 0.75, "tier": 1, "tier_source": "bench", "source_ref": "bench:battery-T5-DEBUG"}
 {"model": "gpt-oss:20b", "category": "debug", "perf": 0.75, "tier": 1, "tier_source": "bench", "source_ref": "bench:T5-DEBUG"}
 {"model": "gpt-oss:20b", "category": "e2e_vision", "perf": 0.0, "tier": -3, "tier_source": "measured", "source_ref": "models.jsonl:perf_e2e_vision"}
-{"model": "gpt-oss:20b", "category": "guard", "perf": 0.68, "tier": -3, "tier_source": "estimate", "source_ref": "QUALITY_ESTIMATES"}
+{"model": "gpt-oss:20b", "category": "guard", "perf": 0.68, "tier": -4, "tier_source": "estimate", "source_ref": "QUALITY_ESTIMATES"}
 {"model": "gpt-oss:20b", "category": "long_doc", "perf": 0.0, "tier": -5, "tier_source": "measured", "source_ref": "models.jsonl:perf_long_doc"}
 {"model": "gpt-oss:20b", "category": "mock", "perf": 0.7, "tier": -3, "tier_source": "estimate", "source_ref": "QUALITY_ESTIMATES"}
 {"model": "gpt-oss:20b", "category": "multilingual", "perf": 0.68, "tier": -5, "tier_source": "estimate", "source_ref": "QUALITY_ESTIMATES"}
@@ -1778,7 +1778,7 @@
 {"model": "hy3", "category": "long_doc", "perf": 0.65, "tier": -3, "tier_source": "measured", "source_ref": "models.jsonl:perf_long_doc"}
 {"model": "hy3", "category": "mechanical", "perf": 0.72, "tier": -1, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:hy3"}
 {"model": "hy3", "category": "mock", "perf": 0.82, "tier": -1, "tier_source": "estimate", "source_ref": "QUALITY_ESTIMATES"}
-{"model": "hy3", "category": "multilingual", "perf": 0.82, "tier": -3, "tier_source": "estimate", "source_ref": "QUALITY_ESTIMATES"}
+{"model": "hy3", "category": "multilingual", "perf": 0.82, "tier": -2, "tier_source": "estimate", "source_ref": "QUALITY_ESTIMATES"}
 {"model": "hy3", "category": "reasoning", "perf": 0.897, "tier": 3, "tier_source": "bench", "source_ref": "bench:GPQA"}
 {"model": "hy3", "category": "refactor", "perf": 0.5, "tier": 1, "tier_source": "bench", "source_ref": "bench:battery-T2-CODE"}
 {"model": "hy3", "category": "review", "perf": 0.75, "tier": 0, "tier_source": "measured", "source_ref": "models.jsonl:perf_review"}
@@ -2104,7 +2104,7 @@
 {"model": "meta/muse-spark-1.3", "category": "reasoning", "perf": 0.85, "tier": 2, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T3-REASON"}
 {"model": "meta/muse-spark-1.3", "category": "review", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:REVIEW"}
 {"model": "meta/muse-spark-1.3", "category": "schema", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/SCHEMA"}
-{"model": "meta/muse-spark-1.3", "category": "spec_docs", "perf": 0.85, "tier": 1, "tier_source": "bench", "source_ref": "bench:SPEC-DOCS"}
+{"model": "meta/muse-spark-1.3", "category": "spec_docs", "perf": 0.85, "tier": 2, "tier_source": "bench", "source_ref": "bench:SPEC-DOCS"}
 {"model": "meta/muse-spark-1.3", "category": "test", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/TEST"}
 {"model": "meta/muse-spark-1.3", "category": "tool_use", "perf": 0.85, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T1-TOOL"}
 {"model": "meta/muse-spark-1.3-contributor", "category": "agent_tick", "perf": 0.637, "tier": 0, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/AGENT-TICK"}
@@ -2120,7 +2120,7 @@
 {"model": "meta/muse-spark-1.3-contributor", "category": "reasoning", "perf": 0.85, "tier": 2, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T3-REASON"}
 {"model": "meta/muse-spark-1.3-contributor", "category": "review", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/REVIEW-V2"}
 {"model": "meta/muse-spark-1.3-contributor", "category": "schema", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/SCHEMA"}
-{"model": "meta/muse-spark-1.3-contributor", "category": "spec_docs", "perf": 0.85, "tier": 1, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/SPEC-DOCS-V3"}
+{"model": "meta/muse-spark-1.3-contributor", "category": "spec_docs", "perf": 0.85, "tier": 2, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/SPEC-DOCS-V3"}
 {"model": "meta/muse-spark-1.3-contributor", "category": "test", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/TEST"}
 {"model": "meta/muse-spark-1.3-contributor", "category": "tool_use", "perf": 0.85, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T1-TOOL"}
 {"model": "mimo-v2.5", "category": "agent_tick", "perf": 0.75, "tier": 2, "tier_source": "measured", "source_ref": "models.jsonl:perf_agent_tick"}
@@ -2160,7 +2160,7 @@
 {"model": "mimo-v2.6-flash", "category": "reasoning", "perf": 0.85, "tier": 2, "tier_source": "family", "source_ref": "alias:xiaomi/mimo-v2.6-flash"}
 {"model": "mimo-v2.6-flash", "category": "review", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:xiaomi/mimo-v2.6-flash"}
 {"model": "mimo-v2.6-flash", "category": "schema", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:xiaomi/mimo-v2.6-flash"}
-{"model": "mimo-v2.6-flash", "category": "spec_docs", "perf": 0.85, "tier": 1, "tier_source": "family", "source_ref": "alias:xiaomi/mimo-v2.6-flash"}
+{"model": "mimo-v2.6-flash", "category": "spec_docs", "perf": 0.85, "tier": 2, "tier_source": "family", "source_ref": "alias:xiaomi/mimo-v2.6-flash"}
 {"model": "mimo-v2.6-flash", "category": "test", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:xiaomi/mimo-v2.6-flash"}
 {"model": "mimo-v2.6-flash", "category": "tool_use", "perf": 0.64, "tier": -2, "tier_source": "family", "source_ref": "alias:xiaomi/mimo-v2.6-flash"}
 {"model": "mimo-v2.6-pro", "category": "agent_tick", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:xiaomi/mimo-v2.6-pro"}
@@ -2310,7 +2310,7 @@
 {"model": "mistralai/mistral-small-2603", "category": "guard", "perf": 0.0, "tier": -5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/GUARD-V2"}
 {"model": "mistralai/mistral-small-2603", "category": "long_doc", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-DOC"}
 {"model": "mistralai/mistral-small-2603", "category": "long_horizon", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-HORIZON"}
-{"model": "mistralai/mistral-small-2603", "category": "mechanical", "perf": 0.567, "tier": -5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/MECHANICAL-V3"}
+{"model": "mistralai/mistral-small-2603", "category": "mechanical", "perf": 0.567, "tier": -4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/MECHANICAL-V3"}
 {"model": "mistralai/mistral-small-2603", "category": "mock", "perf": 0.85, "tier": 2, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/MOCK-V3"}
 {"model": "mistralai/mistral-small-2603", "category": "multilingual", "perf": 0.85, "tier": 0, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/MULTILINGUAL-V3"}
 {"model": "mistralai/mistral-small-2603", "category": "reasoning", "perf": 0.283, "tier": -4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T3-REASON"}
@@ -2434,7 +2434,7 @@
 {"model": "muse-spark-1.3", "category": "reasoning", "perf": 0.85, "tier": 2, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T3-REASON"}
 {"model": "muse-spark-1.3", "category": "review", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:REVIEW"}
 {"model": "muse-spark-1.3", "category": "schema", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/SCHEMA"}
-{"model": "muse-spark-1.3", "category": "spec_docs", "perf": 0.85, "tier": 1, "tier_source": "bench", "source_ref": "bench:SPEC-DOCS"}
+{"model": "muse-spark-1.3", "category": "spec_docs", "perf": 0.85, "tier": 2, "tier_source": "bench", "source_ref": "bench:SPEC-DOCS"}
 {"model": "muse-spark-1.3", "category": "test", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/TEST"}
 {"model": "muse-spark-1.3", "category": "tool_use", "perf": 0.85, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T1-TOOL"}
 {"model": "muse-spark-1.3-contributor", "category": "test", "perf": 0.72, "tier": -1, "tier_source": "estimate", "source_ref": "CATEGORY_ESTIMATES"}
@@ -2455,7 +2455,7 @@
 {"model": "nemotron-3-super", "category": "schema", "perf": 0.85375, "tier": 4, "tier_source": "bench", "source_ref": "bench:BenchLM"}
 {"model": "nemotron-3-super", "category": "spec_docs", "perf": 0.85375, "tier": 2, "tier_source": "bench", "source_ref": "bench:BenchLM"}
 {"model": "nemotron-3-super", "category": "tool_use", "perf": 0.75, "tier": -1, "tier_source": "bench", "source_ref": "bench:battery-T1-TOOL"}
-{"model": "nemotron-3-super-120b", "category": "guard", "perf": 0.65, "tier": -4, "tier_source": "estimate", "source_ref": "QUALITY_ESTIMATES"}
+{"model": "nemotron-3-super-120b", "category": "guard", "perf": 0.65, "tier": -5, "tier_source": "estimate", "source_ref": "QUALITY_ESTIMATES"}
 {"model": "nemotron-3-super-120b", "category": "mock", "perf": 0.72, "tier": -2, "tier_source": "estimate", "source_ref": "QUALITY_ESTIMATES"}
 {"model": "nemotron-3-super-120b", "category": "multilingual", "perf": 0.78, "tier": -3, "tier_source": "estimate", "source_ref": "QUALITY_ESTIMATES"}
 {"model": "nemotron-3-ultra", "category": "agent_tick", "perf": 0.75, "tier": 2, "tier_source": "measured", "source_ref": "models.jsonl:perf_agent_tick"}
@@ -2546,7 +2546,7 @@
 {"model": "openai.gpt-oss-20b", "category": "code_gen", "perf": 0.75, "tier": 1, "tier_source": "family", "source_ref": "alias:gpt-oss:20b"}
 {"model": "openai.gpt-oss-20b", "category": "debug", "perf": 0.75, "tier": 1, "tier_source": "family", "source_ref": "alias:gpt-oss:20b"}
 {"model": "openai.gpt-oss-20b", "category": "e2e_vision", "perf": 0.0, "tier": -3, "tier_source": "family", "source_ref": "alias:gpt-oss:20b"}
-{"model": "openai.gpt-oss-20b", "category": "guard", "perf": 0.68, "tier": -3, "tier_source": "family", "source_ref": "alias:gpt-oss:20b"}
+{"model": "openai.gpt-oss-20b", "category": "guard", "perf": 0.68, "tier": -4, "tier_source": "family", "source_ref": "alias:gpt-oss:20b"}
 {"model": "openai.gpt-oss-20b", "category": "long_doc", "perf": 0.0, "tier": -5, "tier_source": "family", "source_ref": "alias:gpt-oss:20b"}
 {"model": "openai.gpt-oss-20b", "category": "mock", "perf": 0.7, "tier": -3, "tier_source": "family", "source_ref": "alias:gpt-oss:20b"}
 {"model": "openai.gpt-oss-20b", "category": "multilingual", "perf": 0.68, "tier": -5, "tier_source": "family", "source_ref": "alias:gpt-oss:20b"}
@@ -2558,7 +2558,7 @@
 {"model": "openai.gpt-oss-20b-1:0", "category": "code_gen", "perf": 0.75, "tier": 1, "tier_source": "family", "source_ref": "alias:gpt-oss:20b"}
 {"model": "openai.gpt-oss-20b-1:0", "category": "debug", "perf": 0.75, "tier": 1, "tier_source": "family", "source_ref": "alias:gpt-oss:20b"}
 {"model": "openai.gpt-oss-20b-1:0", "category": "e2e_vision", "perf": 0.0, "tier": -3, "tier_source": "family", "source_ref": "alias:gpt-oss:20b"}
-{"model": "openai.gpt-oss-20b-1:0", "category": "guard", "perf": 0.68, "tier": -3, "tier_source": "family", "source_ref": "alias:gpt-oss:20b"}
+{"model": "openai.gpt-oss-20b-1:0", "category": "guard", "perf": 0.68, "tier": -4, "tier_source": "family", "source_ref": "alias:gpt-oss:20b"}
 {"model": "openai.gpt-oss-20b-1:0", "category": "long_doc", "perf": 0.0, "tier": -5, "tier_source": "family", "source_ref": "alias:gpt-oss:20b"}
 {"model": "openai.gpt-oss-20b-1:0", "category": "mock", "perf": 0.7, "tier": -3, "tier_source": "family", "source_ref": "alias:gpt-oss:20b"}
 {"model": "openai.gpt-oss-20b-1:0", "category": "multilingual", "perf": 0.68, "tier": -5, "tier_source": "family", "source_ref": "alias:gpt-oss:20b"}
@@ -2598,7 +2598,7 @@
 {"model": "openai/gpt-5.6-luna", "category": "long_doc", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-DOC"}
 {"model": "openai/gpt-5.6-luna", "category": "long_horizon", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-HORIZON"}
 {"model": "openai/gpt-5.6-luna", "category": "mock", "perf": 0.8, "tier": -1, "tier_source": "family", "source_ref": "alias:gpt-5.6-luna"}
-{"model": "openai/gpt-5.6-luna", "category": "multilingual", "perf": 0.82, "tier": -3, "tier_source": "family", "source_ref": "alias:gpt-5.6-luna"}
+{"model": "openai/gpt-5.6-luna", "category": "multilingual", "perf": 0.82, "tier": -2, "tier_source": "family", "source_ref": "alias:gpt-5.6-luna"}
 {"model": "openai/gpt-5.6-luna", "category": "reasoning", "perf": 0.85, "tier": 2, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T3-REASON"}
 {"model": "openai/gpt-5.6-luna", "category": "refactor", "perf": 0.5, "tier": 1, "tier_source": "family", "source_ref": "alias:gpt-5.6-luna"}
 {"model": "openai/gpt-5.6-luna", "category": "review", "perf": 0.72, "tier": -1, "tier_source": "family", "source_ref": "alias:gpt-5.6-luna"}
@@ -2623,7 +2623,7 @@
 {"model": "openai/gpt-5.6-sol", "category": "review", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/REVIEW-V2"}
 {"model": "openai/gpt-5.6-sol", "category": "schema", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/SCHEMA"}
 {"model": "openai/gpt-5.6-sol", "category": "security", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:gpt-5.6-sol"}
-{"model": "openai/gpt-5.6-sol", "category": "spec_docs", "perf": 0.85, "tier": 1, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/SPEC-DOCS-V3"}
+{"model": "openai/gpt-5.6-sol", "category": "spec_docs", "perf": 0.85, "tier": 2, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/SPEC-DOCS-V3"}
 {"model": "openai/gpt-5.6-sol", "category": "terminal", "perf": 0.95, "tier": 5, "tier_source": "family", "source_ref": "alias:gpt-5.6-sol"}
 {"model": "openai/gpt-5.6-sol", "category": "test", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/TEST"}
 {"model": "openai/gpt-5.6-sol", "category": "tool_use", "perf": 0.283, "tier": -4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T1-TOOL"}
@@ -2636,7 +2636,7 @@
 {"model": "openai/gpt-5.6-terra", "category": "long_doc", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-DOC"}
 {"model": "openai/gpt-5.6-terra", "category": "long_horizon", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-HORIZON"}
 {"model": "openai/gpt-5.6-terra", "category": "mock", "perf": 0.82, "tier": -1, "tier_source": "family", "source_ref": "alias:gpt-5.6-terra"}
-{"model": "openai/gpt-5.6-terra", "category": "multilingual", "perf": 0.82, "tier": -3, "tier_source": "family", "source_ref": "alias:gpt-5.6-terra"}
+{"model": "openai/gpt-5.6-terra", "category": "multilingual", "perf": 0.82, "tier": -2, "tier_source": "family", "source_ref": "alias:gpt-5.6-terra"}
 {"model": "openai/gpt-5.6-terra", "category": "reasoning", "perf": 0.85, "tier": 2, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T3-REASON"}
 {"model": "openai/gpt-5.6-terra", "category": "refactor", "perf": 0.5, "tier": 1, "tier_source": "family", "source_ref": "alias:gpt-5.6-terra"}
 {"model": "openai/gpt-5.6-terra", "category": "review", "perf": 0.0, "tier": -3, "tier_source": "family", "source_ref": "alias:gpt-5.6-terra"}
@@ -2668,7 +2668,7 @@
 {"model": "openai/gpt-6-luna", "category": "reasoning", "perf": 0.85, "tier": 2, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
 {"model": "openai/gpt-6-luna", "category": "review", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/REVIEW-V2"}
 {"model": "openai/gpt-6-luna", "category": "schema", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
-{"model": "openai/gpt-6-luna", "category": "spec_docs", "perf": 0.85, "tier": 1, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/SPEC-DOCS-V3"}
+{"model": "openai/gpt-6-luna", "category": "spec_docs", "perf": 0.85, "tier": 2, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/SPEC-DOCS-V3"}
 {"model": "openai/gpt-6-luna", "category": "test", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
 {"model": "openai/gpt-6-luna", "category": "tool_use", "perf": 0.85, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T1-TOOL"}
 {"model": "openai/gpt-6-sol", "category": "agent_tick", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
@@ -2684,7 +2684,7 @@
 {"model": "openai/gpt-6-sol", "category": "reasoning", "perf": 0.85, "tier": 2, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
 {"model": "openai/gpt-6-sol", "category": "review", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/REVIEW-V2"}
 {"model": "openai/gpt-6-sol", "category": "schema", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
-{"model": "openai/gpt-6-sol", "category": "spec_docs", "perf": 0.85, "tier": 1, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/SPEC-DOCS-V3"}
+{"model": "openai/gpt-6-sol", "category": "spec_docs", "perf": 0.85, "tier": 2, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/SPEC-DOCS-V3"}
 {"model": "openai/gpt-6-sol", "category": "test", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
 {"model": "openai/gpt-6-sol", "category": "tool_use", "perf": 0.85, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T1-TOOL"}
 {"model": "openai/gpt-oss-120b", "category": "agent_tick", "perf": 0.75, "tier": 2, "tier_source": "measured", "source_ref": "models.jsonl:perf_agent_tick"}
@@ -2762,7 +2762,7 @@
 {"model": "qwen/qwen3.5-397b-a17b:free", "category": "refactor", "perf": 0.25, "tier": -5, "tier_source": "family", "source_ref": "alias:qwen3.5-397b-a17b"}
 {"model": "qwen/qwen3.5-397b-a17b:free", "category": "review", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/REVIEW-V2"}
 {"model": "qwen/qwen3.5-397b-a17b:free", "category": "schema", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/SCHEMA"}
-{"model": "qwen/qwen3.5-397b-a17b:free", "category": "spec_docs", "perf": 0.85, "tier": 1, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/SPEC-DOCS-V3"}
+{"model": "qwen/qwen3.5-397b-a17b:free", "category": "spec_docs", "perf": 0.85, "tier": 2, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/SPEC-DOCS-V3"}
 {"model": "qwen/qwen3.5-397b-a17b:free", "category": "test", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/TEST"}
 {"model": "qwen/qwen3.5-397b-a17b:free", "category": "tool_use", "perf": 0.85, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T1-TOOL"}
 {"model": "qwen/qwen3.5-omni-plus:free", "category": "agent_tick", "perf": 0.637, "tier": 0, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/AGENT-TICK"}
@@ -2789,10 +2789,16 @@
 {"model": "qwen/qwen3.6-35b-a3b:free", "category": "code_gen", "perf": 0.567, "tier": 0, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T2-CODE"}
 {"model": "qwen/qwen3.6-35b-a3b:free", "category": "debug", "perf": 0.85, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T5-DEBUG"}
 {"model": "qwen/qwen3.6-35b-a3b:free", "category": "delegation", "perf": 0.637, "tier": -1, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/DELEGATION"}
+{"model": "qwen/qwen3.6-35b-a3b:free", "category": "guard", "perf": 0.85, "tier": 1, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/GUARD-V2"}
 {"model": "qwen/qwen3.6-35b-a3b:free", "category": "long_doc", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-DOC"}
 {"model": "qwen/qwen3.6-35b-a3b:free", "category": "long_horizon", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-HORIZON"}
+{"model": "qwen/qwen3.6-35b-a3b:free", "category": "mechanical", "perf": 0.567, "tier": -4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/MECHANICAL-V3"}
+{"model": "qwen/qwen3.6-35b-a3b:free", "category": "mock", "perf": 0.708, "tier": -2, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/MOCK-V3"}
+{"model": "qwen/qwen3.6-35b-a3b:free", "category": "multilingual", "perf": 0.85, "tier": 0, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/MULTILINGUAL-V3"}
 {"model": "qwen/qwen3.6-35b-a3b:free", "category": "reasoning", "perf": 0.85, "tier": 2, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T3-REASON"}
+{"model": "qwen/qwen3.6-35b-a3b:free", "category": "review", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/REVIEW-V2"}
 {"model": "qwen/qwen3.6-35b-a3b:free", "category": "schema", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/SCHEMA"}
+{"model": "qwen/qwen3.6-35b-a3b:free", "category": "spec_docs", "perf": 0.85, "tier": 2, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/SPEC-DOCS-V3"}
 {"model": "qwen/qwen3.6-35b-a3b:free", "category": "test", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/TEST"}
 {"model": "qwen/qwen3.6-35b-a3b:free", "category": "tool_use", "perf": 0.85, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T1-TOOL"}
 {"model": "qwen/qwen3.7-flash:free", "category": "agent_tick", "perf": 0.637, "tier": 0, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/AGENT-TICK"}
@@ -2887,7 +2893,7 @@
 {"model": "qwen3.6-35b", "category": "agent_tick", "perf": 0.637, "tier": 0, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/AGENT-TICK"}
 {"model": "qwen3.6-35b", "category": "debug", "perf": 0.85, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T5-DEBUG"}
 {"model": "qwen3.6-35b", "category": "delegation", "perf": 0.85, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/DELEGATION"}
-{"model": "qwen3.6-35b", "category": "guard", "perf": 0.68, "tier": -3, "tier_source": "estimate", "source_ref": "QUALITY_ESTIMATES"}
+{"model": "qwen3.6-35b", "category": "guard", "perf": 0.68, "tier": -4, "tier_source": "estimate", "source_ref": "QUALITY_ESTIMATES"}
 {"model": "qwen3.6-35b", "category": "long_doc", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-DOC"}
 {"model": "qwen3.6-35b", "category": "long_horizon", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-HORIZON"}
 {"model": "qwen3.6-35b", "category": "mock", "perf": 0.84, "tier": 0, "tier_source": "estimate", "source_ref": "QUALITY_ESTIMATES"}
@@ -2899,7 +2905,7 @@
 {"model": "qwen3.6-35b-fast", "category": "code_gen", "perf": 0.75, "tier": 1, "tier_source": "bench", "source_ref": "bench:battery-T5-DEBUG"}
 {"model": "qwen3.6-35b-fast", "category": "debug", "perf": 0.75, "tier": 1, "tier_source": "bench", "source_ref": "bench:T5-DEBUG"}
 {"model": "qwen3.6-35b-fast", "category": "delegation", "perf": 0.5, "tier": -2, "tier_source": "bench", "source_ref": "bench:battery-T1-TOOL"}
-{"model": "qwen3.6-35b-fast", "category": "guard", "perf": 0.68, "tier": -3, "tier_source": "family", "source_ref": "alias:qwen3.6-35b"}
+{"model": "qwen3.6-35b-fast", "category": "guard", "perf": 0.68, "tier": -4, "tier_source": "family", "source_ref": "alias:qwen3.6-35b"}
 {"model": "qwen3.6-35b-fast", "category": "long_doc", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:qwen3.6-35b"}
 {"model": "qwen3.6-35b-fast", "category": "long_horizon", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:qwen3.6-35b"}
 {"model": "qwen3.6-35b-fast", "category": "mock", "perf": 0.84, "tier": 0, "tier_source": "family", "source_ref": "alias:qwen3.6-35b"}
@@ -3111,7 +3117,7 @@
 {"model": "tencent/hy3", "category": "long_doc", "perf": 0.65, "tier": -3, "tier_source": "family", "source_ref": "alias:hy3"}
 {"model": "tencent/hy3", "category": "mechanical", "perf": 0.72, "tier": -1, "tier_source": "family", "source_ref": "alias:hy3"}
 {"model": "tencent/hy3", "category": "mock", "perf": 0.82, "tier": -1, "tier_source": "family", "source_ref": "alias:hy3"}
-{"model": "tencent/hy3", "category": "multilingual", "perf": 0.82, "tier": -3, "tier_source": "family", "source_ref": "alias:hy3"}
+{"model": "tencent/hy3", "category": "multilingual", "perf": 0.82, "tier": -2, "tier_source": "family", "source_ref": "alias:hy3"}
 {"model": "tencent/hy3", "category": "reasoning", "perf": 0.897, "tier": 3, "tier_source": "family", "source_ref": "alias:hy3"}
 {"model": "tencent/hy3", "category": "refactor", "perf": 0.5, "tier": 1, "tier_source": "family", "source_ref": "alias:hy3"}
 {"model": "tencent/hy3", "category": "review", "perf": 0.75, "tier": 0, "tier_source": "family", "source_ref": "alias:hy3"}
@@ -3128,7 +3134,7 @@
 {"model": "tencent/hy3-paid", "category": "long_doc", "perf": 0.65, "tier": -3, "tier_source": "family", "source_ref": "alias:hy3"}
 {"model": "tencent/hy3-paid", "category": "mechanical", "perf": 0.72, "tier": -1, "tier_source": "family", "source_ref": "alias:hy3"}
 {"model": "tencent/hy3-paid", "category": "mock", "perf": 0.82, "tier": -1, "tier_source": "family", "source_ref": "alias:hy3"}
-{"model": "tencent/hy3-paid", "category": "multilingual", "perf": 0.82, "tier": -3, "tier_source": "family", "source_ref": "alias:hy3"}
+{"model": "tencent/hy3-paid", "category": "multilingual", "perf": 0.82, "tier": -2, "tier_source": "family", "source_ref": "alias:hy3"}
 {"model": "tencent/hy3-paid", "category": "reasoning", "perf": 0.897, "tier": 3, "tier_source": "family", "source_ref": "alias:hy3"}
 {"model": "tencent/hy3-paid", "category": "refactor", "perf": 0.5, "tier": 1, "tier_source": "family", "source_ref": "alias:hy3"}
 {"model": "tencent/hy3-paid", "category": "review", "perf": 0.75, "tier": 0, "tier_source": "family", "source_ref": "alias:hy3"}
@@ -3172,7 +3178,7 @@
 {"model": "us-gov.openai.gpt-oss-20b-1:0", "category": "code_gen", "perf": 0.75, "tier": 1, "tier_source": "family", "source_ref": "alias:gpt-oss:20b"}
 {"model": "us-gov.openai.gpt-oss-20b-1:0", "category": "debug", "perf": 0.75, "tier": 1, "tier_source": "family", "source_ref": "alias:gpt-oss:20b"}
 {"model": "us-gov.openai.gpt-oss-20b-1:0", "category": "e2e_vision", "perf": 0.0, "tier": -3, "tier_source": "family", "source_ref": "alias:gpt-oss:20b"}
-{"model": "us-gov.openai.gpt-oss-20b-1:0", "category": "guard", "perf": 0.68, "tier": -3, "tier_source": "family", "source_ref": "alias:gpt-oss:20b"}
+{"model": "us-gov.openai.gpt-oss-20b-1:0", "category": "guard", "perf": 0.68, "tier": -4, "tier_source": "family", "source_ref": "alias:gpt-oss:20b"}
 {"model": "us-gov.openai.gpt-oss-20b-1:0", "category": "long_doc", "perf": 0.0, "tier": -5, "tier_source": "family", "source_ref": "alias:gpt-oss:20b"}
 {"model": "us-gov.openai.gpt-oss-20b-1:0", "category": "mock", "perf": 0.7, "tier": -3, "tier_source": "family", "source_ref": "alias:gpt-oss:20b"}
 {"model": "us-gov.openai.gpt-oss-20b-1:0", "category": "multilingual", "perf": 0.68, "tier": -5, "tier_source": "family", "source_ref": "alias:gpt-oss:20b"}
@@ -3219,7 +3225,7 @@
 {"model": "xai/grok-4.5", "category": "refactor", "perf": 0.75, "tier": 3, "tier_source": "family", "source_ref": "alias:grok-4.5"}
 {"model": "xai/grok-4.5", "category": "review", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/REVIEW-V2"}
 {"model": "xai/grok-4.5", "category": "schema", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/SCHEMA"}
-{"model": "xai/grok-4.5", "category": "spec_docs", "perf": 0.85, "tier": 1, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/SPEC-DOCS-V3"}
+{"model": "xai/grok-4.5", "category": "spec_docs", "perf": 0.85, "tier": 2, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/SPEC-DOCS-V3"}
 {"model": "xai/grok-4.5", "category": "terminal", "perf": 0.85, "tier": 1, "tier_source": "family", "source_ref": "alias:grok-4.5"}
 {"model": "xai/grok-4.5", "category": "test", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/TEST"}
 {"model": "xai/grok-4.5", "category": "tool_use", "perf": 0.85, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T1-TOOL"}
@@ -3246,7 +3252,7 @@
 {"model": "xai/grok-4.7", "category": "reasoning", "perf": 0.85, "tier": 2, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T3-REASON"}
 {"model": "xai/grok-4.7", "category": "review", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/REVIEW-V2"}
 {"model": "xai/grok-4.7", "category": "schema", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/SCHEMA"}
-{"model": "xai/grok-4.7", "category": "spec_docs", "perf": 0.85, "tier": 1, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/SPEC-DOCS-V3"}
+{"model": "xai/grok-4.7", "category": "spec_docs", "perf": 0.85, "tier": 2, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/SPEC-DOCS-V3"}
 {"model": "xai/grok-4.7", "category": "test", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/TEST"}
 {"model": "xai/grok-4.7", "category": "tool_use", "perf": 0.85, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T1-TOOL"}
 {"model": "xiaomi/mimo-v2.5", "category": "agent_tick", "perf": 0.637, "tier": 0, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/AGENT-TICK"}
@@ -3287,7 +3293,7 @@
 {"model": "xiaomi/mimo-v2.6-flash", "category": "reasoning", "perf": 0.85, "tier": 2, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
 {"model": "xiaomi/mimo-v2.6-flash", "category": "review", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:REVIEW"}
 {"model": "xiaomi/mimo-v2.6-flash", "category": "schema", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
-{"model": "xiaomi/mimo-v2.6-flash", "category": "spec_docs", "perf": 0.85, "tier": 1, "tier_source": "bench", "source_ref": "bench:SPEC-DOCS"}
+{"model": "xiaomi/mimo-v2.6-flash", "category": "spec_docs", "perf": 0.85, "tier": 2, "tier_source": "bench", "source_ref": "bench:SPEC-DOCS"}
 {"model": "xiaomi/mimo-v2.6-flash", "category": "test", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
 {"model": "xiaomi/mimo-v2.6-flash", "category": "tool_use", "perf": 0.64, "tier": -2, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
 {"model": "xiaomi/mimo-v2.6-pro", "category": "agent_tick", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
@@ -3386,7 +3392,7 @@
 {"model": "z-ai/glm-5-turbo", "category": "delegation", "perf": 0.5, "tier": -2, "tier_source": "family", "source_ref": "alias:glm-5-turbo"}
 {"model": "z-ai/glm-5-turbo", "category": "guard", "perf": 0.78, "tier": -3, "tier_source": "family", "source_ref": "alias:glm-5-turbo"}
 {"model": "z-ai/glm-5-turbo", "category": "mock", "perf": 0.72, "tier": -2, "tier_source": "family", "source_ref": "alias:glm-5-turbo"}
-{"model": "z-ai/glm-5-turbo", "category": "multilingual", "perf": 0.82, "tier": -3, "tier_source": "family", "source_ref": "alias:glm-5-turbo"}
+{"model": "z-ai/glm-5-turbo", "category": "multilingual", "perf": 0.82, "tier": -2, "tier_source": "family", "source_ref": "alias:glm-5-turbo"}
 {"model": "z-ai/glm-5-turbo", "category": "refactor", "perf": 0.5, "tier": 1, "tier_source": "family", "source_ref": "alias:glm-5-turbo"}
 {"model": "z-ai/glm-5-turbo", "category": "schema", "perf": 0.5, "tier": -2, "tier_source": "family", "source_ref": "alias:glm-5-turbo"}
 {"model": "z-ai/glm-5-turbo", "category": "tool_use", "perf": 0.5, "tier": -3, "tier_source": "family", "source_ref": "alias:glm-5-turbo"}
@@ -3432,7 +3438,7 @@
 {"model": "z-ai/glm-5.3-flashx", "category": "reasoning", "perf": 0.85, "tier": 2, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
 {"model": "z-ai/glm-5.3-flashx", "category": "review", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:REVIEW"}
 {"model": "z-ai/glm-5.3-flashx", "category": "schema", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
-{"model": "z-ai/glm-5.3-flashx", "category": "spec_docs", "perf": 0.85, "tier": 1, "tier_source": "bench", "source_ref": "bench:SPEC-DOCS"}
+{"model": "z-ai/glm-5.3-flashx", "category": "spec_docs", "perf": 0.85, "tier": 2, "tier_source": "bench", "source_ref": "bench:SPEC-DOCS"}
 {"model": "z-ai/glm-5.3-flashx", "category": "test", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
 {"model": "z-ai/glm-5.3-flashx", "category": "tool_use", "perf": 0.85, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
 {"model": "z-ai/glm-5v-turbo", "category": "agent_tick", "perf": 0.637, "tier": 0, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/AGENT-TICK"}
@@ -3502,7 +3508,7 @@
 {"model": "zai-org/GLM-5.3", "category": "long_doc", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-DOC"}
 {"model": "zai-org/GLM-5.3", "category": "long_horizon", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-HORIZON"}
 {"model": "zai-org/GLM-5.3", "category": "mock", "perf": 0.6, "tier": -3, "tier_source": "family", "source_ref": "alias:glm-5.3"}
-{"model": "zai-org/GLM-5.3", "category": "multilingual", "perf": 0.9, "tier": 3, "tier_source": "family", "source_ref": "alias:glm-5.3"}
+{"model": "zai-org/GLM-5.3", "category": "multilingual", "perf": 0.9, "tier": 2, "tier_source": "family", "source_ref": "alias:glm-5.3"}
 {"model": "zai-org/GLM-5.3", "category": "reasoning", "perf": 0.85, "tier": 2, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T3-REASON"}
 {"model": "zai-org/GLM-5.3", "category": "refactor", "perf": 0.72, "tier": 2, "tier_source": "family", "source_ref": "alias:glm-5.3"}
 {"model": "zai-org/GLM-5.3", "category": "review", "perf": 0.7111, "tier": -2, "tier_source": "family", "source_ref": "alias:glm-5.3"}
@@ -3538,7 +3544,7 @@
 {"model": "~deepseek/deepseek-flash-latest", "category": "long_horizon", "perf": 0.544, "tier": -4, "tier_source": "family", "source_ref": "alias:accounts/fireworks/routers/deepseek-flash-latest"}
 {"model": "~deepseek/deepseek-flash-latest", "category": "mechanical", "perf": 0.72, "tier": -1, "tier_source": "family", "source_ref": "alias:accounts/fireworks/routers/deepseek-flash-latest"}
 {"model": "~deepseek/deepseek-flash-latest", "category": "mock", "perf": 0.87, "tier": 3, "tier_source": "family", "source_ref": "alias:accounts/fireworks/routers/deepseek-flash-latest"}
-{"model": "~deepseek/deepseek-flash-latest", "category": "multilingual", "perf": 0.9, "tier": 3, "tier_source": "family", "source_ref": "alias:accounts/fireworks/routers/deepseek-flash-latest"}
+{"model": "~deepseek/deepseek-flash-latest", "category": "multilingual", "perf": 0.9, "tier": 2, "tier_source": "family", "source_ref": "alias:accounts/fireworks/routers/deepseek-flash-latest"}
 {"model": "~deepseek/deepseek-flash-latest", "category": "reasoning", "perf": 0.85, "tier": 2, "tier_source": "family", "source_ref": "alias:accounts/fireworks/routers/deepseek-flash-latest"}
 {"model": "~deepseek/deepseek-flash-latest", "category": "refactor", "perf": 0.5, "tier": 1, "tier_source": "family", "source_ref": "alias:accounts/fireworks/routers/deepseek-flash-latest"}
 {"model": "~deepseek/deepseek-flash-latest", "category": "review", "perf": 0.72, "tier": -1, "tier_source": "family", "source_ref": "alias:accounts/fireworks/routers/deepseek-flash-latest"}
@@ -3618,7 +3624,7 @@
 {"model": "~z-ai/glm-latest", "category": "long_doc", "perf": 0.8296, "tier": -2, "tier_source": "family", "source_ref": "alias:accounts/fireworks/routers/glm-latest"}
 {"model": "~z-ai/glm-latest", "category": "long_horizon", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:accounts/fireworks/routers/glm-latest"}
 {"model": "~z-ai/glm-latest", "category": "mock", "perf": 0.6, "tier": -3, "tier_source": "family", "source_ref": "alias:accounts/fireworks/routers/glm-latest"}
-{"model": "~z-ai/glm-latest", "category": "multilingual", "perf": 0.9, "tier": 3, "tier_source": "family", "source_ref": "alias:accounts/fireworks/routers/glm-latest"}
+{"model": "~z-ai/glm-latest", "category": "multilingual", "perf": 0.9, "tier": 2, "tier_source": "family", "source_ref": "alias:accounts/fireworks/routers/glm-latest"}
 {"model": "~z-ai/glm-latest", "category": "reasoning", "perf": 0.92, "tier": 3, "tier_source": "family", "source_ref": "alias:accounts/fireworks/routers/glm-latest"}
 {"model": "~z-ai/glm-latest", "category": "refactor", "perf": 0.72, "tier": 2, "tier_source": "family", "source_ref": "alias:accounts/fireworks/routers/glm-latest"}
 {"model": "~z-ai/glm-latest", "category": "review", "perf": 0.7111, "tier": -2, "tier_source": "family", "source_ref": "alias:accounts/fireworks/routers/glm-latest"}

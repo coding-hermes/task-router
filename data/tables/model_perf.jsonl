@@ -2827,10 +2827,16 @@
 {"model": "qwen/qwen3.6-35b-a3b:free", "category": "code_gen", "perf": 0.567, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/T2-CODE"}
 {"model": "qwen/qwen3.6-35b-a3b:free", "category": "debug", "perf": 0.85, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/T5-DEBUG"}
 {"model": "qwen/qwen3.6-35b-a3b:free", "category": "delegation", "perf": 0.637, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/DELEGATION"}
+{"model": "qwen/qwen3.6-35b-a3b:free", "category": "guard", "perf": 0.85, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/GUARD-V2"}
 {"model": "qwen/qwen3.6-35b-a3b:free", "category": "long_doc", "perf": 0.85, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-DOC"}
 {"model": "qwen/qwen3.6-35b-a3b:free", "category": "long_horizon", "perf": 0.85, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-HORIZON"}
+{"model": "qwen/qwen3.6-35b-a3b:free", "category": "mechanical", "perf": 0.567, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/MECHANICAL-V3"}
+{"model": "qwen/qwen3.6-35b-a3b:free", "category": "mock", "perf": 0.708, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/MOCK-V3"}
+{"model": "qwen/qwen3.6-35b-a3b:free", "category": "multilingual", "perf": 0.85, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/MULTILINGUAL-V3"}
 {"model": "qwen/qwen3.6-35b-a3b:free", "category": "reasoning", "perf": 0.85, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/T3-REASON"}
+{"model": "qwen/qwen3.6-35b-a3b:free", "category": "review", "perf": 0.85, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/REVIEW-V2"}
 {"model": "qwen/qwen3.6-35b-a3b:free", "category": "schema", "perf": 0.85, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/SCHEMA"}
+{"model": "qwen/qwen3.6-35b-a3b:free", "category": "spec_docs", "perf": 0.85, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/SPEC-DOCS-V3"}
 {"model": "qwen/qwen3.6-35b-a3b:free", "category": "test", "perf": 0.85, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/TEST"}
 {"model": "qwen/qwen3.6-35b-a3b:free", "category": "tool_use", "perf": 0.85, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/T1-TOOL"}
 {"model": "qwen/qwen3.7-flash:free", "category": "agent_tick", "perf": 0.637, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/AGENT-TICK"}
