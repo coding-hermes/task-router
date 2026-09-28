@@ -952,14 +952,36 @@ def apply_overlay():
     2. UPDATE when the existing estimate is neutral 0.50 (measured score wins
        over the neutral fill; non-neutral tag estimates are preserved).
     """
-    n_ins = n_upd = 0
+    n_ins = n_upd = n_decl = 0
+
+    def _is_declaration(ref):
+        """A `models.jsonl:perf_*` row is a hand-declared seed value, not a measurement.
+
+        Bench evidence must beat it in BOTH directions. The rule below used to be
+        `cur[0] < rel` only — upgrade on evidence, never correct downward — which made a
+        too-high declaration permanently immune to the measurement that contradicts it.
+        Live cost: muse-spark-1.2 kept delegation 0.75 against a measured 0.637, so the
+        OLD model read stronger than its successor and the successor's retirement was
+        held forever; glm-5.3-flash (the fleet default) kept reasoning 0.97 against a
+        measured 0.553 and deepseek-flash kept agent_tick 0.75 against 0.451. 13 rows
+        were in this state. A declaration is weaker evidence than a measurement, so it
+        loses regardless of which number is larger.
+        """
+        return (ref or '').startswith('models.jsonl:perf_')
+
     for model, cat, rel, bsrc in overlay:
-        cur = con.execute("SELECT perf FROM model_perf WHERE lower(model)=? AND category=?",
+        cur = con.execute("SELECT perf, source, source_ref FROM model_perf "
+                          "WHERE lower(model)=? AND category=?",
                           [model.lower(), cat]).fetchone()
         if cur is None:
             con.execute("INSERT INTO model_perf (model, category, perf, source, source_ref) "
                         "VALUES (?,?,?,?,?)", [model, cat, rel, 'bench', f'bench:{bsrc}'])
             n_ins += 1
+        elif _is_declaration(cur[2]):
+            con.execute("UPDATE model_perf SET perf=?, source='bench', source_ref=? "
+                        "WHERE lower(model)=? AND category=?",
+                        [rel, f'bench:{bsrc}', model.lower(), cat])
+            n_decl += 1
         elif abs(cur[0] - 0.50) < 0.001:
             con.execute("UPDATE model_perf SET perf=?, source='bench', source_ref=? "
                         "WHERE lower(model)=? AND category=?",
@@ -977,8 +999,9 @@ def apply_overlay():
                         "WHERE lower(model)=? AND category=?",
                         [rel, f'bench:{bsrc}', model.lower(), cat])
             n_upd += 1
-    if n_ins or n_upd:
-        print(f'overlay: {n_ins} inserted, {n_upd} neutral-updated')
+    if n_ins or n_upd or n_decl:
+        print(f'overlay: {n_ins} inserted, {n_upd} neutral-updated, '
+              f'{n_decl} DECLARATION replaced by measurement')
     return n_ins + n_upd
 
 seed_estimates()
