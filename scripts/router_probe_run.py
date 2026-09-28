@@ -624,9 +624,7 @@ def main():
             results_ext.append(ext)
             results_ext2.append(ext2)
             results_ext3.append(ext3)
-
-    with cf.ThreadPoolExecutor(max_workers=args.workers) as pool:
-        list(pool.map(lambda t: one(*t), targets))
+            flush()     # partial progress survives a timeout kill (see flush docstring)
 
     tag = f'_{args.tag}' if args.tag else ''
     out_map = [('v5', results_v5), ('agentic', results_ag)]
@@ -636,10 +634,29 @@ def main():
         out_map.append(('extended2', results_ext2))
     if args.extended3:
         out_map.append(('extended3', results_ext3))
-    for name, data in out_map:
-        path = os.path.join(args.out_dir, f'results_lanes_{args.date}{tag}_{name}.json')
-        json.dump(data, open(path, 'w'), indent=1)
-        print('wrote', path)
+
+    def flush():
+        """Write every buffer NOW.
+
+        Results used to be written once, after the pool drained — so a wave killed by
+        its own timeout (exit 124) threw away everything it had already measured, API
+        cost included. That happened: alias-xk recorded 20 lanes and wrote nothing. A
+        probe run is expensive enough that partial progress must survive; flushing per
+        completed lane means a kill costs at most the lane in flight.
+        """
+        for name, data in out_map:
+            path = os.path.join(args.out_dir, f'results_lanes_{args.date}{tag}_{name}.json')
+            tmp = path + '.tmp'
+            with open(tmp, 'w') as fh:
+                json.dump(list(data), fh, indent=1)
+            os.replace(tmp, path)     # atomic: a kill mid-write never yields a torn file
+
+    with cf.ThreadPoolExecutor(max_workers=args.workers) as pool:
+        list(pool.map(lambda t: one(*t), targets))
+
+    flush()
+    for name, _ in out_map:
+        print('wrote', os.path.join(args.out_dir, f'results_lanes_{args.date}{tag}_{name}.json'))
     return 0
 
 
