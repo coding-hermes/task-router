@@ -73,6 +73,17 @@ BATTERIES = {
         'guard': ('GUARD-V2', 'guard', None),
         'review': ('REVIEW-V2', 'review', None),
     },
+    # v3: the four that STILL saturated in v2. MEASURED 2026-09-27 over the same
+    # seven-lane spread — mechanical spread 0.50, multilingual 0.33, spec_docs 0.33,
+    # mock 0.33, every lane landing between 3/6 and 6/6 — so the fix was the task shape
+    # (six precision-weighted checks, partial credit) rather than the wording. All four
+    # keys exist now; with v2's guard/review that is all six previously-blocked categories.
+    'extended3': {
+        'mechanical': ('MECHANICAL-V3', 'mechanical', None),
+        'multilingual': ('MULTILINGUAL-V3', 'multilingual', None),
+        'spec_docs': ('SPEC-DOCS-V3', 'spec_docs', None),
+        'mock': ('MOCK-V3', 'mock', None),
+    },
 }
 
 

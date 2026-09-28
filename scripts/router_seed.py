@@ -368,6 +368,14 @@ BENCH_OVERLAY = {
     # stay inert until a probe that actually discriminates replaces them.
     'live-probe-2026-09-27/GUARD-V2': ['guard'],
     'live-probe-2026-09-27/REVIEW-V2': ['review'],
+    # v3 closed the remaining four: measured spread over the same seven-lane spread was
+    # mechanical 0.50, multilingual 0.33, spec_docs 0.33, mock 0.33 (lanes 3/6..6/6), so
+    # these keys are registered and all six once-blocked categories now have a probe that
+    # demonstrably tells two models apart.
+    'live-probe-2026-09-27/MECHANICAL-V3': ['mechanical'],
+    'live-probe-2026-09-27/MULTILINGUAL-V3': ['multilingual'],
+    'live-probe-2026-09-27/SPEC-DOCS-V3': ['spec_docs'],
+    'live-probe-2026-09-27/MOCK-V3': ['mock'],
     # 2026-09-27 (muse-code, agentic round): the first battery left six categories
     # the fleet actually gates on unmeasured (agent_tick, delegation, schema,
     # long_doc, long_horizon, test), so muse-spark-1.1/-1.3 still could not clear
