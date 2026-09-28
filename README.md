@@ -182,6 +182,10 @@ ROUTER_EDIT_API_KEY=... router server --mode edit
   `tools/list`, `tools/call`). Tools are derived mechanically from the
   OpenAPI schema, so an MCP client can list and call the same operations —
   including gated mutations — under identical auth rules.
+- **UI data plane** — `GET /ui` serves the Data Command Center; its
+  `GET /api/ui/{registry,chain,flow,series,board,ledger}` searches and the
+  guarded `POST /api/ui/registry/edit` are documented in
+  [docs/ui/data-command-center.md](docs/ui/data-command-center.md).
 
 ## Classified proxy deployment (TR-067)
 
