@@ -12,6 +12,12 @@ license = {text = "MIT"}
 authors = [{name = "Bane", email = "wojonstech@gmail.com"}]
 # stdlib only — scripts/ tools must run in the bare board venv.
 
+[project.optional-dependencies]
+# NOT runtime deps (runtime stays stdlib-only). Only what make test needs:
+# pytest runs the suite; duckdb is imported by scripts/router_seed.py, which
+# tests/conftest.py runs once per session to build the shared tables fixture.
+test = ["pytest", "duckdb"]
+
 [project.scripts]
 router = "task_router.cli:main"
 
