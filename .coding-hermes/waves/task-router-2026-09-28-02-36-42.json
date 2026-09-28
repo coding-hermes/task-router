@@ -1,0 +1,49 @@
+{
+  "tick_id": "task-router-2026-09-28-02-36-42",
+  "project": "task-router",
+  "wave_budget": 2,
+  "tasks": [
+    {
+      "id": "TR-225",
+      "title": "Ranking scale bias: probes capped at 0.85 while third-party reaches 1.0",
+      "worktree": "/home/kara/worktrees/task-router-TR-225",
+      "branch": "wt/TR-225",
+      "base_sha": "0c9f0fb",
+      "worker_model": "glm-5.3-flash",
+      "worker_provider": "zai-glm"
+    },
+    {
+      "id": "TR-226",
+      "title": "clinepass probe id-shape: bare ids return 400, need modelType/model prefix",
+      "worktree": "/home/kara/worktrees/task-router-TR-226",
+      "branch": "wt/TR-226",
+      "base_sha": "0c9f0fb",
+      "worker_model": "glm-5.3-flash",
+      "worker_provider": "zai-glm"
+    }
+  ],
+  "finished_at": "2026-09-28T18:01:00-05:00",
+  "recovery_outcome": "no_commits_on_either_branch",
+  "workers": [
+    {
+      "id": "TR-225",
+      "title": "Ranking scale bias: probes capped at 0.85 while third-party reaches 1.0",
+      "worktree": "/home/kara/worktrees/task-router-TR-225",
+      "branch": "wt/TR-225",
+      "base_sha": "0c9f0fb",
+      "worker_model": "glm-5.3-flash",
+      "worker_provider": "zai-glm",
+      "outcome": "no_commits"
+    },
+    {
+      "id": "TR-226",
+      "title": "clinepass probe id-shape: bare ids return 400, need modelType/model prefix",
+      "worktree": "/home/kara/worktrees/task-router-TR-226",
+      "branch": "wt/TR-226",
+      "base_sha": "0c9f0fb",
+      "worker_model": "glm-5.3-flash",
+      "worker_provider": "zai-glm",
+      "outcome": "no_commits"
+    }
+  ]
+}
