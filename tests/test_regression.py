@@ -238,14 +238,27 @@ def test_chain_invariants_per_profile(monkeypatch, tmp_path, pid):
     #     now exclude it. New head xkiro/xiaomi/mimo-v2.6-flash
     #     (tool_use 0.64, bench:live-probe-2026-09-25) taken from the live
     #     router_spawn resolve 2026-09-27.
-    ("P0_FORE", "xkiro/openai/gpt-6-luna"),  # 2026-09-28: head moved from mimo-v2.6-flash to gpt-6-luna after registry/pricing updates
+    # TR-232 2026-09-28: probes are stored undamped (score = checks/total, no
+    #     0.85 cap) so the rank scale is one unit. Measured effect on P0:
+    #     qwen3.7-plus:free's own AGENT-TICK probe (3/4) undamps 0.637 -> 0.75,
+    #     clearing the agent_tick>=2 bar whose threshold sits at 0.75 — it is
+    #     now the $0 plan_tier-0 head. The old fixture head gpt-6-luna stays
+    #     fully eligible (its tiers ROSE: reasoning/schema/test reached 5) and
+    #     keeps its P0 chain slot at hop 11 ($0.003867 vs $0) — the head moved
+    #     on PRICE order, not capability. Verified by hermetic resolve against
+    #     the worktree tables (all-open state), head = xkiro/qwen/qwen3.7-plus:free.
+    ("P0_FORE", "xkiro/qwen/qwen3.7-plus:free"),  # TR-232 2026-09-28: $0 lane, agent_tick cleared at the undamped 0.75 threshold
     # 2026-09-16: Step Plan Flash Pro flat-sub repricing (plan_terms 39.4x lane,
     # commit afc774c) stamped step-3.5-flash at $0.0051 normalized — cheaper than
     # every other P1_CODING/P2_AGENTIC-eligible lane, so the price-ordered chain
     # re-sorted with stepfun first. Real battery evidence backs its perfs
     # (battery-T1-TOOL agent_tick/delegation 0.75, T2-CODE debug 0.75) — not a
     # blank-fill head. P0_FORE keeps kimi-k3: its stronger bars filter stepfun out.
-    ("P1_CODING", "xkiro/minimax/minimax-m3:free"),  # 2026-09-18: the xkiro deepseek lanes (deepseek-v4-flash / -v4.1-flash:free / -chat-v3.1 / -v3.2) were DEAD ids — absent from the live api.xkiro.com/v1/models catalog (111 ids) AND chat-probe HTTP 404 'does not exist' — so they are disabled with that reason. The plan_tier-0 $0 1M-ctx lane that now wins the same (plan_tier, price, context) tie-breaks is xkiro/minimax/minimax-m3:free (live probe 200 2026-09-18). stepfun remains the live head whenever health gates the xkiro route
+    # TR-232 2026-09-28 fixture alignment: this head was ALREADY drifted on HEAD
+    # (pre-existing; control worktree at HEAD resolves qwen3.7-flash:free too —
+    # minimax-m3:free fails P1's test>=0 bar with test tier BLANK -> -1). The
+    # undamp does not move this head; the fixture now states the resolved truth.
+    ("P1_CODING", "xkiro/qwen/qwen3.7-flash:free"),  # TR-232 2026-09-28: aligns the fixture with the resolved head (already drifted on HEAD; minimax-m3:free fails test>=0)
     # Capability-grounded heads (gpt-5.6-sol review 2026-08-27: do NOT tune
     # normal eligibility to accommodate the emergency fallback — fallback is a
     # degraded path that reports requirements_unmet). P2/P4 head on models with
@@ -255,7 +268,11 @@ def test_chain_invariants_per_profile(monkeypatch, tmp_path, pid):
     #     here too (tool_use >= 0 bar). New head xkiro/z-ai/glm-5.3-flash
     #     (tool_use 0.85, family alias:glm-5.3-flash) per live router_spawn
     #     resolve 2026-09-27.
-    ("P2_AGENTIC", "xkiro/qwen/qwen3.7-plus:free"),  # 2026-09-28: head moved from glm-5.3-flash to qwen3.7-plus:free after registry/pricing updates
+    # TR-232 2026-09-28: the undamp lifts qwen3.7-plus:free's own probes above
+    #     the P2 bars (agent_tick 2, delegation 5, long_horizon 5, tool_use 5)
+    #     and its $0 price takes the head. Same hermetic-resolve verification
+    #     as P0_FORE above.
+    ("P2_AGENTIC", "xkiro/qwen/qwen3.7-plus:free"),  # TR-232 2026-09-28: $0 head, own-probe tiers clear all P2 bars
     # Bane 2026-08-31: P4_SECURITY requires security >= 2. Only gpt-5.6-sol
     # clears that bar. 2026-09-10: commandcode provider added (Provider API,
     # no-markup, open in the prod mirror) — its gpt-5.6-sol lane clears

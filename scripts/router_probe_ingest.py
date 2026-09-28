@@ -9,8 +9,15 @@ the defects already paid for once:
     category list to every row carrying it, so a multi-task battery under a
     multi-category key credits each category with its best task (muse code_gen
     read 0.85 from a 2/3 code task until the keys were split — commit 67d553c).
-  - small-n probes are damped: score = 0.85 * checks_passed / checks_total,
+  - probes are stored UNDAMPED: score = checks_passed / checks_total,
     max_score 1.0, n=1, never family-filled (the 09-16/09-25 onboarding shape).
+    TR-232: the previous score = 0.85 * ratio cap (small-n humility) collided
+    with the rank scale — third-party and estimate rows are stored as their raw
+    fraction and can reach 1.0, so the seed's per-category quantiles bucketed a
+    MIXED pool where a model that aced our probe 4/4 (0.85) could never outrank
+    a 0.9 third-party benchmark row. The units have to agree at the source;
+    humility about n=1 lives in the source string ('n=1 small-probe, NOT
+    large-bench') and in the rank audit's provenance view, not in a unit shift.
   - idempotent: a row already present for (model, category, source key) is
     skipped, so re-running a battery after a partial run cannot double-stamp.
 
@@ -32,7 +39,7 @@ REPO = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 DATA_DIR = os.environ.get('ROUTING_DATA_DIR', os.path.join(REPO, 'data', 'tables'))
 
 # battery name -> {result field: (source key, category, max points or None)}
-# max points None => the results file already carries a damped score.
+# max points None => the results file already carries an undamped score.
 BATTERIES = {
     'v5': {
         'T1-TOOL': ('T1-TOOL', 'tool_use', 3),
@@ -146,15 +153,15 @@ def main():
                     empty.append({'model': model, 'category': category, 'field': field})
                     continue
                 passed, total = v.get('passed'), v.get('total')
-                damped = round(0.85 * passed / total, 3) if total else None
+                score = round(passed / total, 3) if total else None
                 detail = f'{passed}/{total}'
             else:                                        # v5 shape
                 if row.get(field + '_empty'):
                     empty.append({'model': model, 'category': category, 'field': field})
                     continue
-                damped = round(0.85 * v / maxpts, 3)
+                score = round(v / maxpts, 3)
                 detail = f'{v}/{maxpts}'
-            if damped is None:
+            if score is None:
                 continue
             source = (f'live-probe-{args.date}/{key}: {args.battery} deterministic battery '
                       f'({field} {detail}, {args.note})')
@@ -162,7 +169,7 @@ def main():
                 skipped += 1
                 continue
             have.add((model, category, key_of(source)))
-            new_rows.append({'model': model, 'category': category, 'score': damped,
+            new_rows.append({'model': model, 'category': category, 'score': score,
                              'max_score': 1.0, 'source': source, 'valid_from': args.date})
 
     print(f'battery={args.battery}  results={args.results}')
