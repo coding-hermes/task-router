@@ -1,6 +1,17 @@
 #!/usr/bin/env python3
 """provider_health_probe.py v3 — hourly model battery + credit check (Bane 2026-08-31).
 
+v3.2 (TR-233, 2026-09-28): clinepass requires ids in `modelType/model` form
+('cline-pass/glm-5.3'); the registry carries BARE ids ('glm-5.3'), so every
+clinepass lane answered HTTP 400 {"error":"invalid model format. Expected
+format: modelType/model"} — and 400 files as request_rejected, which by design
+records nothing, making the whole provider look unmeasured instead of
+mis-probed. wire_model_id() now applies the provider-specific prefix at the
+prober (control verified live 2026-09-28: 'cline-pass/glm-5.3' answers 200 on
+the same key that 400s bare 'glm-5.3'; the form model_catalog.api_id has
+carried since 2026-08-27). State keys stay BARE so the gate/spawn vocabulary
+is untouched; what was actually sent is stamped in `probed_as`.
+
 v3.1 (TR-164, 2026-09-26): --only MERGES into health-state.json instead of
 replacing it — unprobed providers keep their previous entries verbatim. The
 file is a GATE input (router_spawn reads providers.<p>.status, absent =
@@ -153,6 +164,39 @@ PROBE_PARAMS = {
 }
 
 UP_LIKE = ('OK', 'SLOW', 'OVERLOADED', 'TIMEOUT')
+
+# TR-233 (2026-09-28): per-provider id-shape transform. clinepass REQUIRES ids
+# in `modelType/model` form ('cline-pass/glm-5.3') and answers every bare
+# registry id with HTTP 400 "invalid model format. Expected format:
+# modelType/model" — a request_rejected class that by design records nothing,
+# so the whole provider read as unmeasured while being unprobeable. The fix
+# lives IN THE PROBER, never in the registry: the registry's bare ids stay the
+# vocabulary for state keys, dedup and ranking; only the request body carries
+# the wire form. Live control 2026-09-28: 'cline-pass/glm-5.3' answers 200 on
+# the same key that 400s 'glm-5.3' (matches model_catalog.api_id, carried since
+# 2026-08-27).
+WIRE_ID_PREFIX = {
+    'clinepass': 'cline-pass/',
+    'cline-pass': 'cline-pass/',  # both registry spellings, same provider
+}
+
+
+def wire_model_id(provider, model):
+    """Registry id -> the id the provider's API actually serves.
+
+    clinepass wants 'modelType/model' ('cline-pass/<bare>'); every other
+    provider's ids stay bare/verbatim. Idempotent (already-prefixed ids pass
+    through) and slash-carrying ids pass through untouched — the probe's own
+    default_model ('cline-pass/deepseek-v4-flash') and probe_fixes alternates
+    ('deepseek/deepseek-v4-flash', vendor-prefixed) are already wire-shaped.
+    """
+    if not model:
+        return model
+    prefix = WIRE_ID_PREFIX.get(provider)
+    if not prefix or '/' in model:  # already wire-shaped: never double-prefix
+        return model
+    return prefix + model
+
 
 ICON = {'OK': '✓', 'SLOW': '🐢', 'OVERLOADED': '⚠️', 'DOWN': '✗',
         'TIMEOUT': '⏳', 'EXCLUDED': '–', 'SKIP': '∅'}
@@ -529,15 +573,24 @@ def main(config_path=None, only_providers=None, output_path=None, write=True):
                                  'error': excludes[(prov, model)]['reason']}
                 continue
             params = PROBE_PARAMS.get(prov)
-            r = ping(base, key, model, params, prov_headers.get(prov))
+            # TR-233: send the provider's wire form ('cline-pass/<bare>') but keep
+            # the BARE registry id as the state key — the gate/spawn vocabulary.
+            # probed_as records what actually went on the wire.
+            wire = wire_model_id(prov, model)
+            r = ping(base, key, wire, params, prov_headers.get(prov))
             if r['status'] == 'DOWN' and (prov, model) in fixes:
                 alt = fixes[(prov, model)]['fix_to']
-                r2 = ping(base, key, alt, params, prov_headers.get(prov))
+                alt_wire = wire_model_id(prov, alt)
+                r2 = ping(base, key, alt_wire, params, prov_headers.get(prov))
                 if r2['status'] in ('OK', 'SLOW', 'OVERLOADED', 'TIMEOUT'):
                     r2['note'] = (r2.get('note') + '; ' if r2.get('note') else '') + \
                                  f'id corrected: {model} → {alt}'
-                    r2['probed_as'] = alt
+                    r2['probed_as'] = alt_wire
                     r = r2
+                else:
+                    r.setdefault('probed_as', wire)
+            else:
+                r.setdefault('probed_as', wire)
             # TR-104: stamp every model entry with the probe-run transition ts —
             # router_spawn renders it as "model DOWN (<ts>)"; unstamped legacy
             # entries used to print "model DOWN (?)".
