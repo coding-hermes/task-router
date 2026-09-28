@@ -237,6 +237,13 @@ def err_class(e):
     code = getattr(e, 'code', None)
     if code == 429:
         return 'rate_limited'
+    if code == 400:
+        # A 400 means THIS request was rejected — max_tokens, an unsupported
+        # parameter, a shape the proxy dislikes. It is not a fact about the lane:
+        # commandcode-2/claude-opus-5-5 returned 400 to the probe and then answered
+        # `PONG-OPUS55` to a plain call, proving the lane serves. Classifying it
+        # with not_served would have logged a working lane as fiction.
+        return 'request_rejected'
     if code in (403, 404):
         return 'not_served'
     if code:
