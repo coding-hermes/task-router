@@ -8,9 +8,13 @@ per model.
 
 Credentials are resolved the way the fleet resolves them — base_url and
 api_key_env from ~/.hermes/config.yaml (providers map + custom_providers list),
-key VALUES read from ~/.hermes/.env in-process and never printed. Lanes needing
-a non-OpenAI transport (minimax anthropic_messages) or a bespoke session header
-(opencode-go) are skipped and reported rather than probed wrongly.
+with a fallback to the repo's own data/tables/probe_providers.jsonl for lanes
+whose credentials live only there (meta-model, commandcode, grok-build —
+TR-227: config.yaml has no such keys, and the hourly health probe measures
+exactly those rows). key VALUES are read from ~/.hermes/.env in-process and
+never printed. Lanes needing a non-OpenAI transport (minimax
+anthropic_messages) or a bespoke session header (opencode-go) are skipped and
+reported rather than probed wrongly.
 
 Targets default to lanes that are ACTIVE + PRICED but carry no tier rows, on the
 providers given — i.e. exactly the population the auditor flags.
@@ -56,8 +60,58 @@ CACHE_KEYED = {
 }
 
 
-def resolve(prov, prov_cfg, env):
-    """(base_url, key, extra_headers) or (None, None, reason)."""
+# probe_providers.jsonl — the repo's OWN data file (the same rows
+# provider_health_probe.py measures hourly). resolve()'s fallback source: a
+# registry lane whose name matches no config.yaml key still has base_url +
+# key_env HERE (meta-model, commandcode, grok-build all lived only in this
+# file — TR-227).
+PROBE_PROVIDERS_FILE = 'probe_providers.jsonl'
+
+
+def load_probe_providers(path=None):
+    """probe_providers.jsonl -> {id: (base_url, key_env, extra_headers)}.
+
+    Same admission filter as provider_health_probe.load_providers: only rows
+    with id + base_url + key_env, enabled not False. Missing file -> {} (the
+    fallback simply has nothing to add). Rows whose 'headers' dict carries
+    per-provider contract headers (opencode-go's x-opencode-session class)
+    plumb into the extra-headers slot like a config.yaml extra_headers entry.
+    """
+    path = path or os.path.join(DATA_DIR, PROBE_PROVIDERS_FILE)
+    out = {}
+    try:
+        fh = open(path, encoding='utf-8')
+    except OSError:
+        return out
+    with fh:
+        for line in fh:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                row = json.loads(line)
+            except ValueError:
+                continue
+            if not row.get('enabled', True):
+                continue
+            prov_id, base, key_env = row.get('id'), row.get('base_url'), row.get('key_env')
+            if not (prov_id and base and key_env):
+                continue
+            h = row.get('headers')
+            extra = {str(k): str(v) for k, v in h.items()} if isinstance(h, dict) and h else {}
+            out[prov_id] = (base, key_env, extra)
+    return out
+
+
+def resolve(prov, prov_cfg, env, probe_data=None):
+    """(base_url, key, extra_headers) or (None, None, reason).
+
+    Lookup order: CACHE_KEYED (subscription cache files) -> config.yaml
+    (providers map + custom_providers) -> probe_providers.jsonl (the repo's
+    probe data; a lane whose credentials live only there used to SKIP
+    quietly — TR-227). Config wins when both carry the lane: config.yaml is
+    what the fleet routes through, the data file is measurement metadata.
+    """
     if prov in CACHE_KEYED:
         base, path, field = CACHE_KEYED[prov]
         try:
@@ -67,7 +121,12 @@ def resolve(prov, prov_cfg, env):
         return (base, key, {}) if key else (None, None, f'no {field} in {path}')
     base, key_env, extra = prov_cfg.get(prov, (None, None, {}))
     if not base:
-        return None, None, 'no base_url in config.yaml'
+        d_base, d_key_env, d_extra = (probe_data or {}).get(prov, (None, None, {}))
+        if d_base:
+            base, key_env, extra = d_base, d_key_env, d_extra
+    if not base:
+        return None, None, ('no base_url for %s in config.yaml or '
+                            'data/tables/%s' % (prov, PROBE_PROVIDERS_FILE))
     if not env.get(key_env or ''):
         return None, None, f'key env {key_env} absent from .env'
     return base, env[key_env], extra
@@ -530,11 +589,13 @@ def main():
 
     targets, skipped = [], {}
     only_models = {m.strip() for m in args.models.split(',') if m.strip()}
+    probe_data = load_probe_providers()      # TR-227 fallback source
     for prov in providers:
         if prov in SKIP_REASON:
             skipped[prov] = SKIP_REASON[prov]
             continue
-        base, key, extra = resolve(PROVIDER_ALIAS.get(prov, prov), prov_cfg, env)   # 3rd slot = extra headers, or the reason
+        base, key, extra = resolve(PROVIDER_ALIAS.get(prov, prov), prov_cfg, env,
+                                   probe_data)   # 3rd slot = extra headers, or the reason
         if not base:
             skipped[prov] = extra or 'unresolvable provider'
             continue
