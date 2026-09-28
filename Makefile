@@ -37,7 +37,8 @@ venv:
 	@echo "venv ready: $(VENV_PY)"
 
 install: venv
-	@$(VENV_PY) -m pip install -q -e . duckdb
+	@$(VENV_PY) -m pip install -q -e ".[test]"
+	@$(VENV_PY) -c "import pytest, duckdb"
 	@$(ROUTER) --help >/dev/null && echo "router installed: $(ROUTER)"
 
 seed: install
