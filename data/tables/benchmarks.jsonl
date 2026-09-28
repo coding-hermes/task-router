@@ -598,6 +598,16 @@
 {"model": "kimi-k2.7-code", "category": "guard", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
 {"model": "kimi-k2.7-code", "category": "mock", "score": 1.0, "max_score": 1.0, "source": "battery-T4-INSTR-floor", "valid_from": null}
 {"model": "kimi-k2.7-code", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
+{"model": "kimi-k2.7-code-fast", "category": "agent_tick", "score": 0.637, "max_score": 1.0, "source": "live-probe-2026-09-27/AGENT-TICK: agentic deterministic battery (agent_tick 3/4, n=1 small-probe, NOT large-bench)", "valid_from": "2026-09-27"}
+{"model": "kimi-k2.7-code-fast", "category": "code_gen", "score": 0.567, "max_score": 1.0, "source": "live-probe-2026-09-27/T2-CODE: v5 deterministic battery (T2-CODE 2/3, n=1 small-probe, NOT large-bench)", "valid_from": "2026-09-27"}
+{"model": "kimi-k2.7-code-fast", "category": "debug", "score": 0.85, "max_score": 1.0, "source": "live-probe-2026-09-27/T5-DEBUG: v5 deterministic battery (T5-DEBUG 3/3, n=1 small-probe, NOT large-bench)", "valid_from": "2026-09-27"}
+{"model": "kimi-k2.7-code-fast", "category": "delegation", "score": 0.637, "max_score": 1.0, "source": "live-probe-2026-09-27/DELEGATION: agentic deterministic battery (delegation 3/4, n=1 small-probe, NOT large-bench)", "valid_from": "2026-09-27"}
+{"model": "kimi-k2.7-code-fast", "category": "long_doc", "score": 0.85, "max_score": 1.0, "source": "live-probe-2026-09-27/LONG-DOC: agentic deterministic battery (long_doc 4/4, n=1 small-probe, NOT large-bench)", "valid_from": "2026-09-27"}
+{"model": "kimi-k2.7-code-fast", "category": "long_horizon", "score": 0.85, "max_score": 1.0, "source": "live-probe-2026-09-27/LONG-HORIZON: agentic deterministic battery (long_horizon 4/4, n=1 small-probe, NOT large-bench)", "valid_from": "2026-09-27"}
+{"model": "kimi-k2.7-code-fast", "category": "reasoning", "score": 0.85, "max_score": 1.0, "source": "live-probe-2026-09-27/T3-REASON: v5 deterministic battery (T3-REASON 3/3, n=1 small-probe, NOT large-bench)", "valid_from": "2026-09-27"}
+{"model": "kimi-k2.7-code-fast", "category": "schema", "score": 0.85, "max_score": 1.0, "source": "live-probe-2026-09-27/SCHEMA: agentic deterministic battery (schema 4/4, n=1 small-probe, NOT large-bench)", "valid_from": "2026-09-27"}
+{"model": "kimi-k2.7-code-fast", "category": "test", "score": 0.85, "max_score": 1.0, "source": "live-probe-2026-09-27/TEST: agentic deterministic battery (test 4/4, n=1 small-probe, NOT large-bench)", "valid_from": "2026-09-27"}
+{"model": "kimi-k2.7-code-fast", "category": "tool_use", "score": 0.85, "max_score": 1.0, "source": "live-probe-2026-09-27/T1-TOOL: v5 deterministic battery (T1-TOOL 3/3, n=1 small-probe, NOT large-bench)", "valid_from": "2026-09-27"}
 {"model": "kimi-k3", "category": "agent-tick", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
 {"model": "kimi-k3", "category": "agent-tick", "score": 81.1, "max_score": 88.0, "source": "Terminal-Bench-class (pass@5 proxy)", "valid_from": null}
 {"model": "kimi-k3", "category": "agent_tick", "score": 0.883, "max_score": 1.0, "source": "Terminal-Bench 2.1 (vendor, kili-technology independent roundup) research-bench-2026-09-13", "valid_from": "2026-09-13"}
@@ -1058,6 +1068,14 @@
 {"model": "qwen3.5:397b", "category": "reasoning", "score": 88.4, "max_score": 100.0, "source": "GPQA-D (verify-dspro)", "valid_from": null}
 {"model": "qwen3.5:397b", "category": "reasoning", "score": 91.3, "max_score": 91.3, "source": "AIME26", "valid_from": null}
 {"model": "qwen3.5:397b", "category": "schema", "score": 80.0, "max_score": 80.0, "source": "BenchLM", "valid_from": null}
+{"model": "qwen3.6-35b", "category": "agent_tick", "score": 0.637, "max_score": 1.0, "source": "live-probe-2026-09-27/AGENT-TICK: agentic deterministic battery (agent_tick 3/4, n=1 small-probe, NOT large-bench)", "valid_from": "2026-09-27"}
+{"model": "qwen3.6-35b", "category": "debug", "score": 0.85, "max_score": 1.0, "source": "live-probe-2026-09-27/T5-DEBUG: v5 deterministic battery (T5-DEBUG 3/3, n=1 small-probe, NOT large-bench)", "valid_from": "2026-09-27"}
+{"model": "qwen3.6-35b", "category": "delegation", "score": 0.85, "max_score": 1.0, "source": "live-probe-2026-09-27/DELEGATION: agentic deterministic battery (delegation 4/4, n=1 small-probe, NOT large-bench)", "valid_from": "2026-09-27"}
+{"model": "qwen3.6-35b", "category": "long_doc", "score": 0.85, "max_score": 1.0, "source": "live-probe-2026-09-27/LONG-DOC: agentic deterministic battery (long_doc 4/4, n=1 small-probe, NOT large-bench)", "valid_from": "2026-09-27"}
+{"model": "qwen3.6-35b", "category": "long_horizon", "score": 0.85, "max_score": 1.0, "source": "live-probe-2026-09-27/LONG-HORIZON: agentic deterministic battery (long_horizon 4/4, n=1 small-probe, NOT large-bench)", "valid_from": "2026-09-27"}
+{"model": "qwen3.6-35b", "category": "reasoning", "score": 0.85, "max_score": 1.0, "source": "live-probe-2026-09-27/T3-REASON: v5 deterministic battery (T3-REASON 3/3, n=1 small-probe, NOT large-bench)", "valid_from": "2026-09-27"}
+{"model": "qwen3.6-35b", "category": "schema", "score": 0.85, "max_score": 1.0, "source": "live-probe-2026-09-27/SCHEMA: agentic deterministic battery (schema 4/4, n=1 small-probe, NOT large-bench)", "valid_from": "2026-09-27"}
+{"model": "qwen3.6-35b", "category": "test", "score": 0.85, "max_score": 1.0, "source": "live-probe-2026-09-27/TEST: agentic deterministic battery (test 4/4, n=1 small-probe, NOT large-bench)", "valid_from": "2026-09-27"}
 {"model": "qwen3.6-35b-fast", "category": "agent-tick", "score": 2.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
 {"model": "qwen3.6-35b-fast", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
 {"model": "qwen3.6-35b-fast", "category": "debug", "score": 3.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
