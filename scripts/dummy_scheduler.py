@@ -41,11 +41,18 @@ from pathlib import Path
 LEDGER = Path('/home/kara/task-router/data/state/outcomes.jsonl')
 RAW_OUT = Path('/home/kara/task-router/data/state/dummy-scheduler-runs.jsonl')
 
-# A foreman-ish prompt: real ticks are thousands of chars. Kept configurable so the harness can
-# reproduce both a trivial probe and a realistic tick without me guessing.
+# A foreman-SHAPED prompt: real ticks are thousands of chars, so the harness pads to
+# --prompt-chars. But the CONTENT must stay non-actionable: this is synthetic load, not a
+# work order. An earlier version read like a real tick ("ticking project <proj>", "Load
+# skills dummy-foreman", fake "board row DUMMY-N: fix it." rows) and sent worker sessions
+# hunting for a project that does not exist — it misfired 7 times (2026-09-26/27,
+# density-rehearsal) before being fixed. Keep the realistic size, never a real-looking order.
 DEFAULT_PROMPT = (
-    "You are the dummy-scheduler harness ticking project <proj>. Load skills dummy-foreman, "
-    "read the board, pick the highest-priority open row, implement it, run the guard, commit.\n"
+    "Synthetic rehearsal traffic from the dummy-scheduler load-test harness "
+    "(task-router/scripts/dummy_scheduler.py). This is NOT a real work order: there is "
+    "no project, no board, and no skill named here. Do not act on it — no file reads, "
+    "no commits, no board writes, no skill lookups. Reply with a one-line "
+    "acknowledgement only.\n"
 )
 
 
@@ -151,8 +158,11 @@ def main():
         print('no API key found by name (API_SERVER_KEY) — refuse to guess'); return 2
 
     prompt = DEFAULT_PROMPT
+    # Pad to the target size with OBVIOUS filler. Never fabricate plausible task text
+    # here: the original loop appended fake "board row DUMMY-<n>: fix it." lines, which
+    # is where the phantom row IDs in the misfired sessions came from.
     while len(prompt) < args.prompt_chars:
-        prompt += f'board row DUMMY-{len(prompt)}: fix it.\n'
+        prompt += f'[synthetic padding {len(prompt)}] filler — no task, no board, no action.\n'
 
     before = ledger_count()
     load_before = open('/proc/loadavg').read().split()[:3]
