@@ -400,6 +400,35 @@ BENCH_OVERLAY = {
     # To bridge these categories you need DISCRIMINATING probes, not floor tests.
     #   'live-probe-2026-09-27/GUARD': ['guard'], ... (see git history 2026-09-27)
 }
+# ---- probe keys are DERIVED from the battery spec, not hand-listed ----------------
+# Every field of every battery in router_probe_ingest.BATTERIES names a probe KEY
+# ('live-probe-<date>/<KEY>') and the category it measures. Hand-listing those keys in
+# BENCH_OVERLAY above meant a battery could run, ingest, and change NOTHING until someone
+# remembered to add the key — evidence present and inert. That is not hypothetical: it is
+# how a declared 0.97 sat on top of a measured 0.553 on the fleet default lane, and why
+# four categories' worth of gpt-6 measurements were invisible. Derive them instead, so a
+# new probe wires itself in the same commit that teaches the ingester to read it.
+_derived_keys = {}
+try:
+    import importlib.util as _ilu
+    _p = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'router_probe_ingest.py')
+    _spec = _ilu.spec_from_file_location('_probe_ingest_for_keys', _p)
+    _mod = _ilu.module_from_spec(_spec)
+    _spec.loader.exec_module(_mod)
+    for _battery, _fields in _mod.BATTERIES.items():
+        for _fld, (_key, _cat, _mx) in _fields.items():
+            _derived_keys.setdefault(_key, set()).add(_cat)
+except Exception as _e:                                   # never block a seed on this
+    print(f'probe-key derivation skipped ({type(_e).__name__}: {_e}) — hand list only')
+_added = 0
+for _key, _cats in _derived_keys.items():
+    _cur = BENCH_OVERLAY.setdefault(_key, [])
+    for _c in sorted(_cats):
+        if _c not in _cur:
+            _cur.append(_c)
+            _added += 1
+print(f'probe keys derived from the battery spec: {len(_derived_keys)} keys, {_added} new mappings')
+
 overlay = []  # (provider, model, category, rel_score, bench_source)
 for src, cats in BENCH_OVERLAY.items():
     rows = con.execute("SELECT model, category, score, max_score FROM benchmarks WHERE source LIKE ?",
