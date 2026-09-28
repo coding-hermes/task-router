@@ -2882,7 +2882,7 @@
 {"model": "stepfun/Step-3.7-Flash", "category": "schema", "perf": 0.85, "tier": 3, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/SCHEMA"}
 {"model": "stepfun/Step-3.7-Flash", "category": "terminal", "perf": 0.95, "tier": 5, "tier_source": "family", "source_ref": "alias:step-3.7-flash"}
 {"model": "stepfun/Step-3.7-Flash", "category": "test", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/TEST"}
-{"model": "stepfun/Step-3.7-Flash", "category": "tool_use", "perf": 0.72, "tier": -2, "tier_source": "family", "source_ref": "alias:step-3.7-flash"}
+{"model": "stepfun/Step-3.7-Flash", "category": "tool_use", "perf": 0.567, "tier": -2, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T1-TOOL"}
 {"model": "stepfun/Step-3.7-Flash", "category": "vision", "perf": 0.972051282051282, "tier": 4, "tier_source": "family", "source_ref": "alias:step-3.7-flash"}
 {"model": "stepfun/Step-5-Preview", "category": "agent_tick", "perf": 0.637, "tier": 0, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/AGENT-TICK"}
 {"model": "stepfun/Step-5-Preview", "category": "code_gen", "perf": 0.567, "tier": 0, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T2-CODE"}

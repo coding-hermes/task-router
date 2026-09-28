@@ -136,3 +136,4 @@
 {"provider": "xkiro-2", "model": "minimax/minimax-m2.7-highspeed:free", "error": "[http_503] HTTP Error 503: Service Unavailable"}
 {"provider": "xkiro-2", "model": "moonshotai/kimi-k2.5", "error": "[not_served] HTTP Error 404: Not Found"}
 {"provider": "xkiro-2", "model": "moonshotai/kimi-k2.6", "error": "[not_served] HTTP Error 404: Not Found"}
+{"provider": "commandcode-2", "model": "claude-opus-5-5", "error": "[not_served] HTTP Error 403: Forbidden"}
