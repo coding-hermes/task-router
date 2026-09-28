@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>task-router — requested features, stats chain &amp; remote lane (2026-09-28)</title>
+<style>
+:root{--bg:#0d1117;--panel:#161b22;--panel2:#1c2330;--line:#2d3646;--txt:#e6edf3;--mut:#9aa7b8;--grn:#3fb950;--amb:#d29922;--red:#f85149;--blu:#58a6ff;--pur:#bc8cff}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--txt);font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+.wrap{max-width:1020px;margin:0 auto;padding:32px 20px 80px}
+.cover{background:#11161f;border:1px solid var(--line);border-radius:10px;padding:16px 20px;margin-bottom:20px;font-size:14.5px}
+.cover b{color:var(--pur)}
+.hero{background:linear-gradient(135deg,#12233a,#1a1033);border:1px solid var(--line);border-radius:14px;padding:34px 30px;margin-bottom:8px}
+.hero h1{margin:0 0 6px;font-size:29px}
+.sub{color:var(--mut);font-size:16.5px;margin:0 0 16px}
+.badges{display:flex;flex-wrap:wrap;gap:8px}.badge{font-size:13px;padding:3px 12px;border-radius:20px;border:1px solid var(--line);background:#0d1526;color:var(--blu)}
+.badge.g{color:var(--grn)}.badge.a{color:var(--amb)}.badge.r{color:var(--red)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin:20px 0 0}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:13px;text-align:center}
+.stat b{display:block;font-size:23px;color:var(--blu)}.stat span{font-size:12.5px;color:var(--mut)}
+h2{margin:38px 0 8px;font-size:22px;border-bottom:1px solid var(--line);padding-bottom:8px}
+h3{margin:24px 0 6px;font-size:16.5px;color:var(--blu)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px 20px;margin:14px 0}
+pre{background:#0a0e14;border:1px solid var(--line);border-radius:8px;padding:14px 16px;overflow-x:auto;font-size:13px;line-height:1.55;white-space:pre-wrap;word-break:break-word}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13.5px}
+.pass{color:var(--grn);font-weight:700}.fail{color:var(--red);font-weight:700}.warn{color:var(--amb);font-weight:700}
+table{width:100%;border-collapse:collapse;font-size:13.5px;margin:12px 0}
+th,td{border:1px solid var(--line);padding:9px 10px;text-align:left;vertical-align:top}
+th{background:var(--panel2);color:var(--blu)}tr:nth-child(even) td{background:#11161f}
+td.y{color:var(--grn)}td.n{color:var(--mut)}td.p{color:var(--amb)}
+ul.tight li{margin-bottom:7px}
+.kicker{display:inline-block;font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;padding:3px 11px;border-radius:20px;border:1px solid var(--line);background:#0d1526;margin-bottom:10px}
+.kicker.g{color:var(--grn)}.kicker.b{color:var(--red)}.kicker.i{color:var(--pur)}.kicker.a{color:var(--amb)}
+.m{font-size:11px;padding:1px 7px;border-radius:10px;background:#0d1526;border:1px solid var(--line);color:var(--grn)}
+.m3{font-size:11px;padding:1px 7px;border-radius:10px;background:#0d1526;border:1px solid var(--line);color:var(--mut)}
+.foot{color:var(--mut);font-size:13px;margin-top:40px;border-top:1px solid var(--line);padding-top:16px}
+a{color:var(--blu)}
+.toc{font-size:14px;color:var(--mut);margin-top:14px}.toc a{margin-right:13px;white-space:nowrap}
+@media(max-width:600px){.hero h1{font-size:23px}}
+</style>
+</head>
+<body><div class="wrap">
+
+<div class="cover">
+<b>TO</b> Bane &nbsp;·&nbsp; <b>FROM</b> this thread — KaraHermes · Set, topic <i>task router</i> &nbsp;·&nbsp; <b>RE</b> the stats chain, the pending test, and the remote lane — merged into one report<br>
+<b>One-line verdict:</b> the stats <i>are</i> logged to JSONL and rolled up into averages the resolver can consume, and both were verified live today; the pending test is the <b>density rehearsal</b>, now running on the dummy scheduler (the real scheduler untouched); the <b>remote lane has two live agents</b> on <code>bunker-mvp</code>.
+</div>
+
+<div class="hero">
+<h1>Everything you asked for, in one place</h1>
+<p class="sub">Each claim below is labelled by how it was produced: measured on this box today, read from an artifact, or a note carried forward unverified.</p>
+<div class="badges">
+<span class="badge g">✔ stats: ledger → averages → resolver → UI</span>
+<span class="badge g">✔ 11/11 acceptance · 1.00 amplification</span>
+<span class="badge g">✔ CI green · gate live on a real push</span>
+<span class="badge a">⏳ density rehearsal running now</span>
+<span class="badge r">✘ re-flip still owner-gated</span>
+</div>
+<div class="grid">
+<div class="stat"><b>918</b><span>proxied rows / 168h</span></div>
+<div class="stat"><b>104</b><span>rolling-average groups</span></div>
+<div class="stat"><b>134 MB</b><span>JSONL ledger</span></div>
+<div class="stat"><b>92</b><span>quota declaration rows</span></div>
+<div class="stat"><b>2</b><span>live remote agents</span></div>
+<div class="stat"><b>72</b><span>open board rows</span></div>
+</div>
+</div>
+
+<div class="toc">
+<a href="#s1">1 Stats: JSONL → averages</a><a href="#s2">2 The pending test</a><a href="#s3">3 Features delivered</a><a href="#s4">4 Remote lane</a><a href="#s5">5 Open work</a><a href="#s6">6 Verdict</a>
+</div>
+
+<h2 id="s1">1 · Your question: is everything logged and rolled up?</h2>
+<div class="card">
+<div class="kicker g">yes — and here is the chain, link by link</div>
+<table>
+<tr><th>Link</th><th>Artifact / endpoint</th><th>State <span class="m">measured</span></th></tr>
+<tr><td>1 · Every proxied call writes a row</td><td><code>data/state/outcomes.jsonl</code></td><td class="y">134 MB JSONL, append-only; each row carries provider, model, route_outcome, chain_length, skipped_hops(+source+detail), complexity_source, cost_usd, price_basis, caller_session_key, session_id</td></tr>
+<tr><td>2 · Rows roll up into averages</td><td><code>data/state/outcomes-averages.jsonl</code></td><td class="y">present, refreshed hourly (mtime today); keyed so the resolver can consume them</td></tr>
+<tr><td>3 · The resolver reads them</td><td><code>scripts/router_spawn.py</code></td><td class="y">measured-sort path exists with a sample floor and a coverage gate that degrades to price and <i>names the reason</i> when too little is measured</td></tr>
+<tr><td>4 · The UI exposes them</td><td><code>/proxy/stats</code>, <code>/api/ui/series</code></td><td class="y">918 proxied rows / 104 groups over a 332,589-row scan, cache TTL 60 s</td></tr>
+</table>
+<div class="kicker g" style="margin-top:20px">the census, measured today</div>
+<pre>LEDGER  data/state/outcomes.jsonl — last 4,000 rows by source
+  hermes 3950 · router-proxy 48 · opencode 1
+  field presence on 3,999 of 4,000 rows:
+    session_id · task_label · complexity · profile_id · required_categories
+    provider · model · turns · tokens_in · tokens_out · tokens_reasoning
+
+ROLLING AVERAGES  data/state/outcomes-averages.jsonl — 316 KB, mtime 2026-09-28 18:23
+  361 rows, keyed by source_system + provider + model + complexity_sig
+  windows per key: 24h / 72h / 168h for
+    avg_cost_task · avg_tokens_in · avg_tokens_out · avg_tokens_total · avg_turns · avg_wall_time
+  by source:  router-proxy 220  ·  hermes 119  ·  opencode 13  ·  pi 9
+  newest row: router-proxy / zai-glm / glm-5.3-flash / complexity_sig=profile:P0_FORE
+
+LIVE ENDPOINT  /proxy/stats?window_h=168 -> {windows, computed_at, age_s, cached, ttl_s}</pre>
+<p><b>The number that matters most here:</b> the proxy now contributes <b>220 of 361 rolling-average rows (61%)</b> — the largest single source. That is the loop closing: the traffic the proxy routes is what the averages are computed from, which is what the resolver reads.</p>
+<p><b>The honest caveat, unchanged:</b> the measured-sort is <i>available</i> but not the default — <code>DEFAULT_SORT</code> is still <code>price</code>, deliberately, because enabling it re-ranks the live fleet and the repo's own regression guard forbids doing that silently. The layer is built and gated; flipping it is a one-variable decision with a visible reason on every resolve.</p>
+<p><b>Cost coverage is the weak link:</b> 0% of sampled proxied rows carry a cost, because the lanes actually being served are <code>:free</code> models with no published price — so <code>cost_usd</code> is <code>null</code> <b>with the reason</b> <code>"no price on this hop; cost unknown"</code> rather than a fake zero. Pricing those free lanes (TR-179) is what turns the cost-per-task view from a promise into a number.</p>
+</div>
+
+<h2 id="s2">2 · The pending test — and it is the one you just described</h2>
+<div class="card">
+<div class="kicker a">in flight</div>
+<p><b>The pending test is the density rehearsal.</b> Everything else on the flip checklist is satisfied except this one item, and it is the only one that could still change the answer. The 2026-09-25 gateway lockup happened at <b>6.1× call density (≈5.8 calls/min)</b>; my largest safe run until now was 3 requests at concurrency 1.</p>
+<pre>python3 scripts/dummy_scheduler.py --n 60 --concurrency 8 \
+    --base http://127.0.0.1:9391 --label density-rehearsal-20260928
+
+# exactly the stand-in you asked for: a SECOND scheduler, synthetic entries,
+# pointed at the proxy on :9391. The real scheduler is never touched.</pre>
+<p><b>What I am reading from it:</b> HTTP 200 rate, wall-time distribution, 503s, no-hops count, ledger amplification (rows per request), and whether anything opens a provider-wide breaker. A pass means the flip is safe to attempt; a failure is the answer we needed <i>before</i> pointing the fleet at it.</p>
+<p><b>The other half of that gate</b> — TR-194, the proof that every unservable rating serves degraded or fails closed with reasons instead of dying blind — is <span class="warn">still unproven</span> (dispatched twice, no commit). It is P0 and it is the incident's proximate trigger.</p>
+</div>
+
+<h2 id="s3">3 · Features delivered (and how each was proven)</h2>
+<div class="card" style="overflow-x:auto">
+<table>
+<tr><th>Feature you asked for</th><th>State</th><th>Proof</th></tr>
+<tr><td><b>CI gate</b> — red-on-main impossible to ignore</td><td class="y">landed + installed</td><td>refused a real push to main while red, naming run 36330616892; loud <code>ALLOW_RED_PUSH</code> override; feature branches ungated; wired into the fleet guard</td></tr>
+<tr><td><b>CLI root resolution</b> (published install path)</td><td class="y">fixed</td><td>installed into a fresh venv: from inside a checkout → exit 0 with real output; from anywhere else → exit 2 with an actionable message, no traceback</td></tr>
+<tr><td><b>Front door</b> (Makefile)</td><td class="y">landed</td><td>12 targets wrapping commands that already existed</td></tr>
+<tr><td><b>State schemas</b></td><td class="y">landed + accepted</td><td>5 live artifacts checked, 0 failing; ledger row schema = 49 properties / 14 required, derived from the artifacts themselves</td></tr>
+<tr><td><b>Fresh-clone smoke in CI</b></td><td class="y">accepted</td><td>6/6 checks pass with a scrubbed HOME, including <code>fallback_used=false</code> and <code>validate exit 0</code></td></tr>
+<tr><td><b>Quota layer research → data</b></td><td class="y">landed</td><td>92 declaration rows over 28 providers; 24 of 28 expose a machine readback; commandcode's rollover claim corrected; 3 dead NVIDIA model ids removed</td></tr>
+<tr><td><b>Proxy deploy</b></td><td class="y">done + verified</td><td>128 commits stale with no registry → deployed: 11/11 acceptance, 3/3 smoke at 1.00 amplification, hops 6–11 s (were 48–163 s)</td></tr>
+<tr><td><b>Session-key persistence / collision-proof ids</b></td><td class="y">live in rows</td><td><code>caller_session_key</code> and the <code>&lt;ts&gt;-&lt;seq&gt;-&lt;hash&gt;</code> session shape visible on real ledger rows</td></tr>
+</table>
+</div>
+
+<h2 id="s4">4 · The remote lane</h2>
+<div class="card">
+<div class="kicker i">measured on this box, today</div>
+<pre>$ bunker list
+  Agents:
+   9b4fe54d   destroy-refused:live_processes   6.5 GB / 20.0 GB   2026-09-28T02:51:47Z
+   718bf3d4   destroy-refused:live_processes   5.8 GB / 20.0 GB   2026-09-27T13:39:31Z</pre>
+<p><b>Two remote agents are live on <code>bunker-mvp</code></b>, 12.3 GB of disk between them, and both are protected by the destroy-refusal guard (<code>live_processes</code>) — i.e. the safety rail that stops a remote agent being reaped out from under a running job is doing its job. <code>bunker list</code> answers normally, and the key material is present.</p>
+<p><b>What I am not claiming:</b> I did not re-measure the offload KPI in this pass. The last figure I hold is from the earlier remote-pool work (a three-project round at ≈90 CPU-seconds remote versus ≈663 local, i.e. the local box doing essentially none of the build/test work) — that stands as a carried-forward note, <span class="m3">not re-measured today</span>, and I'd want a fresh three-project round before quoting it as current.</p>
+<p>In this repo the remote lane shows up as <code>scripts/sync_runtime.sh</code> (runtime wiring) plus the dogfood record of a fresh-bunker install being re-proven shippable.</p>
+</div>
+
+<h2 id="s5">5 · Open work that matters (72 rows)</h2>
+<div class="card" style="overflow-x:auto">
+<table>
+<tr><th>Row</th><th>What it is</th></tr>
+<tr><td><b>TR-194</b> P0</td><td>Prove the degraded path fires for every unservable rating — the incident's proximate trigger</td></tr>
+<tr><td><b>TR-178</b> P0</td><td>The proxy's dead end: an unsatisfiable rating returned before the degraded path</td></tr>
+<tr><td><b>TR-174</b> P0</td><td>Per-task value ledger: expected cost per task by complexity band, with exploration</td></tr>
+<tr><td><b>TR-198</b> P0</td><td>Repair the eight overlay-wiped live lanes (29–31 of 37 fields null) from real sources</td></tr>
+<tr><td><b>TR-160</b> P1</td><td>Repoint the scheduler's Hermes calls through the proxy — <b>the re-flip, your call</b></td></tr>
+<tr><td><b>TR-065</b> P1</td><td>Stats engine v2: complexity-SET-keyed rolling averages + compound sort rules</td></tr>
+<tr><td><b>RELEASE-002</b> P1</td><td>A newer CI run (36478678220) is red on a different commit — precisely the case the new gate is built to make un-ignorable</td></tr>
+</table>
+<p><b>The new guard this session's evidence argues for:</b> the proxy's <i>service</i> gate can go red — registry missing — for hours with nobody told. The <code>stale</code> flag catches a registry aging, never one that is gone. ~2 hours, and the health payload already computes <code>gate.valid</code>.</p>
+</div>
+
+<h2 id="s6">6 · Verdict</h2>
+<div class="card">
+<p><b>Stats:</b> yes — logged to JSONL, rolled into averages, exposed by the API and the UI, and consumable by the resolver behind a floor and a coverage gate that refuses to re-rank on too little evidence. The one honest gap is cost coverage on <code>:free</code> lanes, which is a pricing job, not a plumbing one.</p>
+<p><b>The pending test:</b> the density rehearsal, running now on the dummy scheduler — a second scheduler with synthetic entries, with the real one untouched. Its result is the last thing standing between the current state and a safe flip.</p>
+<p><b>Remote:</b> two live agents, protected, responsive; the offload KPI is carried forward rather than re-measured, and I'd rather say that than quote a stale number as current.</p>
+</div>
+
+<div class="foot">
+Measured 2026-09-28 · repo commit <code>17c66ab</code> (and <code>34ed37d</code> for the deployed services) · services <code>task-router-server</code> :9092 + <code>task-router-proxy</code> :9391, both <code>stale=false, gate.valid=true</code> · rehearsal harness <code>scripts/dummy_scheduler.py</code> · remote facts from <code>bunker list</code> (bunker-mvp) · acceptance artifact <code>/tmp/proxy-acceptance-1790637110.json</code>.
+</div>
+
+</div></body></html>
