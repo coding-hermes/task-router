@@ -159,7 +159,7 @@ def family_pairs(models, tiers):
     return entries, unorderable
 
 
-def provenance_audit(models, perf, tiers):
+def provenance_audit(models, perf, tiers, all_models=None):
     """Find lanes whose rank rests on evidence too thin to rank them.
 
     Two live cases produced this: muse-spark-1.3 was effectively UNRANKED (1 of 24
@@ -170,19 +170,22 @@ def provenance_audit(models, perf, tiers):
     at code", and on a RELATIVE scale a uniform value reads as "worse everywhere"
     wherever the field scores higher.
 
-    So this section names the lanes where that can still happen:
-      flat      — every perf value identical across >= 3 categories (one battery
-                  of uniform difficulty, or one saturated battery)
-      inherited — every value copied from another lane via `alias:`; real
-                  provenance is the base lane, and the base's evidence may not
-                  transfer (different provider, different serving stack)
-      thin      — 1-2 categories of real measurement
+    The alias class is SPLIT, because the two halves need opposite treatment:
+      mirror — the base is the SAME provider (e.g. `openai/gpt-5.6-sol` <->
+               `gpt-5.6-sol` on one host). Inheriting is sound: one serving stack.
+      cross  — the base lives on a DIFFERENT provider, so the lane is ranked
+               entirely on another host's measurements with nothing measured
+               where it actually runs. That is an assumption, not evidence, and
+               it is the half worth re-measuring.
     """
+    prov_of = collections.defaultdict(set)
+    for r in (all_models if all_models is not None else models):
+        prov_of[r['model']].add(r['provider'])
     by_model = collections.defaultdict(dict)
     for r in perf:
         by_model[r['model']].setdefault(r['category'], r)
 
-    flat, inherited, thin = [], [], []
+    flat, mirror, cross, thin = [], [], [], []
     for m in models:
         cats = by_model.get(m['model']) or {}
         if not cats:
@@ -192,14 +195,16 @@ def provenance_audit(models, perf, tiers):
         rec = {'provider': m['provider'], 'model': m['model'], 'cats': len(cats),
                'price': m.get('normalized_price')}
         if cats and all(s.startswith('alias:') for s in srcs):
-            rec['base'] = srcs[0].split(':', 1)[1]
-            inherited.append(rec)
+            bases = sorted({s.split(':', 1)[1] for s in srcs})
+            rec['base'] = ', '.join(bases[:2])
+            same = {p for b in bases for p in (prov_of.get(b, set()) & {m['provider']})}
+            (mirror if same else cross).append(rec)
         elif len(cats) >= 3 and len(set(vals.values())) == 1:
             rec['value'] = next(iter(vals.values()))
             flat.append(rec)
         elif len(tiers.get(m['model'], ())) <= 2:
             thin.append(rec)
-    return flat, inherited, thin
+    return flat, mirror + cross, thin, cross
 
 
 def main():
@@ -230,7 +235,8 @@ def main():
             decay_blocked.append(entry)   # successor unranked -> rank first
 
     birthdays = [m for m in models if not m.get('release_date')]
-    flat, inherited, thin_ev = provenance_audit(active, load('model_perf'), tiers)
+    flat, inherited, thin_ev, cross = provenance_audit(active, load('model_perf'), tiers,
+                                                      all_models=models)
 
     if args.json:
         print(json.dumps({
@@ -239,7 +245,7 @@ def main():
             'decay_blocked': len(decay_blocked), 'unorderable': len(unorderable),
             'no_release_date': len(birthdays),
             'flat_evidence': len(flat), 'alias_only': len(inherited),
-            'thin_evidence': len(thin_ev),
+            'alias_cross_provider': len(cross), 'thin_evidence': len(thin_ev),
         }, indent=1))
         return 0
 
@@ -296,9 +302,10 @@ def main():
           f' or saturated battery): {len(flat)} lanes')
     for e in sorted(flat, key=lambda x: -x['cats'])[:8]:
         print(f"      {e['provider']:14s} {e['model'][:40]:40s} {e['cats']} cats all={e['value']}")
-    print(f'   ALIAS-ONLY: every value inherited from another lane (not measured): {len(inherited)} lanes')
-    for e in sorted(inherited, key=lambda x: -x['cats'])[:8]:
-        print(f"      {e['provider']:14s} {e['model'][:34]:34s} <- {str(e.get('base'))[:26]}")
+    print(f'   ALIAS-ONLY: every value inherited from another lane (not measured): {len(inherited)} lanes'
+          f'  [of which CROSS-provider (assumption, not evidence): {len(cross)}]')
+    for e in sorted(cross, key=lambda x: -x['cats'])[:8]:
+        print(f"      CROSS {e['provider']:14s} {e['model'][:30]:30s} <- {str(e.get('base'))[:24]}")
     print(f'   THIN: <=2 measured categories: {len(thin_ev)} lanes')
     return 0
 
