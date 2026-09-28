@@ -333,7 +333,8 @@ def call_anthropic(base, url_model, key, prompt, extra, max_tokens=3000, retries
     """
     body = {"model": url_model, "max_tokens": max_tokens,
             "messages": [{"role": "user", "content": prompt}]}
-    headers = {'Content-Type': 'application/json', 'anthropic-version': '2023-06-01'}
+    headers = {'Content-Type': 'application/json', 'anthropic-version': '2023-06-01',
+               'User-Agent': 'hermes-bench/5.0'}   # omitted = Cloudflare 1010 on some hosts
     if key.startswith('sk-ant'):
         headers['x-api-key'] = key
     else:
@@ -348,6 +349,14 @@ def call_anthropic(base, url_model, key, prompt, extra, max_tokens=3000, retries
             parts = [b.get('text', '') for b in (d.get('content') or []) if isinstance(b, dict)]
             return ''.join(parts)
         except urllib.error.HTTPError as e:
+            # Read the body HERE and stash it: once this exception is re-raised out
+            # of call(), the file pointer can be gone, and err_class would read an
+            # empty string and fall through to a generic 'not_served' — which is how
+            # a MODEL_NOT_IN_PLAN 403 got logged as a dead lane.
+            try:
+                e._probe_detail = e.read().decode('utf-8', 'replace')
+            except Exception:  # noqa: BLE001
+                e._probe_detail = ''
             if e.code in (429, 500, 502, 503, 520, 524) and attempt < retries - 1:
                 cf_wait = int(e.headers.get('Retry-After') or 0) or (5 * (attempt + 1))
                 time.sleep(cf_wait)
@@ -369,16 +378,16 @@ def call(base, key, model, prompt, extra, max_tokens=3000, retries=4):
                 d = json.loads(r.read())
             break
         except urllib.error.HTTPError as e:
+            try:
+                e._probe_detail = e.read().decode('utf-8', 'replace')
+            except Exception:  # noqa: BLE001
+                e._probe_detail = ''
+            detail = e._probe_detail
             if e.code == 400:
                 # A provider may serve an Anthropic model ONLY through the Messages
                 # shape. Read the body before deciding: "must be called via
                 # /provider/v1/messages" is a transport fact about our client, not a
                 # capability fact about the lane.
-                try:
-                    detail = e.read().decode('utf-8', 'replace')
-                except Exception:  # noqa: BLE001
-                    detail = ''
-                e._probe_detail = detail     # err_class must see what we already read
                 if '/messages' in detail:
                     t1 = time.time()
                     txt = call_anthropic(base, model, key, prompt, extra, max_tokens)
