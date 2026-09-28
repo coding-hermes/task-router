@@ -8,7 +8,7 @@
   + P1_CODING / P2_AGENTIC / P3_DOCS / P4_SECURITY (TR-003, 2026-08-27)
 - views: v_task_eligible, v_task_chain
 Exports tables to the routing namespace JSONL. Run: board venv python."""
-import duckdb, json, shutil, os, subprocess, datetime, sys
+import duckdb, json, re, shutil, os, subprocess, datetime, sys, time
 
 # Text registry (Bane 2026-08-27): the live store is a gitignored JSON file in
 # the task-router repo — NOT a binary duckdb. The seed computes against an
@@ -178,6 +178,111 @@ def _load_base_rows(name):
     return out
 
 
+# ---------- 1b. TR-232: probe rows are undamped to the shared 0..1 scale -----
+#: prefix every probe row's source starts with (router_probe_ingest.py writes
+#: 'live-probe-<date>[/KEY]: ...'; nothing else may claim it — third-party and
+#: estimate sources never do).
+_PROBE_SRC_PREFIX = 'live-probe'
+#: ratio shapes inside the ingest's own source prose, first match wins:
+#:   '(agent_tick 3/4, ...'          — the battery detail (field passed/total)
+#:   '(4/4 deterministic checks...'  — the 09-25 free-text batch
+#:   '(4/4 checks, ...'              — the 09-25 rephrased variant
+#: The score came from THIS ratio, so parsing it back is not a heuristic — it
+#: is the only preimage of score = 0.85 * p/t (mod rounding) the writer emitted.
+_PROBE_RATIO_PATTERNS = (
+    re.compile(r'\((?:[A-Za-z0-9_\-]+ )?(\d+)/(\d+)[,)]'),
+    re.compile(r'\((\d+)/(\d+) (?:deterministic )?checks'),
+)
+#: the damping multiplier the committed rows carried (router_probe_ingest.py
+#: before TR-232: score = 0.85 * passed/total).
+_PROBE_DAMP = 0.85
+#: tolerance for 'score is the damped grid value of this ratio' — the 09-25
+#: batch stored 2-decimal damps (0.64) whose 3-decimal ratio grid value is
+#: 0.637, so the delta can reach a half-cent per lost decimal place.
+_PROBE_DAMP_TOL = 0.0051
+
+
+def undamp_probe_benchmarks():
+    """Rewrite damped live-probe benchmark rows to their raw fraction (TR-232).
+
+    Why: router_probe_ingest.py stored score = 0.85 * passed/total (small-n
+    humility) while third-party and estimate sources store their raw fraction
+    (0..1). model_tier buckets each category by quantiles over that MIXED pool,
+    so a model that aced our probe 4/4 (0.85 ceiling) could never outrank a
+    0.9 third-party benchmark row — the successor looked weaker because the
+    units differed. The ingest cap is gone; this pass moves the COMMITTED rows
+    to the same unit so every reseed agrees with it (the seed rebuilds all
+    derived tables from data/tables on every run, and benchmarks.jsonl feeds
+    model_perf through BENCH_OVERLAY + apply_benchmark_categories).
+
+    Idempotent by construction: score := parsed ratio is a fixed point — a
+    second run finds score already equal to p/t and skips. Rows whose source
+    text carries no ratio (the 09-16 union-alpha shape) are undamped only from
+    the exact damped full-marks value: 0.85 is 0.85 * 1 (4/4, 3/3 — the only
+    preimage the damping can produce ratio-less), so they become 1.0. Anything
+    else is reported and left untouched (a value we cannot attribute is not a
+    value we rewrite). Saturated floor probes keep their protection: their
+    source keys stay in _BRIDGE_EXCLUDE_SRC, so no score they carry — damped
+    or undamped — can reach a tier.
+
+    Returns (undamped, skipped_ok, unattributable).
+    """
+    path = os.path.join(DATA_DIR, 'benchmarks.jsonl')
+    if not os.path.exists(path):
+        return 0, 0, 0
+    rows = [json.loads(l) for l in open(path, encoding='utf-8') if l.strip()]
+    n_undamp = n_skip = n_unattr = 0
+    for r in rows:
+        src = str(r.get('source') or '')
+        if not src.startswith(_PROBE_SRC_PREFIX):
+            continue
+        score, mx = r.get('score'), r.get('max_score')
+        if score is None or not mx:
+            continue
+        rel = float(score) / float(mx)
+        ratio = None
+        for pat in _PROBE_RATIO_PATTERNS:
+            m = pat.search(src)
+            if m:
+                total = int(m.group(2))
+                if total:
+                    ratio = int(m.group(1)) / total
+                break
+        if ratio is not None:
+            if abs(rel - ratio) <= _PROBE_DAMP_TOL:
+                n_skip += 1                           # already undamped
+                continue
+            if abs(rel - _PROBE_DAMP * ratio) <= _PROBE_DAMP_TOL:
+                r['score'] = round(ratio, 3)          # damped -> raw fraction
+                n_undamp += 1
+                continue
+        elif rel == _PROBE_DAMP:                      # ratio-less full marks
+            r['score'] = round(float(mx), 3)
+            n_undamp += 1
+            continue
+        n_unattr += 1
+        print(f'  TR-232: probe row NOT undamped (no attributable ratio): '
+              f'{r.get("model")} {r.get("category")} score={score} src={src[:80]}')
+    if n_undamp or n_unattr:
+        _bak = f'/tmp/benchmarks.jsonl.bak-{time.strftime("%Y%m%d-%H%M%S")}'
+        shutil.copy(path, _bak)
+        with open(path, 'w', encoding='utf-8') as fh:
+            for r in rows:
+                fh.write(json.dumps(r, ensure_ascii=False) + '\n')
+        print(f'TR-232 undamped {n_undamp} probe rows ({n_skip} already '
+              f'undamped) -> {path} (backup {_bak}; unattributable left '
+              f'as-is: {n_unattr})')
+    else:
+        print('TR-232 probe rows already undamped — nothing to rewrite')
+    return n_undamp, n_skip, n_unattr
+
+
+# TR-232 probe-scale undamp runs HERE: after the --help interception above (a
+# help run must still write NOTHING) and before the duckdb load below, so the
+# in-memory benchmarks table already carries the undamped values on the SAME
+# run that rewrites the file.
+_undamp_n = undamp_probe_benchmarks()
+
 con = duckdb.connect(':memory:')
 for t, cols in BASE_COLUMNS.items():
     rows = _load_base_rows(t)
@@ -337,8 +442,10 @@ BENCH_OVERLAY = {
     # clear a single P0_FORE bar (agent_tick>=2, delegation>=2, schema>=1,
     # reasoning>=0, long_doc>=0) — new models were in the registry but
     # unroutable. Same small-n deterministic battery as the 09-16 precedent
-    # (n=1 probe per category, score 0.85*checks_passed/checks_total, never
-    # family-filled).
+    # (n=1 probe per category, undamped checks/total score since TR-232;
+    # these rows were committed ON the old 0.85 grid and the seed's
+    # undamp_probe_benchmarks rewrites them on the next run, so the section-1b
+    # pass must precede the duckdb load), never family-filled.
     'live-probe-2026-09-25': ['agent_tick', 'reasoning', 'debug', 'schema',
                               'code_gen', 'test', 'delegation', 'long_doc',
                               'tool_use', 'long_horizon'],
@@ -347,7 +454,8 @@ BENCH_OVERLAY = {
     # categories), so every other category read tier -1 and they could only
     # clear lenient profiles. The subscription lane was live, healthy and
     # reachable, yet received ZERO sessions: unranked, not broken. Same small-n
-    # damped convention as the 09-16/09-25 probes (0.85 * checks/total, n=1,
+    # convention as the 09-16/09-25 probes (undamped checks/total since TR-232,
+    # n=1,
     # never family-filled).
     #
     # HAZARD (measured, not theoretical): the overlay below applies a source's
