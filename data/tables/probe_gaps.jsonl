@@ -141,3 +141,4 @@
 {"provider": "commandcode-2", "model": "google/gemini-3.6-flash", "error": "[not_in_plan] HTTP Error 403: Forbidden"}
 {"provider": "commandcode-2", "model": "claude-fable-5-1", "error": "[not_in_plan] HTTP Error 403: Forbidden"}
 {"provider": "commandcode-2", "model": "gpt-6-sol", "error": "[not_in_plan] HTTP Error 403: Forbidden"}
+{"provider": "commandcode-2", "model": "gpt-6-astra", "error": "[not_in_plan] HTTP Error 403: Forbidden"}

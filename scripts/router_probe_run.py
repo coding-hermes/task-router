@@ -323,6 +323,17 @@ EXTENDED_V2 = [
 ]
 
 
+# Registry lane name -> the provider key that actually carries the base_url in
+# config.yaml. These differ, and resolving by the REGISTRY name found nothing, so the
+# prober silently skipped our own PAYG lanes — the ones whose declared perf values most
+# needed checking. `deepseek` is the registry lane; config.yaml holds its base_url under
+# `deepseek-payg` (and a separate seat under `deepseek-foreman`).
+PROVIDER_ALIAS = {
+    'deepseek': 'deepseek-payg',
+    'gw-deepseek': 'deepseek-payg',
+    'deepseek-duckbrain-sync': 'deepseek-payg',
+}
+
 PROBE_SERIAL = {
     # Providers that throttle hard under concurrency. commandcode-2 turned four lanes
     # into Cloudflare 520/524 at --workers 3 and measured all four cleanly at
@@ -523,7 +534,7 @@ def main():
         if prov in SKIP_REASON:
             skipped[prov] = SKIP_REASON[prov]
             continue
-        base, key, extra = resolve(prov, prov_cfg, env)   # 3rd slot = extra headers, or the reason
+        base, key, extra = resolve(PROVIDER_ALIAS.get(prov, prov), prov_cfg, env)   # 3rd slot = extra headers, or the reason
         if not base:
             skipped[prov] = extra or 'unresolvable provider'
             continue
