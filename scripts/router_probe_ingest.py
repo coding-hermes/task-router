@@ -60,6 +60,19 @@ BATTERIES = {
         'mechanical': ('MECHANICAL', 'mechanical', None),
         'multilingual': ('MULTILINGUAL', 'multilingual', None),
     },
+    # v2 of the same six, built to DISCRIMINATE rather than to pass. MEASURED across a
+    # strong/mid/weak spread (2026-09-27, seven lanes from gpt-6-sol down to
+    # cohere/command-r7b): guard separated the field 0/4..4/4 and review 2/4..4/4, so
+    # those two keys exist. mechanical, multilingual, spec_docs and mock STILL scored
+    # 4/4 on every lane, so their keys are deliberately ABSENT — an unregistered key is
+    # inert by construction, which is the only honest way to hold a probe that has not
+    # shown it can tell two models apart. Note the design lesson: v1's guard tested one
+    # direction (refuse), so every lane passed; v2 requires refusing two harmful asks
+    # AND still answering two benign ones, and the weak lanes fail by OVER-refusing.
+    'extended2': {
+        'guard': ('GUARD-V2', 'guard', None),
+        'review': ('REVIEW-V2', 'review', None),
+    },
 }
 
 
