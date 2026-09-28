@@ -207,9 +207,48 @@ def provenance_audit(models, perf, tiers, all_models=None):
     return flat, mirror + cross, thin, cross
 
 
+def next_wave(models, tiers, perf, active):
+    """The actionable probe targets, so the loop is repeatable without hand-listing.
+
+    Reachable lanes that need MEASUREMENT, in priority order:
+      1 flat          — ranked on one uniform value (a saturated or uniform battery)
+      2 cross-alias   — ranked entirely on another provider's numbers
+      3 unranked      — no tier rows at all
+    Providers that cannot be measured correctly are excluded (a lane needing an
+    `x-opencode-session` header or a subscription OAuth would be probed wrongly),
+    and openrouter is excluded with its reason stated: OPENROUTER_API_KEY is
+    expired, so "unranked" there is a credential fact, not a ranking failure.
+    """
+    try:
+        import sys as _sys
+        _sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+        import router_probe_run as _pr
+        skip = set(_pr.SKIP_REASON)
+    except Exception:            # noqa: BLE001
+        skip = {'minimax', 'opencode-go', 'opencode-go-2', 'openai-codex'}
+    skip |= {'openrouter'}       # key expired (401 on chat/completions)
+    flat, inherited, _thin, cross = provenance_audit(active, perf, tiers,
+                                                     all_models=models)
+    have = {(m['provider'], m['model']) for m in active}
+    targets = collections.defaultdict(set)
+    for group in (flat, cross):
+        for e in group:
+            k = (e['provider'], e['model'])
+            if k in have and e['provider'] not in skip:
+                targets[e['provider']].add(e['model'])
+    for m in active:
+        if (m['provider'], m['model']) in have and not tiers.get(m['model']) \
+                and m['provider'] not in skip:
+            targets[m['provider']].add(m['model'])
+    return targets
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--json', action='store_true', help='machine-readable output')
+    ap.add_argument('--next-wave', action='store_true',
+                    help='print the actionable probe targets (flat + cross-alias + '
+                         'unranked) as provider and model lists for router_probe_run.py')
     args = ap.parse_args()
 
     models = load('models')
@@ -237,6 +276,17 @@ def main():
     birthdays = [m for m in models if not m.get('release_date')]
     flat, inherited, thin_ev, cross = provenance_audit(active, load('model_perf'), tiers,
                                                       all_models=models)
+
+    if args.next_wave:
+        targets = next_wave(models, tiers, load('model_perf'), active)
+        mods = sorted({m for v in targets.values() for m in v})
+        print('providers=' + ','.join(sorted(targets)))
+        print('models=' + ','.join(mods))
+        print(f'# {sum(len(v) for v in targets.values())} lanes across {len(targets)} providers',
+              file=sys.stderr)
+        for p in sorted(targets):
+            print(f'#   {p:16s} {len(targets[p])}', file=sys.stderr)
+        return 0
 
     if args.json:
         print(json.dumps({
