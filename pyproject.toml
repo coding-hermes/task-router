@@ -15,8 +15,10 @@ authors = [{name = "Bane", email = "wojonstech@gmail.com"}]
 [project.optional-dependencies]
 # NOT runtime deps (runtime stays stdlib-only). Only what make test needs:
 # pytest runs the suite; duckdb is imported by scripts/router_seed.py, which
-# tests/conftest.py runs once per session to build the shared tables fixture.
-test = ["pytest", "duckdb"]
+# tests/conftest.py runs once per session to build the shared tables fixture;
+# pyyaml is imported by scripts/router_probe_run.py (config.yaml loader,
+# INT-CI-20260928-01).
+test = ["pytest", "duckdb", "pyyaml"]
 
 [project.scripts]
 router = "task_router.cli:main"

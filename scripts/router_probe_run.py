@@ -153,7 +153,10 @@ def load_env():
 
 def load_providers():
     """provider name -> (base_url, key_env, extra_headers) from config.yaml."""
-    import yaml
+    try:
+        import yaml
+    except ModuleNotFoundError:
+        sys.exit("router_probe_run requires PyYAML: pip install pyyaml")
     c = yaml.safe_load(open(CONFIG, encoding='utf-8'))
     out = {}
     for name, p in (c.get('providers') or {}).items():
