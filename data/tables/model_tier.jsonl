@@ -66,17 +66,21 @@
 {"model": "Qwen/Qwen3.7-Plus", "category": "tool_use", "perf": 0.5, "tier": -2, "tier_source": "family", "source_ref": "alias:qwen3.7-plus"}
 {"model": "Qwen/Qwen3.8-27B", "category": "code_gen", "perf": 0.88, "tier": 5, "tier_source": "family", "source_ref": "alias:qwen3.8-27b"}
 {"model": "Qwen/Qwen3.8-27B", "category": "test", "perf": 0.72, "tier": 0, "tier_source": "estimate", "source_ref": "CATEGORY_ESTIMATES"}
-{"model": "Qwen/Qwen3.8-Flash", "category": "agent_tick", "perf": 0.739, "tier": 0, "tier_source": "family", "source_ref": "alias:qwen3.8-flash"}
-{"model": "Qwen/Qwen3.8-Flash", "category": "code_gen", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:qwen3.8-flash"}
+{"model": "Qwen/Qwen3.8-Flash", "category": "agent_tick", "perf": 0.637, "tier": 0, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/AGENT-TICK"}
+{"model": "Qwen/Qwen3.8-Flash", "category": "code_gen", "perf": 0.567, "tier": 0, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T2-CODE"}
 {"model": "Qwen/Qwen3.8-Flash", "category": "creative", "perf": 0.45, "tier": 1, "tier_source": "family", "source_ref": "alias:qwen3.8-flash"}
-{"model": "Qwen/Qwen3.8-Flash", "category": "long_horizon", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:qwen3.8-flash"}
+{"model": "Qwen/Qwen3.8-Flash", "category": "debug", "perf": 0.567, "tier": -1, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T5-DEBUG"}
+{"model": "Qwen/Qwen3.8-Flash", "category": "delegation", "perf": 0.637, "tier": -1, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/DELEGATION"}
+{"model": "Qwen/Qwen3.8-Flash", "category": "long_doc", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-DOC"}
+{"model": "Qwen/Qwen3.8-Flash", "category": "long_horizon", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-HORIZON"}
 {"model": "Qwen/Qwen3.8-Flash", "category": "multilingual", "perf": 0.81, "tier": -2, "tier_source": "family", "source_ref": "alias:qwen3.8-flash"}
-{"model": "Qwen/Qwen3.8-Flash", "category": "reasoning", "perf": 0.917, "tier": 3, "tier_source": "family", "source_ref": "alias:qwen3.8-flash"}
+{"model": "Qwen/Qwen3.8-Flash", "category": "reasoning", "perf": 0.85, "tier": 2, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T3-REASON"}
 {"model": "Qwen/Qwen3.8-Flash", "category": "refactor", "perf": 0.72, "tier": 2, "tier_source": "family", "source_ref": "alias:qwen3.8-flash"}
+{"model": "Qwen/Qwen3.8-Flash", "category": "schema", "perf": 0.85, "tier": 3, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/SCHEMA"}
 {"model": "Qwen/Qwen3.8-Flash", "category": "spec_docs", "perf": 0.72, "tier": 1, "tier_source": "family", "source_ref": "alias:qwen3.8-flash"}
 {"model": "Qwen/Qwen3.8-Flash", "category": "terminal", "perf": 0.72, "tier": -2, "tier_source": "family", "source_ref": "alias:qwen3.8-flash"}
-{"model": "Qwen/Qwen3.8-Flash", "category": "test", "perf": 0.72, "tier": 0, "tier_source": "family", "source_ref": "alias:qwen3.8-flash"}
-{"model": "Qwen/Qwen3.8-Flash", "category": "tool_use", "perf": 0.72, "tier": -2, "tier_source": "family", "source_ref": "alias:qwen3.8-flash"}
+{"model": "Qwen/Qwen3.8-Flash", "category": "test", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/TEST"}
+{"model": "Qwen/Qwen3.8-Flash", "category": "tool_use", "perf": 0.567, "tier": -2, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T1-TOOL"}
 {"model": "Qwen/Qwen3.8-Flash", "category": "vision", "perf": 0.72, "tier": 3, "tier_source": "family", "source_ref": "alias:qwen3.8-flash"}
 {"model": "Qwen/Qwen3.8-Max", "category": "agent_tick", "perf": 0.78, "tier": 1, "tier_source": "family", "source_ref": "alias:qwen3.8-max"}
 {"model": "Qwen/Qwen3.8-Max", "category": "code_gen", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:qwen3.8-max"}
@@ -168,7 +172,7 @@
 {"model": "accounts/fireworks/models/glm-5p3", "category": "agent_tick", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:glm-5.3"}
 {"model": "accounts/fireworks/models/glm-5p3", "category": "code_gen", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:glm-5.3"}
 {"model": "accounts/fireworks/models/glm-5p3", "category": "creative", "perf": 0.45, "tier": 1, "tier_source": "family", "source_ref": "alias:glm-5.3"}
-{"model": "accounts/fireworks/models/glm-5p3", "category": "debug", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:glm-5.3"}
+{"model": "accounts/fireworks/models/glm-5p3", "category": "debug", "perf": 0.85, "tier": 5, "tier_source": "family", "source_ref": "alias:glm-5.3"}
 {"model": "accounts/fireworks/models/glm-5p3", "category": "delegation", "perf": 0.85, "tier": 5, "tier_source": "family", "source_ref": "alias:glm-5.3"}
 {"model": "accounts/fireworks/models/glm-5p3", "category": "e2e_vision", "perf": 0.35, "tier": -1, "tier_source": "family", "source_ref": "alias:glm-5.3"}
 {"model": "accounts/fireworks/models/glm-5p3", "category": "guard", "perf": 0.8, "tier": 0, "tier_source": "family", "source_ref": "alias:glm-5.3"}
@@ -187,7 +191,7 @@
 {"model": "accounts/fireworks/models/glm-5p3-flash", "category": "agent_tick", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:glm-5.3-flash"}
 {"model": "accounts/fireworks/models/glm-5p3-flash", "category": "code_gen", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:glm-5.3-flash"}
 {"model": "accounts/fireworks/models/glm-5p3-flash", "category": "creative", "perf": 0.45, "tier": 1, "tier_source": "family", "source_ref": "alias:glm-5.3-flash"}
-{"model": "accounts/fireworks/models/glm-5p3-flash", "category": "debug", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:glm-5.3-flash"}
+{"model": "accounts/fireworks/models/glm-5p3-flash", "category": "debug", "perf": 0.85, "tier": 5, "tier_source": "family", "source_ref": "alias:glm-5.3-flash"}
 {"model": "accounts/fireworks/models/glm-5p3-flash", "category": "delegation", "perf": 0.85, "tier": 5, "tier_source": "family", "source_ref": "alias:glm-5.3-flash"}
 {"model": "accounts/fireworks/models/glm-5p3-flash", "category": "e2e_vision", "perf": 0.35, "tier": -1, "tier_source": "family", "source_ref": "alias:glm-5.3-flash"}
 {"model": "accounts/fireworks/models/glm-5p3-flash", "category": "guard", "perf": 0.8, "tier": 0, "tier_source": "family", "source_ref": "alias:glm-5.3-flash"}
@@ -407,7 +411,7 @@
 {"model": "accounts/fireworks/routers/glm-5p3-fast", "category": "agent_tick", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:glm-5.3"}
 {"model": "accounts/fireworks/routers/glm-5p3-fast", "category": "code_gen", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:glm-5.3"}
 {"model": "accounts/fireworks/routers/glm-5p3-fast", "category": "creative", "perf": 0.45, "tier": 1, "tier_source": "family", "source_ref": "alias:glm-5.3"}
-{"model": "accounts/fireworks/routers/glm-5p3-fast", "category": "debug", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:glm-5.3"}
+{"model": "accounts/fireworks/routers/glm-5p3-fast", "category": "debug", "perf": 0.85, "tier": 5, "tier_source": "family", "source_ref": "alias:glm-5.3"}
 {"model": "accounts/fireworks/routers/glm-5p3-fast", "category": "delegation", "perf": 0.85, "tier": 5, "tier_source": "family", "source_ref": "alias:glm-5.3"}
 {"model": "accounts/fireworks/routers/glm-5p3-fast", "category": "e2e_vision", "perf": 0.35, "tier": -1, "tier_source": "family", "source_ref": "alias:glm-5.3"}
 {"model": "accounts/fireworks/routers/glm-5p3-fast", "category": "guard", "perf": 0.8, "tier": 0, "tier_source": "family", "source_ref": "alias:glm-5.3"}
@@ -426,7 +430,7 @@
 {"model": "accounts/fireworks/routers/glm-fast-latest", "category": "agent_tick", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:glm-5.3"}
 {"model": "accounts/fireworks/routers/glm-fast-latest", "category": "code_gen", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:glm-5.3"}
 {"model": "accounts/fireworks/routers/glm-fast-latest", "category": "creative", "perf": 0.45, "tier": 1, "tier_source": "family", "source_ref": "alias:glm-5.3"}
-{"model": "accounts/fireworks/routers/glm-fast-latest", "category": "debug", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:glm-5.3"}
+{"model": "accounts/fireworks/routers/glm-fast-latest", "category": "debug", "perf": 0.85, "tier": 5, "tier_source": "family", "source_ref": "alias:glm-5.3"}
 {"model": "accounts/fireworks/routers/glm-fast-latest", "category": "delegation", "perf": 0.85, "tier": 5, "tier_source": "family", "source_ref": "alias:glm-5.3"}
 {"model": "accounts/fireworks/routers/glm-fast-latest", "category": "e2e_vision", "perf": 0.35, "tier": -1, "tier_source": "family", "source_ref": "alias:glm-5.3"}
 {"model": "accounts/fireworks/routers/glm-fast-latest", "category": "guard", "perf": 0.8, "tier": 0, "tier_source": "family", "source_ref": "alias:glm-5.3"}
@@ -445,7 +449,7 @@
 {"model": "accounts/fireworks/routers/glm-flash-latest", "category": "agent_tick", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:glm-5.3-flash"}
 {"model": "accounts/fireworks/routers/glm-flash-latest", "category": "code_gen", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:glm-5.3-flash"}
 {"model": "accounts/fireworks/routers/glm-flash-latest", "category": "creative", "perf": 0.45, "tier": 1, "tier_source": "family", "source_ref": "alias:glm-5.3-flash"}
-{"model": "accounts/fireworks/routers/glm-flash-latest", "category": "debug", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:glm-5.3-flash"}
+{"model": "accounts/fireworks/routers/glm-flash-latest", "category": "debug", "perf": 0.85, "tier": 5, "tier_source": "family", "source_ref": "alias:glm-5.3-flash"}
 {"model": "accounts/fireworks/routers/glm-flash-latest", "category": "delegation", "perf": 0.85, "tier": 5, "tier_source": "family", "source_ref": "alias:glm-5.3-flash"}
 {"model": "accounts/fireworks/routers/glm-flash-latest", "category": "e2e_vision", "perf": 0.35, "tier": -1, "tier_source": "family", "source_ref": "alias:glm-5.3-flash"}
 {"model": "accounts/fireworks/routers/glm-flash-latest", "category": "guard", "perf": 0.8, "tier": 0, "tier_source": "family", "source_ref": "alias:glm-5.3-flash"}
@@ -466,7 +470,7 @@
 {"model": "accounts/fireworks/routers/glm-latest", "category": "agent_tick", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:glm-5.3"}
 {"model": "accounts/fireworks/routers/glm-latest", "category": "code_gen", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:glm-5.3"}
 {"model": "accounts/fireworks/routers/glm-latest", "category": "creative", "perf": 0.45, "tier": 1, "tier_source": "family", "source_ref": "alias:glm-5.3"}
-{"model": "accounts/fireworks/routers/glm-latest", "category": "debug", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:glm-5.3"}
+{"model": "accounts/fireworks/routers/glm-latest", "category": "debug", "perf": 0.85, "tier": 5, "tier_source": "family", "source_ref": "alias:glm-5.3"}
 {"model": "accounts/fireworks/routers/glm-latest", "category": "delegation", "perf": 0.85, "tier": 5, "tier_source": "family", "source_ref": "alias:glm-5.3"}
 {"model": "accounts/fireworks/routers/glm-latest", "category": "e2e_vision", "perf": 0.35, "tier": -1, "tier_source": "family", "source_ref": "alias:glm-5.3"}
 {"model": "accounts/fireworks/routers/glm-latest", "category": "guard", "perf": 0.8, "tier": 0, "tier_source": "family", "source_ref": "alias:glm-5.3"}
@@ -578,7 +582,7 @@
 {"model": "accounts/fireworks/routers/qwen-max-latest", "category": "test", "perf": 0.72, "tier": 0, "tier_source": "estimate", "source_ref": "CATEGORY_ESTIMATES"}
 {"model": "aion-3.5", "category": "agent_tick", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:aion-labs/aion-3.5"}
 {"model": "aion-3.5", "category": "code_gen", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:aion-labs/aion-3.5"}
-{"model": "aion-3.5", "category": "debug", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:aion-labs/aion-3.5"}
+{"model": "aion-3.5", "category": "debug", "perf": 0.85, "tier": 5, "tier_source": "family", "source_ref": "alias:aion-labs/aion-3.5"}
 {"model": "aion-3.5", "category": "delegation", "perf": 0.85, "tier": 5, "tier_source": "family", "source_ref": "alias:aion-labs/aion-3.5"}
 {"model": "aion-3.5", "category": "long_doc", "perf": 0.64, "tier": -2, "tier_source": "family", "source_ref": "alias:aion-labs/aion-3.5"}
 {"model": "aion-3.5", "category": "long_horizon", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:aion-labs/aion-3.5"}
@@ -588,7 +592,7 @@
 {"model": "aion-3.5", "category": "tool_use", "perf": 0.85, "tier": 5, "tier_source": "family", "source_ref": "alias:aion-labs/aion-3.5"}
 {"model": "aion-labs/aion-3.5", "category": "agent_tick", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
 {"model": "aion-labs/aion-3.5", "category": "code_gen", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
-{"model": "aion-labs/aion-3.5", "category": "debug", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
+{"model": "aion-labs/aion-3.5", "category": "debug", "perf": 0.85, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
 {"model": "aion-labs/aion-3.5", "category": "delegation", "perf": 0.85, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
 {"model": "aion-labs/aion-3.5", "category": "long_doc", "perf": 0.64, "tier": -2, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
 {"model": "aion-labs/aion-3.5", "category": "long_horizon", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
@@ -627,7 +631,7 @@
 {"model": "anthropic/claude-opus-5", "category": "test", "perf": 0.72, "tier": 0, "tier_source": "family", "source_ref": "alias:claude-opus-5"}
 {"model": "anthropic/claude-opus-5.5", "category": "agent_tick", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
 {"model": "anthropic/claude-opus-5.5", "category": "code_gen", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
-{"model": "anthropic/claude-opus-5.5", "category": "debug", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
+{"model": "anthropic/claude-opus-5.5", "category": "debug", "perf": 0.85, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
 {"model": "anthropic/claude-opus-5.5", "category": "delegation", "perf": 0.85, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
 {"model": "anthropic/claude-opus-5.5", "category": "long_doc", "perf": 0.64, "tier": -2, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
 {"model": "anthropic/claude-opus-5.5", "category": "long_horizon", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
@@ -645,7 +649,7 @@
 {"model": "claude-opus-5", "category": "test", "perf": 0.72, "tier": 0, "tier_source": "estimate", "source_ref": "CATEGORY_ESTIMATES"}
 {"model": "claude-opus-5-5", "category": "agent_tick", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:anthropic/claude-opus-5.5"}
 {"model": "claude-opus-5-5", "category": "code_gen", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:anthropic/claude-opus-5.5"}
-{"model": "claude-opus-5-5", "category": "debug", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:anthropic/claude-opus-5.5"}
+{"model": "claude-opus-5-5", "category": "debug", "perf": 0.85, "tier": 5, "tier_source": "family", "source_ref": "alias:anthropic/claude-opus-5.5"}
 {"model": "claude-opus-5-5", "category": "delegation", "perf": 0.85, "tier": 5, "tier_source": "family", "source_ref": "alias:anthropic/claude-opus-5.5"}
 {"model": "claude-opus-5-5", "category": "long_doc", "perf": 0.64, "tier": -2, "tier_source": "family", "source_ref": "alias:anthropic/claude-opus-5.5"}
 {"model": "claude-opus-5-5", "category": "long_horizon", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:anthropic/claude-opus-5.5"}
@@ -655,7 +659,7 @@
 {"model": "claude-opus-5-5", "category": "tool_use", "perf": 0.85, "tier": 5, "tier_source": "family", "source_ref": "alias:anthropic/claude-opus-5.5"}
 {"model": "claude-opus-5.5", "category": "agent_tick", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:anthropic/claude-opus-5.5"}
 {"model": "claude-opus-5.5", "category": "code_gen", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:anthropic/claude-opus-5.5"}
-{"model": "claude-opus-5.5", "category": "debug", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:anthropic/claude-opus-5.5"}
+{"model": "claude-opus-5.5", "category": "debug", "perf": 0.85, "tier": 5, "tier_source": "family", "source_ref": "alias:anthropic/claude-opus-5.5"}
 {"model": "claude-opus-5.5", "category": "delegation", "perf": 0.85, "tier": 5, "tier_source": "family", "source_ref": "alias:anthropic/claude-opus-5.5"}
 {"model": "claude-opus-5.5", "category": "long_doc", "perf": 0.64, "tier": -2, "tier_source": "family", "source_ref": "alias:anthropic/claude-opus-5.5"}
 {"model": "claude-opus-5.5", "category": "long_horizon", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:anthropic/claude-opus-5.5"}
@@ -700,7 +704,7 @@
 {"model": "cline-pass/qwen3.8-max", "category": "tool_use", "perf": 0.5, "tier": -2, "tier_source": "bench", "source_ref": "bench:battery-T1-TOOL"}
 {"model": "cohere/command-a", "category": "agent_tick", "perf": 0.637, "tier": 0, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/AGENT-TICK"}
 {"model": "cohere/command-a", "category": "code_gen", "perf": 0.567, "tier": 0, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T2-CODE"}
-{"model": "cohere/command-a", "category": "debug", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T5-DEBUG"}
+{"model": "cohere/command-a", "category": "debug", "perf": 0.85, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T5-DEBUG"}
 {"model": "cohere/command-a", "category": "delegation", "perf": 0.637, "tier": -1, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/DELEGATION"}
 {"model": "cohere/command-a", "category": "long_doc", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-DOC"}
 {"model": "cohere/command-a", "category": "long_horizon", "perf": 0.425, "tier": -4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-HORIZON"}
@@ -710,7 +714,7 @@
 {"model": "cohere/command-a", "category": "tool_use", "perf": 0.85, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T1-TOOL"}
 {"model": "cohere/command-a-plus", "category": "agent_tick", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
 {"model": "cohere/command-a-plus", "category": "code_gen", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
-{"model": "cohere/command-a-plus", "category": "debug", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
+{"model": "cohere/command-a-plus", "category": "debug", "perf": 0.85, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
 {"model": "cohere/command-a-plus", "category": "delegation", "perf": 0.85, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
 {"model": "cohere/command-a-plus", "category": "long_doc", "perf": 0.64, "tier": -2, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
 {"model": "cohere/command-a-plus", "category": "long_horizon", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
@@ -754,7 +758,7 @@
 {"model": "cohere/command-r7b-12-2024", "category": "tool_use", "perf": 0.567, "tier": -2, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T1-TOOL"}
 {"model": "command-a-plus", "category": "agent_tick", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:cohere/command-a-plus"}
 {"model": "command-a-plus", "category": "code_gen", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:cohere/command-a-plus"}
-{"model": "command-a-plus", "category": "debug", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:cohere/command-a-plus"}
+{"model": "command-a-plus", "category": "debug", "perf": 0.85, "tier": 5, "tier_source": "family", "source_ref": "alias:cohere/command-a-plus"}
 {"model": "command-a-plus", "category": "delegation", "perf": 0.85, "tier": 5, "tier_source": "family", "source_ref": "alias:cohere/command-a-plus"}
 {"model": "command-a-plus", "category": "long_doc", "perf": 0.64, "tier": -2, "tier_source": "family", "source_ref": "alias:cohere/command-a-plus"}
 {"model": "command-a-plus", "category": "long_horizon", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:cohere/command-a-plus"}
@@ -1004,7 +1008,7 @@
 {"model": "gemma-4:31b", "category": "tool_use", "perf": 0.75, "tier": 0, "tier_source": "family", "source_ref": "alias:gemma-4-31b"}
 {"model": "glm-4.6v-flash", "category": "agent_tick", "perf": 0.425, "tier": -4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/AGENT-TICK"}
 {"model": "glm-4.6v-flash", "category": "code_gen", "perf": 0.567, "tier": 0, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T2-CODE"}
-{"model": "glm-4.6v-flash", "category": "debug", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T5-DEBUG"}
+{"model": "glm-4.6v-flash", "category": "debug", "perf": 0.85, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T5-DEBUG"}
 {"model": "glm-4.6v-flash", "category": "delegation", "perf": 0.425, "tier": -3, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/DELEGATION"}
 {"model": "glm-4.6v-flash", "category": "long_doc", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-DOC"}
 {"model": "glm-4.6v-flash", "category": "long_horizon", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-HORIZON"}
@@ -1047,7 +1051,7 @@
 {"model": "glm-5-3", "category": "agent_tick", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:glm-5.3"}
 {"model": "glm-5-3", "category": "code_gen", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:glm-5.3"}
 {"model": "glm-5-3", "category": "creative", "perf": 0.45, "tier": 1, "tier_source": "family", "source_ref": "alias:glm-5.3"}
-{"model": "glm-5-3", "category": "debug", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:glm-5.3"}
+{"model": "glm-5-3", "category": "debug", "perf": 0.85, "tier": 5, "tier_source": "family", "source_ref": "alias:glm-5.3"}
 {"model": "glm-5-3", "category": "delegation", "perf": 0.85, "tier": 5, "tier_source": "family", "source_ref": "alias:glm-5.3"}
 {"model": "glm-5-3", "category": "e2e_vision", "perf": 0.35, "tier": -1, "tier_source": "family", "source_ref": "alias:glm-5.3"}
 {"model": "glm-5-3", "category": "guard", "perf": 0.8, "tier": 0, "tier_source": "family", "source_ref": "alias:glm-5.3"}
@@ -1066,7 +1070,7 @@
 {"model": "glm-5-3-flash", "category": "agent_tick", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:glm-5.3-flash"}
 {"model": "glm-5-3-flash", "category": "code_gen", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:glm-5.3-flash"}
 {"model": "glm-5-3-flash", "category": "creative", "perf": 0.45, "tier": 1, "tier_source": "family", "source_ref": "alias:glm-5.3-flash"}
-{"model": "glm-5-3-flash", "category": "debug", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:glm-5.3-flash"}
+{"model": "glm-5-3-flash", "category": "debug", "perf": 0.85, "tier": 5, "tier_source": "family", "source_ref": "alias:glm-5.3-flash"}
 {"model": "glm-5-3-flash", "category": "delegation", "perf": 0.85, "tier": 5, "tier_source": "family", "source_ref": "alias:glm-5.3-flash"}
 {"model": "glm-5-3-flash", "category": "e2e_vision", "perf": 0.35, "tier": -1, "tier_source": "family", "source_ref": "alias:glm-5.3-flash"}
 {"model": "glm-5-3-flash", "category": "guard", "perf": 0.8, "tier": 0, "tier_source": "family", "source_ref": "alias:glm-5.3-flash"}
@@ -1234,7 +1238,7 @@
 {"model": "glm-5.3", "category": "agent_tick", "perf": 0.85, "tier": 4, "tier_source": "measured", "source_ref": "models.jsonl:perf_agent_tick"}
 {"model": "glm-5.3", "category": "code_gen", "perf": 0.85, "tier": 4, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:glm-5.3"}
 {"model": "glm-5.3", "category": "creative", "perf": 0.45, "tier": 1, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:glm-5.3"}
-{"model": "glm-5.3", "category": "debug", "perf": 0.85, "tier": 4, "tier_source": "measured", "source_ref": "models.jsonl:perf_debug"}
+{"model": "glm-5.3", "category": "debug", "perf": 0.85, "tier": 5, "tier_source": "measured", "source_ref": "models.jsonl:perf_debug"}
 {"model": "glm-5.3", "category": "delegation", "perf": 0.85, "tier": 5, "tier_source": "measured", "source_ref": "models.jsonl:perf_delegation"}
 {"model": "glm-5.3", "category": "e2e_vision", "perf": 0.35, "tier": -1, "tier_source": "measured", "source_ref": "models.jsonl:perf_e2e_vision"}
 {"model": "glm-5.3", "category": "guard", "perf": 0.8, "tier": 0, "tier_source": "measured", "source_ref": "models.jsonl:perf_guard"}
@@ -1253,7 +1257,7 @@
 {"model": "glm-5.3-flash", "category": "agent_tick", "perf": 0.85, "tier": 4, "tier_source": "measured", "source_ref": "models.jsonl:perf_agent_tick"}
 {"model": "glm-5.3-flash", "category": "code_gen", "perf": 0.85, "tier": 4, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:ox-alpha"}
 {"model": "glm-5.3-flash", "category": "creative", "perf": 0.45, "tier": 1, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:glm-5.3-flash"}
-{"model": "glm-5.3-flash", "category": "debug", "perf": 0.85, "tier": 4, "tier_source": "measured", "source_ref": "models.jsonl:perf_debug"}
+{"model": "glm-5.3-flash", "category": "debug", "perf": 0.85, "tier": 5, "tier_source": "measured", "source_ref": "models.jsonl:perf_debug"}
 {"model": "glm-5.3-flash", "category": "delegation", "perf": 0.85, "tier": 5, "tier_source": "measured", "source_ref": "models.jsonl:perf_delegation"}
 {"model": "glm-5.3-flash", "category": "e2e_vision", "perf": 0.35, "tier": -1, "tier_source": "measured", "source_ref": "models.jsonl:perf_e2e_vision"}
 {"model": "glm-5.3-flash", "category": "guard", "perf": 0.8, "tier": 0, "tier_source": "measured", "source_ref": "models.jsonl:perf_guard"}
@@ -1383,7 +1387,7 @@
 {"model": "gpt-5.6-terra", "category": "tool_use", "perf": 0.25, "tier": -5, "tier_source": "bench", "source_ref": "bench:battery-T1-TOOL"}
 {"model": "gpt-6-astra", "category": "agent_tick", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:openai/gpt-6-astra"}
 {"model": "gpt-6-astra", "category": "code_gen", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:openai/gpt-6-astra"}
-{"model": "gpt-6-astra", "category": "debug", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:openai/gpt-6-astra"}
+{"model": "gpt-6-astra", "category": "debug", "perf": 0.85, "tier": 5, "tier_source": "family", "source_ref": "alias:openai/gpt-6-astra"}
 {"model": "gpt-6-astra", "category": "delegation", "perf": 0.85, "tier": 5, "tier_source": "family", "source_ref": "alias:openai/gpt-6-astra"}
 {"model": "gpt-6-astra", "category": "long_doc", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:openai/gpt-6-astra"}
 {"model": "gpt-6-astra", "category": "long_horizon", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:openai/gpt-6-astra"}
@@ -1393,7 +1397,7 @@
 {"model": "gpt-6-astra", "category": "tool_use", "perf": 0.85, "tier": 5, "tier_source": "family", "source_ref": "alias:openai/gpt-6-astra"}
 {"model": "gpt-6-luna", "category": "agent_tick", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:openai/gpt-6-luna"}
 {"model": "gpt-6-luna", "category": "code_gen", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:openai/gpt-6-luna"}
-{"model": "gpt-6-luna", "category": "debug", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:openai/gpt-6-luna"}
+{"model": "gpt-6-luna", "category": "debug", "perf": 0.85, "tier": 5, "tier_source": "family", "source_ref": "alias:openai/gpt-6-luna"}
 {"model": "gpt-6-luna", "category": "delegation", "perf": 0.85, "tier": 5, "tier_source": "family", "source_ref": "alias:openai/gpt-6-luna"}
 {"model": "gpt-6-luna", "category": "guard", "perf": 0.85, "tier": 1, "tier_source": "family", "source_ref": "alias:openai/gpt-6-luna"}
 {"model": "gpt-6-luna", "category": "long_doc", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:openai/gpt-6-luna"}
@@ -1405,7 +1409,7 @@
 {"model": "gpt-6-luna", "category": "tool_use", "perf": 0.85, "tier": 5, "tier_source": "family", "source_ref": "alias:openai/gpt-6-luna"}
 {"model": "gpt-6-sol", "category": "agent_tick", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:openai/gpt-6-sol"}
 {"model": "gpt-6-sol", "category": "code_gen", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:openai/gpt-6-sol"}
-{"model": "gpt-6-sol", "category": "debug", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:openai/gpt-6-sol"}
+{"model": "gpt-6-sol", "category": "debug", "perf": 0.85, "tier": 5, "tier_source": "family", "source_ref": "alias:openai/gpt-6-sol"}
 {"model": "gpt-6-sol", "category": "delegation", "perf": 0.85, "tier": 5, "tier_source": "family", "source_ref": "alias:openai/gpt-6-sol"}
 {"model": "gpt-6-sol", "category": "guard", "perf": 0.85, "tier": 1, "tier_source": "family", "source_ref": "alias:openai/gpt-6-sol"}
 {"model": "gpt-6-sol", "category": "long_doc", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:openai/gpt-6-sol"}
@@ -1487,7 +1491,7 @@
 {"model": "grok-4.6", "category": "tool_use", "perf": 0.75, "tier": 0, "tier_source": "bench", "source_ref": "bench:battery-T1-TOOL"}
 {"model": "grok-4.7", "category": "agent_tick", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:x-ai/grok-4.7"}
 {"model": "grok-4.7", "category": "code_gen", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:x-ai/grok-4.7"}
-{"model": "grok-4.7", "category": "debug", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:x-ai/grok-4.7"}
+{"model": "grok-4.7", "category": "debug", "perf": 0.85, "tier": 5, "tier_source": "family", "source_ref": "alias:x-ai/grok-4.7"}
 {"model": "grok-4.7", "category": "delegation", "perf": 0.85, "tier": 5, "tier_source": "family", "source_ref": "alias:x-ai/grok-4.7"}
 {"model": "grok-4.7", "category": "long_doc", "perf": 0.64, "tier": -2, "tier_source": "family", "source_ref": "alias:x-ai/grok-4.7"}
 {"model": "grok-4.7", "category": "long_horizon", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:x-ai/grok-4.7"}
@@ -1588,7 +1592,7 @@
 {"model": "hf:zai-org/GLM-5.3-Flash", "category": "agent_tick", "perf": 0.85, "tier": 4, "tier_source": "measured", "source_ref": "models.jsonl:perf_agent_tick"}
 {"model": "hf:zai-org/GLM-5.3-Flash", "category": "code_gen", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:glm-5.3-flash"}
 {"model": "hf:zai-org/GLM-5.3-Flash", "category": "creative", "perf": 0.45, "tier": 1, "tier_source": "family", "source_ref": "alias:glm-5.3-flash"}
-{"model": "hf:zai-org/GLM-5.3-Flash", "category": "debug", "perf": 0.85, "tier": 4, "tier_source": "measured", "source_ref": "models.jsonl:perf_debug"}
+{"model": "hf:zai-org/GLM-5.3-Flash", "category": "debug", "perf": 0.85, "tier": 5, "tier_source": "measured", "source_ref": "models.jsonl:perf_debug"}
 {"model": "hf:zai-org/GLM-5.3-Flash", "category": "delegation", "perf": 0.85, "tier": 5, "tier_source": "measured", "source_ref": "models.jsonl:perf_delegation"}
 {"model": "hf:zai-org/GLM-5.3-Flash", "category": "e2e_vision", "perf": 0.35, "tier": -1, "tier_source": "measured", "source_ref": "models.jsonl:perf_e2e_vision"}
 {"model": "hf:zai-org/GLM-5.3-Flash", "category": "guard", "perf": 0.8, "tier": 0, "tier_source": "measured", "source_ref": "models.jsonl:perf_guard"}
@@ -1771,7 +1775,7 @@
 {"model": "kimi-k2.7-code", "category": "tool_use", "perf": 0.85, "tier": 5, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:kimi k2"}
 {"model": "kimi-k2.7-code-fast", "category": "agent_tick", "perf": 0.637, "tier": 0, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/AGENT-TICK"}
 {"model": "kimi-k2.7-code-fast", "category": "code_gen", "perf": 0.567, "tier": 0, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T2-CODE"}
-{"model": "kimi-k2.7-code-fast", "category": "debug", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T5-DEBUG"}
+{"model": "kimi-k2.7-code-fast", "category": "debug", "perf": 0.85, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T5-DEBUG"}
 {"model": "kimi-k2.7-code-fast", "category": "delegation", "perf": 0.637, "tier": -1, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/DELEGATION"}
 {"model": "kimi-k2.7-code-fast", "category": "guard", "perf": 0.8, "tier": 0, "tier_source": "estimate", "source_ref": "QUALITY_ESTIMATES"}
 {"model": "kimi-k2.7-code-fast", "category": "long_doc", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-DOC"}
@@ -1863,7 +1867,7 @@
 {"model": "longcat-2.0", "category": "agent_tick", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:meituan/longcat-2.0"}
 {"model": "longcat-2.0", "category": "code_gen", "perf": 0.85, "tier": 4, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:longcat"}
 {"model": "longcat-2.0", "category": "creative", "perf": 0.85, "tier": 5, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:longcat"}
-{"model": "longcat-2.0", "category": "debug", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:meituan/longcat-2.0"}
+{"model": "longcat-2.0", "category": "debug", "perf": 0.85, "tier": 5, "tier_source": "family", "source_ref": "alias:meituan/longcat-2.0"}
 {"model": "longcat-2.0", "category": "delegation", "perf": 0.85, "tier": 5, "tier_source": "family", "source_ref": "alias:meituan/longcat-2.0"}
 {"model": "longcat-2.0", "category": "long_doc", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:meituan/longcat-2.0"}
 {"model": "longcat-2.0", "category": "long_horizon", "perf": 0.72, "tier": -3, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:longcat"}
@@ -1875,7 +1879,7 @@
 {"model": "meituan/LongCat-2.0:free", "category": "agent_tick", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:meituan/longcat-2.0"}
 {"model": "meituan/LongCat-2.0:free", "category": "code_gen", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:longcat-2.0"}
 {"model": "meituan/LongCat-2.0:free", "category": "creative", "perf": 0.85, "tier": 5, "tier_source": "family", "source_ref": "alias:longcat-2.0"}
-{"model": "meituan/LongCat-2.0:free", "category": "debug", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:meituan/longcat-2.0"}
+{"model": "meituan/LongCat-2.0:free", "category": "debug", "perf": 0.85, "tier": 5, "tier_source": "family", "source_ref": "alias:meituan/longcat-2.0"}
 {"model": "meituan/LongCat-2.0:free", "category": "delegation", "perf": 0.85, "tier": 5, "tier_source": "family", "source_ref": "alias:meituan/longcat-2.0"}
 {"model": "meituan/LongCat-2.0:free", "category": "long_doc", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:meituan/longcat-2.0"}
 {"model": "meituan/LongCat-2.0:free", "category": "long_horizon", "perf": 0.72, "tier": -3, "tier_source": "family", "source_ref": "alias:longcat-2.0"}
@@ -1886,7 +1890,7 @@
 {"model": "meituan/LongCat-2.0:free", "category": "tool_use", "perf": 0.85, "tier": 5, "tier_source": "family", "source_ref": "alias:meituan/longcat-2.0"}
 {"model": "meituan/longcat-2.0", "category": "agent_tick", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
 {"model": "meituan/longcat-2.0", "category": "code_gen", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
-{"model": "meituan/longcat-2.0", "category": "debug", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
+{"model": "meituan/longcat-2.0", "category": "debug", "perf": 0.85, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
 {"model": "meituan/longcat-2.0", "category": "delegation", "perf": 0.85, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
 {"model": "meituan/longcat-2.0", "category": "long_doc", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-DOC"}
 {"model": "meituan/longcat-2.0", "category": "long_horizon", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
@@ -1922,7 +1926,7 @@
 {"model": "meta/muse-spark-1.2-contributor", "category": "mock", "perf": 0.85, "tier": 2, "tier_source": "family", "source_ref": "alias:muse-spark-1.2-contributor"}
 {"model": "meta/muse-spark-1.2-contributor", "category": "reasoning", "perf": 0.75, "tier": -3, "tier_source": "family", "source_ref": "alias:muse-spark-1.2-contributor"}
 {"model": "meta/muse-spark-1.2-contributor", "category": "review", "perf": 0.7, "tier": -1, "tier_source": "family", "source_ref": "alias:muse-spark-1.2-contributor"}
-{"model": "meta/muse-spark-1.2-contributor", "category": "schema", "perf": 0.6, "tier": -1, "tier_source": "family", "source_ref": "alias:muse-spark-1.2-contributor"}
+{"model": "meta/muse-spark-1.2-contributor", "category": "schema", "perf": 0.6, "tier": -2, "tier_source": "family", "source_ref": "alias:muse-spark-1.2-contributor"}
 {"model": "meta/muse-spark-1.2-contributor", "category": "test", "perf": 0.72, "tier": 0, "tier_source": "estimate", "source_ref": "CATEGORY_ESTIMATES"}
 {"model": "meta/muse-spark-1.3", "category": "agent_tick", "perf": 0.637, "tier": 0, "tier_source": "family", "source_ref": "alias:muse-spark-1.3"}
 {"model": "meta/muse-spark-1.3", "category": "code_gen", "perf": 0.567, "tier": 0, "tier_source": "family", "source_ref": "alias:muse-spark-1.3"}
@@ -1961,7 +1965,7 @@
 {"model": "mimo-v2.5-pro", "category": "tool_use", "perf": 0.85, "tier": 5, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:mimo-v2.5-pro"}
 {"model": "mimo-v2.6-flash", "category": "agent_tick", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:xiaomi/mimo-v2.6-flash"}
 {"model": "mimo-v2.6-flash", "category": "code_gen", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:xiaomi/mimo-v2.6-flash"}
-{"model": "mimo-v2.6-flash", "category": "debug", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:xiaomi/mimo-v2.6-flash"}
+{"model": "mimo-v2.6-flash", "category": "debug", "perf": 0.85, "tier": 5, "tier_source": "family", "source_ref": "alias:xiaomi/mimo-v2.6-flash"}
 {"model": "mimo-v2.6-flash", "category": "delegation", "perf": 0.85, "tier": 5, "tier_source": "family", "source_ref": "alias:xiaomi/mimo-v2.6-flash"}
 {"model": "mimo-v2.6-flash", "category": "long_doc", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:xiaomi/mimo-v2.6-flash"}
 {"model": "mimo-v2.6-flash", "category": "long_horizon", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:xiaomi/mimo-v2.6-flash"}
@@ -1971,7 +1975,7 @@
 {"model": "mimo-v2.6-flash", "category": "tool_use", "perf": 0.64, "tier": -2, "tier_source": "family", "source_ref": "alias:xiaomi/mimo-v2.6-flash"}
 {"model": "mimo-v2.6-pro", "category": "agent_tick", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:xiaomi/mimo-v2.6-pro"}
 {"model": "mimo-v2.6-pro", "category": "code_gen", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:xiaomi/mimo-v2.6-pro"}
-{"model": "mimo-v2.6-pro", "category": "debug", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:xiaomi/mimo-v2.6-pro"}
+{"model": "mimo-v2.6-pro", "category": "debug", "perf": 0.85, "tier": 5, "tier_source": "family", "source_ref": "alias:xiaomi/mimo-v2.6-pro"}
 {"model": "mimo-v2.6-pro", "category": "delegation", "perf": 0.85, "tier": 5, "tier_source": "family", "source_ref": "alias:xiaomi/mimo-v2.6-pro"}
 {"model": "mimo-v2.6-pro", "category": "long_doc", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:xiaomi/mimo-v2.6-pro"}
 {"model": "mimo-v2.6-pro", "category": "long_horizon", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:xiaomi/mimo-v2.6-pro"}
@@ -2027,7 +2031,7 @@
 {"model": "minimax/minimax-m3:free", "category": "vision", "perf": 0.72, "tier": 3, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:minimax m3"}
 {"model": "mistral-large-2512", "category": "agent_tick", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:mistralai/mistral-large-2512"}
 {"model": "mistral-large-2512", "category": "code_gen", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:mistralai/mistral-large-2512"}
-{"model": "mistral-large-2512", "category": "debug", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:mistralai/mistral-large-2512"}
+{"model": "mistral-large-2512", "category": "debug", "perf": 0.85, "tier": 5, "tier_source": "family", "source_ref": "alias:mistralai/mistral-large-2512"}
 {"model": "mistral-large-2512", "category": "delegation", "perf": 0.85, "tier": 5, "tier_source": "family", "source_ref": "alias:mistralai/mistral-large-2512"}
 {"model": "mistral-large-2512", "category": "long_doc", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:mistralai/mistral-large-2512"}
 {"model": "mistral-large-2512", "category": "long_horizon", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:mistralai/mistral-large-2512"}
@@ -2091,7 +2095,7 @@
 {"model": "mistralai/ministral-8b", "category": "tool_use", "perf": 0.567, "tier": -2, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T1-TOOL"}
 {"model": "mistralai/mistral-large-2512", "category": "agent_tick", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
 {"model": "mistralai/mistral-large-2512", "category": "code_gen", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
-{"model": "mistralai/mistral-large-2512", "category": "debug", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
+{"model": "mistralai/mistral-large-2512", "category": "debug", "perf": 0.85, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
 {"model": "mistralai/mistral-large-2512", "category": "delegation", "perf": 0.85, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
 {"model": "mistralai/mistral-large-2512", "category": "long_doc", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
 {"model": "mistralai/mistral-large-2512", "category": "long_horizon", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
@@ -2221,7 +2225,7 @@
 {"model": "muse-spark-1.2-contributor", "category": "mock", "perf": 0.85, "tier": 2, "tier_source": "measured", "source_ref": "models.jsonl:perf_mock"}
 {"model": "muse-spark-1.2-contributor", "category": "reasoning", "perf": 0.75, "tier": -3, "tier_source": "measured", "source_ref": "models.jsonl:perf_reasoning"}
 {"model": "muse-spark-1.2-contributor", "category": "review", "perf": 0.7, "tier": -1, "tier_source": "measured", "source_ref": "models.jsonl:perf_review"}
-{"model": "muse-spark-1.2-contributor", "category": "schema", "perf": 0.6, "tier": -1, "tier_source": "measured", "source_ref": "models.jsonl:perf_schema"}
+{"model": "muse-spark-1.2-contributor", "category": "schema", "perf": 0.6, "tier": -2, "tier_source": "measured", "source_ref": "models.jsonl:perf_schema"}
 {"model": "muse-spark-1.2-contributor", "category": "test", "perf": 0.72, "tier": 0, "tier_source": "estimate", "source_ref": "CATEGORY_ESTIMATES"}
 {"model": "muse-spark-1.3", "category": "agent_tick", "perf": 0.637, "tier": 0, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/AGENT-TICK"}
 {"model": "muse-spark-1.3", "category": "code_gen", "perf": 0.567, "tier": 0, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T2-CODE"}
@@ -2271,7 +2275,7 @@
 {"model": "nemotron-3-ultra", "category": "tool_use", "perf": 0.75, "tier": 0, "tier_source": "bench", "source_ref": "bench:battery-T1-TOOL"}
 {"model": "nvidia/nemotron-3-nano-omni", "category": "agent_tick", "perf": 0.637, "tier": 0, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/AGENT-TICK"}
 {"model": "nvidia/nemotron-3-nano-omni", "category": "code_gen", "perf": 0.567, "tier": 0, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T2-CODE"}
-{"model": "nvidia/nemotron-3-nano-omni", "category": "debug", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T5-DEBUG"}
+{"model": "nvidia/nemotron-3-nano-omni", "category": "debug", "perf": 0.85, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T5-DEBUG"}
 {"model": "nvidia/nemotron-3-nano-omni", "category": "delegation", "perf": 0.425, "tier": -3, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/DELEGATION"}
 {"model": "nvidia/nemotron-3-nano-omni", "category": "long_doc", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-DOC"}
 {"model": "nvidia/nemotron-3-nano-omni", "category": "long_horizon", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-HORIZON"}
@@ -2425,7 +2429,7 @@
 {"model": "openai/gpt-5.6-terra", "category": "tool_use", "perf": 0.25, "tier": -5, "tier_source": "family", "source_ref": "alias:gpt-5.6-terra"}
 {"model": "openai/gpt-6-astra", "category": "agent_tick", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
 {"model": "openai/gpt-6-astra", "category": "code_gen", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
-{"model": "openai/gpt-6-astra", "category": "debug", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
+{"model": "openai/gpt-6-astra", "category": "debug", "perf": 0.85, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
 {"model": "openai/gpt-6-astra", "category": "delegation", "perf": 0.85, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
 {"model": "openai/gpt-6-astra", "category": "long_doc", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-DOC"}
 {"model": "openai/gpt-6-astra", "category": "long_horizon", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
@@ -2435,7 +2439,7 @@
 {"model": "openai/gpt-6-astra", "category": "tool_use", "perf": 0.85, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
 {"model": "openai/gpt-6-luna", "category": "agent_tick", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
 {"model": "openai/gpt-6-luna", "category": "code_gen", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
-{"model": "openai/gpt-6-luna", "category": "debug", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
+{"model": "openai/gpt-6-luna", "category": "debug", "perf": 0.85, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
 {"model": "openai/gpt-6-luna", "category": "delegation", "perf": 0.85, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
 {"model": "openai/gpt-6-luna", "category": "guard", "perf": 0.85, "tier": 1, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/GUARD-V2"}
 {"model": "openai/gpt-6-luna", "category": "long_doc", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-DOC"}
@@ -2447,7 +2451,7 @@
 {"model": "openai/gpt-6-luna", "category": "tool_use", "perf": 0.85, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T1-TOOL"}
 {"model": "openai/gpt-6-sol", "category": "agent_tick", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
 {"model": "openai/gpt-6-sol", "category": "code_gen", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
-{"model": "openai/gpt-6-sol", "category": "debug", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
+{"model": "openai/gpt-6-sol", "category": "debug", "perf": 0.85, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
 {"model": "openai/gpt-6-sol", "category": "delegation", "perf": 0.85, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
 {"model": "openai/gpt-6-sol", "category": "guard", "perf": 0.85, "tier": 1, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/GUARD-V2"}
 {"model": "openai/gpt-6-sol", "category": "long_doc", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-DOC"}
@@ -2474,7 +2478,7 @@
 {"model": "poolside/laguna-s-2.1-free", "category": "test", "perf": 0.72, "tier": 0, "tier_source": "estimate", "source_ref": "CATEGORY_ESTIMATES"}
 {"model": "poolside/laguna-s-2.1:free", "category": "test", "perf": 0.72, "tier": 0, "tier_source": "family", "source_ref": "alias:laguna-s-2.1"}
 {"model": "qwen-3.8-27b-flex", "category": "agent_tick", "perf": 0.637, "tier": 0, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/AGENT-TICK"}
-{"model": "qwen-3.8-27b-flex", "category": "debug", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T5-DEBUG"}
+{"model": "qwen-3.8-27b-flex", "category": "debug", "perf": 0.85, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T5-DEBUG"}
 {"model": "qwen-3.8-27b-flex", "category": "delegation", "perf": 0.85, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/DELEGATION"}
 {"model": "qwen-3.8-27b-flex", "category": "long_doc", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-DOC"}
 {"model": "qwen-3.8-27b-flex", "category": "long_horizon", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-HORIZON"}
@@ -2491,7 +2495,7 @@
 {"model": "qwen.qwen3-vl-235b-a22b", "category": "test", "perf": 0.72, "tier": 0, "tier_source": "estimate", "source_ref": "CATEGORY_ESTIMATES"}
 {"model": "qwen/qwen-plus-2025-07-28:free", "category": "agent_tick", "perf": 0.637, "tier": 0, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/AGENT-TICK"}
 {"model": "qwen/qwen-plus-2025-07-28:free", "category": "code_gen", "perf": 0.567, "tier": 0, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T2-CODE"}
-{"model": "qwen/qwen-plus-2025-07-28:free", "category": "debug", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T5-DEBUG"}
+{"model": "qwen/qwen-plus-2025-07-28:free", "category": "debug", "perf": 0.85, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T5-DEBUG"}
 {"model": "qwen/qwen-plus-2025-07-28:free", "category": "delegation", "perf": 0.637, "tier": -1, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/DELEGATION"}
 {"model": "qwen/qwen-plus-2025-07-28:free", "category": "long_doc", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-DOC"}
 {"model": "qwen/qwen-plus-2025-07-28:free", "category": "long_horizon", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-HORIZON"}
@@ -2504,7 +2508,7 @@
 {"model": "qwen/qwen3-coder-next", "category": "test", "perf": 0.72, "tier": 0, "tier_source": "family", "source_ref": "alias:qwen3-coder-next"}
 {"model": "qwen/qwen3-vl-plus:free", "category": "agent_tick", "perf": 0.637, "tier": 0, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/AGENT-TICK"}
 {"model": "qwen/qwen3-vl-plus:free", "category": "code_gen", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T2-CODE"}
-{"model": "qwen/qwen3-vl-plus:free", "category": "debug", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T5-DEBUG"}
+{"model": "qwen/qwen3-vl-plus:free", "category": "debug", "perf": 0.85, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T5-DEBUG"}
 {"model": "qwen/qwen3-vl-plus:free", "category": "delegation", "perf": 0.425, "tier": -3, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/DELEGATION"}
 {"model": "qwen/qwen3-vl-plus:free", "category": "long_doc", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-DOC"}
 {"model": "qwen/qwen3-vl-plus:free", "category": "long_horizon", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-HORIZON"}
@@ -2528,7 +2532,7 @@
 {"model": "qwen/qwen3.5-397b-a17b:free", "category": "tool_use", "perf": 0.5, "tier": -2, "tier_source": "family", "source_ref": "alias:qwen3.5-397b-a17b"}
 {"model": "qwen/qwen3.5-omni-plus:free", "category": "agent_tick", "perf": 0.637, "tier": 0, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/AGENT-TICK"}
 {"model": "qwen/qwen3.5-omni-plus:free", "category": "code_gen", "perf": 0.567, "tier": 0, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T2-CODE"}
-{"model": "qwen/qwen3.5-omni-plus:free", "category": "debug", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T5-DEBUG"}
+{"model": "qwen/qwen3.5-omni-plus:free", "category": "debug", "perf": 0.85, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T5-DEBUG"}
 {"model": "qwen/qwen3.5-omni-plus:free", "category": "delegation", "perf": 0.85, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/DELEGATION"}
 {"model": "qwen/qwen3.5-omni-plus:free", "category": "long_doc", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-DOC"}
 {"model": "qwen/qwen3.5-omni-plus:free", "category": "long_horizon", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-HORIZON"}
@@ -2538,7 +2542,7 @@
 {"model": "qwen/qwen3.5-omni-plus:free", "category": "tool_use", "perf": 0.567, "tier": -2, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T1-TOOL"}
 {"model": "qwen/qwen3.6-27b:free", "category": "agent_tick", "perf": 0.637, "tier": 0, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/AGENT-TICK"}
 {"model": "qwen/qwen3.6-27b:free", "category": "code_gen", "perf": 0.283, "tier": -4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T2-CODE"}
-{"model": "qwen/qwen3.6-27b:free", "category": "debug", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T5-DEBUG"}
+{"model": "qwen/qwen3.6-27b:free", "category": "debug", "perf": 0.85, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T5-DEBUG"}
 {"model": "qwen/qwen3.6-27b:free", "category": "delegation", "perf": 0.637, "tier": -1, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/DELEGATION"}
 {"model": "qwen/qwen3.6-27b:free", "category": "long_doc", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-DOC"}
 {"model": "qwen/qwen3.6-27b:free", "category": "long_horizon", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-HORIZON"}
@@ -2548,7 +2552,7 @@
 {"model": "qwen/qwen3.6-27b:free", "category": "tool_use", "perf": 0.85, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T1-TOOL"}
 {"model": "qwen/qwen3.6-35b-a3b:free", "category": "agent_tick", "perf": 0.637, "tier": 0, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/AGENT-TICK"}
 {"model": "qwen/qwen3.6-35b-a3b:free", "category": "code_gen", "perf": 0.567, "tier": 0, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T2-CODE"}
-{"model": "qwen/qwen3.6-35b-a3b:free", "category": "debug", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T5-DEBUG"}
+{"model": "qwen/qwen3.6-35b-a3b:free", "category": "debug", "perf": 0.85, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T5-DEBUG"}
 {"model": "qwen/qwen3.6-35b-a3b:free", "category": "delegation", "perf": 0.637, "tier": -1, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/DELEGATION"}
 {"model": "qwen/qwen3.6-35b-a3b:free", "category": "long_doc", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-DOC"}
 {"model": "qwen/qwen3.6-35b-a3b:free", "category": "long_horizon", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-HORIZON"}
@@ -2558,7 +2562,7 @@
 {"model": "qwen/qwen3.6-35b-a3b:free", "category": "tool_use", "perf": 0.85, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T1-TOOL"}
 {"model": "qwen/qwen3.7-flash:free", "category": "agent_tick", "perf": 0.637, "tier": 0, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/AGENT-TICK"}
 {"model": "qwen/qwen3.7-flash:free", "category": "code_gen", "perf": 0.567, "tier": 0, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T2-CODE"}
-{"model": "qwen/qwen3.7-flash:free", "category": "debug", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T5-DEBUG"}
+{"model": "qwen/qwen3.7-flash:free", "category": "debug", "perf": 0.85, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T5-DEBUG"}
 {"model": "qwen/qwen3.7-flash:free", "category": "delegation", "perf": 0.637, "tier": -1, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/DELEGATION"}
 {"model": "qwen/qwen3.7-flash:free", "category": "long_doc", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-DOC"}
 {"model": "qwen/qwen3.7-flash:free", "category": "long_horizon", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-HORIZON"}
@@ -2568,7 +2572,7 @@
 {"model": "qwen/qwen3.7-flash:free", "category": "tool_use", "perf": 0.283, "tier": -4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T1-TOOL"}
 {"model": "qwen/qwen3.7-plus:free", "category": "agent_tick", "perf": 0.637, "tier": 0, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/AGENT-TICK"}
 {"model": "qwen/qwen3.7-plus:free", "category": "code_gen", "perf": 0.567, "tier": 0, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T2-CODE"}
-{"model": "qwen/qwen3.7-plus:free", "category": "debug", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T5-DEBUG"}
+{"model": "qwen/qwen3.7-plus:free", "category": "debug", "perf": 0.85, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T5-DEBUG"}
 {"model": "qwen/qwen3.7-plus:free", "category": "delegation", "perf": 0.85, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/DELEGATION"}
 {"model": "qwen/qwen3.7-plus:free", "category": "long_doc", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-DOC"}
 {"model": "qwen/qwen3.7-plus:free", "category": "long_horizon", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-HORIZON"}
@@ -2578,14 +2582,10 @@
 {"model": "qwen/qwen3.7-plus:free", "category": "tool_use", "perf": 0.85, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T1-TOOL"}
 {"model": "qwen/qwen3.8-27b", "category": "code_gen", "perf": 0.88, "tier": 5, "tier_source": "family", "source_ref": "alias:qwen3.8-27b"}
 {"model": "qwen/qwen3.8-27b", "category": "test", "perf": 0.72, "tier": 0, "tier_source": "family", "source_ref": "alias:qwen3.8-27b"}
-{"model": "qwen/qwen3.8-flash", "category": "agent_tick", "perf": 0.7390000000000001, "tier": 0, "tier_source": "bench", "source_ref": "bench:qwen-official-2026-08-26"}
-{"model": "qwen/qwen3.8-flash", "category": "debug", "perf": 0.919, "tier": 5, "tier_source": "bench", "source_ref": "bench:qwen-official-2026-08-26"}
 {"model": "qwen/qwen3.8-flash", "category": "e2e_vision", "perf": 0.845, "tier": 3, "tier_source": "bench", "source_ref": "bench:qwen-official-2026-08-26"}
-{"model": "qwen/qwen3.8-flash", "category": "long_doc", "perf": 0.81, "tier": -2, "tier_source": "bench", "source_ref": "bench:qwen-official-2026-08-26"}
-{"model": "qwen/qwen3.8-flash", "category": "reasoning", "perf": 0.917, "tier": 3, "tier_source": "bench", "source_ref": "bench:qwen-official-2026-08-26"}
 {"model": "qwen/qwen3.8-max:free", "category": "agent_tick", "perf": 0.637, "tier": 0, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/AGENT-TICK"}
 {"model": "qwen/qwen3.8-max:free", "category": "code_gen", "perf": 0.567, "tier": 0, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T2-CODE"}
-{"model": "qwen/qwen3.8-max:free", "category": "debug", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T5-DEBUG"}
+{"model": "qwen/qwen3.8-max:free", "category": "debug", "perf": 0.85, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T5-DEBUG"}
 {"model": "qwen/qwen3.8-max:free", "category": "delegation", "perf": 0.85, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/DELEGATION"}
 {"model": "qwen/qwen3.8-max:free", "category": "long_doc", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-DOC"}
 {"model": "qwen/qwen3.8-max:free", "category": "long_horizon", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-HORIZON"}
@@ -2595,7 +2595,7 @@
 {"model": "qwen/qwen3.8-max:free", "category": "tool_use", "perf": 0.85, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T1-TOOL"}
 {"model": "qwen/qwen3.8-omni-flash", "category": "agent_tick", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
 {"model": "qwen/qwen3.8-omni-flash", "category": "code_gen", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
-{"model": "qwen/qwen3.8-omni-flash", "category": "debug", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
+{"model": "qwen/qwen3.8-omni-flash", "category": "debug", "perf": 0.85, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
 {"model": "qwen/qwen3.8-omni-flash", "category": "delegation", "perf": 0.85, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
 {"model": "qwen/qwen3.8-omni-flash", "category": "long_doc", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-DOC"}
 {"model": "qwen/qwen3.8-omni-flash", "category": "long_horizon", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
@@ -2605,7 +2605,7 @@
 {"model": "qwen/qwen3.8-omni-flash", "category": "tool_use", "perf": 0.85, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
 {"model": "qwen/qwen3.8-omni-flash:free", "category": "agent_tick", "perf": 0.637, "tier": 0, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/AGENT-TICK"}
 {"model": "qwen/qwen3.8-omni-flash:free", "category": "code_gen", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T2-CODE"}
-{"model": "qwen/qwen3.8-omni-flash:free", "category": "debug", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T5-DEBUG"}
+{"model": "qwen/qwen3.8-omni-flash:free", "category": "debug", "perf": 0.85, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T5-DEBUG"}
 {"model": "qwen/qwen3.8-omni-flash:free", "category": "delegation", "perf": 0.637, "tier": -1, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/DELEGATION"}
 {"model": "qwen/qwen3.8-omni-flash:free", "category": "long_doc", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-DOC"}
 {"model": "qwen/qwen3.8-omni-flash:free", "category": "long_horizon", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-HORIZON"}
@@ -2641,7 +2641,7 @@
 {"model": "qwen3.6-27b", "category": "mechanical", "perf": 0.72, "tier": 5, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:qwen3.6-27b"}
 {"model": "qwen3.6-27b", "category": "multilingual", "perf": 0.88, "tier": 2, "tier_source": "estimate", "source_ref": "QUALITY_ESTIMATES"}
 {"model": "qwen3.6-35b", "category": "agent_tick", "perf": 0.637, "tier": 0, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/AGENT-TICK"}
-{"model": "qwen3.6-35b", "category": "debug", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T5-DEBUG"}
+{"model": "qwen3.6-35b", "category": "debug", "perf": 0.85, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T5-DEBUG"}
 {"model": "qwen3.6-35b", "category": "delegation", "perf": 0.85, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/DELEGATION"}
 {"model": "qwen3.6-35b", "category": "guard", "perf": 0.68, "tier": -3, "tier_source": "estimate", "source_ref": "QUALITY_ESTIMATES"}
 {"model": "qwen3.6-35b", "category": "long_doc", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-DOC"}
@@ -2714,7 +2714,7 @@
 {"model": "qwen3.8-max", "category": "schema", "perf": 0.75, "tier": -1, "tier_source": "measured", "source_ref": "models.jsonl:perf_schema"}
 {"model": "qwen3.8-omni-flash", "category": "agent_tick", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:qwen/qwen3.8-omni-flash"}
 {"model": "qwen3.8-omni-flash", "category": "code_gen", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:qwen/qwen3.8-omni-flash"}
-{"model": "qwen3.8-omni-flash", "category": "debug", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:qwen/qwen3.8-omni-flash"}
+{"model": "qwen3.8-omni-flash", "category": "debug", "perf": 0.85, "tier": 5, "tier_source": "family", "source_ref": "alias:qwen/qwen3.8-omni-flash"}
 {"model": "qwen3.8-omni-flash", "category": "delegation", "perf": 0.85, "tier": 5, "tier_source": "family", "source_ref": "alias:qwen/qwen3.8-omni-flash"}
 {"model": "qwen3.8-omni-flash", "category": "long_doc", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:qwen/qwen3.8-omni-flash"}
 {"model": "qwen3.8-omni-flash", "category": "long_horizon", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:qwen/qwen3.8-omni-flash"}
@@ -2773,7 +2773,7 @@
 {"model": "stealth/space-bunny-alpha", "category": "vision", "perf": 0.72, "tier": 3, "tier_source": "estimate", "source_ref": "CATEGORY_ESTIMATES"}
 {"model": "stealth/union-alpha", "category": "agent_tick", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:union-alpha"}
 {"model": "stealth/union-alpha", "category": "code_gen", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:union-alpha"}
-{"model": "stealth/union-alpha", "category": "debug", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:union-alpha"}
+{"model": "stealth/union-alpha", "category": "debug", "perf": 0.85, "tier": 5, "tier_source": "family", "source_ref": "alias:union-alpha"}
 {"model": "stealth/union-alpha", "category": "delegation", "perf": 0.85, "tier": 5, "tier_source": "family", "source_ref": "alias:union-alpha"}
 {"model": "stealth/union-alpha", "category": "long_doc", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:union-alpha"}
 {"model": "stealth/union-alpha", "category": "long_horizon", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:union-alpha"}
@@ -2827,22 +2827,22 @@
 {"model": "stepfun/Step-3.5-Flash", "category": "test", "perf": 0.95, "tier": 5, "tier_source": "family", "source_ref": "alias:step-3.5-flash"}
 {"model": "stepfun/Step-3.5-Flash", "category": "tool_use", "perf": 0.75, "tier": 0, "tier_source": "family", "source_ref": "alias:step-3.5-flash"}
 {"model": "stepfun/Step-3.5-Flash", "category": "vision", "perf": 0.72, "tier": 3, "tier_source": "family", "source_ref": "alias:step-3.5-flash"}
-{"model": "stepfun/Step-3.7-Flash", "category": "agent_tick", "perf": 0.25, "tier": -5, "tier_source": "family", "source_ref": "alias:step-3.7-flash"}
+{"model": "stepfun/Step-3.7-Flash", "category": "agent_tick", "perf": 0.637, "tier": 0, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/AGENT-TICK"}
 {"model": "stepfun/Step-3.7-Flash", "category": "code_gen", "perf": 0.75, "tier": 1, "tier_source": "family", "source_ref": "alias:step-3.7-flash"}
 {"model": "stepfun/Step-3.7-Flash", "category": "debug", "perf": 0.75, "tier": 1, "tier_source": "family", "source_ref": "alias:step-3.7-flash"}
-{"model": "stepfun/Step-3.7-Flash", "category": "delegation", "perf": 0.25, "tier": -5, "tier_source": "family", "source_ref": "alias:step-3.7-flash"}
+{"model": "stepfun/Step-3.7-Flash", "category": "delegation", "perf": 0.637, "tier": -1, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/DELEGATION"}
 {"model": "stepfun/Step-3.7-Flash", "category": "e2e_vision", "perf": 0.9721, "tier": 4, "tier_source": "family", "source_ref": "alias:step-3.7-flash"}
 {"model": "stepfun/Step-3.7-Flash", "category": "guard", "perf": 0.88, "tier": 2, "tier_source": "family", "source_ref": "alias:step-3.7-flash"}
 {"model": "stepfun/Step-3.7-Flash", "category": "long_doc", "perf": 0.55, "tier": -3, "tier_source": "family", "source_ref": "alias:step-3.7-flash"}
-{"model": "stepfun/Step-3.7-Flash", "category": "long_horizon", "perf": 0.95, "tier": 5, "tier_source": "family", "source_ref": "alias:step-3.7-flash"}
+{"model": "stepfun/Step-3.7-Flash", "category": "long_horizon", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-HORIZON"}
 {"model": "stepfun/Step-3.7-Flash", "category": "mock", "perf": 0.85, "tier": 2, "tier_source": "family", "source_ref": "alias:step-3.7-flash"}
 {"model": "stepfun/Step-3.7-Flash", "category": "multilingual", "perf": 0.87, "tier": 0, "tier_source": "family", "source_ref": "alias:step-3.7-flash"}
-{"model": "stepfun/Step-3.7-Flash", "category": "reasoning", "perf": 0.809, "tier": -2, "tier_source": "family", "source_ref": "alias:step-3.7-flash"}
+{"model": "stepfun/Step-3.7-Flash", "category": "reasoning", "perf": 0.85, "tier": 2, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T3-REASON"}
 {"model": "stepfun/Step-3.7-Flash", "category": "refactor", "perf": 0.72, "tier": 2, "tier_source": "family", "source_ref": "alias:step-3.7-flash"}
 {"model": "stepfun/Step-3.7-Flash", "category": "review", "perf": 0.68, "tier": -2, "tier_source": "family", "source_ref": "alias:step-3.7-flash"}
-{"model": "stepfun/Step-3.7-Flash", "category": "schema", "perf": 0.5, "tier": -2, "tier_source": "family", "source_ref": "alias:step-3.7-flash"}
+{"model": "stepfun/Step-3.7-Flash", "category": "schema", "perf": 0.85, "tier": 3, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/SCHEMA"}
 {"model": "stepfun/Step-3.7-Flash", "category": "terminal", "perf": 0.95, "tier": 5, "tier_source": "family", "source_ref": "alias:step-3.7-flash"}
-{"model": "stepfun/Step-3.7-Flash", "category": "test", "perf": 0.95, "tier": 5, "tier_source": "family", "source_ref": "alias:step-3.7-flash"}
+{"model": "stepfun/Step-3.7-Flash", "category": "test", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/TEST"}
 {"model": "stepfun/Step-3.7-Flash", "category": "tool_use", "perf": 0.72, "tier": -2, "tier_source": "family", "source_ref": "alias:step-3.7-flash"}
 {"model": "stepfun/Step-3.7-Flash", "category": "vision", "perf": 0.972051282051282, "tier": 4, "tier_source": "family", "source_ref": "alias:step-3.7-flash"}
 {"model": "stepfun/Step-5-Preview", "category": "agent_tick", "perf": 0.637, "tier": 0, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/AGENT-TICK"}
@@ -2891,17 +2891,23 @@
 {"model": "tencent/hy3-paid", "category": "terminal", "perf": 0.544, "tier": -5, "tier_source": "family", "source_ref": "alias:hy3"}
 {"model": "tencent/hy3-paid", "category": "tool_use", "perf": 0.72, "tier": -2, "tier_source": "family", "source_ref": "alias:hy3"}
 {"model": "tencent/hy3-paid", "category": "ui_frontend", "perf": 0.85, "tier": 5, "tier_source": "family", "source_ref": "alias:hy3"}
-{"model": "tencent/hy4-preview", "category": "code_gen", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:hy4-preview"}
-{"model": "tencent/hy4-preview", "category": "long_horizon", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:hy4-preview"}
-{"model": "tencent/hy4-preview", "category": "reasoning", "perf": 0.923, "tier": 3, "tier_source": "family", "source_ref": "alias:hy4-preview"}
+{"model": "tencent/hy4-preview", "category": "agent_tick", "perf": 0.637, "tier": 0, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/AGENT-TICK"}
+{"model": "tencent/hy4-preview", "category": "code_gen", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T2-CODE"}
+{"model": "tencent/hy4-preview", "category": "debug", "perf": 0.567, "tier": -1, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T5-DEBUG"}
+{"model": "tencent/hy4-preview", "category": "delegation", "perf": 0.637, "tier": -1, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/DELEGATION"}
+{"model": "tencent/hy4-preview", "category": "long_doc", "perf": 0.212, "tier": -4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-DOC"}
+{"model": "tencent/hy4-preview", "category": "long_horizon", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-HORIZON"}
+{"model": "tencent/hy4-preview", "category": "reasoning", "perf": 0.85, "tier": 2, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T3-REASON"}
 {"model": "tencent/hy4-preview", "category": "refactor", "perf": 0.72, "tier": 2, "tier_source": "family", "source_ref": "alias:hy4-preview"}
+{"model": "tencent/hy4-preview", "category": "schema", "perf": 0.85, "tier": 3, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/SCHEMA"}
 {"model": "tencent/hy4-preview", "category": "terminal", "perf": 0.854, "tier": 1, "tier_source": "family", "source_ref": "alias:hy4-preview"}
-{"model": "tencent/hy4-preview", "category": "test", "perf": 0.72, "tier": 0, "tier_source": "family", "source_ref": "alias:hy4-preview"}
+{"model": "tencent/hy4-preview", "category": "test", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/TEST"}
+{"model": "tencent/hy4-preview", "category": "tool_use", "perf": 0.85, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T1-TOOL"}
 {"model": "thinkingmachines/inkling", "category": "test", "perf": 0.72, "tier": 0, "tier_source": "estimate", "source_ref": "CATEGORY_ESTIMATES"}
 {"model": "thinkingmachines/inkling-small", "category": "test", "perf": 0.72, "tier": 0, "tier_source": "estimate", "source_ref": "CATEGORY_ESTIMATES"}
 {"model": "union-alpha", "category": "agent_tick", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-16"}
 {"model": "union-alpha", "category": "code_gen", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-16"}
-{"model": "union-alpha", "category": "debug", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-16"}
+{"model": "union-alpha", "category": "debug", "perf": 0.85, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-16"}
 {"model": "union-alpha", "category": "delegation", "perf": 0.85, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-16"}
 {"model": "union-alpha", "category": "long_doc", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-16"}
 {"model": "union-alpha", "category": "long_horizon", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-16"}
@@ -2937,7 +2943,7 @@
 {"model": "x-ai/grok-4.3", "category": "tool_use", "perf": 0.75, "tier": 0, "tier_source": "family", "source_ref": "alias:grok-4.3"}
 {"model": "x-ai/grok-4.7", "category": "agent_tick", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
 {"model": "x-ai/grok-4.7", "category": "code_gen", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
-{"model": "x-ai/grok-4.7", "category": "debug", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
+{"model": "x-ai/grok-4.7", "category": "debug", "perf": 0.85, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
 {"model": "x-ai/grok-4.7", "category": "delegation", "perf": 0.85, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
 {"model": "x-ai/grok-4.7", "category": "long_doc", "perf": 0.64, "tier": -2, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
 {"model": "x-ai/grok-4.7", "category": "long_horizon", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
@@ -2975,16 +2981,16 @@
 {"model": "xai/grok-4.6", "category": "terminal", "perf": 0.88, "tier": 2, "tier_source": "family", "source_ref": "alias:grok-4.6"}
 {"model": "xai/grok-4.6", "category": "test", "perf": 0.72, "tier": 0, "tier_source": "estimate", "source_ref": "CATEGORY_ESTIMATES"}
 {"model": "xai/grok-4.6", "category": "tool_use", "perf": 0.75, "tier": 0, "tier_source": "family", "source_ref": "alias:grok-4.6"}
-{"model": "xai/grok-4.7", "category": "agent_tick", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:x-ai/grok-4.7"}
-{"model": "xai/grok-4.7", "category": "code_gen", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:x-ai/grok-4.7"}
-{"model": "xai/grok-4.7", "category": "debug", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:x-ai/grok-4.7"}
-{"model": "xai/grok-4.7", "category": "delegation", "perf": 0.85, "tier": 5, "tier_source": "family", "source_ref": "alias:x-ai/grok-4.7"}
-{"model": "xai/grok-4.7", "category": "long_doc", "perf": 0.64, "tier": -2, "tier_source": "family", "source_ref": "alias:x-ai/grok-4.7"}
-{"model": "xai/grok-4.7", "category": "long_horizon", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:x-ai/grok-4.7"}
-{"model": "xai/grok-4.7", "category": "reasoning", "perf": 0.57, "tier": -3, "tier_source": "family", "source_ref": "alias:x-ai/grok-4.7"}
-{"model": "xai/grok-4.7", "category": "schema", "perf": 0.85, "tier": 3, "tier_source": "family", "source_ref": "alias:x-ai/grok-4.7"}
-{"model": "xai/grok-4.7", "category": "test", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:x-ai/grok-4.7"}
-{"model": "xai/grok-4.7", "category": "tool_use", "perf": 0.64, "tier": -2, "tier_source": "family", "source_ref": "alias:x-ai/grok-4.7"}
+{"model": "xai/grok-4.7", "category": "agent_tick", "perf": 0.637, "tier": 0, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/AGENT-TICK"}
+{"model": "xai/grok-4.7", "category": "code_gen", "perf": 0.567, "tier": 0, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T2-CODE"}
+{"model": "xai/grok-4.7", "category": "debug", "perf": 0.85, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T5-DEBUG"}
+{"model": "xai/grok-4.7", "category": "delegation", "perf": 0.425, "tier": -3, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/DELEGATION"}
+{"model": "xai/grok-4.7", "category": "long_doc", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-DOC"}
+{"model": "xai/grok-4.7", "category": "long_horizon", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-HORIZON"}
+{"model": "xai/grok-4.7", "category": "reasoning", "perf": 0.85, "tier": 2, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T3-REASON"}
+{"model": "xai/grok-4.7", "category": "schema", "perf": 0.85, "tier": 3, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/SCHEMA"}
+{"model": "xai/grok-4.7", "category": "test", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/TEST"}
+{"model": "xai/grok-4.7", "category": "tool_use", "perf": 0.85, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T1-TOOL"}
 {"model": "xiaomi/mimo-v2.5", "category": "agent_tick", "perf": 0.637, "tier": 0, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/AGENT-TICK"}
 {"model": "xiaomi/mimo-v2.5", "category": "code_gen", "perf": 0.567, "tier": 0, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T2-CODE"}
 {"model": "xiaomi/mimo-v2.5", "category": "debug", "perf": 0.567, "tier": -1, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T5-DEBUG"}
@@ -3012,7 +3018,7 @@
 {"model": "xiaomi/mimo-v2.5-pro", "category": "tool_use", "perf": 0.85, "tier": 5, "tier_source": "family", "source_ref": "alias:mimo-v2.5-pro"}
 {"model": "xiaomi/mimo-v2.6-flash", "category": "agent_tick", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
 {"model": "xiaomi/mimo-v2.6-flash", "category": "code_gen", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
-{"model": "xiaomi/mimo-v2.6-flash", "category": "debug", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
+{"model": "xiaomi/mimo-v2.6-flash", "category": "debug", "perf": 0.85, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
 {"model": "xiaomi/mimo-v2.6-flash", "category": "delegation", "perf": 0.85, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
 {"model": "xiaomi/mimo-v2.6-flash", "category": "long_doc", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
 {"model": "xiaomi/mimo-v2.6-flash", "category": "long_horizon", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
@@ -3022,7 +3028,7 @@
 {"model": "xiaomi/mimo-v2.6-flash", "category": "tool_use", "perf": 0.64, "tier": -2, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
 {"model": "xiaomi/mimo-v2.6-pro", "category": "agent_tick", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
 {"model": "xiaomi/mimo-v2.6-pro", "category": "code_gen", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
-{"model": "xiaomi/mimo-v2.6-pro", "category": "debug", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
+{"model": "xiaomi/mimo-v2.6-pro", "category": "debug", "perf": 0.85, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
 {"model": "xiaomi/mimo-v2.6-pro", "category": "delegation", "perf": 0.85, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
 {"model": "xiaomi/mimo-v2.6-pro", "category": "long_doc", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
 {"model": "xiaomi/mimo-v2.6-pro", "category": "long_horizon", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
@@ -3082,7 +3088,7 @@
 {"model": "z-ai/glm-4.6v-flash", "category": "tool_use", "perf": 0.283, "tier": -4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T1-TOOL"}
 {"model": "z-ai/glm-4.6v-flashx", "category": "agent_tick", "perf": 0.425, "tier": -4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/AGENT-TICK"}
 {"model": "z-ai/glm-4.6v-flashx", "category": "code_gen", "perf": 0.567, "tier": 0, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T2-CODE"}
-{"model": "z-ai/glm-4.6v-flashx", "category": "debug", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T5-DEBUG"}
+{"model": "z-ai/glm-4.6v-flashx", "category": "debug", "perf": 0.85, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T5-DEBUG"}
 {"model": "z-ai/glm-4.6v-flashx", "category": "delegation", "perf": 0.425, "tier": -3, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/DELEGATION"}
 {"model": "z-ai/glm-4.6v-flashx", "category": "long_doc", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-DOC"}
 {"model": "z-ai/glm-4.6v-flashx", "category": "long_horizon", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-HORIZON"}
@@ -3199,7 +3205,7 @@
 {"model": "zai-org/GLM-5.2-Fast", "category": "agent_tick", "perf": 0.637, "tier": 0, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/AGENT-TICK"}
 {"model": "zai-org/GLM-5.2-Fast", "category": "code_gen", "perf": 0.567, "tier": 0, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T2-CODE"}
 {"model": "zai-org/GLM-5.2-Fast", "category": "creative", "perf": 0.45, "tier": 1, "tier_source": "family", "source_ref": "alias:glm-5.2"}
-{"model": "zai-org/GLM-5.2-Fast", "category": "debug", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T5-DEBUG"}
+{"model": "zai-org/GLM-5.2-Fast", "category": "debug", "perf": 0.85, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T5-DEBUG"}
 {"model": "zai-org/GLM-5.2-Fast", "category": "delegation", "perf": 0.637, "tier": -1, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/DELEGATION"}
 {"model": "zai-org/GLM-5.2-Fast", "category": "guard", "perf": 0.86, "tier": 1, "tier_source": "family", "source_ref": "alias:glm-5.2"}
 {"model": "zai-org/GLM-5.2-Fast", "category": "long_doc", "perf": 0.85, "tier": 4, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-DOC"}
@@ -3314,7 +3320,7 @@
 {"model": "~z-ai/glm-flash-latest", "category": "agent_tick", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:accounts/fireworks/routers/glm-flash-latest"}
 {"model": "~z-ai/glm-flash-latest", "category": "code_gen", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:accounts/fireworks/routers/glm-flash-latest"}
 {"model": "~z-ai/glm-flash-latest", "category": "creative", "perf": 0.45, "tier": 1, "tier_source": "family", "source_ref": "alias:accounts/fireworks/routers/glm-flash-latest"}
-{"model": "~z-ai/glm-flash-latest", "category": "debug", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:accounts/fireworks/routers/glm-flash-latest"}
+{"model": "~z-ai/glm-flash-latest", "category": "debug", "perf": 0.85, "tier": 5, "tier_source": "family", "source_ref": "alias:accounts/fireworks/routers/glm-flash-latest"}
 {"model": "~z-ai/glm-flash-latest", "category": "delegation", "perf": 0.85, "tier": 5, "tier_source": "family", "source_ref": "alias:accounts/fireworks/routers/glm-flash-latest"}
 {"model": "~z-ai/glm-flash-latest", "category": "e2e_vision", "perf": 0.35, "tier": -1, "tier_source": "family", "source_ref": "alias:accounts/fireworks/routers/glm-flash-latest"}
 {"model": "~z-ai/glm-flash-latest", "category": "guard", "perf": 0.8, "tier": 0, "tier_source": "family", "source_ref": "alias:accounts/fireworks/routers/glm-flash-latest"}
@@ -3335,7 +3341,7 @@
 {"model": "~z-ai/glm-latest", "category": "agent_tick", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:accounts/fireworks/routers/glm-latest"}
 {"model": "~z-ai/glm-latest", "category": "code_gen", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:accounts/fireworks/routers/glm-latest"}
 {"model": "~z-ai/glm-latest", "category": "creative", "perf": 0.45, "tier": 1, "tier_source": "family", "source_ref": "alias:accounts/fireworks/routers/glm-latest"}
-{"model": "~z-ai/glm-latest", "category": "debug", "perf": 0.85, "tier": 4, "tier_source": "family", "source_ref": "alias:accounts/fireworks/routers/glm-latest"}
+{"model": "~z-ai/glm-latest", "category": "debug", "perf": 0.85, "tier": 5, "tier_source": "family", "source_ref": "alias:accounts/fireworks/routers/glm-latest"}
 {"model": "~z-ai/glm-latest", "category": "delegation", "perf": 0.85, "tier": 5, "tier_source": "family", "source_ref": "alias:accounts/fireworks/routers/glm-latest"}
 {"model": "~z-ai/glm-latest", "category": "e2e_vision", "perf": 0.35, "tier": -1, "tier_source": "family", "source_ref": "alias:accounts/fireworks/routers/glm-latest"}
 {"model": "~z-ai/glm-latest", "category": "guard", "perf": 0.8, "tier": 0, "tier_source": "family", "source_ref": "alias:accounts/fireworks/routers/glm-latest"}
