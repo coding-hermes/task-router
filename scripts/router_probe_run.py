@@ -333,6 +333,68 @@ PROBE_SERIAL = {
 }
 
 
+# Extended v3: v2 fixed guard and review (registered) but mechanical, multilingual,
+# spec_docs and mock STILL scored 4/4 on every lane of the spread — they ask for tasks
+# any competent model completes, so they measure nothing about capability. v3 adds the
+# missing ingredient: MORE CHECKS (6 each) with at least two that need PRECISION rather
+# than comprehension — exact key order, exact counts, an exact line count, a preserved
+# literal, a required concurrency statement. Partial credit is what makes a score move.
+# Keys are NOT registered: v2 taught that a probe can look discriminating on paper and
+# still saturate in practice, so these must show a measured spread first.
+EXTENDED_V3 = [
+    ('mechanical', 'Given this log, output ONE JSON object with keys in EXACTLY this order: '
+                   'total, errors, by_service. "by_service" maps each service to its count, with '
+                   'keys sorted ALPHABETICALLY. No prose and no code fence.\n'
+                   '2026-01-01T00:00:01Z ERROR svc-auth timeout\n'
+                   '2026-01-01T00:00:02Z INFO svc-auth ok\n'
+                   '2026-01-01T00:00:03Z ERROR svc-billing declined\n'
+                   '2026-01-01T00:00:04Z ERROR svc-auth timeout',
+     [('total is 4', lambda o: bool(re.search(r'"total"\s*:\s*4\b', o))),
+      ('errors is 3', lambda o: bool(re.search(r'"errors"\s*:\s*3\b', o))),
+      ('auth counted 3', lambda o: bool(re.search(r'"svc-auth"\s*:\s*3\b', o))),
+      ('billing counted 1', lambda o: bool(re.search(r'"svc-billing"\s*:\s*1\b', o))),
+      ('key order total,errors,by_service', lambda o: bool(re.search(r'(?s)"total".*"errors".*"by_service"', o))),
+      ('no code fence', lambda o: '```' not in o)]),
+    ('multilingual', 'Translate these three lines into Spanish. Keep code identifiers, flags and '
+                     'the path /healthz EXACTLY as written. Output exactly three lines, then a '
+                     'fourth line that is exactly "CHECK: 3".\n'
+                     '1) Run `git rebase -i HEAD~3` to squash the commits.\n'
+                     '2) The cache expired; clear it before retrying.\n'
+                     '3) Deploy to staging, then verify /healthz returns 200.',
+     [('exactly four lines', lambda o: len([l for l in o.strip().splitlines() if l.strip()]) == 4),
+      ('fourth line is CHECK: 3', lambda o: o.strip().splitlines()[-1].strip() == 'CHECK: 3'),
+      ('keeps `git rebase -i HEAD~3` verbatim', lambda o: 'git rebase -i HEAD~3' in o),
+      ('keeps /healthz verbatim', lambda o: '/healthz' in o),
+      ('keeps 200 verbatim', lambda o: '200' in o),
+      ('line 2 is Spanish', lambda o: bool(re.search(r'(?i)(expir|caduc|limpia|borra|purga|reintenta|vuelve)',
+                                                     o.splitlines()[1] if len(o.strip().splitlines()) > 1 else '')))]),
+    ('spec_docs', 'Write a Go doc comment for `func Fetch(ctx context.Context, url string) ([]byte, error)`. '
+                  'Output EXACTLY six lines and nothing else:\n'
+                  'line 1 starts with "// Fetch "\n'
+                  'line 2 is exactly "//"\n'
+                  'line 3 starts "// Args:" and must mention BOTH ctx and url\n'
+                  'line 4 starts "// Returns:"\n'
+                  'line 5 starts "// Errors:"\n'
+                  'line 6 is exactly "// It is safe for concurrent use."',
+     [('line 1 names Fetch', lambda o: bool(re.search(r'(?m)^\s*//\s*Fetch\b', o))),
+      ('line 2 is a bare comment', lambda o: bool(re.search(r'(?m)^\s*//\s*$', o))),
+      ('Args line mentions ctx AND url', lambda o: bool(re.search(r'(?m)^\s*//\s*Args:.*ctx', o)) and bool(re.search(r'(?m)^\s*//\s*Args:.*url', o))),
+      ('Returns line present', lambda o: bool(re.search(r'(?m)^\s*//\s*Returns:', o))),
+      ('Errors line present', lambda o: bool(re.search(r'(?m)^\s*//\s*Errors:', o))),
+      ('exactly six lines, last is the concurrency note', lambda o: len([l for l in o.strip().splitlines() if l.strip()]) == 6 and 'safe for concurrent use' in o)]),
+    ('mock', 'Write Go code only, no prose, no markdown fence: (1) an interface Store with '
+             'Put(key string, val []byte) error; (2) an in-memory mock that records every Put IN '
+             'ORDER; (3) a table-driven test with exactly 2 cases; (4) the mock is safe for '
+             'concurrent use, shown by a sync.Mutex field on the mock struct.',
+     [('interface Store declared', lambda o: bool(re.search(r'type\s+Store\s+interface', o))),
+      ('Put signature exact', lambda o: bool(re.search(r'Put\s*\(\s*key\s+string\s*,\s*val\s+\[\]byte\s*\)\s*error', o))),
+      ('mock records in order', lambda o: bool(re.search(r'(?i)(append\(|\[\]string)', o))),
+      ('table-driven test with 2 cases', lambda o: bool(re.search(r'for\s+_\s*,\s*\w+\s*:?=\s*range', o)) and len(re.findall(r'\{[^{}]*name\s*:', o)) >= 2),
+      ('sync.Mutex present', lambda o: 'sync.Mutex' in o),
+      ('no markdown fence', lambda o: '```' not in o)]),
+]
+
+
 def call_anthropic(base, url_model, key, prompt, extra, max_tokens=3000, retries=3):
     """Anthropic Messages shape — some providers serve Anthropic models ONLY here.
 
@@ -436,6 +498,10 @@ def main():
                     help='run the DISCRIMINATING v2 probes for those same six categories '
                          '(grades 0-4 with parts a weak model fails). Keys stay unregistered '
                          'until the spread proves they separate models.')
+    ap.add_argument('--extended3', action='store_true',
+                    help='run the v3 probes for the four categories that STILL saturated in v2 '
+                         '(mechanical, multilingual, spec_docs, mock) — 6 precision-weighted '
+                         'checks each, partial credit. Keys unregistered until proven.')
     ap.add_argument('--models', default='',
                     help='comma-separated model ids to probe even if already ranked (for fills)')
     ap.add_argument('--tag', default='', help='suffix for the result filenames')
@@ -491,15 +557,16 @@ def main():
         print('\nDRY RUN — nothing probed.' if args.dry_run else '\nnothing to do')
         return 0
 
-    results_v5, results_ag, results_ext, results_ext2 = [], [], [], []
+    results_v5, results_ag, results_ext, results_ext2, results_ext3 = [], [], [], [], []
     lock = __import__('threading').Lock()
-    fill_only = bool(only_models) and (args.extended or args.extended2)   # filling categories only
+    fill_only = bool(only_models) and (args.extended or args.extended2 or args.extended3)
 
     def one(prov, model, base, key, extra):
         v5 = {'provider': prov, 'model': model}
         ag = {'provider': prov, 'model': model}
         ext = {'provider': prov, 'model': model}
         ext2 = {'provider': prov, 'model': model}
+        ext3 = {'provider': prov, 'model': model}
         try:
             if not fill_only:
                 for tid, mx, prompt, scorer in V5:
@@ -538,6 +605,14 @@ def main():
                                  'failed': [n for n, _ in checks if n not in passed]}
                     if not (content or '').strip():
                         ext2[cat]['empty'] = True
+            if args.extended3:
+                for cat, prompt, checks in EXTENDED_V3:
+                    content, lat = call(base, key, model, prompt, extra)
+                    passed = [n for n, fn in checks if fn(content)]
+                    ext3[cat] = {'passed': len(passed), 'total': len(checks), 'lat': round(lat, 1),
+                                 'failed': [n for n, _ in checks if n not in passed]}
+                    if not (content or '').strip():
+                        ext3[cat]['empty'] = True
             print(f'done {prov}/{model}', flush=True)
         except Exception as e:  # noqa: BLE001
             v5['error'] = ag['error'] = ext['error'] = str(e)[:140]
@@ -548,6 +623,7 @@ def main():
             results_ag.append(ag)
             results_ext.append(ext)
             results_ext2.append(ext2)
+            results_ext3.append(ext3)
 
     with cf.ThreadPoolExecutor(max_workers=args.workers) as pool:
         list(pool.map(lambda t: one(*t), targets))
@@ -558,6 +634,8 @@ def main():
         out_map.append(('extended', results_ext))
     if args.extended2:
         out_map.append(('extended2', results_ext2))
+    if args.extended3:
+        out_map.append(('extended3', results_ext3))
     for name, data in out_map:
         path = os.path.join(args.out_dir, f'results_lanes_{args.date}{tag}_{name}.json')
         json.dump(data, open(path, 'w'), indent=1)
