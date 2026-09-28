@@ -235,6 +235,22 @@ def err_class(e):
     unlucky.
     """
     code = getattr(e, 'code', None)
+    # The BODY carries the real reason on this provider family. Read it (call()
+    # stashes what it already read) — "MODEL_NOT_IN_PLAN" and "not supported on this
+    # endpoint" are facts about ENTITLEMENT and about the ROW, respectively, and
+    # lumping them together with not_served would hide both.
+    detail = getattr(e, '_probe_detail', None)
+    if detail is None:
+        try:
+            detail = e.read().decode('utf-8', 'replace')
+        except Exception:  # noqa: BLE001
+            detail = ''
+    if 'MODEL_NOT_IN_PLAN' in detail:
+        return 'not_in_plan'
+    if 'not supported on this endpoint' in detail:
+        return 'endpoint_unsupported'
+    if 'must be called via' in detail and '/messages' in detail:
+        return 'wrong_shape'
     if code == 429:
         return 'rate_limited'
     if code == 400:
@@ -307,6 +323,38 @@ EXTENDED_V2 = [
 ]
 
 
+def call_anthropic(base, url_model, key, prompt, extra, max_tokens=3000, retries=3):
+    """Anthropic Messages shape — some providers serve Anthropic models ONLY here.
+
+    commandcode answers /chat/completions for claude-opus-5-5 with
+        Model "..." must be called via /provider/v1/messages (Anthropic Messages shape)
+    so a probe that speaks only OpenAI shape would record a healthy lane as broken.
+    Same class as the minimax transport bug: the model is fine, the client was wrong.
+    """
+    body = {"model": url_model, "max_tokens": max_tokens,
+            "messages": [{"role": "user", "content": prompt}]}
+    headers = {'Content-Type': 'application/json', 'anthropic-version': '2023-06-01'}
+    if key.startswith('sk-ant'):
+        headers['x-api-key'] = key
+    else:
+        headers['Authorization'] = 'Bearer ' + key
+    headers.update(extra or {})
+    for attempt in range(retries):
+        try:
+            req = urllib.request.Request(base.rstrip('/') + '/messages',
+                                         data=json.dumps(body).encode(), headers=headers)
+            with urllib.request.urlopen(req, timeout=180) as r:
+                d = json.load(r)
+            parts = [b.get('text', '') for b in (d.get('content') or []) if isinstance(b, dict)]
+            return ''.join(parts)
+        except urllib.error.HTTPError as e:
+            if e.code in (429, 500, 502, 503, 520, 524) and attempt < retries - 1:
+                cf_wait = int(e.headers.get('Retry-After') or 0) or (5 * (attempt + 1))
+                time.sleep(cf_wait)
+                continue
+            raise
+
+
 def call(base, key, model, prompt, extra, max_tokens=3000, retries=4):
     body = {"model": model, "messages": [{"role": "user", "content": prompt}], "max_tokens": max_tokens}
     headers = {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key,
@@ -321,10 +369,26 @@ def call(base, key, model, prompt, extra, max_tokens=3000, retries=4):
                 d = json.loads(r.read())
             break
         except urllib.error.HTTPError as e:
-            if e.code in (429, 500, 502, 503) and attempt < retries - 1:
+            if e.code == 400:
+                # A provider may serve an Anthropic model ONLY through the Messages
+                # shape. Read the body before deciding: "must be called via
+                # /provider/v1/messages" is a transport fact about our client, not a
+                # capability fact about the lane.
+                try:
+                    detail = e.read().decode('utf-8', 'replace')
+                except Exception:  # noqa: BLE001
+                    detail = ''
+                e._probe_detail = detail     # err_class must see what we already read
+                if '/messages' in detail:
+                    t1 = time.time()
+                    txt = call_anthropic(base, model, key, prompt, extra, max_tokens)
+                    return txt, time.time() - t1
+            if e.code in (429, 500, 502, 503, 520, 524) and attempt < retries - 1:
                 # Honor Retry-After when the provider sends it; otherwise back off
                 # harder than 2s/4s, which a per-key concurrency cap outlasts —
                 # that cap is what turned 6 xkiro lanes into false failures.
+                # 520/524 are Cloudflare's, and they are TRANSIENT: leaving them out
+                # of this set is what turned 4 measured lanes into false failures.
                 ra = e.headers.get('Retry-After') if e.headers else None
                 try:
                     wait = float(ra) if ra else 0
