@@ -1,0 +1,25 @@
+{
+  "id": "task-router-2026-09-28-22-47-28",
+  "created_at": "2026-09-28T22:55:00-05:00",
+  "budget": 9,
+  "workers": [
+    {
+      "task_id": "INT-CI-20260928-01",
+      "worktree": "/home/kara/worktrees/task-router-INT-CI-20260928-01",
+      "branch": "wt/INT-CI-20260928-01",
+      "scope": "add PyYAML to CI install + make probe script fail with clear error"
+    },
+    {
+      "task_id": "INT-CI-20260928-02",
+      "worktree": "/home/kara/worktrees/task-router-INT-CI-20260928-02",
+      "branch": "wt/INT-CI-20260928-02",
+      "scope": "rebaseline head goldens: minimax-m3:free -> qwen3.7-flash:free + opencode-go mimo -> deepseek-v4.1-flash"
+    },
+    {
+      "task_id": "INT-CI-20260928-03",
+      "worktree": "/home/kara/worktrees/task-router-INT-CI-20260928-03",
+      "branch": "wt/INT-CI-20260928-03",
+      "scope": "fix circuit_open_exclusion_reason_format test fixture"
+    }
+  ]
+}
