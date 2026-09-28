@@ -152,6 +152,21 @@ def main():
         tiers[r['model']].add(r['category'])
         tier_map[r['model']][r['category']] = r['tier']
 
+    # Evidence provenance, so a DECLARATION cannot block a retirement.
+    # A `models.jsonl:perf_*` ref is a hand-declared seed value, not a measurement; an
+    # `estimate` is QUALITY_ESTIMATES; `family` is inherited from another lane. Only a
+    # `bench:` ref is something we actually measured on this model. Comparing a tier
+    # derived from a declaration against a tier derived from a measurement is not
+    # evidence, and letting it block means the newer model can never displace the older
+    # one — measured live: deepseek-v4-flash held the retirement of deepseek-v4.1-flash
+    # on agent_tick/debug/delegation with declared 0.75 against measured 0.637.
+    perf_src = {}
+    for r in load('model_perf'):
+        perf_src[(r['model'], r['category'])] = (r.get('source_ref') or '')
+
+    def measured(model, category):
+        return perf_src.get((model, category), '').startswith('bench:')
+
     def active(m):
         return not (m.get('archive') or m.get('valid_to') or m.get('disabled')) and m.get('normalized_price') is not None
 
@@ -218,7 +233,15 @@ def main():
             blocked.append(rec)
             return
         unmeasured = sorted(set(old_t) - set(new_t))
-        weaker = sorted(c for c in (set(old_t) & set(new_t)) if new_t[c] < old_t[c])
+        # A category only blocks when the OLD side's number is a measurement. Otherwise
+        # the old model is ahead on paper only (declaration / estimate / inherited) and
+        # the gap is not evidence — see the provenance note where perf_src is built.
+        weaker = sorted(c for c in (set(old_t) & set(new_t))
+                        if new_t[c] < old_t[c] and measured(m['model'], c))
+        weaker_unproven = sorted(c for c in (set(old_t) & set(new_t))
+                                 if new_t[c] < old_t[c] and not measured(m['model'], c))
+        if weaker_unproven:
+            rec['weaker_unproven'] = weaker_unproven
         if unmeasured or weaker:
             # Report BOTH when both hold: a successor can be simultaneously
             # unmeasured on some categories and measured WORSE on others
@@ -295,6 +318,9 @@ def main():
           f'{len([1 for k in by_model if not any(norm(m["model"]) == k for m in models)])}')
     print(f'strict-upgrade retirements available: {len(proposals)}')
     print(f'HOLD — successor measured weaker (rank it first): {len(regressions)}')
+    _unproven = [r for r in regressions if r.get('weaker_unproven')]
+    print(f'   of which blocked ONLY by unproven old-side values (declaration/estimate/'
+          f'inherited): {len(_unproven)}')
     print(f'HOLD — successor not ranked enough yet: {len(blocked)}')
     for p in proposals[:10]:
         print(f"   {p['provider']:14s} {p['old'][:34]:34s} ({p['old_ranked']}t) -> {p['new'][:30]:30s} ({p['new_ranked']}t)")
