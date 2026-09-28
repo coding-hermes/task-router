@@ -289,6 +289,31 @@ def main():
         return 0
 
     if args.json:
+        # A blocked family is only ACTIONABLE if its successor can be measured at all.
+        # Without this the audit reports "rank first, then retire" for lanes whose real
+        # blocker is a credential, a plan entitlement, or another deployment's provider —
+        # work nobody can do, sitting in the same list as work anybody could. The class
+        # comes from probe_gaps (typed failures), never from a guess.
+        gap_class = {}
+        for g in load('probe_gaps'):
+            mm = re.search(r'\[([a-z_0-9]+)\]', g.get('error') or '')
+            if mm:
+                gap_class[(g.get('provider'), g.get('model'))] = mm.group(1)
+
+        def annotate(entries):
+            out = []
+            for e in entries:
+                row = dict(e)
+                row['successor_gap_class'] = gap_class.get((e['provider'], e['new']['model']))
+                row['old_gap_class'] = gap_class.get((e['provider'], e['old']['model']))
+                out.append(row)
+            return out
+
+        blocked = annotate(decay_blocked)
+        invs = annotate(inversions)
+        unreachable = [e for e in blocked + invs
+                       if e.get('successor_gap_class') in ('not_in_plan', 'endpoint_unsupported',
+                                                           'not_served', 'wrong_shape')]
         print(json.dumps({
             'active': len(active), 'unranked': len(unranked), 'thin': len(thin),
             'inversions': len(inversions), 'decay_safe': len(decay_safe),
@@ -296,6 +321,9 @@ def main():
             'no_release_date': len(birthdays),
             'flat_evidence': len(flat), 'alias_only': len(inherited),
             'alias_cross_provider': len(cross), 'thin_evidence': len(thin_ev),
+            'blocked_by_unreachable': len(unreachable),
+            'decay_blocked_families': blocked,
+            'inversion_families': invs,
         }, indent=1))
         return 0
 
