@@ -323,6 +323,16 @@ EXTENDED_V2 = [
 ]
 
 
+PROBE_SERIAL = {
+    # Providers that throttle hard under concurrency. commandcode-2 turned four lanes
+    # into Cloudflare 520/524 at --workers 3 and measured all four cleanly at
+    # --workers 1. This is a harness fact about the provider's edge, so it lives next
+    # to the retry logic — and it WARNS rather than silently overriding --workers,
+    # because a caller asking for concurrency deserves to be told it will hurt.
+    'commandcode-2': 1,
+}
+
+
 def call_anthropic(base, url_model, key, prompt, extra, max_tokens=3000, retries=3):
     """Anthropic Messages shape — some providers serve Anthropic models ONLY here.
 
@@ -468,6 +478,11 @@ def main():
     if args.limit:
         targets = targets[:args.limit]
     print(f'target lanes: {len(targets)}')
+    serial = sorted({t[0] for t in targets if PROBE_SERIAL.get(t[0], 99) < args.workers})
+    if serial:
+        print(f'WARNING: {serial} throttle under concurrency — --workers 1 is the '
+              f'measured-good setting (running {args.workers}; lanes may fail as 520/524 '
+              f'which is the provider, not the lane).', file=sys.stderr)
     for prov, model, base, _, _ in targets:
         print(f'   {prov:14s} {model[:44]:44s} -> {base}')
     for prov, why in skipped.items():
