@@ -115,13 +115,23 @@ def main():
 
     have = {(r['model'], r['category'], key_of(r.get('source'))) for r in existing}
 
+    # A typed failure is EVIDENCE only for some classes. `not_served` (the row names an id
+    # the provider does not serve), `not_in_plan` (the model exists but our plan excludes
+    # it) and `endpoint_unsupported` (that id is not served on any endpoint shape here) are
+    # facts that belong in probe_gaps, where the rank audit reads them to tell "unranked
+    # because nobody measured it" from "unranked because we CANNOT". Transient classes
+    # (rate_limited, http_520/524, transport) are not filed — they say nothing about the
+    # lane, and filing them would bury the real evidence.
+    EVIDENCE_CLASSES = {'not_served', 'not_in_plan', 'endpoint_unsupported'}
+
     new_rows, skipped, errors, empty = [], 0, [], []
     for row in results:
         model = row.get('model')
         if not model:
             continue
         if row.get('error'):
-            errors.append({'model': model, 'error': row['error']})
+            errors.append({'provider': row.get('provider'), 'model': model,
+                           'error': row['error'], 'error_class': row.get('error_class')})
             continue
         for field, (key, category, maxpts) in spec.items():
             v = row.get(field)
@@ -168,10 +178,34 @@ def main():
     if new_rows:
         print('NOTE: BENCH_OVERLAY must contain each key or the rows are INERT.'
               f' Keys used: {sorted({key_of(r["source"]) for r in new_rows})}')
+
+    # File the evidence-class failures as gaps (deduped), so the rank audit can annotate
+    # the blocked families with a REASON instead of calling them ranking work.
+    gap_path = os.path.join(DATA_DIR, 'probe_gaps.jsonl')
+    seen_gaps = {(g.get('provider'), g.get('model'), key_of(g.get('error'))) for g in load('probe_gaps')}
+    gap_rows = []
+    for e in errors:
+        if e.get('error_class') not in EVIDENCE_CLASSES:
+            continue
+        text = f"[{e['error_class']}] {e['error']}"
+        ident = (e.get('provider'), e['model'], key_of(text))
+        if ident in seen_gaps:
+            continue
+        seen_gaps.add(ident)
+        gap_rows.append({'provider': e.get('provider'), 'model': e['model'], 'error': text})
+    if gap_rows:
+        print(f'   typed failures filed as EVIDENCE gaps: {len(gap_rows)}')
+        for g in gap_rows[:8]:
+            print(f"      {g['provider']}/{g['model']}: {g['error'][:70]}")
+    transient = [e for e in errors if e.get('error_class') not in EVIDENCE_CLASSES]
+    if transient:
+        print(f'   transient failures NOT filed (they say nothing about the lane): '
+              f'{sorted({e.get("error_class") for e in transient})}')
+
     if not args.commit:
         print('\nDRY RUN — nothing written.')
         return 0
-    if not new_rows:
+    if not new_rows and not gap_rows:
         print('nothing to write')
         return 0
 
@@ -181,6 +215,12 @@ def main():
             fh.write(json.dumps(r, ensure_ascii=False) + '\n')
     total = sum(1 for l in open(bench_path, encoding='utf-8') if l.strip())
     print(f'\nwrote {len(new_rows)} rows; benchmarks.jsonl now {total} rows. Re-seed next.')
+    if gap_rows:
+        with open(gap_path, 'a', encoding='utf-8') as fh:
+            for g in gap_rows:
+                fh.write(json.dumps(g, ensure_ascii=False) + '\n')
+        gaps_total = sum(1 for l in open(gap_path, encoding='utf-8') if l.strip())
+        print(f'wrote {len(gap_rows)} typed gaps; probe_gaps.jsonl now {gaps_total} rows.')
     return 0
 
 
