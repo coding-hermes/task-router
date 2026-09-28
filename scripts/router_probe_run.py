@@ -6,6 +6,14 @@ this measures them, and router_probe_ingest.py turns the measurements into
 benchmarks rows. Written so probing is repeatable rather than a bespoke script
 per model.
 
+TR-233 (2026-09-28): clinepass requires ids in `modelType/model` form
+('cline-pass/glm-5.3') and 400s every bare registry id with "invalid model
+format. Expected format: modelType/model" — which err_class files as
+request_rejected, recording nothing. wire_model_id() applies the provider
+prefix at the request boundary (live control 2026-09-28: 'cline-pass/glm-5.3'
+answers 200 on the same key); result rows keep the BARE registry id so
+router_probe_ingest still maps them back to registry lanes.
+
 Credentials are resolved the way the fleet resolves them — base_url and
 api_key_env from ~/.hermes/config.yaml (providers map + custom_providers list),
 key VALUES read from ~/.hermes/.env in-process and never printed. Lanes needing
@@ -334,6 +342,33 @@ PROVIDER_ALIAS = {
     'deepseek-duckbrain-sync': 'deepseek-payg',
 }
 
+# TR-233 (2026-09-28): per-provider id-shape transform, same contract as
+# provider_health_probe.wire_model_id. clinepass REQUIRES 'modelType/model'
+# wire ids ('cline-pass/<bare>') and answers every bare registry id with
+# HTTP 400 — a class that files NOTHING, leaving the provider unmeasurable.
+# The fix lives IN THE PROBER: registry/result rows keep the bare id (ingest
+# maps back by (provider, model)); only the request body carries the wire form.
+WIRE_ID_PREFIX = {
+    'clinepass': 'cline-pass/',
+    'cline-pass': 'cline-pass/',  # both registry spellings, same provider
+}
+
+
+def wire_model_id(provider, model):
+    """Registry id -> the id the provider's API actually serves.
+
+    clinepass wants 'modelType/model' ('cline-pass/<bare>'); every other
+    provider's ids stay bare/verbatim. Idempotent (already-prefixed ids pass
+    through) and slash-carrying ids pass through untouched (vendor-prefixed
+    alternates from probe_fixes are already wire-shaped).
+    """
+    if not model:
+        return model
+    prefix = WIRE_ID_PREFIX.get(provider)
+    if not prefix or '/' in model:  # already wire-shaped: never double-prefix
+        return model
+    return prefix + model
+
 PROBE_SERIAL = {
     # Providers that throttle hard under concurrency. commandcode-2 turned four lanes
     # into Cloudflare 520/524 at --workers 3 and measured all four cleanly at
@@ -447,8 +482,13 @@ def call_anthropic(base, url_model, key, prompt, extra, max_tokens=3000, retries
             raise
 
 
-def call(base, key, model, prompt, extra, max_tokens=3000, retries=4):
-    body = {"model": model, "messages": [{"role": "user", "content": prompt}], "max_tokens": max_tokens}
+def call(base, key, model, prompt, extra, max_tokens=3000, retries=4, provider=None):
+    """One chat-completions call. `model` may arrive BARE (registry form); when
+    `provider` names a provider with a wire-id contract (TR-233), the REQUEST
+    carries wire_model_id(provider, model) — the caller's bare id is never
+    mutated, so result rows keep the registry vocabulary."""
+    wire = wire_model_id(provider, model) if provider else model
+    body = {"model": wire, "messages": [{"role": "user", "content": prompt}], "max_tokens": max_tokens}
     headers = {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key,
                'User-Agent': 'hermes-bench/5.0'}
     headers.update(extra or {})
@@ -473,7 +513,7 @@ def call(base, key, model, prompt, extra, max_tokens=3000, retries=4):
                 # capability fact about the lane.
                 if '/messages' in detail:
                     t1 = time.time()
-                    txt = call_anthropic(base, model, key, prompt, extra, max_tokens)
+                    txt = call_anthropic(base, wire, key, prompt, extra, max_tokens)
                     return txt, time.time() - t1
             if e.code in (429, 500, 502, 503, 520, 524) and attempt < retries - 1:
                 # Honor Retry-After when the provider sends it; otherwise back off
@@ -581,13 +621,13 @@ def main():
         try:
             if not fill_only:
                 for tid, mx, prompt, scorer in V5:
-                    content, lat = call(base, key, model, prompt, extra)
+                    content, lat = call(base, key, model, prompt, extra, provider=prov)
                     v5[tid] = scorer(content)
                     v5[tid + '_lat'] = round(lat, 1)
                     if not (content or '').strip():
                         v5[tid + '_empty'] = True     # gap, not a zero score
                 for cat, prompt, checks in AGENTIC:
-                    content, lat = call(base, key, model, prompt, extra)
+                    content, lat = call(base, key, model, prompt, extra, provider=prov)
                     passed = [n for n, fn in checks if fn(content)]
                     ag[cat] = {'passed': len(passed), 'total': len(checks), 'lat': round(lat, 1),
                                'failed': [n for n, _ in checks if n not in passed]}
@@ -595,7 +635,7 @@ def main():
                         ag[cat]['empty'] = True
             if args.extended:
                 for cat, prompt, checks in EXTENDED:
-                    content, lat = call(base, key, model, prompt, extra)
+                    content, lat = call(base, key, model, prompt, extra, provider=prov)
                     passed = [n for n, fn in checks if fn(content)]
                     ext[cat] = {'passed': len(passed), 'total': len(checks), 'lat': round(lat, 1),
                                 'failed': [n for n, _ in checks if n not in passed]}
@@ -610,7 +650,7 @@ def main():
                         ext[cat]['empty'] = True
             if args.extended2:
                 for cat, prompt, checks in EXTENDED_V2:
-                    content, lat = call(base, key, model, prompt, extra)
+                    content, lat = call(base, key, model, prompt, extra, provider=prov)
                     passed = [n for n, fn in checks if fn(content)]
                     ext2[cat] = {'passed': len(passed), 'total': len(checks), 'lat': round(lat, 1),
                                  'failed': [n for n, _ in checks if n not in passed]}
@@ -618,7 +658,7 @@ def main():
                         ext2[cat]['empty'] = True
             if args.extended3:
                 for cat, prompt, checks in EXTENDED_V3:
-                    content, lat = call(base, key, model, prompt, extra)
+                    content, lat = call(base, key, model, prompt, extra, provider=prov)
                     passed = [n for n, fn in checks if fn(content)]
                     ext3[cat] = {'passed': len(passed), 'total': len(checks), 'lat': round(lat, 1),
                                  'failed': [n for n, _ in checks if n not in passed]}
