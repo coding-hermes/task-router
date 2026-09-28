@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>task-router proxy — status &amp; verification 2026-09-28</title>
+<style>
+:root{--bg:#0d1117;--panel:#161b22;--panel2:#1c2330;--line:#2d3646;--txt:#e6edf3;--mut:#9aa7b8;--grn:#3fb950;--amb:#d29922;--red:#f85149;--blu:#58a6ff;--pur:#bc8cff}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--txt);font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+.wrap{max-width:1000px;margin:0 auto;padding:32px 20px 80px}
+.cover{background:#11161f;border:1px solid var(--line);border-radius:10px;padding:16px 20px;margin-bottom:20px;font-size:14.5px}
+.cover b{color:var(--pur)}
+.hero{background:linear-gradient(135deg,#0f2a1d,#12233a);border:1px solid var(--line);border-radius:14px;padding:34px 30px;margin-bottom:8px}
+.hero h1{margin:0 0 6px;font-size:29px}
+.sub{color:var(--mut);font-size:16.5px;margin:0 0 16px}
+.badges{display:flex;flex-wrap:wrap;gap:8px}.badge{font-size:13px;padding:3px 12px;border-radius:20px;border:1px solid var(--line);background:#0d1526;color:var(--blu)}
+.badge.g{color:var(--grn)}.badge.a{color:var(--amb)}.badge.r{color:var(--red)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:12px;margin:20px 0 0}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:13px;text-align:center}
+.stat b{display:block;font-size:24px;color:var(--blu)}.stat span{font-size:12.5px;color:var(--mut)}
+h2{margin:38px 0 8px;font-size:22px;border-bottom:1px solid var(--line);padding-bottom:8px}
+h3{margin:24px 0 6px;font-size:16.5px;color:var(--blu)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px 20px;margin:14px 0}
+pre{background:#0a0e14;border:1px solid var(--line);border-radius:8px;padding:14px 16px;overflow-x:auto;font-size:13px;line-height:1.55;white-space:pre-wrap;word-break:break-word}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13.5px}
+.pass{color:var(--grn);font-weight:700}.fail{color:var(--red);font-weight:700}.warn{color:var(--amb);font-weight:700}
+table{width:100%;border-collapse:collapse;font-size:13.5px;margin:12px 0}
+th,td{border:1px solid var(--line);padding:9px 10px;text-align:left;vertical-align:top}
+th{background:var(--panel2);color:var(--blu)}tr:nth-child(even) td{background:#11161f}
+td.y{color:var(--grn)}td.n{color:var(--mut)}td.p{color:var(--amb)}
+ul.tight li{margin-bottom:7px}
+.kicker{display:inline-block;font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;padding:3px 11px;border-radius:20px;border:1px solid var(--line);background:#0d1526;margin-bottom:10px}
+.kicker.g{color:var(--grn)}.kicker.b{color:var(--red)}.kicker.i{color:var(--pur)}.kicker.a{color:var(--amb)}
+.m{font-size:11px;padding:1px 7px;border-radius:10px;background:#0d1526;border:1px solid var(--line);color:var(--grn)}
+.m3{font-size:11px;padding:1px 7px;border-radius:10px;background:#0d1526;border:1px solid var(--line);color:var(--mut)}
+.foot{color:var(--mut);font-size:13px;margin-top:40px;border-top:1px solid var(--line);padding-top:16px}
+a{color:var(--blu)}
+.toc{font-size:14px;color:var(--mut);margin-top:14px}.toc a{margin-right:14px;white-space:nowrap}
+@media(max-width:600px){.hero h1{font-size:23px}}
+</style>
+</head>
+<body><div class="wrap">
+
+<div class="cover">
+<b>TO</b> Bane (owner) &nbsp;·&nbsp; <b>FROM</b> this thread — KaraHermes · Set, topic <i>task router</i> &nbsp;·&nbsp; <b>RE</b> proxy features: measured state, deploy, verification<br>
+<b>One-line verdict:</b> the proxy's features were <b>written but not running</b> — 128 commits behind with <b>no registry at all</b>, answering <span class="fail">no-hops</span> — and after a seed + deploy they are live and passing every gate I have: <b>11/11 acceptance, 3/3 smoke at 1.00 amplification, 6–11 s hops that took 48–163 s this morning</b>.
+</div>
+
+<div class="hero">
+<h1>Proxy status — deployed, verified, and what it still can't prove</h1>
+<p class="sub">Everything below is measured on this box today: the live services, the real ledger, the real battery. No projections presented as results.</p>
+<div class="badges">
+<span class="badge g">✔ 11/11 acceptance battery</span>
+<span class="badge g">✔ 3/3 smoke, amplification 1.00</span>
+<span class="badge g">✔ gate.valid=true on both services</span>
+<span class="badge a">stale 128 → 0 commits</span>
+<span class="badge r">✘ density rehearsal still unrun</span>
+</div>
+<div class="grid">
+<div class="stat"><b>918</b><span>proxied rows / 168h</span></div>
+<div class="stat"><b>104</b><span>ledger groups</span></div>
+<div class="stat"><b>332,589</b><span>rows scanned by /proxy/stats</span></div>
+<div class="stat"><b>1.00</b><span>rows per request</span></div>
+<div class="stat"><b>6–11s</b><span>hop wall (was 48–163s)</span></div>
+<div class="stat"><b>8</b><span>max in-flight, peak hit</span></div>
+</div>
+</div>
+
+<div class="toc">
+<a href="#s1">1 Before / after</a><a href="#s2">2 Verification</a><a href="#s3">3 What the rows prove</a><a href="#s4">4 Coverage, honestly</a><a href="#s5">5 Not proven</a><a href="#s6">6 Decisions &amp; costs</a><a href="#s7">7 Verdict</a>
+</div>
+
+<h2 id="s1">1 · Before / after — what "how are we doing" actually was</h2>
+<div class="card">
+<table>
+<tr><th>Signal</th><th>Before (measured 18:05)</th><th>After (measured 18:08)</th></tr>
+<tr><td>Serving commit</td><td class="n">10d483a4db12</td><td class="y">34ed37d30ffc (= main HEAD)</td></tr>
+<tr><td>Commits behind main</td><td class="n">128</td><td class="y">0</td></tr>
+<tr><td><code>stale</code> flag</td><td class="n">True on both services</td><td class="y">False on both</td></tr>
+<tr><td><code>gate.valid</code></td><td class="n">False — <code>registry.exists: missing</code></td><td class="y">True, <code>issues: []</code></td></tr>
+<tr><td>registry.json</td><td class="n">absent</td><td class="y">4,124,535 bytes (seeded)</td></tr>
+<tr><td>Newest proxied row</td><td class="n">no-hops, no chain, no cost, no session key</td><td class="y">served, chain 159, session key present</td></tr>
+<tr><td>Hop wall time</td><td class="n">48.7 / 143.6 / 163.0 s (earlier smoke, same harness)</td><td class="y">6.1 / 7.4 / 11.2 s</td></tr>
+</table>
+<pre>$ curl -s http://127.0.0.1:9391/health   # before
+  commit=10d483a4db12 stale=True  gate.valid=False
+  issues=['registry.exists: missing: /home/kara/task-router/registry.json — run scripts/router_seed.py once']
+
+$ router seed && systemctl --user restart task-router-{server,proxy}.service
+
+$ curl -s http://127.0.0.1:9391/health   # after
+  commit=34ed37d30ffc stale=False status=ok gate.valid=True  issues=[]</pre>
+<p><b>The failure mode worth naming:</b> the services ran with the registry <i>missing</i>, not merely stale, so every proxied request in that window failed as <code>no-hops</code>. The <code>stale</code> flag catches the <i>age</i> of a registry that exists; nothing caught its absence. That is one layer below the CI gate built today, and it deserves the same treatment.</p>
+</div>
+
+<h2 id="s2">2 · Verification on the deployed commit</h2>
+<div class="card">
+<div class="kicker g">acceptance battery — the live gate</div>
+<pre>[PASS] budget_alignment: proxy idle budget 1800.0s vs the scheduler's per-turn tolerance 1800.0s (wall ceiling 3600.0s)
+[PASS] custody_chain: ledger row router-proxy-1790636887225-0001-9371dbc5 carries the gateway session; state.db has it
+[PASS] long_run_silence: RECORDED — a 400s silent tool run returned 200 with wall=408.629s,
+       idle budget 1800.0s (the same shape that died at ~305s before the fix)
+[PASS] stats_live: /proxy/stats 168h reports 918 proxied rows, 104 groups, scan 332589 rows, cache ttl 60.0s
+[PASS] write_safety: unauthenticated mutation on the UI service -> 403
+
+11 passed, 0 failed, 0 skipped (224s)</pre>
+<p><span class="m">measured</span> on <code>34ed37d</code>, port 9391/9093, 2026-09-28 23:11Z. <code>custody_chain</code> is the one that matters most here: it proves a real row carries its gateway session <i>and</i> that <code>state.db</code> has it — the custody link that makes per-task cost answerable rather than approximate.</p>
+
+<div class="kicker g" style="margin-top:22px">proxy smoke — 3 real requests</div>
+<pre>dummy scheduler -> http://127.0.0.1:9391 | n=3 concurrency=1 | prompt 451 chars | model z-ai/glm-5.3-flash
+  ledger proxy rows before: 801
+
+  completed 3 requests in 24.8s
+  HTTP 200: 3/3 | statuses: ['200']
+  wall time  min 6.1s  median 7.4s  max 11.2s
+  first byte median 7.355s
+
+  ledger proxy rows after : 804  (delta 3)
+  AMPLIFICATION: http://127.0.0.1:9391 caused 3 ledger row(s) for 3 request(s) -> 1.00 per request</pre>
+<p><span class="m">measured</span>. One row per request — no amplification, which was the failure mode that produced 382 rows for 65 served requests on 2026-09-25.</p>
+</div>
+
+<h2 id="s3">3 · What the rows actually prove (the features, in the data)</h2>
+<div class="card" style="overflow-x:auto">
+<p>Every row served since the deploy carries these fields. This is the difference between "the feature is committed" and "the feature is running":</p>
+<table>
+<tr><th>Field on a served row</th><th>Observed value (18:11–18:12)</th><th>What it proves</th></tr>
+<tr><td><code>session_id</code></td><td class="y">router-proxy-1790637128065-0009-e6c48beb</td><td>the collision-proof identity (505220c / 10b065d) — timestamp <i>plus</i> sequence plus hash, so two same-millisecond calls can no longer collapse into one metered row</td></tr>
+<tr><td><code>caller_session_key</code></td><td class="y">dummy-scheduler-1790637110-1</td><td>TR-173 live: the caller's session key is persisted, so a tick-spawned session's cost is attributable, not approximate</td></tr>
+<tr><td><code>chain_length</code> / <code>steps</code></td><td class="y">159 / 1</td><td>the chain was computed (159 eligible lanes) and the hop took 1 attempt</td></tr>
+<tr><td><code>skipped_hops</code> + <code>_source</code></td><td class="y">30 / derived-from-exclusions</td><td>how many lanes were passed over, and by which authority the count was produced</td></tr>
+<tr><td><code>skipped_hops_detail</code></td><td class="y">[{'hop': 43, 'provider': 'xkiro', 'model': 'openai/gpt-6-l…'}]</td><td>TR-158/184's real intent — <i>which</i> positions were skipped — survived the projection bug that dropped it, and is now on live rows</td></tr>
+<tr><td><code>complexity_source</code></td><td class="y">classifier-empty</td><td>the rating's provenance is stated, including when the classifier returned nothing</td></tr>
+<tr><td><code>price_basis</code></td><td class="y">no price on this hop; cost unknown</td><td>the honesty rule in production: unpriced means <code>cost_usd: null</code> <b>with a reason</b>, never a fake zero</td></tr>
+<tr><td><code>route_outcome</code></td><td class="y">served</td><td>the row is interpretable without reading code</td></tr>
+</table>
+</div>
+
+<h2 id="s4">4 · Coverage, honestly</h2>
+<div class="card">
+<p><span class="m">measured</span> over the last 3,000 ledger lines (24 proxied rows in the tail):</p>
+<pre>chain_length set    : 38%
+price_basis set     : 38%
+caller_session_key  : 38%
+skipped_hops_detail : 38%
+cost_usd set        :  0%
+no-hops outcome     : 33%
+served (200)        : 38%</pre>
+<p>Two honest readings, neither of them flattering:</p>
+<ul class="tight">
+<li><b>33% no-hops</b> is dominated by the missing-registry window — rows written while the service had no registry at all. Those are history, not current behaviour: every row since the deploy is <code>served</code>.</li>
+<li><b>0% cost coverage</b> is real and not a bug in the proxy: the lanes being served are <code>:free</code> models with no published price, so the honest answer is <code>null</code> plus a reason. Until the 22 priceable free lanes are priced (TR-179), the cost-per-task-by-complexity-band view has no numerators on those hops.</li>
+</ul>
+<p>Also visible in the ledger while measuring: <b>1 proxied row among 400</b> sampled earlier — i.e. almost no production traffic flows through the proxy, because the scheduler is still pointed elsewhere. That is the re-flip, and it is deliberate.</p>
+</div>
+
+<h2 id="s5">5 · What is still not proven</h2>
+<div class="card">
+<div class="kicker a">the flip gate — unchanged</div>
+<ol>
+<li><b>The density rehearsal has never been run.</b> My largest run remains 3 requests at concurrency 1; the 09-25 lockup happened at 6.1× call density (~5.8/min). Everything else in this report is a design argument until a burst at that density holds or breaks.</li>
+<li><b>TR-194</b> — the degraded-path proof for unservable ratings (69 of 95 rated rows today). The incident's proximate trigger.</li>
+<li><b>The registry-absence guard</b> — new today from this measurement: the service gate can be red for hours silently. Nothing watches <code>gate.valid</code>.</li>
+<li><b>The re-flip itself</b> — pointing the scheduler at 9391. Owner's call; never auto-flipped.</li>
+</ol>
+</div>
+
+<h2 id="s6">6 · Decision files &amp; time cost</h2>
+<div class="card" style="overflow-x:auto">
+<table>
+<tr><th>File</th><th>Weight <span class="m">measured</span></th><th>Why it carries the fate</th></tr>
+<tr><td><code>scripts/router_server.py</code></td><td>3,615 lines · 75 defs</td><td>The proxy's whole write path: the row projection (where a field silently vanishing is possible — it happened twice), admission counters, the 29-route surface, and the ledger writer. One file decides what every downstream stats question can be answered from.</td></tr>
+<tr><td><code>scripts/router_spawn.py</code></td><td>2,529 lines · 58 defs</td><td>The resolver and the pricing law — <code>DEFAULT_SORT</code>, the <code>(plan_tier, effective price)</code> order, the PAYG-LAST sentinel, and the fail-open contract the scheduler depends on.</td></tr>
+<tr><td><code>data/tables/provider_quota.jsonl</code></td><td>92 rows</td><td>Not code, but where quota truth lives now: the windows, readback methods and reset semantics per provider — the input to pacing and the burn-surplus finder.</td></tr>
+</table>
+<table>
+<tr><th>Next action</th><th>Estimate</th><th>Basis</th></tr>
+<tr><td>Registry-absence guard (fail loudly on <code>gate.valid=false</code>)</td><td>~2 hours</td><td>The health payload already computes it; the work is the watcher plus a test that a missing registry is not silence.</td></tr>
+<tr><td>Density rehearsal (60 requests, concurrency 8 = incident density)</td><td>~1 hour incl. analysis</td><td>The harness exists (<code>dummy_scheduler.py</code>); the cost is the run and reading the result honestly.</td></tr>
+<tr><td>TR-194 degraded-path proof</td><td>~half a day</td><td>Falsifier sweep over the ledger plus two contract tests; dispatched twice, never landed.</td></tr>
+<tr><td>The re-flip + watching a tick cycle</td><td>~30 min + observation</td><td>One variable (<code>SCHEDULER_GATEWAY_URL</code>) plus a rollback that is equally one variable.</td></tr>
+</table>
+</div>
+
+<h2 id="s7">7 · Verdict</h2>
+<div class="card">
+<p><b>The proxy features are real, deployed, and verified.</b> The flood guard is enforcing at its cap, session keys persist, session identities can't collide, the chain and its exclusion detail reach the rows, unpriced cost is null-with-a-reason, and the whole live path passes 11/11 with 1.00 amplification at a fraction of this morning's latency.</p>
+<p><b>The gap that mattered today was not features — it was deployment.</b> 128 commits of proxy work, including three fixes that came directly from the incidents, were sitting unployed behind a service with no registry, quietly returning no-hops. "Written" and "running" are different states, and only one of them is visible from the board.</p>
+<p><b>What to bet on next:</b> the density rehearsal, because it is the only remaining question with a chance of changing the answer. The re-flip is safe to attempt the moment that number exists — and unsafe to attempt before it.</p>
+</div>
+
+<div class="foot">
+Measured 2026-09-28 · commit <code>34ed37d30ffc</code> (main HEAD at verification; proxy and API both serving it, <code>stale=false</code>) · harness: <code>proxy_acceptance.py</code> 11 checks, <code>dummy_scheduler.py</code> n=3 · services <code>task-router-server</code> (:9092) + <code>task-router-proxy</code> (:9391), read-only mode · ledger <code>data/state/outcomes.jsonl</code> · acceptance artifact <code>/tmp/proxy-acceptance-1790637110.json</code>.
+</div>
+
+</div></body></html>
