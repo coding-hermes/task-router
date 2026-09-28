@@ -53,7 +53,7 @@ a{color:var(--blu)}
 <span class="badge g">✔ stats: ledger → averages → resolver → UI</span>
 <span class="badge g">✔ 11/11 acceptance · 1.00 amplification</span>
 <span class="badge g">✔ CI green · gate live on a real push</span>
-<span class="badge a">⏳ density rehearsal running now</span>
+<span class="badge g">✔ density rehearsal: 60/60, 3× incident density</span>
 <span class="badge r">✘ re-flip still owner-gated</span>
 </div>
 <div class="grid">
@@ -102,14 +102,31 @@ LIVE ENDPOINT  /proxy/stats?window_h=168 -> {windows, computed_at, age_s, cached
 
 <h2 id="s2">2 · The pending test — and it is the one you just described</h2>
 <div class="card">
-<div class="kicker a">in flight</div>
+<div class="kicker g">PASSED — 60/60 at 3× incident density</div>
 <p><b>The pending test is the density rehearsal.</b> Everything else on the flip checklist is satisfied except this one item, and it is the only one that could still change the answer. The 2026-09-25 gateway lockup happened at <b>6.1× call density (≈5.8 calls/min)</b>; my largest safe run until now was 3 requests at concurrency 1.</p>
 <pre>python3 scripts/dummy_scheduler.py --n 60 --concurrency 8 \
     --base http://127.0.0.1:9391 --label density-rehearsal-20260928
 
 # exactly the stand-in you asked for: a SECOND scheduler, synthetic entries,
 # pointed at the proxy on :9391. The real scheduler is never touched.</pre>
-<p><b>What I am reading from it:</b> HTTP 200 rate, wall-time distribution, 503s, no-hops count, ledger amplification (rows per request), and whether anything opens a provider-wide breaker. A pass means the flip is safe to attempt; a failure is the answer we needed <i>before</i> pointing the fleet at it.</p>
+<pre>dummy scheduler -> http://127.0.0.1:9391 | n=60 concurrency=8 | prompt 451 chars
+  ledger proxy rows before: 804 | loadavg ['31.68', '37.24', '32.25']
+
+  completed 60 requests in 203.9s        &lt;- 17.7 requests/min
+  HTTP 200: 60/60 | statuses: ['200']
+  wall time  min 6.5s   median 15.7s   max 85.9s
+  ledger proxy rows after : 864  (delta 60)
+  AMPLIFICATION: 60 ledger row(s) for 60 request(s) -&gt; 1.00 per request
+  loadavg after: ['33.76', '35.84', '32.69']
+
+independent ledger census of the proxy rows in that window:
+  route_outcome: served 69, no-hops 1   (98.6% served; the 1 is pre-deploy — see below)
+  success: True 69, False 1
+  every row: steps=1</pre>
+<p><b>Result: it holds.</b> The harness served <b>60 of 60</b>, and an independent read of the ledger shows <b>69 served against 1 no-hops out of 70</b> proxied rows in the window. The number that answers the 09-25 question is density: <b>17.7 requests/min, three times the 5.8/min that produced the lockup</b>. That incident wrote <b>382 rows for 65 served requests</b>; this wrote <b>60 rows for 60</b> — amplification 1.00 against 5.9. Load average barely moved (31.7 &rarr; 33.8 on a box that is always busy). Latency stretches under the burst (6.5 s min, 15.7 s median, 85.9 s worst), but no 503s, no timeouts, no dead hops.</p>
+<p><b>The one no-hops row, traced rather than waved away:</b> it is <code>session_id=proxy-1790631144.1707835</code> — the <i>old</i> <code>proxy-&lt;ts&gt;.&lt;frac&gt;</code> identity shape, from before the collision-proof fix — so it was written during the missing-registry window and predates the deploy. The rehearsal window itself is <b>100% served</b>. TR-194 keeps its P0 on its own merits: a green rehearsal does not prove the degraded path fires for every unservable rating.</p>
+<p><b>What the rehearsal does NOT decide:</b> it exercises the proxy's transport under load, not the scheduler's behaviour across a whole tick. It clears the biggest unknown on the flip list; it does not make TR-194 or the registry-absence guard disappear.</p>
+<p><b>What I read from it:</b> HTTP 200 rate, wall-time distribution, 503s, no-hops count, ledger amplification (rows per request), and whether anything opens a provider-wide breaker. A pass means the flip is safe to attempt; a failure is the answer we needed <i>before</i> pointing the fleet at it.</p>
 <p><b>The other half of that gate</b> — TR-194, the proof that every unservable rating serves degraded or fails closed with reasons instead of dying blind — is <span class="warn">still unproven</span> (dispatched twice, no commit). It is P0 and it is the incident's proximate trigger.</p>
 </div>
 
