@@ -142,3 +142,9 @@
 {"provider": "commandcode-2", "model": "claude-fable-5-1", "error": "[not_in_plan] HTTP Error 403: Forbidden"}
 {"provider": "commandcode-2", "model": "gpt-6-sol", "error": "[not_in_plan] HTTP Error 403: Forbidden"}
 {"provider": "commandcode-2", "model": "gpt-6-astra", "error": "[not_in_plan] HTTP Error 403: Forbidden"}
+{"provider": "commandcode-2", "model": "claude-opus-5-5", "error": "[not_in_plan] HTTP Error 403: Forbidden"}
+{"provider": "xkiro", "model": "moonshotai/kimi-k2.7-code-highspeed", "error": "[not_served] HTTP Error 403: Forbidden"}
+{"provider": "xkiro", "model": "moonshotai/kimi-k2.8-preview", "error": "[not_served] HTTP Error 403: Forbidden"}
+{"provider": "xkiro", "model": "moonshotai/kimi-k3-256k", "error": "[not_served] HTTP Error 403: Forbidden"}
+{"provider": "xkiro", "model": "x-ai/grok-build-0.1", "error": "[not_served] HTTP Error 403: Forbidden"}
+{"provider": "xkiro-2", "model": "x-ai/grok-build-0.1", "error": "[not_served] HTTP Error 403: Forbidden"}
