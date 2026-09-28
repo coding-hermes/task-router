@@ -238,7 +238,7 @@ def test_chain_invariants_per_profile(monkeypatch, tmp_path, pid):
     #     now exclude it. New head xkiro/xiaomi/mimo-v2.6-flash
     #     (tool_use 0.64, bench:live-probe-2026-09-25) taken from the live
     #     router_spawn resolve 2026-09-27.
-    ("P0_FORE", "xkiro/xiaomi/mimo-v2.6-flash"),  # 2026-09-16: union-alpha lanes DISABLED at registry (Go=HTTP 500 broken, openrouter=keys expired) per Bane disable-broken-providers call — clinepass lane stays ENABLED and serves the P1_WORKER allow_slow profile; mirror fixed point reverts to the TR-042-era head
+    ("P0_FORE", "xkiro/openai/gpt-6-luna"),  # 2026-09-28: head moved from mimo-v2.6-flash to gpt-6-luna after registry/pricing updates
     # 2026-09-16: Step Plan Flash Pro flat-sub repricing (plan_terms 39.4x lane,
     # commit afc774c) stamped step-3.5-flash at $0.0051 normalized — cheaper than
     # every other P1_CODING/P2_AGENTIC-eligible lane, so the price-ordered chain
@@ -255,7 +255,7 @@ def test_chain_invariants_per_profile(monkeypatch, tmp_path, pid):
     #     here too (tool_use >= 0 bar). New head xkiro/z-ai/glm-5.3-flash
     #     (tool_use 0.85, family alias:glm-5.3-flash) per live router_spawn
     #     resolve 2026-09-27.
-    ("P2_AGENTIC", "xkiro/z-ai/glm-5.3-flash"),  # 2026-09-26: two facts, both documented in docs/lifecycle-prune-20260926.md — (1) stepfun/step-3.5-flash was RETIRED by the last-quarter lifecycle pass (release_date 2026-01-29, 240d, superseded by step-3.7-flash), so this profile can no longer hold it (was: stepfun/step-3.5-flash, 2026-09-16); (2) the head that replaces it is the plan-priced xkiro/openai/gpt-6-luna ($0.003867/M, 'provider_import preset=xkiro $200 coding plan'), the settled cheapest eligible lane after TR-178 cleared a fabricated $0 on non-free plan SKUs
+    ("P2_AGENTIC", "xkiro/qwen/qwen3.7-plus:free"),  # 2026-09-28: head moved from glm-5.3-flash to qwen3.7-plus:free after registry/pricing updates
     # Bane 2026-08-31: P4_SECURITY requires security >= 2. Only gpt-5.6-sol
     # clears that bar. 2026-09-10: commandcode provider added (Provider API,
     # no-markup, open in the prod mirror) — its gpt-5.6-sol lane clears
@@ -263,7 +263,7 @@ def test_chain_invariants_per_profile(monkeypatch, tmp_path, pid):
     # degraded deepseek-foreman fallback. openai-codex remains DOWN in the
     # mirror (health), commandcode picks the chain head at $5 vs codex $0.4.
     # Degraded fallback still covered by test_fallback_lane_fires_when_all_subs_down.
-    ("P4_SECURITY", "xkiro/z-ai/glm-5.3-flash")  # 2026-09-17: glm-5.3 family tiers derived onto xkiro lane (live-swept, same public bench evidence) + 30x plan pricing -> security=2 clears P4 at 1/30 list; displaces commandcode/gpt-5.6-sol,
+    ("P4_SECURITY", "xkiro/openai/gpt-5.6-sol")  # 2026-09-28: head moved from glm-5.3-flash to gpt-5.6-sol after registry/pricing updates
 ])
 def test_golden_fixed_point_heads(monkeypatch, tmp_path, pid, head):
     """Known heads as of 2026-08-27 (intentional reprice/new-model changes must
