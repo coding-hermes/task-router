@@ -38,3 +38,5 @@ data/state/outcomes-averages.jsonl
 .gitreins/usage.jsonl
 .gitreins/qa-ledger.jsonl
 .gitreins/config.yaml.bak
+data/state/outcomes.jsonl.backup-*
+data/state/outcomes.jsonl.bak-*
