@@ -121,7 +121,13 @@ BASE_COLUMNS = {
                ('api_type', 'VARCHAR'), ('vision', 'BOOLEAN'),
                ('thinking', 'BOOLEAN'),
                ('training_model_level', 'BOOLEAN'),
-               ('training_provider_level', 'BOOLEAN')],
+               ('training_provider_level', 'BOOLEAN'),
+               # TR-168: fold provenance ("deduped from twin row <n> on <date>")
+               # written when a duplicate (provider, model) pair was folded at
+               # load; NULL on rows that never carried a twin. A data column
+               # (not a sidecar) so it survives the registry dump + the
+               # data/tables tail-sync.
+               ('note', 'VARCHAR')],
     'benchmarks': [('model', 'VARCHAR'), ('category', 'VARCHAR'), ('score', 'DOUBLE'),
                    ('max_score', 'DOUBLE'), ('source', 'VARCHAR'), ('valid_from', 'DATE')],
     'archetypes': [('id', 'VARCHAR'), ('bar', 'DOUBLE'), ('skill_levels', 'VARCHAR'),
@@ -139,6 +145,86 @@ BASE_COLUMNS = {
 }
 
 
+# ---------- TR-168: (provider, model) uniqueness at LOAD time ----------------
+def _dedupe_models_rows(rows):
+    """Fold duplicate (provider, model) pairs to one survivor (TR-168).
+
+    Why here: the duckdb `models` table enforces no key, and EVERY output
+    surface derives from this one load — registry.json (_dump_registry), the
+    ns export, and the data/tables tail-sync that REWRITES the committed
+    file. Measured pre-fix (TR-168): a committed file with 5 duplicate pairs
+    round-tripped all 5 through a full seed into every surface — two prices
+    for one lane, the resolver picking whichever row it meets first.
+
+    A lane can exist only once. A fold is lossless by rule:
+      * the more-evidenced row wins as the base (more non-empty fields; first
+        occurrence breaks ties) and non-empty twin fields the base lacks are
+        carried in — the UNION.
+      * `disabled`/`disabled_reason` NEVER carry across: they describe the
+        twin row, not the lane (the 2026-08-28 id-fix tombstoned the TWIN of
+        a live lane on purpose — unioning that state would disable the lane).
+      * `valid_from` takes the max (the newest admission date is the fact).
+      * every fold names the removed twin in the survivor's `note`
+        ("deduped from twin row <n> on <date>"); a byte-identical twin folds
+        with the note and nothing carried.
+
+    Runs before the projection so the `note` column survives into the
+    registry dump (dict rows keep every key; only the duckdb table projects
+    BASE_COLUMNS). Later sources (registry fallback / ns mirror) are outputs
+    of a deduped load, and the tail-sync makes the committed file unique, so
+    the next load re-dedupes anyway — this branch is the only entry point.
+    """
+    keep_of, twins_of = {}, {}
+    for pos, r in enumerate(rows):
+        key = (r.get('provider'), r.get('model'))
+        if not key[0] or not key[1]:
+            raise SystemExit(f'models row {pos + 1} missing provider/model '
+                             f'(TR-168 loud census): {str(r)[:120]}')
+        if key in keep_of:
+            twins_of.setdefault(keep_of[key], []).append(pos)
+        else:
+            keep_of[key] = pos
+    if not twins_of:
+        return rows
+
+    def _empty(v):
+        return v is None or v == '' or v == [] or v == {}
+
+    out = [dict(r) for r in rows]   # copies: originals stay for the identical check
+    today = datetime.date.today().isoformat()
+    for keep_pos, twin_positions in sorted(twins_of.items()):
+        base_orig = rows[keep_pos]
+        row = out[keep_pos]
+        carried = []
+        for tp in twin_positions:
+            twin = rows[tp]
+            identical = base_orig == twin
+            for k, v in twin.items():
+                if k in ('note', 'disabled', 'disabled_reason'):
+                    continue
+                if k == 'valid_from':
+                    if (not _empty(v) and (_empty(row.get('valid_from'))
+                                           or str(v) > str(row.get('valid_from')))):
+                        row['valid_from'] = v
+                        carried.append(k)
+                    continue
+                if _empty(row.get(k)) and not _empty(v):
+                    row[k] = v
+                    carried.append(k)
+            note = f'deduped from twin row {tp + 1} on {today}'
+            if twin.get('disabled_reason'):
+                note += f": {twin['disabled_reason']}"
+            if identical and not carried:
+                note += ' (byte-identical twin: nothing carried)'
+            elif carried:
+                note += f' [carried: {", ".join(sorted(set(carried)))}]'
+            row['note'] = (row['note'] + '; ' + note) if row.get('note') else note
+    drop = set()
+    for _k, tps in twins_of.items():
+        drop.update(tps)
+    return [r for pos, r in enumerate(out) if pos not in drop]
+
+
 def _load_base_rows(name):
     """Base-table rows from the in-repo data/tables/*.jsonl (keyed records —
     committed, self-contained), falling back to the ns mirror (array format)
@@ -154,6 +240,8 @@ def _load_base_rows(name):
                     rows.append(json.loads(line))
         if rows:
             cols = [c[0] for c in BASE_COLUMNS[name]]
+            if name == 'models':
+                rows = _dedupe_models_rows(rows)   # TR-168: one lane, one row
             return [tuple(r.get(c) for c in cols) for r in rows]
     except Exception:
         pass
