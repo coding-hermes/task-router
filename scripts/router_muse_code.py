@@ -44,6 +44,10 @@ import urllib.request
 
 _REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.environ.get('ROUTING_DATA_DIR', os.path.join(_REPO, 'data', 'tables'))
+_SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
+import lifecycle_gate  # noqa: E402  (TR-199: R4 no anonymous dates)
 CACHE = os.environ.get('MUSE_CODE_SUB_CREDENTIALS') or os.path.expanduser('~/.hermes/muse-code-sub.json')
 API = 'https://api.meta.ai/v1/models'
 PROVIDER = 'muse-code'
@@ -72,6 +76,8 @@ def _rows(name):
 
 
 def _write(name, rows):
+    # TR-199 (spec R4): no anonymous dates on the write path.
+    lifecycle_gate.gate_rows(name, rows)
     path = os.path.join(DATA_DIR, name + '.jsonl')
     tmp = path + '.tmp'
     with open(tmp, 'w', encoding='utf-8') as fh:

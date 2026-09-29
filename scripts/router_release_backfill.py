@@ -35,6 +35,11 @@ import shutil
 import sys
 import time
 
+_SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
+import lifecycle_gate  # noqa: E402  (TR-199: R4 no anonymous dates)
+
 REPO = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 DATA_DIR = os.environ.get('ROUTING_DATA_DIR', os.path.join(REPO, 'data', 'tables'))
 DEFAULT_ROSTERS = os.path.expanduser('~/model_bench/rosters')
@@ -88,6 +93,17 @@ def plausible(d):
     except (TypeError, ValueError):
         return False
     return datetime.date(2025, 1, 1) <= dt <= datetime.date.today() + datetime.timedelta(days=7)
+
+
+def _write_models(models, path=None):
+    """Rewrite models.jsonl (path defaults to <DATA_DIR>/models.jsonl).
+    TR-199 (spec R4): the write helper itself is gated, so no call site can
+    bypass the provenance check."""
+    lifecycle_gate.gate_rows('models', models)
+    path = path or os.path.join(DATA_DIR, 'models.jsonl')
+    with open(path, 'w', encoding='utf-8') as fh:
+        for m in models:
+            print(json.dumps(m, ensure_ascii=False), file=fh)
 
 
 def main():
@@ -343,10 +359,11 @@ def main():
         return 0
 
     path = os.path.join(DATA_DIR, 'models.jsonl')
+    # TR-199 (spec R4): no anonymous dates — the gate runs BEFORE the backup
+    # so a refused write leaves the committed file untouched.
+    lifecycle_gate.gate_rows('models', models)
     shutil.copy(path, f'/tmp/models.jsonl.bak-{time.strftime("%Y%m%d-%H%M%S")}')
-    with open(path, 'w', encoding='utf-8') as fh:
-        for m in models:
-            fh.write(json.dumps(m, ensure_ascii=False) + '\n')
+    _write_models(models)
 
     if catalog_filled:
         # Provenance, because release_date must never quietly mean two things.

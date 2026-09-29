@@ -30,6 +30,10 @@ import urllib.request
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TABLES = os.path.join(REPO, 'data', 'tables')
 PRESETS = os.path.join(REPO, 'data', 'catalogs')
+_SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
+import lifecycle_gate  # noqa: E402  (TR-199: R4 no anonymous dates)
 
 
 # ---------- pure functions (unit-tested) ----------
@@ -326,9 +330,12 @@ def apply_lanes(path, provider, new_lanes, plan_tier, price_evidence, drift=None
         row = plan_effective(row)          # net-new: price always from catalog
         out.append(row)
         appended += 1
+    # TR-199 (spec R4): no anonymous dates — the whole out set is gated before
+    # the in-place rewrite (the caller's base row may already carry a date).
+    lifecycle_gate.gate_rows('models', out)
     with open(path, 'w') as f:
         for r in out:
-            f.write(json.dumps(r, ensure_ascii=False) + '\n')
+            print(json.dumps(r, ensure_ascii=False), file=f)
     return updated, appended
 
 
@@ -426,9 +433,11 @@ def main():
                 if r.get('provider') == preset['id'] and r['model'] in d['removed']:
                     r['disabled'] = True
                     r['disabled_reason'] = 'catalog-removed (provider_import)'
+            # TR-199 (spec R4): no anonymous dates on the write path.
+            lifecycle_gate.gate_rows('models', rows)
             with open(mpath, 'w') as f:
                 for r in rows:
-                    f.write(json.dumps(r, ensure_ascii=False) + '\n')
+                    print(json.dumps(r, ensure_ascii=False), file=f)
             print('  marked removed lanes disabled')
         else:
             print('  (report only — use --mark-removed to disable them)')

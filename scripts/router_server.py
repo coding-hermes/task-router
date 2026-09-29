@@ -39,6 +39,7 @@ if str(SCRIPTS) not in sys.path:
 import router_outcomes  # noqa: E402  (stdlib-only sibling script module)
 import router_ui_page  # noqa: E402  (TR-150: the one self-contained page)
 import router_health  # noqa: E402  (TR-087 health plane)
+import lifecycle_gate  # noqa: E402  (TR-199: R4 no anonymous dates)
 
 JSON_RESPONSE = {
     "description": "JSON response",
@@ -500,6 +501,10 @@ def _append_listing(kind, body):
     table, required = _listing_spec(kind)
     body = dict(_require_object(body))
     _required_strings(body, *required)
+    # TR-199 (spec R4): no anonymous dates — an appended model/provider row
+    # carrying a lifecycle date must name its evidence.
+    if table in lifecycle_gate.TABLE_KEYS:
+        lifecycle_gate.gate_rows(table, [body])
     existing = _read_jsonl(table)
     known = set().union(*(row.keys() for row in existing)) if existing else set(body)
     unknown = sorted(set(body) - known)
