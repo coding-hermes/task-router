@@ -33,6 +33,8 @@ from datetime import date
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(REPO, 'scripts'))
 
+import lifecycle_gate  # noqa: E402  (TR-199: R4 no anonymous dates)
+
 MODELS = os.path.join(REPO, 'data', 'tables', 'models.jsonl')
 
 WINDOW_COST_TMPL = (
@@ -168,9 +170,11 @@ def main():
         print('DRY RUN — nothing written. Re-run with --apply.')
         return 0
     shutil.copy(MODELS, MODELS + '.bak')
+    # TR-199 (spec R4): no anonymous dates on the write path.
+    lifecycle_gate.gate_rows('models', rows)
     with open(MODELS, 'w') as f:
         for r in rows:
-            f.write(json.dumps(r) + '\n')
+            print(json.dumps(r), file=f)
     print(f'wrote {MODELS} (backup at {MODELS}.bak)')
     return 0
 

@@ -26,6 +26,11 @@ REPO = Path(__file__).resolve().parents[1]
 PY = sys.executable
 SPAWN = REPO / "scripts" / "router_spawn.py"
 
+_SCRIPTS_DIR = str(REPO / "scripts")
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
+import lifecycle_gate  # noqa: E402  (TR-199: R4 no anonymous dates)
+
 EDIT_KEY_ENV = "ROUTER_EDIT_API_KEY"
 
 # TR-150: the data layer (ledger search / series / flow / board). Imported
@@ -401,7 +406,19 @@ class RouterWebHandler(BaseHTTPRequestHandler):
             return
         updates = {k: body[k] for k in
                    ("discount_type", "value", "valid_from", "valid_to",
-                    "source", "note") if k in body}
+                    "source", "note", "lifecycle_source") if k in body}
+        # TR-199 (spec R4): no anonymous dates — an edit that sets valid_to on
+        # a discount row must carry lifecycle_source (or clear the date).
+        for k in lifecycle_gate.DATE_KEYS:
+            if updates.get(k) and not str(body.get("lifecycle_source") or "").strip():
+                # does the TARGET row already carry provenance?
+                existing = next((r for r in self.store.settings_discounts()
+                                 if r.get("provider") == prov and r.get("model") == model), None)
+                if not str((existing or {}).get("lifecycle_source") or "").strip():
+                    self._send(422, {
+                        "error": "lifecycle date requires lifecycle_source (R4 no anonymous dates, TR-199)",
+                        "field": k, "audited": True})
+                    return
         changed, backup = jsonl_upsert(
             self.store.discounts,
             ["provider", "model"], {"provider": prov, "model": model}, updates)

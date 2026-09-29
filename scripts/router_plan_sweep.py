@@ -26,6 +26,11 @@ import json
 import os
 import sys
 
+_SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
+import lifecycle_gate  # noqa: E402  (TR-199: R4 no anonymous dates)
+
 _REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(_REPO, 'data', 'tables')
 
@@ -42,6 +47,10 @@ def _rows(name):
 
 
 def _write(name, rows):
+    # TR-199 (spec R4): no anonymous dates — a row carrying a lifecycle date
+    # without lifecycle_source must never reach the file. Fails LOUD (raise)
+    # so the cron pipeline's `set -e` aborts instead of silently persisting it.
+    lifecycle_gate.gate_rows(name, rows)
     path = os.path.join(DATA_DIR, f'{name}.jsonl')
     with open(path + '.tmp', 'w') as f:
         for r in rows:

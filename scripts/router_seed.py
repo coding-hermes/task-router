@@ -371,6 +371,21 @@ def undamp_probe_benchmarks():
 # run that rewrites the file.
 _undamp_n = undamp_probe_benchmarks()
 
+# ---------- TR-199 (spec R4): admission gate on the committed base data -----
+# The lifecycle overlay below already refuses an overlay row with a date and
+# no provenance; this closes the OTHER door: a DATED row already sitting in
+# the committed data/tables/*.jsonl. A seed that would republish an anonymous
+# date into registry.json + every generated export must abort instead —
+# repair the data (name the evidence or drop the date), never ship it.
+try:
+    import lifecycle_gate as _lc_gate
+except ImportError:
+    sys.path.insert(0, _HERE)
+    import lifecycle_gate as _lc_gate
+for _t, _bad in _lc_gate.gate_data_dir(DATA_DIR, exempt=()).items():
+    raise SystemExit('R4 no anonymous dates (TR-199): ' + '; '.join(_bad[:5])
+                     + (f' (+{len(_bad) - 5} more)' if len(_bad) > 5 else ''))
+
 con = duckdb.connect(':memory:')
 for t, cols in BASE_COLUMNS.items():
     rows = _load_base_rows(t)

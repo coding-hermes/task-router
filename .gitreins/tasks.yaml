@@ -503,3 +503,27 @@ tasks:
   status: complete
   created_at: '2026-09-28T22:55:56.642525+00:00'
   completed_at: '2026-09-29T00:31:38.101927+00:00'
+- id: TR-168
+  title: task-router TR-168
+  criteria:
+  - Implementation committed on wt/TR-168, tests green, acceptance criteria met
+  status: in_progress
+  created_at: '2026-09-29T08:27:07.023569+00:00'
+- id: TR-199
+  title: task-router TR-199
+  criteria:
+  - Implementation committed on wt/TR-199, tests green, acceptance criteria met
+  status: in_progress
+  created_at: '2026-09-29T08:27:07.258062+00:00'
+- id: TR-202
+  title: task-router TR-202
+  criteria:
+  - Implementation committed on wt/TR-202, tests green, acceptance criteria met
+  status: in_progress
+  created_at: '2026-09-29T08:27:07.491431+00:00'
+- id: DOC-2
+  title: task-router DOC-2
+  criteria:
+  - Implementation committed on wt/DOC-2, tests green, acceptance criteria met
+  status: in_progress
+  created_at: '2026-09-29T08:27:07.724841+00:00'

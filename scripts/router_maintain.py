@@ -57,6 +57,7 @@ if _SCRIPTS_DIR not in sys.path:
 from pricing import BY_PROVIDER  # noqa: E402
 from pricing import estimate as _pricing_estimate  # noqa: E402
 from pricing import helpers as _pricing_helpers  # noqa: E402
+import lifecycle_gate  # noqa: E402  (TR-199: R4 no anonymous dates)
 
 
 # Text registry (Bane 2026-08-27): live store = gitignored JSON in the repo,
@@ -330,6 +331,14 @@ def _sync_reprice_to_data(doc):
     live = {m.get('provider'): {} for m in (doc.get('tables') or {}).get('models') or []}
     for m in (doc.get('tables') or {}).get('models') or []:
         live.setdefault(m.get('provider'), {})[m.get('model')] = m
+    # TR-199 (spec R4): no anonymous dates — gate BEFORE the tmp write so a
+    # refused write never replaces the committed file.
+    existing_all = []
+    for line in open(path):
+        line = line.strip()
+        if line:
+            existing_all.append(json.loads(line))
+    lifecycle_gate.gate_rows('models', existing_all)
     merged = 0
     changed_rows = []
     for line in open(path):

@@ -76,6 +76,11 @@ import subprocess
 import sys
 import urllib.request
 
+_SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
+import lifecycle_gate  # noqa: E402  (TR-199: R4 no anonymous dates)
+
 _REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.environ.get('ROUTING_DATA_DIR', os.path.join(_REPO, 'data', 'tables'))
 CACHE = os.environ.get('MODELSDEV_CACHE', os.path.expanduser('~/.chimera/models-dev-cache.json'))
@@ -429,13 +434,17 @@ def _relevant(meta):
 
 
 def _write_rows(path, rows):
+    # TR-199 (spec R4): no anonymous dates — gate the models table by path;
+    # model_catalog.jsonl carries no lifecycle dates and is not gated.
+    if os.path.basename(path) == 'models.jsonl':
+        lifecycle_gate.gate_rows('models', rows)
     with open(path + '.tmp', 'w') as f:
         for r in rows:
             # ensure_ascii=False matches the repo convention
             # (router_maintain.py _data_rows) — literal UTF-8 keeps the
             # diff clean; ensure_ascii=True escaped em-dashes and rewrote
             # every row on each sync (969-line noise diffs).
-            f.write(json.dumps(r, ensure_ascii=False) + '\n')
+            print(json.dumps(r, ensure_ascii=False), file=f)
     os.replace(path + '.tmp', path)
 
 

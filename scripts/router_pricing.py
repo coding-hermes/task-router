@@ -53,6 +53,7 @@ if _HERE not in sys.path:
 
 from pricing import BY_BILLING_MODEL, MANUAL_FORMULA_MODELS  # noqa: E402
 from pricing import helpers as pricing_helpers  # noqa: E402
+import lifecycle_gate  # noqa: E402  (TR-199: R4 no anonymous dates)
 
 _REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.environ.get('ROUTING_DATA_DIR', os.path.join(_REPO, 'data', 'tables'))
@@ -70,10 +71,12 @@ def _rows(name):
 
 
 def _write(name, rows):
+    # TR-199 (spec R4): no anonymous dates on the write path.
+    lifecycle_gate.gate_rows(name, rows)
     path = os.path.join(DATA_DIR, f'{name}.jsonl')
     with open(path + '.tmp', 'w') as f:
         for r in rows:
-            f.write(json.dumps(r) + '\n')
+            print(json.dumps(r), file=f)
     os.replace(path + '.tmp', path)
 
 

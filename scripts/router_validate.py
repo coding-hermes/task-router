@@ -377,6 +377,26 @@ def run_checks():
             add('freshness.paths', True,
                 f'compared registry={REGISTRY} against tables={DATA_DIR}')
 
+    # ---- b2. R4 no anonymous dates (TR-199): every DATED row in the committed
+    # lifecycle tables must name its evidence. models is EXEMPT here by design
+    # (hundreds of undated rows carry lifecycle_source NULL and blanketing them
+    # would be invented provenance — R7; the writers enforce the strict rule),
+    # so the read gate covers providers + temporary_discounts.
+    try:
+        import lifecycle_gate as _lc_gate
+    except ImportError:
+        sys.path.insert(0, os.path.join(_REPO, 'scripts'))
+        import lifecycle_gate as _lc_gate
+    r4 = _lc_gate.gate_data_dir(DATA_DIR)
+    if r4:
+        det = '; '.join(d for bad in r4.values() for d in bad[:3])
+        add('lifecycle.provenance', False,
+            f'R4 no anonymous dates: {det}'
+            + (f' (+{sum(len(v) for v in r4.values()) - 3} more)' if sum(len(v) for v in r4.values()) > 3 else ''))
+    else:
+        add('lifecycle.provenance', True,
+            'every dated lifecycle row in providers/temporary_discounts names its evidence')
+
     # ---- c. state files: parse-if-present ------------------------------------
     STATE_DIR = os.environ.get('ROUTER_STATE_DIR', os.path.expanduser('~/.hermes/model-router'))
     for fname in STATE_JSON_FILES:

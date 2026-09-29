@@ -34,6 +34,11 @@ import subprocess
 import sys
 import urllib.request
 
+_SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
+import lifecycle_gate  # noqa: E402  (TR-199: R4 no anonymous dates)
+
 _REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.environ.get('ROUTING_DATA_DIR', os.path.join(_REPO, 'data', 'tables'))
 BASE = 'https://api.cline.bot/api/v1'
@@ -75,11 +80,14 @@ def _rows(name):
 
 
 def _write(name, rows):
+    # TR-199 (spec R4): no anonymous dates on the write path.
+    lifecycle_gate.gate_rows(name, rows)
     path = os.path.join(DATA_DIR, f'{name}.jsonl')
-    with open(path + '.tmp', 'w') as f:
+    tmp = path + '.tmp'
+    with open(tmp, 'w') as f:
         for r in rows:
-            f.write(json.dumps(r, ensure_ascii=False) + '\n')
-    os.replace(path + '.tmp', path)
+            print(json.dumps(r, ensure_ascii=False), file=f)
+    os.replace(tmp, path)
 
 
 def _chat_ok(mid):
