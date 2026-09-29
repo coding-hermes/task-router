@@ -535,3 +535,13 @@ tasks:
   status: complete
   created_at: '2026-09-29T15:21:23.499957+00:00'
   completed_at: '2026-09-29T16:28:54.522650+00:00'
+- id: TR-243
+  title: 'TR-217 residual: verify aws-bedrock, fireworks-ai, muse-code lanes'
+  criteria:
+  - docs/research/TR-217-2026-09-29.md carries per-lane verdicts or no-change-verified
+    rows for aws-bedrock, fireworks-ai and muse-code, the false 18/18 claim is corrected,
+    generated-table path respected, no registry edits unless a real change is verified;
+    tests pass
+  status: complete
+  created_at: '2026-09-29T20:19:45.202399+00:00'
+  completed_at: '2026-09-29T21:31:12.798585+00:00'

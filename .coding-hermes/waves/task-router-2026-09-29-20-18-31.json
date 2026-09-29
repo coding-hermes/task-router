@@ -1,0 +1,14 @@
+{
+  "scheduler_tick": "task-router-2026-09-29-20-18-31",
+  "wave_budget": 4,
+  "mode": "serial-fallback",
+  "reason": "TR-243 (judge-FAIL residual from TR-217) is the only independently actionable row this tick; other pending rows depend on Bane decisions or shared ns commits.",
+  "tasks": [
+    {
+      "id": "TR-243",
+      "worktree": "/home/kara/worktrees/task-router-TR-243",
+      "branch": "wt/TR-243",
+      "status": "merged"
+    }
+  ]
+}
