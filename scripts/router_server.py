@@ -1613,7 +1613,7 @@ def _classify_hop_failure(exc=None, status=None, unservable=False):
 
 
 def _failure_envelope(meta, session_id, source_system, parent_session_id, ladder_t0,
-                      terminal, tried, error_reason):
+                      terminal, tried, error_reason, registry_missing=None):
     """The _router block for ANY path that served nothing (TR-136).
 
     Measured 2026-09-24: a real proxied 502 returned served_by/usage/cost/
@@ -1621,28 +1621,37 @@ def _failure_envelope(meta, session_id, source_system, parent_session_id, ladder
     latencies. There are TWO such exits in this function (nothing eligible, and
     an exhausted ladder) and both must explain themselves identically — which is
     why the block lives here instead of being copied into each return.
+
+    TR-235: `registry_missing` (True when the resolver's own provenance says
+    registry.json is absent) is additive on the failure envelope only, so a
+    caller — and a row built from it — can distinguish "every lane was gated"
+    from "there was never a registry to route with".
     """
-    return {**meta,
-            'served_by': None,
-            'served_by_reason': error_reason,
-            'rolling': None,
-            'rolling_reason': 'no served lane to average',
-            'gateway_session_id': None,
-            'gateway_session_reason': 'no hop produced a session id',
-            # the success envelope names the caller's declared session; the failure
-            # envelope must carry the same key or the superset contract breaks
-            'parent_session_id': parent_session_id,
-            'exhausted': True,
-            'terminal_reason': terminal,
-            'hops_attempted': len(tried),
-            # TR-148: parity with the success envelope — one field, both paths.
-            'steps': len(tried),
-            'usage': None, 'usage_reason': 'no hop produced a usage block',
-            'cost_usd': None, 'cost_reason': 'no served hop to price',
-            'session_id': session_id,
-            'outcome_row': {'source_system': source_system, 'session_id': session_id,
-                            'parent_session_id': parent_session_id},
-            'wall_time_s': round(time.time() - ladder_t0, 3)}
+    out = {**meta,
+           'served_by': None,
+           'served_by_reason': error_reason,
+           'rolling': None,
+           'rolling_reason': 'no served lane to average',
+           'gateway_session_id': None,
+           'gateway_session_reason': 'no hop produced a session id',
+           # the success envelope names the caller's declared session; the failure
+           # envelope must carry the same key or the superset contract breaks
+           'parent_session_id': parent_session_id,
+           'exhausted': True,
+           'terminal_reason': terminal,
+           'hops_attempted': len(tried),
+           # TR-148: parity with the success envelope — one field, both paths.
+           'steps': len(tried),
+           'usage': None, 'usage_reason': 'no hop produced a usage block',
+           'cost_usd': None, 'cost_reason': 'no served hop to price',
+           'session_id': session_id,
+           'outcome_row': {'source_system': source_system, 'session_id': session_id,
+                           'parent_session_id': parent_session_id},
+           'wall_time_s': round(time.time() - ladder_t0, 3)}
+    if registry_missing:
+        # additive and only-when-true: the plain no-hops envelope is unchanged
+        out['registry_missing'] = True
+    return out
 
 
 #: THE TIMEOUT LADDER (TR-241). Every layer between the client and the model
@@ -2525,6 +2534,53 @@ def _classifier_evidence(requirements, source):
             'problems': problems}
 
 
+def _resolve_registry_missing(resolved):
+    """TR-235: does THIS resolver payload say the registry.json is missing?
+
+    The resolver (router_spawn.py) is the single source of truth for resolve
+    semantics, so the attribution reads its OWN provenance shapes instead of
+    re-deriving a verdict in the proxy:
+
+      * the normal shape — tables still resolved from the committed
+        data/tables fallback — carries the loader warning
+        ('registry.json missing ...') in `warnings` (or the data_home note,
+        same loader text) with fallback_used/data_home.fallback true;
+      * the broken shape — both stores unreadable — is the fail-open error
+        doc whose message names the missing registry.
+
+    A seeded registry (fallback false), a CORRUPT registry (a different
+    loader message: 'present but not an object'/'empty tables key'), and any
+    payload without that provenance are NOT registry-missing — attribution,
+    not relabeling: a plain gating no-hops must keep its plain reason.
+    Fail-open: any shape surprise is False (the request keeps the honest
+    'no-hops'), never an exception into the request path.
+    """
+    if not isinstance(resolved, dict):
+        return False
+    texts = []
+    for block in (resolved.get('warnings'),
+                  resolved.get('reasons'),
+                  ((resolved.get('data_home') or {}).get('note')
+                   if isinstance(resolved.get('data_home'), dict) else None),
+                  resolved.get('error')):
+        if isinstance(block, str):
+            texts.append(block)
+        elif isinstance(block, list):
+            texts.extend(t for t in block if isinstance(t, str))
+    if not any('registry.json missing' in t for t in texts):
+        return False
+    # The error-doc shape carries no fallback flag at all; the fallback shape
+    # must actually be ON the fallback (a seeded registry that merely quotes
+    # the warning text somewhere is not missing).
+    fallback = resolved.get('fallback_used')
+    dh = resolved.get('data_home')
+    if isinstance(fallback, bool) and fallback:
+        return True
+    if isinstance(dh, dict) and dh.get('fallback'):
+        return True
+    return not isinstance(fallback, bool) and not isinstance(dh, dict)
+
+
 def _chain_evidence(resolved, chain):
     """The OPTION CHAIN as resolvable evidence: what the resolver offered, in order.
 
@@ -3104,25 +3160,52 @@ def _proxy_chat_inner(path, body, headers, max_hops=None, upstream=None):
             f'(reference provider compat; x-router-developer-role: preserve to keep)')
     if not chain:
         meta['gate'] = resolved.get('gate')
+        # TR-235: attribute the empty chain BEFORE the row is written. When the
+        # resolver's own provenance says registry.json is MISSING, the row and
+        # the body must say 'registry-missing', not a bare 'no-hops' — the
+        # 2026-09-28 incident produced hundreds of bare no-hops rows (no chain,
+        # no cost, no session) with nothing anywhere naming the actual cause.
+        # Fail-open preserved: the attribution only relabels the REASON; the
+        # outcome vocabulary, the status code and the envelope shape are
+        # untouched, and a non-missing empty chain keeps 'no-hops' byte-for-byte.
+        try:
+            registry_missing = _resolve_registry_missing(resolved)
+        except Exception:  # noqa: BLE001 — a shape surprise is not a crash
+            registry_missing = False
+        if registry_missing:
+            failure_reason = 'registry-missing'
+            error_msg = ('registry.json missing on the serving host — every '
+                         'resolve falls back to the committed sample tables, so '
+                         'no hop is eligible. Run scripts/router_seed.py to '
+                         'generate it (then restart or wait for the freshness '
+                         'cron).')
+            print('router_proxy: REGISTRY MISSING — serving no-hops '
+                  '(registry-missing); fix: run scripts/router_seed.py',
+                  file=sys.stderr)
+        else:
+            failure_reason = 'no-hops'
+            error_msg = 'no open hop for this request'
         # TR-136: this is the OTHER blind exit — it returns before the ladder, so
         # it needs the same envelope or a caller cannot tell it apart from a
         # transport death.
         _proxy_record('none', 'none', False, requirements,
-                      reason='no open hop for this request',
+                      reason=error_msg,
                       latency_s=round(time.time() - ladder_t0, 3), source=source_system,
                       session_id=session_id, parent_session_id=parent_session_id,
                       caller_session_key=caller_session_key,
-                      route_outcome='no-hops', failure_reason='no-hops',
+                      route_outcome='no-hops', failure_reason=failure_reason,
                       hops_attempted=0, max_hops=hops, complexity_source=source,
                       degrade_reason=(requirements.get('problems') or [None])[0],
                       steps=0,
                       chain_evidence=_chain_evidence(resolved, chain),
                       classifier_evidence=_classifier_evidence(requirements, source),
                       prompt_chars=_prompt_stats[0], prompt_sha=_prompt_stats[1])
-        return 503, {'error': 'no open hop for this request',
+        return 503, {'error': error_msg,
+                     'registry_missing': registry_missing,
                      '_router': _failure_envelope(meta, session_id, source_system,
                                                   parent_session_id, ladder_t0,
-                                                  'no-hops', [], 'nothing eligible after gating')}
+                                                  'no-hops', [], failure_reason,
+                                                  registry_missing=registry_missing)}
 
     # Load per-provider routing (last-mile): providers with api_base_url defined
     # get their own hop-level upstream; others fall back to the global upstream.
@@ -3620,6 +3703,31 @@ def main(argv=None):
         return 2
 
     app = RouterApplication(args.mode, edit_key)
+
+    # TR-235: the registry check a boot log cannot skip. A missing
+    # registry.json used to be invisible at startup — the server served, the
+    # gate went invalid, and every proxied request died as a bare no-hops
+    # with nothing anywhere naming the cause (measured live 2026-09-28).
+    # Fail-open is sacred: this NEVER blocks the boot, it only makes the
+    # absence impossible to scroll past.
+    try:
+        _boot_registry = router_health.registry_path()
+        if not _boot_registry.exists():
+            print(
+                f"router_server: REGISTRY MISSING: {_boot_registry} does not "
+                f"exist — the validate gate is invalid and every resolve "
+                f"falls back to the committed sample tables (no-hops). "
+                f"Fix: run scripts/router_seed.py to generate it. "
+                f"Continuing (fail-open).",
+                file=sys.stderr,
+                flush=True,
+            )
+    except Exception as _reg_exc:  # noqa: BLE001 — advisory, never fatal
+        print(
+            f"router_server: registry presence check failed ({_reg_exc}) — "
+            f"continuing (fail-open)",
+            file=sys.stderr,
+        )
 
     # TR-129: read session metadata from the upstream /v1/capabilities at
     # startup. This is an ADVISORY probe — it records what the upstream
