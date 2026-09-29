@@ -40,3 +40,4 @@ data/state/outcomes-averages.jsonl
 .gitreins/config.yaml.bak
 data/state/outcomes.jsonl.backup-*
 data/state/outcomes.jsonl.bak-*
+.coding-hermes/board/.lock
