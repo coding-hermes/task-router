@@ -67,7 +67,7 @@ a{color:var(--blu)}
 </div>
 
 <div class="toc">
-<a href="#s1">1 Stats: JSONL → averages</a><a href="#s2">2 The pending test</a><a href="#s3">3 Features delivered</a><a href="#s4">4 Remote lane</a><a href="#s5">5 Open work</a><a href="#s6">6 Verdict</a>
+<a href="#s1">1 Stats: JSONL → averages</a><a href="#s2">2 The pending test</a><a href="#s3">3 Features delivered</a><a href="#s4">4 Remote lane</a><a href="#s5">5 Open work</a><a href="#s6">6 Verdict</a><a href="#s7">7 Bunker end-to-end</a>
 </div>
 
 <h2 id="s1">1 · Your question: is everything logged and rolled up?</h2>
@@ -179,6 +179,32 @@ independent ledger census of the proxy rows in that window:
 <p><b>Remote:</b> two live agents, protected, responsive; the offload KPI is carried forward rather than re-measured, and I'd rather say that than quote a stale number as current.</p>
 </div>
 
+
+<h2 id="s7">7 · The bunker end-to-end: a real remote Hermes through the router</h2>
+<div class="card">
+<div class="kicker g">PASSED &mdash; a Hermes on dedi-2 answered through the router</div>
+<p>There was <b>no Hermes in any bunker agent</b> (12 homes checked across two servers), so one was stood up: <code>uv tool install hermes-agent</code> &rarr; <b>Hermes Agent v0.19.0</b>, user-space, no sudo. It was then pointed at the proxy as an ordinary OpenAI provider.</p>
+<pre>$ hermes chat -q "Reply with exactly: BUNKER-OK-FINAL" -Q
+rc=0
+session_id: 20260929_021044_786710
+BUNKER-OK-FINAL            &lt;- the answer came back through the task router
+
+ledger: 871 -&gt; 872 rows for that message   (amplification 1.00, identical to the local harness)</pre>
+<p><b>Model selection, verified:</b> the Hermes asked for <code>z-ai/glm-5.3-flash</code> and the router served <code>xkiro/minimax/minimax-m3:free</code> &mdash; the router chooses, the <code>model</code> field does not pin a lane.</p>
+<p><b>The fallback chain, verified in the row:</b> a 160-hop chain, 30 hops skipped with named reasons, and when the first hops failed the chain advanced:</p>
+<pre>attempts: hop 1 xkiro/qwen3.7-plus:free   status=401  transport-failure  0.008s
+          hop 2 xkiro-2/qwen3.7-plus:free status=401  transport-failure  ...
+          hop 3 xkiro/qwen3.8-max:free    status=401  transport-failure  0.001s
+
+exclusions (why hops were dropped BEFORE being tried):
+  hop 24 ollama-cloud/glm-5.3-flash   health DOWN (2026-09-28T23:00:38+00:00)   [health-down]
+  hop 25 openrouter/~z-ai/glm-flash   quota GATED: blocked                       [quota-gated]
+  hop 26 opencode-go/glm-5.3-flash    health DOWN, model down                    [health-down, model-down]</pre>
+<p><b>The 401 was mine, not the router's &mdash; and proving that was the point.</b> The agent's <code>.env</code> held the right key (hashes matched: <code>08a624b483c0a8f6</code>) but <code>api_key_env</code> did not resolve from the file, so nothing was sent. With the key in the process environment, a raw curl from the agent returned <b>200 on both</b> <code>/v1/chat/completions</code> and <code>/v1/responses</code>, with real completions. Diagnosis before blame.</p>
+<p><b>Metrics from a remote client:</b> one ledger row per message, prompt_chars, tokens_in 49,142 / tokens_out 13&ndash;19, per-hop status + latency, <code>price_basis</code> honest (<code>no price on this hop; cost unknown</code> for a <code>:free</code> lane &mdash; NULL with a reason, never a fake zero).</p>
+<p><b>Three things this does NOT prove, stated plainly:</b> the selection was <b>not</b> complexity-driven (every row came back <code>classifier-empty</code> or <code>default</code> with <code>degrade_reason: no JSON object in classifier output</code> &mdash; a vanilla provider call carries no task profile, so the floor profile <code>P0_FORE</code> was used); cost coverage is still 0% on these lanes; and the probe never ran concurrently with fleet load, so the flip's own rehearsal (section 2) remains the load evidence, not this.</p>
+<p>Filed on the board: <b>TR-235</b> (a missing registry must be loud), <b>TR-237</b> (a vanilla provider call carries no task profile), <b>TR-238</b> (no bunker agent ships a Hermes).</p>
+</div>
 <div class="foot">
 Measured 2026-09-28 · repo commit <code>17c66ab</code> (and <code>34ed37d</code> for the deployed services) · services <code>task-router-server</code> :9092 + <code>task-router-proxy</code> :9391, both <code>stale=false, gate.valid=true</code> · rehearsal harness <code>scripts/dummy_scheduler.py</code> · remote facts from <code>bunker list</code> (bunker-mvp) · acceptance artifact <code>/tmp/proxy-acceptance-1790637110.json</code>.
 </div>
