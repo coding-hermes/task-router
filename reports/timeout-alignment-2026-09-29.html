@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Timeout &amp; failure-class alignment — task-router (2026-09-29)</title>
+<style>
+:root{--bg:#0d1117;--panel:#161b22;--panel2:#1c2330;--line:#2d3646;--txt:#e6edf3;--mut:#9aa7b8;--grn:#3fb950;--amb:#d29922;--red:#f85149;--blu:#58a6ff;--pur:#bc8cff}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--txt);font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+.wrap{max-width:1040px;margin:0 auto;padding:30px 20px 74px}
+.hero{background:linear-gradient(135deg,#12233a,#1a1033);border:1px solid var(--line);border-radius:14px;padding:30px 28px}
+.hero h1{margin:0 0 6px;font-size:27px}.sub{color:var(--mut);margin:0 0 14px}
+.badges{display:flex;flex-wrap:wrap;gap:8px}
+.badge{font-size:13px;padding:3px 12px;border-radius:20px;border:1px solid var(--line);background:#0d1526;color:var(--red)}
+.badge.g{color:var(--grn)}.badge.a{color:var(--amb)}
+h2{margin:34px 0 8px;font-size:21px;border-bottom:1px solid var(--line);padding-bottom:8px}
+h3{margin:20px 0 4px;font-size:16px;color:var(--blu)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px;margin:14px 0}
+pre{background:#0a0e14;border:1px solid var(--line);border-radius:8px;padding:13px 15px;overflow-x:auto;font-size:13px;line-height:1.55;white-space:pre-wrap;word-break:break-word}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13.5px}
+table{width:100%;border-collapse:collapse;font-size:13.5px;margin:10px 0}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+th{background:var(--panel2);color:var(--blu)}tr:nth-child(even) td{background:#11161f}
+td.bad{color:var(--red)}td.ok{color:var(--grn)}td.warn{color:var(--amb)}
+.kicker{display:inline-block;font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;padding:3px 11px;border-radius:20px;border:1px solid var(--line);background:#0d1526;margin-bottom:9px;color:var(--red)}
+.kicker.g{color:var(--grn)}.kicker.b{color:var(--blu)}
+.foot{color:var(--mut);font-size:13px;margin-top:34px;border-top:1px solid var(--line);padding-top:14px}
+ul.tight li{margin-bottom:6px}
+@media(max-width:600px){.hero h1{font-size:22px}}
+</style></head><body><div class="wrap">
+
+<div class="hero">
+<h1>Timeout &amp; failure-class alignment</h1>
+<p class="sub">Built from the failure-path report (TR-136/TR-137). The goal: the router must always answer <b>before</b> the caller gives up, so callers receive an explainable envelope instead of their own blind timeout &mdash; and every failure class means exactly one thing.</p>
+<div class="badges">
+<span class="badge">&#10008; buffered hop killed at 180s while the caller waits 1800s</span>
+<span class="badge a">&#9888; one file, two different budget rules</span>
+<span class="badge g">&#10004; refusals already carry 429 + Retry-After</span>
+</div>
+</div>
+
+<h2>1 &middot; The ladder as measured (each layer's own source)</h2>
+<div class="card">
+<table>
+<tr><th>Layer / budget</th><th>Where it comes from</th><th>Value</th></tr>
+<tr><td>Caller patience (a scheduler turn)</td><td><code>SCHEDULER_GATEWAY_RESPONSE_TIMEOUT</code> (30m)</td><td class="ok">1800s</td></tr>
+<tr><td>Gateway turn budget (the router's upstream)</td><td><code>gateway_timeout</code> in config.yaml</td><td class="ok">3600s</td></tr>
+<tr><td>Router: wall ceiling per request</td><td><code>ROUTER_PROXY_HOP_WALL_S</code></td><td class="ok">3600s</td></tr>
+<tr><td>Router: idle budget (<b>streaming</b> hops &rarr; budget = max(idle, wall))</td><td><code>ROUTER_PROXY_IDLE_TIMEOUT_S</code> (live)</td><td class="ok">1800s &rarr; effective 3600s</td></tr>
+<tr><td>Router: per-hop budget (<b>buffered</b> hops)</td><td><code>ROUTER_PROXY_HOP_TIMEOUT_S</code></td><td class="bad">180s</td></tr>
+<tr><td>Router: admission</td><td>MAX_INFLIGHT 8 &middot; QUEUE_MAX 32 &middot; QUEUE_WAIT_S 20</td><td class="warn">40 in flight, 20s wait</td></tr>
+<tr><td>Provider-level client timeouts</td><td><code>request_timeout_seconds</code> per provider</td><td class="warn">90s and 600s in the fleet config</td></tr>
+</table>
+<pre>streaming hop : budget = max(idle_budget 1800, wall_ceiling 3600)  = 3600s
+buffered hop  : budget = _proxy_hop_timeout_s()                    =  180s   &#60;-- the problem
+one other path: timeout = max(_proxy_hop_timeout_s(), _hermes_idle_timeout_s())   &#60;-- a second, different rule</pre>
+<p><b>The misalignment:</b> a buffered hop is killed <b>10&times; earlier</b> than the client's patience. A model that is slow but alive gets reported as a hop failure at 180s while the caller was still willing to wait 1800s &mdash; and the natural reaction to a hop failure is a retry, which multiplies load. That is the mechanism behind "systems freak out".</p>
+</div>
+
+<h2>2 &middot; The invariant to enforce</h2>
+<div class="card">
+<div class="kicker">inner budgets must expire BEFORE the outer one, with margin</div>
+<pre>hop_budget   &#60; caller_tolerance  - margin        (proposed: 1500 &#60; 1800 - 300)
+idle_budget  &#60; caller_tolerance  - margin        (so the router answers first)
+envelope     always delivered by the router, never by the caller's own timeout</pre>
+<p><b>Today's acceptance check is too weak to catch this:</b> <code>budget_alignment</code> passes when <code>idle &gt;= tolerate/2</code> &mdash; i.e. the proxy may give up at <i>half</i> the caller's patience and still be graded aligned. It should require the ordered relationship plus a margin.</p>
+</div>
+
+<h2>3 &middot; What a caller should do with each class</h2>
+<div class="card">
+<table>
+<tr><th>Class</th><th>Meaning</th><th>Caller action</th></tr>
+<tr><td><code>overloaded</code></td><td>admission refused, work never started</td><td><b>retry</b>, honour <code>Retry-After</code> (already carried)</td></tr>
+<tr><td><code>idle-timeout</code></td><td>hop slow but alive; silence exceeded the budget</td><td><b>retry</b> same task or let the ladder advance &mdash; never escalate on the first</td></tr>
+<tr><td><code>transport-error</code> / <code>upstream-5xx</code></td><td>the hop died</td><td>ladder advances internally; caller retries only if the chain is exhausted</td></tr>
+<tr><td><code>hop-wall-timeout</code></td><td>the wall ceiling expired</td><td>ladder advances; escalate if terminal</td></tr>
+<tr><td><code>upstream-4xx</code></td><td><b>client fault</b>: auth, params, wire shape</td><td><b>stop</b> &mdash; never retry, never burn the ladder (TR-096 precedent)</td></tr>
+<tr><td><code>no-hops</code> / <code>unservable-2xx</code></td><td>no eligible lane cleared the matrix</td><td><b>stop</b> and escalate to a board row</td></tr>
+<tr><td><code>gated-by-policy</code></td><td>quota / health / circuit excluded the lane</td><td>ladder advances; the caller does not retry the same lane</td></tr>
+<tr><td><code>failed</code></td><td>chain exhausted</td><td><b>stop</b> and escalate &mdash; envelope must carry the full ladder (TR-136 standard)</td></tr>
+</table>
+<pre>classes seen in the ledger (last 20k rows):
+  no-hops         492   upstream-4xx     95   hop-wall-timeout  73
+  overloaded       60   transport-error  15   idle-timeout       2</pre>
+<p><b>Two precedents this table exists to stop repeating:</b> TR-096 (a client-fault rejection burned the whole ladder because it was treated as retryable) and TR-136/137 (a failure envelope with <code>served_by</code>, <code>usage</code>, <code>cost</code>, <code>session</code> all null, and a slow-but-alive hop reported exactly like a dead one).</p>
+</div>
+
+<h2>4 &middot; The changes to make</h2>
+<div class="card">
+<table>
+<tr><th>#</th><th>Change</th><th>Why</th></tr>
+<tr><td>1</td><td>One budget rule: the buffered-hop budget raised (180 &rarr; 1500) and the two code paths that compute a hop budget unified.</td><td>A slow-but-alive hop is never killed 10&times; before the caller gives up.</td></tr>
+<tr><td>2</td><td>The invariant asserted in tests: <code>hop_budget &lt; tolerance - margin</code> and <code>idle_budget &lt; tolerance - margin</code>.</td><td>Ordering is a property to check, not a hope.</td></tr>
+<tr><td>3</td><td><code>budget_alignment</code> tightened from <code>idle &gt;= tolerance/2</code> to the ordered relationship.</td><td>The gate must not grade a half-budget as aligned.</td></tr>
+<tr><td>4</td><td>The live ladder exposed in the health payload / <code>/proxy/stats</code>.</td><td>An operator sees the budgets instead of grepping defaults.</td></tr>
+<tr><td>5</td><td>The class &rarr; caller-action table implemented as one constant the tests import, and enforced per class.</td><td>No class unmapped; no client inventing its own interpretation.</td></tr>
+<tr><td>6</td><td>Any provider-pointed client states its patience; a client below the router's idle budget is detectable.</td><td>The smallest number in the chain must not be the client's.</td></tr>
+</table>
+<p>Filed as <b>TR-241, TR-242</b> on the task-router board.</p>
+</div>
+
+<div class="foot">
+Measured 2026-09-29 from <code>scripts/router_server.py</code>, <code>scripts/proxy_acceptance.py</code>, the live proxy env
+(<code>systemctl --user show task-router-proxy.service</code>), <code>~/.hermes/config.yaml</code>, the Go scheduler constants,
+and the ledger <code>data/state/outcomes.jsonl</code> (last 20,000 lines). Companion reports: status-2026-09-29,
+complexity-dynamic-design-2026-09-29.
+</div>
+</div></body></html>
