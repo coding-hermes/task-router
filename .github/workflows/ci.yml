@@ -11,7 +11,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20  # RELEASE-005: full suite outgrew 10m — runs on e14b744+ were cancelled mid-suite
     steps:
       - uses: actions/checkout@v4
 
