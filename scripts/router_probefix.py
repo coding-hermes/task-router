@@ -49,8 +49,10 @@ import urllib.error
 
 MR = os.environ.get('ROUTER_STATE_DIR', os.path.expanduser('~/.hermes/model-router'))
 HEALTH_JSONL = f'{MR}/health.jsonl'
+# TR-202: realpath — symlinked live install; abspath resolved DATA_DIR to the
+# nonexistent ~/.hermes/data/tables (probe-explanation tables never found).
 DATA_DIR = os.environ.get('ROUTING_DATA_DIR',
-                          os.path.dirname(os.path.dirname(os.path.abspath(__file__))) + '/data/tables')
+                          os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + '/data/tables')
 MODELSDEV_CACHE = os.environ.get('MODELSDEV_CACHE', os.path.expanduser('~/.chimera/models-dev-cache.json'))
 ENV_FILE = os.environ.get('ROUTER_ENV_FILE', os.path.expanduser('~/.hermes/.env'))
 CONFIG = os.environ.get('ROUTER_HERMES_CONFIG', os.path.expanduser('~/.hermes/config.yaml'))

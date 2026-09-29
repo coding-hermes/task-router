@@ -76,12 +76,11 @@ import subprocess
 import sys
 import urllib.request
 
-_SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
-if _SCRIPTS_DIR not in sys.path:
-    sys.path.insert(0, _SCRIPTS_DIR)
 import lifecycle_gate  # noqa: E402  (TR-199: R4 no anonymous dates)
 
-_REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# TR-202: realpath — symlinked live install; abspath put _REPO on ~/.hermes,
+# wrong for DATA_DIR, the board tasks.jsonl (:611) and git operations (:784+).
+_REPO = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 DATA_DIR = os.environ.get('ROUTING_DATA_DIR', os.path.join(_REPO, 'data', 'tables'))
 CACHE = os.environ.get('MODELSDEV_CACHE', os.path.expanduser('~/.chimera/models-dev-cache.json'))
 MODELSDEV_URL = 'https://models.dev/api.json'

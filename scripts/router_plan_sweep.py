@@ -26,13 +26,13 @@ import json
 import os
 import sys
 
-_SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
-if _SCRIPTS_DIR not in sys.path:
-    sys.path.insert(0, _SCRIPTS_DIR)
 import lifecycle_gate  # noqa: E402  (TR-199: R4 no anonymous dates)
 
-_REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DATA_DIR = os.path.join(_REPO, 'data', 'tables')
+# TR-202: realpath — symlinked live install; abspath resolved DATA_DIR to
+# ~/.hermes/data/tables, which does not exist, so every _rows() read came up empty.
+# ROUTING_DATA_DIR override matches the sibling tools (provider_health_probe.py).
+_REPO = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+DATA_DIR = os.environ.get('ROUTING_DATA_DIR', os.path.join(_REPO, 'data', 'tables'))
 
 
 def _rows(name):

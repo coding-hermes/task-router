@@ -26,12 +26,17 @@ import os
 import sys
 import sys
 
-_REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# TR-202: realpath — this script is symlinked at ~/.hermes/scripts/; abspath
+# resolved _REPO to ~/.hermes and DATA_DIR to a nonexistent tables dir.
+_REPO = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 DATA_DIR = os.environ.get('ROUTING_DATA_DIR', os.path.join(_REPO, 'data', 'tables'))
 CATS = 24
 
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # sibling tools
+# TR-202: realpath for uniformity — behavior was already safe here (sys.path[0]
+# is the real dir when exec'd through the symlink), but the abspath idiom is
+# banned for live-installed tools by the TR-202 guard.
+sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))  # sibling tools
 from router_spawn import row_is_retired  # noqa: E402
 
 def _rows(name):
