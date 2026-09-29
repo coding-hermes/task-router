@@ -431,23 +431,38 @@ def test_model_down_reason_carries_timestamp(monkeypatch, tmp_path):
 
 def test_circuit_open_exclusion_reason_format(monkeypatch, tmp_path):
     """Breaker regression: exact reason format 'circuit OPEN until ... (N failures)'.
-    open_until must be in the FUTURE (ISO strings compare lexicographically)."""
+    open_until must be in the FUTURE (ISO strings compare lexicographically).
+
+    The breaker contract is per-pair and independent of WHICH lane carries it,
+    so the circuit is opened on the CURRENT chain head (derived from the same
+    tables the resolve runs on) instead of a hardcoded pair. The original
+    hardcoded pair, opencode-go/mimo-v2.5, stopped being gate-reachable when
+    968e480 (TR-232 next-wave sweep) re-scored its 'test' tier 0 -> -1: the
+    pair now tier-misses P1_CODING's test>=0 bar in the PRE-GATE eligibility
+    filter, and ROUTER-MISS lanes never appear in exclusions — a circuit on
+    them is unobservable, so the fixture drifted.
+    """
     tables = _load_tables()
     future = (datetime.datetime.now(datetime.timezone.utc)
               + datetime.timedelta(seconds=300)).isoformat(timespec="seconds")
     state = _prod_state(tmp_path, tables)
+    # Baseline resolve: the head is provably gate-reachable (chain[0] BEFORE
+    # the breaker trips), so opening a circuit on it exercises the OPEN-pair
+    # exclusion path — no hardcoded pair to drift with the next re-rank.
+    monkeypatch.setattr(router_spawn, "MR", state)
+    head = router_spawn.resolve(profile_id="P1_CODING")["chain"][0]
+    target = f"{head['provider']}/{head['model']}"
     with open(os.path.join(state, "circuit-state.json")) as f:
         c = json.load(f)
-    c["pairs"]["opencode-go/mimo-v2.5"] = {"failures": 1, "open_until": future}
+    c["pairs"][target] = {"failures": 1, "open_until": future}
     with open(os.path.join(state, "circuit-state.json"), "w") as f:
         json.dump(c, f)
-    monkeypatch.setattr(router_spawn, "MR", state)
     r = _resolve(monkeypatch, tmp_path, tables, profile="P1_CODING")
     for e in r["exclusions"]:
-        if _pair(e) == "opencode-go/mimo-v2.5":
+        if _pair(e) == target:
             assert any(f"circuit OPEN until {future} (1 failures)" in w for w in e["why"]), e
             return
-    pytest.fail("exclusion for open pair missing")
+    pytest.fail(f"exclusion for open pair missing: {target}")
 
 
 # ------------------------------------------------------ ordering / tie-breaks ----
