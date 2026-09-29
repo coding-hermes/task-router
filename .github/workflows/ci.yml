@@ -14,6 +14,13 @@ jobs:
     timeout-minutes: 20  # RELEASE-005: full suite outgrew 10m — runs on e14b744+ were cancelled mid-suite
     steps:
       - uses: actions/checkout@v4
+        with:
+          # TR-202 follow-up 2026-09-29: tests reference history
+          # (test_tr168 pins data state against 1fcd9aa) — default depth-1
+          # checkout made `git show 1fcd9aa:...` exit 128 in CI while the
+          # same test passed locally. Repo history is text-JSONL; full
+          # fetch is cheap.
+          fetch-depth: 0
 
       - uses: actions/setup-python@v5
         with:
