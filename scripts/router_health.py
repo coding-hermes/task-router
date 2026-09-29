@@ -210,18 +210,33 @@ def registry_age():
 
     `exists: false` + age None is not stale — it is absent, and the gate's
     `registry.exists` check reports it as invalid. Never fabricates.
+
+    TR-235: `state` makes the absent case LOUD instead of silent. It is the
+    one-word verdict over this block: 'missing' (file absent — the gate is
+    invalid because there is nothing to gate), 'stale' (the freshness
+    predicate says so), 'ok' (fresh), or 'error' (the block could not run —
+    also never silence). The 2026-09-28 incident: a serving instance had no
+    registry.json at all, and because `stale` was null-with-no-comment on an
+    absent file, every canary built on `stale OR gate.valid is false` had the
+    raw material but no single honest field to alert on.
     """
     path = registry_path()
     out = {"path": str(path), "exists": path.exists(),
            "mtime": None, "age_s": None, "age_h": None,
            "newest_table": None, "newest_table_age_s": None, "lag_s": None,
-           "content_match": None, "stale": None}
+           "content_match": None, "stale": None,
+           # TR-235: the tri-state verdict. 'missing' FIRST — an absent file
+           # is not a stale one, and conflating them is how absence read as
+           # silence.
+           "state": "ok"}
     if not out["exists"]:
+        out["state"] = "missing"
         return out
     try:
         mtime = path.stat().st_mtime
     except OSError as exc:
         out["error"] = str(exc)
+        out["state"] = "error"
         return out
     now = time.time()
     out["mtime"] = datetime.datetime.fromtimestamp(
@@ -235,6 +250,11 @@ def registry_age():
         out["lag_s"] = round(fresh["lag_s"], 3)
         out["content_match"] = fresh.get("content_match")
         out["stale"] = fresh.get("stale")
+        # TR-235: the SAME predicate decides the verdict — a stale flag here
+        # IS the 'stale' state, no re-derivation (the content tiebreak stays
+        # authoritative; a lagging-but-byte-identical registry stays 'ok').
+        if fresh.get("stale"):
+            out["state"] = "stale"
         newest = Path(data_dir) / str(fresh["newest_table"])
         try:
             out["newest_table_age_s"] = round(now - newest.stat().st_mtime, 3)
@@ -242,6 +262,7 @@ def registry_age():
             pass
     else:
         out["error"] = fresh.get("detail")
+        out["state"] = "error"
     return out
 
 
@@ -400,8 +421,19 @@ def health(mode="read-only", data_dir=None):
     try:
         out["registry_age"] = registry_age()
     except Exception as exc:  # noqa: BLE001
-        out["registry_age"] = {"error": str(exc)}
+        out["registry_age"] = {"error": str(exc), "state": "error"}
     out["gate"] = validate_gate()
+    # TR-235: the one-word registry verdict as a TOP-LEVEL key, so a canary
+    # alerts on `health.registry_state != 'ok'` instead of re-deriving the
+    # verdict from registry_age internals (the re-derivation is exactly how
+    # the 2026-09-28 incident's ABSENT registry read as silence: no file ->
+    # no stale flag -> no alert). Mirrors registry_age.state; 'error' when
+    # the block itself could not run. Never folded into `stale` (which stays
+    # the code-identity deploy-parity verdict above).
+    try:
+        out["registry_state"] = out["registry_age"].get("state") or "error"
+    except Exception:  # noqa: BLE001 — fail-open, never a 500 on /health
+        out["registry_state"] = "error"
     return out
 
 
@@ -486,5 +518,14 @@ def model_status(provider=None, data_dir=None):
             "valid_from": row.get("valid_from"),
             "provider_status": (providers.get(pid) or {}).get("status"),
         })
+    # TR-235: the same loud registry verdict /health carries — an absent
+    # registry must be visible on the per-lane surface too, not only on the
+    # control-plane endpoint. Fail-open: a failing verdict block degrades to
+    # 'error', never a 500 on the status surface.
+    try:
+        registry_state = registry_age().get("state") or "error"
+    except Exception:  # noqa: BLE001
+        registry_state = "error"
     return {"ts": _utc_now(), "provider": provider, "count": len(lanes),
-            "updated": hs.get("updated"), "lanes": lanes}
+            "updated": hs.get("updated"), "lanes": lanes,
+            "registry_state": registry_state}
