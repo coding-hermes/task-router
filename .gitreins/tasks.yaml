@@ -425,3 +425,81 @@ tasks:
   status: complete
   created_at: '2026-09-27T22:19:36.055377+00:00'
   completed_at: '2026-09-27T22:35:58.738770+00:00'
+- id: TR-227
+  title: "Prober resolves providers only from config.yaml \u2014 add probe_providers.jsonl\
+    \ fallback"
+  criteria:
+  - scripts/router_probe_run.py resolves meta-model, commandcode and grok-build lanes
+    via probe_providers.jsonl fallback; focused tests pass; merged to main
+  status: complete
+  created_at: '2026-09-28T20:20:29.954593+00:00'
+  completed_at: '2026-09-28T20:20:34.401676+00:00'
+- id: TR-233
+  title: clinepass wire-id probing (modelType/model prefix)
+  criteria:
+  - prober sends clinepass wire ids so lanes probe 200; focused tests pass; merged
+    to main
+  status: complete
+  created_at: '2026-09-28T20:20:34.761667+00:00'
+  completed_at: '2026-09-28T20:20:41.475519+00:00'
+- id: TR-232
+  title: Undamp probe scores so probes and third-party rows share one rank scale
+  criteria:
+  - probe ingest no longer caps at 0.85; consistent rank scale; focused tests pass;
+    merged to main
+  status: complete
+  created_at: '2026-09-28T20:20:41.803682+00:00'
+  completed_at: '2026-09-28T20:20:46.131123+00:00'
+- id: TR-228
+  title: make seed and make serve disagree on the registry path
+  criteria:
+  - Fresh make seed && make serve starts a server whose /health reports gate.valid=true
+    (registry path resolved identically by both targets); Makefile/README diff proves
+    it; suite green
+  status: complete
+  created_at: '2026-09-28T20:53:44.458715+00:00'
+  completed_at: '2026-09-28T21:28:59.678478+00:00'
+- id: TR-229
+  title: make install never provisions pytest
+  criteria:
+  - make install && make test runs pytest to completion (no ModuleNotFoundError) on
+    a fresh checkout; Makefile adds test deps; suite green
+  status: complete
+  created_at: '2026-09-28T20:53:46.562266+00:00'
+  completed_at: '2026-09-28T21:32:03.374895+00:00'
+- id: DOC-1
+  title: Document the UI data plane routes
+  criteria:
+  - README or docs/ui/data-command-center.md lists /ui + all /api/ui/* routes with
+    query params and honesty fields; grep for all 8 route paths hits the artifact
+  status: complete
+  created_at: '2026-09-28T20:53:48.855272+00:00'
+  completed_at: '2026-09-28T21:51:51.046711+00:00'
+- id: INT-CI-20260928-01
+  title: "CI red: router_probe_run.py imports yaml \u2014 PyYAML not installed in\
+    \ CI"
+  criteria:
+  - 'CI passes: router_probe_run.py and its subprocess tests run under a python env
+    with PyYAML available; a missing yaml module produces a clear error, not ModuleNotFoundError'
+  status: complete
+  created_at: '2026-09-28T22:55:50.856418+00:00'
+  completed_at: '2026-09-29T00:31:38.129371+00:00'
+- id: INT-CI-20260928-02
+  title: 'CI red: head goldens drifted after TR-232 rank rescale'
+  criteria:
+  - All head-golden assertions in test_visibility/test_soft_gate match the current
+    chain output from data/tables (qwen3.7-flash:free on xkiro, deepseek-v4.1-flash
+    on opencode-go)
+  status: complete
+  created_at: '2026-09-28T22:55:50.975266+00:00'
+  completed_at: '2026-09-29T00:31:38.161617+00:00'
+- id: INT-CI-20260928-03
+  title: 'CI red: test_circuit_open_exclusion_reason_format fixture no longer yields
+    an open-circuit exclusion'
+  criteria:
+  - tests/test_regression.py::test_circuit_open_exclusion_reason_format passes with
+    a fixture that genuinely produces an exclusion reason for an OPEN pair (verified
+    green in worktree + CI)
+  status: complete
+  created_at: '2026-09-28T22:55:56.642525+00:00'
+  completed_at: '2026-09-29T00:31:38.101927+00:00'
