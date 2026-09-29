@@ -519,7 +519,11 @@ BENCH_OVERLAY = {
 _derived_keys = {}
 try:
     import importlib.util as _ilu
-    _p = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'router_probe_ingest.py')
+    # TR-202: realpath — abspath here resolved the sibling through the LINK dir,
+    # which only worked while router_probe_ingest.py was itself a symlink (and
+    # reads the main tree's code from a worktree run). Resolve against the
+    # running file's real tree under every install topology.
+    _p = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'router_probe_ingest.py')
     _spec = _ilu.spec_from_file_location('_probe_ingest_for_keys', _p)
     _mod = _ilu.module_from_spec(_spec)
     _spec.loader.exec_module(_mod)

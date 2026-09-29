@@ -34,7 +34,10 @@ import subprocess
 import sys
 import urllib.request
 
-_REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# TR-202: realpath, not abspath — the live install at ~/.hermes/scripts/ is a
+# SYMLINK into the repo, so __file__ is the link path and abspath(_REPO) landed
+# on ~/.hermes, where data/tables does not exist (measured 2026-09-29).
+_REPO = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 DATA_DIR = os.environ.get('ROUTING_DATA_DIR', os.path.join(_REPO, 'data', 'tables'))
 BASE = 'https://api.cline.bot/api/v1'
 UA = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36'}

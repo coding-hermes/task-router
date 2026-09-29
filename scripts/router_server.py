@@ -640,7 +640,10 @@ class RouterApplication:
                     query, router_outcomes.outcomes_path())
             if path == "/api/ui/board":
                 # TR-150/156: the board panel's search over the repo's JSONL board.
-                _repo = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                # TR-202: realpath — the live router_web-managed server execs this
+                # file through the ~/.hermes/scripts symlink, so __file__ is the
+                # link path and abspath landed _repo on ~/.hermes (no board there).
+                _repo = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
                 return 200, router_ui_page.board_search(
                     query, os.path.join(_repo, '.coding-hermes', 'board', 'tasks.jsonl'),
                     repo_root=_repo)
@@ -3026,8 +3029,10 @@ def _proxy_chat_inner(path, body, headers, max_hops=None, upstream=None):
     caller_problems = []
     if caller:
         try:
+            # TR-202: realpath — through the live ~/.hermes/scripts symlink the
+            # abspath form resolved a drivers/ dir that does not exist.
             sys.path.insert(0, os.path.join(
-                os.path.dirname(os.path.abspath(__file__)), 'drivers'))
+                os.path.dirname(os.path.realpath(__file__)), 'drivers'))
             import drivers
             if caller not in drivers.list_drivers():
                 caller_problems.append(

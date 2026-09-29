@@ -54,7 +54,9 @@ if _HERE not in sys.path:
 from pricing import BY_BILLING_MODEL, MANUAL_FORMULA_MODELS  # noqa: E402
 from pricing import helpers as pricing_helpers  # noqa: E402
 
-_REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# TR-202: realpath — symlinked live install; abspath put _REPO on ~/.hermes
+# while _HERE (sys.path seeding, above) already resolved the real tree.
+_REPO = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 DATA_DIR = os.environ.get('ROUTING_DATA_DIR', os.path.join(_REPO, 'data', 'tables'))
 
 
