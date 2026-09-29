@@ -76,6 +76,9 @@ import subprocess
 import sys
 import urllib.request
 
+_SCRIPTS_DIR = os.path.dirname(os.path.realpath(__file__))
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
 import lifecycle_gate  # noqa: E402  (TR-199: R4 no anonymous dates)
 
 # TR-202: realpath — symlinked live install; abspath put _REPO on ~/.hermes,

@@ -144,8 +144,20 @@ def test_deduped_pair_keeps_union_row_with_twin_provenance(
 
 def test_only_the_five_twin_lines_were_removed_and_survivors_edited():
     """The dedupe touched ONLY the 5 fold sites: every other line of the file
-    is byte-identical to the pre-dedupe commit (1fcd9aa), the 5 twin lines are
-    gone, and exactly the 5 survivor lines differ (union + note)."""
+    is lane-identical (same provider/model, same values) to the pre-dedupe
+    commit (1fcd9aa), the 5 twin lines are gone, and exactly the 5 survivor
+    lines differ (union + note).
+
+    2026-09-29: two post-dedupe evolutions broke the original byte-pin
+    (date-rot, TR-135 class): (a) TR-199 ported dated `lifecycle_source`s onto
+    post-dedupe rows (values legitimately evolve), and (b) the seed's
+    tail-sync stamps schema columns (`note`, null) onto every rewritten row,
+    which AC3's roundtrip test below REQUIRES to survive. A frozen-value pin
+    against a historical snapshot can therefore not hold. What stays pinned:
+    the line count (exactly the 5 twins removed), the lane SEQUENCE (every
+    position keeps its provider/model — no accidental line replacement), and
+    exactly the 5 survivor lines differing. Substance is pinned by the
+    uniqueness test above and the per-pair union/provenance test below."""
     pre = subprocess.run(["git", "show", "1fcd9aa:data/tables/models.jsonl"],
                          capture_output=True, text=True, check=True,
                          cwd=REPO).stdout
@@ -162,9 +174,16 @@ def test_only_the_five_twin_lines_were_removed_and_survivors_edited():
         if (pi + 1) in SURVIVOR_LINES:
             survivors_edited.append(pi + 1)
         else:
-            assert pre_lines[pi] == post, (
-                f"line {pi + 1} must be byte-identical — only the 5 fold sites "
-                f"may change: {pre_lines[pi][:100]!r} vs {post[:100]!r}")
+            pre_row = json.loads(pre_lines[pi])
+            post_row = json.loads(post)
+            # 2026-09-29: values legitimately evolve post-dedupe (TR-199
+            # lifecycle ports, schema stamping on seed rewrite) — pin the
+            # lane IDENTITY at every position instead of frozen values.
+            assert (pre_row.get("provider"), pre_row.get("model")) == (
+                post_row.get("provider"), post_row.get("model")), (
+                f"line {pi + 1} must keep its lane identity "
+                f"({pre_row.get('provider')}/{pre_row.get('model')} must not "
+                f"be replaced): {pre_lines[pi][:100]!r} vs {post[:100]!r}")
         pi += 1
     while (pi + 1) in TWIN_LINES:
         pi += 1

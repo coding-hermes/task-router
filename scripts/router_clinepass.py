@@ -30,10 +30,14 @@ import argparse
 import datetime
 import json
 import os
-import subprocess
 import sys
+
+import subprocess
 import urllib.request
 
+_SCRIPTS_DIR = os.path.dirname(os.path.realpath(__file__))
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
 import lifecycle_gate  # noqa: E402  (TR-199: R4 no anonymous dates)
 
 # TR-202: realpath, not abspath — the live install at ~/.hermes/scripts/ is a
