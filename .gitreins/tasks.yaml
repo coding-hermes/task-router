@@ -527,3 +527,19 @@ tasks:
   - Implementation committed on wt/DOC-2, tests green, acceptance criteria met
   status: in_progress
   created_at: '2026-09-29T08:27:07.724841+00:00'
+- id: TR-217
+  title: Weekly research lane 1/3 model data (week 2026-09-22)
+  criteria:
+  - Model catalog verified against live provider lists via the generated-tables path;
+    changes (new/removed/renamed/ctx-changed) exported and committed to both ns repos,
+    or an explicit dated no-change closeout with sources listed
+  status: in_progress
+  created_at: '2026-09-29T13:21:17.233429+00:00'
+- id: TR-242
+  title: Failure class caller-action contract
+  criteria:
+  - Single table maps every failure class to one caller action (retry-after/advance/stop);
+    client-fault classes never retried; tests pin the mapping and closed class set
+  status: complete
+  created_at: '2026-09-29T15:21:23.499957+00:00'
+  completed_at: '2026-09-29T16:28:54.522650+00:00'
