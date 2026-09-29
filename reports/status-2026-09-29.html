@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>task-router — where we are (2026-09-29)</title>
+<style>
+:root{--bg:#0d1117;--panel:#161b22;--panel2:#1c2330;--line:#2d3646;--txt:#e6edf3;--mut:#9aa7b8;--grn:#3fb950;--amb:#d29922;--red:#f85149;--blu:#58a6ff;--pur:#bc8cff}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--txt);font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+.wrap{max-width:1040px;margin:0 auto;padding:30px 20px 74px}
+.hero{background:linear-gradient(135deg,#12233a,#1a1033);border:1px solid var(--line);border-radius:14px;padding:30px 28px}
+.hero h1{margin:0 0 6px;font-size:28px}.sub{color:var(--mut);margin:0 0 14px}
+.badges{display:flex;flex-wrap:wrap;gap:8px}
+.badge{font-size:13px;padding:3px 12px;border-radius:20px;border:1px solid var(--line);background:#0d1526;color:var(--blu)}
+.badge.g{color:var(--grn)}.badge.a{color:var(--amb)}.badge.r{color:var(--red)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(126px,1fr));gap:11px;margin:18px 0 0}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center}
+.stat b{display:block;font-size:22px;color:var(--blu)}.stat span{font-size:12.5px;color:var(--mut)}
+h2{margin:34px 0 8px;font-size:21px;border-bottom:1px solid var(--line);padding-bottom:8px}
+h3{margin:20px 0 4px;font-size:15.5px;color:var(--blu)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px;margin:14px 0}
+pre{background:#0a0e14;border:1px solid var(--line);border-radius:8px;padding:13px 15px;overflow-x:auto;font-size:13px;line-height:1.55;white-space:pre-wrap;word-break:break-word}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13.5px}
+table{width:100%;border-collapse:collapse;font-size:13.5px;margin:10px 0}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+th{background:var(--panel2);color:var(--blu)}tr:nth-child(even) td{background:#11161f}
+.kicker{display:inline-block;font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;padding:3px 11px;border-radius:20px;border:1px solid var(--line);background:#0d1526;margin-bottom:9px;color:var(--grn)}
+.kicker.a{color:var(--amb)}.kicker.r{color:var(--red)}.kicker.b{color:var(--blu)}
+.q{background:#111a26;border-left:3px solid var(--pur);border-radius:6px;padding:11px 14px;margin:11px 0}
+.q b{color:var(--pur)}
+ul.tight li{margin-bottom:7px}
+.toc{font-size:14px;color:var(--mut);margin-top:12px}.toc a{margin-right:12px;white-space:nowrap;color:var(--blu);text-decoration:none}
+.foot{color:var(--mut);font-size:13px;margin-top:34px;border-top:1px solid var(--line);padding-top:14px}
+@media(max-width:600px){.hero h1{font-size:22px}}
+</style></head><body><div class="wrap">
+
+<div class="hero">
+<h1>task-router — where we are</h1>
+<p class="sub">2026-09-29 &middot; everything below is measured this session, including the two things that got <b>worse</b> since the last report.</p>
+<div class="badges">
+<span class="badge g">&#10004; proxy deployed &amp; verified</span>
+<span class="badge g">&#10004; real remote client answers through it</span>
+<span class="badge a">&#9888; flip blocked (TR-239)</span>
+<span class="badge r">&#10008; CI red on main</span>
+<span class="badge r">&#10008; the CI gate did not stop it</span>
+</div>
+<div class="grid">
+<div class="stat"><b>34ed37d</b><span>proxy commit live</span></div>
+<div class="stat"><b>878</b><span>proxied rows</span></div>
+<div class="stat"><b>92.0%</b><span>served today</span></div>
+<div class="stat"><b>0.0%</b><span>served 09-27 (broken window)</span></div>
+<div class="stat"><b>66</b><span>board rows pending</span></div>
+<div class="stat"><b>194</b><span>board rows complete</span></div>
+</div>
+<div class="toc"><a href="#s1">1 Headline</a><a href="#s2">2 Proxy</a><a href="#s3">3 Flip gate</a><a href="#s4">4 Admission</a><a href="#s5">5 CI + gate hole</a><a href="#s6">6 Complexity</a><a href="#s7">7 Board</a><a href="#s8">8 What I need</a></div>
+</div>
+
+<h2 id="s1">1 &middot; Headline</h2>
+<div class="card">
+<ul class="tight">
+<li><b>The proxy is deployed and genuinely working.</b> Two services on <code>34ed37d30ffc</code>, <code>gate.valid=true</code>, 1,843 models, 11/11 acceptance, smoke 3/3 at amplification 1.00, and today's served rate is <b>92.0%</b>.</li>
+<li><b>A real remote client now answers through it</b> — a Hermes inside a bunker agent, message in, answer out, one ledger row per message.</li>
+<li><b>The flip is blocked, and by a design fault rather than a bug:</b> admission is sized to defend the proxy (8 executing + 32 waiting) against <b>366 enabled lanes</b>, and overflow is <i>refused</i>. Filed TR-239. Take it off the table until that bar is met.</li>
+<li><b>Two regressions in honesty this session:</b> main is <b>red</b>, and the CI gate I built to make that impossible-to-ignore <b>let the pushes through anyway</b>. Filed TR-240.</li>
+<li><b>The complexity design is agreed and mostly already built</b> — prompt &rarr; scorer (LLM or JEV) &rarr; chain. One precedence field defeats it, and two answers from you unblock the rest.</li>
+</ul>
+</div>
+
+<h2 id="s2">2 &middot; The proxy: deployed, verified, measured</h2>
+<div class="card">
+<pre>services   :9092 (server) + :9391 (proxy) on commit 34ed37d30ffc, stale=False, gate.valid=true, issues=[]
+acceptance : 11 passed / 0 failed / 0 skipped (224s)  - live-only, includes custody_chain, stats_live,
+             long_run_silence (200 at wall 408.6s), write_safety (403), budget_alignment (1800s)
+smoke      : 3/3 HTTP 200, amplification 1.00, wall 6.1 / 7.4 / 11.2s
+rehearsal  : 60/60 HTTP 200 at concurrency 8, 17.7 req/min = 3.0x the 09-25 incident rate,
+             amplification 1.00 (the incident wrote 5.9 rows per served request)</pre>
+<h3>What actually got served, by day</h3>
+<pre>09-26  total 212  served  38 (17.9%)   rejected 39  no-hops 39  failed 96
+09-27  total  14  served   0 ( 0.0%)   rejected  7  no-hops  7  failed  0
+09-28  total  88  served  81 (92.0%)   rejected  2  no-hops  3  failed  2</pre>
+<p><b>Both numbers matter and neither is the whole story.</b> The bad days are the stale/missing-registry window I found and fixed (the proxy had <i>no registry at all</i> and answered <code>no-hops</code> to everything). Today is healthy. Presenting either alone — "92%, we're fine" or "34%, it's broken" — would be the same mistake in opposite directions.</p>
+<p>Session-key persistence, collision-proof session ids, the skipped-hop detail, and honest NULLs (<code>price_basis: no price on this hop; cost unknown</code>) are all visible on live rows.</p>
+</div>
+
+<h2 id="s3">3 &middot; The flip gate</h2>
+<div class="card">
+<table>
+<tr><th>Requirement</th><th>State</th><th>Evidence / gap</th></tr>
+<tr><td>Deployed on the newest code</td><td class="badge g" style="border:0;background:none">met</td><td>34ed37d30ffc, gate.valid=true</td></tr>
+<tr><td>Acceptance green on the deployed commit</td><td style="color:#3fb950">met</td><td>11/11 live-only (224s)</td></tr>
+<tr><td>Load shaped like the incident</td><td style="color:#3fb950">met</td><td>60/60 at 3&times; incident rate, amplification 1.00</td></tr>
+<tr><td>A real remote client works</td><td style="color:#3fb950">met</td><td>bunker Hermes answered through the router; 1 row per message</td></tr>
+<tr><td><b>Fleet-shaped load</b></td><td style="color:#f85149">NOT met</td><td>60 requests from one client at exactly the cap &mdash; TR-239</td></tr>
+<tr><td>Degraded path proven for unservable ratings</td><td style="color:#d29922">unproven</td><td>TR-194, P0, dispatched twice without a commit</td></tr>
+<tr><td>Client declares its task profile</td><td style="color:#d29922">absent</td><td>TR-237 &mdash; a vanilla provider call carries no profile</td></tr>
+</table>
+</div>
+
+<h2 id="s4">4 &middot; Admission: the reason the flip is blocked</h2>
+<div class="card">
+<div class="kicker r">measured, and it agrees with Bane's instinct</div>
+<pre>ROUTER_PROXY_MAX_INFLIGHT   default 8    concurrently executing requests
+ROUTER_PROXY_QUEUE_MAX      default 32   requests allowed to WAIT
+ROUTER_PROXY_QUEUE_WAIT_S   default 20   then refusal
+
+ceiling = 8 + 32 = 40 in flight      vs     366 ENABLED LANES
+refusals in the 168h window: 60 rows with failure_reason='overloaded' (2 in the last 24h)</pre>
+<p>The design answers <i>"how do I protect myself from load"</i> when the load <b>is our own scheduler</b>. A refusal is silent work-loss for the fleet. Two more things make it worse than it looks: a task can consume up to <code>max_hops=3</code> upstream attempts, and a refused row carries no caller identity (<code>provider=none, model=none</code>), so a rejection of our own work is indistinguishable from defence against a stranger.</p>
+</div>
+
+<h2 id="s5">5 &middot; CI is red on main, and my gate did not stop it</h2>
+<div class="card">
+<div class="kicker r">the uncomfortable one</div>
+<pre>gh run list:
+  36504997534  cancelled  fc0ae20   2026-09-29T00:50Z
+  36504937101  FAILURE    eee1637c  2026-09-29T00:49Z
+  36504906485  cancelled  e41aaf34  2026-09-29T00:48Z
+  36501969962  FAILURE    8f429506  2026-09-29T00:12Z
+  36499732111  cancelled  d3b63fae  2026-09-28T23:46Z
+
+failing test: tests/test_tier_derivation.py:58
+              def test_target_provider_samples_derive_tier_rows(seed_registry_copy)
+              (pre-existing; already filed as INT-CI-20260929-01, P2)</pre>
+<p><b>The gate I built to make this impossible to ignore let every push through.</b> <code>scripts/ci_gate_check.py</code> asks for runs <i>on the sha being pushed</i>; a brand-new commit has none, so it prints <code>has no completed run — proceeding</code> — which is exactly what it printed on all four of tonight's pushes, one of which then went red. The intended law was "refuse while main is red", so the check must also read the <i>remote branch tip's</i> newest completed run. Filed as <b>TR-240</b> with a two-arm test (main tip red &rarr; refuse; green &rarr; proceed).</p>
+</div>
+
+<h2 id="s6">6 &middot; Complexity: agreed, mostly built, one field in the way</h2>
+<div class="card">
+<pre>prompt -> scorer (x-router-scorer header or ROUTER_SCORER env; llm classifier | jev) -> matrix -> chain</pre>
+<ul class="tight">
+<li><b>Already true:</b> the scorer is selectable; JEV is wired end-to-end; prompt classification is the default path (56 of 84 scored rows); every row carries the scorer's audit trail; failures are never frozen.</li>
+<li><b>The one thing in the way:</b> a caller that declares a profile gets <code>source: 'declared'</code> with <code>matrix: None</code> &mdash; the prompt is never read. That is why lanes behave like preset buckets.</li>
+<li><b>Three defects:</b> the scorer answered in prose on a real 7,652-character Hermes prompt (<code>parse: no-json</code> &rarr; floor profile); JEV has only <b>3 band rows</b>; classification cost and latency are attributed nowhere.</li>
+</ul>
+<p>Full detail in the companion artifact: <code>reports/complexity-dynamic-design-2026-09-29.html</code>.</p>
+</div>
+
+<h2 id="s7">7 &middot; Board and work state</h2>
+<div class="card">
+<pre>tasks.jsonl   278 distinct ids over 281 lines
+statuses      complete 194 · pending 66 · todo 8 · failed 6 · done 2 · open 1 · (none) 1
+git           HEAD fc0ae20 (a foreman tick), 0 unpushed
+proxy rows    878 total</pre>
+<p><b>A correction to the tick that just ran</b> (it reported "0 open, all 280 complete"): the board holds <b>66 pending</b> rows. And one of mine was left inconsistent by my own hand — TR-238, which I told Bane had moved out of the router board, was still sitting there <code>pending</code>; it is now set to <code>moved</code> with its handoff path recorded.</p>
+</div>
+
+<h2 id="s8">8 &middot; What I need from you</h2>
+<div class="card">
+<div class="q"><b>1. Complexity precedence:</b> when a caller declares a profile and the scorer reads the prompt, who wins? (My recommendation: the prompt, for every pressurised category; a declared profile survives only as policy.)</div>
+<div class="q"><b>2. Scorer default:</b> keep <code>classifier</code> with per-call override, or default to <code>auto</code> so a <code>no-json</code> falls through to JEV?</div>
+<div class="q"><b>3. The flip:</b> I am not proposing it. TR-239's bar first &mdash; fleet-shaped load, &ge;95% served, zero refusals of authenticated fleet traffic, pacing at the source. Say the word if you want the redesign built, or a different direction entirely.</div>
+</div>
+
+<div class="foot">
+Measured 2026-09-29 from the running proxy (:9391, commit 34ed37d30ffc), the ledger <code>data/state/outcomes.jsonl</code> (878 proxied rows),
+the board <code>.coding-hermes/board/tasks.jsonl</code>, <code>gh run list</code>, and the source of <code>scripts/ci_gate_check.py</code> and
+<code>scripts/router_server.py</code>. Rows filed this session: TR-235 (registry guard), TR-237 (client carries no profile),
+TR-238 (moved to bunker domain), TR-239 (admission), TR-240 (CI gate hole). Reports: proxy-status, features-stats-remote, complexity-dynamic-design, status (this).
+</div>
+</div></body></html>
