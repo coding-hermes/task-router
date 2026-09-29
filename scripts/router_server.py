@@ -1429,7 +1429,9 @@ def _hermes_responses_call(path, body, headers, _opener=None):
         fwd_headers['X-Hermes-Session-Key'] = session_key
     fwd_body = dict(body)
     want_stream = bool(fwd_body.pop('stream', None))
-    timeout = max(_proxy_hop_timeout_s(), _hermes_idle_timeout_s())
+    # TR-241: one ladder helper budgets both upstream sites (the default
+    # gateway caller below used to compute its own — the two disagreed).
+    timeout = _hop_budget_s(want_stream)
     req = urllib.request.Request(
         base.rstrip('/') + path,
         data=json.dumps(fwd_body).encode(),
@@ -1643,6 +1645,36 @@ def _failure_envelope(meta, session_id, source_system, parent_session_id, ladder
             'wall_time_s': round(time.time() - ladder_t0, 3)}
 
 
+#: THE TIMEOUT LADDER (TR-241). Every layer between the client and the model
+#: has a patience, and the router must always answer BEFORE the caller gives
+#: up — an inner budget that reaches the caller's tolerance kills work the
+#: client was still waiting for and reports a hop failure for a turn that
+#: would have succeeded. From the outside in:
+#:
+#:     caller (scheduler per-turn tolerance)  1800s   <- must never be reached
+#:     gateway (Hermes upstream allow)        3600s
+#:     hop wall ceiling (ROUTER_PROXY_HOP_WALL_S) 3600s  <- streamed hops only
+#:     hop budget (streamed)  = max(idle budget, wall ceiling)        >= caller
+#:     hop budget (buffered)  = ROUTER_PROXY_HOP_TIMEOUT_S, clamped strictly
+#:                              below the caller patience
+#:
+#: The streamed hop is IDLE-shaped (TR-138): it may outlive the caller's wall
+#: patience because progress resets the watch and the router answers the
+#: moment the turn completes. The buffered hop has no progress signal, so its
+#: WALL budget must be strictly below the caller's — the clamp lives in
+#: _hop_budget_s, and it may rise from the 180s default toward but never
+#: reach the caller's 1800s.
+ROUTER_CALLER_PATIENCE_S = 1800.0
+"""The caller's per-turn tolerance: the scheduler's
+SCHEDULER_GATEWAY_RESPONSE_TIMEOUT default (30m). Any wall-clock inner budget
+must stay strictly below this."""
+
+ROUTER_HOP_LADDER_MARGIN_S = 60.0
+"""The ladder margin: how far below the caller patience a clamped hop budget
+must stay. Not tunable — one notch of headroom so the router's failure
+response still has time to reach the client."""
+
+
 def _proxy_hop_timeout_s():
     """Bounded per-hop timeout (seconds) for the upstream mirror.
 
@@ -1724,6 +1756,32 @@ def _proxy_wall_ceiling_s():
     except (TypeError, ValueError):
         return 3600.0
     return val if val > 0 else 3600.0
+
+
+def _hop_budget_s(want_stream):
+    """THE TIMEOUT LADDER (TR-241): one helper decides every hop's budget.
+
+    The invariant: the router must answer the caller BEFORE the caller gives
+    up. A streamed hop (want_stream=True) is idle-shaped — TR-138 semantics,
+    max(idle budget, wall ceiling) — and may outlast the caller's wall
+    patience because progress resets the watch. A buffered hop has no
+    progress signal, so its wall budget is the configured hop timeout CLAMPED
+    strictly below the caller's patience (ROUTER_CALLER_PATIENCE_S minus the
+    ladder margin): it may rise from the 180s default toward but never reach
+    the caller's 1800s. Operators with sane values are unaffected; only a
+    pathological configuration (or knob stack, e.g. a huge
+    ROUTER_HERMES_IDLE_TIMEOUT_S feeding _proxy_idle_budget_s' fallback) gets
+    clamped.
+
+    Every upstream call site budgets through THIS function — the two
+    pre-TR-241 formulas (site A: max(_proxy_hop_timeout_s(),
+    _hermes_idle_timeout_s()); site B: _proxy_hop_timeout_s() alone) disagreed
+    by 120s on the same hop shape.
+    """
+    if want_stream:
+        return max(_proxy_idle_budget_s(), _proxy_wall_ceiling_s())
+    ceiling = ROUTER_CALLER_PATIENCE_S - ROUTER_HOP_LADDER_MARGIN_S
+    return min(_proxy_hop_timeout_s(), ceiling)
 
 
 def _collect_openai_stream(lines, path='/v1/chat/completions', on_event=None, watch=None):
@@ -1845,8 +1903,10 @@ def _proxy_upstream_default(path, body, headers):
     # buffered payload the client asked for. A hop that cannot stream is
     # unaffected: same wall, same buffered read.
     want_stream = ask_stream or bool(body.get('stream'))
-    budget = (max(_proxy_idle_budget_s(), _proxy_wall_ceiling_s()) if want_stream
-              else _proxy_hop_timeout_s())
+    # TR-241: the ladder helper owns the budget for BOTH shapes — the
+    # buffered branch used to take _proxy_hop_timeout_s() alone, ten times
+    # below the caller's patience, killing slow-but-alive work.
+    budget = _hop_budget_s(want_stream)
     try:
         with urllib.request.urlopen(req, timeout=budget) as resp:
             ctype = ''
@@ -1921,7 +1981,10 @@ def _provider_upstream_factory(provider_id, providers_map):
                 **({'Authorization': f'Bearer {api_key}'} if api_key else {}),
             })
         try:
-            with urllib.request.urlopen(req, timeout=_proxy_hop_timeout_s()) as resp:
+            # TR-241: the provider last-mile hop serves the same caller as the
+            # default upstream, so its buffered wall rides the same ladder
+            # (clamped below the caller patience; identical at sane configs).
+            with urllib.request.urlopen(req, timeout=_hop_budget_s(False)) as resp:
                 return resp.status, json.loads(resp.read())
         except urllib.error.HTTPError as exc:
             return exc.code, {'error': exc.read().decode()[:400]}
