@@ -1,0 +1,13 @@
+{
+  "tick": "task-router-2026-09-29-08-23-45",
+  "created": "2026-09-29T08:30:00-05:00",
+  "wave_budget": 12,
+  "tasks": ["TR-168", "TR-199", "TR-202", "DOC-2"],
+  "excluded": {
+    "DOC-3/DOC-4/README-4": "README.md collision with DOC-2 — next wave",
+    "TR-163": "verified fixed live 2026-09-26 (X-Operator-Token in deployed + repo copies); close with evidence, no dispatch",
+    "TR-168xTR-199": "verified table-disjoint: dup pairs in models.jsonl only, valid_to/available_from hits in other tables"
+  },
+  "worker_model": "glm-5.3-flash",
+  "worker_provider": "zai-glm"
+}
