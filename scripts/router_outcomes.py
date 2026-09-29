@@ -340,18 +340,62 @@ def profile_signature(profile_id, registry_path=None):
 
 # ---------- IO ----------
 
+def _warn_skipped(where, path, lineno, line):
+    """One stderr line per malformed line (TR-244): a torn JSONL record must
+    be VISIBLE but never stall the ledger. First 80 chars name the offender."""
+    snippet = line.strip()[:80]
+    print(f'{where}: skipped malformed line {lineno} in {path}: {snippet}',
+          file=sys.stderr)
+
+
+def load_outcome_rows(path):
+    """Tolerant whole-store scan (TR-244): returns the dict rows; malformed
+    lines are skipped with a warning instead of raising JSONDecodeError."""
+    rows = []
+    if not os.path.exists(path):
+        return rows
+    with open(path) as f:
+        for lineno, l in enumerate(f, 1):
+            if not l.strip():
+                continue
+            try:
+                r = json.loads(l)
+            except ValueError:
+                _warn_skipped('averages', path, lineno, l)
+                continue
+            if isinstance(r, dict):
+                rows.append(r)
+            else:
+                _warn_skipped('averages', path, lineno, l)
+    return rows
+
+
 def append_rows(path, new_rows):
     """Idempotent append: skip rows whose (source_system, session_id, model)
     is already present. Returns appended count.
 
     Bulk path (CLI import): scans the WHOLE store once, then appends. Not used
     by the HTTP ingest — see append_row_fast for why.
+
+    TR-244: a torn line in the store (concurrent append truncated a record
+    mid-token) used to raise JSONDecodeError and fail every import driver;
+    the scan now skips malformed lines with a warning and keeps the good
+    ones in the dedupe set.
     """
     seen = set()
     if os.path.exists(path):
-        for l in open(path):
-            if l.strip():
-                r = json.loads(l)
+        with open(path) as f:
+            for lineno, l in enumerate(f, 1):
+                if not l.strip():
+                    continue
+                try:
+                    r = json.loads(l)
+                except ValueError:
+                    _warn_skipped('append_rows', path, lineno, l)
+                    continue
+                if not isinstance(r, dict):
+                    _warn_skipped('append_rows', path, lineno, l)
+                    continue
                 seen.add((r.get('source_system'), r.get('session_id'), r.get('model')))
     os.makedirs(os.path.dirname(path), exist_ok=True)
     n = 0
@@ -1268,7 +1312,10 @@ def main():
         n = append_rows(OUTCOMES, import_openclaw())
         print(f'outcomes: +{n} new rows (idempotent)')
     elif args.cmd == 'averages':
-        rows = [json.loads(l) for l in open(OUTCOMES) if l.strip()] if os.path.exists(OUTCOMES) else []
+        # TR-244: tolerant whole-store scan (load_outcome_rows skips + warns
+        # on malformed lines) instead of a strict list comprehension that one
+        # torn line could crash.
+        rows = load_outcome_rows(OUTCOMES)
         avgs = compute_averages(rows, merge_backends=args.merge_backends)
         os.makedirs(os.path.dirname(AVERAGES), exist_ok=True)
         with open(AVERAGES, 'w') as f:
