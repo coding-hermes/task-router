@@ -72,6 +72,22 @@ DATA_DIR = os.environ.get('ROUTING_DATA_DIR', os.path.join(_REPO, 'data', 'table
 STATE_DIR = os.environ.get('ROUTER_STATE_DIR', os.path.expanduser('~/.hermes/model-router'))
 
 REGISTRY_VERSION = 3
+
+
+def _registry_path():
+    """Resolve the registry path at CALL time, not import time.
+
+    TR-235 follow-up (foreman 2026-09-29): the module constant froze
+    os.environ at import, so a caller that set ROUTING_REGISTRY after import
+    (tests with monkeypatch.setenv, long-lived servers whose env changes) had
+    the override silently ignored — /health reported gate.valid=true while the
+    configured registry was absent. Resolution order unchanged: env override
+    wins, <repo>/registry.json otherwise.
+    """
+    return os.environ.get('ROUTING_REGISTRY', os.path.join(_REPO, 'registry.json'))
+
+
+REGISTRY = _registry_path()  # import-time default, kept for existing importers
 # TR-082: seed writes the tables and registry.json within the same second, so a
 # strict `registry < newest_table` comparison made a correct first run report
 # itself as stale ("0s newer") and exit 1. Treat a lag up to this many seconds
@@ -152,7 +168,7 @@ def freshness_check(registry_path=None, data_dir=None):
     Keys: ok, detail, registry, data_dir, tables, newest_table, lag_s,
     content_match, stale.
     """
-    registry_path = registry_path or REGISTRY
+    registry_path = registry_path or _registry_path()
     data_dir = data_dir or DATA_DIR
     table_files = sorted(glob.glob(os.path.join(data_dir, '*.jsonl')))
     out = {'ok': False, 'detail': '', 'registry': registry_path,
@@ -238,7 +254,7 @@ def heal_registry(registry_path=None, data_dir=None):
     failure is fail-open: the heal detail is reported and the ORIGINAL issue
     list stands untouched — a broken heal must never mask the diagnosis.
     """
-    registry_path = registry_path or REGISTRY
+    registry_path = registry_path or _registry_path()
     data_dir = data_dir or DATA_DIR
     pre_ok = os.path.exists(registry_path)
     proc = subprocess.run(
@@ -300,6 +316,7 @@ def run_checks():
 
     # ---- a. registry: exists / parses / version + schema ---------------------
     reg = None
+    REGISTRY = _registry_path()  # call-time resolution: env override stays live
     if not os.path.exists(REGISTRY):
         add('registry.exists', False,
             f'missing: {REGISTRY} — run scripts/router_seed.py once to generate it')
@@ -348,6 +365,7 @@ def run_checks():
                         f'({", ".join(MODEL_SCHEMA_FIELDS)})')
 
     # ---- b. freshness: registry vs data/tables -------------------------------
+    DATA_DIR = os.environ.get('ROUTING_DATA_DIR', os.path.join(_REPO, 'data', 'tables'))
     if os.path.exists(REGISTRY):
         fresh = freshness_check(REGISTRY, DATA_DIR)
         if fresh['lag_s'] is None:
@@ -360,6 +378,7 @@ def run_checks():
                 f'compared registry={REGISTRY} against tables={DATA_DIR}')
 
     # ---- c. state files: parse-if-present ------------------------------------
+    STATE_DIR = os.environ.get('ROUTER_STATE_DIR', os.path.expanduser('~/.hermes/model-router'))
     for fname in STATE_JSON_FILES:
         path = os.path.join(STATE_DIR, fname)
         if not os.path.exists(path):
