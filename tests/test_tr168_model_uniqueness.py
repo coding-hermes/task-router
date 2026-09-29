@@ -142,9 +142,24 @@ def test_deduped_pair_keeps_union_row_with_twin_provenance(
         assert row.get("lifecycle_checked_at"), "retired lane lost its lifecycle record"
 
 
+#: Lanes legitimately appended to models.jsonl AFTER the dedupe baseline
+#: (1fcd9aa) and BEFORE this pin was relaxed to a subsequence walk. Each entry
+#: must name its importer commit — an append that is not in this list (and not
+#: added here with its evidence) fails the pin exactly like a lost lane.
+POST_DEDUPE_ADDITIONS = {
+    # TR-217 weekly MODEL lane 2026-09-29: router_modelsdev.py sync imports.
+    # sonnet-5.5 live-verified (chat 200); the two daybreak ids are catalog
+    # rows for the documented-gap model_notes (absent from the live listing).
+    ("openrouter", "anthropic/claude-sonnet-5.5"): "TR-217 (7de3c9b)",
+    ("openai-codex", "gpt-daybreak-blue-latest"): "TR-217 (7de3c9b)",
+    ("openai-codex", "gpt-daybreak-red-latest"): "TR-217 (7de3c9b)",
+}
+
+
 def test_only_the_five_twin_lines_were_removed_and_survivors_edited():
-    """The dedupe touched ONLY the 5 fold sites: every other line of the file
-    is lane-identical (same provider/model, same values) to the pre-dedupe
+    """The dedupe touched ONLY the 5 fold sites — and later, ONLY the lanes
+    named in POST_DEDUPE_ADDITIONS may have been appended: every pre-dedupe
+    line of the file is lane-identical (same provider/model) to the pre-dedupe
     commit (1fcd9aa), the 5 twin lines are gone, and exactly the 5 survivor
     lines differ (union + note).
 
@@ -157,25 +172,54 @@ def test_only_the_five_twin_lines_were_removed_and_survivors_edited():
     the line count (exactly the 5 twins removed), the lane SEQUENCE (every
     position keeps its provider/model — no accidental line replacement), and
     exactly the 5 survivor lines differing. Substance is pinned by the
-    uniqueness test above and the per-pair union/provenance test below."""
+    uniqueness test above and the per-pair union/provenance test below.
+
+    2026-09-29 (TR-217, same day): the registry legitimately GROWS — the
+    models.dev sync imports new lanes as dated rows (anthropic/
+    claude-sonnet-5.5, gpt-daybreak-{blue,red}-latest). The sequence pin
+    therefore becomes an ordered-subsequence pin: every pre-dedupe lane must
+    still appear, in order, minus exactly the 5 twins, and the ONLY lanes
+    allowed to be new are the ones named in POST_DEDUPE_ADDITIONS (an
+    unexplained addition fails as loud as a lost lane)."""
     pre = subprocess.run(["git", "show", "1fcd9aa:data/tables/models.jsonl"],
                          capture_output=True, text=True, check=True,
                          cwd=REPO).stdout
     pre_lines = pre.splitlines()
     post_lines = open(MODELS, encoding="utf-8").read().splitlines()
-    assert len(post_lines) == len(pre_lines) - 5, (
-        f"expected exactly 5 lines removed, {len(pre_lines)} -> {len(post_lines)}")
+    assert len(post_lines) == len(pre_lines) - 5 + len(POST_DEDUPE_ADDITIONS), (
+        f"expected exactly 5 twins removed + the {len(POST_DEDUPE_ADDITIONS)} "
+        f"pinned additions, {len(pre_lines)} -> {len(post_lines)}")
     survivors_edited = []
     pi = 0  # pre-file cursor (0-based)
+    additions_seen = []
     for post in post_lines:
+        post_row = json.loads(post)
+        post_key = (post_row.get("provider"), post_row.get("model"))
         while (pi + 1) in TWIN_LINES:  # deleted twin lines consume no post line
             pi += 1
-        assert pi < len(pre_lines), "post file is longer than pre minus the twins"
+        if pi < len(pre_lines):
+            pre_row = json.loads(pre_lines[pi])
+            pre_key = (pre_row.get("provider"), pre_row.get("model"))
+            if pre_key != post_key:
+                # not the next pre lane: an APPEND (imported lane). Allow only
+                # the pinned additions, at any position (the seed tail-sync
+                # rewrites in key order, so imports can land mid-file).
+                assert post_key in POST_DEDUPE_ADDITIONS, (
+                    f"lane {post_key} is neither the expected next lane "
+                    f"({pre_key}) nor a pinned POST_DEDUPE_ADDITIONS entry — "
+                    f"unexplained models.jsonl change")
+                additions_seen.append(post_key)
+                continue
+        else:
+            # past the pre file's end: pure tail appends must also be pinned
+            assert post_key in POST_DEDUPE_ADDITIONS, (
+                f"lane {post_key} appended past the pre-dedupe baseline and "
+                f"not in POST_DEDUPE_ADDITIONS — unexplained models.jsonl change")
+            additions_seen.append(post_key)
         if (pi + 1) in SURVIVOR_LINES:
             survivors_edited.append(pi + 1)
         else:
             pre_row = json.loads(pre_lines[pi])
-            post_row = json.loads(post)
             # 2026-09-29: values legitimately evolve post-dedupe (TR-199
             # lifecycle ports, schema stamping on seed rewrite) — pin the
             # lane IDENTITY at every position instead of frozen values.
@@ -190,6 +234,9 @@ def test_only_the_five_twin_lines_were_removed_and_survivors_edited():
     assert pi == len(pre_lines), "tail lines lost by the dedupe"
     assert sorted(survivors_edited) == SURVIVOR_LINES, (
         f"exactly the 5 survivor lines may differ, got {survivors_edited}")
+    assert sorted(additions_seen) == sorted(POST_DEDUPE_ADDITIONS), (
+        f"the pinned additions must each appear exactly once: expected "
+        f"{sorted(POST_DEDUPE_ADDITIONS)}, saw {additions_seen}")
 
 
 # ---------------------------------------------------------------------------
