@@ -165,7 +165,7 @@ def test_corrupt_registry_source_fallback_and_warning(monkeypatch, tmp_path):
     assert r["head"] is not None  # resilience: resolution still works
     # the fallback data is the committed registry — head must match the
     # golden fixed-point head for this profile (same tables as registry.json)
-    assert _pair(r["head"]) == "xkiro/minimax/minimax-m3:free"  # 2026-09-18: xkiro dead deepseek ids disabled (live-catalog absent + chat 404) — $0 1M-ctx minimax-m3:free takes the tie-break (see test_regression goldens)
+    assert _pair(r["head"]) == "xkiro/qwen/qwen3.7-flash:free"  # 2026-09-28: 968e480 demoted estimate-sourced test rows (0.72 perf -> tier -1), so minimax-m3:free fails P1_CODING's test>=0 bar; measured test=5 qwen3.7-flash:free ($0, 1M ctx) leads the remaining $0 tie group (TR-232 CI follow-up INT-CI-20260928-02)
 
 
 def test_missing_registry_source_fallback(monkeypatch, tmp_path):
@@ -199,7 +199,7 @@ def test_missing_health_state_reported_false(monkeypatch, tmp_path):
     # behavior unchanged: a missing health file must NOT fabricate a DOWN
     # gate — the chain still resolves to the healthy head
     assert r["head"] is not None
-    assert _pair(r["head"]) == "xkiro/minimax/minimax-m3:free"  # 2026-09-18: xkiro dead deepseek ids disabled (live-catalog absent + chat 404) — $0 1M-ctx minimax-m3:free takes the tie-break (see test_regression goldens)
+    assert _pair(r["head"]) == "xkiro/qwen/qwen3.7-flash:free"  # 2026-09-28: 968e480 demoted estimate-sourced test rows (0.72 perf -> tier -1), so minimax-m3:free fails P1_CODING's test>=0 bar; measured test=5 qwen3.7-flash:free ($0, 1M ctx) leads the remaining $0 tie group (TR-232 CI follow-up INT-CI-20260928-02)
 
 
 def test_missing_all_state_files_reported(monkeypatch, tmp_path):
