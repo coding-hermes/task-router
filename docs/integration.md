@@ -154,7 +154,12 @@ python3 scripts/router_chain_run.py <project|--profile P|--profile-req '...'> \
 
 - The template gets `ROUTER_PROVIDER`, `ROUTER_MODEL`, `ROUTER_HOP`,
   `ROUTER_KEY_ENV` in the environment — the CALLER owns auth; the router never
-  handles keys.
+  handles keys. `ROUTER_MODEL` and the `{model}` placeholder carry the WIRE id
+  the upstream actually serves (TR-148: per-provider transform — clinepass
+  wants `cline-pass/<bare>`, its `:free` lanes their vendor-org ids; verified
+  per-lane verdicts come from `data/tables/probe_fixes.jsonl`, latest row
+  wins). The chain attempts and outcome rows still record the BARE registry id
+  (TR-233 vocabulary), and each attempt discloses what it sent via `wire_id`.
 - Exit 0 = success → stop; non-zero = transport/HTTP failure → record a breaker
   failure and advance to the next hop (bounded by `--max-hops`).
 - **Content dissatisfaction is NOT a retry trigger.** A template that ran fine
