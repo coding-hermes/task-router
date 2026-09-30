@@ -37,6 +37,7 @@ MAX_BODY_BYTES = 1024 * 1024
 if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 import router_outcomes  # noqa: E402  (stdlib-only sibling script module)
+import router_wire_ids  # noqa: E402  (TR-148: registry id -> upstream wire id)
 import router_ui_page  # noqa: E402  (TR-150: the one self-contained page)
 import router_health  # noqa: E402  (TR-087 health plane)
 import lifecycle_gate  # noqa: E402  (TR-199: R4 no anonymous dates)
@@ -3244,12 +3245,20 @@ def _proxy_chat_inner(path, body, headers, max_hops=None, upstream=None):
             declared_session = body_user[:200]
     for hop in chain[:hops]:
         provider, model = hop.get('provider'), hop.get('model')
+        # TR-148: the WIRE id is per-provider data (clinepass serves
+        # 'cline-pass/<bare>'; :free lanes their vendor-org ids — probe_fixes
+        # latest-wins, provider default otherwise). The bare registry id stays
+        # the vocabulary of attempts, rows, breaker keys and envelopes (TR-233);
+        # only the outgoing request body carries the wire form, and each
+        # attempt discloses what it actually sent via 'wire_id'.
+        wire = router_wire_ids.wire_model_id(provider, model)
         attempt = {'hop': hop.get('hop'), 'provider': provider, 'model': model,
+                   'wire_id': wire,
                    'usd_1m': hop.get('usd_1m'),
                    'stats_fallback': (hop.get('outcomes') or {}).get('stats_fallback')}
         fwd = dict(body)
         fwd.pop('stream', None)  # TR-120: the mirror is buffered; strip the client's stream wish
-        fwd['model'] = model
+        fwd['model'] = wire
         hdrs = {**headers, 'x-router-provider': str(provider)}
         t0 = time.time()
         hop_call = _hop_call(provider)
@@ -3369,6 +3378,7 @@ def _proxy_chat_inner(path, body, headers, max_hops=None, upstream=None):
             except Exception:  # noqa: BLE001
                 rolling = None
             out['_router'] = {**meta, 'served_by': {'provider': provider, 'model': model,
+                                                    'wire_id': wire,
                                                     'tokens_in': tokens_in, 'tokens_out': tokens_out,
                                                     'cost_usd': cost_usd, 'price_basis': price_basis},
                               'outcome_row': {'source_system': source_system,

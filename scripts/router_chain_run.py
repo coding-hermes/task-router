@@ -36,6 +36,7 @@ REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(REPO, 'scripts'))
 import router_outcomes as ro  # noqa: E402
 import router_spawn as rs     # noqa: E402
+import router_wire_ids as rwi  # noqa: E402  (TR-148: registry id -> wire id)
 
 SOURCE = 'chain-run'
 
@@ -64,11 +65,18 @@ def run_chain(chain, cmd_template, max_hops=3, session_id=None, profile_id=None,
               'required_categories': requirements}
     for hop in chain[:max_hops]:
         provider, model = hop.get('provider'), hop.get('model')
+        # TR-148: the command template gets the id the upstream actually
+        # serves (clinepass wants 'cline-pass/<bare>'; probe_fixes verdicts
+        # override per lane). ROUTER_MODEL mirrors it. The bare registry id
+        # stays the vocabulary of attempts, outcome rows and breaker keys
+        # (TR-233) and each attempt discloses what it sent via 'wire_id'.
+        wire = rwi.wire_model_id(provider, model)
         cmd = (cmd_template
                .replace('{provider}', str(provider))
-               .replace('{model}', str(model))
+               .replace('{model}', str(wire))
                .replace('{hop}', str(hop.get('hop'))))
         attempt = {'hop': hop.get('hop'), 'provider': provider, 'model': model,
+                   'wire_id': wire,
                    'usd_1m': hop.get('usd_1m'), 'complexity_sig': (hop.get('outcomes') or {}).get('complexity_sig'),
                    'stats_fallback': (hop.get('outcomes') or {}).get('stats_fallback'),
                    'command': cmd}
@@ -77,7 +85,7 @@ def run_chain(chain, cmd_template, max_hops=3, session_id=None, profile_id=None,
             attempts.append(attempt)
             continue
         env = {**os.environ, 'ROUTER_PROVIDER': str(provider),
-               'ROUTER_MODEL': str(model), 'ROUTER_HOP': str(hop.get('hop')),
+               'ROUTER_MODEL': str(wire), 'ROUTER_HOP': str(hop.get('hop')),
                'ROUTER_KEY_ENV': str(hop.get('key_env') or ''), **(env_extra or {})}
         t0 = time.time()
         try:
