@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Provider scan 6.1 — gpt-6.1-sol (2026-09-29)</title>
+<style>
+:root{--bg:#0d1117;--panel:#161b22;--panel2:#1c2330;--line:#2d3646;--txt:#e6edf3;--mut:#9aa7b8;--grn:#3fb950;--amb:#d29922;--red:#f85149;--blu:#58a6ff;--pur:#bc8cff}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--txt);font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+.wrap{max-width:1040px;margin:0 auto;padding:30px 20px 74px}
+.hero{background:linear-gradient(135deg,#12233a,#1a1033);border:1px solid var(--line);border-radius:14px;padding:30px 28px}
+.hero h1{margin:0 0 6px;font-size:27px}.sub{color:var(--mut);margin:0 0 14px}
+.badges{display:flex;flex-wrap:wrap;gap:8px}
+.badge{font-size:13px;padding:3px 12px;border-radius:20px;border:1px solid var(--line);background:#0d1526;color:var(--grn)}
+.badge.r{color:var(--red)}.badge.a{color:var(--amb)}.badge.b{color:var(--blu)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(136px,1fr));gap:11px;margin:18px 0 0}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center}
+.stat b{display:block;font-size:21px;color:var(--blu)}.stat span{font-size:12.5px;color:var(--mut)}
+h2{margin:34px 0 8px;font-size:21px;border-bottom:1px solid var(--line);padding-bottom:8px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px;margin:14px 0}
+pre{background:#0a0e14;border:1px solid var(--line);border-radius:8px;padding:13px 15px;overflow-x:auto;font-size:13px;line-height:1.55;white-space:pre-wrap;word-break:break-word}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13.5px}
+table{width:100%;border-collapse:collapse;font-size:13.5px;margin:10px 0}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+th{background:var(--panel2);color:var(--blu)}tr:nth-child(even) td{background:#11161f}
+td.ok{color:var(--grn)}td.no{color:var(--mut)}td.bad{color:var(--red)}
+.kicker{display:inline-block;font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;padding:3px 11px;border-radius:20px;border:1px solid var(--line);background:#0d1526;margin-bottom:9px;color:var(--grn)}
+.kicker.r{color:var(--red)}.kicker.a{color:var(--amb)}
+.foot{color:var(--mut);font-size:13px;margin-top:34px;border-top:1px solid var(--line);padding-top:14px}
+ul.tight li{margin-bottom:6px}
+@media(max-width:600px){.hero h1{font-size:22px}}
+</style></head><body><div class="wrap">
+
+<div class="hero">
+<h1>Provider scan 6.1 &mdash; <code>gpt-6.1-sol</code></h1>
+<p class="sub">Released 2026-09-29. Scanned every provider we hold (live, their own catalog endpoint) and the models.dev catalog. <b>Six of our lanes can serve it today. Our registry has zero rows for it.</b></p>
+<div class="grid">
+<div class="stat"><b>6</b><span>our lanes serving it</span></div>
+<div class="stat"><b>0</b><span>registry rows for 6.1</span></div>
+<div class="stat"><b>15</b><span>models.dev providers</span></div>
+<div class="stat"><b>1.05M</b><span>context tokens</span></div>
+<div class="stat"><b>$2 / $10</b><span>in / out per 1M</span></div>
+</div>
+</div>
+
+<h2>1 &middot; Our lanes, asked directly (their own /models)</h2>
+<div class="card">
+<div class="kicker">live, 2026-09-29</div>
+<table>
+<tr><th>Our lane</th><th>catalog size</th><th>gpt-6.1-sol present?</th></tr>
+<tr><td><code>9router</code></td><td>172</td><td class="ok"><b>xkiro/openai/gpt-6.1-sol</b></td></tr><tr><td><code>clinepass</code></td><td>464</td><td class="ok"><b>openai/gpt-6.1-sol-pro, openai/gpt-6.1-sol-pro:batch, openai/gpt-6.1-sol, openai/gpt-6.1-sol:batch</b></td></tr><tr><td><code>commandcode-2</code></td><td>86</td><td class="ok"><b>gpt-6.1-sol</b></td></tr><tr><td><code>openai-codex</code></td><td>141</td><td class="ok"><b>gpt-6.1-sol</b></td></tr><tr><td><code>xkiro</code></td><td>135</td><td class="ok"><b>openai/gpt-6.1-sol</b></td></tr><tr><td><code>xkiro-2</code></td><td>135</td><td class="ok"><b>openai/gpt-6.1-sol</b></td></tr>
+<tr><td><code>opencode-go-2</code></td><td>30</td><td class="bad">none &mdash; even though models.dev lists it under <code>opencode</code></td></tr>
+<tr><td><code>deepseek-payg</code></td><td>2</td><td class="no">none</td></tr><tr><td><code>kimi-for-coding</code></td><td>4</td><td class="no">none</td></tr><tr><td><code>neuralwatt</code></td><td>22</td><td class="no">none</td></tr><tr><td><code>ollama-cloud</code></td><td>17</td><td class="no">none</td></tr><tr><td><code>opencode-go-2</code></td><td>30</td><td class="no">none</td></tr><tr><td><code>skills_hub</code></td><td>11</td><td class="no">none</td></tr><tr><td><code>stepfun</code></td><td>7</td><td class="no">none</td></tr><tr><td><code>title_generation</code></td><td>11</td><td class="no">none</td></tr>
+</table>
+<p><b>Why this matters:</b> the router is supposed to choose the lane; today it cannot even see the model. Our seats are serving a model the registry has never heard of.</p>
+</div>
+
+<h2>2 &middot; What models.dev says (the catalog behind our importer)</h2>
+<div class="card">
+<pre>15 providers list it, 20 ids.  input $ min 2.000 / median 2.000 / max 4.000
+                              output $ min 10.000 / median 10.000 / max 20.000
+context 1,050,000 tokens      release_date 2026-09-29      reasoning + tool_call capable</pre>
+<table>
+<tr><th>provider</th><th>model id</th><th>in $/1M</th><th>out $/1M</th><th>context</th></tr>
+<tr><td>azure</td><td><code>gpt-6.1-sol</code></td><td>2</td><td>10</td><td>1050000</td></tr><tr><td>azure-cognitive-services</td><td><code>gpt-6.1-sol</code></td><td>2</td><td>10</td><td>1050000</td></tr><tr><td>cortecs</td><td><code>gpt-6.1-sol</code></td><td>2.4</td><td>11.999</td><td>1050000</td></tr><tr><td>edenai</td><td><code>openai/gpt-6.1-sol</code></td><td>2</td><td>10</td><td>1050000</td></tr><tr><td>github-copilot</td><td><code>gpt-6.1-sol</code></td><td>2</td><td>10</td><td>1050000</td></tr><tr><td>kilo</td><td><code>openai/gpt-6.1-sol</code></td><td>2</td><td>10</td><td>1050000</td></tr><tr><td>kilo</td><td><code>openai/gpt-6.1-sol-pro</code></td><td>2</td><td>10</td><td>1050000</td></tr><tr><td>llmgateway</td><td><code>gpt-6.1-sol</code></td><td>2</td><td>10</td><td>1050000</td></tr><tr><td>llmgateway-providers</td><td><code>openai/gpt-6.1-sol</code></td><td>2</td><td>10</td><td>1050000</td></tr><tr><td>merge-gateway</td><td><code>openai/gpt-6.1-sol</code></td><td>2</td><td>10</td><td>1050000</td></tr><tr><td>nano-gpt</td><td><code>openai/gpt-6.1-sol</code></td><td>2</td><td>10</td><td>1050000</td></tr><tr><td>nano-gpt</td><td><code>openai/gpt-6.1-sol-pro</code></td><td>2</td><td>10</td><td>1050000</td></tr><tr><td>openai</td><td><code>gpt-6.1-sol</code></td><td>2</td><td>10</td><td>1050000</td></tr><tr><td>opencode</td><td><code>gpt-6.1-sol</code></td><td>2</td><td>10</td><td>1050000</td></tr><tr><td>openrouter</td><td><code>openai/gpt-6.1-sol</code></td><td>2</td><td>10</td><td>1050000</td></tr><tr><td>openrouter</td><td><code>openai/gpt-6.1-sol-pro</code></td><td>2</td><td>10</td><td>1050000</td></tr><tr><td>requesty</td><td><code>gpt-6.1-sol</code></td><td>2</td><td>10</td><td>1050000</td></tr><tr><td>requesty</td><td><code>gpt-6.1-sol@eu</code></td><td>2.4</td><td>12</td><td>1050000</td></tr><tr><td>vercel</td><td><code>openai/gpt-6.1-sol</code></td><td>2</td><td>10</td><td>1050000</td></tr><tr><td>vercel</td><td><code>openai/gpt-6.1-sol-fast</code></td><td>4</td><td>20</td><td>1050000</td></tr>
+</table>
+<p>The price spread is the usual aggregator tax: the same model at $2/$10 on the direct lanes, $2.40/$12 on <code>requesty@eu</code>, $4/$20 on <code>vercel</code>'s <code>-fast</code> variant. <b>Our own lanes' prices are the ones that matter</b> — and for the sol family we already carry, they are NULL.</p>
+</div>
+
+<h2>3 &middot; The gap, stated plainly</h2>
+<div class="card">
+<div class="kicker r">why an import is not just "add the id"</div>
+<ul class="tight">
+<li><b>Nothing to route to.</b> <code>models.jsonl</code> contains <b>0</b> rows matching <code>6.1</code>. The newest sol family we have is <code>gpt-5.6-sol</code>, <code>gpt-6-sol</code> and <code>gpt-sol-latest</code> — all on clinepass.</li>
+<li><b>And that family is unpriced.</b> <code>public_price</code> is NULL on every one of those rows; <b>477 of clinepass's 498 rows are unpriced</b>. Import the id without fixing the price source and the lane lands as NULL — ranked last or unpriced-by-design, which is not the same as "available".</li>
+<li><b>A catalog aggregator is not evidence about our lane.</b> models.dev's <code>opencode</code> lists the model; our <code>opencode-go-2</code> catalog does not. One live call settled a question two catalogs disagreed on.</li>
+<li><b>Side finding from the same scan:</b> <code>deepseek-foreman</code> answered <b>HTTP 401</b> — a foreman lane with a dead key.</li>
+</ul>
+<p>Filed as <b>TR-246</b> with six criteria, including provenance-or-explicit-NULL on the price and tier data or a named missing dimension (the TR-221 standard).</p>
+</div>
+
+<h2>4 &middot; How the scan ran (and its limits)</h2>
+<div class="card">
+<pre>our side : each config provider -> base_url + key from the environment (by name, never printed)
+           GET {base}/models, then match /6\.1[-_.]?sol/i
+models.dev: GET https://models.dev/api.json -> 225 providers, matched the id across all of them
+result   : 34 endpoints queried -> 19 answered with a catalog, 11 were not providers at all
+           (my config parse also caught non-provider keys: canon/vision/tts/curator... - reported, not hidden),
+           2 unreachable (bitwarden, the local :9395 router), 1 HTTP 401 (deepseek-foreman),
+           1 with no key resolvable by name (minimax)</pre>
+<p><b>What this scan does not prove:</b> that the lanes <i>serve</i> the model (a catalog listing is not a completed request), what each lane actually bills for it, or that the id is stable — the model is hours old. The next step is one real request per lane, which is what the import row's third criterion asks for.</p>
+</div>
+
+<div class="foot">
+Scan run 2026-09-29 &middot; sources: live provider catalog endpoints (keys read by name from the environment, never printed),
+<code>https://models.dev/api.json</code> (225 providers), our <code>data/tables/models.jsonl</code> (1,841 rows)
+and <code>providers.jsonl</code> (30 providers) &middot; row filed: TR-246 &middot; companion reports: policy-alignment, status-2026-09-29, timeout-alignment-2026-09-29.
+</div>
+</div></body></html>
