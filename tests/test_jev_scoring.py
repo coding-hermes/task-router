@@ -246,7 +246,11 @@ def test_proxy_degrades_visibly_when_jev_returns_no_matrix(monkeypatch):
                                          {"x-router-scorer": "jev"}, "/v1/chat/completions")
     assert src == "default"
     assert any("JEV key" in p for p in payload["problems"])
-    assert payload["profile_id"] == "P0_FORE"
+    # TR-139: an unrated (failed-scorer) prompt fails CHEAP, not into P0_FORE —
+    # no profile substitution, and the fail-cheap degrade is the FIRST problem
+    # (what degrade_reason records), composited onto the JEV cause itself.
+    assert payload["profile_id"] is None
+    assert "unrated -> fail-cheap" in payload["problems"][0]
 
 
 def test_proxy_scorer_defaults_to_classifier(monkeypatch):

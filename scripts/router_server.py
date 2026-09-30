@@ -2079,6 +2079,10 @@ def _normalize_developer_role(body, headers):
 
 _CATS_CACHE: list = []
 _CATS_CACHE_AT = 0.0
+# TR-139: registry task_profiles ids, cached like the categories above, used to
+# validate the ROUTER_EMPTY_MATRIX_PROFILE override on the unrated path.
+_PROFILE_IDS_CACHE: set = None
+_PROFILE_IDS_CACHE_AT = 0.0
 
 
 def _registry_categories(registry_path=None):
@@ -2297,10 +2301,71 @@ def classify_cache_stats():
     return d
 
 
+def _registry_profile_ids(registry_path=None):
+    """TR-139: the registry's task_profiles ids, for override validation.
+
+    Same data-driven discipline as _registry_categories: read what the registry
+    declares, cache it for 300s, return an empty set when the registry cannot be
+    read (the caller then treats the override as absent — never guesses).
+    """
+    global _PROFILE_IDS_CACHE_AT, _PROFILE_IDS_CACHE
+    ttl = 300.0
+    if registry_path is None and _PROFILE_IDS_CACHE is not None \
+            and (time.time() - _PROFILE_IDS_CACHE_AT) < ttl:
+        return set(_PROFILE_IDS_CACHE)
+    path = Path(registry_path or os.environ.get("ROUTING_REGISTRY", REPO / "registry.json"))
+    try:
+        tables = (json.loads(path.read_text()) or {}).get("tables", {})
+        ids = {r.get("id") for r in tables.get("task_profiles") or []}
+        ids.discard(None)
+    except (ValueError, OSError):
+        return set()
+    if registry_path is None:
+        _PROFILE_IDS_CACHE_AT, _PROFILE_IDS_CACHE = time.time(), set(ids)
+    return ids
+
+
+def _empty_matrix_profile(registry_path=None):
+    """TR-139: what an UNRATED prompt (a rating failure) may degrade to.
+
+    Returns (profile_id, problems). ROUTER_EMPTY_MATRIX_PROFILE, when set to a
+    profile that exists in the registry's task_profiles, names the degrade
+    profile; anything else — unset (the default), an unknown name, an unreadable
+    registry — returns (None, [...]) meaning the CHEAP floor path. A rating
+    FAILURE is not "needs the best": it must not bill like P0_FORE, and an
+    override the router cannot honour is ignored VISIBLY, never silently.
+    """
+    name = (os.environ.get('ROUTER_EMPTY_MATRIX_PROFILE') or '').strip()
+    if not name:
+        return None, []
+    if name in _registry_profile_ids(registry_path):
+        return name, []
+    return None, [f'ROUTER_EMPTY_MATRIX_PROFILE={name[:80]} is not a registry '
+                  'task_profile: override ignored, fail-cheap floor applies (TR-139)']
+
+
+def _stamp_unrated(problems, entry):
+    """TR-139: make the fail-cheap degrade the FIRST problem, keeping the rating
+    cause right behind it. problems[0] is the string degrade_reason carries (see
+    proxy_chat / _proxy_record), so this is what makes the unrated rate greppable
+    from a ledger row alone."""
+    problems = list(problems or [])
+    if problems:
+        problems[0] = f'{problems[0]} | {entry}'
+    else:
+        problems = [entry]
+    return problems
+
+
 def _proxy_requirements(body, headers, path):
     """Decide the complexity for this request. Returns (source, payload) where
     source ∈ declared | classifier | default, payload carries the matrix,
-    complexity_sig and (for the classifier) prompt version/model/problems."""
+    complexity_sig and (for the classifier) prompt version/model/problems.
+
+    TR-139: the 'default' source (a rating FAILURE) no longer substitutes
+    P0_FORE — profile_id is the ROUTER_EMPTY_MATRIX_PROFILE override or None
+    (the cheap floor path, which the proxy_chat branch builds); the failure
+    reason itself stays visible in problems."""
     declared = headers.get('x-router-profile')
     if declared:
         sig = None
@@ -2329,14 +2394,24 @@ def _proxy_requirements(body, headers, path):
             import router_jev
             jres = router_jev.classify(text)
         except Exception as exc:  # noqa: BLE001
-            return 'default', {'profile_id': 'P0_FORE', 'matrix': None, 'complexity_sig': None,
-                               'problems': [f'jev scorer unavailable: {str(exc)[:200]}']}
+            _ovr, _ovr_warn = _empty_matrix_profile()
+            return 'default', {'profile_id': _ovr, 'matrix': None, 'complexity_sig': None,
+                               'problems': _stamp_unrated(
+                                   [f'jev scorer unavailable: {str(exc)[:200]}'],
+                                   'unrated -> fail-cheap floor requirements (TR-139)') +
+                                   _ovr_warn}
         if jres.get('matrix') is None:
-            # Same R10 discipline as the classifier: degrade VISIBLY.
-            return 'default', {'profile_id': 'P0_FORE', 'matrix': None, 'complexity_sig': None,
+            # Same R10 discipline as the classifier: degrade VISIBLY — and CHEAP
+            # (TR-139): the failure is stamped with the override profile or the
+            # cheap floor, never the priciest profile.
+            _ovr, _ovr_warn = _empty_matrix_profile()
+            return 'default', {'profile_id': _ovr, 'matrix': None, 'complexity_sig': None,
                                'confidence': jres.get('confidence'),
                                'scorer': 'jev', 'score': jres.get('score'),
-                               'model': jres.get('model'), 'problems': jres.get('problems') or []}
+                               'model': jres.get('model'), 'problems': _stamp_unrated(
+                                   jres.get('problems') or [],
+                                   'unrated -> fail-cheap floor requirements (TR-139)') +
+                                   _ovr_warn}
         return 'jev', {'matrix': jres['matrix'], 'complexity_sig': jres.get('complexity_sig'),
                        'confidence': jres.get('confidence'), 'scorer': 'jev',
                        'score': jres.get('score'), 'band': jres.get('band'),
@@ -2352,14 +2427,23 @@ def _proxy_requirements(body, headers, path):
             res = router_classify.classify(text)
             classify_cache_put(text, res)
     except Exception as exc:  # noqa: BLE001
-        return 'default', {'profile_id': 'P0_FORE', 'matrix': None, 'complexity_sig': None,
-                           'problems': [f'classifier unavailable: {str(exc)[:200]}']}
+        _ovr, _ovr_warn = _empty_matrix_profile()
+        return 'default', {'profile_id': _ovr, 'matrix': None, 'complexity_sig': None,
+                           'problems': _stamp_unrated(
+                               [f'classifier unavailable: {str(exc)[:200]}'],
+                               'unrated -> fail-cheap floor requirements (TR-139)') +
+                               _ovr_warn}
     if res.get('matrix') is None:
-        # R10: degrade to the default profile, WITH the reason visible.
-        return 'default', {'profile_id': 'P0_FORE', 'matrix': None, 'complexity_sig': None,
+        # R10: degrade WITH the reason visible — and, since TR-139, CHEAP: the
+        # override profile or the cheap floor, never the priciest profile.
+        _ovr, _ovr_warn = _empty_matrix_profile()
+        return 'default', {'profile_id': _ovr, 'matrix': None, 'complexity_sig': None,
                            'confidence': res.get('confidence'),
                            'prompt_version': res.get('prompt_version'),
-                           'model': res.get('model'), 'problems': res.get('problems') or []}
+                           'model': res.get('model'), 'problems': _stamp_unrated(
+                               res.get('problems') or [],
+                               'unrated -> fail-cheap floor requirements (TR-139)') +
+                               _ovr_warn}
     return 'classifier', {'matrix': res['matrix'], 'complexity_sig': res.get('complexity_sig'),
                           'confidence': res.get('confidence'),
                           'prompt_version': res.get('prompt_version'),
@@ -3082,7 +3166,7 @@ def _proxy_chat_inner(path, body, headers, max_hops=None, upstream=None):
                 matrix=requirements.get('matrix'))
         except Exception:  # noqa: BLE001 — advisory evidence, never fatal
             requirements['levels'] = None
-    if source == 'classifier' and not (requirements.get('matrix') or {}):
+    if source in ('classifier', 'default') and not (requirements.get('matrix') or {}):
         # An empty matrix is a SUCCESSFUL rating that says "this prompt presses no
         # category": any lane can serve it, so the chain must be built from a FLOOR
         # requirement set (every category at the scale minimum). That yields the full
@@ -3093,17 +3177,34 @@ def _proxy_chat_inner(path, body, headers, max_hops=None, upstream=None):
         # This branch used to substitute P0_FORE, the PRICIEST profile, so "needs
         # nothing" was billed as "needs the best": on live rows, degraded calls averaged
         # $0.0654 against $0.0278 for rated calls, on a median of 10 output tokens.
-        # The fall-back for a genuine rating FAILURE is a separate question (TR-139) and
-        # is deliberately untouched below.
+        #
+        # TR-139: a rating FAILURE (source 'default' — classifier call failed, JEV
+        # failed, or the parse failed) now takes the SAME cheap floor chain instead of
+        # falling into P0_FORE. The source stamp stays 'default' (the row still reads as
+        # an unrated request) and the degrade is named as the FIRST problem, so
+        # degrade_reason carries 'unrated -> fail-cheap' and the rate is countable from
+        # the ledger alone.
         cats = _registry_categories()
-        if cats:
-            source = 'classifier-empty'
+        # TR-139: a HONOURED override is already stamped on requirements — the named
+        # profile's own requirement set drives the chain (a floor matrix would only
+        # dilute it), so it is kept, never rebuilt.
+        override_profile = requirements.get('profile_id') if source == 'default' else None
+        if cats and not override_profile:
+            if source == 'classifier':
+                source = 'classifier-empty'
+                degrade_entry = ('empty matrix -> no category pressurised: floor '
+                                 'requirements, cheapest eligible lane')
+            else:
+                degrade_entry = 'unrated prompt -> fail-cheap floor requirements (TR-139)'
             requirements = {**requirements, 'profile_id': None,
                             'matrix': {c: -5 for c in cats},
                             'problems': (requirements.get('problems') or []) +
-                                        ['empty matrix -> no category pressurised: floor '
-                                         'requirements, cheapest eligible lane']}
-        else:
+                                        [degrade_entry]}
+        elif override_profile:
+            requirements = {**requirements, 'problems': (requirements.get('problems') or []) +
+                                        [f'unrated prompt -> operator override profile '
+                                         f'{override_profile} (TR-139)']}
+        elif source == 'classifier':
             # No category list available: keep the old, visible fall-back rather than
             # guess a scale.
             source = 'classifier-empty'
@@ -3111,6 +3212,17 @@ def _proxy_chat_inner(path, body, headers, max_hops=None, upstream=None):
                             'problems': (requirements.get('problems') or []) +
                                         ['empty matrix -> default profile P0_FORE '
                                          '(registry categories unreadable)']}
+        else:
+            # TR-139 last resort: a FAILURE with no floor set available (registry
+            # categories unreadable) and NO honoured override — an override is
+            # honourable exactly when the profile list is readable, and then it was
+            # already stamped at the rating step (the branch above keeps it). So this
+            # arm is the one place P0_FORE may still appear, explicitly named.
+            requirements = {**requirements, 'profile_id': 'P0_FORE',
+                            'problems': (requirements.get('problems') or []) +
+                                        ['unrated prompt -> floor set unavailable (registry '
+                                         'categories unreadable); degrading to P0_FORE as '
+                                         'last resort (TR-139)']}
     resolved = _proxy_chain(requirements, sort_spec=headers.get('x-router-sort'),
                             window_h=headers.get('x-router-window-h'))
     chain = resolved.get('chain') or []

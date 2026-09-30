@@ -256,6 +256,7 @@ Env knobs:
 | `ROUTER_PROXY_UPSTREAM` | upstream gateway base (default `http://127.0.0.1:8642`) |
 | `ROUTER_PROXY_MAX_HOPS` | ladder bound; per-request `x-router-max-hops` wins |
 | `ROUTER_SCORER` | default scorer: `classifier` (default), `jev`, `decisions` |
+| `ROUTER_EMPTY_MATRIX_PROFILE` | degrade profile for an UNRATED prompt (rating failure); must exist in the registry's task_profiles, else ignored (visibly) and the cheap floor chain applies (TR-139) |
 | `ROUTER_CLASSIFIER_BASE_URL/_MODEL/_KEY_ENV` | classifier endpoint, model id, env name of its key |
 
 Caller headers: `x-router-scorer` (per-request scorer override),
