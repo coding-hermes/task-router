@@ -2,11 +2,41 @@
   "tick_id": "task-router-2026-09-30-04-13-37",
   "created_at": "2026-09-30T04:13:37-05:00",
   "budget": 11,
-  "note": "Dropped TR-174/178/194 (proxy ladder/degraded-path) — overlap with live TR-129 worktree on same proxy code path. 4 file-independent tasks remain.",
+  "note": "Dropped TR-174/178/194 (proxy ladder/degraded-path) \u2014 overlap with live TR-129 worktree on same proxy code path. 4 file-independent tasks remain.",
   "tasks": [
-    {"id": "TR-198", "priority": "P0", "worktree": "/home/kara/worktrees/task-router-TR-198", "branch": "wt/TR-198", "scope": "data/tables/models.jsonl", "status": "dispatching"},
-    {"id": "TR-125", "priority": "P1", "worktree": "/home/kara/worktrees/task-router-TR-125", "branch": "wt/TR-125", "scope": "data/tables/projects.jsonl", "status": "dispatching"},
-    {"id": "TR-148", "priority": "P1", "worktree": "/home/kara/worktrees/task-router-TR-148", "branch": "wt/TR-148", "scope": "scripts/router_provider_import.py data/tables/", "status": "dispatching"},
-    {"id": "INT-CI-20260928-04", "priority": "P1", "worktree": "/home/kara/worktrees/task-router-INT-CI-20260928-04", "branch": "wt/INT-CI-20260928-04", "scope": "tests/ .github/workflows/", "status": "dispatching"}
-  ]
+    {
+      "id": "TR-198",
+      "priority": "P0",
+      "worktree": "/home/kara/worktrees/task-router-TR-198",
+      "branch": "wt/TR-198",
+      "scope": "data/tables/models.jsonl",
+      "status": "dispatching"
+    },
+    {
+      "id": "TR-125",
+      "priority": "P1",
+      "worktree": "/home/kara/worktrees/task-router-TR-125",
+      "branch": "wt/TR-125",
+      "scope": "data/tables/projects.jsonl",
+      "status": "dispatching"
+    },
+    {
+      "id": "TR-148",
+      "priority": "P1",
+      "worktree": "/home/kara/worktrees/task-router-TR-148",
+      "branch": "wt/TR-148",
+      "scope": "scripts/router_provider_import.py data/tables/",
+      "status": "dispatching"
+    },
+    {
+      "id": "INT-CI-20260928-04",
+      "priority": "P1",
+      "worktree": "/home/kara/worktrees/task-router-INT-CI-20260928-04",
+      "branch": "wt/INT-CI-20260928-04",
+      "scope": "tests/ .github/workflows/",
+      "status": "dispatching"
+    }
+  ],
+  "finished_at": "2026-09-30T07:20:00-05:00",
+  "recovery_note": "Recovered by tick task-router-2026-09-30-07-03-03. TR-198/125/148 already merged+closed on main; INT-CI-20260928-04 closed stale (test green at HEAD). Branch wt/INT-CI-20260928-04 tip content-identical to main (board record only) \u2014 reaped."
 }

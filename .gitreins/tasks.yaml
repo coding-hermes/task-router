@@ -569,3 +569,11 @@ tasks:
   status: complete
   created_at: '2026-09-30T05:45:05.411148+00:00'
   completed_at: '2026-09-30T05:48:29.722360+00:00'
+- id: TR-198
+  title: Repair 8 overlay-wiped registry lanes via provenance-carrying lifecycle overlays
+  criteria:
+  - 8 live lanes repaired or disabled with reasons via lifecycle.jsonl overlays; seed
+    clean; regression tests green; committed and pushed
+  status: complete
+  created_at: '2026-09-30T06:30:19.067512+00:00'
+  completed_at: '2026-09-30T06:41:00.117948+00:00'
