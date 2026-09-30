@@ -1,0 +1,11 @@
+{
+  "task": "TR-187",
+  "floor_percent": 49.5,
+  "baseline_percent": 50.53,
+  "baseline_measured": "2026-09-30T04:46:05+00:00",
+  "scope": "scripts",
+  "margin_percent": 1.0,
+  "source": "data/coverage-baseline.json (measured 2026-09-30, worktree wt/TR-187 @ 1567f19, board venv)",
+  "why": "Fails the suite when scripts/ coverage drops more than a small margin below the measured baseline. Coverage facts live in data/coverage-baseline.json; the measured run is docs/coverage-2026-09-30.md. NOT wired into pytest addopts: CI installs pytest+duckdb+pyyaml only (no pytest-cov), so an addopts hook would break every plain `pytest -q tests/` run. The floor is enforced by the recorded command in docs/coverage-2026-09-30.md.",
+  "enforcement": "~/.hermes/venvs/board/bin/python3 -m pytest -q tests/ --cov=scripts --cov-report=term-missing --cov-report=json:data/coverage-baseline.json --cov-fail-under=49.5"
+}
