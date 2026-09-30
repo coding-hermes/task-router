@@ -36,17 +36,43 @@ import hashlib
 import json
 import os
 import re
-import subprocess
 import sys
 import urllib.request
 
 API = 'http://127.0.0.1:9090'
+
+# SCHED-GAP-1602 made the scheduler control surface require an operator
+# credential for mutations, but this tool still sent no auth header — so every
+# --apply died with a bare HTTP 401 and the pins below were never enforced
+# (which is how the 'below-fast residue' accumulated fleet-wide: 7 lanes sat at
+# 900s against a 21600 pin). Read the same 0600 env file the daemon loads; when
+# it is absent we send no header, so read-only/older daemons stay usable.
+def _operator_headers():
+    tok = os.environ.get('SCHEDULER_OPERATOR_TOKEN', '')
+    if not tok:
+        try:
+            with open(os.path.expanduser('~/.hermes/scheduler-auth.env'),
+                      errors='replace') as fh:
+                for line in fh:
+                    m = re.match(
+                        r'\s*(?:export\s+)?SCHEDULER_OPERATOR_TOKEN\s*=\s*(.+?)\s*$',
+                        line)
+                    if m:
+                        tok = m.group(1).strip().strip('"').strip("'")
+                        break
+        except OSError:
+            tok = ''
+    return {'X-Operator-Token': tok} if tok else {}
+
 
 # HTTP timeout for every API call. The scheduler's /api/v1/projects response is
 # 18-30s on a loaded box (one row per lane, computed fields included); the
 # original 10s made --apply die mid-run with a bare TimeoutError and leave the
 # fleet un-pinned (SCHED-PERF-002). Override with FLEET_POLICY_HTTP_TIMEOUT.
 HTTP_TIMEOUT = int(os.environ.get('FLEET_POLICY_HTTP_TIMEOUT', '120'))
+# TR-205 acceptance 4: the pagination loop is bounded, never an unbounded
+# retry. 20 pages x 500 = 10,000 lanes — ~20x the live fleet size.
+PROJECTS_MAX_PAGES = 20
 TARGET_ACTIVE = 3600       # FAST — Bane-designated fast projects (1h; was 15m/900)
 TARGET_IDLE = 21600        # DEFAULT — fleet baseline (6h; was 2h/7200 — Bane 08-15: "default 4 or 6 hours")
 TARGET_COMPLETED = 43200  # COMPLETED — no work, verified done (12h)
@@ -68,7 +94,84 @@ ELEVATED_PINS = {
     'hermes-canopy-releng': 86400,  # Bane 2026-09-19: releng is 24h, not 6h
     'hermes-dagger': 900,  # Bane 2026-09-15: 15min dagger speed ruling (was living in DB only, drifted fleet.toml back to 7200)
     'hermes-canopy': 21600,  # Bane 2026-09-17: all coding-hermes primaries at 21600 (was 7200 in OPERATOR_7200)
+    # ── Role-lane cadence (supervisor 2026-09-27) ──────────────────────
+    # The role lanes below sit at their namespace's DOMINANT pinned cadence
+    # (dogfood 259200 on 32/32 enabled lanes; review 86400 on 21/24; perf
+    # 86400 on 4/5) but their fleet.toml pins went missing — the 200-lane
+    # page from SCHED-GAP-1622's pagination truncated the regen's input, so
+    # the generic REDUCE rule false-fired on them and would have made them
+    # the only outliers against a uniformly-pinned peer group. Protect the
+    # convention value; do NOT reduce satellites while the fleet is
+    # admission-starved (31 deferrals/24h measurable). Remove an entry to
+    # let the REDUCE rule take the lane to 21600.
+    'bunker-dogfood': 259200,
+    'muster-dogfood': 259200,
+    'bunker-perf': 604800,     # weekly per Bane's review/perf ruling (was hardcoded 86400, disagreeing with the DB pin)
+    'bunker-review': 604800,   # weekly per Bane's review/perf ruling (was hardcoded 86400, disagreeing with the DB pin)
 }
+
+
+# ── SCHED-GAP-1671 derived REDUCE guard ─────────────────────────────────────
+# Role-suffix lanes whose cadence is a fleet CONVENTION (set by supervisor
+# rulings, e.g. review/perf weekly on 2026-09-28), not the policy matrix.
+# The REDUCE rule must never normalise these to the 6h default just because
+# their fleet.toml pin went missing (SCHED-GAP-1622 truncation family).
+CONVENTION_ROLE_SUFFIXES = (
+    '-review', '-perf', '-dogfood', '-releng', '-readme', '-docs',
+    '-sync', '-pm', '-qa',
+)
+
+def _is_convention_lane(name, pin, fleet_pins):
+    """True when a lane above TARGET_IDLE is on a convention cadence.
+
+    Derived rule (SCHED-GAP-1671 acceptance 1): the guard must come from the
+    lane's identity, not a hand-maintained list. A slow satellite-role lane
+    (…-review, …-perf, …) whose live cooldown exceeds TARGET_IDLE is on its
+    convention cadence — the policy never writes those values, so a missing
+    pin is truncation residue, NOT licence to reduce. A lane escapes the
+    guard only by being re-pinned to a canonical policy value in fleet.toml
+    (3600/21600/43200/7200), which is an explicit operator re-decision.
+    """
+    if pin in (TARGET_ACTIVE, TARGET_IDLE, TARGET_COMPLETED, 7200):
+        return False  # canonical pin says the policy matrix owns this lane
+    return any(name.endswith(sfx) for sfx in CONVENTION_ROLE_SUFFIXES)
+
+
+# ── FAMILY CANONICAL CADENCE (Bane 2026-09-29, explicit ruling) ──────────────
+# ONE canonical time per satellite family. This is the operator's matrix and it
+# OVERRIDES the flat TARGET_IDLE default for role lanes, because that default
+# was pulling releng and pm to 6h (4x/day) -- which is what piled up the
+# "daily release readiness" rows and made the same work appear day after day.
+#   releng : once per day (86400). 6h = 4x/day was the measured defect.
+#            A project that genuinely needs it slower may sit at 259200
+#            (once per 3 days) -- both are sanctioned for releng.
+#   pm     : once a day (86400).
+#   qa     : every 6 hours (21600).
+#   sync   : every 6 hours (21600).
+#   perf   : once a week (604800).
+#   dogfood: once every 3 days (259200).
+#   docs / readme / review : weekly (604800) -- already uniform fleet-wide.
+FAMILY_CANONICAL = {
+    '-releng': 86400,
+    '-pm': 86400,
+    '-qa': 21600,
+    '-sync': 21600,
+    '-perf': 604800,
+    '-dogfood': 259200,
+    '-review': 604800,
+    '-readme': 604800,
+    '-docs': 604800,
+}
+# releng may also legitimately sit at 259200 (once per 3 days).
+FAMILY_ALSO_ALLOWED = {'-releng': {259200}}
+
+
+def family_canonical(name):
+    """The canonical cadence for a satellite family, or None for a primary."""
+    for sfx, val in FAMILY_CANONICAL.items():
+        if name.endswith(sfx):
+            return sfx, val
+    return None, None
 
 # OPERATOR_7200 — Bane-designated 2h FAST projects (killer projects under active
 # development). The RAISE rule must never lift these to the 6h default, and the
@@ -195,8 +298,35 @@ def board_pending(workdir):
     return None
 
 def api_get(path):
-    with urllib.request.urlopen(API + path, timeout=HTTP_TIMEOUT) as r:
+    req = urllib.request.Request(API + path, headers=_operator_headers())
+    with urllib.request.urlopen(req, timeout=HTTP_TIMEOUT) as r:
         return json.loads(r.read())
+
+def api_get_all_projects():
+    """Fetch EVERY project lane, paginating until `total` is covered.
+
+    SCHED-GAP-1622 (commit c531082b, 2026-09-26) paginated
+    /api/v1/projects with a default limit of 200 (max 500) while the fleet
+    runs 501 lanes — a bare GET silently hides ~60% of the fleet, and an
+    --apply regen then rewrites fleet.toml from that truncated view,
+    DELETING the pins of every lane past the alphabetical cutoff (h3,
+    heading, helios, muster, uhlp … zzz). Never call the bare endpoint.
+
+    Page count is bounded (PROJECTS_MAX_PAGES): a degenerate server that
+    ignores ?offset= and repeats its window would otherwise spin forever
+    on `offset += len(rows)`, since `total` never closes (TR-205
+    acceptance 4 — bounded loop, no unbounded retry).
+    """
+    out, offset = [], 0
+    for _ in range(PROJECTS_MAX_PAGES):
+        page = api_get(f'/api/v1/projects?limit=500&offset={offset}')
+        rows = page.get('projects', [])
+        out.extend(rows)
+        total = page.get('total')
+        if not rows or total is None or len(out) >= total:
+            return out
+        offset += len(rows)
+    return out
 
 def api_put(path, body):
     # Every cooldown PUT re-snapshots the adaptive floor to the new pin.
@@ -211,7 +341,8 @@ def api_put(path, body):
         body.setdefault('cooldown_floor_s', body['cooldown_s'])
     req = urllib.request.Request(
         API + path, data=json.dumps(body).encode(),
-        headers={'Content-Type': 'application/json'}, method='PUT')
+        headers={'Content-Type': 'application/json', **_operator_headers()},
+        method='PUT')
     with urllib.request.urlopen(req, timeout=HTTP_TIMEOUT) as r:
         return json.loads(r.read())
 
@@ -235,7 +366,7 @@ def verify_pins():
     problems = []
     fleet_pins = read_fleet_pins()
     try:
-        projects = api_get('/api/v1/projects').get('projects', [])
+        projects = api_get_all_projects()
     except Exception as exc:  # scheduler down — cannot certify, fail loud
         return [f"MISMATCH <all> api: db=<unreachable: {exc}> toml=<n/a>"]
     live = {p.get('name', ''): p for p in projects}
@@ -315,9 +446,9 @@ def verify_deploy_hash():
     print('DEPLOY HASH MISMATCH — SCHED-PERF-003')
     print(f'  deployed : {deployed_hash}')
     print(f'  canonical: {canonical_hash}')
-    print(f'  The policy script has diverged from its canonical version.')
-    print(f'  If this is intentional, re-canonicalize with --update-canonical.')
-    print(f'  The sync guard (SCHED-PERF-006) blocked overwrite of the live copy.')
+    print('  The policy script has diverged from its canonical version.')
+    print('  If this is intentional, re-canonicalize with --update-canonical.')
+    print('  The sync guard (SCHED-PERF-006) blocked overwrite of the live copy.')
     return False, STATUS_MISMATCH, canonical_hash
 
 
@@ -352,7 +483,7 @@ def main():
     if '--verify' in sys.argv or '--apply' in sys.argv:
         ok, status, detail = verify_deploy_hash()
         if status == STATUS_BOOTSTRAPPED:
-            print(f'DEPLOY HASH: bootstrapped (new sidecar written)')
+            print('DEPLOY HASH: bootstrapped (new sidecar written)')
         elif status == STATUS_OK:
             print(f'DEPLOY HASH: {detail} matches canonical')
         else:
@@ -364,6 +495,17 @@ def main():
         problems = verify_pins()
         for p in problems:
             print(p)
+        # SCHED-GAP-1662 parity tripwire: the file must describe the whole
+        # fleet. Wire in after the pin checks.
+        try:
+            projects = api_get_all_projects()
+            ok, msg = check_db_file_parity(projects)
+            print(msg)
+            if not ok:
+                print(f"\n{len(problems)} pin mismatch(es) — drift detected")
+                sys.exit(1)
+        except Exception as e:
+            print(f"parity check skipped (API unreachable): {e}")
         if problems:
             print(f"\n{len(problems)} pin mismatch(es) — drift detected")
             sys.exit(1)
@@ -375,7 +517,14 @@ def main():
     # apply (argv membership test below). Dry-run never mutates live state.
     apply = '--apply' in sys.argv and '--dry-run' not in sys.argv
     fleet_pins = read_fleet_pins()
-    projects = api_get('/api/v1/projects').get('projects', [])
+    projects = api_get_all_projects()
+
+    # SCHED-GAP-1662 empty-map guard: an empty pin map makes the rules below
+    # emit PUTs against fleet-wide defaults (proven twice live 2026-09-16,
+    # SCHED-GAP-123 family). Refuse BEFORE any PUT or regen.
+    if apply and not fleet_pins and len(projects) > 10:
+        print(f"refusing: fleet pin map is empty ({len(projects)} live projects)")
+        sys.exit(2)
 
     print(f"mode: {'APPLY' if apply else 'DRY-RUN'}")
     print(f"{'PROJECT':32s} {'PENDING':8s} {'COOLDOWN':10s} {'TARGET':8s} {'ACTION'}")
@@ -417,6 +566,42 @@ def main():
         if elevated is not None:
             print(f"{name:32s} {'-':8s} {cooldown:10d} {elevated:8d} ok (operator elevated pin {elevated} — hard-skipped)")
             continue
+        # ── FAMILY CANONICAL ALIGNMENT (Bane 2026-09-29) ─────────────────
+        # Runs BEFORE the REDUCE/RAISE rules and BEFORE the SCHED-GAP-1671
+        # convention guard, because both are downstream of the flat 21600
+        # default that this ruling replaces: the REDUCE/RAISE branches would
+        # hold releng/pm at 21600 ("ok", never raised), and the 1671 guard
+        # would HARD-SKIP a perf lane sitting at 86400 without a pin instead of
+        # aligning it to the weekly canonical. A family lane off its canonical
+        # value is aligned here; a lane already on it is left untouched.
+        _sfx, _canon = family_canonical(name)
+        if _canon is not None:
+            _allowed = {_canon} | FAMILY_ALSO_ALLOWED.get(_sfx, set())
+            if cooldown in _allowed:
+                print(f"{name:32s} {'-':8s} {cooldown:10d} {cooldown:8d} ok (family canonical)")
+                continue
+            _action = f"ALIGN {cooldown}→{_canon} (family canonical {_sfx}, Bane 2026-09-29)"
+            if apply:
+                api_put(f"/api/v1/projects/{name}", {"cooldown_s": _canon})
+                _action += " ✓"
+            actions.append((name, cooldown, _canon, None))
+            print(f"{name:32s} {'-':8s} {cooldown:10d} {_canon:8d} {_action}")
+            continue
+        # DERIVED REDUCE GUARD (SCHED-GAP-1671): the hand-maintained
+        # ELEVATED_PINS list covered 9 named lanes while 33+ review/perf
+        # lanes sat outside it — a lost/truncated fleet.toml pin made the
+        # REDUCE rule see a convention-cadenced lane (weekly 604800 review,
+        # 86400 perf) as licence to normalise it to 21600. The guard is now
+        # DERIVED, not listed: a lane whose role is convention-cadenced
+        # (slow satellite roles) or whose live cooldown already exceeds
+        # TARGET_IDLE while no canonical pin says otherwise is operator
+        # convention — hard-skipped, named in the log. Removing a lane from
+        # convention means re-pinning it in fleet.toml to a canonical policy
+        # value (3600/21600/43200), which re-enables the rules.
+        if cooldown > TARGET_IDLE and _is_convention_lane(name, pin, fleet_pins):
+            print(f"{name:32s} {'-':8s} {cooldown:10d} {cooldown:8d} ok (convention cadence {cooldown}s above default — derived hard-skip, SCHED-GAP-1671)")
+            continue
+
         pending = board_pending(workdir)
 
         if pending is None:
@@ -526,7 +711,7 @@ def main():
         # corrected state, not the pre-PUT snapshot. (Proven 2026-08-07:
         # pins for h3/muster/uhlp/dexdat-memory were written stale and
         # would have reverted the reductions on daemon restart.)
-        projects = api_get('/api/v1/projects').get('projects', [])
+        projects = api_get_all_projects()
         # Namespace config must survive the regen too (Bane 2026-08-27:
         # default_prompt / model_chain / max_concurrent are data in the DB).
         namespaces = api_get('/api/v1/namespaces').get('namespaces', [])
@@ -537,10 +722,20 @@ def main():
         print(f"fleet.toml: regenerated {n} project pins + {len(namespaces)} namespaces (durable across restarts)")
 
 
+def fleet_toml_path() -> str:
+    """Single loader path for fleet.toml — every read/write must use this."""
+    return os.path.expanduser('~/.hermes/fleet.toml')
+
 def read_fleet_pins(path=None):
-    """Read {name: cooldown_s} from fleet.toml (operator-set pins)."""
+    """Read {name: cooldown_s} from fleet.toml (operator-set pins).
+
+    Returns {} only for a genuinely EMPTY file; a missing/unreadable file is
+    refusal-worthy upstream (SCHED-GAP-123 family: an empty pin map once made
+    --apply emit rule PUTs that drifted live cooldowns fleet-wide), so callers
+    doing applies must check read_fleet_pins_strict() instead.
+    """
     import re as _re
-    path = path or os.path.expanduser('~/.hermes/fleet.toml')
+    path = path or fleet_toml_path()
     pins = {}
     try:
         txt = open(path).read()
@@ -554,16 +749,20 @@ def read_fleet_pins(path=None):
     return pins
 
 def write_fleet_pins(projects, namespaces=None):
-    """Write [[projects]] pins for all enabled projects from API state.
+    """Write [[projects]] pins for EVERY project from API state, enabled or not.
 
-    When namespaces is provided (list of namespace dicts from
-    /api/v1/namespaces), [[namespaces]] blocks are emitted first so the
+    Disabled/paused lanes are emitted with `enabled = false` so the file
+    durably describes the whole fleet (SCHED-GAP-1662: the enabled-only filter
+    left the 166 paused lanes unrepresented and restarts re-derived state the
+    file never described). When namespaces is provided (list of namespace dicts
+    from /api/v1/namespaces), [[namespaces]] blocks are emitted first so the
     namespace-level config (default_prompt, model_chain, max_concurrent —
     Bane 2026-08-27) survives policy regens. The regen must never drop
     namespace config the operator set in the DB.
     """
-    import urllib.parse
-    enabled = [p for p in projects if p.get('enabled', p.get('enabled'))]
+    # SCHED-GAP-1662: emit EVERY project; the per-project `enabled` key
+    # (written below) is the durable representation of the paused set.
+    all_projects = list(projects)
     # TASKS-ADMISSION LAW read-site default (SCHED-PERF-006): callers without
     # namespace data (unit renders, legacy regens) must get the legacy arm
     # behavior, not an UnboundLocalError at the ns_admission read below.
@@ -613,7 +812,7 @@ def write_fleet_pins(projects, namespaces=None):
             if mc and '"' in mc:
                 out.append(f'model_chain = {mc}')
             out.append("")
-    for p in sorted(enabled, key=lambda x: x.get('name', x.get('name', ''))):
+    for p in sorted(all_projects, key=lambda x: x.get('name', x.get('name', ''))):
         pname = p.get('name', p.get('Name', '?'))
         out.append("[[projects]]")
         out.append(f'name = "{pname}"')
@@ -654,10 +853,33 @@ def write_fleet_pins(projects, namespaces=None):
             out.append(f'deliver = "{p.get("deliver", p.get("Deliver", ""))}"')
         out.append(f'enabled = {"true" if p.get("enabled", p.get("Enabled")) else "false"}')
         out.append("")
-    path = os.path.expanduser('~/.hermes/fleet.toml')
+    path = fleet_toml_path()
     with open(path, 'w') as f:
         f.write('\n'.join(out))
-    return len(enabled)
+    return len(all_projects)
+
+def count_fleet_toml_project_blocks(path=None):
+    """Count [[projects]] blocks in fleet.toml (parity tripwire)."""
+    path = path or fleet_toml_path()
+    import re as _re
+    try:
+        txt = open(path).read()
+    except OSError:
+        return 0
+    return len(_re.findall(r'^\s*\[\[projects\]\]\s*$', txt, _re.M))
+
+def check_db_file_parity(projects, path=None):
+    """Fail loudly when the live DB project count != fleet.toml blocks.
+
+    SCHED-GAP-1662: the file must describe the WHOLE fleet. Returns
+    (True, msg) on parity, (False, msg) on mismatch — the --verify path
+    turns a False into a loud failure.
+    """
+    db_count = len(projects)
+    file_count = count_fleet_toml_project_blocks(path)
+    if db_count == file_count:
+        return True, f"PARITY OK: db lanes={db_count} file blocks={file_count}"
+    return False, f"PARITY MISMATCH: db lanes={db_count} file blocks={file_count}"
 
 if __name__ == '__main__':
     main()
