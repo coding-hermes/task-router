@@ -95,7 +95,9 @@ def test_all_router_env_keys_documented():
         if not py_file.exists():
             continue
         content = py_file.read_text()
-        for match in re.finditer(r'ROUTER_[A-Z_]+', content):
+        # TR-241 follow-up: a preceding [A-Z_] must not count — the regex used
+        # to match substrings of TASK_ROUTER_REPO and OPENROUTER_API_KEY.
+        for match in re.finditer(r'(?<![A-Z_])ROUTER_[A-Z_]+', content):
             keys_in_code.add(match.group(0))
 
     # Read documentation files

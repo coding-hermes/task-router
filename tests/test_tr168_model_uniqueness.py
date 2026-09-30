@@ -153,6 +153,40 @@ POST_DEDUPE_ADDITIONS = {
     ("openrouter", "anthropic/claude-sonnet-5.5"): "TR-217 (7de3c9b)",
     ("openai-codex", "gpt-daybreak-blue-latest"): "TR-217 (7de3c9b)",
     ("openai-codex", "gpt-daybreak-red-latest"): "TR-217 (7de3c9b)",
+    # TR-217 continuation 2026-09-29/30 (7de3c9b + 3a88c97): weekly MODEL lane
+    # imports — gpt-6.1-sol across lanes + provider syncs. Each row's
+    # price_evidence carries the import provenance (TR-199 rule).
+    ("commandcode", "claude-sonnet-5-5"): "TR-217 (3a88c97)",
+    ("commandcode", "deepseek/deepseek-v4.1-flash-fast"): "TR-217 (3a88c97)",
+    ("commandcode", "gpt-6.1-sol"): "TR-217 (3a88c97)",
+    ("commandcode", "inclusionai/ling-3.1-flash:free"): "TR-217 (3a88c97)",
+    ("opencode-go-2", "longcat-2.5-preview-free"): "TR-217 (3a88c97)",
+    ("openrouter", "anthropic/claude-sonnet-5.5:batch"): "TR-217 (3a88c97)",
+    ("openrouter", "openai/gpt-6.1-sol"): "TR-217 (3a88c97)",
+    ("openrouter", "openai/gpt-6.1-sol-pro"): "TR-217 (3a88c97)",
+    ("openrouter", "openai/gpt-6.1-sol-pro:batch"): "TR-217 (3a88c97)",
+    ("openrouter", "openai/gpt-6.1-sol:batch"): "TR-217 (3a88c97)",
+    ("xkiro", "openai/gpt-6.1-sol"): "TR-217 (3a88c97)",
+    ("xkiro-2", "openai/gpt-6.1-sol"): "TR-217 (3a88c97)",
+    ("xkiro-2", "moonshotai/kimi-k2.7-code-highspeed"): "TR-217 (3a88c97)",
+    ("xkiro-2", "moonshotai/kimi-k2.8-preview"): "TR-217 (3a88c97)",
+    ("xkiro-2", "moonshotai/kimi-k3-256k"): "TR-217 (3a88c97)",
+    # xkiro/xkiro-2 preset import (3a88c97): plan-covered free SKUs; each row's
+    # price_evidence now carries the TR-070 window-cost-pending tag.
+    ("xkiro", "dots-studio/dots-3-note-preview:free"): "TR-217 (3a88c97)",
+    ("xkiro", "inclusionai/ling-3.0-flash-sante:free"): "TR-217 (3a88c97)",
+    ("xkiro", "liquid/lfm-2.5-2.6b:free"): "TR-217 (3a88c97)",
+    ("xkiro", "meta/muse-spark-1.3-contributor:free"): "TR-217 (3a88c97)",
+    ("xkiro", "stealth/pixel-canary:free"): "TR-217 (3a88c97)",
+    ("xkiro", "stealth/space-bunny-alpha:free"): "TR-217 (3a88c97)",
+    ("xkiro", "xiaomi/mimo-v2.6-flash:free"): "TR-217 (3a88c97)",
+    ("xkiro-2", "dots-studio/dots-3-note-preview:free"): "TR-217 (3a88c97)",
+    ("xkiro-2", "inclusionai/ling-3.0-flash-sante:free"): "TR-217 (3a88c97)",
+    ("xkiro-2", "liquid/lfm-2.5-2.6b:free"): "TR-217 (3a88c97)",
+    ("xkiro-2", "meta/muse-spark-1.3-contributor:free"): "TR-217 (3a88c97)",
+    ("xkiro-2", "stealth/pixel-canary:free"): "TR-217 (3a88c97)",
+    ("xkiro-2", "stealth/space-bunny-alpha:free"): "TR-217 (3a88c97)",
+    ("xkiro-2", "xiaomi/mimo-v2.6-flash:free"): "TR-217 (3a88c97)",
 }
 
 

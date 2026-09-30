@@ -160,6 +160,17 @@ The server caches classification results to reduce redundant API calls.
 
 ---
 
+## Internal constants (not env vars)
+
+These `ROUTER_*` module-level constants in `scripts/router_server.py` are part of the timeout ladder but are not environment-tunable; they exist so the ladder math names its parts (TR-241).
+
+| Constant | Value | Role |
+|---|---|---|
+| `ROUTER_CALLER_PATIENCE_S` | `1800.0` | The caller's per-turn tolerance (scheduler's 30m default); every inner wall budget must stay strictly below it |
+| `ROUTER_HOP_LADDER_MARGIN_S` | `60.0` | Headroom below the caller patience that a clamped buffered hop budget must keep (not tunable) |
+
+---
+
 ## See also
 
 - [README.md § Configuration](../README.md#configuration) — core configuration variables
