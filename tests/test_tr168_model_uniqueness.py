@@ -173,6 +173,16 @@ POST_DEDUPE_ADDITIONS = {
     ("xkiro-2", "moonshotai/kimi-k3-256k"): "TR-217 (3a88c97)",
     # xkiro/xkiro-2 preset import (3a88c97): plan-covered free SKUs; each row's
     # price_evidence now carries the TR-070 window-cost-pending tag.
+    # 2026-09-30 pre-run syncs: clinepass API +6 lanes (claude-sonnet-5.5
+    # paid+batch, gpt-6.1-sol family) and models.dev +1 (openai-codex
+    # gpt-6.1-sol, priced same day, research row 2026-09-29 DevDay $2/$10).
+    ("clinepass", "claude-sonnet-5.5"): "TR-217 (2026-09-30 clinepass API sync)",
+    ("clinepass", "claude-sonnet-5.5:batch"): "TR-217 (2026-09-30 clinepass API sync)",
+    ("clinepass", "gpt-6.1-sol"): "TR-217 (2026-09-30 clinepass API sync)",
+    ("clinepass", "gpt-6.1-sol-pro"): "TR-217 (2026-09-30 clinepass API sync)",
+    ("clinepass", "gpt-6.1-sol-pro:batch"): "TR-217 (2026-09-30 clinepass API sync)",
+    ("clinepass", "gpt-6.1-sol:batch"): "TR-217 (2026-09-30 clinepass API sync)",
+    ("openai-codex", "gpt-6.1-sol"): "TR-217 (2026-09-30 models.dev sync)",
     ("xkiro", "dots-studio/dots-3-note-preview:free"): "TR-217 (3a88c97)",
     ("xkiro", "inclusionai/ling-3.0-flash-sante:free"): "TR-217 (3a88c97)",
     ("xkiro", "liquid/lfm-2.5-2.6b:free"): "TR-217 (3a88c97)",

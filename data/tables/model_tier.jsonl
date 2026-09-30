@@ -1634,7 +1634,7 @@
 {"model": "grok-4.5", "category": "mock", "perf": 1.0, "tier": 5, "tier_source": "measured", "source_ref": "models.jsonl:perf_mock"}
 {"model": "grok-4.5", "category": "refactor", "perf": 0.75, "tier": 3, "tier_source": "bench", "source_ref": "bench:battery-T2-CODE"}
 {"model": "grok-4.5", "category": "schema", "perf": 0.75, "tier": -2, "tier_source": "measured", "source_ref": "models.jsonl:perf_schema"}
-{"model": "grok-4.5", "category": "spec_docs", "perf": 0.6809999999999999, "tier": -4, "tier_source": "bench", "source_ref": "bench:BenchLM"}
+{"model": "grok-4.5", "category": "spec_docs", "perf": 0.6809999999999999, "tier": -3, "tier_source": "bench", "source_ref": "bench:BenchLM"}
 {"model": "grok-4.5", "category": "terminal", "perf": 0.85, "tier": 1, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:grok 4.5"}
 {"model": "grok-4.5", "category": "test", "perf": 0.72, "tier": -1, "tier_source": "estimate", "source_ref": "CATEGORY_ESTIMATES"}
 {"model": "grok-4.5", "category": "tool_use", "perf": 0.75, "tier": -1, "tier_source": "bench", "source_ref": "bench:battery-T1-TOOL"}
@@ -1706,7 +1706,7 @@
 {"model": "hf:nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-NVFP4", "category": "reasoning", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T3-REASON"}
 {"model": "hf:nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-NVFP4", "category": "refactor", "perf": 0.5, "tier": 1, "tier_source": "family", "source_ref": "alias:nemotron-3-super"}
 {"model": "hf:nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-NVFP4", "category": "schema", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/SCHEMA"}
-{"model": "hf:nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-NVFP4", "category": "spec_docs", "perf": 0.85375, "tier": -1, "tier_source": "family", "source_ref": "alias:nemotron-3-super"}
+{"model": "hf:nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-NVFP4", "category": "spec_docs", "perf": 0.85375, "tier": 0, "tier_source": "family", "source_ref": "alias:nemotron-3-super"}
 {"model": "hf:nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-NVFP4", "category": "test", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/TEST"}
 {"model": "hf:nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-NVFP4", "category": "tool_use", "perf": 0.667, "tier": -2, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T1-TOOL"}
 {"model": "hf:openai/gpt-oss-120b", "category": "agent_tick", "perf": 0.75, "tier": 2, "tier_source": "measured", "source_ref": "models.jsonl:perf_agent_tick"}
@@ -1786,6 +1786,7 @@
 {"model": "hy3", "category": "refactor", "perf": 0.5, "tier": 1, "tier_source": "bench", "source_ref": "bench:battery-T2-CODE"}
 {"model": "hy3", "category": "review", "perf": 0.75, "tier": 0, "tier_source": "measured", "source_ref": "models.jsonl:perf_review"}
 {"model": "hy3", "category": "schema", "perf": 0.5, "tier": -2, "tier_source": "measured", "source_ref": "models.jsonl:perf_schema"}
+{"model": "hy3", "category": "spec_docs", "perf": 0.62, "tier": -5, "tier_source": "bench", "source_ref": "bench:BenchLM"}
 {"model": "hy3", "category": "terminal", "perf": 0.544, "tier": -5, "tier_source": "bench", "source_ref": "bench:Terminal-Bench"}
 {"model": "hy3", "category": "tool_use", "perf": 0.72, "tier": -2, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:hy3"}
 {"model": "hy3", "category": "ui_frontend", "perf": 0.85, "tier": 5, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:hy3"}
@@ -2145,7 +2146,7 @@
 {"model": "mimo-v2.5-pro", "category": "code_gen", "perf": 0.85, "tier": 2, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:mimo-v2.5-pro"}
 {"model": "mimo-v2.5-pro", "category": "mechanical", "perf": 0.72, "tier": -1, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:mimo-v2.5-pro"}
 {"model": "mimo-v2.5-pro", "category": "refactor", "perf": 0.72, "tier": 2, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:mimo-v2.5-pro"}
-{"model": "mimo-v2.5-pro", "category": "spec_docs", "perf": 0.684, "tier": -3, "tier_source": "bench", "source_ref": "bench:BenchLM"}
+{"model": "mimo-v2.5-pro", "category": "spec_docs", "perf": 0.684, "tier": -2, "tier_source": "bench", "source_ref": "bench:BenchLM"}
 {"model": "mimo-v2.5-pro", "category": "terminal", "perf": 0.85, "tier": 1, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:mimo-v2.5-pro"}
 {"model": "mimo-v2.5-pro", "category": "test", "perf": 0.72, "tier": -1, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:mimo-v2.5-pro"}
 {"model": "mimo-v2.5-pro", "category": "tool_use", "perf": 0.85, "tier": 0, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:mimo-v2.5-pro"}
@@ -2455,7 +2456,7 @@
 {"model": "nemotron-3-super", "category": "reasoning", "perf": 0.8, "tier": -3, "tier_source": "bench", "source_ref": "bench:GPQA"}
 {"model": "nemotron-3-super", "category": "refactor", "perf": 0.5, "tier": 1, "tier_source": "bench", "source_ref": "bench:battery-T2-CODE"}
 {"model": "nemotron-3-super", "category": "schema", "perf": 0.85375, "tier": -2, "tier_source": "bench", "source_ref": "bench:BenchLM"}
-{"model": "nemotron-3-super", "category": "spec_docs", "perf": 0.85375, "tier": -1, "tier_source": "bench", "source_ref": "bench:BenchLM"}
+{"model": "nemotron-3-super", "category": "spec_docs", "perf": 0.85375, "tier": 0, "tier_source": "bench", "source_ref": "bench:BenchLM"}
 {"model": "nemotron-3-super", "category": "tool_use", "perf": 0.75, "tier": -1, "tier_source": "bench", "source_ref": "bench:battery-T1-TOOL"}
 {"model": "nemotron-3-super-120b", "category": "guard", "perf": 0.65, "tier": -5, "tier_source": "estimate", "source_ref": "QUALITY_ESTIMATES"}
 {"model": "nemotron-3-super-120b", "category": "mock", "perf": 0.72, "tier": -2, "tier_source": "estimate", "source_ref": "QUALITY_ESTIMATES"}
@@ -3125,6 +3126,7 @@
 {"model": "tencent/hy3", "category": "refactor", "perf": 0.5, "tier": 1, "tier_source": "family", "source_ref": "alias:hy3"}
 {"model": "tencent/hy3", "category": "review", "perf": 0.75, "tier": 0, "tier_source": "family", "source_ref": "alias:hy3"}
 {"model": "tencent/hy3", "category": "schema", "perf": 0.5, "tier": -2, "tier_source": "family", "source_ref": "alias:hy3"}
+{"model": "tencent/hy3", "category": "spec_docs", "perf": 0.62, "tier": -5, "tier_source": "family", "source_ref": "alias:hy3"}
 {"model": "tencent/hy3", "category": "terminal", "perf": 0.544, "tier": -5, "tier_source": "family", "source_ref": "alias:hy3"}
 {"model": "tencent/hy3", "category": "tool_use", "perf": 0.72, "tier": -2, "tier_source": "family", "source_ref": "alias:hy3"}
 {"model": "tencent/hy3", "category": "ui_frontend", "perf": 0.85, "tier": 5, "tier_source": "family", "source_ref": "alias:hy3"}
@@ -3142,6 +3144,7 @@
 {"model": "tencent/hy3-paid", "category": "refactor", "perf": 0.5, "tier": 1, "tier_source": "family", "source_ref": "alias:hy3"}
 {"model": "tencent/hy3-paid", "category": "review", "perf": 0.75, "tier": 0, "tier_source": "family", "source_ref": "alias:hy3"}
 {"model": "tencent/hy3-paid", "category": "schema", "perf": 0.5, "tier": -2, "tier_source": "family", "source_ref": "alias:hy3"}
+{"model": "tencent/hy3-paid", "category": "spec_docs", "perf": 0.62, "tier": -5, "tier_source": "family", "source_ref": "alias:hy3"}
 {"model": "tencent/hy3-paid", "category": "terminal", "perf": 0.544, "tier": -5, "tier_source": "family", "source_ref": "alias:hy3"}
 {"model": "tencent/hy3-paid", "category": "tool_use", "perf": 0.72, "tier": -2, "tier_source": "family", "source_ref": "alias:hy3"}
 {"model": "tencent/hy3-paid", "category": "ui_frontend", "perf": 0.85, "tier": 5, "tier_source": "family", "source_ref": "alias:hy3"}
@@ -3278,7 +3281,7 @@
 {"model": "xiaomi/mimo-v2.5-pro", "category": "code_gen", "perf": 0.85, "tier": 2, "tier_source": "family", "source_ref": "alias:mimo-v2.5-pro"}
 {"model": "xiaomi/mimo-v2.5-pro", "category": "mechanical", "perf": 0.72, "tier": -1, "tier_source": "family", "source_ref": "alias:mimo-v2.5-pro"}
 {"model": "xiaomi/mimo-v2.5-pro", "category": "refactor", "perf": 0.72, "tier": 2, "tier_source": "family", "source_ref": "alias:mimo-v2.5-pro"}
-{"model": "xiaomi/mimo-v2.5-pro", "category": "spec_docs", "perf": 0.684, "tier": -3, "tier_source": "family", "source_ref": "alias:mimo-v2.5-pro"}
+{"model": "xiaomi/mimo-v2.5-pro", "category": "spec_docs", "perf": 0.684, "tier": -2, "tier_source": "family", "source_ref": "alias:mimo-v2.5-pro"}
 {"model": "xiaomi/mimo-v2.5-pro", "category": "terminal", "perf": 0.85, "tier": 1, "tier_source": "family", "source_ref": "alias:mimo-v2.5-pro"}
 {"model": "xiaomi/mimo-v2.5-pro", "category": "test", "perf": 0.72, "tier": -1, "tier_source": "family", "source_ref": "alias:mimo-v2.5-pro"}
 {"model": "xiaomi/mimo-v2.5-pro", "category": "tool_use", "perf": 0.85, "tier": 0, "tier_source": "family", "source_ref": "alias:mimo-v2.5-pro"}

@@ -1812,6 +1812,7 @@
 {"model": "hy3", "category": "refactor", "perf": 0.5, "source": "bench", "source_ref": "bench:battery-T2-CODE"}
 {"model": "hy3", "category": "review", "perf": 0.75, "source": "measured", "source_ref": "models.jsonl:perf_review"}
 {"model": "hy3", "category": "schema", "perf": 0.5, "source": "measured", "source_ref": "models.jsonl:perf_schema"}
+{"model": "hy3", "category": "spec_docs", "perf": 0.62, "source": "bench", "source_ref": "bench:BenchLM"}
 {"model": "hy3", "category": "terminal", "perf": 0.544, "source": "bench", "source_ref": "bench:Terminal-Bench"}
 {"model": "hy3", "category": "tool_use", "perf": 0.72, "source": "estimate", "source_ref": "PROFILE_TAGS:hy3"}
 {"model": "hy3", "category": "ui_frontend", "perf": 0.85, "source": "estimate", "source_ref": "PROFILE_TAGS:hy3"}
@@ -3162,6 +3163,7 @@
 {"model": "tencent/hy3", "category": "refactor", "perf": 0.5, "source": "family", "source_ref": "alias:hy3"}
 {"model": "tencent/hy3", "category": "review", "perf": 0.75, "source": "family", "source_ref": "alias:hy3"}
 {"model": "tencent/hy3", "category": "schema", "perf": 0.5, "source": "family", "source_ref": "alias:hy3"}
+{"model": "tencent/hy3", "category": "spec_docs", "perf": 0.62, "source": "family", "source_ref": "alias:hy3"}
 {"model": "tencent/hy3", "category": "terminal", "perf": 0.544, "source": "family", "source_ref": "alias:hy3"}
 {"model": "tencent/hy3", "category": "tool_use", "perf": 0.72, "source": "family", "source_ref": "alias:hy3"}
 {"model": "tencent/hy3", "category": "ui_frontend", "perf": 0.85, "source": "family", "source_ref": "alias:hy3"}
@@ -3179,6 +3181,7 @@
 {"model": "tencent/hy3-paid", "category": "refactor", "perf": 0.5, "source": "family", "source_ref": "alias:hy3"}
 {"model": "tencent/hy3-paid", "category": "review", "perf": 0.75, "source": "family", "source_ref": "alias:hy3"}
 {"model": "tencent/hy3-paid", "category": "schema", "perf": 0.5, "source": "family", "source_ref": "alias:hy3"}
+{"model": "tencent/hy3-paid", "category": "spec_docs", "perf": 0.62, "source": "family", "source_ref": "alias:hy3"}
 {"model": "tencent/hy3-paid", "category": "terminal", "perf": 0.544, "source": "family", "source_ref": "alias:hy3"}
 {"model": "tencent/hy3-paid", "category": "tool_use", "perf": 0.72, "source": "family", "source_ref": "alias:hy3"}
 {"model": "tencent/hy3-paid", "category": "ui_frontend", "perf": 0.85, "source": "family", "source_ref": "alias:hy3"}
