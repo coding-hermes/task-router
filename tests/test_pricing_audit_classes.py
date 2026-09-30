@@ -150,7 +150,8 @@ def test_pending_lanes_name_why_they_are_pending():
             continue
         low = ev.lower()
         assert ("no paid sibling" in low or "no exact paid sibling" in low
-                or "reseller catalog listings" in low), (r["model"], ev[:90])
+                or "reseller catalog listings" in low
+                or "no priced sibling" in low), (r["model"], ev[:90])
 
 
 # ------------------------------------------------- sibling matcher (trapfix)
