@@ -169,21 +169,31 @@ def test_data_file_headers_flow_into_extra(hermetic):
 
 def test_disabled_or_incomplete_data_rows_are_ignored(hermetic):
     """Same admission filter as provider_health_probe.load_providers: a row
-    without base_url/key_env, or disabled, must not become a fake endpoint."""
+    without base_url/key_env, or disabled, must not become a fake endpoint.
+    TR-247: a disabled row additionally carries its reason in the second map
+    so resolve() can refuse the lane with an explanation."""
     _write_probe_data(
         hermetic["data"],
         [{"id": "ghost", "base_url": None, "key_env": "X", "enabled": True},
          {"id": "off", "base_url": "https://off.example/v1",
           "key_env": "X", "enabled": False},
          {"id": "partial", "base_url": "https://p.example/v1", "enabled": True}])
-    got = rpr.load_probe_providers()
-    assert got == {}
+    enabled, disabled = rpr.load_probe_providers()
+    assert enabled == {}
+    assert disabled == {"off": "disabled in probe_providers.jsonl"}
+    _, _, why = rpr.resolve("off", rpr.load_providers(), rpr.load_env(),
+                            rpr.load_probe_providers())
+    assert base_refusal_ok(why)
+
+
+def base_refusal_ok(why):
+    return why == "disabled: disabled in probe_providers.jsonl"
 
 
 def test_missing_data_file_is_an_empty_map(hermetic):
     """No probe_providers.jsonl -> no fallback, resolve keeps working (the
     pre-TR-227 behavior for config-resolvable lanes must survive)."""
-    assert rpr.load_probe_providers() == {}
+    assert rpr.load_probe_providers() == ({}, {})
     base, _, why = rpr.resolve("deepseek-payg", rpr.load_providers(),
                                rpr.load_env(), rpr.load_probe_providers())
     assert base == "https://api.deepseek.com/v1"

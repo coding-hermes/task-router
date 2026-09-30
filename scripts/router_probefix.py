@@ -79,7 +79,11 @@ def load_env():
 
 
 def load_providers():
-    provs = {}
+    """probe_providers.jsonl -> ({id: row}, {id: row}) — enabled rows, disabled
+    rows. TR-247: disabled rows are returned so sync can never re-append a
+    disabled provider as a fresh enabled one, and reports can say why a lane
+    is off instead of treating it as unknown."""
+    provs, disabled = {}, {}
     path = os.path.join(DATA_DIR, 'probe_providers.jsonl')
     if os.path.exists(path):
         for line in open(path):
@@ -90,9 +94,13 @@ def load_providers():
                 row = json.loads(line)
             except Exception:
                 continue
-            if row.get('enabled', True) and row.get('id'):
+            if not row.get('id'):
+                continue
+            if row.get('enabled', True):
                 provs[row['id']] = row
-    return provs
+            else:
+                disabled[row['id']] = row
+    return provs, disabled
 
 
 def load_rows(fname):
@@ -343,10 +351,18 @@ def sync_providers(env, dry_run):
                     'stepfun', 'synthetic', 'neuralwatt', 'crof', 'nvidia',
                     'deepseek-duckbrain-sync'):
             found[name] = (base, key_env)
-    existing = load_providers()
+    existing, disabled_existing = load_providers()
     added = 0
     for name, (base, key_env) in sorted(found.items()):
         if name in existing:
+            continue
+        if name in disabled_existing:
+            # TR-247: the row exists but is disabled (vendor shutdown, dead key,
+            # ...) — a config.yaml entry must never resurrect it as a fresh
+            # enabled probe target.
+            print(f'  skip {name}: row disabled in probe_providers.jsonl '
+                  f'({disabled_existing[name].get("note") or "no reason recorded"}), '
+                  f'not re-added')
             continue
         row = {'id': name, 'base_url': base, 'key_env': key_env,
                'default_model': None, 'enabled': True,
@@ -369,11 +385,11 @@ def main(argv=None):
     args = ap.parse_args(argv)
 
     env = load_env()
-    providers = load_providers()
+    providers, _disabled = load_providers()
     if args.sync_providers:
         print('== provider discovery (config.yaml custom_providers) ==')
         sync_providers(env, args.dry_run)
-        providers = load_providers()
+        providers, _disabled = load_providers()
 
     fails = scan_health(args.runs)
     if not fails:

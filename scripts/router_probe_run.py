@@ -77,20 +77,24 @@ PROBE_PROVIDERS_FILE = 'probe_providers.jsonl'
 
 
 def load_probe_providers(path=None):
-    """probe_providers.jsonl -> {id: (base_url, key_env, extra_headers)}.
+    """probe_providers.jsonl -> ({id: (base_url, key_env, extra_headers)},
+    {id: reason}).
 
     Same admission filter as provider_health_probe.load_providers: only rows
-    with id + base_url + key_env, enabled not False. Missing file -> {} (the
-    fallback simply has nothing to add). Rows whose 'headers' dict carries
+    with id + base_url + key_env, enabled not False. Missing file -> ({}, {})
+    (the fallback simply has nothing to add). Rows whose 'headers' dict carries
     per-provider contract headers (opencode-go's x-opencode-session class)
     plumb into the extra-headers slot like a config.yaml extra_headers entry.
+    TR-247: disabled rows come back in the second map (note/disabled_reason)
+    so resolve() can refuse the lane with its reason instead of re-probing a
+    dead vendor or a revoked key.
     """
     path = path or os.path.join(DATA_DIR, PROBE_PROVIDERS_FILE)
-    out = {}
+    out, disabled = {}, {}
     try:
         fh = open(path, encoding='utf-8')
     except OSError:
-        return out
+        return out, disabled
     with fh:
         for line in fh:
             line = line.strip()
@@ -100,15 +104,19 @@ def load_probe_providers(path=None):
                 row = json.loads(line)
             except ValueError:
                 continue
-            if not row.get('enabled', True):
-                continue
             prov_id, base, key_env = row.get('id'), row.get('base_url'), row.get('key_env')
-            if not (prov_id and base and key_env):
+            if not prov_id:
+                continue
+            if not row.get('enabled', True):
+                disabled[prov_id] = (row.get('note') or row.get('disabled_reason')
+                                     or 'disabled in probe_providers.jsonl')
+                continue
+            if not (base and key_env):
                 continue
             h = row.get('headers')
             extra = {str(k): str(v) for k, v in h.items()} if isinstance(h, dict) and h else {}
             out[prov_id] = (base, key_env, extra)
-    return out
+    return out, disabled
 
 
 def resolve(prov, prov_cfg, env, probe_data=None):
@@ -119,7 +127,14 @@ def resolve(prov, prov_cfg, env, probe_data=None):
     probe data; a lane whose credentials live only there used to SKIP
     quietly — TR-227). Config wins when both carry the lane: config.yaml is
     what the fleet routes through, the data file is measurement metadata.
+    TR-247: a DISABLED probe row refuses the lane outright with its reason —
+    the second probe_data slot carries {id: reason}. The refusal wins over
+    config/config-cache lookups: a dead vendor or a revoked key must not
+    resolve just because config.yaml still lists it.
     """
+    probe_enabled, probe_disabled = probe_data or ({}, {})
+    if prov in probe_disabled:
+        return None, None, ('disabled: %s' % probe_disabled[prov])
     if prov in CACHE_KEYED:
         base, path, field = CACHE_KEYED[prov]
         try:
@@ -129,7 +144,7 @@ def resolve(prov, prov_cfg, env, probe_data=None):
         return (base, key, {}) if key else (None, None, f'no {field} in {path}')
     base, key_env, extra = prov_cfg.get(prov, (None, None, {}))
     if not base:
-        d_base, d_key_env, d_extra = (probe_data or {}).get(prov, (None, None, {}))
+        d_base, d_key_env, d_extra = probe_enabled.get(prov, (None, None, {}))
         if d_base:
             base, key_env, extra = d_base, d_key_env, d_extra
     if not base:
@@ -632,7 +647,7 @@ def main():
 
     targets, skipped = [], {}
     only_models = {m.strip() for m in args.models.split(',') if m.strip()}
-    probe_data = load_probe_providers()      # TR-227 fallback source
+    probe_data = load_probe_providers()      # TR-227 fallback source + TR-247 refusals
     for prov in providers:
         if prov in SKIP_REASON:
             skipped[prov] = SKIP_REASON[prov]

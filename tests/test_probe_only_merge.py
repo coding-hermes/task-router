@@ -368,13 +368,16 @@ def test_removed_provider_is_pruned_from_state(tmp_path):
 
 
 def test_disabled_data_row_is_pruned_from_state(tmp_path):
-    """enabled=false in the data file = removed for gating purposes."""
+    """enabled=false in the data file = removed for gating purposes. TR-247:
+    the row's DISABLED entry (with reason) is written instead, so state keeps
+    an auditable deliberate-disable — never a stale gate reading as an outage."""
     out_file = _out(tmp_path)
     _seed_state(out_file, {"ghost-a": dict(_GHOST)})
     env = _fixture(tmp_path, [
         {"id": "healthy", "key_env": "T164_HEALTHY_KEY", "default_model": "m-h"},
         {"id": "retired", "key_env": "T164_PLAIN_TKN", "default_model": "m-r",
-         "enabled": False},
+         "enabled": False,
+         "note": "vendor shutdown (302 -> nahcrof.com) — TR-247"},
     ], extra_rows=[
         {"id": "ghost-a", "key_env": "T164_PLAIN_TKN", "default_model": "m-g"},
     ])
@@ -382,7 +385,11 @@ def test_disabled_data_row_is_pruned_from_state(tmp_path):
     assert proc.returncode == 0, proc.stderr[:400]
     provs = json.load(open(out_file))["providers"]
     assert "ghost-a" in provs, "unprobed-but-present provider was deleted"
-    assert "retired" not in provs, "disabled data row kept a live gate entry"
+    retired = provs["retired"]
+    assert retired["status"] == "DISABLED", \
+        f"disabled row must render DISABLED, got {retired['status']}"
+    assert "vendor shutdown" in (retired.get("error") or ""), \
+        "the disable reason must ride the state entry"
 
 
 # ---------------------------------------------------------------------------

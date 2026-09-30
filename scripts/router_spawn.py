@@ -573,7 +573,8 @@ def _model_limit(models_cfg, diversity, prov, model):
 #: facts in a form a consumer (the proxy envelope, a dashboard, a count of gated
 #: lanes by cause) can group on. Prose is kept: this is additive.
 EXCLUSION_REASON_CODES = (
-    'quota-gated', 'health-down', 'health-slow', 'model-down', 'model-slow',
+    'quota-gated', 'health-down', 'health-slow', 'health-disabled',
+    'model-down', 'model-slow',
     'circuit-open', 'model-busy', 'training-optin', 'consecutive-cap',
     'chain-cap', 'duplicate-lane', 'unknown',
 )
@@ -584,6 +585,7 @@ _REASON_PREFIXES = (
     ('quota GATED', 'quota-gated'),
     ('health DOWN', 'health-down'),
     ('health SLOW', 'health-slow'),
+    ('health DISABLED', 'health-disabled'),
     ('model DOWN', 'model-down'),
     ('model SLOW', 'model-slow'),
     ('circuit OPEN', 'circuit-open'),
@@ -1599,7 +1601,9 @@ def _resolve_fallback(tables, qs, hs, cs, reqs, limit=DEFAULT_CHAIN_LIMIT, profi
         if qg.get('active'):
             continue  # TR-060: plan window exhausted — not a fallback either
         h = hs.get(f.get('provider')) or {}
-        if h.get('status') in ('DOWN', 'SLOW'):
+        if h.get('status') in ('DOWN', 'SLOW', 'DISABLED'):
+            # TR-247: DISABLED = provider row disabled in the probe registry
+            # (vendor shutdown, dead key) — a deliberate off, never route onto it
             continue
         mm = (h.get('models') or {}).get(f.get('model')) or {}
         if mm.get('status') in ('DOWN', 'SLOW'):
@@ -1907,6 +1911,10 @@ def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=DE
             h = {}
         if h.get('status') == 'DOWN':
             why.append(f'health DOWN ({h.get("ts", "?")})')
+        elif h.get('status') == 'DISABLED':
+            # TR-247: deliberate disable (vendor shutdown, dead key) — name it,
+            # never let a disabled lane render as routable
+            why.append(f'health DISABLED ({h.get("error") or h.get("ts", "?")})')
         elif h.get('status') == 'SLOW' and not _allow_slow:
             why.append(f'health SLOW ({h.get("latency_ms")}ms)')
         # model-level health (probe v2 writes providers.<p>.models.<m>.status;

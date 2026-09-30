@@ -245,12 +245,13 @@ def health_section():
         present = os.path.exists(path)
         return {'source': path, 'present': present, 'unavailable': present,
                 'error': 'health-state.json unreadable (corrupt)' if present else None,
-                'updated': None, 'ok': 0, 'down': [], 'slow': [], 'unknown': 0,
+                'updated': None, 'ok': 0, 'down': [], 'slow': [], 'disabled': [],
+                'unknown': 0,
                 'models_down': 0, 'models_slow': 0}
     provs = doc.get('providers') if isinstance(doc, dict) else None
     if not isinstance(provs, dict):
         provs = {}
-    down, slow, n_ok, m_down, m_slow = [], [], 0, 0, 0
+    down, slow, disabled, n_ok, m_down, m_slow = [], [], [], 0, 0, 0
     for pid, h in sorted(provs.items()):
         if not isinstance(h, dict):
             continue
@@ -261,6 +262,11 @@ def health_section():
             down.append(pid)
         elif st == 'SLOW':
             slow.append(pid)
+        elif st == 'DISABLED':
+            # TR-247: deliberate disable (vendor shutdown, dead key) — counted
+            # separately so it never inflates `down` (an outage) or vanishes
+            # into the registry-union `unknown` bucket.
+            disabled.append(pid)
         for mn, mh in (h.get('models') or {}).items():
             if isinstance(mh, dict):
                 if mh.get('status') == 'DOWN':
@@ -269,7 +275,7 @@ def health_section():
                     m_slow += 1
     return {'source': path, 'present': True, 'unavailable': False, 'error': None,
             'updated': doc.get('updated') if isinstance(doc, dict) else None,
-            'ok': n_ok, 'down': down, 'slow': slow,
+            'ok': n_ok, 'down': down, 'slow': slow, 'disabled': disabled,
             'unknown': 0,  # filled by gates (registry provider union)
             'models_down': m_down, 'models_slow': m_slow}
 
@@ -403,6 +409,7 @@ def gates_section(reg, quota, health, circuit, inflight, tables):
             'quota_reason': q.get('reason'),
             'health': h.get('status'),
             'health_latency_ms': h.get('latency_ms'),
+            'health_error': (h.get('error') if h.get('status') == 'DISABLED' else None),
             'models_down': m_down,
             'models_slow': m_slow,
             'circuit_open': open_by_prov.get(pid, 0),
