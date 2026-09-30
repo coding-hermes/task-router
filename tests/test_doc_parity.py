@@ -88,8 +88,3 @@ def test_documentation_links():
     assert "docs/configuration.md" in readme_content, (
         "README.md must link to docs/configuration.md for the complete configuration reference"
     )
-
-</content>
-</invoke>
-
-@@CALL_TOOL name=terminal

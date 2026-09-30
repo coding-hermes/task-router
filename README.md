@@ -450,6 +450,8 @@ operational tools — review `--help` and use `--dry-run` where available.
 | `ROUTING_DOCS_DIR` | maintain | Output directory for chain snapshots. |
 | `MODELSDEV_CACHE` | modelsdev, probefix | Cache path for models.dev input. |
 
+**Complete reference:** The table above covers the core configuration variables. For the remaining 39 `ROUTER_*` environment variables (classifier, proxy, spawn, health, verification, Hermes integration), see [docs/configuration.md](docs/configuration.md).
+
 Credentials are never configuration for this repository's committed data.
 Supply them through your environment or a secret manager only. See
 [SECURITY.md](SECURITY.md).

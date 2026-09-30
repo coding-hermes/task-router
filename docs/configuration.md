@@ -139,11 +139,24 @@ The server caches classification results to reduce redundant API calls.
 
 ---
 
+## Chain execution
+
+| Variable | Used by | Effect | Default |
+|---|---|---|---|
+| `ROUTER_PROVIDER` | `router_chain_run.py`, `drivers/pi.py` | Provider name for the current chain hop (set by chain runner) | — |
+| `ROUTER_MODEL` | `router_chain_run.py` | Model ID for the current chain hop (set by chain runner) | — |
+| `ROUTER_KEY_ENV` | `router_chain_run.py` | Name of the environment variable holding the API key for the current hop | — |
+| `ROUTER_HOP` | `router_chain_run.py` | Hop index (1-based) in the fallback chain | — |
+
+---
+
 ## Miscellaneous
 
 | Variable | Used by | Effect | Default |
 |---|---|---|---|
 | `ROUTER_WEB_URL` | `proxy_acceptance.py` | Base URL for the router web UI | `http://127.0.0.1:9093` |
+| `ROUTER_SPAWN_SORT` | `router_spawn.py` | Default sort key for spawn results (can be overridden with `--sort`) | `price` |
+| `ROUTER_MODEL_ROUTER_DIR` | `router_health.py` | Directory containing the model router configuration | `~/.hermes/model-router` |
 
 ---
 
@@ -153,6 +166,3 @@ The server caches classification results to reduce redundant API calls.
 - [docs/health-plane.md](health-plane.md) — health canary contract
 - [docs/integration.md](integration.md) — scheduler integration
 - [SECURITY.md](../SECURITY.md) — credential handling policy
-
-</content>
-</invoke>
