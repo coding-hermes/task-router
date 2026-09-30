@@ -745,13 +745,6 @@
    "supersedes": "deepseek-v4-flash and deepseek-v4-flash-0731",
    "source": "https://ollama.com/library (same lane under the hyphenated provider spelling)",
    "confidence": "high"
-  },
-  {
-   "model": "gpt-6.1-sol",
-   "release_date": "2026-09-29",
-   "supersedes": "gpt-6-sol",
-   "source": "openai.com DevDay 2026 + learn.chatgpt.com/docs/pricing token rates",
-   "note": "upgrade to GPT-6 Sol: identical credit rate (50 in / 250 out) but HALF the cache-read cost (2.5 vs 5 credits/M) and near-Astra quality. API $2/$10 per 1M, 1.05M context, same-day Codex availability."
   }
  ],
  "gaps": [
