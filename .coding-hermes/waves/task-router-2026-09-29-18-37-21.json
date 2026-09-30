@@ -1,0 +1,7 @@
+{
+  "scheduler_tick": "task-router-2026-09-29-18-37-21",
+  "wave_budget": 3,
+  "mode": "serial-fallback",
+  "reason": "TR-217/218/219 all write the shared routing/task-router ns repos via seed->export->commit; parallel workers would collide on those commits. TR-224 needs a Bane decision.",
+  "tasks": [{"id": "TR-217", "worktree": "$WT_ROOT/task-router-TR-217", "branch": "wt/TR-217"}]
+}

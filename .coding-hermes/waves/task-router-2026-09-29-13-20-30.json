@@ -1,0 +1,25 @@
+{
+  "tick": "task-router-2026-09-29-13-20-30",
+  "project": "task-router",
+  "wave_budget": 2,
+  "tasks": [
+    {
+      "id": "TR-242",
+      "title": "Failure class -> caller-action contract (retry, advance, or stop)",
+      "worktree": "/home/kara/worktrees/task-router-TR-242",
+      "branch": "wt/TR-242",
+      "base_sha": "925657b",
+      "mode": "worker",
+      "worker_model": "glm-5.3-flash",
+      "worker_provider": "zai-glm"
+    },
+    {
+      "id": "DOC-4",
+      "title": "Fix stale test count in README quick start",
+      "worktree": "/home/kara/task-router",
+      "branch": "main",
+      "mode": "foreman-direct (trivial one-file change)"
+    }
+  ],
+  "created": "2026-09-29T13:20:30-05:00"
+}

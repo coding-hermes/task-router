@@ -545,3 +545,11 @@ tasks:
   status: complete
   created_at: '2026-09-29T20:19:45.202399+00:00'
   completed_at: '2026-09-29T21:31:12.798585+00:00'
+- id: TR-244
+  title: 'TR-244 outcomes-import red: torn JSONL line + strict reader'
+  criteria:
+  - Tolerant JSONL scan in router_outcomes.py (append_rows + averages), torn-line
+    tests pass, hourly import script exits 0, store within 6h budget
+  status: complete
+  created_at: '2026-09-29T22:55:35.199451+00:00'
+  completed_at: '2026-09-29T22:55:42.501010+00:00'
