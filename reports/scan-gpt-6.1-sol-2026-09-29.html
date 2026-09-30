@@ -89,9 +89,31 @@ result   : 34 endpoints queried -> 19 answered with a catalog, 11 were not provi
 <p><b>What this scan does not prove:</b> that the lanes <i>serve</i> the model (a catalog listing is not a completed request), what each lane actually bills for it, or that the id is stable — the model is hours old. The next step is one real request per lane, which is what the import row's third criterion asks for.</p>
 </div>
 
+
+<h2 id="s5">5 &middot; The live-health half of the scan</h2>
+<div class="card">
+<div class="kicker r">read-only run &mdash; live routing state was NOT overwritten</div>
+<pre>probe  provider_health_probe.py --no-write      2026-09-30T01:20Z
+       (health-state.json keeps its 01:00:48Z picture; this scan is fresher by design, see below)
+
+DOWN, and each for a DIFFERENT reason - these must not share one blanket label:
+  crof          HTTP 405  "This is a static site"          base_url points at a WEBSITE, not an API (462ms)
+  kimi          HTTP 401  "Invalid Authentication"         a dead or wrong key (1928ms)
+  ollama-cloud  0 of 11 up, every one in 260-307ms         recorded error: HTTP 410
+                                                           "deepseek-v4-flash:0731 was retired"
+                                                           -> uniform fast failures say LANE, but the
+                                                              recorded error names a RETIRED id, so the
+                                                              cause is to be determined, not assumed
+
+partial:  zai-glm 3/4 up (glm-4.6v-flash down)
+healthy:  xkiro 11/11 &middot; xkiro-2 11/11 &middot; synthetic 7/7 &middot; xai 1/1</pre>
+<p><b>A unit trap worth stating:</b> the on-disk state reports <b>51 DOWN model entries of 183</b>, while this run reports <b>3 DOWN providers</b>. Those are different units &mdash; 183 entries across 30-ish providers. Conflating them would turn a three-lane problem into a fleet-wide scare, or the reverse.</p>
+<p><b>Why <code>--no-write</code>:</b> the probe writes the health state the router actually routes on. Running it normally would have replaced the live picture with a scan I had not yet explained &mdash; and this session has already shown what an unexplained state write costs. The refresh happens after the reasons above are established (filed as TR-247).</p>
+<p>Filed as <b>TR-247</b> with six criteria: a named root cause per lane with the response code and the request that produced it, crof's base_url corrected or explicitly disabled, kimi's 401 never presented as an outage, ollama-cloud's 11/11 diagnosed (retired probe id vs plan-blocked vs bad base_url), a reason string on any lane left disabled, and a sanctioned write run afterwards so the router's picture and the records agree.</p>
+</div>
 <div class="foot">
 Scan run 2026-09-29 &middot; sources: live provider catalog endpoints (keys read by name from the environment, never printed),
 <code>https://models.dev/api.json</code> (225 providers), our <code>data/tables/models.jsonl</code> (1,841 rows)
-and <code>providers.jsonl</code> (30 providers) &middot; row filed: TR-246 &middot; companion reports: policy-alignment, status-2026-09-29, timeout-alignment-2026-09-29.
+and <code>providers.jsonl</code> (30 providers) &middot; row filed: TR-246 &middot; companion reports: status-2026-09-29, timeout-alignment-2026-09-29, complexity-dynamic-design-2026-09-29. Rows: TR-245 (import the lane), TR-247 (the three dark lanes).
 </div>
 </div></body></html>
