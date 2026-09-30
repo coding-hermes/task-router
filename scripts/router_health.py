@@ -495,6 +495,10 @@ def model_status(provider=None, data_dir=None):
             status = "disabled"
         elif gate_open:
             status = "gated"
+        elif probe_status == "DISABLED":
+            # TR-247: provider row disabled in the probe registry (vendor
+            # shutdown, dead key) — never render that as a mere 'unprobed'
+            status = "provider-disabled"
         elif probe_status == "DOWN":
             status = "down"
         elif probe_status == "SLOW":

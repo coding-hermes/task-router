@@ -50,7 +50,9 @@ endpoint (CREDIT_ENDPOINTS — graceful: any failure = "unknown").
 Status semantics: DOWN = error/5xx (after retry) · TIMEOUT = no response after
 60s retry (thinking?) · SLOW = latency > 10s · OVERLOADED = HTTP 503 ·
 OK otherwise · NO_KEY = key env var missing · UNSUPPORTED = deliberately
-excluded (reason always). Provider DOWN only when EVERY probed model is DOWN.
+excluded (reason always) · DISABLED = provider row disabled in the data file
+(reason always, never probed, never an outage — TR-247). Provider DOWN only
+when EVERY probed model is DOWN.
 
 Alerts: provider aggregate transitions only (no per-model spam). The full
 report prints every run (no_agent cron delivers stdout verbatim).
@@ -199,7 +201,7 @@ def wire_model_id(provider, model):
 
 
 ICON = {'OK': '✓', 'SLOW': '🐢', 'OVERLOADED': '⚠️', 'DOWN': '✗',
-        'TIMEOUT': '⏳', 'EXCLUDED': '–', 'SKIP': '∅'}
+        'TIMEOUT': '⏳', 'EXCLUDED': '–', 'SKIP': '∅', 'DISABLED': '⏸'}
 
 # Model-bucket order for per-provider listing: up-ish first, problems last,
 # alphabetical inside each bucket.
@@ -220,9 +222,16 @@ def load_env():
 
 
 def load_providers():
-    """probe_providers.jsonl -> {id: (base_url, key_env, default_model)}.
-    Missing/empty file = visible gap (report shows NOTHING, never fabricates)."""
-    provs = {}
+    """probe_providers.jsonl -> ({id: (base_url, key_env, default_model)},
+    {id: reason}).
+
+    Missing/empty file = visible gap (report shows NOTHING, never fabricates).
+    TR-247: disabled rows (enabled=false) no longer vanish silently — they come
+    back in the second map keyed by id with the row's own reason (note or
+    disabled_reason), so the report can show WHY a lane was turned off instead
+    of letting its last probe entry read as an outage.
+    """
+    provs, disabled = {}, {}
     path = os.path.join(DATA_DIR, 'probe_providers.jsonl')
     if os.path.exists(path):
         for line in open(path):
@@ -233,9 +242,15 @@ def load_providers():
                 row = json.loads(line)
             except Exception:
                 continue
-            if row.get('enabled', True) and row.get('id') and row.get('base_url') and row.get('key_env'):
-                provs[row['id']] = (row['base_url'], row['key_env'], row.get('default_model'))
-    return provs
+            pid = row.get('id')
+            if not pid:
+                continue
+            if not row.get('enabled', True):
+                disabled[pid] = (row.get('note') or row.get('disabled_reason')
+                                 or 'disabled in probe_providers.jsonl')
+            elif row.get('base_url') and row.get('key_env'):
+                provs[pid] = (row['base_url'], row['key_env'], row.get('default_model'))
+    return provs, disabled
 
 
 def load_provider_headers():
@@ -441,11 +456,11 @@ def check_credits(prov, env):
 
 
 def aggregate(models):
-    """models: {model: {status,...}} -> (status, stats). EXCLUDED rows don't
-    count toward totals. Provider DOWN only when EVERY probed model is down —
-    a single up/overloaded model keeps the provider OK (Bane 08-28); all-timeout
-    (thinking) providers are TIMEOUT, not DOWN (Bane 08-31)."""
-    st = [m['status'] for m in models.values() if m['status'] != 'EXCLUDED']
+    """models: {model: {status,...}} -> (status, stats). EXCLUDED and DISABLED
+    rows don't count toward totals. Provider DOWN only when EVERY probed model
+    is down — a single up/overloaded model keeps the provider OK (Bane 08-28);
+    all-timeout (thinking) providers are TIMEOUT, not DOWN (Bane 08-31)."""
+    st = [m['status'] for m in models.values() if m['status'] not in ('EXCLUDED', 'DISABLED')]
     ok = st.count('OK'); slow = st.count('SLOW'); ov = st.count('OVERLOADED')
     timeout = st.count('TIMEOUT'); down = st.count('DOWN')
     total = len(st)
@@ -494,6 +509,9 @@ def fmt_provider_block(prov, entry):
     if entry.get('status') == 'UNSUPPORTED':
         lines.append(f"  {prov} — unsupported: {entry.get('error', '')}")
         return lines
+    if entry.get('status') == 'DISABLED':
+        lines.append(f"  {prov} — disabled: {entry.get('error', '')}")
+        return lines
     if entry.get('status') == 'SKIP' and not entry.get('models'):
         lines.append(f"  {prov} — skipped ({entry.get('error', 'no lanes')})")
         return lines
@@ -540,19 +558,34 @@ def main(config_path=None, only_providers=None, output_path=None, write=True):
         prev = {'updated': None, 'providers': {}}
     prev_provs = prev.get('providers', {})
 
-    providers = load_providers()
-    data_providers = set(providers)  # data-file truth, before any --only narrowing
+    providers, disabled_rows = load_providers()
+    # TR-247: disabled rows stay FIRST-CLASS data — they are kept out of the
+    # probe set but must (a) be prunable from state on merge, (b) be visible in
+    # the report with their reason, (c) resolve as unknown ids for --only.
+    data_providers = set(providers) | set(disabled_rows)
     if only_providers:
         providers = {p: v for p, v in providers.items() if p in only_providers}
-    if not providers:
+    if not providers and not disabled_rows:
         print('⚠️  no probe_providers.jsonl — nothing probed (data file missing at '
               f'{DATA_DIR}); refusing to fabricate a provider list')
         return 1
     fixes, excludes = load_fix_rows()
     prov_headers = load_provider_headers()
     probe_set = build_probe_set(providers)
+    # TR-247: disabled rows are first-class — emit their DISABLED entry (with
+    # the row's reason) for every provider this run was asked to cover: all of
+    # them on a full run, the requested ones under --only. They are never
+    # probed, and the entry keeps state so spawn/gates see a deliberate
+    # disable, not a stale outage.
+    disabled_this_run = (sorted(set(only_providers or []) & set(disabled_rows))
+                         if only_providers else sorted(disabled_rows))
     results, alerts = {}, []
     wall_start = time.time()
+
+    for prov in disabled_this_run:
+        results[prov] = {'status': 'DISABLED', 'model': None, 'models': {},
+                         'error': disabled_rows[prov],
+                         'credits': {'source': 'none'}, 'ts': ts}
 
     for prov, lanes in probe_set.items():
         if time.time() - wall_start > WALL_BUDGET_S:
@@ -561,6 +594,8 @@ def main(config_path=None, only_providers=None, output_path=None, write=True):
                 results[p] = {'status': 'SKIP', 'model': lanes[0][2], 'error': 'wall budget',
                               'models': {}, 'credits': {'source': 'none'}, 'ts': ts}
             break
+        # (TR-247: disabled providers never reach this loop — probe_set is built
+        # from enabled rows only, and their DISABLED entry is emitted above.)
         key = env.get(lanes[0][1], '')
         if not key:
             results[prov] = {'status': 'NO_KEY', 'model': lanes[0][2], 'models': {},
@@ -608,7 +643,10 @@ def main(config_path=None, only_providers=None, output_path=None, write=True):
         results[prov] = entry
         p = prev_provs.get(prov, {})
         p_status = p.get('status')
-        if p_status:  # alert only on aggregate transitions between known states
+        if p_status and results[prov].get('status') != 'DISABLED':
+            # alert only on aggregate transitions between known states, and
+            # never on a deliberate disable (TR-247) — a 401-key disable or a
+            # vendor shutdown is a decision, not an outage to page on.
             p_up, now_up = p_status in UP_LIKE, status in UP_LIKE
             if p_up and not now_up:
                 alerts.append(f'⚠️ {prov} DOWN ({stats["ok"]}/{stats["total"]} models up, '
@@ -657,7 +695,7 @@ def main(config_path=None, only_providers=None, output_path=None, write=True):
     up = group(('OK', 'SLOW', 'OVERLOADED'))
     think = group(('TIMEOUT',))
     down = group(('DOWN',))
-    unprobed = group(('NO_KEY', 'UNSUPPORTED', 'SKIP'))
+    unprobed = group(('NO_KEY', 'UNSUPPORTED', 'SKIP', 'DISABLED'))
 
     if up:
         out.append('')
@@ -711,7 +749,8 @@ if __name__ == '__main__':
     only = None
     if args.only:
         requested = [n.strip() for n in args.only.split(',') if n.strip()]
-        known = {p.lower(): p for p in load_providers()}
+        known = {p.lower(): p for p in load_providers()[0]}
+        known.update({p.lower(): p for p in load_providers()[1]})
         unknown = [n for n in requested if n.lower() not in known]
         if unknown:
             print(f"error: unknown provider(s): {', '.join(unknown)}", file=sys.stderr)
