@@ -161,3 +161,17 @@ router spawn my-project --format json --quiet | python3 -c \
 
 A healthy resolve: exit 0, non-empty `chain`, `fallback_used: false` after a
 seed, and `source: registry.json`.
+
+## Verify what code is SERVING, not what is on disk (run 31, 2026-10-01)
+
+Before trusting any live behavior of the API/MCP/health plane, curl
+`http://127.0.0.1:9092/health` and check `code.stale` and
+`loaded_commit` against `git rev-parse HEAD`. The server reports this
+honestly (TR-141) but nothing restarts it — a stale serving instance
+silently misses fixes that are already in the repo (seen: 23 commits,
+TR-194 fix absent from the process).
+
+For the CLI/runtime scripts the live installs are SYMLINKS into the repo
+(so always current), but six files are BYTE COPIES under `~/.hermes/scripts/`
+(see sync_runtime.sh) and can drift both directions — byte-compare before
+blaming "repo fixed, live broken" or vice versa.

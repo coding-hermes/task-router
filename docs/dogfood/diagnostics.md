@@ -353,3 +353,31 @@ silent one.
 under the repo or the live `~/.hermes` / DuckBrain tree was touched; the
 one repo-visible side effect of `router seed` is the `synced data/tables`
 step, which only syncs when the data dir is repo-owned.
+
+## Run 31 (2026-10-01) — deployment drift is invisible to every guard that exists
+
+The repo ships three drift defenses and none of them see the drift that
+actually happened:
+
+1. `sync_runtime.sh` keeps live installs canonical (symlinks for subprocess
+   consumers, byte-copies for the cron runner). But nothing re-runs it on a
+   schedule, and its byte-copy list has no verify mode — copy-list drift
+   (TR-256: two of six files diverged BOTH ways, live older AND newer than
+   repo) is only visible if you diff by hand.
+2. `router_health.py` code_identity() (TR-141) makes the serving process
+   compare its boot SHA against disk HEAD and report `stale: true`. Honest,
+   and useless without a consumer: the :9092 instance has been stale since
+   09-30 and no cron/watchdog reads it (TR-255).
+3. `fleet-cooldown-policy.py`'s hash guard (SCHED-PERF-006) compares the
+   live file to a sidecar hash — but the sidecar is updated by the same
+   hand that edits the live file, so live-vs-REPO drift passes silently.
+
+The right way (what the foreman should land): a `make verify-deploy` that
+runs sync_runtime.sh in a check-only mode plus a curl of /health asserting
+`code.stale == false`, both called from the existing hourly probe cron.
+
+The honest way to prove which code serves you, learned from the 2026-09-25
+proxy incident and re-proven today: ask the process, never the disk. The
+proxy test plan's F-01 rule ("deploy = sync+restart; a pull is not a
+deploy") needs its missing half: a restart is not a deploy either — the
+receipt is the process's own boot identity matching HEAD.
