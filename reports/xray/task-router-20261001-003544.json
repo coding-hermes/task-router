@@ -1,0 +1,121 @@
+{
+  "project": "task-router",
+  "taken_at": "20261001-003544",
+  "surfaces": {
+    "origin": {
+      "origin_tags": 0,
+      "origin_branches": 25,
+      "gh_releases_raw": "",
+      "gh_releases": 0,
+      "declared_version": "0.2.0",
+      "declared_version_tagged": false,
+      "files_at_origin": 399,
+      "origin_has_docs": 83,
+      "origin_has_README.md": 1,
+      "origin_has_landing": 0,
+      "origin_has_Makefile": 1,
+      "origin_has_CHANGELOG.md": 1,
+      "workflow_files": 1,
+      "workflow:ci.yml": true,
+      "ci_run_names": {
+        "ci": 40
+      },
+      "ci_last_conclusion": "failure"
+    },
+    "live": {
+      "proxy_health": {
+        "status": "ok",
+        "commit": "40d261c6cdfc",
+        "stale": true,
+        "gate_valid": true
+      },
+      "server_health": {
+        "status": "ok",
+        "commit": "40d261c6cdfc",
+        "stale": true,
+        "gate_valid": true
+      },
+      "ingress_answers_unauth": "401"
+    },
+    "ledger": {
+      "rows_sampled": 78293,
+      "by_source": {
+        "hermes": {
+          "rows": 39248,
+          "with_chain_evidence": 0,
+          "with_complexity": 0
+        },
+        "pi": {
+          "rows": 37874,
+          "with_chain_evidence": 0,
+          "with_complexity": 0
+        },
+        "opencode": {
+          "rows": 134,
+          "with_chain_evidence": 0,
+          "with_complexity": 0
+        },
+        "router-proxy": {
+          "rows": 1037,
+          "with_chain_evidence": 835,
+          "with_complexity": 845
+        }
+      },
+      "ledger_bytes": 146831578,
+      "routed_share_pct": 1.32
+    }
+  },
+  "claims": {
+    "rows": 301,
+    "status": {
+      "complete": 222,
+      "failed": 6,
+      "pending": 69,
+      "done": 1,
+      "in_progress": 1,
+      "None": 1,
+      "moved": 1
+    },
+    "complete": 222,
+    "complete_with_criteria": 81,
+    "complete_with_evidence": 8,
+    "complete_with_evidence_run": 0,
+    "release_rows": {
+      "RELEASE-004": {
+        "status": "pending",
+        "title": "Release readiness sweep: task-router v0.2.0 remains unshipped; origin/main now g"
+      },
+      "RELEASE-005": {
+        "status": "complete",
+        "title": "Release readiness sweep 09-29: v0.2.0 NO-GO \u2014 CI on HEAD unverified (post-fix ru"
+      },
+      "RELEASE-006": {
+        "status": "complete",
+        "title": "Release readiness sweep 09-29 (2nd): v0.2.0 CI now GREEN on HEAD, release surfac"
+      }
+    }
+  },
+  "delta": [
+    [
+      "RELEASE NOT ON ANY EXTERNAL SURFACE",
+      "board claims 222 rows complete and sweeps the release repeatedly; declared version 0.2.0 has 0 tags and 0 releases at origin"
+    ],
+    [
+      "EVIDENCE INTERFACE UNUSED",
+      "boardctl accepts --evidence-run-id; 0 of 222 complete rows carry one"
+    ],
+    [
+      "COMPLETION UNPROVEN",
+      "8 of 222 complete rows carry any evidence field"
+    ],
+    [
+      "OUTCOME DARK WHILE CI GREEN",
+      "only 1.32% of 78293 sampled ledger rows went through the router proxy"
+    ],
+    [
+      "NO PUBLISHED SURFACE AT ORIGIN",
+      "origin/main tree has no landing/docs site files (probe counts: {'origin_has_docs': 83, 'origin_has_README.md': 1, 'origin_has_landing': 0, 'origin_has_Makefile': 1, 'origin_has_CHANGELOG.md': 1})"
+    ]
+  ],
+  "delta_count": 5
+}
