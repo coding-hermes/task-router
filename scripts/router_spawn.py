@@ -1594,8 +1594,10 @@ def _resolve_fallback(tables, qs, hs, cs, reqs, limit=DEFAULT_CHAIN_LIMIT, profi
         if m.get('normalized_price') is None:
             continue
         # ---- gates, same as the primary chain ----
+        # TR-203: provider absent from quota-state.json means NO policy gate
+        # applies — treat as OPEN, not blocked.
         q = qs.get(f.get('provider')) or {}
-        if q.get('status') != 'open':
+        if f.get('provider') in qs and q.get('status') != 'open':
             continue
         qg = (qgates or {}).get(f.get('provider')) or {}
         if qg.get('active'):
