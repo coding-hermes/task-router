@@ -170,3 +170,53 @@ contract, the :9391 purpose, and the canary probe recipe:
 `registry.exists` and the probe clears itself — nothing is repaired silently.
 (The opt-in exception is `router validate --heal`, TR-108: the caller — a
 refresh-cron RESUME block, not the monitor — explicitly arms the re-seed.)
+
+## 8. Policy-gate coverage: quota-state.json vs the registry (TR-203)
+
+Two different planes live in `quota-state.json`, with deliberately opposite
+failure semantics:
+
+- **Plan-window gates (`quota_exhausted`, TR-060) are fail-OPEN.** A provider
+  with no `quota_exhausted` entry — or an unreadable/malformed section — is
+  simply not plan-gated: a PRESENT row with `status: open` passes through, and
+  loader errors never raise. These gates expire by themselves (`reset_at`);
+  absence of a gate means "no plan window is known to be exhausted".
+- **The `providers` section is fail-CLOSED (TR-203).** A provider id from
+  `data/tables/providers.jsonl` with NO row in `providers` is EXCLUDED from
+  every chain with the self-explaining code
+  `policy-gate-missing-row: provider not listed in quota-state.json`
+  (primary chain) and skipped in the fallback-lane path. The pre-TR-203
+  behavior (silent pass-through on absence, ccce1f2/443b746) routed fresh,
+  typo'd, and mirror providers with no policy decision at all.
+
+Exemptions: a provider whose silence is deliberate (archived gateway alias,
+contributor tier that never routes) is listed in the file's top-level
+`intentionally_ungated` array. The mark does NOT open the lane — the provider
+stays excluded with the same code; the reason gains
+`(marked intentionally ungated)` so the audit and the resolver tell the same
+story. Gateway-alias provider ids in the registry (`gw-deepseek`,
+`myrouter:zai-glm`) are historical; new gateway lanes must be onboarded as
+registry-native providers with a quota-state row.
+
+### Onboarding rule
+
+When onboarding a new provider or a mirror/second account, you MUST add it to
+`quota-state.json` with `status: open` (and a reason naming the audit that
+admitted it). A registry row alone is not enough — without the quota-state
+row the lane is excluded `policy-gate-missing-row` on every resolve.
+
+### The audit + the gate
+
+- `scripts/policy_gate_audit.py` — one row per registry provider
+  (`ok` / `GATED (status)` / `policy-gate-missing-row` / `intentionally-ungated`),
+  exit 0 only when no undocumented gaps remain. Read-only.
+- `tests/test_policy_gate_coverage.py` — the same predicate as a test against
+  `router_spawn.MR`'s file (override with `ROUTER_STATE_DIR`); fails naming
+  the missing providers, and rejects `intentionally_ungated` entries that
+  name ids absent from the registry.
+- `tests/test_policy_gate_missing_row.py` — the resolver-side regression
+  battery (both chains, the exemption wording, the TR-142 code vocabulary).
+
+The fail-CLOSED policy plane coexists with the section-6 fail-open doctrine:
+spawn ERRORS still never block the scheduler (`{"error": ...}` + exit 0);
+only the presence/absence of a policy row decides routability.

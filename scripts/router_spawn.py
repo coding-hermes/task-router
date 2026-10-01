@@ -573,8 +573,8 @@ def _model_limit(models_cfg, diversity, prov, model):
 #: facts in a form a consumer (the proxy envelope, a dashboard, a count of gated
 #: lanes by cause) can group on. Prose is kept: this is additive.
 EXCLUSION_REASON_CODES = (
-    'quota-gated', 'health-down', 'health-slow', 'health-disabled',
-    'model-down', 'model-slow',
+    'quota-gated', 'policy-gate-missing-row', 'health-down', 'health-slow',
+    'health-disabled', 'model-down', 'model-slow',
     'circuit-open', 'model-busy', 'training-optin', 'consecutive-cap',
     'chain-cap', 'duplicate-lane', 'unknown',
 )
@@ -582,6 +582,7 @@ EXCLUSION_REASON_CODES = (
 #: prefix -> code. Ordered: the FIRST match wins, so put the specific before the
 #: general ('health SLOW' before 'health').
 _REASON_PREFIXES = (
+    ('policy-gate-missing-row', 'policy-gate-missing-row'),
     ('quota GATED', 'quota-gated'),
     ('health DOWN', 'health-down'),
     ('health SLOW', 'health-slow'),
@@ -1594,11 +1595,15 @@ def _resolve_fallback(tables, qs, hs, cs, reqs, limit=DEFAULT_CHAIN_LIMIT, profi
         if m.get('normalized_price') is None:
             continue
         # ---- gates, same as the primary chain ----
-        # TR-203: provider absent from quota-state.json means NO policy gate
-        # applies — treat as OPEN, not blocked.
+        # TR-203: same policy plane as the primary chain — FAIL-CLOSED on
+        # absence. A fallback lane whose provider has no quota-state.json row
+        # is skipped (policy-gate-missing-row in the primary path's
+        # exclusion vocabulary); only a PRESENT non-open row is quota GATED.
         q = qs.get(f.get('provider')) or {}
-        if f.get('provider') in qs and q.get('status') != 'open':
-            continue
+        if f.get('provider') not in qs:
+            continue  # policy-gate-missing-row: provider not listed in quota-state.json
+        elif q.get('status') != 'open':
+            continue  # quota GATED
         qg = (qgates or {}).get(f.get('provider')) or {}
         if qg.get('active'):
             continue  # TR-060: plan window exhausted — not a fallback either
@@ -1901,10 +1906,24 @@ def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=DE
         q = qs.get(prov, {})
         if not isinstance(q, dict):
             q = {}
-        # TR-203: provider absent from quota-state.json means NO policy gate
-        # applies — treat as OPEN, not blocked. Only gate when the provider is
-        # explicitly present with a non-open status.
-        if prov in qs and q.get('status') != 'open':
+        # TR-203: the providers section of quota-state.json is the policy gate
+        # plane — FAIL-CLOSED on absence. A provider with no row (fresh
+        # provider, mirror account, or a typo) is excluded with a
+        # self-explaining code naming the file, never silently routed. Only a
+        # row PRESENT with status != 'open' is the classic quota GATED case.
+        if prov not in qs:
+            # TR-203 audit contract: the file's top-level intentionally_ungated
+            # list documents the deliberate silences. The mark does NOT open
+            # the lane — it only makes THIS exclusion's reason say so, so the
+            # audit script and the resolve path report the same story.
+            _ungated = qdoc.get('intentionally_ungated')
+            if isinstance(_ungated, list) and prov in _ungated:
+                why.append('policy-gate-missing-row: provider not listed in '
+                           'quota-state.json (marked intentionally ungated)')
+            else:
+                why.append('policy-gate-missing-row: provider not listed in '
+                           'quota-state.json')
+        elif q.get('status') != 'open':
             why.append(f'quota GATED: {q.get("reason", "blocked")}')
         qg = quota_gates.get(prov)
         if qg and qg.get('active'):
