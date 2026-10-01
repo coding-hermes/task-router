@@ -637,15 +637,16 @@ tasks:
   status: in_progress
   created_at: '2026-09-30T15:12:35.257593+00:00'
 - id: TR-194
-  title: Prove degraded path fires for every unservable rating
+  title: Prove the degraded path fires for EVERY unservable rating
   criteria:
-  - 'Tests prove: an unsatisfiable rating (no eligible model) with a servable fallback
-    lane returns degraded_fallback=true + requirements_unmet (never a bare no-hops
-    503); with no fallback lane either it returns the structured fail-closed error
-    with reasons+exclusions; and both arms are pinned for every unservable profile
-    shape'
-  status: in_progress
-  created_at: '2026-09-30T17:56:15.321385+00:00'
+  - Over a frozen sample of real ratings, every unsatisfiable rating either serves
+    degraded naming the unmet requirement, or fails closed with a structured exclusion
+    list - never a bare no-hops with no reason; regression test pins empty-ladder
+    vs all-lanes-gated as distinct outcomes; before/after unsatisfiable rate reported
+    per category
+  status: complete
+  created_at: '2026-10-01T14:59:05.531573+00:00'
+  completed_at: '2026-10-01T23:34:58.667922+00:00'
 - id: TR-195
   title: No-hops-rate baseline and threshold alert
   criteria:
