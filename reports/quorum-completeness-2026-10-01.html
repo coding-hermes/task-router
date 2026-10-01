@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Completeness — what the mechanical is (quorum round 2026-10-01)</title>
+<style>
+:root { --ink:#11151c; --mut:#5b6470; --line:#d7dce3; --ok:#0b6b3a; --bad:#a3121f; --warn:#8a5a00; --acc:#1a4fd6; --bg:#fff; --soft:#f6f8fa; }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; }
+.wrap { max-width:1040px; margin:0 auto; padding:28px 18px 64px; }
+h1 { font-size:1.62rem; line-height:1.2; margin:0 0 6px; letter-spacing:-.02em; }
+h2 { font-size:1.14rem; margin:34px 0 10px; padding-bottom:6px; border-bottom:2px solid var(--ink); }
+h3 { font-size:1rem; margin:0 0 6px; }
+p { margin:0 0 10px; }
+.sub { color:var(--mut); font-size:.78rem; }
+.kicker { text-transform:uppercase; letter-spacing:.09em; font-size:.7rem; color:var(--mut); font-weight:700; }
+.verdict { border:1px solid var(--line); border-left:6px solid var(--bad); background:var(--soft); padding:14px 16px; margin:18px 0 6px; }
+.toc { background:var(--soft); border:1px solid var(--line); padding:12px 16px; margin:18px 0 6px; }
+.toc ol { margin:6px 0 0 18px; padding:0; }
+.toc li { margin:2px 0; }
+a { color:var(--acc); text-decoration:none; }
+a:hover { text-decoration:underline; }
+table { width:100%; border-collapse:collapse; margin:10px 0 4px; font-size:.82rem; }
+th,td { border:1px solid var(--line); padding:7px 8px; text-align:left; vertical-align:top; }
+th { background:var(--soft); font-size:.74rem; text-transform:uppercase; letter-spacing:.05em; }
+.scroll { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+.seat { width:150px; background:var(--soft); }
+.q { color:var(--mut); font-size:.74rem; margin-top:4px; }
+.chip { display:inline-block; padding:1px 7px; border-radius:999px; font-size:.68rem; font-weight:700; color:#fff; white-space:nowrap; }
+.chip.red { background:var(--bad); } .chip.green { background:var(--ok); }
+.chip.amber { background:var(--warn); } .chip.blue { background:var(--acc); }
+.card { border:1px solid var(--line); border-left:5px solid var(--acc); padding:12px 14px; margin:10px 0; }
+.num { float:left; font-weight:800; font-size:1.3rem; color:var(--acc); margin:-2px 10px 0 0; }
+.src { font-size:.72rem; color:var(--mut); margin-top:6px; }
+code { background:var(--soft); border:1px solid var(--line); border-radius:3px; padding:0 4px; font-size:.85em; }
+pre { background:var(--soft); border:1px solid var(--line); padding:10px 12px; overflow-x:auto; font-size:.78rem; }
+.n { text-align:right; font-variant-numeric:tabular-nums; }
+.ok { color:var(--ok); font-weight:700; } .zero { color:var(--bad); font-weight:700; }
+.note { border:1px solid var(--line); border-left:5px solid var(--warn); background:var(--soft); padding:12px 14px; margin:12px 0; }
+.foot { margin-top:36px; padding-top:12px; border-top:1px solid var(--line); color:var(--mut); font-size:.76rem; }
+@media (max-width:640px) { .wrap { padding:18px 12px 48px; } h1 { font-size:1.34rem; } table { font-size:.76rem; } th,td { padding:5px 6px; } .seat { width:96px; } }
+</style></head><body><div class="wrap">
+
+<div class="kicker">coding-hermes &middot; quorum round &middot; 2026-10-01</div>
+<h1>Completeness: what the mechanical actually is</h1>
+<p class="sub">Bane asked what part of the pipeline to add for better project completeness, then said the direction was right but &ldquo;missing the mechanical&rdquo; and called the quorum. Four seats, four model families, one brief, 3 minutes 31 seconds of wall time. Every claim a seat made was re-verified against raw data before it was ruled.</p>
+
+<div class="verdict">
+<div class="kicker" style="color:var(--bad)">The verdict on my own proposal</div>
+<p style="margin:8px 0 0"><b>My central mechanism is refuted by our own board.</b> I proposed that a row cannot complete without acceptance criteria. <b>TR-011 &mdash; the row that claimed &ldquo;router cleared to move traffic&rdquo; and was never true &mdash; carries four acceptance criteria and <code>guard=PASS</code>.</b> My gate would have passed it. All four seats flagged this independently; qwen verified it from the board. The gate has to be an <b>outcome probe replayed at the commit boundary</b>, not a requirement that criteria exist.</p>
+</div>
+
+<div class="toc"><div class="kicker">Contents</div><ol>
+<li><a href="#s1">Why completeness, in measured numbers</a></li>
+<li><a href="#s2">The six mechanisms put on trial</a></li>
+<li><a href="#s3">The verdict matrix &mdash; 7 claims &times; 4 seats</a></li>
+<li><a href="#s4">The refutation: TR-011</a></li>
+<li><a href="#s5">Two corrections against the coordinator</a></li>
+<li><a href="#s6">The mechanical, ranked</a></li>
+<li><a href="#s7">boardctl&rsquo;s real surface (the stale-inventory lesson)</a></li>
+<li><a href="#s8">Fleet state at the moment of writing</a></li>
+<li><a href="#s9">Method, and what this round is not</a></li>
+<li><a href="#s10">Rows filed, and the one decision outstanding</a></li>
+</ol></div>
+
+<h2 id="s1">1 &middot; Why completeness, in measured numbers</h2>
+<p>Not a feeling about quality &mdash; a census of what we can and cannot prove.</p>
+<div class="scroll"><table>
+<tr><th>Measured</th><th class="n">Value</th><th>What it means</th></tr>
+<tr><td>Complete rows on the router board</td><td class="n">222</td><td>out of 299 rows</td></tr>
+<tr><td>&hellip;carrying acceptance criteria</td><td class="n zero">81 (36%)</td><td>two thirds of completions were never specified</td></tr>
+<tr><td>&hellip;carrying any evidence</td><td class="n zero">8 (4%)</td><td><b>96% of what we call complete carries no proof</b></td></tr>
+<tr><td>Pending rows carrying criteria</td><td class="n ok">32 (52%)</td><td>work is better specified before it starts than when it ends</td></tr>
+<tr><td>Rows carrying <code>evidence_run_id</code></td><td class="n zero">0 of 299</td><td>the field exists; nobody uses it</td></tr>
+<tr><td>Incomplete rows on the fleet board with no project field</td><td class="n zero">100 of 100</td><td>&ldquo;which project is incomplete&rdquo; is not computable from data</td></tr>
+<tr><td>Last 250 commits: fixes</td><td class="n">57 (23%)</td><td>plus 64 board bookkeeping, 9 revert/stale/refuted</td></tr>
+<tr><td>Traffic actually routed through the router</td><td class="n zero">1.3%</td><td>corrected this round; see &sect;5</td></tr>
+<tr><td>Ledger rows with <code>complexity</code> populated</td><td class="n zero">0%</td><td>cost-per-complexity cannot be computed on real traffic</td></tr>
+</table></div>
+
+<h2 id="s2">2 &middot; The six mechanisms put on trial</h2>
+<p>Each stated as a mechanism the seats could attack, not a philosophy they could nod at.</p>
+<pre>M1  acceptance criteria become {predicate, command, expected}; boardctl refuses a
+    transition to complete while any criterion lacks a check
+M2  evidence becomes a run record {command, exit_code, stdout_digest, commit_sha, ts}
+    instead of a sentence
+M3  one writer (boardctl complete) plus detection in CI for writes that bypass it
+M4  a gitreins verdict bound to the merged commit - kills --skip-tier2 silent
+    completion AND the verdict that judged a pre-merge tree
+M5  project attribution + derived completeness; the tick report is GENERATED from
+    the projection rather than narrated
+M6  standing numbers: unproven-complete, routed share, complexity coverage</pre>
+
+<h2 id="s3">3 &middot; The verdict matrix &mdash; 7 claims &times; 4 seats</h2>
+<p class="sub">Verbatim from each seat&rsquo;s transcript. Convergent rows are the ruling; a single seat&rsquo;s line is a lead, not a fact.</p>
+<div class="scroll"><table>
+<tr><th>Seat</th><th>C1 tautology</th><th>C2 locus</th><th>C3 authorship</th><th>C4 own failure mode</th><th>C5 ranking</th><th>C6 the number</th><th>C7 brief errors</th></tr>
+<tr><td class="seat"><b>glm-5.3-flash</b><div class="sub">GLM family<br>z-ai/glm-5.3-flash<br>14,737 B</div></td><td><span class="chip red">CONTRADICTED</span><div class="q">M1 is theatre in its stated form, and repairable.</div></td><td><span class="chip green">SUPPORTED*</span><div class="q">SUPPORTED with a correction on which locus is load-bearing.</div></td><td><span class="chip red">CONTRADICTED</span><div class="q">As written, M1 fails here, exactly as the brief fears.</div></td><td><span class="chip amber">UNRESOLVED</span><div class="q">SUPPORTED only after two additions, one per half of the question.</div></td><td><span class="chip green">SUPPORTED</span><div class="q">with the ranking reordered against the proposal.</div></td><td><span class="chip green">SUPPORTED</span><div class="q">with the number named and its gaming vector stated.</div></td><td><span class="chip red">CONTRADICTED</span><div class="q">on six items, ranked worst first.</div></td></tr><tr><td class="seat"><b>qwen3.7-plus</b><div class="sub">Qwen family<br>qwen/qwen3.7-plus<br>15,365 B</div></td><td><span class="chip red">CONTRADICTED</span><div class="q">A criterion that only has to EXIST is theatre, and I can prove it from your own board: TR-011 has acceptance_criteria...</div></td><td><span class="chip green">BOTH+</span><div class="q">the load-bearing piece is the COMMIT GATE; minimum-sufficient is both at a choke point that is already a repo gate.</div></td><td><span class="chip red">M1 FAILS</span><div class="q">the same agent that wrote the claim (TR-011 carries ac=true and lied anyway).</div></td><td><span class="chip amber">UNRESOLVED</span><div class="q">at real risk as designed; SUPPORTED only with three additions.</div></td><td><span class="chip green">RANKED</span><div class="q">TOP 5 BY LEVERAGE/COST.</div></td><td><span class="chip green">NAMED</span><div class="q">verified_complete_share = rows complete AND evidence record whose artifact re-hashes AND whose gitreins verdict...</div></td><td><span class="chip blue">4 MISSED</span><div class="q">the coordinator missed four things.</div></td></tr><tr><td class="seat"><b>kimi-k3</b><div class="sub">Kimi family<br>moonshotai/kimi-k3<br>15,621 B</div></td><td><span class="chip amber">UNRESOLVED</span><div class="q">SUPPORTED with one named addition. "check + expected" does not stop it, because expected is authored...</div></td><td><span class="chip green">SUPPORTED</span><div class="q">both, but the coordinator named the wrong writer.</div></td><td><span class="chip red">CONTRADICTED</span><div class="q">the criterion is not a sentence; it is the outcome probe - a request through the live ingress resolves with at least one hop.</div></td><td><span class="chip green">SUPPORTED</span><div class="q">and it is already visible in the data three ways.</div></td><td><span class="chip green">RANKED</span><div class="q">Leverage per cost, in order.</div></td><td><span class="chip blue">CORRECTED</span><div class="q">unproven_complete_rows is fakeable downward: complete fewer rows and it improves.</div></td><td><span class="chip blue">CORRECTIONS</span><div class="q">What is wrong, stale, or already solved.</div></td></tr><tr><td class="seat"><b>gpt-6-sol</b><div class="sub">OpenAI family<br>openai-codex/gpt-6-sol<br>10,416 B</div></td><td><span class="chip amber">UNRESOLVED</span><div class="q">SUPPORTED only with a triad. A criterion authored by the completing agent to pass proves nothing.</div></td><td><span class="chip green">BOTH</span><div class="q">Minimum-sufficient = BOTH, but asymmetric. Single writer alone fails the writers the brief names.</div></td><td><span class="chip red">FAILS AS IS</span><div class="q">If the answer is "the same agent", M1 fails - and that IS the current state.</div></td><td><span class="chip green">REPLAY</span><div class="q">Text-as-state: a stored stdout_digest read back as proof is a success marker. The mechanical answer is REPLAY, not read.</div></td><td><span class="chip green">RANKED</span><div class="q">boardctl complete as the sole sanctioned writer: refuses no-criteria, mutated criteria, missing run records, unbound verdict.</div></td><td><span class="chip green">NAMED</span><div class="q">verified_complete_ratio = complete rows whose run record replays green at a commit ancestor-or-equal of origin/main.</div></td><td><span class="chip blue">CORRECTIONS</span><div class="q">The ledger sample is the brief's own text-as-state sin; M1/M2/M3 are partly built in boardctl already (--evidence-run-id).</div></td></tr>
+</table></div>
+<div class="note"><div class="kicker">Convergence, which is the only thing that counts as a verdict</div>
+<p style="margin:8px 0 0"><b>4 of 4 CONTRADICTED</b> on C1 (criteria-exists is theatre) and on C3 (the criterion author is the agent that wrote the claim) &mdash; both against my own draft. <b>4 of 4</b> put the load-bearing enforcement at the <b>commit boundary</b>, not the writer. <b>4 of 4</b> refused M2 as &ldquo;evidence as a stored string&rdquo; without replay. Two families independently named the same replacement metric.</p></div>
+
+<h2 id="s4">4 &middot; The refutation: TR-011</h2>
+<pre>TR-011  status=complete   acceptance_criteria=4   guard_result=PASS
+        commit=4257241    evidence_run_id=None   ci=None
+        claim: "Full CI pass + live E2E readiness - router cleared to move traffic"
+
+        criterion 1: GitHub Actions CI green on main (tests + guard parity + smoke + integrity)
+        criterion 2: live scheduler spawns resolve via the router (ROUTER lines + SPAWN head)
+        criterion 3: all registry projects resolve with 0 errors / 0 empty chains</pre>
+<p>Every one of those criteria is a <b>component</b> claim. CI was green. The guard passed. The spawns did resolve. And the traffic flip never happened &mdash; the row was withdrawn months of component-green later. A criterion set can be fully satisfied and still describe a component while the <b>outcome</b> everyone is waiting for stays dark. That is the exact gap the mechanical has to close, and my M1 did not close it.</p>
+
+<h2 id="s5">5 &middot; Two corrections against the coordinator</h2>
+<p>The doctrine says the highest-value output of a round is a seat contradicting the coordinator. Two landed, and one of them is a number I had already given Bane.</p>
+<div class="card" style="border-left-color:var(--bad)">
+<h3>A. My boardctl inventory was stale &mdash; the interface is already built</h3>
+<p>My brief told the seats that boardctl offers <code>list / show / create / update / event / header / validate / stats</code> and that M2 would have to be built. Wrong. Live surface, read from the binary:</p>
+<pre>init  list  show  create  update  event  header  validate
+sweep-status  doctor  version  stats  render  import ...
+
+create --evidence-run-id RUN       update --evidence-run-id RUN
+update --status complete --commit-hash SHA --guard PASS|FAIL|SKIP --ci GREEN|RED|SKIP
+sweep-status: normalizes known read-aliases; NEVER guesses an unknown status</pre>
+<p>So M2 is not a build, it is a <b>switch-on</b> &mdash; and measured, <b>0 of 299 rows use it</b>. sol caught this; my brief had the wrong truth in it.</p>
+</div>
+<div class="card" style="border-left-color:var(--red)">
+<h3>B. My &ldquo;0 of 1,500 rows carry chain evidence&rdquo; was a sampling artifact</h3>
+<p>I quoted the tail of the ledger and concluded the routing evidence was missing from real traffic. Over the last <b>40 MB &mdash; 78,479 rows</b> (52&times; my sample) the picture inverts:</p>
+<div class="scroll"><table>
+<tr><th>source_system</th><th class="n">rows</th><th class="n">with chain evidence</th><th class="n">share</th></tr>
+<tr><td><code>router-proxy</code></td><td class="n">1,032</td><td class="n">830</td><td class="n ok">80%</td></tr><tr><td><code>hermes</code></td><td class="n">39,439</td><td class="n">0</td><td class="n zero">0%</td></tr><tr><td><code>pi</code></td><td class="n">37,874</td><td class="n">0</td><td class="n zero">0%</td></tr><tr><td><code>opencode</code></td><td class="n">134</td><td class="n">0</td><td class="n zero">0%</td></tr>
+</table></div>
+<p><b>The router writes the evidence &mdash; 80% of its own rows carry it.</b> The other paths never emit it because they never go through the router. My conclusion survives; my figure was wrong by an order of magnitude: <b>the proxy-sourced share is 1.3%, not 0.13%</b>. I have corrected it on the record and in the row.</p>
+</div>
+
+<h2 id="s6">6 &middot; The mechanical, ranked</h2>
+<div class="card"><div class="num">1</div><h3>Switch on the interface that already exists</h3><p>boardctl update --status complete already accepts --evidence-run-id. Measured: <b>0 of 299 rows use it</b>. Make it required, and add the rule to <code>boardctl doctor</code> so "complete rows with no evidence run" becomes a queryable number instead of a review opinion.</p><div class="src">source: sol + post-round measurement</div></div><div class="card"><div class="num">2</div><h3>Replay, not read</h3><p>A stored <code>stdout_digest</code> read back as proof is a success marker - the text-as-state sin we already suffer. CI must RE-EXECUTE the recorded command for every row whose status changed in the diff. A digest that cannot be reproduced does not count.</p><div class="src">source: sol (C4)</div></div><div class="card"><div class="num">3</div><h3>Outcome-probe library, authored before dispatch</h3><p>The criterion that would have caught TR-011 is an outcome probe: "a request through the live ingress resolves with at least one hop", "routed_share moved", "complexity populated on new rows". Probes are chosen from a library BEFORE dispatch by the coordinator, never by the agent that will claim completion. Authorship is the whole point - TR-011 had four criteria and a PASS guard and still lied.</p><div class="src">source: kimi (C3) - the fix for the unanimous authorship failure</div></div><div class="card"><div class="num">4</div><h3>Commit-boundary gate</h3><p>The gate belongs at the merge/push boundary, not only inside boardctl: append-only JSONL is doctrine, so hand-appends, cron, foremen and git merges are all real writers (today the actual writer is <code>~/.hermes/scripts/board_append.py</code>). Extend the existing pre-push/CI gate to refuse a diff that flips a row to complete without replayable evidence bound to a commit ancestor-or-equal of origin/main.</p><div class="src">source: C2, 4 of 4 seats</div></div><div class="card"><div class="num">5</div><h3>The one number: verified_complete_share</h3><p>Two families converged on the same metric independently: complete rows whose evidence REPLAYS green at a commit ancestor-or-equal of origin/main, over all complete rows. It replaces <code>unproven_complete_rows</code>, which is fakeable downward - complete fewer rows and it improves.</p><div class="src">source: qwen + sol (C6) + kimi (the gaming vector)</div></div>
+<div class="note"><div class="kicker">Outstanding precondition &mdash; not glossed</div>
+<p style="margin:8px 0 0">boardctl accepts <code>--evidence-run-id</code> but <b>no store for evidence runs was found</b>. The only code references to the field are two unrelated audit scripts. Where runs live (a runs table, the gitreins verdict store, the ledger) is a decision that must be made before anything is built on top of replay.</p></div>
+
+<h2 id="s7">7 &middot; boardctl&rsquo;s real surface (the stale-inventory lesson)</h2>
+<p>Worth its own section because it is a repeat-offence in miniature: doctrine, docs and briefs describe the tool we had, not the tool we have. <code>sweep-status</code> already refuses to guess an unknown status &mdash; the same instinct this round is asking for &mdash; and nobody was using it, which is why the board still carries a non-enum <code>done</code> and a NULL status. Before building a gate, read the binary.</p>
+
+<h2 id="s8">8 &middot; Fleet state at the moment of writing</h2>
+<div class="scroll"><table>
+<tr><th>Item</th><th>State</th></tr>
+<tr><td>CI on main (task-router)</td><td><b class="zero">RED since 02:39Z</b> &mdash; runs for <code>ccce1f2</code>, <code>443b746</code>, <code>65f19e9</code></td></tr>
+<tr><td>Cause</td><td>our own TR-203 partial fix: one predicate for two opposite absences. 4 tests, one root cause, sites and verification set filed on TR-203</td></tr>
+<tr><td>Cascade</td><td><code>test_absent_state_is_fail_closed_all_excluded</code>, <code>test_fallback_not_needed_when_deepseek_is_normal_hop</code>, <code>test_soft_gate_default_off_does_not_exclude_busy_models</code>, <code>test_missing_all_state_files_reported</code></td></tr>
+<tr><td>Push gate</td><td>fired correctly and refused a board-only commit. Three board commits held locally rather than overriding</td></tr>
+<tr><td>Router services</td><td>healthy, <code>gate.valid=True</code>, loaded commit <code>40d261c</code></td></tr>
+</table></div>
+
+<h2 id="s9">9 &middot; Method, and what this round is not</h2>
+<ul>
+<li><b>Transport:</b> four fire-and-forget HTTP seats against the gateway, identical brief, separate processes, no shared state. All four returned the mandated detector line. Wall time 3m31s against a 50-minute budget.</li>
+<li><b>Seats were verified live before seating</b> &mdash; each lane answered a probe request. Registry entries for two of them are currently marked disabled while the gateway still serves them; that discrepancy is noted, not hidden.</li>
+<li><b>Not taken as evidence:</b> one seat frames several findings as &ldquo;VERIFIED, I ran it myself on this box.&rdquo; The gateway seats hold no filesystem. Every checkable claim was re-derived by the coordinator against the board, the binary and the ledger instead.</li>
+<li><b>What this round is not:</b> it is not a tested fix. It is a ruling on a design, with the authorship flaw proven from our own rows. The mechanisms still need building, testing and a green CI to land.</li>
+</ul>
+
+<h2 id="s10">10 &middot; Rows filed, and the one decision outstanding</h2>
+<div class="scroll"><table>
+<tr><th>Row</th><th>What it carries</th></tr>
+<tr><td><b>TR-249</b></td><td>completion gate &mdash; amended with the quorum ruling: M1 refuted by TR-011, authorship is the fatal flaw, commit boundary is load-bearing</td></tr>
+<tr><td><b>TR-250</b></td><td>project attribution + derived completeness &mdash; every incomplete fleet row is currently unattributed</td></tr>
+<tr><td><b>TR-251</b></td><td>the mechanical: mandatory evidence-run, CI replay, outcome-probe library authored before dispatch, commit-boundary gate, <code>verified_complete_share</code> &mdash; six criteria, with the evidence-store precondition</td></tr>
+</table></div>
+<p><b>The decision that is Bane&rsquo;s:</b> nothing here is flippable on its own. The mechanical is a build order for the fleet, and the thing it is meant to protect &mdash; traffic through the router with cost per complexity &mdash; stays dark until TR-239 (admission) and TR-210 (pacing) are green.</p>
+
+<div class="foot">
+Quorum round <code>2026-10-01</code> &middot; brief 10,923 bytes &middot; seats: glm-5.3-flash, qwen3.7-plus, kimi-k3, gpt-6-sol &middot; transcripts <code>/tmp/quorum/*.txt</code><br>
+Coordinator re-verification: board census (299 rows), TR-011 row read, <code>boardctl --help</code> + <code>create/update/validate --help</code>, 40 MB ledger scan (78,479 rows), CI run list.<br>
+Companion reports: scan-gpt-6.1-sol-2026-09-29, status-2026-09-29, timeout-alignment-2026-09-29, complexity-dynamic-design-2026-09-29, proxy-status-2026-09-28.
+</div>
+</div></body></html>
