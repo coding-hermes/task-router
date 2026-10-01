@@ -1899,7 +1899,10 @@ def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=DE
         q = qs.get(prov, {})
         if not isinstance(q, dict):
             q = {}
-        if q.get('status') != 'open':
+        # TR-203: provider absent from quota-state.json means NO policy gate
+        # applies — treat as OPEN, not blocked. Only gate when the provider is
+        # explicitly present with a non-open status.
+        if prov in qs and q.get('status') != 'open':
             why.append(f'quota GATED: {q.get("reason", "blocked")}')
         qg = quota_gates.get(prov)
         if qg and qg.get('active'):

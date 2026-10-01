@@ -1,0 +1,10 @@
+{
+  "tick": "task-router-2026-09-30-17-52-40",
+  "project": "task-router",
+  "created_at": "2026-09-30T18:00:00Z",
+  "budget": 10,
+  "workers": [
+    {"task_id": "TR-194", "priority": "P0", "worktree": "/home/kara/worktrees/task-router-TR-194", "branch": "wt/TR-194", "base_sha": "40d261c", "title": "Prove the degraded path fires for EVERY unservable rating (the incident proximate trigger)"},
+    {"task_id": "TR-195", "priority": "P1", "worktree": "/home/kara/worktrees/task-router-TR-195", "branch": "wt/TR-195", "base_sha": "40d261c", "title": "A no-hops-rate baseline and threshold (the incident had no alarm)"}
+  ]
+}

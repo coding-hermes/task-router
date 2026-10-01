@@ -1,0 +1,13 @@
+{
+  "tick_id": "task-router-2026-09-30-07-03-03",
+  "created_at": "2026-09-30T07:25:00-05:00",
+  "budget": 5,
+  "recovery": "Manifest task-router-2026-09-30-04-13-37 already finished_at 07:20 (TR-198/125/148 merged+closed, INT-CI-20260928-04 reaped). Unpushed main commits pushed at tick start.",
+  "tasks": [
+    {"id":"TR-187","priority":"P1","worktree":"/home/kara/worktrees/task-router-TR-187","branch":"wt/TR-187","scope":"tests/ scripts/ (coverage baseline + floor)","status":"dispatching"},
+    {"id":"TR-204","priority":"P1","worktree":"/home/kara/worktrees/task-router-TR-204","branch":"wt/TR-204","scope":"scripts/task-router-sync lane + duckbrain-http failure surfacing","status":"dispatching"},
+    {"id":"TR-197","priority":"P1","worktree":"/home/kara/worktrees/task-router-TR-197","branch":"wt/TR-197","scope":"data/tables/*.jsonl census (MEANINGFUL/UNEXPLAINED nulls)","status":"dispatching"},
+    {"id":"TR-179","priority":"P1","worktree":"/home/kara/worktrees/task-router-TR-179","branch":"wt/TR-179","scope":"data/tables/projects.jsonl (:free lane pricing + doctrine)","status":"dispatching"},
+    {"id":"TR-205","priority":"P1","worktree":"/home/kara/worktrees/task-router-TR-205","branch":"wt/TR-205","scope":"scheduler API pagination handling in fleet scripts","status":"dispatching"}
+  ]
+}

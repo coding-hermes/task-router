@@ -577,3 +577,80 @@ tasks:
   status: complete
   created_at: '2026-09-30T06:30:19.067512+00:00'
   completed_at: '2026-09-30T06:41:00.117948+00:00'
+- id: TR-247
+  title: "Three dark lanes: crof static site, kimi dead key, ollama-cloud 11/11 failures\
+    \ \u2014 per-lane root cause + fix"
+  criteria:
+  - 'Per-lane verdict with evidence in scripts/router_health.py state handling: crof,
+    kimi (p1/bad) and ollama-cloud each diagnosed distinctly and the routing state
+    corrected or a fix landed; health probe re-run; committed and pushed'
+  status: complete
+  created_at: '2026-09-30T07:11:07.974169+00:00'
+  completed_at: '2026-09-30T08:18:35.283664+00:00'
+- id: TR-187
+  title: TR-187 worker task
+  criteria:
+  - Board task TR-187 acceptance criteria met; build/lint/tests green; committed and
+    pushed
+  status: complete
+  created_at: '2026-09-30T09:04:38.067501+00:00'
+  completed_at: '2026-09-30T14:29:42.129586+00:00'
+- id: TR-204
+  title: TR-204 worker task
+  criteria:
+  - Board task TR-204 acceptance criteria met; build/lint/tests green; committed and
+    pushed
+  status: complete
+  created_at: '2026-09-30T09:04:38.335102+00:00'
+  completed_at: '2026-09-30T15:14:59.649662+00:00'
+- id: TR-197
+  title: NULL census and cleanup rule
+  criteria:
+  - Every null on a LIVE lane carries a MEANINGFUL reason or is filled from a real
+    source; UNEXPLAINED count on live lanes reaches 0; census is committed and re-runnable
+  status: complete
+  created_at: '2026-10-01T00:21:51.050482+00:00'
+  completed_at: '2026-10-01T00:33:37.642475+00:00'
+- id: TR-179
+  title: TR-179 worker task
+  criteria:
+  - Board task TR-179 acceptance criteria met; build/lint/tests green; committed and
+    pushed
+  status: in_progress
+  created_at: '2026-09-30T09:04:38.861491+00:00'
+- id: TR-205
+  title: TR-205 worker task
+  criteria:
+  - Board task TR-205 acceptance criteria met; build/lint/tests green; committed and
+    pushed
+  status: complete
+  created_at: '2026-09-30T09:04:39.129861+00:00'
+  completed_at: '2026-09-30T16:00:08.655072+00:00'
+- id: TR-139
+  title: Cheapest fail-open profile
+  criteria:
+  - 'On an unrated prompt the router selects a CHEAPEST safe profile, never P0_FORE:
+    an envelope-level test drives proxy_chat through an empty-matrix classifier and
+    a failed classifier and asserts complexity_source names the degrade, profile_id
+    is ROUTER_EMPTY_MATRIX_PROFILE or None (never P0_FORE), and the ledger row records
+    profile_id + degrade_reason; a real non-empty matrix is unaffected'
+  status: in_progress
+  created_at: '2026-09-30T15:12:35.257593+00:00'
+- id: TR-194
+  title: Prove degraded path fires for every unservable rating
+  criteria:
+  - 'Tests prove: an unsatisfiable rating (no eligible model) with a servable fallback
+    lane returns degraded_fallback=true + requirements_unmet (never a bare no-hops
+    503); with no fallback lane either it returns the structured fail-closed error
+    with reasons+exclusions; and both arms are pinned for every unservable profile
+    shape'
+  status: in_progress
+  created_at: '2026-09-30T17:56:15.321385+00:00'
+- id: TR-195
+  title: No-hops-rate baseline and threshold alert
+  criteria:
+  - A no-hops-rate computed per hour from the ledger with sample size, an in-repo
+    baseline, a threshold alert proven by a forced-breach dry-run (not code reading),
+    and GET /api/ui/series exposing the same number
+  status: in_progress
+  created_at: '2026-09-30T17:56:15.647831+00:00'
