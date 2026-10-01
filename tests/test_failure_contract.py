@@ -42,6 +42,10 @@ EXPECTED_ACTIONS = {
     'overloaded': 'retry-after',
     'no-hops': 'stop-and-escalate',
     'registry-missing': 'stop-and-escalate',
+    # TR-194: an UNSATISFIABLE rating (the resolver says nothing was ever
+    # eligible) — the 2026-09-26 incident shape, named so the escalation can
+    # tell a data gap from a gate storm. Same caller action as no-hops.
+    'unservable-rating': 'stop-and-escalate',
 }
 
 #: Classes the contract names that have NO failure_reason literal (they never

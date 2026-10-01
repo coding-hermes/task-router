@@ -2590,6 +2590,35 @@ def _resolve_registry_missing(resolved):
     return not isinstance(fallback, bool) and not isinstance(dh, dict)
 
 
+def _resolver_had_no_eligible_hop(resolved):
+    """TR-194: did THIS resolver payload say nothing was ever ELIGIBLE?
+
+    The 2026-09-26 incident proximate trigger: a rating no model in the registry
+    could satisfy dead-ended as a bare `no-hops` row, indistinguishable on the
+    row from "lanes existed and gates excluded them all". c49b18a made the
+    resolver itself distinguish the two (the eligibility-stage early return now
+    falls through to the gates and the fallback section); this reads that
+    distinction off the payload so the ROW can carry it.
+
+    The claim is named ONLY on positive evidence: the resolver's structured
+    error doc whose message names the empty chain — the one shape c49b18a
+    returns when nothing was eligible AND no always-run lane could serve
+    (which includes the fallback lanes existing but gated). A success shape
+    with an empty ladder is NOT named: the real payload always carries its
+    `exclusions` there (all-gated), and a chainless payload without them is
+    not evidence of anything — naming it would mislabel, so it keeps the
+    plain reason. Fail-open: any shape surprise is False; error docs that are
+    NOT no-chain docs (INVALID_REQUIREMENT, PROFILE_NOT_FOUND,
+    project-not-in-registry) are not this shape either — they never reached
+    the ledger as no-hops.
+    """
+    if not isinstance(resolved, dict):
+        return False
+    if not resolved.get('error'):
+        return False
+    return 'no chain' in str(resolved.get('error'))
+
+
 def _chain_evidence(resolved, chain):
     """The OPTION CHAIN as resolvable evidence: what the resolver offered, in order.
 
@@ -2609,7 +2638,11 @@ def _chain_evidence(resolved, chain):
             if not isinstance(h, dict):
                 continue
             out.append({k: h.get(k) for k in
-                        ('hop', 'provider', 'model', 'why', 'codes', 'price', 'effective_price')
+                        ('hop', 'provider', 'model', 'why', 'codes', 'price', 'effective_price',
+                         # TR-194: a DEGRADED fallback hop carries its unmet
+                         # requirement; dropping it here is how a row can say it
+                         # was served degraded without saying what was unmet.
+                         'requirements_unmet', 'fallback')
                         if k in h})
         return out
     chain = chain or []
@@ -3196,6 +3229,24 @@ def _proxy_chat_inner(path, body, headers, max_hops=None, upstream=None):
         else:
             failure_reason = 'no-hops'
             error_msg = 'no open hop for this request'
+        # TR-194: the incident proximate trigger — an UNSATISFIABLE rating (nothing
+        # eligible in the registry at all) used to land as a bare `no-hops` row,
+        # indistinguishable from "eligible lanes existed and the gates excluded
+        # them all". Name the difference on the failure_reason plane, exactly as
+        # TR-235 did for the registry-missing arm: `route_outcome` stays 'no-hops'
+        # (the vocabulary the ledger's no-hops-rate baseline counts — TR-195), the
+        # envelope shape is untouched, and every other no-hops keeps 'no-hops'
+        # byte-for-byte. The naming claims only what the resolver payload
+        # POSITIVELY says (its structured error doc); a chainless payload without
+        # that doc is not evidence of anything and keeps the plain reason. The
+        # rating evidence on this row (required_categories + complexity_source,
+        # via _proxy_record) is the OTHER half of the fix: the falsifier's
+        # SERVED-DEGRADED arm reads it.
+        if not registry_missing and _resolver_had_no_eligible_hop(resolved):
+            failure_reason = 'unservable-rating'
+            error_msg = ('no eligible model for this rating in the registry and no '
+                         'fallback lane could serve (requirements_unmet: the rating '
+                         'outruns the fleet — see TR-185)')
         # TR-136: this is the OTHER blind exit — it returns before the ladder, so
         # it needs the same envelope or a caller cannot tell it apart from a
         # transport death.

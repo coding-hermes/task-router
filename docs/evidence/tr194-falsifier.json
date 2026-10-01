@@ -1,0 +1,3016 @@
+{
+ "fix_commit": "c49b18a",
+ "ledger": "/home/kara/task-router/data/state/outcomes.jsonl",
+ "metric": {
+  "after": {
+   "bare_no_hops_violations": 0,
+   "bare_rate": 0.0,
+   "fail_closed": 0,
+   "served_degraded": 46
+  },
+  "before": {
+   "note": "incident semantics (pre-c49b18a): every unsatisfiable rating dead-ended as a bare no-hops (no chain, no reason)",
+   "rate": 0.4842105263157895,
+   "unsatisfiable_bare_no_hops": 46
+  },
+  "derivation_disagreements": 0,
+  "n": 95,
+  "per_category": {
+   "agent_tick": {
+    "after_SERVED-DEGRADED": 45,
+    "asked": 89,
+    "unsat_before": 45
+   },
+   "code_gen": {
+    "after_SERVED-DEGRADED": 2,
+    "asked": 3,
+    "unsat_before": 2
+   },
+   "debug": {
+    "after_SERVED-DEGRADED": 5,
+    "asked": 6,
+    "unsat_before": 5
+   },
+   "delegation": {
+    "after_SERVED-DEGRADED": 36,
+    "asked": 46,
+    "unsat_before": 36
+   },
+   "e2e_vision": {
+    "after_SERVED-DEGRADED": 2,
+    "asked": 2,
+    "unsat_before": 2
+   },
+   "guard": {
+    "after_SERVED-DEGRADED": 41,
+    "asked": 77,
+    "unsat_before": 41
+   },
+   "long_doc": {
+    "asked": 1
+   },
+   "long_horizon": {
+    "after_SERVED-DEGRADED": 44,
+    "asked": 65,
+    "unsat_before": 44
+   },
+   "mechanical": {
+    "after_SERVED-DEGRADED": 17,
+    "asked": 55,
+    "unsat_before": 17
+   },
+   "reasoning": {
+    "after_SERVED-DEGRADED": 27,
+    "asked": 43,
+    "unsat_before": 27
+   },
+   "review": {
+    "after_SERVED-DEGRADED": 39,
+    "asked": 52,
+    "unsat_before": 39
+   },
+   "schema": {
+    "after_SERVED-DEGRADED": 1,
+    "asked": 14,
+    "unsat_before": 1
+   },
+   "spec_docs": {
+    "after_SERVED-DEGRADED": 10,
+    "asked": 22,
+    "unsat_before": 10
+   },
+   "terminal": {
+    "after_SERVED-DEGRADED": 46,
+    "asked": 85,
+    "unsat_before": 46
+   },
+   "test": {
+    "after_SERVED-DEGRADED": 2,
+    "asked": 2,
+    "unsat_before": 2
+   },
+   "tool_use": {
+    "after_SERVED-DEGRADED": 44,
+    "asked": 91,
+    "unsat_before": 44
+   }
+  },
+  "rows": [
+   {
+    "chain_length": 2,
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 2,
+     "guard": 2,
+     "long_horizon": 1,
+     "mechanical": 1,
+     "terminal": 1,
+     "tool_use": 2
+    },
+    "session_id": "router-proxy-1790394657058",
+    "ts": 1790394657.058663,
+    "unsatisfiable": false,
+    "verdict": "SATISFIABLE"
+   },
+   {
+    "chain_length": 2,
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 2,
+     "guard": 2,
+     "long_horizon": 2,
+     "mechanical": 1,
+     "terminal": 1,
+     "tool_use": 3
+    },
+    "session_id": "router-proxy-1790394660051",
+    "ts": 1790394660.0510821,
+    "unsatisfiable": false,
+    "verdict": "SATISFIABLE"
+   },
+   {
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "fallback_head": {
+     "model": "z-ai/glm-5.3-flash",
+     "provider": "xkiro"
+    },
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 1,
+     "guard": 2,
+     "mechanical": 1,
+     "reasoning": 1,
+     "terminal": 2,
+     "tool_use": 2
+    },
+    "session_id": "router-proxy-1790394665449",
+    "ts": 1790394665.4493954,
+    "unmet": [
+     {
+      "category": "guard",
+      "have": -1,
+      "required": 2
+     },
+     {
+      "category": "mechanical",
+      "have": -1,
+      "required": 1
+     },
+     {
+      "category": "terminal",
+      "have": -2,
+      "required": 2
+     }
+    ],
+    "unsatisfiable": true,
+    "verdict": "SERVED-DEGRADED"
+   },
+   {
+    "chain_length": 5,
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 1,
+     "guard": 1,
+     "mechanical": 0,
+     "terminal": 1,
+     "tool_use": 2
+    },
+    "session_id": "router-proxy-1790394669710",
+    "ts": 1790394669.7107842,
+    "unsatisfiable": false,
+    "verdict": "SATISFIABLE"
+   },
+   {
+    "chain_length": 34,
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 2,
+     "guard": 2,
+     "long_horizon": 1,
+     "mechanical": 1,
+     "tool_use": 2
+    },
+    "session_id": "router-proxy-1790395078297",
+    "ts": 1790395078.2976954,
+    "unsatisfiable": false,
+    "verdict": "SATISFIABLE"
+   },
+   {
+    "chain_length": 5,
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 2,
+     "guard": 1,
+     "mechanical": 1,
+     "terminal": 1,
+     "tool_use": 1
+    },
+    "session_id": "router-proxy-1790395082052",
+    "ts": 1790395082.0526707,
+    "unsatisfiable": false,
+    "verdict": "SATISFIABLE"
+   },
+   {
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "fallback_head": {
+     "model": "z-ai/glm-5.3-flash",
+     "provider": "xkiro"
+    },
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 4,
+     "guard": 2,
+     "long_horizon": 3,
+     "mechanical": 2,
+     "reasoning": 2,
+     "spec_docs": 3,
+     "terminal": 3,
+     "tool_use": 4
+    },
+    "session_id": "router-proxy-1790395082342",
+    "ts": 1790395082.342705,
+    "unmet": [
+     {
+      "category": "agent_tick",
+      "have": 2,
+      "required": 4
+     },
+     {
+      "category": "guard",
+      "have": -1,
+      "required": 2
+     },
+     {
+      "category": "mechanical",
+      "have": -1,
+      "required": 2
+     },
+     {
+      "category": "spec_docs",
+      "have": -1,
+      "required": 3
+     },
+     {
+      "category": "terminal",
+      "have": -2,
+      "required": 3
+     }
+    ],
+    "unsatisfiable": true,
+    "verdict": "SERVED-DEGRADED"
+   },
+   {
+    "chain_length": 37,
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 2,
+     "guard": 1,
+     "mechanical": 1,
+     "schema": 0,
+     "tool_use": 2
+    },
+    "session_id": "router-proxy-1790395085979",
+    "ts": 1790395085.9799817,
+    "unsatisfiable": false,
+    "verdict": "SATISFIABLE"
+   },
+   {
+    "chain_length": 37,
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 1,
+     "guard": 1,
+     "mechanical": 0,
+     "tool_use": 1
+    },
+    "session_id": "router-proxy-1790395088340",
+    "ts": 1790395088.340361,
+    "unsatisfiable": false,
+    "verdict": "SATISFIABLE"
+   },
+   {
+    "chain_length": 37,
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 2,
+     "guard": 1,
+     "long_horizon": 1,
+     "mechanical": 1,
+     "spec_docs": 1,
+     "tool_use": 2
+    },
+    "session_id": "router-proxy-1790395090907",
+    "ts": 1790395090.9075408,
+    "unsatisfiable": false,
+    "verdict": "SATISFIABLE"
+   },
+   {
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "fallback_head": {
+     "model": "z-ai/glm-5.3-flash",
+     "provider": "xkiro"
+    },
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 3,
+     "delegation": 3,
+     "guard": 1,
+     "long_horizon": 3,
+     "review": 3,
+     "terminal": 2,
+     "tool_use": 2
+    },
+    "session_id": "router-proxy-1790395093586",
+    "ts": 1790395093.5865657,
+    "unmet": [
+     {
+      "category": "agent_tick",
+      "have": 2,
+      "required": 3
+     },
+     {
+      "category": "guard",
+      "have": -1,
+      "required": 1
+     },
+     {
+      "category": "review",
+      "have": 0,
+      "required": 3
+     },
+     {
+      "category": "terminal",
+      "have": -2,
+      "required": 2
+     }
+    ],
+    "unsatisfiable": true,
+    "verdict": "SERVED-DEGRADED"
+   },
+   {
+    "chain_length": 5,
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 2,
+     "guard": 1,
+     "mechanical": 0,
+     "reasoning": 0,
+     "schema": 1,
+     "terminal": 1,
+     "tool_use": 2
+    },
+    "session_id": "router-proxy-1790397181238",
+    "ts": 1790397181.2382755,
+    "unsatisfiable": false,
+    "verdict": "SATISFIABLE"
+   },
+   {
+    "chain_length": 31,
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "hops_attempted": 0,
+    "required_categories": {
+     "long_doc": -1,
+     "mechanical": -1,
+     "schema": 1,
+     "terminal": 1,
+     "tool_use": 1
+    },
+    "session_id": "router-proxy-1790397187638",
+    "ts": 1790397187.6386309,
+    "unsatisfiable": false,
+    "verdict": "SATISFIABLE"
+   },
+   {
+    "chain_length": 3,
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 2,
+     "delegation": 1,
+     "guard": 1,
+     "mechanical": 0,
+     "reasoning": 1,
+     "schema": 1,
+     "terminal": 1,
+     "tool_use": 1
+    },
+    "session_id": "router-proxy-1790397189035",
+    "ts": 1790397189.0350456,
+    "unsatisfiable": false,
+    "verdict": "SATISFIABLE"
+   },
+   {
+    "chain_length": 5,
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 1,
+     "guard": 1,
+     "mechanical": 1,
+     "schema": 1,
+     "terminal": 1,
+     "tool_use": 2
+    },
+    "session_id": "router-proxy-1790397193049",
+    "ts": 1790397193.0490708,
+    "unsatisfiable": false,
+    "verdict": "SATISFIABLE"
+   },
+   {
+    "chain_length": 34,
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 2,
+     "guard": 2,
+     "mechanical": 1,
+     "schema": 1,
+     "tool_use": 2
+    },
+    "session_id": "router-proxy-1790397199914",
+    "ts": 1790397199.9145396,
+    "unsatisfiable": false,
+    "verdict": "SATISFIABLE"
+   },
+   {
+    "chain_length": 5,
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 1,
+     "guard": 1,
+     "mechanical": 1,
+     "spec_docs": 2,
+     "terminal": 1,
+     "tool_use": 2
+    },
+    "session_id": "router-proxy-1790397205145",
+    "ts": 1790397205.1451085,
+    "unsatisfiable": false,
+    "verdict": "SATISFIABLE"
+   },
+   {
+    "chain_length": 3,
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 2,
+     "mechanical": 2,
+     "review": 1,
+     "schema": 1,
+     "spec_docs": 1,
+     "terminal": 2,
+     "tool_use": 3
+    },
+    "session_id": "router-proxy-1790397205246",
+    "ts": 1790397205.2464826,
+    "unsatisfiable": false,
+    "verdict": "SATISFIABLE"
+   },
+   {
+    "chain_length": 3,
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 2,
+     "delegation": 1,
+     "long_horizon": 3,
+     "review": 3,
+     "terminal": 2,
+     "tool_use": 1
+    },
+    "session_id": "router-proxy-1790397360468",
+    "ts": 1790397360.4684496,
+    "unsatisfiable": false,
+    "verdict": "SATISFIABLE"
+   },
+   {
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "fallback_head": {
+     "model": "z-ai/glm-5.3-flash",
+     "provider": "xkiro"
+    },
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 4,
+     "delegation": 4,
+     "long_horizon": 4,
+     "mechanical": 1,
+     "review": 3,
+     "terminal": 3,
+     "tool_use": 3
+    },
+    "session_id": "router-proxy-1790397361948",
+    "ts": 1790397361.948141,
+    "unmet": [
+     {
+      "category": "agent_tick",
+      "have": 2,
+      "required": 4
+     },
+     {
+      "category": "mechanical",
+      "have": -1,
+      "required": 1
+     },
+     {
+      "category": "review",
+      "have": 0,
+      "required": 3
+     },
+     {
+      "category": "terminal",
+      "have": -2,
+      "required": 3
+     }
+    ],
+    "unsatisfiable": true,
+    "verdict": "SERVED-DEGRADED"
+   },
+   {
+    "chain_length": 3,
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 1,
+     "delegation": 1,
+     "guard": 1,
+     "long_horizon": 2,
+     "reasoning": 1,
+     "review": 1,
+     "terminal": 1,
+     "tool_use": 1
+    },
+    "session_id": "router-proxy-1790397362027",
+    "ts": 1790397362.0272062,
+    "unsatisfiable": false,
+    "verdict": "SATISFIABLE"
+   },
+   {
+    "chain_length": 3,
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 2,
+     "reasoning": 3,
+     "review": 4,
+     "spec_docs": 1,
+     "terminal": 2,
+     "tool_use": 2
+    },
+    "session_id": "router-proxy-1790397362107",
+    "ts": 1790397362.1077826,
+    "unsatisfiable": false,
+    "verdict": "SATISFIABLE"
+   },
+   {
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "fallback_head": {
+     "model": "z-ai/glm-5.3-flash",
+     "provider": "xkiro"
+    },
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 3,
+     "guard": 2,
+     "long_horizon": 3,
+     "reasoning": 2,
+     "review": 2,
+     "terminal": 3,
+     "tool_use": 3
+    },
+    "session_id": "router-proxy-1790397365597",
+    "ts": 1790397365.5975895,
+    "unmet": [
+     {
+      "category": "agent_tick",
+      "have": 2,
+      "required": 3
+     },
+     {
+      "category": "guard",
+      "have": -1,
+      "required": 2
+     },
+     {
+      "category": "review",
+      "have": 0,
+      "required": 2
+     },
+     {
+      "category": "terminal",
+      "have": -2,
+      "required": 3
+     }
+    ],
+    "unsatisfiable": true,
+    "verdict": "SERVED-DEGRADED"
+   },
+   {
+    "chain_length": 3,
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "hops_attempted": 0,
+    "required_categories": {
+     "code_gen": 1,
+     "debug": 3,
+     "long_horizon": 1,
+     "reasoning": 2,
+     "terminal": 2,
+     "tool_use": 2
+    },
+    "session_id": "router-proxy-1790397365634",
+    "ts": 1790397365.6348536,
+    "unsatisfiable": false,
+    "verdict": "SATISFIABLE"
+   },
+   {
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "fallback_head": {
+     "model": "z-ai/glm-5.3-flash",
+     "provider": "xkiro"
+    },
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 2,
+     "code_gen": 1,
+     "delegation": 2,
+     "guard": 2,
+     "long_horizon": 3,
+     "mechanical": 1,
+     "reasoning": 2,
+     "review": 2,
+     "terminal": 3,
+     "tool_use": 3
+    },
+    "session_id": "router-proxy-1790397366857",
+    "ts": 1790397366.8571332,
+    "unmet": [
+     {
+      "category": "guard",
+      "have": -1,
+      "required": 2
+     },
+     {
+      "category": "mechanical",
+      "have": -1,
+      "required": 1
+     },
+     {
+      "category": "review",
+      "have": 0,
+      "required": 2
+     },
+     {
+      "category": "terminal",
+      "have": -2,
+      "required": 3
+     }
+    ],
+    "unsatisfiable": true,
+    "verdict": "SERVED-DEGRADED"
+   },
+   {
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "fallback_head": {
+     "model": "z-ai/glm-5.3-flash",
+     "provider": "xkiro"
+    },
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 3,
+     "delegation": 2,
+     "guard": 3,
+     "long_horizon": 2,
+     "reasoning": 1,
+     "review": 2,
+     "terminal": 2,
+     "tool_use": 2
+    },
+    "session_id": "router-proxy-1790397368158",
+    "ts": 1790397368.1581314,
+    "unmet": [
+     {
+      "category": "agent_tick",
+      "have": 2,
+      "required": 3
+     },
+     {
+      "category": "guard",
+      "have": -1,
+      "required": 3
+     },
+     {
+      "category": "review",
+      "have": 0,
+      "required": 2
+     },
+     {
+      "category": "terminal",
+      "have": -2,
+      "required": 2
+     }
+    ],
+    "unsatisfiable": true,
+    "verdict": "SERVED-DEGRADED"
+   },
+   {
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "fallback_head": {
+     "model": "z-ai/glm-5.3-flash",
+     "provider": "xkiro"
+    },
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 2,
+     "guard": 4,
+     "long_horizon": 2,
+     "mechanical": 1,
+     "review": 3,
+     "terminal": 3,
+     "tool_use": 3
+    },
+    "session_id": "router-proxy-1790397368174",
+    "ts": 1790397368.17426,
+    "unmet": [
+     {
+      "category": "guard",
+      "have": -1,
+      "required": 4
+     },
+     {
+      "category": "mechanical",
+      "have": -1,
+      "required": 1
+     },
+     {
+      "category": "review",
+      "have": 0,
+      "required": 3
+     },
+     {
+      "category": "terminal",
+      "have": -2,
+      "required": 3
+     }
+    ],
+    "unsatisfiable": true,
+    "verdict": "SERVED-DEGRADED"
+   },
+   {
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "fallback_head": {
+     "model": "z-ai/glm-5.3-flash",
+     "provider": "xkiro"
+    },
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 1,
+     "delegation": 2,
+     "guard": 2,
+     "long_horizon": 3,
+     "review": 2,
+     "terminal": 2,
+     "tool_use": 2
+    },
+    "session_id": "router-proxy-1790397368513",
+    "ts": 1790397368.5137966,
+    "unmet": [
+     {
+      "category": "guard",
+      "have": -1,
+      "required": 2
+     },
+     {
+      "category": "review",
+      "have": 0,
+      "required": 2
+     },
+     {
+      "category": "terminal",
+      "have": -2,
+      "required": 2
+     }
+    ],
+    "unsatisfiable": true,
+    "verdict": "SERVED-DEGRADED"
+   },
+   {
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "fallback_head": {
+     "model": "z-ai/glm-5.3-flash",
+     "provider": "xkiro"
+    },
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 3,
+     "debug": 3,
+     "long_horizon": 2,
+     "mechanical": -1,
+     "reasoning": 2,
+     "terminal": 2,
+     "tool_use": 2
+    },
+    "session_id": "router-proxy-1790397369173",
+    "ts": 1790397369.1736035,
+    "unmet": [
+     {
+      "category": "agent_tick",
+      "have": 2,
+      "required": 3
+     },
+     {
+      "category": "debug",
+      "have": 1,
+      "required": 3
+     },
+     {
+      "category": "terminal",
+      "have": -2,
+      "required": 2
+     }
+    ],
+    "unsatisfiable": true,
+    "verdict": "SERVED-DEGRADED"
+   },
+   {
+    "chain_length": 3,
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 1,
+     "guard": 1,
+     "long_horizon": 2,
+     "mechanical": 0,
+     "review": 2,
+     "terminal": 2,
+     "tool_use": 1
+    },
+    "session_id": "router-proxy-1790397369223",
+    "ts": 1790397369.2230375,
+    "unsatisfiable": false,
+    "verdict": "SATISFIABLE"
+   },
+   {
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "fallback_head": {
+     "model": "z-ai/glm-5.3-flash",
+     "provider": "xkiro"
+    },
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 2,
+     "delegation": 1,
+     "guard": 2,
+     "long_horizon": 3,
+     "mechanical": 0,
+     "review": 1,
+     "spec_docs": 1,
+     "terminal": 1,
+     "tool_use": 2
+    },
+    "session_id": "router-proxy-1790397370436",
+    "ts": 1790397370.4361186,
+    "unmet": [
+     {
+      "category": "guard",
+      "have": -1,
+      "required": 2
+     },
+     {
+      "category": "mechanical",
+      "have": -1,
+      "required": 0
+     },
+     {
+      "category": "review",
+      "have": 0,
+      "required": 1
+     },
+     {
+      "category": "spec_docs",
+      "have": -1,
+      "required": 1
+     },
+     {
+      "category": "terminal",
+      "have": -2,
+      "required": 1
+     }
+    ],
+    "unsatisfiable": true,
+    "verdict": "SERVED-DEGRADED"
+   },
+   {
+    "chain_length": 14,
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 2,
+     "reasoning": 1,
+     "review": 2,
+     "terminal": 1,
+     "tool_use": 2
+    },
+    "session_id": "router-proxy-1790397370949",
+    "ts": 1790397370.949529,
+    "unsatisfiable": false,
+    "verdict": "SATISFIABLE"
+   },
+   {
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "fallback_head": {
+     "model": "z-ai/glm-5.3-flash",
+     "provider": "xkiro"
+    },
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 2,
+     "delegation": 3,
+     "guard": 3,
+     "long_horizon": 3,
+     "reasoning": 2,
+     "review": 3,
+     "terminal": 3,
+     "tool_use": 2
+    },
+    "session_id": "router-proxy-1790397372963",
+    "ts": 1790397372.9637623,
+    "unmet": [
+     {
+      "category": "guard",
+      "have": -1,
+      "required": 3
+     },
+     {
+      "category": "review",
+      "have": 0,
+      "required": 3
+     },
+     {
+      "category": "terminal",
+      "have": -2,
+      "required": 3
+     }
+    ],
+    "unsatisfiable": true,
+    "verdict": "SERVED-DEGRADED"
+   },
+   {
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "fallback_head": {
+     "model": "z-ai/glm-5.3-flash",
+     "provider": "xkiro"
+    },
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 2,
+     "delegation": 3,
+     "guard": 2,
+     "long_horizon": 3,
+     "review": 2,
+     "terminal": 2
+    },
+    "session_id": "router-proxy-1790397373358",
+    "ts": 1790397373.3583329,
+    "unmet": [
+     {
+      "category": "guard",
+      "have": -1,
+      "required": 2
+     },
+     {
+      "category": "review",
+      "have": 0,
+      "required": 2
+     },
+     {
+      "category": "terminal",
+      "have": -2,
+      "required": 2
+     }
+    ],
+    "unsatisfiable": true,
+    "verdict": "SERVED-DEGRADED"
+   },
+   {
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "fallback_head": {
+     "model": "z-ai/glm-5.3-flash",
+     "provider": "xkiro"
+    },
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 1,
+     "guard": 2,
+     "long_horizon": 2,
+     "reasoning": 1,
+     "review": 1,
+     "spec_docs": 1,
+     "terminal": 2,
+     "tool_use": 2
+    },
+    "session_id": "router-proxy-1790397373794",
+    "ts": 1790397373.7944958,
+    "unmet": [
+     {
+      "category": "guard",
+      "have": -1,
+      "required": 2
+     },
+     {
+      "category": "review",
+      "have": 0,
+      "required": 1
+     },
+     {
+      "category": "spec_docs",
+      "have": -1,
+      "required": 1
+     },
+     {
+      "category": "terminal",
+      "have": -2,
+      "required": 2
+     }
+    ],
+    "unsatisfiable": true,
+    "verdict": "SERVED-DEGRADED"
+   },
+   {
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "fallback_head": {
+     "model": "z-ai/glm-5.3-flash",
+     "provider": "xkiro"
+    },
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 0,
+     "delegation": 1,
+     "guard": 3,
+     "long_horizon": 2,
+     "reasoning": 1,
+     "review": 1,
+     "spec_docs": 1,
+     "terminal": 2,
+     "tool_use": 1
+    },
+    "session_id": "router-proxy-1790397376358",
+    "ts": 1790397376.358349,
+    "unmet": [
+     {
+      "category": "guard",
+      "have": -1,
+      "required": 3
+     },
+     {
+      "category": "review",
+      "have": 0,
+      "required": 1
+     },
+     {
+      "category": "spec_docs",
+      "have": -1,
+      "required": 1
+     },
+     {
+      "category": "terminal",
+      "have": -2,
+      "required": 2
+     }
+    ],
+    "unsatisfiable": true,
+    "verdict": "SERVED-DEGRADED"
+   },
+   {
+    "chain_length": 11,
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 1,
+     "guard": 1,
+     "mechanical": -1,
+     "terminal": 0,
+     "tool_use": 1
+    },
+    "session_id": "router-proxy-1790397614548",
+    "ts": 1790397614.548669,
+    "unsatisfiable": false,
+    "verdict": "SATISFIABLE"
+   },
+   {
+    "chain_length": 37,
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 1,
+     "mechanical": 0,
+     "tool_use": 1
+    },
+    "session_id": "router-proxy-1790397614647",
+    "ts": 1790397614.6479745,
+    "unsatisfiable": false,
+    "verdict": "SATISFIABLE"
+   },
+   {
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "fallback_head": {
+     "model": "z-ai/glm-5.3-flash",
+     "provider": "xkiro"
+    },
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 3,
+     "delegation": 2,
+     "guard": 2,
+     "long_horizon": 3,
+     "reasoning": 2,
+     "review": 2,
+     "spec_docs": 1,
+     "terminal": 2,
+     "tool_use": 3
+    },
+    "session_id": "router-proxy-1790397616067",
+    "ts": 1790397616.0671344,
+    "unmet": [
+     {
+      "category": "agent_tick",
+      "have": 2,
+      "required": 3
+     },
+     {
+      "category": "guard",
+      "have": -1,
+      "required": 2
+     },
+     {
+      "category": "review",
+      "have": 0,
+      "required": 2
+     },
+     {
+      "category": "spec_docs",
+      "have": -1,
+      "required": 1
+     },
+     {
+      "category": "terminal",
+      "have": -2,
+      "required": 2
+     }
+    ],
+    "unsatisfiable": true,
+    "verdict": "SERVED-DEGRADED"
+   },
+   {
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "fallback_head": {
+     "model": "z-ai/glm-5.3-flash",
+     "provider": "xkiro"
+    },
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 2,
+     "delegation": 2,
+     "guard": 3,
+     "long_horizon": 3,
+     "reasoning": 2,
+     "review": 2,
+     "terminal": 2
+    },
+    "session_id": "router-proxy-1790397616255",
+    "ts": 1790397616.255439,
+    "unmet": [
+     {
+      "category": "guard",
+      "have": -1,
+      "required": 3
+     },
+     {
+      "category": "review",
+      "have": 0,
+      "required": 2
+     },
+     {
+      "category": "terminal",
+      "have": -2,
+      "required": 2
+     }
+    ],
+    "unsatisfiable": true,
+    "verdict": "SERVED-DEGRADED"
+   },
+   {
+    "chain_length": 5,
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 2,
+     "mechanical": 0,
+     "reasoning": 1,
+     "spec_docs": 1,
+     "terminal": 1,
+     "tool_use": 2
+    },
+    "session_id": "router-proxy-1790397617466",
+    "ts": 1790397617.466557,
+    "unsatisfiable": false,
+    "verdict": "SATISFIABLE"
+   },
+   {
+    "chain_length": 19,
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 2,
+     "delegation": 2,
+     "mechanical": 0,
+     "schema": 1
+    },
+    "session_id": "router-proxy-1790397617657",
+    "ts": 1790397617.657254,
+    "unsatisfiable": false,
+    "verdict": "SATISFIABLE"
+   },
+   {
+    "chain_length": 3,
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 2,
+     "delegation": 1,
+     "guard": 1,
+     "mechanical": 1,
+     "terminal": 1,
+     "tool_use": 2
+    },
+    "session_id": "router-proxy-1790397619076",
+    "ts": 1790397619.0769794,
+    "unsatisfiable": false,
+    "verdict": "SATISFIABLE"
+   },
+   {
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "fallback_head": {
+     "model": "z-ai/glm-5.3-flash",
+     "provider": "xkiro"
+    },
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 3,
+     "delegation": 1,
+     "guard": 3,
+     "long_horizon": 3,
+     "review": 2,
+     "terminal": 2,
+     "tool_use": 3
+    },
+    "session_id": "router-proxy-1790397619835",
+    "ts": 1790397619.8357215,
+    "unmet": [
+     {
+      "category": "agent_tick",
+      "have": 2,
+      "required": 3
+     },
+     {
+      "category": "guard",
+      "have": -1,
+      "required": 3
+     },
+     {
+      "category": "review",
+      "have": 0,
+      "required": 2
+     },
+     {
+      "category": "terminal",
+      "have": -2,
+      "required": 2
+     }
+    ],
+    "unsatisfiable": true,
+    "verdict": "SERVED-DEGRADED"
+   },
+   {
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "fallback_head": {
+     "model": "z-ai/glm-5.3-flash",
+     "provider": "xkiro"
+    },
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 3,
+     "delegation": 2,
+     "guard": 3,
+     "long_horizon": 3,
+     "mechanical": 0,
+     "review": 2,
+     "spec_docs": 1,
+     "terminal": 3,
+     "tool_use": 3
+    },
+    "session_id": "router-proxy-1790397620177",
+    "ts": 1790397620.177362,
+    "unmet": [
+     {
+      "category": "agent_tick",
+      "have": 2,
+      "required": 3
+     },
+     {
+      "category": "guard",
+      "have": -1,
+      "required": 3
+     },
+     {
+      "category": "mechanical",
+      "have": -1,
+      "required": 0
+     },
+     {
+      "category": "review",
+      "have": 0,
+      "required": 2
+     },
+     {
+      "category": "spec_docs",
+      "have": -1,
+      "required": 1
+     },
+     {
+      "category": "terminal",
+      "have": -2,
+      "required": 3
+     }
+    ],
+    "unsatisfiable": true,
+    "verdict": "SERVED-DEGRADED"
+   },
+   {
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "fallback_head": {
+     "model": "z-ai/glm-5.3-flash",
+     "provider": "xkiro"
+    },
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 3,
+     "delegation": 2,
+     "guard": 2,
+     "long_horizon": 3,
+     "reasoning": 1,
+     "review": 2,
+     "terminal": 3,
+     "tool_use": 3
+    },
+    "session_id": "router-proxy-1790397623885",
+    "ts": 1790397623.8857188,
+    "unmet": [
+     {
+      "category": "agent_tick",
+      "have": 2,
+      "required": 3
+     },
+     {
+      "category": "guard",
+      "have": -1,
+      "required": 2
+     },
+     {
+      "category": "review",
+      "have": 0,
+      "required": 2
+     },
+     {
+      "category": "terminal",
+      "have": -2,
+      "required": 3
+     }
+    ],
+    "unsatisfiable": true,
+    "verdict": "SERVED-DEGRADED"
+   },
+   {
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "fallback_head": {
+     "model": "z-ai/glm-5.3-flash",
+     "provider": "xkiro"
+    },
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 2,
+     "delegation": 1,
+     "guard": 2,
+     "long_horizon": 2,
+     "review": 2,
+     "terminal": 2,
+     "tool_use": 2
+    },
+    "session_id": "router-proxy-1790397624650",
+    "ts": 1790397624.6502364,
+    "unmet": [
+     {
+      "category": "guard",
+      "have": -1,
+      "required": 2
+     },
+     {
+      "category": "review",
+      "have": 0,
+      "required": 2
+     },
+     {
+      "category": "terminal",
+      "have": -2,
+      "required": 2
+     }
+    ],
+    "unsatisfiable": true,
+    "verdict": "SERVED-DEGRADED"
+   },
+   {
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "fallback_head": {
+     "model": "z-ai/glm-5.3-flash",
+     "provider": "xkiro"
+    },
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 2,
+     "delegation": 2,
+     "guard": 2,
+     "long_horizon": 3,
+     "mechanical": 1,
+     "review": 2,
+     "terminal": 1,
+     "tool_use": 2
+    },
+    "session_id": "router-proxy-1790397625460",
+    "ts": 1790397625.4604297,
+    "unmet": [
+     {
+      "category": "guard",
+      "have": -1,
+      "required": 2
+     },
+     {
+      "category": "mechanical",
+      "have": -1,
+      "required": 1
+     },
+     {
+      "category": "review",
+      "have": 0,
+      "required": 2
+     },
+     {
+      "category": "terminal",
+      "have": -2,
+      "required": 1
+     }
+    ],
+    "unsatisfiable": true,
+    "verdict": "SERVED-DEGRADED"
+   },
+   {
+    "chain_length": 5,
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 1,
+     "mechanical": 0,
+     "reasoning": 1,
+     "spec_docs": -1,
+     "terminal": 0,
+     "tool_use": 1
+    },
+    "session_id": "router-proxy-1790397627008",
+    "ts": 1790397627.0089269,
+    "unsatisfiable": false,
+    "verdict": "SATISFIABLE"
+   },
+   {
+    "chain_length": 3,
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 2,
+     "delegation": 1,
+     "guard": 1,
+     "long_horizon": 2,
+     "mechanical": 1,
+     "review": 2,
+     "terminal": 2,
+     "tool_use": 2
+    },
+    "session_id": "router-proxy-1790397627996",
+    "ts": 1790397627.9962156,
+    "unsatisfiable": false,
+    "verdict": "SATISFIABLE"
+   },
+   {
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "fallback_head": {
+     "model": "z-ai/glm-5.3-flash",
+     "provider": "xkiro"
+    },
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 1,
+     "delegation": 2,
+     "long_horizon": 3,
+     "reasoning": 2,
+     "review": 2,
+     "terminal": 2,
+     "tool_use": 2
+    },
+    "session_id": "router-proxy-1790397629896",
+    "ts": 1790397629.8961432,
+    "unmet": [
+     {
+      "category": "review",
+      "have": 0,
+      "required": 2
+     },
+     {
+      "category": "terminal",
+      "have": -2,
+      "required": 2
+     }
+    ],
+    "unsatisfiable": true,
+    "verdict": "SERVED-DEGRADED"
+   },
+   {
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "fallback_head": {
+     "model": "z-ai/glm-5.3-flash",
+     "provider": "xkiro"
+    },
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 1,
+     "delegation": 2,
+     "guard": 2,
+     "long_horizon": 3,
+     "mechanical": 1,
+     "reasoning": 1,
+     "terminal": 2,
+     "tool_use": 2
+    },
+    "session_id": "router-proxy-1790397630634",
+    "ts": 1790397630.634811,
+    "unmet": [
+     {
+      "category": "guard",
+      "have": -1,
+      "required": 2
+     },
+     {
+      "category": "mechanical",
+      "have": -1,
+      "required": 1
+     },
+     {
+      "category": "terminal",
+      "have": -2,
+      "required": 2
+     }
+    ],
+    "unsatisfiable": true,
+    "verdict": "SERVED-DEGRADED"
+   },
+   {
+    "chain_length": 2,
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 1,
+     "guard": 2,
+     "mechanical": 1,
+     "schema": 1,
+     "spec_docs": 1,
+     "terminal": 1,
+     "tool_use": 2
+    },
+    "session_id": "router-proxy-1790397631104",
+    "ts": 1790397631.1041965,
+    "unsatisfiable": false,
+    "verdict": "SATISFIABLE"
+   },
+   {
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "fallback_head": {
+     "model": "z-ai/glm-5.3-flash",
+     "provider": "xkiro"
+    },
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 4,
+     "delegation": 3,
+     "guard": 2,
+     "long_horizon": 3,
+     "reasoning": 2,
+     "review": 2,
+     "terminal": 2,
+     "tool_use": 3
+    },
+    "session_id": "router-proxy-1790397646062",
+    "ts": 1790397646.062658,
+    "unmet": [
+     {
+      "category": "agent_tick",
+      "have": 2,
+      "required": 4
+     },
+     {
+      "category": "guard",
+      "have": -1,
+      "required": 2
+     },
+     {
+      "category": "review",
+      "have": 0,
+      "required": 2
+     },
+     {
+      "category": "terminal",
+      "have": -2,
+      "required": 2
+     }
+    ],
+    "unsatisfiable": true,
+    "verdict": "SERVED-DEGRADED"
+   },
+   {
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "fallback_head": {
+     "model": "z-ai/glm-5.3-flash",
+     "provider": "xkiro"
+    },
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 2,
+     "debug": 1,
+     "delegation": 3,
+     "guard": 2,
+     "long_horizon": 3,
+     "mechanical": 0,
+     "reasoning": 2,
+     "spec_docs": 1,
+     "terminal": 2,
+     "tool_use": 2
+    },
+    "session_id": "router-proxy-1790397648399",
+    "ts": 1790397648.3998187,
+    "unmet": [
+     {
+      "category": "guard",
+      "have": -1,
+      "required": 2
+     },
+     {
+      "category": "mechanical",
+      "have": -1,
+      "required": 0
+     },
+     {
+      "category": "spec_docs",
+      "have": -1,
+      "required": 1
+     },
+     {
+      "category": "terminal",
+      "have": -2,
+      "required": 2
+     }
+    ],
+    "unsatisfiable": true,
+    "verdict": "SERVED-DEGRADED"
+   },
+   {
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "fallback_head": {
+     "model": "z-ai/glm-5.3-flash",
+     "provider": "xkiro"
+    },
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 1,
+     "delegation": 1,
+     "guard": 2,
+     "long_horizon": 3,
+     "reasoning": 1,
+     "review": 3,
+     "terminal": 2,
+     "tool_use": 2
+    },
+    "session_id": "router-proxy-1790397787770",
+    "ts": 1790397787.7705188,
+    "unmet": [
+     {
+      "category": "guard",
+      "have": -1,
+      "required": 2
+     },
+     {
+      "category": "review",
+      "have": 0,
+      "required": 3
+     },
+     {
+      "category": "terminal",
+      "have": -2,
+      "required": 2
+     }
+    ],
+    "unsatisfiable": true,
+    "verdict": "SERVED-DEGRADED"
+   },
+   {
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "fallback_head": {
+     "model": "z-ai/glm-5.3-flash",
+     "provider": "xkiro"
+    },
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 1,
+     "delegation": 1,
+     "guard": 2,
+     "long_horizon": 2,
+     "review": 1,
+     "spec_docs": 1,
+     "terminal": 2,
+     "tool_use": 1
+    },
+    "session_id": "router-proxy-1790397788072",
+    "ts": 1790397788.0730352,
+    "unmet": [
+     {
+      "category": "guard",
+      "have": -1,
+      "required": 2
+     },
+     {
+      "category": "review",
+      "have": 0,
+      "required": 1
+     },
+     {
+      "category": "spec_docs",
+      "have": -1,
+      "required": 1
+     },
+     {
+      "category": "terminal",
+      "have": -2,
+      "required": 2
+     }
+    ],
+    "unsatisfiable": true,
+    "verdict": "SERVED-DEGRADED"
+   },
+   {
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "fallback_head": {
+     "model": "z-ai/glm-5.3-flash",
+     "provider": "xkiro"
+    },
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 3,
+     "delegation": 3,
+     "long_horizon": 3,
+     "reasoning": 2,
+     "terminal": 2,
+     "tool_use": 3
+    },
+    "session_id": "router-proxy-1790397789318",
+    "ts": 1790397789.3184822,
+    "unmet": [
+     {
+      "category": "agent_tick",
+      "have": 2,
+      "required": 3
+     },
+     {
+      "category": "terminal",
+      "have": -2,
+      "required": 2
+     }
+    ],
+    "unsatisfiable": true,
+    "verdict": "SERVED-DEGRADED"
+   },
+   {
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "fallback_head": {
+     "model": "z-ai/glm-5.3-flash",
+     "provider": "xkiro"
+    },
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 1,
+     "delegation": 2,
+     "guard": 3,
+     "long_horizon": 3,
+     "mechanical": 0,
+     "reasoning": 2,
+     "review": 2,
+     "terminal": 3,
+     "tool_use": 3
+    },
+    "session_id": "router-proxy-1790397789431",
+    "ts": 1790397789.4312704,
+    "unmet": [
+     {
+      "category": "guard",
+      "have": -1,
+      "required": 3
+     },
+     {
+      "category": "mechanical",
+      "have": -1,
+      "required": 0
+     },
+     {
+      "category": "review",
+      "have": 0,
+      "required": 2
+     },
+     {
+      "category": "terminal",
+      "have": -2,
+      "required": 3
+     }
+    ],
+    "unsatisfiable": true,
+    "verdict": "SERVED-DEGRADED"
+   },
+   {
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "fallback_head": {
+     "model": "z-ai/glm-5.3-flash",
+     "provider": "xkiro"
+    },
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 3,
+     "delegation": 2,
+     "guard": 2,
+     "long_horizon": 3,
+     "reasoning": 2,
+     "review": 3,
+     "terminal": 3,
+     "tool_use": 3
+    },
+    "session_id": "router-proxy-1790397791208",
+    "ts": 1790397791.2081172,
+    "unmet": [
+     {
+      "category": "agent_tick",
+      "have": 2,
+      "required": 3
+     },
+     {
+      "category": "guard",
+      "have": -1,
+      "required": 2
+     },
+     {
+      "category": "review",
+      "have": 0,
+      "required": 3
+     },
+     {
+      "category": "terminal",
+      "have": -2,
+      "required": 3
+     }
+    ],
+    "unsatisfiable": true,
+    "verdict": "SERVED-DEGRADED"
+   },
+   {
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "fallback_head": {
+     "model": "z-ai/glm-5.3-flash",
+     "provider": "xkiro"
+    },
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 3,
+     "delegation": 2,
+     "guard": 3,
+     "long_horizon": 4,
+     "mechanical": 1,
+     "reasoning": 2,
+     "review": 2,
+     "terminal": 3,
+     "tool_use": 3
+    },
+    "session_id": "router-proxy-1790397798559",
+    "ts": 1790397798.5594342,
+    "unmet": [
+     {
+      "category": "agent_tick",
+      "have": 2,
+      "required": 3
+     },
+     {
+      "category": "guard",
+      "have": -1,
+      "required": 3
+     },
+     {
+      "category": "mechanical",
+      "have": -1,
+      "required": 1
+     },
+     {
+      "category": "review",
+      "have": 0,
+      "required": 2
+     },
+     {
+      "category": "terminal",
+      "have": -2,
+      "required": 3
+     }
+    ],
+    "unsatisfiable": true,
+    "verdict": "SERVED-DEGRADED"
+   },
+   {
+    "chain_length": 3,
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 2,
+     "guard": 1,
+     "long_horizon": 3,
+     "mechanical": 1,
+     "reasoning": 2,
+     "review": 2,
+     "terminal": 3,
+     "tool_use": 3
+    },
+    "session_id": "router-proxy-1790397803375",
+    "ts": 1790397803.3752122,
+    "unsatisfiable": false,
+    "verdict": "SATISFIABLE"
+   },
+   {
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "fallback_head": {
+     "model": "z-ai/glm-5.3-flash",
+     "provider": "xkiro"
+    },
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 1,
+     "delegation": 1,
+     "guard": 2,
+     "long_horizon": 3,
+     "mechanical": 1,
+     "review": 2,
+     "spec_docs": 1,
+     "terminal": 2,
+     "tool_use": 2
+    },
+    "session_id": "router-proxy-1790397807005",
+    "ts": 1790397807.0055614,
+    "unmet": [
+     {
+      "category": "guard",
+      "have": -1,
+      "required": 2
+     },
+     {
+      "category": "mechanical",
+      "have": -1,
+      "required": 1
+     },
+     {
+      "category": "review",
+      "have": 0,
+      "required": 2
+     },
+     {
+      "category": "spec_docs",
+      "have": -1,
+      "required": 1
+     },
+     {
+      "category": "terminal",
+      "have": -2,
+      "required": 2
+     }
+    ],
+    "unsatisfiable": true,
+    "verdict": "SERVED-DEGRADED"
+   },
+   {
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "fallback_head": {
+     "model": "z-ai/glm-5.3-flash",
+     "provider": "xkiro"
+    },
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 2,
+     "delegation": 1,
+     "guard": 2,
+     "long_horizon": 3,
+     "review": 2,
+     "terminal": 3,
+     "tool_use": 2
+    },
+    "session_id": "router-proxy-1790397950063",
+    "ts": 1790397950.0635827,
+    "unmet": [
+     {
+      "category": "guard",
+      "have": -1,
+      "required": 2
+     },
+     {
+      "category": "review",
+      "have": 0,
+      "required": 2
+     },
+     {
+      "category": "terminal",
+      "have": -2,
+      "required": 3
+     }
+    ],
+    "unsatisfiable": true,
+    "verdict": "SERVED-DEGRADED"
+   },
+   {
+    "chain_length": 3,
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 1,
+     "delegation": 1,
+     "guard": 1,
+     "long_horizon": 2,
+     "review": 2,
+     "terminal": 2,
+     "tool_use": 2
+    },
+    "session_id": "router-proxy-1790397950437",
+    "ts": 1790397950.4378612,
+    "unsatisfiable": false,
+    "verdict": "SATISFIABLE"
+   },
+   {
+    "chain_length": 5,
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 2,
+     "guard": 1,
+     "long_horizon": 2,
+     "mechanical": 0,
+     "terminal": 1,
+     "tool_use": 2
+    },
+    "session_id": "router-proxy-1790397950633",
+    "ts": 1790397950.6335416,
+    "unsatisfiable": false,
+    "verdict": "SATISFIABLE"
+   },
+   {
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "fallback_head": {
+     "model": "z-ai/glm-5.3-flash",
+     "provider": "xkiro"
+    },
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 3,
+     "debug": 2,
+     "e2e_vision": 1,
+     "guard": 2,
+     "long_horizon": 3,
+     "review": 2,
+     "terminal": 3,
+     "tool_use": 3
+    },
+    "session_id": "router-proxy-1790397951183",
+    "ts": 1790397951.1836572,
+    "unmet": [
+     {
+      "category": "agent_tick",
+      "have": 2,
+      "required": 3
+     },
+     {
+      "category": "debug",
+      "have": 1,
+      "required": 2
+     },
+     {
+      "category": "e2e_vision",
+      "have": -1,
+      "required": 1
+     },
+     {
+      "category": "guard",
+      "have": -1,
+      "required": 2
+     },
+     {
+      "category": "review",
+      "have": 0,
+      "required": 2
+     },
+     {
+      "category": "terminal",
+      "have": -2,
+      "required": 3
+     }
+    ],
+    "unsatisfiable": true,
+    "verdict": "SERVED-DEGRADED"
+   },
+   {
+    "chain_length": 5,
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 1,
+     "mechanical": 0,
+     "terminal": 0,
+     "tool_use": 1
+    },
+    "session_id": "router-proxy-1790397951590",
+    "ts": 1790397951.5901427,
+    "unsatisfiable": false,
+    "verdict": "SATISFIABLE"
+   },
+   {
+    "chain_length": 11,
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 1,
+     "guard": 1,
+     "long_horizon": 2,
+     "mechanical": -1,
+     "schema": 1,
+     "terminal": 1,
+     "tool_use": 2
+    },
+    "session_id": "router-proxy-1790397951907",
+    "ts": 1790397951.907682,
+    "unsatisfiable": false,
+    "verdict": "SATISFIABLE"
+   },
+   {
+    "chain_length": 6,
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 2,
+     "guard": 1,
+     "long_horizon": 1,
+     "terminal": 2,
+     "tool_use": 2
+    },
+    "session_id": "router-proxy-1790397952676",
+    "ts": 1790397952.6763628,
+    "unsatisfiable": false,
+    "verdict": "SATISFIABLE"
+   },
+   {
+    "chain_length": 3,
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "hops_attempted": 0,
+    "required_categories": {
+     "guard": 1,
+     "mechanical": 1,
+     "terminal": 2,
+     "tool_use": 2
+    },
+    "session_id": "router-proxy-1790397952925",
+    "ts": 1790397952.9253645,
+    "unsatisfiable": false,
+    "verdict": "SATISFIABLE"
+   },
+   {
+    "chain_length": 23,
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 1,
+     "delegation": -1,
+     "guard": -1,
+     "mechanical": 0,
+     "tool_use": 1
+    },
+    "session_id": "router-proxy-1790397954601",
+    "ts": 1790397954.6011546,
+    "unsatisfiable": false,
+    "verdict": "SATISFIABLE"
+   },
+   {
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "fallback_head": {
+     "model": "z-ai/glm-5.3-flash",
+     "provider": "xkiro"
+    },
+    "hops_attempted": 0,
+    "required_categories": {
+     "debug": 1,
+     "delegation": 1,
+     "e2e_vision": 1,
+     "guard": 2,
+     "long_horizon": 3,
+     "mechanical": 1,
+     "reasoning": 1,
+     "review": 2,
+     "terminal": 2,
+     "tool_use": 2
+    },
+    "session_id": "router-proxy-1790397955424",
+    "ts": 1790397955.4245563,
+    "unmet": [
+     {
+      "category": "e2e_vision",
+      "have": -1,
+      "required": 1
+     },
+     {
+      "category": "guard",
+      "have": -1,
+      "required": 2
+     },
+     {
+      "category": "mechanical",
+      "have": -1,
+      "required": 1
+     },
+     {
+      "category": "review",
+      "have": 0,
+      "required": 2
+     },
+     {
+      "category": "terminal",
+      "have": -2,
+      "required": 2
+     }
+    ],
+    "unsatisfiable": true,
+    "verdict": "SERVED-DEGRADED"
+   },
+   {
+    "chain_length": 3,
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 2,
+     "delegation": 1,
+     "guard": 1,
+     "long_horizon": 2,
+     "mechanical": 0,
+     "review": 2,
+     "spec_docs": 1,
+     "terminal": 1,
+     "tool_use": 2
+    },
+    "session_id": "router-proxy-1790397955914",
+    "ts": 1790397955.9146268,
+    "unsatisfiable": false,
+    "verdict": "SATISFIABLE"
+   },
+   {
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "fallback_head": {
+     "model": "z-ai/glm-5.3-flash",
+     "provider": "xkiro"
+    },
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 1,
+     "delegation": 3,
+     "guard": 2,
+     "long_horizon": 3,
+     "review": 3,
+     "terminal": 3,
+     "tool_use": 3
+    },
+    "session_id": "router-proxy-1790397956398",
+    "ts": 1790397956.3990078,
+    "unmet": [
+     {
+      "category": "guard",
+      "have": -1,
+      "required": 2
+     },
+     {
+      "category": "review",
+      "have": 0,
+      "required": 3
+     },
+     {
+      "category": "terminal",
+      "have": -2,
+      "required": 3
+     }
+    ],
+    "unsatisfiable": true,
+    "verdict": "SERVED-DEGRADED"
+   },
+   {
+    "chain_length": 2,
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 2,
+     "guard": 2,
+     "mechanical": 1,
+     "reasoning": 1,
+     "schema": 1,
+     "spec_docs": 0,
+     "terminal": 1,
+     "tool_use": 2
+    },
+    "session_id": "router-proxy-1790397957572",
+    "ts": 1790397957.5728374,
+    "unsatisfiable": false,
+    "verdict": "SATISFIABLE"
+   },
+   {
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "fallback_head": {
+     "model": "z-ai/glm-5.3-flash",
+     "provider": "xkiro"
+    },
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 3,
+     "debug": 3,
+     "delegation": 2,
+     "guard": 2,
+     "long_horizon": 3,
+     "review": 2,
+     "terminal": 3,
+     "test": 3,
+     "tool_use": 2
+    },
+    "session_id": "router-proxy-1790397958550",
+    "ts": 1790397958.5508049,
+    "unmet": [
+     {
+      "category": "agent_tick",
+      "have": 2,
+      "required": 3
+     },
+     {
+      "category": "debug",
+      "have": 1,
+      "required": 3
+     },
+     {
+      "category": "guard",
+      "have": -1,
+      "required": 2
+     },
+     {
+      "category": "review",
+      "have": 0,
+      "required": 2
+     },
+     {
+      "category": "terminal",
+      "have": -2,
+      "required": 3
+     }
+    ],
+    "unsatisfiable": true,
+    "verdict": "SERVED-DEGRADED"
+   },
+   {
+    "chain_length": 5,
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 1,
+     "guard": 1,
+     "long_horizon": 1,
+     "mechanical": 1,
+     "terminal": 0,
+     "tool_use": 1
+    },
+    "session_id": "router-proxy-1790397959261",
+    "ts": 1790397959.2613227,
+    "unsatisfiable": false,
+    "verdict": "SATISFIABLE"
+   },
+   {
+    "chain_length": 5,
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 1,
+     "guard": 1,
+     "mechanical": 0,
+     "reasoning": 1,
+     "terminal": 1,
+     "tool_use": 2
+    },
+    "session_id": "router-proxy-1790397959386",
+    "ts": 1790397959.3870003,
+    "unsatisfiable": false,
+    "verdict": "SATISFIABLE"
+   },
+   {
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "fallback_head": {
+     "model": "z-ai/glm-5.3-flash",
+     "provider": "xkiro"
+    },
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 4,
+     "delegation": 3,
+     "guard": 3,
+     "long_horizon": 3,
+     "reasoning": 2,
+     "review": 3,
+     "terminal": 3,
+     "tool_use": 3
+    },
+    "session_id": "router-proxy-1790397961218",
+    "ts": 1790397961.2186747,
+    "unmet": [
+     {
+      "category": "agent_tick",
+      "have": 2,
+      "required": 4
+     },
+     {
+      "category": "guard",
+      "have": -1,
+      "required": 3
+     },
+     {
+      "category": "review",
+      "have": 0,
+      "required": 3
+     },
+     {
+      "category": "terminal",
+      "have": -2,
+      "required": 3
+     }
+    ],
+    "unsatisfiable": true,
+    "verdict": "SERVED-DEGRADED"
+   },
+   {
+    "chain_length": 8,
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 1,
+     "guard": 1,
+     "spec_docs": 0,
+     "terminal": 0,
+     "tool_use": 1
+    },
+    "session_id": "router-proxy-1790397962110",
+    "ts": 1790397962.1105895,
+    "unsatisfiable": false,
+    "verdict": "SATISFIABLE"
+   },
+   {
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "fallback_head": {
+     "model": "z-ai/glm-5.3-flash",
+     "provider": "xkiro"
+    },
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 3,
+     "guard": 2,
+     "long_horizon": 3,
+     "review": 2,
+     "terminal": 2,
+     "tool_use": 3
+    },
+    "session_id": "router-proxy-1790397963176",
+    "ts": 1790397963.1766195,
+    "unmet": [
+     {
+      "category": "agent_tick",
+      "have": 2,
+      "required": 3
+     },
+     {
+      "category": "guard",
+      "have": -1,
+      "required": 2
+     },
+     {
+      "category": "review",
+      "have": 0,
+      "required": 2
+     },
+     {
+      "category": "terminal",
+      "have": -2,
+      "required": 2
+     }
+    ],
+    "unsatisfiable": true,
+    "verdict": "SERVED-DEGRADED"
+   },
+   {
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "fallback_head": {
+     "model": "z-ai/glm-5.3-flash",
+     "provider": "xkiro"
+    },
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 2,
+     "delegation": 1,
+     "guard": 2,
+     "long_horizon": 3,
+     "reasoning": 1,
+     "review": 2,
+     "terminal": 2,
+     "test": 1,
+     "tool_use": 2
+    },
+    "session_id": "router-proxy-1790397963218",
+    "ts": 1790397963.218788,
+    "unmet": [
+     {
+      "category": "guard",
+      "have": -1,
+      "required": 2
+     },
+     {
+      "category": "review",
+      "have": 0,
+      "required": 2
+     },
+     {
+      "category": "terminal",
+      "have": -2,
+      "required": 2
+     }
+    ],
+    "unsatisfiable": true,
+    "verdict": "SERVED-DEGRADED"
+   },
+   {
+    "chain_length": 34,
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 2,
+     "guard": 2,
+     "long_horizon": 2,
+     "mechanical": 0,
+     "tool_use": 1
+    },
+    "session_id": "router-proxy-1790397964921",
+    "ts": 1790397964.9215305,
+    "unsatisfiable": false,
+    "verdict": "SATISFIABLE"
+   },
+   {
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "fallback_head": {
+     "model": "z-ai/glm-5.3-flash",
+     "provider": "xkiro"
+    },
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 2,
+     "code_gen": 1,
+     "guard": 2,
+     "long_horizon": 3,
+     "reasoning": 1,
+     "review": 1,
+     "spec_docs": 1,
+     "terminal": 2,
+     "tool_use": 2
+    },
+    "session_id": "router-proxy-1790397970774",
+    "ts": 1790397970.774577,
+    "unmet": [
+     {
+      "category": "guard",
+      "have": -1,
+      "required": 2
+     },
+     {
+      "category": "review",
+      "have": 0,
+      "required": 1
+     },
+     {
+      "category": "spec_docs",
+      "have": -1,
+      "required": 1
+     },
+     {
+      "category": "terminal",
+      "have": -2,
+      "required": 2
+     }
+    ],
+    "unsatisfiable": true,
+    "verdict": "SERVED-DEGRADED"
+   },
+   {
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "fallback_head": {
+     "model": "z-ai/glm-5.3-flash",
+     "provider": "xkiro"
+    },
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 2,
+     "delegation": 2,
+     "guard": 3,
+     "long_horizon": 2,
+     "mechanical": 1,
+     "review": 2,
+     "terminal": 2,
+     "tool_use": 2
+    },
+    "session_id": "router-proxy-1790398178500",
+    "ts": 1790398178.5006988,
+    "unmet": [
+     {
+      "category": "guard",
+      "have": -1,
+      "required": 3
+     },
+     {
+      "category": "mechanical",
+      "have": -1,
+      "required": 1
+     },
+     {
+      "category": "review",
+      "have": 0,
+      "required": 2
+     },
+     {
+      "category": "terminal",
+      "have": -2,
+      "required": 2
+     }
+    ],
+    "unsatisfiable": true,
+    "verdict": "SERVED-DEGRADED"
+   },
+   {
+    "chain_length": 5,
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 1,
+     "guard": 1,
+     "long_horizon": 1,
+     "mechanical": 2,
+     "spec_docs": 1,
+     "terminal": 1,
+     "tool_use": 2
+    },
+    "session_id": "router-proxy-1790398178736",
+    "ts": 1790398178.7365174,
+    "unsatisfiable": false,
+    "verdict": "SATISFIABLE"
+   },
+   {
+    "chain_length": 3,
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 1,
+     "delegation": 1,
+     "guard": 1,
+     "long_horizon": 2,
+     "reasoning": 2,
+     "review": 2,
+     "terminal": 1,
+     "tool_use": 1
+    },
+    "session_id": "router-proxy-1790398179136",
+    "ts": 1790398179.1367478,
+    "unsatisfiable": false,
+    "verdict": "SATISFIABLE"
+   },
+   {
+    "chain_length": 3,
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 1,
+     "guard": 1,
+     "long_horizon": 2,
+     "reasoning": 2,
+     "review": 2,
+     "terminal": 2,
+     "tool_use": 2
+    },
+    "session_id": "router-proxy-1790398181126",
+    "ts": 1790398181.126816,
+    "unsatisfiable": false,
+    "verdict": "SATISFIABLE"
+   },
+   {
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "fallback_head": {
+     "model": "z-ai/glm-5.3-flash",
+     "provider": "xkiro"
+    },
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 3,
+     "mechanical": 1,
+     "reasoning": 1,
+     "schema": 1,
+     "terminal": 2,
+     "tool_use": 3
+    },
+    "session_id": "router-proxy-1790398182045",
+    "ts": 1790398182.0456927,
+    "unmet": [
+     {
+      "category": "agent_tick",
+      "have": 2,
+      "required": 3
+     },
+     {
+      "category": "mechanical",
+      "have": -1,
+      "required": 1
+     },
+     {
+      "category": "schema",
+      "have": -2,
+      "required": 1
+     },
+     {
+      "category": "terminal",
+      "have": -2,
+      "required": 2
+     }
+    ],
+    "unsatisfiable": true,
+    "verdict": "SERVED-DEGRADED"
+   },
+   {
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "fallback_head": {
+     "model": "z-ai/glm-5.3-flash",
+     "provider": "xkiro"
+    },
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 2,
+     "delegation": 2,
+     "guard": 3,
+     "long_horizon": 3,
+     "review": 2,
+     "terminal": 1,
+     "tool_use": 2
+    },
+    "session_id": "router-proxy-1790398183216",
+    "ts": 1790398183.2167485,
+    "unmet": [
+     {
+      "category": "guard",
+      "have": -1,
+      "required": 3
+     },
+     {
+      "category": "review",
+      "have": 0,
+      "required": 2
+     },
+     {
+      "category": "terminal",
+      "have": -2,
+      "required": 1
+     }
+    ],
+    "unsatisfiable": true,
+    "verdict": "SERVED-DEGRADED"
+   },
+   {
+    "chain_length": 3,
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "hops_attempted": 0,
+    "required_categories": {
+     "long_horizon": 1,
+     "mechanical": 1,
+     "reasoning": 2,
+     "review": 2,
+     "terminal": 2,
+     "tool_use": 3
+    },
+    "session_id": "router-proxy-1790398189589",
+    "ts": 1790398189.5896764,
+    "unsatisfiable": false,
+    "verdict": "SATISFIABLE"
+   },
+   {
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "fallback_head": {
+     "model": "z-ai/glm-5.3-flash",
+     "provider": "xkiro"
+    },
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 1,
+     "delegation": 2,
+     "guard": 2,
+     "long_horizon": 2,
+     "reasoning": 1,
+     "review": 2,
+     "terminal": 2,
+     "tool_use": 1
+    },
+    "session_id": "router-proxy-1790398191761",
+    "ts": 1790398191.7611375,
+    "unmet": [
+     {
+      "category": "guard",
+      "have": -1,
+      "required": 2
+     },
+     {
+      "category": "review",
+      "have": 0,
+      "required": 2
+     },
+     {
+      "category": "terminal",
+      "have": -2,
+      "required": 2
+     }
+    ],
+    "unsatisfiable": true,
+    "verdict": "SERVED-DEGRADED"
+   },
+   {
+    "chain_length": 2,
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "hops_attempted": 0,
+    "required_categories": {
+     "agent_tick": 1,
+     "guard": 2,
+     "mechanical": 1,
+     "reasoning": 0,
+     "schema": 1,
+     "terminal": 1,
+     "tool_use": 2
+    },
+    "session_id": "router-proxy-1790398191949",
+    "ts": 1790398191.9492905,
+    "unsatisfiable": false,
+    "verdict": "SATISFIABLE"
+   },
+   {
+    "chain_length": 62,
+    "complexity_source": "classifier",
+    "derivation_disagreement": false,
+    "hops_attempted": 0,
+    "required_categories": {
+     "reasoning": 1,
+     "schema": 1,
+     "spec_docs": 2
+    },
+    "session_id": "router-proxy-1790402680285",
+    "ts": 1790402680.2853096,
+    "unsatisfiable": false,
+    "verdict": "SATISFIABLE"
+   }
+  ],
+  "satisfiable": 49,
+  "unsatisfiable": 46,
+  "violations": []
+ },
+ "registry": "/home/kara/task-router/registry.json",
+ "sample": "rated-nohops",
+ "state_dir": null,
+ "ts_max": 1790861624.4413576
+}
