@@ -100,6 +100,9 @@ append-only lines; the query engine is rebuildable cache and never the record.
 untagged — the tool reports the contradiction instead of merging it away. That single line has caught more real
 problems than any dashboard.
 
+
+<!-- ch:trace row=TR-253 spec=docs/traceability-doctrine.md wave=task-router-2026-10-01#trace doc=~/.hermes/skills/coding-hermes-traceability/SKILL.md evidence=docs/traceability-doctrine.md witness=none:prompt-loading-not-yet-verified -->
+
 ## Verification
 
 - One recursive grep finds every marker.
