@@ -1,0 +1,135 @@
+{
+  "tables": {
+    "archetypes": {
+      "rows": 10,
+      "live": 10,
+      "unexplained_live_cols": {}
+    },
+    "benchmarks": {
+      "rows": 1827,
+      "live": 1827,
+      "unexplained_live_cols": {}
+    },
+    "category_levels": {
+      "rows": 264,
+      "live": 264,
+      "unexplained_live_cols": {}
+    },
+    "fallback_lanes": {
+      "rows": 7,
+      "live": 7,
+      "unexplained_live_cols": {}
+    },
+    "level_defs": {
+      "rows": 11,
+      "live": 11,
+      "unexplained_live_cols": {}
+    },
+    "model_aliases": {
+      "rows": 224,
+      "live": 224,
+      "unexplained_live_cols": {}
+    },
+    "model_catalog": {
+      "rows": 1162,
+      "live": 1129,
+      "unexplained_live_cols": {}
+    },
+    "model_notes": {
+      "rows": 249,
+      "live": 249,
+      "unexplained_live_cols": {}
+    },
+    "model_perf": {
+      "rows": 3716,
+      "live": 3716,
+      "unexplained_live_cols": {}
+    },
+    "model_tier": {
+      "rows": 3671,
+      "live": 3671,
+      "unexplained_live_cols": {}
+    },
+    "models": {
+      "rows": 1877,
+      "live": 841,
+      "unexplained_live_cols": {}
+    },
+    "plan_terms": {
+      "rows": 21,
+      "live": 21,
+      "unexplained_live_cols": {}
+    },
+    "probe_excludes": {
+      "rows": 6,
+      "live": 6,
+      "unexplained_live_cols": {}
+    },
+    "probe_fixes": {
+      "rows": 107,
+      "live": 107,
+      "unexplained_live_cols": {}
+    },
+    "probe_gaps": {
+      "rows": 164,
+      "live": 164,
+      "unexplained_live_cols": {}
+    },
+    "probe_providers": {
+      "rows": 28,
+      "live": 28,
+      "unexplained_live_cols": {}
+    },
+    "projects": {
+      "rows": 590,
+      "live": 590,
+      "unexplained_live_cols": {}
+    },
+    "provider_mappings": {
+      "rows": 107,
+      "live": 107,
+      "unexplained_live_cols": {}
+    },
+    "provider_quota": {
+      "rows": 92,
+      "live": 92,
+      "unexplained_live_cols": {}
+    },
+    "provider_rules": {
+      "rows": 43,
+      "live": 43,
+      "unexplained_live_cols": {}
+    },
+    "providers": {
+      "rows": 29,
+      "live": 27,
+      "unexplained_live_cols": {}
+    },
+    "quality_estimates": {
+      "rows": 228,
+      "live": 228,
+      "unexplained_live_cols": {}
+    },
+    "sample-outcomes": {
+      "rows": 5,
+      "live": 5,
+      "unexplained_live_cols": {}
+    },
+    "task_profile_requirements": {
+      "rows": 69,
+      "live": 69,
+      "unexplained_live_cols": {}
+    },
+    "task_profiles": {
+      "rows": 11,
+      "live": 11,
+      "unexplained_live_cols": {}
+    },
+    "temporary_discounts": {
+      "rows": 22,
+      "live": 21,
+      "unexplained_live_cols": {}
+    }
+  },
+  "total_unexplained_live": 0
+}
