@@ -690,3 +690,25 @@ tasks:
   status: complete
   created_at: '2026-10-02T07:57:58.478910+00:00'
   completed_at: '2026-10-02T09:05:41.441120+00:00'
+- id: TR-207
+  title: 'Quota L1: header readback adapters'
+  criteria:
+  - One adapter per header MECHANISM (anthropic-ratelimit-unified-*, x-ratelimit-remaining-*,
+    retry-after); recorded-response fixtures drive the tests with no live calls in
+    CI; an observation records source_rung=header + exact header names + observed_at;
+    a provider whose headers are absent falls through to the next rung and says so
+    (tested); unknown headers are ignored, never guessed.
+  status: complete
+  created_at: '2026-10-02T09:32:36.462804+00:00'
+  completed_at: '2026-10-02T11:58:35.891986+00:00'
+- id: TR-174
+  title: 'Per-task value ledger: expected-cost-per-task by complexity band, with exploration
+    floor'
+  criteria:
+  - Chain can rank lanes by expected cost for the task's complexity band using blended
+    measured/list price (sample floor + aging window), completion as a cost term,
+    and an exploration floor that refreshes low-traffic lanes; every response records
+    explore-vs-exploit and the band
+  status: complete
+  created_at: '2026-10-02T13:26:19.214533+00:00'
+  completed_at: '2026-10-02T15:33:17.718656+00:00'
