@@ -608,8 +608,9 @@ tasks:
   criteria:
   - census classifies nulls as MEANINGFUL or UNEXPLAINED, UNEXPLAINED count on live
     lanes reaches 0, before/after census committed
-  status: in_progress
+  status: complete
   created_at: '2026-10-02T02:38:33.919580+00:00'
+  completed_at: '2026-10-02T07:51:45.128662+00:00'
 - id: TR-179
   title: TR-179 worker task
   criteria:

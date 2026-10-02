@@ -1,0 +1,13 @@
+{
+  "tick_id": "task-router-2026-10-02-02-32-58",
+  "created_at": "2026-10-02T02:33:00-05:00",
+  "wave_budget": 3,
+  "workers": [
+    {"task_id": "TR-175", "worktree": "wt/TR-175", "branch": "wt/TR-175", "model": "glm-5.3-flash", "provider": "zai-glm", "brief": "/tmp/brief-TR-175.md"},
+    {"task_id": "TR-197", "worktree": "wt/TR-197-null-census", "branch": "wt/TR-197-null-census", "model": "glm-5.3-flash", "provider": "zai-glm", "brief": "/tmp/brief-TR-197.md"},
+    {"task_id": "TR-206", "worktree": "wt/TR-206", "branch": "wt/TR-206", "model": "glm-5.3-flash", "provider": "zai-glm", "brief": "/tmp/brief-TR-206.md"}
+  ],
+  "status": "finished",
+  "recovery_note": "Recovered by tick task-router-foreman-2026-10-02-07-43-59: all 3 branches already merged to main (aa9f64e, e308e23, 0719abe), ahead=0 each; gates re-run green at HEAD (74 targeted tests pass; live-lane UNEXPLAINED nulls=0); gitreins lifecycle completed (TR-175 PASS 8b31be2, TR-197 FAIL d017b778 was stale-tree only — re-completed tier-1 PASS 730fc3e1, TR-206 verified via quota validation tests); board rows flipped complete with per-row events.",
+  "finished_at": "2026-10-02T07:55:00-05:00"
+}
