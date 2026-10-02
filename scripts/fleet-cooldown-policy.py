@@ -45,6 +45,7 @@ import hashlib
 import json
 import os
 import re
+import subprocess
 import sys
 import urllib.request
 
@@ -563,6 +564,39 @@ def main():
 
     print(f"mode: {'APPLY' if apply else 'DRY-RUN'}")
     print(f"{'PROJECT':32s} {'PENDING':8s} {'COOLDOWN':10s} {'TARGET':8s} {'ACTION'}")
+    # ── ADMISSION LAW (owner 2026-10-01/02; durable fix = SCHED-GAP-1696) ───────
+    # foreman = tasks, EVERYTHING ELSE = cooldown, and all foremen share one
+    # tasks-mode namespace. The lane-level admission_mode BEATS both the lane's own
+    # cooldown AND its namespace, so a stray lane-level 'tasks' on a satellite makes
+    # it board-driven forever -- that is where the stolen compute went (31 satellite
+    # lanes carried one; release-engineer ran 250 ticks on a 168h pin). The mirror is
+    # equally costly: a foreman left on cooldown makes a FULL board wait out a pin
+    # (tatara +63 rows/wk, monitoring +70). The policy owns this field for every lane
+    # in both directions; a lane already correct is never written.
+    SAT_SUFFIX = tuple(sorted(FAMILY_CANONICAL))   # -qa -pm -sync -dogfood -perf -releng -review -readme -docs
+    _names = {q.get('name', '') for q in projects}
+    # A foreman lane is named <project>-foreman and owns <project>-<role>; accept the
+    # bare <project> spelling too so a not-yet-renamed lane still classifies right.
+    _owns = set()
+    for _n in _names:
+        for sfx in SAT_SUFFIX:
+            if _n.endswith(sfx):
+                _base = _n[: -len(sfx)]
+                if _base + "-foreman" in _names:
+                    _owns.add(_base + "-foreman")
+                elif _base in _names:
+                    _owns.add(_base)
+
+    def _is_satellite(n, parent):
+        """Satellite under the admission law: a role-suffixed lane, or a parented lane
+        that owns no satellites of its own. A lane that OWNS satellites is a foreman
+        even when it carries a parent for org nesting (logsey/pulse/lore/digest under
+        h3; release-engineer under coding-hermes-scheduler)."""
+        if n.endswith(SAT_SUFFIX):
+            return True
+        return n not in _owns and bool(parent)
+
+    admission_fixed = []
     actions = []
     for p in sorted(projects, key=lambda x: x.get('name', x.get('name', ''))):
         name = p.get('name', p.get('name', '?'))
@@ -573,6 +607,18 @@ def main():
             workdir = workdir[6:]
         cooldown = p.get('cooldown_s', p.get('cooldown_s', 0))
         pin = fleet_pins.get(name)
+        # ADMISSION LAW (owner 2026-10-01/02) - REPORT ONLY, NEVER WRITE.
+        # This script has a history of overriding live config, so it does not get to
+        # enforce the class rule: it names a violation and leaves the write to the
+        # scheduler boundary (SCHED-GAP-1696) or to an operator. Detection also runs
+        # in fleet_runrate_audit.py (sections 3b/3c, weekly cron).
+        _want = 'cooldown' if _is_satellite(name, p.get('parent') or '') else 'tasks'
+        _live = p.get('admission_mode') or ''
+        if (_want == 'cooldown' and _live == 'tasks') or (_want == 'tasks' and _live != 'tasks'):
+            _viol = (f"{name:32s} {'-':8s} {cooldown:10d} {'-':8s} "
+                     f"ADMISSION LAW VIOLATION: {_want} required, live is '{_live or 'unset'}' - NOT WRITTEN")
+            print(_viol)
+            admission_fixed.append((name, _live or '(unset)', _want))
         # BELOW-FAST LIVE VALUE = wake residue, NOT operator intent
         # (Bane 2026-09-09: fleet re-pinned to 6h — "we are just lighting
         # money on fire this way" at 900/3600 pins). The old 900 hard-skip
@@ -795,6 +841,7 @@ def write_fleet_pins(projects, namespaces=None):
     Bane 2026-08-27) survives policy regens. The regen must never drop
     namespace config the operator set in the DB.
     """
+    import urllib.parse
     # SCHED-GAP-1662: emit EVERY project; the per-project `enabled` key
     # (written below) is the durable representation of the paused set.
     all_projects = list(projects)
