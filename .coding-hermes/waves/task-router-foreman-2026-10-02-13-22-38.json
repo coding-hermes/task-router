@@ -1,0 +1,20 @@
+{
+  "tick": "task-router-foreman-2026-10-02-13-22-38",
+  "project": "task-router",
+  "wave_budget": 1,
+  "mode": "serial-fallback",
+  "tasks": [
+    {
+      "step": 1,
+      "id": "TR-174",
+      "title": "Per-task value ledger: expected-cost-per-task by complexity band, with exploration floor",
+      "priority": "P0",
+      "worktree": "/home/kara/worktrees/task-router-TR-174",
+      "branch": "wt/TR-174",
+      "base": "origin/main",
+      "base_sha": "11a796f",
+      "worker": {"model": "glm-5.3-flash", "provider": "zai-glm", "session": "proc_865d3c6fff1d"},
+      "gitreins": "task created + started before dispatch"
+    }
+  ]
+}
