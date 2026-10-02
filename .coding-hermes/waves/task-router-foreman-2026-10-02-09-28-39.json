@@ -1,0 +1,20 @@
+{
+  "scheduler_tick_id": "task-router-foreman-2026-10-02-09-28-39",
+  "project": "task-router",
+  "wave_budget": 1,
+  "mode": "serial-fallback",
+  "created_at": "2026-10-02T09:35:00Z",
+  "tasks": [
+    {
+      "task_id": "TR-207",
+      "priority": "P1",
+      "title": "Quota L1: header readback adapters",
+      "worktree": "/home/kara/worktrees/task-router-TR-207",
+      "branch": "wt/TR-207",
+      "base_sha": "e692513",
+      "independent": true,
+      "depends_on": []
+    }
+  ],
+  "rationale": "WAVE_BUDGET=1; only one worker dispatched (serial path with worktree). TR-207 picked as next rung of the quota ladder (L0 TR-206 complete); TR-208/209/210 depend on the L1 readback pattern."
+}
