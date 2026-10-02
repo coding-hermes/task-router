@@ -220,6 +220,45 @@ ROUTER_EDIT_API_KEY=... router server --mode edit
   guarded `POST /api/ui/registry/edit` are documented in
   [docs/ui/data-command-center.md](docs/ui/data-command-center.md).
 
+### Deploy parity: `code.stale`, the watchdog, and `make restart-router` (TR-255)
+
+Every `/health` payload carries a `code` block comparing what the PROCESS
+loaded (commit + source sha, captured at import) against what the repo and
+tree hold now. `code.stale: true` means the instance is serving old code —
+`repo_commit`/`live_source_sha` have moved past `loaded_commit`/
+`loaded_source_sha` since it started (TR-141; full contract in
+[docs/health-plane.md](docs/health-plane.md)). The live installs under
+`~/.hermes/scripts/` are symlinks into this tree, so **a pull alone is not a
+deploy**: the serving units must be restarted after the pull + sync.
+
+```bash
+make watchdog          # check every fleet listener: OK / STALE / UNREACHABLE per line
+make watchdog ARGS="--report-only --json"   # human/report form, always exit 0
+make restart-router    # the deploy contract: pull + sync_runtime.sh + restart + verify
+```
+
+- `scripts/router_stale_watchdog.py` — stdlib-only consumer of the signal.
+  Default URLs are the three fleet listeners (`127.0.0.1:9092/9093/9391`);
+  `ROUTER_STALE_URLS` (comma-separated) or repeated `--url` flags override.
+  Verdicts: `OK` (flag false and fields agree), `STALE` (flag true — or the
+  fields disagree while the flag claims fresh, conservatively), `UNREACHABLE`
+  (dead port, HTTP error, malformed payload, missing `code` block, or an
+  indeterminate verdict — never silence on a null). Exit codes: 0 all OK,
+  1 any STALE, 2 any UNREACHABLE; `--report-only` always exits 0. A listener
+  with no `/health` surface (the `:9093` web UI today) reports UNREACHABLE
+  "HTTP 404" — that is the true state, not a script bug. Not yet wired into
+  cron: schedule `make watchdog` (or the script directly) to alert on exit != 0.
+- `make restart-router` — executes the declared contract against the canonical
+  tree (`CANONICAL_TREE`, default `/home/kara/task-router` — the tree the
+  `task-router-{server,proxy,web}.service` units exec): `git pull --ff-only`,
+  `scripts/sync_runtime.sh`, `systemctl --user restart` of the three units,
+  then a `/health` parity re-check of the health-speaking instances until
+  `code.stale` is false. It refuses (printing the operator commands instead)
+  when the units are not active systemd units on the host — never kill
+  processes blindly. An operator or foreman runs it; nothing restarts the
+  fleet automatically.
+
+
 ## Classified proxy deployment (TR-067)
 
 The server also speaks `POST /v1/chat/completions` and `POST /v1/responses`
@@ -508,6 +547,7 @@ for repo-relative use.
 | `router web` | Local web UI on :9093 (settings + resolve preview) |
 | `router server` | OpenAPI API server + MCP bridge on :9092 (`--mode read-only\|edit`, `--port`) |
 | `scripts/router_health_probe.py` | Canary probe for `/health`: asserts a real commit, a RAN-and-passed `router validate` gate and a non-stale registry. Exit 0 PASS / 1 FAIL / 2 cannot-run. `--url`, `--json`, `--timeout`, `--max-age-h` (see `docs/health-plane.md`) |
+| `scripts/router_stale_watchdog.py` | TR-255 deploy-parity watchdog: consumes `/health`'s `code.stale` across the fleet listeners. Exit 0 all OK / 1 any STALE / 2 any UNREACHABLE (`--report-only` always 0). `--url` (repeatable), `ROUTER_STALE_URLS`, `--timeout`, `--json` |
 
 Commands that commit, push, write state, or change provider configuration are
 operational tools — review `--help` and use `--dry-run` where available.
