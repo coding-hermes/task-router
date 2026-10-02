@@ -29,7 +29,18 @@
 set -uo pipefail
 cd "$(dirname "$0")/.." || exit 1
 
-PY="${PYTHON:-/home/kara/.hermes/venvs/board/bin/python3}"
+#: Interpreter: prefer the fleet board venv, fall back to PATH python3 so the
+#: script also works in CI (no /home/kara there) and on other hosts. An
+#: explicit PYTHON= always wins.
+PY="${PYTHON:-}"
+if [ -z "$PY" ]; then
+  if [ -x /home/kara/.hermes/venvs/board/bin/python3 ] \
+     && /home/kara/.hermes/venvs/board/bin/python3 -c "import pytest" >/dev/null 2>&1; then
+    PY=/home/kara/.hermes/venvs/board/bin/python3
+  else
+    PY="$(command -v python3 || echo python3)"
+  fi
+fi
 #: Own-clock suite budget (seconds). Sized for the worst load this box
 #: actually sees (conftest.py doctrine), not the idle case: 2045-2244s
 #: measured under fleet load + margin. Override with GUARD_SUITE_TIMEOUT=<seconds>;
