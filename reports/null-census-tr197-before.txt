@@ -1,0 +1,192 @@
+=== NULL census (TR-197): meaningful vs unexplained ===
+MEANINGFUL vocabulary (AC2): disabled, archived, retired-by-date, not-published-by-provider, unpriced-pending-sticker, no-sample-yet, unknown-by-design
+
+  archetypes.jsonl                   rows=10    nulls=0      
+  benchmarks.jsonl                   rows=1830  nulls=463    
+      valid_from                     463
+  category_levels.jsonl              rows=264   nulls=0      
+  fallback_lanes.jsonl               rows=7     nulls=3      
+      valid_to                       3
+  level_defs.jsonl                   rows=11    nulls=0      
+  model_aliases.jsonl                rows=224   nulls=0      
+  model_catalog.jsonl                rows=1162  nulls=7201   
+      vision                         1162
+      modality                       1162
+      knowledge_cutoff               1162
+      fetched_at                     665
+      family                         532
+      cost_input                     515
+      cost_output                    515
+      context_window                 496
+      reasoning                      496
+      tool_call                      496
+  model_notes.jsonl                  rows=252   nulls=0      
+  model_perf.jsonl                   rows=3716  nulls=0      
+  model_tier.jsonl                   rows=3671  nulls=0      
+  models.jsonl                       rows=1877  nulls=42837    <<< UNEXPLAINED 659
+      available_from                 1877
+      note                           1872
+      perf_e2e_vision                1780
+      public_cache_write_per_m       1779
+      perf_review                    1777
+      perf_long_doc                  1775
+      perf_reasoning                 1775
+      perf_guard                     1774
+      perf_mock                      1774
+      perf_agent_tick                1772
+      perf_debug                     1772
+      perf_schema                    1772
+      perf_delegation                1772
+      replaced_by                    1572
+      plan_tier                      1557
+      public_cache_read_per_m        1544
+      valid_to                       1530
+      lifecycle_checked_at           1482
+      lifecycle_source               1463
+      disabled_reason                1203
+      disabled                       1193
+      vision                         984
+      release_date                   970
+      valid_from                     810
+      api_type                       709
+      public_price                   654
+      public_in_per_m                653
+      public_out_per_m               653
+      thinking                       649
+      normalized_price               595
+      context_limit                  536
+      training_model_level           294
+      training_provider_level        294
+      data_class                     215
+      archive                        4
+      price_evidence                 1
+      token_factor                   1
+  plan_terms.jsonl                   rows=21    nulls=82     
+      requests                       14
+      rate_per_minute                14
+      tokens_per_minute              14
+      tokens_per_request             12
+      included_models                9
+      plan_cost                      8
+      usage_multiplier               7
+      interval                       4
+  probe_excludes.jsonl               rows=6     nulls=0      
+  probe_fixes.jsonl                  rows=107   nulls=2      
+      fix_to                         2
+  probe_gaps.jsonl                   rows=164   nulls=129    
+      candidate                      123
+      error                          6
+  probe_providers.jsonl              rows=28    nulls=1      
+      note                           1
+  projects.jsonl                     rows=590   nulls=670    
+      stack                          589
+      board_type                     78
+      sensitivity                    3
+  provider_mappings.jsonl            rows=107   nulls=105    
+      replacement                    105
+  provider_quota.jsonl               rows=92    nulls=170    
+      limit                          55
+      reset_anchor                   52
+      limit_text                     18
+      window_notes                   11
+      readback_docs_url              11
+      readback_exact                 8
+      readback_reset_field           8
+      readback_auth                  7
+  provider_rules.jsonl               rows=43    nulls=43     
+      valid_to                       41
+      explains_probe                 2
+  providers.jsonl                    rows=29    nulls=111    
+      valid_to                       29
+      api_base_url                   27
+      api_key_env                    27
+      concurrency                    25
+      quota_unit                     2
+      trains_on_hosted               1
+  quality_estimates.jsonl            rows=228   nulls=8      
+      guard                          4
+      mock                           4
+  sample-outcomes.jsonl              rows=5     nulls=6      
+      complexity                     1
+      profile_id                     1
+      required_categories            1
+      cost_usd                       1
+      wall_time_s                    1
+      success                        1
+  task_profile_requirements.jsonl    rows=69    nulls=0      
+  task_profiles.jsonl                rows=11    nulls=32     
+      max_consecutive_per_provider   11
+      max_total_per_provider         11
+      allow_slow                     10
+  temporary_discounts.jsonl          rows=22    nulls=21     
+      valid_to                       21
+
+=== AC4 metric: live-lane UNEXPLAINED nulls ===
+  count: 659
+    models.jsonl / api_type : 223
+    models.jsonl / data_class : 189
+    models.jsonl / public_price : 53
+    models.jsonl / public_in_per_m : 53
+    models.jsonl / public_out_per_m : 53
+    models.jsonl / context_limit : 43
+    models.jsonl / normalized_price : 43
+    models.jsonl / archive : 2
+
+=== live-lane nulls by MEANINGFUL reason (stamped + classified) ===
+  no sample yet                7786
+  not published by models.dev for this model 5407
+  lane not disabled            1676
+  no lifecycle event yet       1562
+  provider does not publish cache rates 1364
+  no sticker published         1030
+  lane not retired             844
+  no availability announcement exists 841
+  no successor named           841
+  no fold/provenance note      838
+  not plan-bucketed (PAYG)     648
+  record predates timestamped syncs 632
+  stack not inventoried        589
+  no import-announcement date exists 519
+  pre-provenance battery rows (2026-09-16 live-battery and earlier imports) 463
+  capability unresearched (never guessed) 441
+  training status unresearched (training gate treats NULL as not-training; never guessed) 384
+  launch date not yet researched (never guessed) 319
+  no replacement candidate identified for this gap 123
+  pattern-map rule: strip/normalize, no replacement string 105
+  no board detected for this project 78
+  limit not published / not numeric 55
+  reset schedule not published 52
+  rule not retired             41
+  billing model has no published rate limit 28
+  provider not retired         27
+  base URL private to the operator (key-based config) 25
+  credential handled outside the registry 25
+  concurrency limit not published 23
+  discount not ended           21
+  no prose limit on record     18
+  billing model does not use request counts 14
+  billing model does not use per-request buckets 12
+  no window notes              11
+  no docs readback on record   11
+  no per-provider streak cap configured 11
+  no per-provider total cap configured 11
+  default (not slow-allowed)   10
+  plan has no published included-models list 9
+  PAYG / no subscription cost  8
+  no exact readback on record  8
+  no reset-field readback on record 8
+  no usage multiplier (1.0)    7
+  no auth readback on record   7
+  probe never returned an error payload 6
+  not published by the provider 5
+  no guard sample yet          4
+  no mock sample yet           4
+  project never classified (open by default) 3
+  unfixed probe (not-worked yet) 2
+  rule not tied to a probe story 2
+  sample row predates profile tagging 2
+  no notes                     1
+  sample row predates the complexity field 1
+  sample without a cost reading 1
+  sample without a wall-time reading 1
+  sample without a success verdict 1

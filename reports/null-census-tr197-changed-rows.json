@@ -1,0 +1,4958 @@
+{
+ "generated": "2026-10-01",
+ "rows_changed": 228,
+ "changes": [
+  {
+   "table": "models.jsonl",
+   "lane": "clinepass deepseek-v4-flash",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "context_limit": {
+     "before": null,
+     "after": 1000000
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: provider-uniform recorded value: 24 recorded clinepass lanes all use api_type=openai-chat — router_clinepass.py writes api_type=openai-chat for every clinepass lane (writer convention; 2 retired rows recorded it)"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "clinepass deepseek-v4-pro",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "context_limit": {
+     "before": null,
+     "after": 1000000
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: provider-uniform recorded value: 24 recorded clinepass lanes all use api_type=openai-chat — router_clinepass.py writes api_type=openai-chat for every clinepass lane (writer convention; 2 retired rows recorded it)"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "clinepass dots-3-note-preview:free",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: provider-uniform recorded value: 24 recorded clinepass lanes all use api_type=openai-chat — router_clinepass.py writes api_type=openai-chat for every clinepass lane (writer convention; 2 retired rows recorded it)"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "clinepass gemma-4-26b-a4b-it:free",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: provider-uniform recorded value: 24 recorded clinepass lanes all use api_type=openai-chat — router_clinepass.py writes api_type=openai-chat for every clinepass lane (writer convention; 2 retired rows recorded it)"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "clinepass gemma-4-31b-it:free",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: provider-uniform recorded value: 24 recorded clinepass lanes all use api_type=openai-chat — router_clinepass.py writes api_type=openai-chat for every clinepass lane (writer convention; 2 retired rows recorded it)"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "clinepass glm-5.3",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "context_limit": {
+     "before": null,
+     "after": 1000000
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: provider-uniform recorded value: 24 recorded clinepass lanes all use api_type=openai-chat — router_clinepass.py writes api_type=openai-chat for every clinepass lane (writer convention; 2 retired rows recorded it)"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "clinepass inkling-small:free",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: provider-uniform recorded value: 24 recorded clinepass lanes all use api_type=openai-chat — router_clinepass.py writes api_type=openai-chat for every clinepass lane (writer convention; 2 retired rows recorded it)"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "clinepass inkling:free",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: provider-uniform recorded value: 24 recorded clinepass lanes all use api_type=openai-chat — router_clinepass.py writes api_type=openai-chat for every clinepass lane (writer convention; 2 retired rows recorded it)"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "clinepass kimi-k2.7-code",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "context_limit": {
+     "before": null,
+     "after": 262144
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: provider-uniform recorded value: 24 recorded clinepass lanes all use api_type=openai-chat — router_clinepass.py writes api_type=openai-chat for every clinepass lane (writer convention; 2 retired rows recorded it)"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "clinepass kimi-k3",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "context_limit": {
+     "before": null,
+     "after": 1048576
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: provider-uniform recorded value: 24 recorded clinepass lanes all use api_type=openai-chat — router_clinepass.py writes api_type=openai-chat for every clinepass lane (writer convention; 2 retired rows recorded it)"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "clinepass laguna-s-2.1:free",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: provider-uniform recorded value: 24 recorded clinepass lanes all use api_type=openai-chat — router_clinepass.py writes api_type=openai-chat for every clinepass lane (writer convention; 2 retired rows recorded it)"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "clinepass laguna-xs-2.1:free",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: provider-uniform recorded value: 24 recorded clinepass lanes all use api_type=openai-chat — router_clinepass.py writes api_type=openai-chat for every clinepass lane (writer convention; 2 retired rows recorded it)"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "clinepass lfm-2.5-2.6b:free",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: provider-uniform recorded value: 24 recorded clinepass lanes all use api_type=openai-chat — router_clinepass.py writes api_type=openai-chat for every clinepass lane (writer convention; 2 retired rows recorded it)"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "clinepass mimo-v2.5",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "context_limit": {
+     "before": null,
+     "after": 1000000
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: provider-uniform recorded value: 24 recorded clinepass lanes all use api_type=openai-chat — router_clinepass.py writes api_type=openai-chat for every clinepass lane (writer convention; 2 retired rows recorded it)"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "clinepass mimo-v2.5-pro",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "context_limit": {
+     "before": null,
+     "after": 1048576
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: provider-uniform recorded value: 24 recorded clinepass lanes all use api_type=openai-chat — router_clinepass.py writes api_type=openai-chat for every clinepass lane (writer convention; 2 retired rows recorded it)"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "clinepass minimax-m3",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: provider-uniform recorded value: 24 recorded clinepass lanes all use api_type=openai-chat — router_clinepass.py writes api_type=openai-chat for every clinepass lane (writer convention; 2 retired rows recorded it)"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "clinepass nemotron-3-nano-omni-30b-a3b-reasoning:free",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: provider-uniform recorded value: 24 recorded clinepass lanes all use api_type=openai-chat — router_clinepass.py writes api_type=openai-chat for every clinepass lane (writer convention; 2 retired rows recorded it)"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "clinepass nemotron-3-super-120b-a12b:free",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: provider-uniform recorded value: 24 recorded clinepass lanes all use api_type=openai-chat — router_clinepass.py writes api_type=openai-chat for every clinepass lane (writer convention; 2 retired rows recorded it)"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "clinepass nemotron-3-ultra-550b-a55b:free",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: provider-uniform recorded value: 24 recorded clinepass lanes all use api_type=openai-chat — router_clinepass.py writes api_type=openai-chat for every clinepass lane (writer convention; 2 retired rows recorded it)"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "clinepass nemotron-3.5-content-safety:free",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: provider-uniform recorded value: 24 recorded clinepass lanes all use api_type=openai-chat — router_clinepass.py writes api_type=openai-chat for every clinepass lane (writer convention; 2 retired rows recorded it)"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "clinepass nemotron-3.5-lightning:free",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: provider-uniform recorded value: 24 recorded clinepass lanes all use api_type=openai-chat — router_clinepass.py writes api_type=openai-chat for every clinepass lane (writer convention; 2 retired rows recorded it)"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "clinepass north-mini-code:free",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: provider-uniform recorded value: 24 recorded clinepass lanes all use api_type=openai-chat — router_clinepass.py writes api_type=openai-chat for every clinepass lane (writer convention; 2 retired rows recorded it)"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "clinepass qwen3.7-plus",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "context_limit": {
+     "before": null,
+     "after": 1000000
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: provider-uniform recorded value: 24 recorded clinepass lanes all use api_type=openai-chat — router_clinepass.py writes api_type=openai-chat for every clinepass lane (writer convention; 2 retired rows recorded it)"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "clinepass qwen3.8-max",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "context_limit": {
+     "before": null,
+     "after": 1000000
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: provider-uniform recorded value: 24 recorded clinepass lanes all use api_type=openai-chat — router_clinepass.py writes api_type=openai-chat for every clinepass lane (writer convention; 2 retired rows recorded it)"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "commandcode Qwen/Qwen3.8-Omni-Flash",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "responses"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "commandcode claude-opus-5-5",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "responses"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "commandcode claude-sonnet-5-5",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "responses"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    },
+    "public_cache_read_per_m": {
+     "before": null,
+     "after": 0.2
+    },
+    "public_in_per_m": {
+     "before": null,
+     "after": 2.0
+    },
+    "public_out_per_m": {
+     "before": null,
+     "after": 10.0
+    },
+    "public_price": {
+     "before": null,
+     "after": 2.0
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "commandcode deepseek/deepseek-v4.1-flash-fast",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "responses"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "commandcode gpt-6-astra",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "responses"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "commandcode gpt-6-luna",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "responses"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "commandcode gpt-6-sol",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "responses"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "commandcode gpt-6.1-sol",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "responses"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    },
+    "public_cache_read_per_m": {
+     "before": null,
+     "after": 0.1
+    },
+    "public_in_per_m": {
+     "before": null,
+     "after": 2.0
+    },
+    "public_out_per_m": {
+     "before": null,
+     "after": 10.0
+    },
+    "public_price": {
+     "before": null,
+     "after": 2.0
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "commandcode inclusionai/ling-3.1-flash:free",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "responses"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "commandcode meituan/LongCat-2.0",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "responses"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "commandcode stealth/space-bunny-alpha",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "responses"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "commandcode stepfun/Step-5-Preview",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "responses"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "commandcode xai/grok-4.7",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "responses"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "commandcode xiaomi/mimo-v2.6-flash",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "responses"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "commandcode xiaomi/mimo-v2.6-pro",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "responses"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "commandcode xiaomi/mimo-v2.6-pro-ultraspeed",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "responses"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "commandcode z-ai/glm-5.3-flashx",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "responses"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "commandcode-2 Qwen/Qwen3.8-Omni-Flash",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "responses"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": "2026-09-26",
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": "mirror-account of commandcode (2026-09-26)",
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "commandcode-2 claude-opus-5-5",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "responses"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": "2026-09-26",
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": "mirror-account of commandcode (2026-09-26)",
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "commandcode-2 gpt-6-astra",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "responses"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": "2026-09-26",
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": "mirror-account of commandcode (2026-09-26)",
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "commandcode-2 gpt-6-luna",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "responses"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": "2026-09-26",
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": "mirror-account of commandcode (2026-09-26)",
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "commandcode-2 gpt-6-sol",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "responses"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": "2026-09-26",
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": "mirror-account of commandcode (2026-09-26)",
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "commandcode-2 meituan/LongCat-2.0",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "responses"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": "2026-09-26",
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": "mirror-account of commandcode (2026-09-26)",
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "commandcode-2 stealth/pixel-canary",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "responses"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": "2026-09-26",
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": "mirror-account of commandcode (2026-09-26)",
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "commandcode-2 stealth/space-bunny-alpha",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "responses"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": "2026-09-26",
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": "mirror-account of commandcode (2026-09-26)",
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "commandcode-2 stepfun/Step-5-Preview",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "responses"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": "2026-09-26",
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": "mirror-account of commandcode (2026-09-26)",
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "commandcode-2 xai/grok-4.7",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "responses"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": "2026-09-26",
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": "mirror-account of commandcode (2026-09-26)",
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "commandcode-2 xiaomi/mimo-v2.6-flash",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "responses"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": "2026-09-26",
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": "mirror-account of commandcode (2026-09-26)",
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "commandcode-2 xiaomi/mimo-v2.6-pro",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "responses"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": "2026-09-26",
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": "mirror-account of commandcode (2026-09-26)",
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "commandcode-2 xiaomi/mimo-v2.6-pro-ultraspeed",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "responses"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": "2026-09-26",
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": "mirror-account of commandcode (2026-09-26)",
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "commandcode-2 z-ai/glm-5.3-flashx",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "responses"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": "2026-09-26",
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": "mirror-account of commandcode (2026-09-26)",
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "fireworks-ai deepseek-v4-flash-0731",
+   "fields": {
+    "context_limit": {
+     "before": null,
+     "after": 1000000
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: sibling-lane consensus: deepseek-v4-flash (the 0731 snapshot) carries context_limit=1000000 on deepseek/crof/opencode-go twins"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "fireworks-ai deepseek-v4-pro-0813",
+   "fields": {
+    "context_limit": {
+     "before": null,
+     "after": 1000000
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: sibling-lane consensus: deepseek-v4-pro carries context_limit=1000000 on deepseek/crof/opencode-go twins"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "fireworks-ai gpt-oss-120b",
+   "fields": {
+    "context_limit": {
+     "before": null,
+     "after": 131072
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: models.dev fireworks-ai section (fetched 2026-10-01): gpt-oss-120b ctx=131072"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "fireworks-ai nemotron-3-5-lightning-30b-a3b",
+   "fields": {
+    "context_limit": {
+     "before": null,
+     "after": 262144
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: models.dev fireworks-ai section (fetched 2026-10-01): nemotron-lightning-3p5-30b-a3b ctx=262144"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "fireworks-ai nemotron-3-ultra",
+   "fields": {
+    "context_limit": {
+     "before": null,
+     "after": 262144
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: models.dev fireworks-ai section (fetched 2026-10-01): nemotron-3-ultra-nvfp4 ctx=262144"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "fireworks-ai qwen3-7-plus",
+   "fields": {
+    "context_limit": {
+     "before": null,
+     "after": 1000000
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: sibling-lane consensus: qwen3.7-plus (fireworks writes dots as dashes, same convention as nemotron-3-5 = 3.5) carries context_limit=1000000 on the opencode-go twins"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "fireworks-ai qwen3-8-max",
+   "fields": {
+    "context_limit": {
+     "before": null,
+     "after": 262144
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: models.dev fireworks-ai section (fetched 2026-10-01): qwen3p8-max ctx=262144"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "groq qwen/qwen3.8-27b",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "responses"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: provider-uniform recorded value: groq records api_type=responses on 2/2 of its other lanes"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "kimi-for-coding kimi-k2.7-code",
+   "fields": {
+    "context_limit": {
+     "before": null,
+     "after": 262144
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: sibling-lane consensus: kimi-k2.7-code carries context_limit=262144 on crof/ollama-cloud/opencode-go/opencode-go-2 (supersedes the old model_notes \"unknown\" row)"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "muse-code muse-spark-1.2",
+   "fields": {
+    "archive": {
+     "before": null,
+     "after": false
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit false — lane is live (no valid_to, not disabled); NULL archive predates the full-schema writers"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "muse-code muse-spark-1.3",
+   "fields": {
+    "archive": {
+     "before": null,
+     "after": false
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit false — lane is live (no valid_to, not disabled); NULL archive predates the full-schema writers"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "neuralwatt Qwen/Qwen3.6-35B-A3B",
+   "fields": {
+    "context_limit": {
+     "before": null,
+     "after": 131056
+    },
+    "lifecycle_checked_at": {
+     "before": "2026-09-21",
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": "rename-verified: live neuralwatt GET /v1/models 2026-09-21 lists only the bare id; PascalCase lane kept resolving via existing alias row (rename, NOT stamped — lane answers on the bare twin; TR-076 id-shape remap precedent). Chat-time probe indeterminate: HTTP 402 fleet subscription cap 2026-09-21.",
+     "after": "TR-197 null-census fill 2026-10-01: model_catalog.jsonl (provider, model) row — models.dev sync — records context_window=131056"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "neuralwatt glm-5.3-flex",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "responses"
+    },
+    "lifecycle_checked_at": {
+     "before": "2026-09-21",
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": "live-verification: neuralwatt GET /v1/models HTTP 200 2026-09-21 (21 ids; TR-076 follow-up) — live metadata",
+     "after": "TR-197 null-census fill 2026-10-01: lane-family consensus: all 5 recorded neuralwatt *-flex lanes (glm-5.2-short/fast-flex family) use api_type=responses"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "neuralwatt moonshotai/Kimi-K2.7-Code",
+   "fields": {
+    "context_limit": {
+     "before": null,
+     "after": 262144
+    },
+    "lifecycle_checked_at": {
+     "before": "2026-09-21",
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": "rename-verified: live neuralwatt GET /v1/models 2026-09-21 lists only the bare id; PascalCase lane kept resolving via existing alias row (rename, NOT stamped — lane answers on the bare twin; TR-076 id-shape remap precedent). Chat-time probe indeterminate: HTTP 402 fleet subscription cap 2026-09-21.",
+     "after": "TR-197 null-census fill 2026-10-01: model_catalog.jsonl (provider, model) row — models.dev sync — records context_window=262144"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "opencode-go-2 gpt-6-luna",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "context_limit": {
+     "before": null,
+     "after": 1050000
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "opencode-go-2 grok-4.7",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "context_limit": {
+     "before": null,
+     "after": 500000
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "opencode-go-2 longcat-2.5-preview-free",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "context_limit": {
+     "before": null,
+     "after": 1000000
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "opencode-go-2 mimo-v2.6-flash",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "context_limit": {
+     "before": null,
+     "after": 1048576
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "opencode-go-2 mimo-v2.6-pro",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "context_limit": {
+     "before": null,
+     "after": 1048576
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "opencode-go-2 muse-spark-1.3-contributor",
+   "fields": {
+    "context_limit": {
+     "before": null,
+     "after": 1048576
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: opencode-go (the SAME reseller surface, 2nd account per providers.jsonl) records context_limit=1048576 for this model"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "opencode-go-2 space-bunny-free",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "context_limit": {
+     "before": null,
+     "after": 1048576
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter aion-labs/aion-3.5",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter aion-labs/aion-3.5-mini",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter anthropic/claude-fable-5.1:batch",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter anthropic/claude-fable-5:batch",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter anthropic/claude-haiku-4.5:batch",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter anthropic/claude-opus-4.1:batch",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter anthropic/claude-opus-4.5:batch",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter anthropic/claude-opus-4.6:batch",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter anthropic/claude-opus-4.7:batch",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter anthropic/claude-opus-4.8:batch",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter anthropic/claude-opus-5.5:batch",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter anthropic/claude-opus-5:batch",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter anthropic/claude-sonnet-4.5:batch",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter anthropic/claude-sonnet-4.6:batch",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter anthropic/claude-sonnet-5.5:batch",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter anthropic/claude-sonnet-5:batch",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter deepseek/deepseek-v4.1-flash:batch",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter fireworks/ember-1",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter google/gemini-2.5-flash-lite:batch",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter google/gemini-2.5-flash:batch",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter google/gemini-2.5-pro:batch",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter google/gemini-3-flash-preview:batch",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter google/gemini-3.1-flash-lite:batch",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter google/gemini-3.1-pro-preview:batch",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter google/gemini-3.5-flash-lite:batch",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter google/gemini-3.5-flash:batch",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter google/gemini-3.6-flash:batch",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter google/gemini-3.8-flash:batch",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter gryphe/mythomax-l2-13b",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter mancer/weaver",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter microsoft/phi-4",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter mistralai/codestral-2508:batch",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter mistralai/ministral-8b-2512:batch",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter mistralai/mistral-large-2512:batch",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter mistralai/mistral-medium-3-5:batch",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter mistralai/mistral-medium-3.1:batch",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter mistralai/mistral-small-2603:batch",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter moonshotai/kimi-k3:batch",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter openai/gpt-3.5-turbo:batch",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter openai/gpt-4-turbo:batch",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter openai/gpt-4.1-mini:batch",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter openai/gpt-4.1-nano:batch",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter openai/gpt-4.1:batch",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter openai/gpt-4o-mini:batch",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter openai/gpt-4o:batch",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter openai/gpt-5-mini:batch",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter openai/gpt-5-nano:batch",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter openai/gpt-5-pro:batch",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter openai/gpt-5.1:batch",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter openai/gpt-5.2-pro:batch",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter openai/gpt-5.2:batch",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter openai/gpt-5.4-mini:batch",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter openai/gpt-5.4-nano:batch",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter openai/gpt-5.4-pro:batch",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter openai/gpt-5.5-pro:batch",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter openai/gpt-5.6-luna-pro:batch",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter openai/gpt-5.6-sol-pro:batch",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter openai/gpt-5.6-terra-pro:batch",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter openai/gpt-5.6-terra:batch",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter openai/gpt-5:batch",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter openai/gpt-6-astra-pro:batch",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter openai/gpt-6-astra:batch",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter openai/gpt-6-luna-pro:batch",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter openai/gpt-6-luna:batch",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter openai/gpt-6-sol-pro:batch",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter openai/gpt-6-sol:batch",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter openai/gpt-6.1-sol",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter openai/gpt-6.1-sol-pro",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter openai/gpt-6.1-sol-pro:batch",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter openai/gpt-6.1-sol:batch",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter openai/gpt-oss-120b:batch",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter openai/gpt-oss-20b:batch",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter openai/o3-mini:batch",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter openai/o3:batch",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter openai/o4-mini:batch",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter perceptron/perceptron-mk1.5",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter qwen/qwen3.8-max-prime",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter sao10k/l3-lunaris-8b",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter stealth/space-bunny-alpha",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter tencent/hy-mt2-1.8b",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter tencent/hy-mt2-30b-a3b",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter tencent/hy-mt2-7b",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter undi95/remm-slerp-l2-13b",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter upstage/solar-mini4",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter z-ai/glm-5.3-prime",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "openrouter z-ai/glm-5.3:batch",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "openai-chat"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "xkiro anthropic/claude-opus-5.5",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "chat_completions"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "xkiro cohere/aya-expanse-32b",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "chat_completions"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "xkiro cohere/aya-vision-32b",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "chat_completions"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "xkiro cohere/command-a",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "chat_completions"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "xkiro cohere/command-a-plus",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "chat_completions"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "xkiro cohere/command-a-reasoning",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "chat_completions"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "xkiro cohere/command-a-translate",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "chat_completions"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "xkiro cohere/command-a-vision",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "chat_completions"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "xkiro cohere/command-r-08-2024",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "chat_completions"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "xkiro cohere/command-r-plus-08-2024",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "chat_completions"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "xkiro cohere/command-r7b-12-2024",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "chat_completions"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "xkiro cohere/north-mini-code",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "chat_completions"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "xkiro cohere/north-small-translate",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "chat_completions"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "xkiro cohere/tiny-aya-earth",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "chat_completions"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "xkiro cohere/tiny-aya-fire",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "chat_completions"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "xkiro cohere/tiny-aya-global",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "chat_completions"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "xkiro cohere/tiny-aya-water",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "chat_completions"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "xkiro dots-studio/dots-3-note-preview:free",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "chat_completions"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "xkiro inclusionai/ling-3.0-flash-sante:free",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "chat_completions"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "xkiro liquid/lfm-2.5-2.6b:free",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "chat_completions"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "xkiro meta/muse-spark-1.3-contributor:free",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "chat_completions"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "xkiro moonshotai/kimi-k2.7-code-highspeed",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "chat_completions"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "xkiro moonshotai/kimi-k2.8-preview",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "chat_completions"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "xkiro moonshotai/kimi-k3-256k",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "chat_completions"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "xkiro openai/gpt-6-luna",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "chat_completions"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "xkiro openai/gpt-6-sol",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "chat_completions"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "xkiro openai/gpt-6.1-sol",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "chat_completions"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "xkiro stealth/pixel-canary:free",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "chat_completions"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "xkiro stealth/space-bunny-alpha:free",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "chat_completions"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "xkiro x-ai/grok-4.7",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "chat_completions"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "xkiro xiaomi/mimo-v2.6-flash",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "chat_completions"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "xkiro xiaomi/mimo-v2.6-flash:free",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "chat_completions"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "xkiro xiaomi/mimo-v2.6-pro",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "chat_completions"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "xkiro-2 anthropic/claude-opus-5.5",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "chat_completions"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "xkiro-2 cohere/aya-expanse-32b",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "chat_completions"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "xkiro-2 cohere/aya-vision-32b",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "chat_completions"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "xkiro-2 cohere/command-a",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "chat_completions"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "xkiro-2 cohere/command-a-plus",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "chat_completions"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "xkiro-2 cohere/command-a-reasoning",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "chat_completions"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "xkiro-2 cohere/command-a-translate",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "chat_completions"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "xkiro-2 cohere/command-a-vision",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "chat_completions"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "xkiro-2 cohere/command-r-08-2024",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "chat_completions"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "xkiro-2 cohere/command-r-plus-08-2024",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "chat_completions"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "xkiro-2 cohere/command-r7b-12-2024",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "chat_completions"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "xkiro-2 cohere/north-mini-code",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "chat_completions"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "xkiro-2 cohere/north-small-translate",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "chat_completions"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "xkiro-2 cohere/tiny-aya-earth",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "chat_completions"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "xkiro-2 cohere/tiny-aya-fire",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "chat_completions"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "xkiro-2 cohere/tiny-aya-global",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "chat_completions"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "xkiro-2 cohere/tiny-aya-water",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "chat_completions"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "xkiro-2 dots-studio/dots-3-note-preview:free",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "chat_completions"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "xkiro-2 inclusionai/ling-3.0-flash-sante:free",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "chat_completions"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "xkiro-2 liquid/lfm-2.5-2.6b:free",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "chat_completions"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "xkiro-2 meta/muse-spark-1.3-contributor:free",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "chat_completions"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "xkiro-2 moonshotai/kimi-k2.7-code-highspeed",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "chat_completions"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "xkiro-2 moonshotai/kimi-k2.8-preview",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "chat_completions"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "xkiro-2 moonshotai/kimi-k3-256k",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "chat_completions"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "xkiro-2 openai/gpt-6-luna",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "chat_completions"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "xkiro-2 openai/gpt-6-sol",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "chat_completions"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "xkiro-2 openai/gpt-6.1-sol",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "chat_completions"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "xkiro-2 stealth/pixel-canary:free",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "chat_completions"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "xkiro-2 stealth/space-bunny-alpha:free",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "chat_completions"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "xkiro-2 x-ai/grok-4.7",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "chat_completions"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "xkiro-2 xiaomi/mimo-v2.6-flash",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "chat_completions"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "xkiro-2 xiaomi/mimo-v2.6-flash:free",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "chat_completions"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  },
+  {
+   "table": "models.jsonl",
+   "lane": "xkiro-2 xiaomi/mimo-v2.6-pro",
+   "fields": {
+    "api_type": {
+     "before": null,
+     "after": "chat_completions"
+    },
+    "data_class": {
+     "before": null,
+     "after": "unknown"
+    },
+    "lifecycle_checked_at": {
+     "before": null,
+     "after": "2026-10-01"
+    },
+    "lifecycle_source": {
+     "before": null,
+     "after": "TR-197 null-census fill 2026-10-01: explicit unknown stamp (Bane doctrine: unknown != missing); matches the xkiro provider_import convention data_class=\"unknown\" for an unverified data-handling class"
+    }
+   }
+  }
+ ]
+}
