@@ -11,7 +11,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 20  # RELEASE-005: full suite outgrew 10m — runs on e14b744+ were cancelled mid-suite
+    timeout-minutes: 45  # RELEASE-005: full suite outgrew 10m — runs on e14b744+ were cancelled mid-suite. INT-CI-20261002-01: the guard-parity step now REALLY runs (guard script works in CI since 6060e9a), so the job fits TWO full-suite runs (~19 min each on runners) — 45 min covers both + setup.
     steps:
       - uses: actions/checkout@v4
         with:
