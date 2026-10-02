@@ -1500,7 +1500,7 @@
 {"model": "gpt-5.5", "category": "schema", "perf": 0.5, "source": "bench", "source_ref": "bench:battery-T2-CODE"}
 {"model": "gpt-5.5", "category": "test", "perf": 0.72, "source": "estimate", "source_ref": "CATEGORY_ESTIMATES"}
 {"model": "gpt-5.5", "category": "tool_use", "perf": 0.5, "source": "bench", "source_ref": "bench:T1-TOOL"}
-{"model": "gpt-5.6-luna", "category": "agent_tick", "perf": 0.75, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/AGENT-TICK"}
+{"model": "gpt-5.6-luna", "category": "agent_tick", "perf": 0.75, "source": "bench", "source_ref": "bench:AA Coding Agent Index"}
 {"model": "gpt-5.6-luna", "category": "code_gen", "perf": 0.667, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/T2-CODE"}
 {"model": "gpt-5.6-luna", "category": "debug", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/T5-DEBUG"}
 {"model": "gpt-5.6-luna", "category": "delegation", "perf": 0.75, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/DELEGATION"}

@@ -561,6 +561,7 @@
 {"model": "gpt-5.5", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
 {"model": "gpt-5.6-luna", "category": "agent-tick", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
 {"model": "gpt-5.6-luna", "category": "agent_tick", "score": 0.746, "max_score": 1.0, "source": "AA Coding Agent Index research-bench-2026-09-07", "valid_from": "2026-09-07"}
+{"model": "gpt-5.6-luna", "category": "agent_tick", "score": 0.75, "max_score": 1.0, "source": "AA Coding Agent Index research-bench-2026-10-02: refresh — AA article restates Luna(max)=75 with ~80% per-task cost reduction vs Sol. Confirms the cheapest-acceptable value story: luna normalized $0.067 vs sol $0.40 on the codex lane.", "valid_from": "2026-10-02"}
 {"model": "gpt-5.6-luna", "category": "agent_tick", "score": 0.75, "max_score": 1.0, "source": "live-probe-2026-09-27/AGENT-TICK: agentic deterministic battery (agent_tick 3/4, n=1 small-probe, NOT large-bench)", "valid_from": "2026-09-27"}
 {"model": "gpt-5.6-luna", "category": "code_gen", "score": 0.667, "max_score": 1.0, "source": "live-probe-2026-09-27/T2-CODE: v5 deterministic battery (T2-CODE 2/3, n=1 small-probe, NOT large-bench)", "valid_from": "2026-09-27"}
 {"model": "gpt-5.6-luna", "category": "debug", "score": 1.0, "max_score": 1.0, "source": "live-probe-2026-09-27/T5-DEBUG: v5 deterministic battery (T5-DEBUG 3/3, n=1 small-probe, NOT large-bench)", "valid_from": "2026-09-27"}
@@ -585,6 +586,7 @@
 {"model": "gpt-5.6-sol", "category": "agent-tick", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
 {"model": "gpt-5.6-sol", "category": "agent_tick", "score": 0.75, "max_score": 1.0, "source": "live-probe-2026-09-27/AGENT-TICK: agentic deterministic battery (agent_tick 3/4, n=1 small-probe, NOT large-bench)", "valid_from": "2026-09-27"}
 {"model": "gpt-5.6-sol", "category": "agent_tick", "score": 0.8, "max_score": 1.0, "source": "AA Coding Agent Index research-bench-2026-09-07", "valid_from": "2026-09-07"}
+{"model": "gpt-5.6-sol", "category": "agent_tick", "score": 0.8, "max_score": 1.0, "source": "AA Coding Agent Index research-bench-2026-10-02: refresh of the 09-07 rows — AA article 'GPT-5.6 has landed' restates Sol(max)=80, new SOTA +2.8 over Fable 5, <half output tokens and <half time vs Fable 5. Standing CONFIRMED, no tier movement expected (existing derived 0.88).", "valid_from": "2026-10-02"}
 {"model": "gpt-5.6-sol", "category": "code_gen", "score": 0.667, "max_score": 1.0, "source": "live-probe-2026-09-27/T2-CODE: v5 deterministic battery (T2-CODE 2/3, n=1 small-probe, NOT large-bench)", "valid_from": "2026-09-27"}
 {"model": "gpt-5.6-sol", "category": "debug", "score": 1.0, "max_score": 1.0, "source": "live-probe-2026-09-27/T5-DEBUG: v5 deterministic battery (T5-DEBUG 3/3, n=1 small-probe, NOT large-bench)", "valid_from": "2026-09-27"}
 {"model": "gpt-5.6-sol", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
@@ -616,6 +618,7 @@
 {"model": "gpt-5.6-sol", "category": "test", "score": 1.0, "max_score": 1.0, "source": "live-probe-2026-09-27/TEST: agentic deterministic battery (test 4/4, n=1 small-probe, NOT large-bench)", "valid_from": "2026-09-27"}
 {"model": "gpt-5.6-sol", "category": "tool_use", "score": 1.0, "max_score": 1.0, "source": "live-probe-2026-09-27/T1-TOOL: v5 deterministic battery (T1-TOOL 3/3, n=1 small-probe, NOT large-bench)", "valid_from": "2026-09-27"}
 {"model": "gpt-5.6-terra", "category": "agent-tick", "score": 1.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
+{"model": "gpt-5.6-terra", "category": "agent_tick", "score": 0.77, "max_score": 1.0, "source": "AA Coding Agent Index research-bench-2026-10-02: refresh — AA article restates Terra(max)=77 with ~60% per-task cost reduction vs Sol. Standing CONFIRMED (existing derived 0.774).", "valid_from": "2026-10-02"}
 {"model": "gpt-5.6-terra", "category": "agent_tick", "score": 0.774, "max_score": 1.0, "source": "AA Coding Agent Index research-bench-2026-09-07", "valid_from": "2026-09-07"}
 {"model": "gpt-5.6-terra", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
 {"model": "gpt-5.6-terra", "category": "debug", "score": 3.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}

@@ -183,6 +183,14 @@ POST_DEDUPE_ADDITIONS = {
     ("clinepass", "gpt-6.1-sol-pro:batch"): "TR-217 (2026-09-30 clinepass API sync)",
     ("clinepass", "gpt-6.1-sol:batch"): "TR-217 (2026-09-30 clinepass API sync)",
     ("openai-codex", "gpt-6.1-sol"): "TR-217 (2026-09-30 models.dev sync)",
+    # 2026-10-02 pre-run syncs: models.dev +2 (openrouter apodex :free +
+    # pareto-26.10-preview, both paid-sticker priced except the :free twin)
+    # and clinepass API +2 (apodex-1.1-mini:free discount row +
+    # pareto-26.10-preview, the latter quality-disabled on import).
+    ("clinepass", "apodex-1.1-mini:free"): "TR-217 (2026-10-02 clinepass API sync)",
+    ("clinepass", "pareto-26.10-preview"): "TR-217 (2026-10-02 clinepass API sync)",
+    ("openrouter", "apodex/apodex-1.1-mini:free"): "TR-217 (2026-10-02 models.dev sync)",
+    ("openrouter", "unbiased/pareto-26.10-preview"): "TR-217 (2026-10-02 models.dev sync)",
     ("xkiro", "dots-studio/dots-3-note-preview:free"): "TR-217 (3a88c97)",
     ("xkiro", "inclusionai/ling-3.0-flash-sante:free"): "TR-217 (3a88c97)",
     ("xkiro", "liquid/lfm-2.5-2.6b:free"): "TR-217 (3a88c97)",
