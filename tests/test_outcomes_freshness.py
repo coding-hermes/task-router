@@ -82,3 +82,39 @@ def test_main_prints_the_contract_line(tmp_path, capsys, monkeypatch):
     out = capsys.readouterr().out
     assert rc == 0
     assert any(l.startswith('OK: every present source') for l in out.splitlines()), out
+
+
+def test_opencode_probe_filters_to_assistant_rows(tmp_path, monkeypatch):
+    """TR-259: the probe must measure the same rows the importer imports.
+
+    The importer turns ASSISTANT messages into outcome rows. A probe that reads
+    MAX(time_updated) over ALL rows counts user/build metadata written after
+    the last assistant turn and manufactures a permanent false lag over an idle
+    source (measured live 2026-10-02: source "108h behind" while fully
+    imported). An assistant-shaped DB must probe CURRENT; the same DB plus a
+    newer user-only row must STILL probe CURRENT — that user row is not meter
+    data and no importer can ever convert it.
+    """
+    import sqlite3
+
+    ASSISTANT_MS = int((NOW - 3600) * 1000)   # newest importable row, 1h old
+    USER_MS = int((NOW - 60) * 1000)          # newer metadata-only row
+
+    db = str(tmp_path / 'opencode.db')
+    conn = sqlite3.connect(db)
+    conn.execute('CREATE TABLE message (id text, time_created integer,'
+                 ' time_updated integer, data text)')
+    conn.execute('INSERT INTO message VALUES (?,?,?,?)',
+                 ('m1', ASSISTANT_MS, ASSISTANT_MS,
+                  json.dumps({'role': 'assistant', 'providerID': 'router',
+                              'modelID': 'tr-auto', 'tokens': {}})))
+    conn.execute('INSERT INTO message VALUES (?,?,?,?)',
+                 ('m2', USER_MS, USER_MS,
+                  json.dumps({'role': 'user'})))
+    conn.commit()
+    conn.close()
+
+    monkeypatch.setattr(fresh, 'OPENCODE_DB', db)
+    ts, why = fresh._newest_opencode()
+    assert why == 'ok'
+    assert ts == ASSISTANT_MS / 1000.0  # the user row was NOT counted

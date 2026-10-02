@@ -89,7 +89,15 @@ def _newest_opencode():
         return None, 'absent'
     db = sqlite3.connect(f'file:{path}?mode=ro', uri=True)
     try:
-        row = db.execute('SELECT MAX(time_updated) FROM message').fetchone()
+        # TR-259: the importer imports ASSISTANT messages only, so the probe
+        # must measure the same filter. MAX(time_updated) over ALL rows counts
+        # user/build metadata rows that no importer can ever turn into outcome
+        # rows — which manufactures a permanent 100h+ false lag over an idle
+        # source (measured: opencode source 108h "behind" while fully imported).
+        row = db.execute(
+            'SELECT MAX(time_updated) FROM message'
+            " WHERE json_extract(data, '$.role') = 'assistant'"
+        ).fetchone()
     finally:
         db.close()
     ts = _epoch(row[0] if row else None)
