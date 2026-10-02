@@ -20,6 +20,7 @@ set -euo pipefail
 REPO_SCRIPTS="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LIVE_DIR="${HOME}/.hermes/scripts"
 mkdir -p "${LIVE_DIR}"
+drifted=""   # TR-256 drift gate accumulator (set -u: must exist before use)
 
 # --- 1. symlinked tools (subprocess + manual consumers only) ---
 # router_server.py + router_web.py joined TR-017/TR-018 (API+MCP server, web UI):
@@ -100,6 +101,30 @@ for f in provider_health_probe.py router-data-quality.sh fleet-cooldown-policy.p
       echo "SYNCED  ${f} -> copied from repo (byte-identical, mode $want)"
     fi
   fi
+  # ── TR-256 drift gate: the copy step's own verification ────────────────
+  # A copy that silently failed (partial write, wrong target, clobbered by a
+  # concurrent editor between cp and now) must not read as success. This is
+  # the gap dogfood run31 flagged (docs/dogfood/diagnostics.md): the
+  # byte-copy list had no verify mode, so copy-list drift went unnoticed
+  # until consumers hit it. Fail loudly AFTER the loop, listing every file.
+  if ! cmp -s "${REPO_SCRIPTS}/${f}" "${LIVE_DIR}/${f}"; then
+    drifted="${drifted} ${f}"
+    echo "DRIFT   ${f} -> live copy differs from repo after sync"
+  fi
 done
+
+# --- 3. drift gate (TR-256): copy-list files must be byte-identical ---
+# SCHED-PERF-006's sidecar guard above protects fleet-cooldown-policy.py
+# from STALE-REPO CLOBBER (it exits 1 before this gate when live matches
+# the sidecar). This gate covers the complementary failure: the sync ran
+# but live still diverges from repo. Zero drift here = wiring converged.
+if [ -n "${drifted}" ]; then
+  echo "FATAL: copy-list drift (live vs repo) — sync did NOT converge:"
+  for f in ${drifted}; do
+    echo "  diverged: ${LIVE_DIR}/${f}"
+  done
+  echo "  fix: reconcile scripts/<file> with its live copy, re-run sync_runtime.sh"
+  exit 1
+fi
 
 echo "runtime wiring OK"
