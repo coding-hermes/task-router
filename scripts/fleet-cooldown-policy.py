@@ -146,7 +146,11 @@ def _is_convention_lane(name, pin, fleet_pins):
 #            A project that genuinely needs it slower may sit at 259200
 #            (once per 3 days) -- both are sanctioned for releng.
 #   pm     : once a day (86400).
-#   qa     : every 6 hours (21600).
+#   qa     : every 12 hours (43200). RULED 2026-10-02: halved from 6h/4x-a-day
+#            because it was the second-heaviest class on the host (369.7 slot-hours
+#            per week = 32% of the foremen's, for 6% of their commits) and the point
+#            right now is to give the foremen the capacity. The owner flagged
+#            once-a-day (86400) as the likely next step -- change the number here.
 #   sync   : every 6 hours (21600).
 #   perf   : once a week (604800).
 #   dogfood: once every 3 days (259200).
@@ -154,7 +158,7 @@ def _is_convention_lane(name, pin, fleet_pins):
 FAMILY_CANONICAL = {
     '-releng': 86400,
     '-pm': 86400,
-    '-qa': 21600,
+    '-qa': 43200,
     '-sync': 21600,
     '-perf': 604800,
     '-dogfood': 259200,
