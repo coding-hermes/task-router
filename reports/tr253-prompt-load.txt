@@ -1,0 +1,27 @@
+doctrine block in live lane sessions -- window 3.0h, generated 2026-10-02T09:57:00-0500
+ticks spawned in window: 28
+sessions whose first prompt carries the block: 20
+
+  2026-10-02T08:22:38  4fbc6d6a-1379-49d8-8e82-dba435a707ad  role=user  9176 ch  marker=yes
+  2026-10-02T08:22:41  d6b97e00-f83b-4e81-9f8e-577d08e0ca35  role=user  7539 ch  marker=yes
+  2026-10-02T08:22:41  2c2cbc6b-f541-4fb4-95cf-9c7a55826118  role=user  6161 ch  marker=yes
+  2026-10-02T08:22:41  ff202299-e90f-4807-95e0-51106bed5179  role=user  8868 ch  marker=yes
+  2026-10-02T08:22:41  0c926b92-08ec-4d17-8f00-90e91468be12  role=user  7835 ch  marker=yes
+  2026-10-02T08:22:41  d284c172-15b4-4003-933b-dfb1809aac38  role=user  5451 ch  marker=yes
+  2026-10-02T08:22:41  4418893c-0b46-4a19-892f-113bfab6a36d  role=user  7159 ch  marker=yes
+  2026-10-02T08:22:41  5657df1c-9388-4dbd-8736-ad8c801e37fc  role=user  6567 ch  marker=yes
+  2026-10-02T08:22:41  61745791-a2d9-41aa-8b47-d25d4eb67f4d  role=user  3997 ch  marker=yes
+  2026-10-02T08:22:41  0cb1f642-3e65-49e2-ac8c-40cbd5979bb4  role=user  9194 ch  marker=yes
+  2026-10-02T08:22:41  8968ef0a-5e9b-4cd6-b427-e72609acec93  role=user  9168 ch  marker=yes
+  2026-10-02T08:25:26  b430dd57-a10f-4111-9c6f-fa9aec74f057  role=user  4285 ch  marker=yes
+  2026-10-02T08:25:26  b21f2135-31dd-4a14-87a8-248de7a2e1d8  role=user  6538 ch  marker=yes
+  2026-10-02T08:25:26  0ac9d46d-a207-4576-b632-61975d92ee32  role=user  6203 ch  marker=yes
+  2026-10-02T08:28:47  fbaa304c-5310-4acd-b9e8-e61c48f2e504  role=user  4305 ch  marker=yes
+  2026-10-02T08:28:47  ec501e0d-d499-4ce2-85c5-e30b8467f715  role=user  6583 ch  marker=yes
+  2026-10-02T08:29:24  eee4ac18-ecc2-4f07-b4bd-1b6330de6f08  role=user  6028 ch  marker=yes
+  2026-10-02T08:29:38  68ed52e6-2f17-4a5e-a9b0-429aa628e596  role=user  6016 ch  marker=yes
+  2026-10-02T08:29:38  8eb261d0-0d12-4275-b24b-4c248e5f13b9  role=user  7609 ch  marker=yes
+  2026-10-02T08:29:52  296e9a38-0b85-4cc9-9e57-3738eb43eb6d  role=user  6161 ch  marker=yes
+
+verbatim excerpt from the first proven session:
+  ceability-doctrine.md in the repo that owns the work. One recursive grep must find every marker. MARKER (one line, wherever the claim lives -- board row, code header, test, commit footer, report): ch:trace row=<ID> spec=<path#anchor> wave=<manifest#step> test=<path::test> doc=<path> \ prompt=<path> evidence=<artifact-you-produced> witness=<locator-we-cannot-write> \ verdict=<id> commit=<sha> memory=<key> HARD RULES (each one comes from a measured failure, not from taste): 1. row= is MANDATORY. Trace without a work unit is just

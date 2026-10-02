@@ -101,7 +101,7 @@ untagged — the tool reports the contradiction instead of merging it away. That
 problems than any dashboard.
 
 
-<!-- ch:trace row=TR-253 spec=docs/traceability-doctrine.md wave=task-router-2026-10-01#trace doc=~/.hermes/skills/coding-hermes-traceability/SKILL.md evidence=docs/traceability-doctrine.md witness=none:prompt-loading-not-yet-verified -->
+<!-- ch:trace row=TR-253 spec=docs/traceability-doctrine.md wave=task-router-2026-10-01#trace doc=~/.hermes/skills/coding-hermes-traceability/SKILL.md evidence=reports/tr253-prompt-load.txt witness=gateway:state.db@sessions-20-post-change -->
 
 ## Verification
 
