@@ -1,0 +1,26 @@
+{
+  "tick_id": "task-router-foreman-2026-10-02-23-25-24",
+  "project": "task-router",
+  "wave_budget": 8,
+  "created_at": "2026-10-02T23:40:00-05:00",
+  "workers": [
+    {
+      "row": "TR-259",
+      "title": "outcomes-import RED: freshness probe reads MAX(time_updated) over all message rows but the importer filters assistant-only",
+      "worktree": "/home/kara/task-router",
+      "branch": "main (foreman-implemented, trivial one-file fix; root cause already proven by foreman)",
+      "base_sha": "108a79c",
+      "files": ["scripts/router_outcomes_freshness.py", "tests/"]
+    },
+    {
+      "row": "TR-260",
+      "title": "66 enabled lanes missing from the registry (ROUTER-MISS): foreman/guard/mischief/monitoring/qa-audit families",
+      "worktree": "/home/kara/worktrees/task-router-TR-260",
+      "branch": "wt/TR-260",
+      "base_sha": "108a79c",
+      "files": ["data/tables/projects.jsonl", "scripts/router_seed.py", "tests/"]
+    }
+  ],
+  "independence_note": "Disjoint file sets (freshness probe vs registry seed tables); no depends_on edges between the rows.",
+  "recovery_note": "Pre-dispatch recovery of wave task-router-foreman-2026-10-02-21-10-30 completed: wt/TR-255 (2d41457) and wt/TR-256 (e5730f1) verified ancestors of origin/main, board rows complete, worktrees/branches reaped, manifest finished_at set."
+}

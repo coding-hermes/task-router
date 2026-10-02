@@ -10,7 +10,11 @@
       "worktree": "/home/kara/worktrees/task-router-TR-256",
       "branch": "wt/TR-256",
       "base_sha": "849359d",
-      "files": ["scripts/fleet-cooldown-policy.py", "scripts/router_health.py", "scripts/sync_runtime.sh"]
+      "files": [
+        "scripts/fleet-cooldown-policy.py",
+        "scripts/router_health.py",
+        "scripts/sync_runtime.sh"
+      ]
     },
     {
       "row": "TR-255",
@@ -18,8 +22,20 @@
       "worktree": "/home/kara/worktrees/task-router-TR-255",
       "branch": "wt/TR-255",
       "base_sha": "849359d",
-      "files": ["Makefile", "scripts/router_stale_watchdog.py", "README.md", "docs/"]
+      "files": [
+        "Makefile",
+        "scripts/router_stale_watchdog.py",
+        "README.md",
+        "docs/"
+      ]
     }
   ],
-  "independence_note": "No depends_on edges between rows; file sets disjoint by design (TR-255 must NOT edit scripts/sync_runtime.sh — its restart step lives in a make target)."
+  "independence_note": "No depends_on edges between rows; file sets disjoint by design (TR-255 must NOT edit scripts/sync_runtime.sh — its restart step lives in a make target).",
+  "finished_at": "2026-10-03T00:00:00-05:00",
+  "recovery": {
+    "verified_by": "task-router-foreman-2026-10-02-23-25-24",
+    "branches_ancestors_of_origin_main": true,
+    "board_rows": "TR-255,TR-256 complete",
+    "worktrees_removed": true
+  }
 }
