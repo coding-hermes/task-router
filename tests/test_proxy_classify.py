@@ -25,7 +25,7 @@ def test_prompt_is_a_versioned_file():
     assert 'v1' in os.path.basename(p)
 
 
-def test_categories_are_data_driven_not_hardcoded(tmp_path):
+def test_categories_are_data_driven_not_hardcoded(tmp_path, seeded_registry_path):
     """The vocabulary follows the DATA, proven hermetically.
 
     Previously this read the registry through the env hook (ROUTING_REGISTRY),
@@ -41,9 +41,12 @@ def test_categories_are_data_driven_not_hardcoded(tmp_path):
     assert rc.registry_categories(str(reg)) == ['alpha_cat', 'beta_cat']
     assert rc.registry_categories(str(tmp_path / 'missing.json')) == []
 
-    # the shipped registry carries the real fleet vocabulary (explicit path,
-    # so no env hook can redirect this assertion)
-    live = rc.registry_categories(os.path.join(rc.REPO, 'registry.json'))
+    # the fleet vocabulary comes from the COMMITTED tables via the session
+    # seed, passed as an explicit path (TR-175): the old form read the
+    # generated <repo>/registry.json through rc's own fallback, which a
+    # fresh clone/worktree does not have — the assertion silently degraded
+    # to `in []` there and failed instead of testing the vocabulary.
+    live = rc.registry_categories(seeded_registry_path)
     assert 'code_gen' in live and 'security' in live and len(live) > 10
 
 

@@ -665,3 +665,11 @@ tasks:
   status: complete
   created_at: '2026-10-01T12:08:59.684667+00:00'
   completed_at: '2026-10-01T13:06:50.132438+00:00'
+- id: TR-175
+  title: gitreins guard test isolation + budget
+  criteria:
+  - guard completes within budget AND the previously-failing test passes under the
+    guard AND a regression test pins the fix
+  status: complete
+  created_at: '2026-10-02T02:37:57.831828+00:00'
+  completed_at: '2026-10-02T04:54:40.811975+00:00'

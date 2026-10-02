@@ -4,14 +4,27 @@ guards:
   tests: true
   # full, not diff: the daily data-quality commits are data-only (data/tables/*.jsonl),
   # diff mode finds no test files for them, skips the tests lane and returns DEGRADED
-  # PASS (= refusal). Full mode grades the whole tree (~220s, 330 tests).
+  # PASS (= refusal). Full mode grades the whole tree conclusively. (For a custom
+  # non-pytest test_command diff mode cannot narrow anything anyway — gitreins
+  # runs it verbatim — so `full` is the honest mode here: f792a7b.)
   test_mode: full
-  # suite is ~275s since the TR-039 hermetic-seed tests landed; the 180s default
-  # made every commit fail as "Tests timed out" (2026-09-16)
-  test_timeout: 900
+  # TR-175: the suite grew to 1443 collected tests (1356 test functions,
+  # many parametrized). Measured full runs: 917s in CI
+  # (ubuntu-latest, run 36953390462, 2026-10-01) and ~2045-2244s on the dev
+  # box at loadavg 26-44. Budget ladder: the guard script's own clock
+  # (GUARD_SUITE_TIMEOUT=2400, scripts/gitreins-guard-tests.sh) must fire
+  # FIRST — a script-timeout exit is a loud, graded FAILURE — and the
+  # gitreins budgets envelope it. The old 900/700 pair predated the suite's
+  # growth (comment below still said ~275s): the hook clock expired
+  # mid-suite and the guard FAILED OPEN ("commit allowed to proceed"),
+  # so commits landed on trees nobody graded. Keep the ladder monotone when
+  # touching any of the three numbers.
+  test_timeout: 3000
   # overall hook budget must exceed test_timeout — the 300s default made the
-  # first full-mode data commit fail-open at 300s (2026-09-17, f792a7b)
-  hook_timeout: 700
+  # first full-mode data commit fail-open at 300s (2026-09-17, f792a7b), and
+  # the 700s value sat BELOW test_timeout 900 (inverted ladder) with the same
+  # fail-open result once the suite passed 700s (fixed 2026-10, TR-175)
+  hook_timeout: 3600
   test_command: ./scripts/gitreins-guard-tests.sh
   static_analysis: false
 evaluator:

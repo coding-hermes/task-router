@@ -99,16 +99,25 @@ def test_outcomes_and_averages_gitignored():
     assert 'data/state/outcomes-averages.jsonl' in text
 
 
-def test_profile_signature_is_declared_category_levels():
+def test_profile_signature_is_declared_category_levels(seeded_registry_path):
     """Bane: complexity = the task's CATEGORIES (per-category required levels),
     not a scalar. The signature must come from the registry's
-    task_profile_requirements — never invented."""
-    sig = ro.profile_signature('P4_SECURITY')
+    task_profile_requirements — never invented.
+
+    TR-175: the expected levels live in the COMMITTED tables
+    (data/tables/task_profile_requirements.jsonl); the registry is built from
+    them per session and passed as an EXPLICIT path. The old form relied on
+    the generated <repo>/registry.json fallback — gitignored machine state a
+    fresh clone or worktree does not have, so this test failed under the bare
+    guard run while CI (which seeds first) stayed green.
+    """
+    sig = ro.profile_signature('P4_SECURITY', registry_path=seeded_registry_path)
     assert sig is not None
     assert sig == {'guard': 0, 'review': 0, 'security': 2}
-    p1 = ro.profile_signature('P1_CODING')
+    p1 = ro.profile_signature('P1_CODING', registry_path=seeded_registry_path)
     assert 'code_gen' in p1 and 'refactor' in p1
-    assert ro.profile_signature('P_DOES_NOT_EXIST') is None  # unknown -> None, not fake
+    assert ro.profile_signature('P_DOES_NOT_EXIST',
+                                registry_path=seeded_registry_path) is None  # unknown -> None, not fake
 
 
 # ---------------------------------------------------------------------------
