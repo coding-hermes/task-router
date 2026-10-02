@@ -115,6 +115,11 @@ The server caches classification results to reduce redundant API calls.
 | `ROUTER_RETIRE_WARN_DAYS` | `router_spawn.py` | Warn when a provider/model has not been seen in the registry for this many days | `14` |
 | `ROUTER_SORT_MIN_COVERAGE` | `router_spawn.py` | Minimum fraction of measured prices required before sorting by effective price (prevents sorting on sparse data) | `0.5` |
 | `ROUTER_SORT_MIN_SAMPLES` | `router_spawn.py` | Minimum number of price samples required before sorting by effective price | `3` |
+| `ROUTER_SORT_BLEND_CEIL` | `router_spawn.py` | TR-174 blend ceiling: lanes with fewer samples than this rank on the blended value (shrunk toward list price) instead of the raw mean | `9` |
+| `ROUTER_SORT_BLEND_WEIGHT` | `router_spawn.py` | TR-174 blend weight W: the list-price pseudo-count in `(n*measured + W*list)/(n+W)` (0 restores raw means) | `5` |
+| `ROUTER_SORT_COMPLETION_FLOOR` | `router_spawn.py` | TR-174 floor for the completion divisor: measured cost is divided by `max(success_rate, floor)` so cheap-but-failing lanes lose value | `0.1` |
+| `ROUTER_SORT_EXPLORE_SHARE` | `router_spawn.py` | TR-174 exploration share of resolves that probe the stalest low-traffic lane (deterministic crc32 gate on the task key; `0` disables — the fleet default) | `0.0` |
+| `ROUTER_SORT_EXPLORE_MIN_AGE_H` | `router_spawn.py` | TR-174 aging window: a lane whose last outcome is older than this may be selected for exploration | `24` |
 
 ---
 

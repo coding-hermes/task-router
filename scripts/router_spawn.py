@@ -54,7 +54,7 @@ scheduler must NEVER be blocked by the router.
 --format json = PURE JSON on stdout, every path (TR-046 dogfood): diagnostics
 go to stderr; the no-input usage line and --list-profiles also emit JSON.
 """
-import json, os, sys, argparse, datetime, contextlib
+import json, os, sys, argparse, contextlib, datetime, time, zlib
 
 # Chain truncation cap (default). 2026-09-10 RCA: a cap below the eligible lane
 # count silently drops the price-sorted TAIL from every resolve (deepseek-foreman
@@ -1133,6 +1133,15 @@ def outcome_note(m, ctx):
         note['avg_tokens_out'] = row.get(f'avg_tokens_out_{window}h')
         note['avg_tokens_total'] = row.get(f'avg_tokens_total_{window}h')
         note['success_rate'] = row.get('success_rate')
+    # TR-174: the WIN reason. The sort factories record WHY their head won
+    # (mode, expected cost + basis, blend weight, completion term) in
+    # ctx['_win_reason'] keyed by (provider, model); only the chosen head's
+    # record is copied — the losers' records stay in the sort basis where the
+    # per-lane audit already lives. Absent for the price sort (no claim, never
+    # a fabricated record).
+    win = (ctx.get('_win_reason') or {}).get((m.get('provider'), m.get('model')))
+    if win is not None:
+        note['selection'] = dict(win)
     return note
 
 
@@ -1274,6 +1283,335 @@ def _sort_predicted_cost_per_task(arg, lanes, ctx):
 
     ctx['_sort_basis'] = basis
     ctx['_sort_measurements'] = measured
+    return key
+
+
+# ===================================================== TR-174 value ledger ====
+# Per-task VALUE ledger on top of the TR-183 measured floor: a lane that clears
+# the floor but is thin still carries sampling noise, so its measured cost
+# shrinks toward the LIST price (empirical-Bayes blending, feature 1); a cheap
+# lane that fails its tasks never scores as value, so the measured cost is
+# divided by the observed completion rate (feature 2); a lane that has gone
+# quiet can be probed deliberately — a deterministic, hash-gated exploration
+# floor so low-traffic lanes keep refreshing their sample (feature 3); and
+# every winning lane carries a machine-readable selection record so a resolve
+# response explains its own head (feature 4).
+#
+# All of it is OFF on the fleet default: DEFAULT_SORT stays 'price' (the TR-183
+# guard), and the exploration share defaults to 0.0. The ledger is reachable
+# only via --sort predicted_cost_per_task (or ROUTER_SPAWN_SORT).
+
+#: TR-174 feature 1: lanes with n below this ceiling rank on a BLENDED value
+#: (n*measured + W*list) / (n + W) instead of the raw mean — the blend weight W
+#: is the pseudo-count of list-price belief. At n >= ceiling the measurement
+#: stands alone. Settable per spec (`predicted_cost_per_task:3:0.5:8`) or env.
+BLEND_CEIL_SAMPLES = int(os.environ.get('ROUTER_SORT_BLEND_CEIL') or 9)
+BLEND_WEIGHT = float(os.environ.get('ROUTER_SORT_BLEND_WEIGHT') or 5)
+
+
+def _blend_cfg(spec):
+    """(ceil, weight) from the optional 3rd/4th spec fields, env defaults.
+
+    A blend pseudo-count of 0 == raw measured means (the pre-TR-174 behaviour).
+    """
+    ceil_n, weight = BLEND_CEIL_SAMPLES, BLEND_WEIGHT
+    for i, cast in ((2, int), (3, float)):
+        if i < len(spec) and spec[i] not in ('', 'None'):
+            try:
+                v = cast(spec[i])
+                if i == 2:
+                    ceil_n = max(0, v)
+                else:
+                    weight = max(0.0, v)
+            except ValueError:
+                pass  # malformed spec field -> the env/default stands
+    return ceil_n, weight
+
+
+#: TR-174 feature 2: a cheap lane that FAILS its tasks never scores as value —
+#: the measured cost is divided by the observed completion rate, floored so a
+#: 0%-complete lane cannot claim infinite value by dividing by zero.
+COMPLETION_RATE_FLOOR = float(os.environ.get('ROUTER_SORT_COMPLETION_FLOOR') or 0.1)
+
+
+def completion_term(row):
+    """(effective_cost_or_None, reason) — divide a measured cost by the row's
+    observed completion rate (cost per COMPLETED task). Absent success data is
+    reported, never guessed as 1.0: basis 'no-completion-term' and the division
+    is skipped."""
+    rate = (row or {}).get('success_rate')
+    if not isinstance(rate, (int, float)) or isinstance(rate, bool):
+        return None, 'no-completion-term'
+    rate = max(float(rate), COMPLETION_RATE_FLOOR)
+    return rate, 'success_rate'
+
+
+#: TR-174 feature 3: the exploration floor. Off by default (share 0.0 = the
+#: fleet chain order is untouched); opt in via ROUTER_SORT_EXPLORE_SHARE
+#: (0 < share <= 1). A lane whose most recent outcome is older than
+#: ROUTER_SORT_EXPLORE_MIN_AGE_H may be probed EVEN IF it is not the cheapest:
+#: when hash(task_key) % 1000 < share*1000, the probe lane wins. The pick is
+#: deterministic and auditable — the lane with the FEWEST in-window samples
+#: among the stale ones, ties broken by price then name — no RNG anywhere.
+EXPLORE_SHARE = float(os.environ.get('ROUTER_SORT_EXPLORE_SHARE') or 0.0)
+EXPLORE_MIN_AGE_H = float(os.environ.get('ROUTER_SORT_EXPLORE_MIN_AGE_H') or 24)
+
+
+def _lane_last_outcome_age_h(provider, model, ctx):
+    """(age_h, source) since the lane's most recent outcome row, or (None,
+    reason). Scans the RAW outcome store once per resolve (cached on ctx) —
+    the averages rows carry no timestamp, so the store is the only witness.
+    Fail-open: an unreadable store means 'unknown age', never a resolve error."""
+    cache = ctx.setdefault('_explore_cache', {})
+    if 'ages' in cache:
+        return cache['ages'].get((provider, model)), cache.get('source')
+    ages, source = {}, None
+    try:
+        import router_outcomes
+        path = router_outcomes.outcomes_path()
+        source = path
+        newest = {}
+        with open(path) as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    r = json.loads(line)
+                except ValueError:
+                    continue
+                if not isinstance(r, dict):
+                    continue
+                key = (r.get('provider'), r.get('model'))
+                ts = r.get('ts')
+                if not isinstance(ts, (int, float)) or isinstance(ts, bool):
+                    continue
+                if ts > newest.get(key, 0.0):
+                    newest[key] = float(ts)
+        now = time.time()
+        for key, ts in newest.items():
+            ages[key] = max(0.0, (now - ts) / 3600.0)
+    except Exception:  # noqa: BLE001 — exploration is optional; fail-open
+        source = 'outcomes-unreadable'
+    cache['ages'], cache['source'] = ages, source
+    return ages.get((provider, model)), source
+
+
+def _explore_pick(lanes, ctx, min_age_h):
+    """The exploration lane: fewest in-window samples among lanes older than
+    the aging threshold; ties by (price, provider, model) so the pick is
+    reproducible. (lane, None) — or (None, reason) when nothing qualifies."""
+    stale = []
+    for m in lanes:
+        age, _src = _lane_last_outcome_age_h(m.get('provider'), m.get('model'), ctx)
+        if age is not None and age >= min_age_h:
+            stale.append(m)
+    if not stale:
+        return None, 'no-lane-older-than-window'
+    return min(stale, key=lambda m: (
+        _lane_sample_n(m, ctx),
+        _effective_price(m),
+        m.get('provider') or '', m.get('model') or '')), None
+
+
+def _lane_sample_n(m, ctx):
+    """The lane's in-window sample count (0 when unmeasured — never None)."""
+    _v, prov = lane_metric(m, ctx, 'cost')
+    n = (prov or {}).get('n_samples')
+    return n if isinstance(n, int) else 0
+
+
+def lane_expected_value(m, ctx, floor, blend_ceil, blend_w):
+    """(value, basis) — the lane's expected cost per COMPLETED task (the TR-174
+    ranking value; exploration adds a separate head-selection gate).
+
+    Basis ladder, most- to least-evidenced:
+      measured   n >= ceiling, completion term absent  -> raw mean stands
+      measured-completed  n >= ceiling, rate applied
+      blended    floor <= n < ceiling                  -> shrunk toward list
+      blended-completed   blended AND rate applied
+    Below the floor: (None, {'basis': 'below-floor'| 'no-sample'}) — unchanged
+    from TR-183; the caller falls back to the list-price rank with the reason.
+    """
+    value, base = measured_basis(m, ctx, floor)
+    n = base.get('n_samples') or 0
+    if value is None:
+        return None, base  # basis carries no-sample / below-floor already
+    # The completion term uses the SAME row the mean came from (lane_stats'
+    # resolution ladder), so a complexity-matched mean is never divided by an
+    # unconditioned bucket's rate.
+    row, _match = lane_stats(ctx.get('index') or {}, m.get('provider'),
+                             m.get('model'), ctx.get('keys'))
+    rate, rate_reason = completion_term(row)
+    if rate is not None:
+        value = value / rate
+    tag = 'completed' if rate is not None else 'raw'
+    if n >= blend_ceil:
+        return value, dict(base, basis=f'measured-{tag}',
+                           completion_term=rate_reason)
+    shrunk = ((n * value) + blend_w * _effective_price(m)) / (n + blend_w) \
+        if (n + blend_w) > 0 else _effective_price(m)
+    return shrunk, dict(base, basis=f'blended-{tag}',
+                        blend_weight=blend_w, blend_ceil=blend_ceil,
+                        completion_term=rate_reason)
+
+
+def _sort_predicted_cost_per_task(arg, lanes, ctx):
+    """Cheapest measured cost PER COMPLETED TASK first — for lanes that clear the sample
+    floor, and ONLY when enough of the chain is measured to make the ordering evidence
+    rather than a head-swap. Unknown is not free and one sample is not evidence (TR-183).
+
+    MEASURED ON THE LIVE STORE: with the floor at 3, 2 of 65 lanes carried a usable
+    measured cost and the head moved (luna -> mistral-large) on those two; at floor 1 it
+    was 4 lanes and a different head; at floor 10, one lane and a third head. A "better
+    ordering" decided by 3 of 65 candidates is a coin flip wearing a lab coat, so the
+    ordering must CLEAR A COVERAGE BAR or it degrades to price and says why. The bar is
+    MEASURED_MIN_COVERAGE (0.5 by default), settable via ROUTER_SORT_MIN_COVERAGE or the
+    spec's second field (`predicted_cost_per_task:3:0.2`); 0 disables the gate for an
+    experiment, which the response then reports as such.
+
+    TR-174 extends the ladder WITHOUT changing its entry conditions: lanes above the
+    floor blend toward list price until they clear the blend ceiling (feature 1), the
+    cost is divided by the observed completion rate when the row carries one (feature
+    2), a hash-gated share of resolves probes the stalest low-traffic lane (feature 3,
+    default OFF), and the head's win reason is recorded for audit (feature 4).
+
+    Whether the ordering is worth APPLYING is a doctrine call (the default sort stays
+    `price`); whether its evidence can carry that decision is not - that part is measured.
+    """
+    try:
+        return _tr174_sort(arg, lanes, ctx)
+    except Exception as exc:  # noqa: BLE001 — fail-open: never block a resolve
+        ctx = ctx if isinstance(ctx, dict) else {}
+        ctx['_sort_basis'] = {'sort': 'predicted_cost_per_task',
+                              'effective': 'price', 'reason': f'tr174-error: {exc}'}
+        return _legacy_sort_key
+
+
+def _tr174_sort(arg, lanes, ctx):
+    """The TR-174 predicted_cost_per_task factory body (see the wrapper above)."""
+    ctx = ctx if isinstance(ctx, dict) else {}
+    floor, min_cov = MEASURED_MIN_SAMPLES, MEASURED_MIN_COVERAGE
+    parts = str(arg if arg not in (None, '') else '').split(':')
+    if parts and parts[0] not in ('', 'None'):
+        try:
+            floor = int(parts[0])
+        except ValueError:
+            pass
+    if len(parts) > 1 and parts[1] not in ('', 'None'):
+        try:
+            min_cov = float(parts[1])
+        except ValueError:
+            pass
+    blend_ceil, blend_w = _blend_cfg(parts)
+    floor = max(0, floor)
+    min_cov = max(0.0, min_cov)
+
+    # Pre-pass: compute each candidate's basis ONCE, decide the ordering, THEN rank. Sorting
+    # on side effects of the key function would make the result depend on call order.
+    basis_by_lane, expected = {}, {}
+    for m in lanes:
+        value, b = lane_expected_value(m, ctx, floor, blend_ceil, blend_w)
+        key0 = (m.get('provider'), m.get('model'))
+        basis_by_lane[key0] = (value, b)
+        expected[key0] = b
+    ranked = sum(1 for v, _b in basis_by_lane.values() if v is not None)
+    lanes_n = len(basis_by_lane)
+    coverage = (ranked / lanes_n) if lanes_n else 0.0
+    use_measured = bool(lanes_n) and coverage >= min_cov
+
+    # TR-174 feature 3: the exploration gate — evaluated BEFORE the ranking so
+    # a probe can win the head even when it would not have ranked first.
+    explore_lane, explore_reason = None, 'disabled'
+    explore_share = EXPLORE_SHARE
+    if len(parts) > 4 and parts[4] not in ('', 'None'):
+        try:
+            explore_share = max(0.0, min(1.0, float(parts[4])))
+        except ValueError:
+            pass
+    task_key = ctx.get('task_key')
+    if explore_share > 0.0 and task_key and lanes_n:
+        gate = zlib.crc32(str(task_key).encode('utf-8')) % 1000
+        in_share = gate < int(round(explore_share * 1000))
+        if in_share:
+            explore_lane, explore_reason = _explore_pick(lanes, ctx, EXPLORE_MIN_AGE_H)
+        else:
+            explore_reason = 'hash-out-of-share'
+    elif explore_share > 0.0:
+        explore_reason = 'no-task-key'
+
+    basis = {'sort': 'predicted_cost_per_task', 'floor_samples': floor,
+             'coverage': round(coverage, 4), 'min_coverage': min_cov,
+             'ranked_on_measurement': ranked, 'fell_back_to_price': lanes_n - ranked,
+             'lanes': lanes_n, 'effective': 'measured' if use_measured else 'price',
+             'blend_ceiling_samples': blend_ceil, 'blend_weight': blend_w,
+             'explore_share': explore_share, 'explore_reason': explore_reason}
+    if explore_lane is not None:
+        basis['explore_lane'] = f'{explore_lane.get("provider")}/{explore_lane.get("model")}'
+    if not use_measured:
+        basis['reason'] = 'no-lanes' if not lanes_n else 'below-coverage-floor'
+
+    win_reason = {}
+    explore_key0 = ((explore_lane.get('provider'), explore_lane.get('model'))
+                    if explore_lane is not None else None)
+
+    def key(m):
+        key0 = (m.get('provider'), m.get('model'))
+        # TR-174 feature 3: the probe lane wins the head outright — ahead of
+        # every ranked lane ((0, -1.0) sorts before any (0, value >= 0)) — so
+        # the resolve actually EXERCISES the lane it chose to explore.
+        if explore_key0 is not None and key0 == explore_key0:
+            return (0, -1.0)
+        value, _b = basis_by_lane.get(key0, (None, None))
+        if use_measured and value is not None:
+            return (0, value)
+        return (1, _effective_price(m))
+
+    # TR-174 feature 4: the WIN record — the head is whoever sorts first under
+    # the returned key (the probe lane wins it when exploration fired).
+    head = None
+    if lanes:
+        head = min(lanes, key=lambda m: (key(m), _legacy_sort_key(m)))
+    if head is not None:
+        key0 = (head.get('provider'), head.get('model'))
+        value, b = basis_by_lane.get(key0, (None, None))
+        row, _match = lane_stats(ctx.get('index') or {}, head.get('provider'),
+                                 head.get('model'), ctx.get('keys'))
+        rate, rate_reason = completion_term(row)
+        is_explore = (explore_lane is not None and
+                      key0 == (explore_lane.get('provider'),
+                               explore_lane.get('model')))
+        # Audit field (brief feature 3/4): the head lane's last-outcome age.
+        # Computed ONLY when exploration fired, so the default path never
+        # scans the outcome store.
+        age_h = None
+        if explore_lane is not None:
+            age_h, _age_src = _lane_last_outcome_age_h(
+                head.get('provider'), head.get('model'), ctx)
+        band, band_src = 'unknown', 'no-band-data'
+        cats = (row or {}).get('required_categories')
+        if isinstance(cats, dict) and cats:
+            top = max((int(v) for v in cats.values()
+                       if isinstance(v, (int, float)) and not isinstance(v, bool)),
+                      default=None)
+            if top is not None:
+                band, band_src = top, 'required_categories-max-level'
+        rec = {'mode': ('explore' if is_explore else
+                        ('exploit' if use_measured and value is not None
+                         else 'price-fallback')),
+               'band': band, 'band_source': band_src,
+               'expected_cost': value, 'basis': (b or {}).get('basis'),
+               'samples': (b or {}).get('n_samples'),
+               'blend_weight': blend_w,
+               'completion_term': rate_reason,
+               'age_h': (round(age_h, 4) if age_h is not None else None),
+               'explore_reason': explore_reason}
+        win_reason[key0] = rec
+        basis['win_reason'] = rec
+
+    ctx['_sort_basis'] = basis
+    ctx['_sort_measurements'] = expected
+    ctx['_win_reason'] = win_reason
     return key
 
 
@@ -1809,6 +2147,9 @@ def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=DE
             backend=backend, merge_backends=merge_backends)
         sort_ctx = {'index': stats_index, 'meta': stats_meta, 'window_h': window_h,
                     'keys': _complexity_keys(pid, tables),
+                    # TR-174 feature 3: the exploration gate keys its deterministic
+                    # hash on the resolved profile (falling back to the project).
+                    'task_key': str(pid or project or ''),
                     'used': 'price', 'warning': None}
         if stats_meta.get('error'):
             _err(f'WARNING: outcome stats degraded — {stats_meta["error"]}')
