@@ -681,3 +681,12 @@ tasks:
   status: complete
   created_at: '2026-10-02T02:37:56.156027+00:00'
   completed_at: '2026-10-02T03:31:44.561011+00:00'
+- id: INT-CI-20261002-01
+  title: 'CI red: guard script assumes board venv in CI'
+  criteria:
+  - "CI job 'Full test suite (pure JSON \u2014 no duckdb needed)' green on the fix\
+    \ commit; guard script falls back to PATH python3 without the venv; tests/test_tr175_guard_budget.py\
+    \ 9/9 pass locally"
+  status: complete
+  created_at: '2026-10-02T07:57:58.478910+00:00'
+  completed_at: '2026-10-02T09:05:41.441120+00:00'
