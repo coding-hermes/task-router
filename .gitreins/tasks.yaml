@@ -673,3 +673,11 @@ tasks:
   status: complete
   created_at: '2026-10-02T02:37:57.831828+00:00'
   completed_at: '2026-10-02T04:54:40.811975+00:00'
+- id: TR-206
+  title: Quota L0 declaration table + validation
+  criteria:
+  - validator checks all providers have quota rows or reasons, tests cover schema/missing-reason/alias-inheritance/pool-vs-account,
+    no hard-coded limits in scripts/
+  status: complete
+  created_at: '2026-10-02T02:37:56.156027+00:00'
+  completed_at: '2026-10-02T03:31:44.561011+00:00'
