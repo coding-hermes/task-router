@@ -68,6 +68,8 @@ In strict priority order. Whichever rung answers, its identity is recorded on th
    `anthropic-ratelimit-unified-5h-utilization`, `-7d-utilization`, `-status`, `-reset` (Anthropic-family);
    `x-ratelimit-remaining-requests`, `-remaining-tokens`, `-reset-requests`, `-reset-tokens`, `retry-after`
    (OpenAI/Groq/Fireworks-family). Exact names per provider come from the research table.
+   *Implemented 2026-10-02 (TR-207): `scripts/router_quota_readback.py` — one adapter per header mechanism,
+   recorded-response fixtures in `tests/test_quota_readback.py`.*
 2. **A usage/balance endpoint**, polled on a bounded schedule with a cache: credits/balance APIs, org usage
    APIs, quota APIs. Exact method+URL+fields per provider come from the research table.
 3. **Local client state** where it is the *only* signal (e.g. a coding CLI's own auth/session files).
