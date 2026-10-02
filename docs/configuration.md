@@ -19,6 +19,7 @@ This document supplements the Configuration table in [README.md](../README.md#co
 - [Spawn and sorting](#spawn-and-sorting)
 - [Health and verification](#health-and-verification)
 - [Hermes integration](#hermes-integration)
+- [Ingress (TR-236)](#ingress-tr-236)
 - [Miscellaneous](#miscellaneous)
 
 ---
@@ -152,6 +153,29 @@ The server caches classification results to reduce redundant API calls.
 | `ROUTER_MODEL` | `router_chain_run.py` | Model ID for the current chain hop (set by chain runner) | — |
 | `ROUTER_KEY_ENV` | `router_chain_run.py` | Name of the environment variable holding the API key for the current hop | — |
 | `ROUTER_HOP` | `router_chain_run.py` | Hop index (1-based) in the fallback chain | — |
+
+---
+
+## Ingress (TR-236)
+
+The bus→router door: `scripts/router_ingress.py`. Contract and evidence in
+[docs/tr236-ingress.md](tr236-ingress.md).
+
+| Variable | Used by | Effect | Default |
+|---|---|---|---|
+| `ROUTER_INGRESS_ENDPOINTS` | `router_ingress.py` | Path to the endpoint registry (JSONL; declarations are data) | `data/endpoints.jsonl` (repo-relative) |
+| `ROUTER_INGRESS_LEDGER` | `router_ingress.py` | Path to the ingress ledger (one row per ingress-forward attempt) | `$ROUTER_STATE_DIR/ingress-ledger.jsonl` |
+| `ROUTER_INGRESS_MAX_INFLIGHT` | `router_ingress.py` | Concurrent forwards; beyond it callers wait, then are refused by name | `4` |
+| `ROUTER_INGRESS_QUEUE_MAX` | `router_ingress.py` | How many may wait for a slot before the ingress refuses (the amplification bound) | `16` |
+| `ROUTER_INGRESS_QUEUE_WAIT_S` | `router_ingress.py` | How long a waiter may wait for a slot | `20` |
+| `ROUTER_INGRESS_TOKEN` | `router_ingress.py serve` | Bearer token required by the push door (alternative to `--token-file`) | — (refuses to serve unauthenticated without it) |
+| `ROUTER_INGRESS_BUS_IDS` | `router_ingress.py poll/serve` | Comma-separated bus inbox identities this ingress drains / replies as | `task-router` |
+| `ROUTER_INGRESS_BUS_URL` | `router_ingress.py` | Bus base URL (`CRIER_URL` is read as a fallback) | `http://100.97.236.14:8767` |
+| `ROUTER_INGRESS_BUS_TOKEN_FILE` | `router_ingress.py` | File holding the bus bearer token (`CR_AUTH_TOKEN` wins when set) | `~/.hermes/secrets/crier-fleet.token` |
+| `ROUTER_INGRESS_KEY_DIR` | `router_ingress.py` | Directory holding `<identity>.key` PKCS#8 ed25519 keys | `~/crier-fleet/keys` |
+| `ROUTER_INGRESS_RESOLVE` | `router_ingress.py` | The model resolver the ingress asks for the provider+model pair | `scripts/router_spawn.py` |
+| `ROUTER_INGRESS_RESOLVE_TIMEOUT_S` | `router_ingress.py` | Subprocess bound for one resolver call | `30.0` |
+| `ROUTER_INGRESS_MAX_TOKENS` | `router_ingress.py` | `max_tokens` placed in an anthropic-messages request body | `4096` |
 
 ---
 
