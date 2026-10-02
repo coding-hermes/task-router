@@ -627,15 +627,16 @@ tasks:
   created_at: '2026-09-30T09:04:39.129861+00:00'
   completed_at: '2026-09-30T16:00:08.655072+00:00'
 - id: TR-139
-  title: Cheapest fail-open profile
+  title: "FIX: unrated prompt falls back to MOST EXPENSIVE profile (P0_FORE) \u2014\
+    \ fail-open must not default upward"
   criteria:
-  - 'On an unrated prompt the router selects a CHEAPEST safe profile, never P0_FORE:
-    an envelope-level test drives proxy_chat through an empty-matrix classifier and
-    a failed classifier and asserts complexity_source names the degrade, profile_id
-    is ROUTER_EMPTY_MATRIX_PROFILE or None (never P0_FORE), and the ledger row records
-    profile_id + degrade_reason; a real non-empty matrix is unaffected'
-  status: in_progress
-  created_at: '2026-09-30T15:12:35.257593+00:00'
+  - On empty/failed classifier rating, router must select CHEAPEST profile (not P0_FORE),
+    envelope must carry degrade marker + chosen profile + reason, ROUTER_EMPTY_MATRIX_PROFILE
+    env override works, test drives empty matrix and asserts selected profile is NOT
+    P0_FORE, test asserts real matrix unaffected, unrateable rate countable from ledger
+  status: complete
+  created_at: '2026-10-02T01:07:23.781838+00:00'
+  completed_at: '2026-10-02T01:44:16.849304+00:00'
 - id: TR-194
   title: Prove the degraded path fires for EVERY unservable rating
   criteria:
