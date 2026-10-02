@@ -1,5 +1,14 @@
 #!/usr/bin/env python3
-"""Fleet cooldown policy — matches supervisor skill + Bane directives.
+"""Fleet cooldown policy — RETIRED as a WRITER (owner ruling 2026-10-02).
+
+STATUS: the correction engine (REDUCE/RAISE/PROMOTE/REVERT) is DISABLED — `--apply`
+refuses to write and exits 3. The DB is the single source of truth and the scheduler
+API is the only writer of cooldowns/pins (Bane 2026-09-19); the durable `fleet.toml`
+mirror is now `fleet-sync.py --write`. This file remains because its board parsers are
+imported as a library by `fleet-cooldown-audit.py`, and because its report/--verify
+modes still describe fleet state. Historical header follows.
+
+Fleet cooldown policy — matches supervisor skill + Bane directives.
 
 Cooldown matrix (Bane 2026-09-09 — 6h baseline, NO sub-6h pins):
   - 3600s (1h)  — FAST. Operator-designated only; the fleet-wide re-pin
@@ -472,7 +481,29 @@ def _parse_args():
     return {'--update-canonical': '--update-canonical' in sys.argv}
 
 
+def _retired_apply_guard():
+    """RETIRED WRITE PATH — owner ruling 2026-10-02.
+
+    The correction engine (REDUCE/RAISE/PROMOTE/REVERT) is retired. Bane
+    2026-09-19: the DB is the single source of truth and the scheduler API is the
+    only writer of cooldowns/pins. This engine kept fighting every operator PUT,
+    and it ran UNATTENDED every 120 minutes (fleet-foreman -> fleet-auto-heal),
+    which is why cadence changes and pins kept reverting.
+
+    The fleet.toml mirror is now fleet-sync.py --write (auto-heal calls it).
+    This file stays because its board parsers are imported as a library
+    (fleet-cooldown-audit.py); only the mutation is gone.
+    """
+    if '--apply' in sys.argv:
+        print('RETIRED: fleet-cooldown-policy.py --apply no longer writes anything.')
+        print('  the DB is the source of truth — write cooldowns through the scheduler API')
+        print('  to re-mirror the durable layer: python3 ~/.hermes/scripts/fleet-sync.py --write')
+        print('  report / --verify / --dry-run modes still work.')
+        sys.exit(3)
+
+
 def main():
+    _retired_apply_guard()
     # ── Deploy-integrity guard (SCHED-PERF-003 / SCHED-PERF-006) ─────────
     # Run AFTER argument parsing but BEFORE the pin evaluation on --apply /
     # --verify paths so a mismatched hash refuses cleanly. --dry-run stays
@@ -707,8 +738,8 @@ def main():
 
         print(f"{name:32s} {pending:8d} {cooldown:10d} {target:8d} {action}")
 
-    print(f"\n{len(actions)} projects need cooldown reduction" +
-          (" (APPLIED)" if apply else " — run with --apply"))
+    print(f"\n{len(actions)} projects flagged by the retired correction rules" +
+          (" (NOT WRITTEN — correction is retired)" if not apply else " (APPLIED)"))
 
     if apply:
         # Re-fetch projects AFTER the PUTs so fleet.toml pins reflect the
