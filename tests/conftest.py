@@ -85,3 +85,44 @@ def seed_registry_copy(shared_seed_registry, tmp_path):
     return {"ROUTING_REGISTRY": str(reg_dst),
             "ROUTING_DATA_DIR": str(data_dst),
             "ROUTER_STATE_DIR": str(tmp_path / "state")}
+
+
+# ---------------------------------------------------------------------------
+# TR-175: a REAL registry built from the committed tables, as an EXPLICIT path.
+#
+# scripts read the generated <repo>/registry.json when ROUTING_REGISTRY is
+# unset. That file is gitignored machine state (`.gitignore: registry.json`),
+# so any test exercising that fallback fails in a fresh clone or a worktree —
+# it passed only on machines that had seeded the checkout, which is also why
+# the bare guard run diverged from CI (CI seeds explicitly before pytest).
+# The seeded-registry fixture hands tests the REAL fleet data as a path they
+# pass on, so the assertion keeps its teeth without ambient dependence.
+# ---------------------------------------------------------------------------
+
+_SEEDED_REGISTRY = {"path": None}
+
+
+@pytest.fixture(scope="session")
+def seeded_registry_path():
+    """Path to a registry.json seeded from the COMMITTED data/tables.
+
+    One real seed build per pytest session (~5s duckdb), cached process-wide
+    so fixtures in several modules share it. The result is byte-equivalent to
+    `python3 -m scripts.router_seed` over the same tables (seed output is
+    deterministic — the suite's own idempotency test pins that).
+    """
+    if _SEEDED_REGISTRY["path"] is None:
+        repo = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        base = _tempfile.mkdtemp(prefix="seeded-registry-")
+        data = os.path.join(base, "data", "tables")
+        os.makedirs(os.path.dirname(data))  # parent only: copytree creates `data`
+        shutil.copytree(os.path.join(repo, "data", "tables"), data)
+        reg = os.path.join(base, "registry.json")
+        env = dict(os.environ, ROUTING_REGISTRY=reg, ROUTING_DATA_DIR=data,
+                   ROUTING_NS=os.path.join(base, "ns"))
+        p = subprocess.run([sys.executable, os.path.join(repo, "scripts", "router_seed.py")],
+                           capture_output=True, text=True, env=env, timeout=SEED_TIMEOUT)
+        if p.returncode != 0:
+            pytest.fail(f"seeded_registry_path seed failed: {p.stderr[-800:]}")
+        _SEEDED_REGISTRY["path"] = reg
+    return _SEEDED_REGISTRY["path"]
