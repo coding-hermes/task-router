@@ -604,13 +604,12 @@ tasks:
   created_at: '2026-09-30T09:04:38.335102+00:00'
   completed_at: '2026-09-30T15:14:59.649662+00:00'
 - id: TR-197
-  title: NULL census and cleanup rule
+  title: NULL census with finite reason set
   criteria:
-  - Every null on a LIVE lane carries a MEANINGFUL reason or is filled from a real
-    source; UNEXPLAINED count on live lanes reaches 0; census is committed and re-runnable
-  status: complete
-  created_at: '2026-10-01T00:21:51.050482+00:00'
-  completed_at: '2026-10-01T00:33:37.642475+00:00'
+  - census classifies nulls as MEANINGFUL or UNEXPLAINED, UNEXPLAINED count on live
+    lanes reaches 0, before/after census committed
+  status: in_progress
+  created_at: '2026-10-02T02:38:33.919580+00:00'
 - id: TR-179
   title: TR-179 worker task
   criteria:
