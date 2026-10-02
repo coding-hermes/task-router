@@ -13,6 +13,7 @@ The runtime contract is **fail-open**: `router_spawn.py` always exits `0`. If re
 - [Web UI](#web-ui)
 - [API server and MCP bridge](#api-server-and-mcp-bridge)
 - [Classified proxy deployment (TR-067)](#classified-proxy-deployment-tr-067)
+- [Bus ingress (TR-236)](#bus-ingress-tr-236)
 - [Architecture](#architecture)
 - [Context windows and capabilities](#context-windows-and-capabilities)
 - [Versioned, tagged profiles](#versioned-tagged-profiles)
@@ -348,6 +349,34 @@ curl -s http://127.0.0.1:9391/health
 **mtime** age and freshness verdict, and the `router validate` gate verdict —
 the canary contract is in `docs/health-plane.md`.
 
+## Bus ingress (TR-236)
+
+Everything above is *called*. `router ingress` is the door that lets the router
+be **told**: it accepts a Crier bus message and translates it into the request a
+target endpoint's protocol requires — prompt, session key and (the router's
+choice of) provider+model — then puts the reply back on the bus.
+
+```bash
+# drain the router's bus inbox once (durable: unacked messages redeliver)
+router ingress poll --once --limit 5
+
+# or accept a push, authenticated by bearer + the bus's own ed25519 signature
+router ingress serve --port 9410 --token-file ~/.hermes/secrets/ingress.token --require-sig
+
+# list / validate the declared endpoints (data, not code)
+router ingress endpoints
+```
+
+Targets live in `data/endpoints.jsonl` and declare `protocol`, `address`, an
+`auth` **reference** (never a secret), a `reply` extraction rule and a
+`timeout_s`. Protocols: `hermes-gateway` (`/v1/responses` SSE),
+`openai-compatible`, `anthropic-messages`, `webhook`, `bus-native`. An endpoint
+that cannot declare those fields is refused by name — there is no silent default
+to Hermes. Every attempt writes one ledger row (inbound id, endpoint *served*,
+transform, outcome, tokens, cost, and a stated reason wherever a value is
+unknown). Contract, refusal vocabulary and live evidence:
+**`docs/tr236-ingress.md`**.
+
 ## Architecture
 
 ```text
@@ -463,6 +492,7 @@ for repo-relative use.
 | `router pricing` | Price table diagnostics (`--json`, `--dry-run`) |
 | `router pricing-audit` | Mechanized pricing audit (TR-070): classifies every active priced lane by evidence class (measured-offset, official, estimate, unbased, free-window-pending, …), flags burn traps (stale/unsourced offsets) and lanes >3x off models.dev list. Takes no flags — `router pricing-audit --help` RUNS the audit; exit 1 = traps found, 0 = clean |
 | `router gaps` | Registry data-quality gaps (`--json`, `--lacking`, `--top`) |
+| `router ingress` | Bus ingress (TR-236): `poll` (drain the bus inbox), `serve` (authenticated push door), `forward` (one message file), `translate` (dry-run the transform), `endpoints` (list/validate the declarations). The model stays the router's choice; see `docs/tr236-ingress.md` |
 | `router chain-run` | Execute a named routing chain for a request and record the resulting hop outcomes |
 | `router lifecycle` | Inspect and manage the router's lifecycle state and operational transitions |
 | `router outcomes` | Inspect recorded request outcomes and outcome-derived routing statistics |

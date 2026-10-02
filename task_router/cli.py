@@ -86,6 +86,14 @@ registry/state dir is live from the same invocation):
                               gap — file off-limits)
   router_learn.py             none (DuckBrain CLI in ~/duckbrain; independent
                               of data home by design)
+  router_ingress.py           ROUTING_REGISTRY, ROUTING_DATA_DIR,
+                              ROUTER_STATE_DIR (TR-236). ROUTING_REGISTRY so
+                              the resolver it subprocesses
+                              (router_spawn.py, ROUTER_INGRESS_RESOLVE)
+                              resolves the same registry `router spawn` does;
+                              ROUTING_DATA_DIR for the endpoint registry's
+                              repo-data default; ROUTER_STATE_DIR for the
+                              ingress ledger's default path.
 
 Fail-open doctrine applies at the CLI boundary too: dispatch errors are
 printed and turn into SystemExit(0) for fail-open tools (spawn, probefix,
@@ -187,6 +195,7 @@ COMMANDS = {
     "chain-run":  "router_chain_run.py",      # TR-066 Path A: walk the chain, record attempts
     "lifecycle":  "router_lifecycle.py",      # TR-069 digest: states, arrivals, retirements
     "pricing-audit": "router_pricing_audit.py",  # TR-070: evidence-class pricing audit
+    "ingress":    "router_ingress.py",        # TR-236: bus -> router ingress + endpoint contract
 }
 RESERVED = ()
 
@@ -371,6 +380,16 @@ def _home_env_exports():
         "probefix": {},
         "plan-sweep": {},
         "learn": {},
+        "ingress": {
+            # TR-236: the ingress subprocesses the RESOLVER (router_spawn.py
+            # via ROUTER_INGRESS_RESOLVE) and defaults its endpoint registry to
+            # <repo>/data/endpoints.jsonl, so it must resolve the same
+            # registry/tables the spawn dispatch resolves; ROUTER_STATE_DIR is
+            # the ledger's default location.
+            "ROUTING_REGISTRY": registry,
+            "ROUTING_DATA_DIR": data_dir,
+            "ROUTER_STATE_DIR": state_dir,
+        },
         # probefix / probe / plan-sweep / learn: no export by design. probefix
         # and provider_health_probe.py DO read ROUTING_*/ROUTER_STATE_DIR
         # (TR-056 audit corrected the old "hardcodes only" note in the module
