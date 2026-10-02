@@ -4,7 +4,9 @@
 Usage: python3 scripts/router_null_census.py [--json] [--table <name>]
 Exit 0 = census complete with 0 unexplained; exit 1 = unexplained nulls found.
 """
-import json, os, sys
+
+import json
+import sys
 from pathlib import Path
 
 TABLES_DIR = Path(__file__).resolve().parent.parent / "data" / "tables"
@@ -15,40 +17,100 @@ ALLOWLIST = {
     # Benchmarks: valid_from only set when benchmark versioned
     "benchmarks": {"valid_from"},
     # Plan terms: quota cols only set when quota applies
-    "plan_terms": {"quota_requests", "quota_rate_per_minute", "plan_cost",
-                   "included_models", "interval", "plan_offset", "rate_per_minute",
-                   "requests", "requests_per_5h", "tokens_per_minute", "tokens_per_request",
-                   "usage_multiplier"},
+    "plan_terms": {
+        "quota_requests",
+        "quota_rate_per_minute",
+        "plan_cost",
+        "included_models",
+        "interval",
+        "plan_offset",
+        "rate_per_minute",
+        "requests",
+        "requests_per_5h",
+        "tokens_per_minute",
+        "tokens_per_request",
+        "usage_multiplier",
+    },
     # Provider mappings: replacement only set when mapping replaces another
     "provider_mappings": {"replacement"},
     # Probe gaps: candidate only set when gap is a candidate for filling
     "probe_gaps": {"candidate"},
     # Model catalog: sparse cols only set when API/cache applies
-    "model_catalog": {"vision", "modality", "knowledge_cutoff", "fetched_at", "family",
-                      "cost_in", "cost_out", "context_window", "api_id", "api_note", "cache_read"},
+    "model_catalog": {
+        "vision",
+        "modality",
+        "knowledge_cutoff",
+        "fetched_at",
+        "family",
+        "cost_in",
+        "cost_out",
+        "context_window",
+        "api_id",
+        "api_note",
+        "cache_read",
+    },
     # Providers: sparse cols only set when provider has these attributes
     "providers": {"valid_to", "api_base_url", "api_key_env", "concurrency"},
     # Task profiles: max_* only set when profile limits concurrency
-    "task_profiles": {"max_consecutive_per_provider", "max_total_per_provider", "allow_slow"},
+    "task_profiles": {
+        "max_consecutive_per_provider",
+        "max_total_per_provider",
+        "allow_slow",
+    },
     # Projects: stack only set when project declares a stack
     "projects": {"stack"},
     # Models: sparse cols only set when model has these attributes
-    "models": {"available_from", "disabled_reason", "lifecycle_checked_at", "lifecycle_source",
-               "note", "replaced_by", "valid_from", "plan_tier",
-               "public_cache_read_per_m", "public_cache_write_per_m",
-               # perf_* cols: only 10 categories measured, rest are null by design
-               "perf_agent_tick", "perf_debug", "perf_delegation", "perf_e2e_vision",
-               "perf_guard", "perf_long_doc", "perf_mock", "perf_reasoning", "perf_review",
-               "perf_schema"},
+    "models": {
+        "available_from",
+        "disabled_reason",
+        "lifecycle_checked_at",
+        "lifecycle_source",
+        "note",
+        "replaced_by",
+        "valid_from",
+        "plan_tier",
+        "public_cache_read_per_m",
+        "public_cache_write_per_m",
+        # perf_* cols: only 10 categories measured, rest are null by design
+        "perf_agent_tick",
+        "perf_debug",
+        "perf_delegation",
+        "perf_e2e_vision",
+        "perf_guard",
+        "perf_long_doc",
+        "perf_mock",
+        "perf_reasoning",
+        "perf_review",
+        "perf_schema",
+    },
     # Model perf: ALL cols are meaningful-by-design (only 10 categories measured)
     "model_perf": set(),
     # Quality estimates: ALL cols are meaningful-by-design (only 10 categories measured)
-    "quality_estimates": {"agent_tick", "code_gen", "debug", "delegation", "e2e_vision",
-                          "guard", "long_doc", "long_horizon", "mock", "multilingual",
-                          "reasoning", "refactor", "review", "schema", "spec_docs",
-                          "terminal", "tool_use", "ui_frontend", "vision"},
+    "quality_estimates": {
+        "agent_tick",
+        "code_gen",
+        "debug",
+        "delegation",
+        "e2e_vision",
+        "guard",
+        "long_doc",
+        "long_horizon",
+        "mock",
+        "multilingual",
+        "reasoning",
+        "refactor",
+        "review",
+        "schema",
+        "spec_docs",
+        "terminal",
+        "tool_use",
+        "ui_frontend",
+        "vision",
+    },
     # Provider quota: sparse cols only set when quota applies
-    "provider_quota": {"limit", "registry"},
+    # TR-206: alias_of only on gateway-alias rows; pool only on pool-scoped
+    # rows; variant only on tier-discriminated rows of one window.
+    "provider_quota": {"limit", "registry", "alias_of", "pool", "variant"},
     # Provider rules: sparse cols only set when rule applies
     "provider_rules": {"explains_probe", "note"},
     # Probe providers: headers only set when provider requires headers
@@ -140,14 +202,23 @@ def main():
         }
 
     if as_json:
-        print(json.dumps({"tables": summary, "total_unexplained_live": total_unexplained_live}, indent=2))
+        print(
+            json.dumps(
+                {"tables": summary, "total_unexplained_live": total_unexplained_live},
+                indent=2,
+            )
+        )
     else:
         for tname, info in summary.items():
             if info["unexplained_live_cols"]:
                 print(f"\n{tname} ({info['live']} live / {info['rows']} total):")
                 for c, stats in info["unexplained_live_cols"].items():
-                    print(f"  {c}: {stats['null_live']}/{stats['live']} null ({stats['pct_live']}%)")
-        print(f"\nTOTAL UNEXPLAINED nulls on live rows (excl allowlist): {total_unexplained_live}")
+                    print(
+                        f"  {c}: {stats['null_live']}/{stats['live']} null ({stats['pct_live']}%)"
+                    )
+        print(
+            f"\nTOTAL UNEXPLAINED nulls on live rows (excl allowlist): {total_unexplained_live}"
+        )
     return 0 if total_unexplained_live == 0 else 1
 
 

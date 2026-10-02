@@ -1,6 +1,8 @@
 # Quota layers — spec (design authority, write-once/reuse-everywhere)
 
-Status: DRAFT for Bane's review. Nothing here is implemented yet; the research wave is filling the data table.
+Status: L0 (declaration table + validator) IMPLEMENTED — TR-206, 2026-10-01
+(`data/tables/provider_quota.jsonl` + `scripts/validate_provider_quota.py`).
+L1–L3 are not implemented yet; the research wave filled the data table.
 Scope: how the router *knows* how much quota each lane has left, *spends* it without over-running a provider,
 and *finds* spare subscription quota to burn before it expires.
 
