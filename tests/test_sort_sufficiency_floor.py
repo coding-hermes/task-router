@@ -38,7 +38,10 @@ def test_one_sample_is_not_evidence():
 
 
 def test_enough_samples_earn_a_measurement():
-    ctx = {'index': _stats(('p', 'm', 4, 0.0005), ('q', 'n', 4, 0.02))}
+    # n == the TR-174 blend ceiling: the measurement stands alone above it, so
+    # this pins the raw-mean ordering (blending is test_blending_*) at exactly
+    # the boundary.
+    ctx = {'index': _stats(('p', 'm', 9, 0.0005), ('q', 'n', 9, 0.02))}
     key = rs._sort_predicted_cost_per_task(None, LANES, ctx)
     assert key(LANES[0]) < key(LANES[1])          # measured: p/m is genuinely cheaper per task
     assert ctx['_sort_basis']['ranked_on_measurement'] == 2
@@ -46,14 +49,25 @@ def test_enough_samples_earn_a_measurement():
 
 
 def test_the_floor_is_configurable_and_zero_restores_the_old_behaviour():
+    # TR-174: blend weight 0 (the 4th spec field) disables the shrinkage, so
+    # floor 0 + W 0 restores the PRE-TR-174 behaviour exactly — a single
+    # sample decides again.
     ctx = {'index': _stats(('p', 'm', 1, 0.0005), ('q', 'n', 1, 0.02))}
-    key = rs._sort_predicted_cost_per_task(0, LANES, ctx)
-    assert key(LANES[0]) < key(LANES[1])          # floor 0: the single sample decides again
+    key = rs._sort_predicted_cost_per_task('0:0.5:9:0', LANES, ctx)
+    assert key(LANES[0]) < key(LANES[1])          # the single sample decides again
     assert ctx['_sort_basis']['floor_samples'] == 0
+    assert ctx['_sort_basis']['blend_weight'] == 0.0
+    assert ctx['_sort_basis']['blend_ceiling_samples'] == 9
     ctx2 = {'index': _stats(('p', 'm', 5, 0.0005))}
     key2 = rs._sort_predicted_cost_per_task(9, LANES, ctx2)
     assert key2(LANES[0]) == (1, 0.10)            # raised floor: even 5 samples is not enough
     assert ctx2['_sort_basis']['floor_samples'] == 9
+    # TR-174 delta, pinned where it changed: with the DEFAULT blend weight a
+    # 1-sample mean no longer decides anything — the lane ranks on its blend
+    # (n*measured + W*list)/(n+W), mostly list price here, so q/n keeps the head.
+    ctx3 = {'index': _stats(('p', 'm', 1, 0.0005), ('q', 'n', 1, 0.02))}
+    key3 = rs._sort_predicted_cost_per_task(0, LANES, ctx3)
+    assert key3(LANES[1]) < key3(LANES[0])
 
 
 def test_a_measured_lane_sorts_ahead_of_an_unmeasured_one():
@@ -97,7 +111,10 @@ def test_an_under_measured_chain_degrades_to_price_and_names_the_reason():
 
 
 def test_enough_coverage_applies_the_measured_ordering():
-    index = _stats(('p', 'm', 5, 0.0005), ('q', 'n', 5, 0.02))
+    # n == the blend ceiling so the ranking is the raw measured ordering
+    # (TR-174 blending applies below the ceiling and is tested in
+    # test_tr174_value_ledger.py).
+    index = _stats(('p', 'm', 9, 0.0005), ('q', 'n', 9, 0.02))
     ctx = {'index': index}
     key = rs._sort_predicted_cost_per_task(None, LANES, ctx)
     b = ctx['_sort_basis']
