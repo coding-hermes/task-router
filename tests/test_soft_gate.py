@@ -168,16 +168,15 @@ def test_soft_gate_default_off_does_not_exclude_busy_models(tmp_path):
     its configured limit, that model is still resolved (gate off)."""
     tables = _load_tables()
     provs = _open_providers(tables)
-    # Only leave opencode-go open; gate all others so the head must be the
+    # Only leave xkiro open; gate all others so the head must be the
     # provider's cheapest test-eligible lane if it is not excluded by the
-    # (disabled) soft gate. 2026-09-28: that head is deepseek-v4.1-flash
-    # ($0.0148/M) — mimo-v2.5 is cheaper but its estimate-sourced test tier
-    # demoted to -1 (968e480), failing P1_CODING's test>=0 bar.
+    # (disabled) soft gate. 2026-10-03: that head is gpt-5.6-luna after
+    # TR-124 raised P1_CODING bars to {code_gen,debug,refactor,test}>=0.
     for p in provs:
-        if p != "opencode-go":
+        if p != "xkiro":
             provs[p] = {"status": "gated", "reason": "gate-off-test"}
     qdoc = {"updated": "test", "providers": provs,
-            "models": {"opencode-go/deepseek-v4.1-flash": {"concurrency_limit": 5}}}
+            "models": {"xkiro/openai/gpt-5.6-luna": {"concurrency_limit": 5}}}
     d = tmp_path / "state"
     d.mkdir(exist_ok=True)
     json.dump(qdoc, open(d / "quota-state.json", "w"))
@@ -189,8 +188,8 @@ def test_soft_gate_default_off_does_not_exclude_busy_models(tmp_path):
     with open(env["LEDGER_FILE"], "a") as f:
         for i in range(5):
             row = {"ts": datetime.datetime.now(datetime.timezone.utc).isoformat(),
-                   "trace_id": f"tr-limit-{i}", "provider": "opencode-go",
-                   "model": "deepseek-v4.1-flash", "outcome": "started"}
+                   "trace_id": f"tr-limit-{i}", "provider": "xkiro",
+                   "model": "openai/gpt-5.6-luna", "outcome": "started"}
             f.write(json.dumps(row) + "\n")
 
     p = _run(SCRIPT, "coding-hermes-scheduler", "--format", "json", env_extra=env)
@@ -198,24 +197,23 @@ def test_soft_gate_default_off_does_not_exclude_busy_models(tmp_path):
     data = json.loads(p.stdout)
     assert data.get("error") is None, data.get("error")
     assert data["head"] is not None
-    assert (data["head"]["provider"], data["head"]["model"]) == ("opencode-go", "deepseek-v4.1-flash")
+    assert (data["head"]["provider"], data["head"]["model"]) == ("xkiro", "openai/gpt-5.6-luna")
 
 
 def test_soft_gate_on_excludes_busy_models(tmp_path):
     """When soft_gate is true, a model at its concurrency limit is excluded."""
     tables = _load_tables()
     provs = _open_providers(tables)
-    # Leave only opencode-go and one fallback option open so the head shift is
+    # Leave only xkiro and one fallback option open so the head shift is
     # deterministic when the busy model is excluded.
-    # 2026-09-28: the busy lane is deepseek-v4.1-flash — the opencode-go head
-    # after the 09-27 tier rescale (968e480; mimo-v2.5 is cheaper but
-    # test-tier-ineligible). It sits mid-chain (hop 86), so with the gate ON
+    # 2026-10-03: the busy lane is gpt-5.6-luna — the xkiro head after
+    # TR-124 tier bar raise. It sits mid-chain, so with the gate ON
     # it is excluded individually and the chain head advances off-provider.
     for p in provs:
-        if p not in ("opencode-go", "ollama-cloud"):
+        if p not in ("xkiro", "ollama-cloud"):
             provs[p] = {"status": "gated", "reason": "gate-on-test"}
     qdoc = {"updated": "test", "providers": provs, "soft_gate": True,
-            "models": {"opencode-go/deepseek-v4.1-flash": {"concurrency_limit": 5}}}
+            "models": {"xkiro/openai/gpt-5.6-luna": {"concurrency_limit": 5}}}
     d = tmp_path / "state"
     d.mkdir(exist_ok=True)
     json.dump(qdoc, open(d / "quota-state.json", "w"))
@@ -227,8 +225,8 @@ def test_soft_gate_on_excludes_busy_models(tmp_path):
     with open(env["LEDGER_FILE"], "a") as f:
         for i in range(5):
             row = {"ts": datetime.datetime.now(datetime.timezone.utc).isoformat(),
-                   "trace_id": f"tr-limit-{i}", "provider": "opencode-go",
-                   "model": "deepseek-v4.1-flash", "outcome": "started"}
+                   "trace_id": f"tr-limit-{i}", "provider": "xkiro",
+                   "model": "openai/gpt-5.6-luna", "outcome": "started"}
             f.write(json.dumps(row) + "\n")
 
     p = _run(SCRIPT, "coding-hermes-scheduler", "--format", "json", env_extra=env)
@@ -236,9 +234,9 @@ def test_soft_gate_on_excludes_busy_models(tmp_path):
     data = json.loads(p.stdout)
     assert data.get("error") is None, data.get("error")
     head = (data["head"]["provider"], data["head"]["model"]) if data["head"] else None
-    assert head != ("opencode-go", "deepseek-v4.1-flash"), data["head"]
+    assert head != ("xkiro", "openai/gpt-5.6-luna"), data["head"]
     excluded = {_pair_str(e) for e in data.get("exclusions", [])}
-    assert "opencode-go/deepseek-v4.1-flash" in excluded
+    assert "xkiro/openai/gpt-5.6-luna" in excluded
 
 
 # ------------------------------------------------------------------ AC5: fail-open --

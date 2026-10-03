@@ -258,7 +258,7 @@ def test_chain_invariants_per_profile(monkeypatch, tmp_path, pid):
     # (pre-existing; control worktree at HEAD resolves qwen3.7-flash:free too —
     # minimax-m3:free fails P1's test>=0 bar with test tier BLANK -> -1). The
     # undamp does not move this head; the fixture now states the resolved truth.
-    ("P1_CODING", "xkiro/qwen/qwen3.7-flash:free"),  # TR-232 2026-09-28: aligns the fixture with the resolved head (already drifted on HEAD; minimax-m3:free fails test>=0)
+    ("P1_CODING", "xkiro/openai/gpt-5.6-luna"),  # TR-124 2026-10-03: raised P1_CODING bars to {code_gen,debug,refactor,test}>=0; qwen3.7-flash:free excluded (tier -1 in code_gen/debug), head moved to gpt-5.6-luna
     # Capability-grounded heads (gpt-5.6-sol review 2026-08-27: do NOT tune
     # normal eligibility to accommodate the emergency fallback — fallback is a
     # degraded path that reports requirements_unmet). P2/P4 head on models with

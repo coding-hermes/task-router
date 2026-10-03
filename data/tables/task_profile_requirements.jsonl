@@ -12,9 +12,9 @@
 {"task_id": "P0_FORE", "category": "schema", "level": 1}
 {"task_id": "P0_FORE", "category": "terminal", "level": -1}
 {"task_id": "P0_FORE", "category": "vision", "level": -3}
-{"task_id": "P1_CODING", "category": "code_gen", "level": -2}
-{"task_id": "P1_CODING", "category": "debug", "level": -3}
-{"task_id": "P1_CODING", "category": "refactor", "level": -5}
+{"task_id": "P1_CODING", "category": "code_gen", "level": 0}
+{"task_id": "P1_CODING", "category": "debug", "level": 0}
+{"task_id": "P1_CODING", "category": "refactor", "level": 0}
 {"task_id": "P1_CODING", "category": "test", "level": 0}
 {"task_id": "P1_WORKER", "category": "code_gen", "level": -2}
 {"task_id": "P1_WORKER", "category": "debug", "level": -3}
