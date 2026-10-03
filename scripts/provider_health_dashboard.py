@@ -481,6 +481,8 @@ def render(s, prov_rows, lane_rows, transitions):
                 f'<td>{flags}</td><td class="err">{note}</td></tr>')
 
     down_first = [r for r in lane_sorted if r['status'] == 'DOWN']
+    prov_hdr = f"providers ({s['providers']} probed" + (
+        f" + {s['providers_registry_only']} registry-only" if s.get('providers_registry_only') else '') + ')'
     doc = f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>provider health — task-router</title><style>{CSS}</style></head><body onload="tgl()">
@@ -498,7 +500,7 @@ built {esc(s['generated_at'])}</div>
 <h2>transitions — last 24h</h2>
 <div class="tl">{tl}</div>
 
-<h2>providers ({len(prov_rows)})</h2>
+<h2>{prov_hdr}</h2>
 <div class="wrap"><table><thead><tr><th>provider</th><th>status</th><th>latency</th>
 <th>lanes up</th><th>down</th><th>uptime 24h</th><th>latency (24 probes)</th>
 <th>last transition (window)</th><th>last error / note</th></tr></thead>
