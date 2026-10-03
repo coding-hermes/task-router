@@ -1,0 +1,17 @@
+[Unit]
+Description=Provider-health dashboard on the tailnet (socat 100.97.236.14:9095 -> 127.0.0.1:9095)
+# Same recipe as sched-ui-tailnet.service: `tailscale serve` is disabled at the
+# tailnet level, so the loopback port is mirrored on the tailnet IP. Zero changes
+# to any daemon; restores at boot via WantedBy + user linger.
+After=network-online.target tailscaled.service provider-health-web.service
+Wants=network-online.target
+Requires=provider-health-web.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/socat TCP-LISTEN:9095,bind=100.97.236.14,fork,reuseaddr TCP:127.0.0.1:9095
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=default.target
