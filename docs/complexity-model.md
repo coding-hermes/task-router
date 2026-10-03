@@ -52,8 +52,20 @@ Rules that bind this section:
 
 ## 3. The band key
 
-The averages are keyed by `complexity_sig`; today those keys are opaque hashes (214 rows), `profile:P0_FORE`
-(39), or `None` (145) — none of which a task can be mapped onto at resolve time.
+**Correction (measured 2026-10-03, after this section was first drafted).** The key and the join both
+already exist: `complexity_sig` is the sha1 of the canonical `{category: min_level}` map (dict-order
+independent, level-sensitive), and the resolve path already computes it for the task and matches it against
+each lane's stored rows — `want_sigs` carries both the readable form and the sig, and `measured_basis()`
+reports the match. What is missing is not the function but its **input and its coverage**:
+
+- **145 averaged groups carry no sig at all**, because the traffic behind them was never rated (see R2.3 —
+  the classifier returned no JSON on 502 of 747 unrated rows). No sig means no band, so those lanes can only
+  ever be compared unbanded.
+- **39 groups carry a NAME key** (`profile:P0_FORE`) rather than a level key — the fallback taken when the
+  profile could not be resolved to levels (the registry was unavailable). That is a silent change of key
+  space: a name-keyed average can never match a level-keyed task, and nothing said so. It must be NULL with
+  a reason, or explicitly labelled as its own space.
+- The join only ran when a measured sort was requested; since 2026-10-03 that is the default.
 
 - **R3.1** The band key is a canonical, documented function of the requirement matrix, stable across runs and
   machines, and the same function is used on the write side (averages) and the read side (task resolve).
