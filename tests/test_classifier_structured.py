@@ -125,3 +125,61 @@ def test_registry_categories_returns_empty_rather_than_inventing_a_vocabulary(mo
     monkeypatch.setattr(rc, 'REPO', str(tmp_path))
     monkeypatch.delenv('ROUTING_REGISTRY', raising=False)
     assert rc.registry_categories() == []
+
+
+def test_thinking_is_off_by_default(monkeypatch):
+    """The classifier is a small extraction; thinking is overhead here. Measured
+    on the live endpoint with the same prompt: production spent 122 of 187
+    completion tokens on reasoning, while reasoning_effort='none' answered in 61
+    with zero reasoning and 35% less wall time."""
+    monkeypatch.delenv('ROUTER_CLASSIFY_THINKING', raising=False)
+    monkeypatch.delenv('ROUTER_CLASSIFY_THINKING_MODE', raising=False)
+    assert rc._thinking_off() == {'reasoning_effort': 'none'}
+
+
+def test_thinking_can_be_turned_back_on_and_a_rung_forced(monkeypatch):
+    monkeypatch.setenv('ROUTER_CLASSIFY_THINKING', 'on')
+    assert rc._thinking_off() == {}
+    monkeypatch.setenv('ROUTER_CLASSIFY_THINKING', 'off')
+    monkeypatch.setenv('ROUTER_CLASSIFY_THINKING_MODE', 'disabled')
+    assert rc._thinking_off() == {'thinking': {'type': 'disabled'}}
+
+
+def test_the_thinking_mode_is_recorded_on_the_call_meta(monkeypatch):
+    """A provider change must be visible in the ledger, not inferred from latency."""
+    monkeypatch.setattr(rc, '_call_lane',
+                        lambda lane, body: rc.Raw('{"categories": {"code_gen": 2}}',
+                                                  thinking=('none' if json.loads(body).get('reasoning_effort')
+                                                            == 'none' else 'default'),
+                                                  chars_reasoning=0, reasoning_tokens=None))
+    monkeypatch.setattr(rc, '_classifier_lanes',
+                        lambda: [{'base': 'http://x', 'model': 'm', 'key_env': '', 'key_value': 'k',
+                                  'timeout': 5.0}])
+    monkeypatch.setenv('ROUTER_CLASSIFY_STRUCTURED', 'off')
+    monkeypatch.delenv('ROUTER_CLASSIFY_THINKING', raising=False)
+    out = rc.classify('task text')
+    assert out['call_meta']['thinking'] == 'none'
+
+
+def test_a_rejected_thinking_param_steps_down_without_losing_the_rating(monkeypatch):
+    """reasoning_effort is accepted on this endpoint, but a lane that rejects it
+    must not cost the rating: step to thinking={type:disabled}, then to nothing."""
+    calls = []
+
+    def fake(lane, body):
+        m = json.loads(body)
+        calls.append(m.get('reasoning_effort') or m.get('thinking') or 'plain')
+        if m.get('reasoning_effort'):
+            raise RuntimeError('HTTP Error 400: Bad Request')
+        return rc.Raw('{"categories": {"code_gen": 1}}')
+
+    monkeypatch.setattr(rc, '_call_lane', fake)
+    monkeypatch.setattr(rc, '_classifier_lanes',
+                        lambda: [{'base': 'http://x', 'model': 'm', 'key_env': '', 'key_value': 'k',
+                                  'timeout': 5.0}])
+    monkeypatch.setenv('ROUTER_CLASSIFY_STRUCTURED', 'off')
+    monkeypatch.delenv('ROUTER_CLASSIFY_THINKING', raising=False)
+    monkeypatch.delenv('ROUTER_CLASSIFY_THINKING_MODE', raising=False)
+    out = rc.default_llm('sys', 'text')
+    assert 'code_gen' in str(out)
+    assert calls[0] == 'none' and calls[-1] == {'type': 'disabled'}

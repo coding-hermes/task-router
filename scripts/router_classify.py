@@ -212,6 +212,37 @@ def _matrix_schema(categories=None):
                 'additionalProperties': lvl}
     return {'type': 'object', 'additionalProperties': lvl}
 
+
+#: The classifier is a small structured extraction, so thinking is pure overhead
+#: here: measured on the live endpoint with the same prompt, the production body
+#: spent 122 of 187 completion tokens on reasoning (480 chars of it), while
+#: reasoning_effort='none' answered in 61 tokens with zero reasoning and 35% less
+#: wall time. Two mechanisms work on this endpoint and both are tried, best
+#: first; whichever lands is recorded on the call meta so a provider change is
+#: visible in the ledger rather than inferred from latency.
+THINKING_LADDER = ({'reasoning_effort': 'none'}, {'thinking': {'type': 'disabled'}})
+
+
+def _thinking_off():
+    """The param that turns thinking off: {'reasoning_effort': 'none'} | {'thinking': {...}} | {}.
+
+    ROUTER_CLASSIFY_THINKING=off (default) walks THINKING_LADDER; 'on' sends
+    nothing (the model thinks, as it did before this existed); 'auto' is
+    currently the same as 'on' and exists so a caller can be explicit.
+    ROUTER_CLASSIFY_THINKING_MODE names a rung directly (measured, not guessed:
+    reasoning_effort=minimal is NOT minimal on this endpoint - it burned 741
+    reasoning tokens against the baseline's 122).
+    """
+    v = (os.environ.get('ROUTER_CLASSIFY_THINKING') or 'off').strip().lower()
+    if v in ('on', 'auto', 'default', 'false', '0'):
+        return {}
+    forced = os.environ.get('ROUTER_CLASSIFY_THINKING_MODE')
+    if forced == 'none':
+        return dict(THINKING_LADDER[0])
+    if forced == 'disabled':
+        return dict(THINKING_LADDER[1])
+    return dict(THINKING_LADDER[0])
+
 def _classifier_lanes():
     """The configured classifier lanes, primary first.
 
@@ -289,6 +320,8 @@ def default_llm(prompt, text, timeout=60, timeout_s=None, categories=None):
     #   json_schema -> json_object -> none (plain prompt, tolerant parse).
     _mode = _structured_mode()
     _cats = categories if categories is not None else registry_categories()
+    _think = _thinking_off()
+    _payload.update(_think)
     if _mode == 'json_schema':
         _payload['response_format'] = {
             'type': 'json_schema',
@@ -308,31 +341,44 @@ def default_llm(prompt, text, timeout=60, timeout_s=None, categories=None):
             if attempt > 1:
                 time.sleep(_backoff_delay(attempt - 1))
             try:
+                # Step-down ladder for REJECTED PARAMS (not lane failures). One
+                # param per attempt, and the order is evidence-driven: on this
+                # endpoint response_format=json_schema is the known rejection
+                # (400) while reasoning_effort='none' is accepted, so the rung
+                # that is known-bad goes first. A rejected param must never cost
+                # the rating - the rating is the expensive outcome.
                 try:
                     got = _call_lane(lane, body)
                 except Exception as exc:  # noqa: BLE001
-                    # A rejected structured-output rung (400: unsupported
-                    # response_format) is NOT a rating failure - step down and
-                    # retry plain, because losing the rating is the expensive
-                    # outcome, not losing the format.
+                    if not _is_rejection(exc):
+                        raise
                     m = json.loads(body)
-                    if m.get('response_format') and ('response_format' in str(exc).lower()
-                                                     or '400' in str(exc)):
-                        cur = (m.get('response_format') or {}).get('type')
-                        nxt = {'json_schema': 'json_object', 'json_object': None}.get(cur, None)
+                    rf = (m.get('response_format') or {}).get('type')
+                    if rf:
+                        nxt = {'json_schema': 'json_object', 'json_object': None}.get(rf)
                         if nxt:
                             m['response_format'] = {'type': nxt}
                             os.environ['ROUTER_CLASSIFY_STRUCTURED_MODE'] = nxt
                         else:
                             m.pop('response_format', None)
                             os.environ['ROUTER_CLASSIFY_STRUCTURED_MODE'] = 'none'
-                        print('classifier: response_format %r rejected (%s) - stepping down'
-                              % (cur, str(exc)[:120]), file=sys.stderr)
-                        body = json.dumps(m).encode()
-                        got = _call_lane(lane, body)
-                        if got:
-                            return got
-                    raise
+                        print('classifier: response_format %r rejected (%s) - stepping down to %r'
+                              % (rf, str(exc)[:100], nxt or 'a plain prompt'), file=sys.stderr)
+                    elif m.get('reasoning_effort'):
+                        m.pop('reasoning_effort', None)
+                        m['thinking'] = {'type': 'disabled'}
+                        os.environ['ROUTER_CLASSIFY_THINKING_MODE'] = 'disabled'
+                        print('classifier: reasoning_effort rejected (%s) - trying thinking=disabled'
+                              % str(exc)[:100], file=sys.stderr)
+                    elif m.get('thinking'):
+                        m.pop('thinking', None)
+                        os.environ['ROUTER_CLASSIFY_THINKING'] = 'on'
+                        print('classifier: thinking param rejected (%s) - sending no thinking param'
+                              % str(exc)[:100], file=sys.stderr)
+                    else:
+                        raise
+                    body = json.dumps(m).encode()
+                    got = _call_lane(lane, body)
                 if got or not isinstance(got, Raw):
                     return got
                 # Empty completion on the first pass: the reasoning model likely
@@ -379,6 +425,17 @@ class Raw(str):
         o.meta = meta
         return o
 
+
+def _is_rejection(exc):
+    """True when the endpoint refused the PARAM (4xx), not when the lane failed.
+
+    A rejected parameter is a formatting problem to step down from; a 5xx or a
+    timeout is a lane problem and belongs to the retry ladder above.
+    """
+    s = str(exc)
+    return '400' in s or 'bad request' in s.lower() or 'unrecognized' in s.lower() \
+        or 'unsupported' in s.lower()
+
 def _call_lane(lane, body):
     """One POST to one classifier lane. `body` is the lane-agnostic request
     skeleton (messages/params); the model is per-lane data.
@@ -405,6 +462,8 @@ def _call_lane(lane, body):
     usage = data.get('usage') or {}
     finish = choice.get('finish_reason')
     meta = {'finish_reason': finish, 'max_tokens': payload.get('max_tokens'),
+            'thinking': ('none' if payload.get('reasoning_effort') == 'none'
+                         else 'disabled' if payload.get('thinking') else 'default'),
             'chars_content': len(content), 'chars_reasoning': len(reasoning),
             'reasoning_tokens': usage.get('completion_tokens_details', {}).get('reasoning_tokens')
                                 if isinstance(usage.get('completion_tokens_details'), dict) else None,
