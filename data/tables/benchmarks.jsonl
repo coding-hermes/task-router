@@ -988,6 +988,7 @@
 {"model": "minimax-m3", "category": "sentiment", "score": 0.8, "max_score": 1.0, "source": "research-bench-2026-08-27", "valid_from": "2026-08-27"}
 {"model": "minimax-m3", "category": "spec_docs", "score": 55.3, "max_score": 100.0, "source": "BenchLM composite rank #60/196 at 55.3/100, strongest eligible category Multimodal & Grounded #36 (benchlm.ai, Sep 2026) research-bench-2026-09-24", "valid_from": "2026-09-24"}
 {"model": "minimax-m3", "category": "spec_docs", "score": 68.17, "max_score": 100.0, "source": "BenchLM composite benchlm.ai 2026-09-05 (rank #27/231, 22 rows)", "valid_from": "2026-09-05"}
+{"model": "minimax-m3", "category": "terminal", "score": 0.66, "max_score": 1.0, "source": "Terminal-Bench 2.1 66.0% (VENDOR-REPORTED, launch roundup via VentureBeat 2026-10; pattern-token present deliberately so BENCH_OVERLAY lands it in terminal; first terminal evidence for this model) research-bench-2026-10-03", "valid_from": "2026-10-03"}
 {"model": "minimax-m3", "category": "tool_use", "score": 74.2, "max_score": 100.0, "source": "MCP Atlas minimax-vendor-2026-09-05 (VENDOR-REPORTED)", "valid_from": "2026-09-05"}
 {"model": "minimax/minimax-m2.5:free", "category": "code_gen", "score": 1.0, "max_score": 1.0, "source": "xkiro-live-battery-2026-09-16 (pass/fail probe; no overlay pattern by design)", "valid_from": "2026-09-16"}
 {"model": "minimax/minimax-m2.5:free", "category": "debug", "score": 1.0, "max_score": 1.0, "source": "xkiro-live-battery-perfcols (audit row; flows via perf_* columns)", "valid_from": "2026-09-16"}
