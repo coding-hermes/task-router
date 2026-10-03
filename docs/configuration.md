@@ -165,9 +165,15 @@ The bus→router door: `scripts/router_ingress.py`. Contract and evidence in
 |---|---|---|---|
 | `ROUTER_INGRESS_ENDPOINTS` | `router_ingress.py` | Path to the endpoint registry (JSONL; declarations are data) | `data/endpoints.jsonl` (repo-relative) |
 | `ROUTER_INGRESS_LEDGER` | `router_ingress.py` | Path to the ingress ledger (one row per ingress-forward attempt) | `$ROUTER_STATE_DIR/ingress-ledger.jsonl` |
-| `ROUTER_INGRESS_MAX_INFLIGHT` | `router_ingress.py` | Concurrent forwards; beyond it callers wait, then are refused by name | `4` |
-| `ROUTER_INGRESS_QUEUE_MAX` | `router_ingress.py` | How many may wait for a slot before the ingress refuses (the amplification bound) | `16` |
-| `ROUTER_INGRESS_QUEUE_WAIT_S` | `router_ingress.py` | How long a waiter may wait for a slot | `20` |
+| `ROUTER_INGRESS_LANE_MAX_INFLIGHT` | `router_ingress.py` | Concurrent forwards allowed **per lane** (one lane's budget, not a shared pool) | `2` |
+| `ROUTER_INGRESS_LANE_QUEUE_MAX` | `router_ingress.py` | How many may wait **per lane** before `lane-busy` (the per-lane amplification bound) | `8` |
+| `ROUTER_INGRESS_LANE_QUEUE_WAIT_S` | `router_ingress.py` | How long a per-lane waiter may wait for its lane's slot | `20` |
+| `ROUTER_INGRESS_CIRCUIT_FAILURES` | `router_ingress.py` | Consecutive lane failures before that lane's circuit opens (`endpoint-circuit-open`) | `3` |
+| `ROUTER_INGRESS_CIRCUIT_OPEN_S` | `router_ingress.py` | Cooldown before a half-open probe; a failed probe doubles it (cap 1 h) | `30` |
+| `ROUTER_INGRESS_GLOBAL_MAX_INFLIGHT` | `router_ingress.py` | Optional global backstop across all lanes; `0` = off (never the first bound) | `0` |
+| `ROUTER_INGRESS_MAX_INFLIGHT` | `router_ingress.py` | Legacy **shared** pool (`Admission` class) only: concurrent forwards | `4` |
+| `ROUTER_INGRESS_QUEUE_MAX` | `router_ingress.py` | Legacy shared pool: how many may wait for a slot before the refusal | `16` |
+| `ROUTER_INGRESS_QUEUE_WAIT_S` | `router_ingress.py` | Legacy shared pool: how long a waiter may wait for a slot | `20` |
 | `ROUTER_INGRESS_TOKEN` | `router_ingress.py serve` | Bearer token required by the push door (alternative to `--token-file`) | — (refuses to serve unauthenticated without it) |
 | `ROUTER_INGRESS_BUS_IDS` | `router_ingress.py poll/serve` | Comma-separated bus inbox identities this ingress drains / replies as | `task-router` |
 | `ROUTER_INGRESS_BUS_URL` | `router_ingress.py` | Bus base URL (`CRIER_URL` is read as a fallback) | `http://100.97.236.14:8767` |
