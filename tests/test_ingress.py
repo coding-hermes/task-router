@@ -130,7 +130,7 @@ def write_endpoints(tmp_path, rows):
     return path
 
 
-def make_ingress(tmp_path, rows, resolver=None, admission=None):
+def make_ingress(tmp_path, rows, resolver=None, admission=None, opener=None, logger=None):
     path = write_endpoints(tmp_path, rows)
     endpoints, problems = ri.load_endpoints(path)
     assert not problems, problems
@@ -140,6 +140,8 @@ def make_ingress(tmp_path, rows, resolver=None, admission=None):
         resolver=resolver or (lambda profile=None, project=None: (
             {"provider": "stub", "model": "stub/model-1"}, None)),
         admission=admission,
+        opener=opener,
+        logger=logger,
     )
 
 
@@ -618,3 +620,230 @@ def test_shipped_endpoint_registry_parses_and_is_usable():
     bad = [e.refusal_reason() for e in endpoints if not e.usable]
     assert not bad, bad
     assert {e.protocol for e in endpoints} >= {"hermes-gateway", "webhook"}
+
+
+# ---------------------------------------------------------------------------
+# per-lane isolation (SCHED-GAP-1713): one lane's trouble is NEVER another's
+#
+# The router is one path for every lane's ticks, so it must fail PER LANE and
+# LOUDLY, must not be a bottleneck, and must not amplify a burst onto a target
+# (the TR-169 lesson). These tests pin the separation: a lane that is hung,
+# saturated, bursting or tripped cannot refuse, slow or flood a peer.
+# ---------------------------------------------------------------------------
+
+
+def test_stats_show_per_lane_state_and_bounds(tmp_path, stub):
+    guard = ri.LaneGuard(max_inflight=3, queue_max=5, failures=4, open_s=12)
+    ingress = make_ingress(tmp_path, [hermes_row(stub, id="helix")], admission=guard)
+    ingress.process(envelope({"endpoint": "helix", "prompt": "hi"}))
+    stats = guard.stats()
+    assert stats["per_lane_max_inflight"] == 3 and stats["per_lane_queue_max"] == 5
+    assert stats["circuit_failure_threshold"] == 4 and stats["global_max_inflight"] == 0
+    lane = stats["lanes"]["helix"]
+    assert lane["state"] == "closed" and lane["accepted"] == 1 and lane["total_ok"] == 1
+
+
+def test_lane_is_recorded_in_the_ledger_and_the_reply(tmp_path, stub):
+    ingress = make_ingress(tmp_path, [hermes_row(stub, id="helix")])
+    out = ingress.process(envelope({"endpoint": "helix", "prompt": "hi"}))
+    assert out["ledger"]["lane"] == "helix"
+    assert out["reply"]["lane"] == "helix"
+
+
+def test_a_shared_pool_is_the_blast_radius_we_removed(tmp_path, stub):
+    """The legacy global Admission is the defect: it refuses a HEALTHY lane."""
+    shared = ri.Admission(max_inflight=1, queue_max=0, wait_s=0.1)
+    ingress = make_ingress(tmp_path, [hermes_row("http://127.0.0.1:9", id="dead"),
+                                      hermes_row(stub, id="live")], admission=shared)
+    held = shared.hold("dead")                       # one hung lane, one shared slot
+    try:
+        out = ingress.process(envelope({"endpoint": "live", "prompt": "hi"}))
+    finally:
+        held.settle()
+    assert out["ledger"]["outcome"] == "refused"
+    assert out["ledger"]["reason"].startswith("overloaded")   # the live lane is collateral
+
+
+def test_a_hung_lane_cannot_refuse_a_peer(tmp_path, stub):
+    guard = ri.LaneGuard(max_inflight=1, queue_max=0, wait_s=0.1)
+    ingress = make_ingress(tmp_path, [hermes_row("http://127.0.0.1:9", id="dead"),
+                                      hermes_row(stub, id="live")], admission=guard)
+    held = guard.hold("dead")                        # the dead lane is saturated
+    try:
+        refused = ingress.process(envelope({"endpoint": "dead", "prompt": "x"}))
+        assert refused["ledger"]["outcome"] == "refused"
+        assert refused["ledger"]["reason"].startswith("lane-busy")
+        assert "dead" in refused["ledger"]["reason"]
+        live = ingress.process(envelope({"endpoint": "live", "prompt": "hi"}, ident="m-2"))
+        assert live["ledger"]["outcome"] == "ok", live["ledger"]
+    finally:
+        held.settle()
+
+
+def test_lanes_run_concurrently_a_slow_lane_holds_only_its_own_slot(tmp_path, stub):
+    guard = ri.LaneGuard(max_inflight=1, queue_max=1, wait_s=3.0)
+    ingress = make_ingress(tmp_path, [
+        {"id": "slow", "protocol": "openai-compatible", "address": stub + "/slow",
+         "auth": "none", "reply": "json:choices.0.message.content", "timeout_s": 15},
+        hermes_row(stub, id="live"),
+    ], admission=guard)
+    results = {}
+
+    def run_slow():
+        results["slow"] = ingress.process(envelope({"endpoint": "slow", "prompt": "s"},
+                                                   ident="s-1"))
+
+    worker = threading.Thread(target=run_slow, daemon=True)
+    worker.start()
+    deadline = time.time() + 5
+    while time.time() < deadline and guard.lane_stats().get("slow", {}).get("inflight", 0) == 0:
+        time.sleep(0.02)
+    assert guard.lane_stats()["slow"]["inflight"] == 1, "the slow lane never entered flight"
+    # while the slow lane is busy, its own second message waits/refuses but a
+    # DIFFERENT lane is served on its own budget.
+    peer = ingress.process(envelope({"endpoint": "live", "prompt": "hi"}, ident="m-2"))
+    assert peer["ledger"]["outcome"] == "ok", peer["ledger"]
+    worker.join(20)
+    assert "slow" in results
+    assert guard.lane_stats()["slow"]["peak_inflight"] == 1
+    assert guard.lane_stats()["live"]["peak_inflight"] == 1
+
+
+def test_a_lane_that_keeps_failing_trips_and_is_refused_fast(tmp_path):
+    guard = ri.LaneGuard(failures=3, open_s=30)
+    loud = []
+    calls = []
+
+    def opener(request, timeout=None):
+        calls.append(request.full_url)
+        raise urllib.error.URLError("connection refused")
+
+    ingress = make_ingress(tmp_path, [hermes_row("http://127.0.0.1:9", id="dead")],
+                           admission=guard, opener=opener, logger=loud.append)
+    for i in range(3):
+        out = ingress.process(envelope({"endpoint": "dead", "prompt": "x"}, ident="m-%d" % i))
+        assert out["ledger"]["outcome"] == "failed", out["ledger"]
+    fired = len(calls)
+    assert fired == 3
+    late = ingress.process(envelope({"endpoint": "dead", "prompt": "x"}, ident="m-late"))
+    assert late["ledger"]["outcome"] == "refused"
+    assert late["ledger"]["reason"].startswith("endpoint-circuit-open")
+    assert "dead" in late["ledger"]["reason"] and "consecutive failures" in late["ledger"]["reason"]
+    assert late["reply"]["ok"] is False
+    assert "endpoint-circuit-open" in late["reply"]["reason"]      # loud on the bus too
+    assert len(calls) == fired                                    # the target was not touched
+    assert late["ledger"]["lane"] == "dead"
+    lane = guard.lane_stats()["dead"]
+    assert lane["state"] == "open" and lane["consecutive_failures"] == 3
+    assert lane["open_count"] == 1
+    assert lane["last_failure"].startswith("transport-error")
+    assert guard.stats()["trips"] == 1
+    assert any("LANE dead circuit OPENED" in line for line in loud), loud
+
+
+def test_a_tripped_lane_does_not_refuse_a_peer(tmp_path, stub):
+    guard = ri.LaneGuard(failures=1, open_s=60)
+    loud = []
+    ingress = make_ingress(tmp_path, [hermes_row("http://127.0.0.1:9", id="dead"),
+                                      hermes_row(stub, id="live")],
+                           admission=guard, logger=loud.append)
+    ingress.process(envelope({"endpoint": "dead", "prompt": "x"}))
+    assert guard.lane_stats()["dead"]["state"] == "open"
+    live = ingress.process(envelope({"endpoint": "live", "prompt": "hi"}, ident="m-2"))
+    assert live["ledger"]["outcome"] == "ok"
+    assert guard.lane_stats()["live"]["state"] == "closed"
+    assert guard.stats()["recoveries"] == 0
+
+
+def test_a_half_open_probe_closes_the_circuit_loudly(tmp_path, stub):
+    guard = ri.LaneGuard(failures=2, open_s=0.05)
+    loud = []
+    state = {"fail": True}
+
+    class FlakyOpener:
+        def __call__(self, request, timeout=None):
+            if state["fail"]:
+                raise urllib.error.URLError("connection refused")
+            return urllib.request.urlopen(request, timeout=timeout)
+
+    ingress = make_ingress(tmp_path, [hermes_row(stub, id="flaky")],
+                           admission=guard, opener=FlakyOpener(), logger=loud.append)
+    for i in range(2):
+        ingress.process(envelope({"endpoint": "flaky", "prompt": "x"}, ident="m-%d" % i))
+    assert guard.lane_stats()["flaky"]["state"] == "open"
+    refused = ingress.process(envelope({"endpoint": "flaky", "prompt": "x"}, ident="m-open"))
+    assert refused["ledger"]["reason"].startswith("endpoint-circuit-open")
+
+    time.sleep(0.1)                                   # the cooldown elapses
+    assert guard.lane_stats()["flaky"]["state"] == "half-open"
+    state["fail"] = False
+    probe = ingress.process(envelope({"endpoint": "flaky", "prompt": "hi"}, ident="m-probe"))
+    assert probe["ledger"]["outcome"] == "ok", probe["ledger"]
+    lane = guard.lane_stats()["flaky"]
+    assert lane["state"] == "closed" and lane["consecutive_failures"] == 0
+    assert lane["open_count"] == 1 and guard.stats()["recoveries"] == 1
+    assert any("circuit CLOSED" in line for line in loud), loud
+
+
+def test_a_failed_half_open_probe_reopens_with_backoff(tmp_path):
+    guard = ri.LaneGuard(failures=1, open_s=0.05)
+    loud = []
+
+    def opener(request, timeout=None):
+        raise urllib.error.URLError("connection refused")
+
+    ingress = make_ingress(tmp_path, [hermes_row("http://127.0.0.1:9", id="dead")],
+                           admission=guard, opener=opener, logger=loud.append)
+    ingress.process(envelope({"endpoint": "dead", "prompt": "x"}, ident="m-1"))
+    assert guard.lane_stats()["dead"]["state"] == "open"
+    time.sleep(0.08)
+    probe = ingress.process(envelope({"endpoint": "dead", "prompt": "x"}, ident="m-probe"))
+    assert probe["ledger"]["outcome"] == "failed"          # the probe really ran
+    lane = guard.lane_stats()["dead"]
+    assert lane["state"] == "open" and lane["open_count"] == 2
+    assert any("REOPENED" in line for line in loud), loud
+    # the backoff doubled: an immediate retry is refused without firing at all
+    again = ingress.process(envelope({"endpoint": "dead", "prompt": "x"}, ident="m-again"))
+    assert again["ledger"]["reason"].startswith("endpoint-circuit-open")
+
+
+def test_a_4xx_is_a_request_problem_not_a_lane_outage(tmp_path, stub):
+    guard = ri.LaneGuard(failures=2, open_s=60)
+    ingress = make_ingress(tmp_path, [{
+        "id": "badreq", "protocol": "openai-compatible", "address": stub + "/missing",
+        "auth": "none", "reply": "json:x", "timeout_s": 10,
+    }], admission=guard)
+    for i in range(3):
+        out = ingress.process(envelope({"endpoint": "badreq", "prompt": "x"}, ident="m-%d" % i))
+        assert out["ledger"]["http_status"] == 404
+    assert guard.lane_stats()["badreq"]["state"] == "closed"
+    assert guard.stats()["trips"] == 0
+
+
+def test_a_burst_is_refused_before_it_reaches_the_target(tmp_path, stub):
+    guard = ri.LaneGuard(max_inflight=1, queue_max=0, wait_s=0.2)
+    ingress = make_ingress(tmp_path, [hermes_row(stub, id="live")], admission=guard)
+    held = guard.hold("live")
+    try:
+        seen_before = len(StubHandler.seen)
+        refusals = [ingress.process(envelope({"endpoint": "live", "prompt": "burst-%d" % i},
+                                             ident="b-%d" % i))
+                    for i in range(12)]
+        assert all(r["ledger"]["outcome"] == "refused"
+                   and r["ledger"]["reason"].startswith("lane-busy") for r in refusals)
+        assert len(StubHandler.seen) == seen_before     # nothing was amplified onto it
+        assert guard.lane_stats()["live"]["rejected"] == 12
+    finally:
+        held.settle()
+
+
+def test_health_reports_per_lane_state(ingress_server):
+    base, _, _ = ingress_server
+    _post(base + "/ingress/v1/messages", {"endpoint": "hermes-stub", "prompt": "hi"},
+          token="sekret", ident="uhlp")
+    with urllib.request.urlopen(base + "/health", timeout=10) as resp:
+        doc = json.loads(resp.read())
+    assert doc["status"] == "ok"
+    assert "admission" in doc and "lanes" in doc["admission"]
+    lane = doc["admission"]["lanes"]["hermes-stub"]
+    assert lane["state"] == "closed" and lane["accepted"] == 1

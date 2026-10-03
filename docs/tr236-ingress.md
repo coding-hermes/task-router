@@ -85,7 +85,9 @@ auth-unresolved: API_SERVER_KEY not set in /home/…/.hermes/.env
 endpoint-unsupported-protocol: 'grpc'
 no-prompt: payload carried none of prompt/text/task/message/body/input
 timeout-not-declared: endpoint 'x' has no bound
-overloaded: queue full (16 waiting, 4 in flight)
+lane-busy: lane 'x' queue full (8 waiting, 2 in flight)
+endpoint-circuit-open: lane 'x' tripped after 3 consecutive failures (…); retry in 30s
+overloaded: global backstop full (max N in flight, all lanes)
 unauthorized: signature does not verify for 'task-router'
 duplicate: idempotency_key already forwarded
 ```
@@ -141,12 +143,30 @@ recording that as a served model would be a fabricated billing fact).
 
 * **Per request**: `timeout_s` from the declaration (narrowed, never widened, by
   the message) — an endpoint with no bound is refused.
-* **Admission**: `ROUTER_INGRESS_MAX_INFLIGHT` (4) + `ROUTER_INGRESS_QUEUE_MAX`
-  (16) waiting + `ROUTER_INGRESS_QUEUE_WAIT_S` (20). Full ⇒ refused with the
-  reason, never an unbounded wait (the TR-169 lesson: an ingress must not
-  amplify a burst onto its target).
+* **Admission is PER LANE** (SCHED-GAP-1713): each addressed endpoint gets its own
+  in-flight budget and queue (`ROUTER_INGRESS_LANE_MAX_INFLIGHT` 2 +
+  `ROUTER_INGRESS_LANE_QUEUE_MAX` 8 waiting + `ROUTER_INGRESS_LANE_QUEUE_WAIT_S`
+  20). Over the bound ⇒ `lane-busy`, refused with the reason, never an unbounded
+  wait (the TR-169 lesson: an ingress must not amplify a burst onto its target).
+  A lane's saturation can never consume a peer's capacity. The legacy **shared**
+  pool (`ROUTER_INGRESS_MAX_INFLIGHT` 4 + `…_QUEUE_MAX` 16 + `…_QUEUE_WAIT_S` 20,
+  class `Admission`) still exists for callers that explicitly want one global cap;
+  the default is per-lane, and a global backstop is opt-in
+  (`ROUTER_INGRESS_GLOBAL_MAX_INFLIGHT`, 0 = off).
+* **A lane that keeps failing trips its own circuit** (SCHED-GAP-1713b): after
+  `ROUTER_INGRESS_CIRCUIT_FAILURES` (3) consecutive lane failures — transport
+  error, timeout, 5xx or an answer with no terminal event; a 4xx deliberately does
+  NOT count — the lane is refused fast and loudly (`endpoint-circuit-open`, in the
+  ledger, the bus reply and a log line) without firing at the target, for
+  `ROUTER_INGRESS_CIRCUIT_OPEN_S` (30s). A half-open probe then tests recovery; a
+  failed probe re-opens with a doubled (capped at 1 h) cooldown. `GET /health`
+  reports every lane's `state`, `consecutive_failures` and `last_failure`.
 * **Idempotency**: a re-delivered `idempotency_key` is answered `duplicate` and
   never forwarded twice.
+
+The design record for the isolation contract — and for the measured finding that
+an agent container has no gateway to forward to — is
+`docs/router-in-bunker-shortcut.md`.
 
 ## Configuration
 
@@ -154,9 +174,15 @@ recording that as a served model would be a fabricated billing fact).
 |---|---|---|
 | `ROUTER_INGRESS_ENDPOINTS` | `data/endpoints.jsonl` | the endpoint registry |
 | `ROUTER_INGRESS_LEDGER` | `$ROUTER_STATE_DIR/ingress-ledger.jsonl` | the audit ledger |
-| `ROUTER_INGRESS_MAX_INFLIGHT` | `4` | concurrent forwards |
-| `ROUTER_INGRESS_QUEUE_MAX` | `16` | how many may wait before refusal |
-| `ROUTER_INGRESS_QUEUE_WAIT_S` | `20` | how long a waiter may wait |
+| `ROUTER_INGRESS_LANE_MAX_INFLIGHT` | `2` | concurrent forwards **per lane** |
+| `ROUTER_INGRESS_LANE_QUEUE_MAX` | `8` | how many may wait **per lane** before `lane-busy` |
+| `ROUTER_INGRESS_LANE_QUEUE_WAIT_S` | `20` | how long a per-lane waiter may wait |
+| `ROUTER_INGRESS_CIRCUIT_FAILURES` | `3` | consecutive lane failures before the circuit opens |
+| `ROUTER_INGRESS_CIRCUIT_OPEN_S` | `30` | cooldown before a half-open probe (doubles per failed probe, cap 1 h) |
+| `ROUTER_INGRESS_GLOBAL_MAX_INFLIGHT` | `0` | optional global backstop (0 = off, never the first bound) |
+| `ROUTER_INGRESS_MAX_INFLIGHT` | `4` | legacy **shared** pool (`Admission`) only |
+| `ROUTER_INGRESS_QUEUE_MAX` | `16` | legacy shared pool: how many may wait |
+| `ROUTER_INGRESS_QUEUE_WAIT_S` | `20` | legacy shared pool: wait bound |
 | `ROUTER_INGRESS_TOKEN` | — | bearer for the `serve` door |
 | `ROUTER_INGRESS_BUS_IDS` | `task-router` | inbox identities this ingress drains |
 | `ROUTER_INGRESS_BUS_URL` | `http://100.97.236.14:8767` | the bus (`CRIER_URL` also read) |

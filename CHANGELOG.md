@@ -4,6 +4,22 @@ All notable changes to task-router are documented here. The project follows
 Conventional Commits; commit subjects are the source of truth (this file is
 curated from the git log, not generated).
 
+## [Unreleased]
+
+### Changed
+
+- **Ingress admission and failure handling are now PER LANE** (SCHED-GAP-1713).
+  The bus ingress (`router ingress`) no longer bounds forwards with one shared
+  pool: every addressed endpoint gets its own in-flight budget, queue and circuit
+  breaker. A lane that is hung, saturated or tripping can no longer refuse, slow
+  or flood a peer; a lane that keeps failing is refused fast and loudly
+  (`endpoint-circuit-open`) without firing at the target, and `GET /health`
+  reports each lane's state. The legacy shared pool lives on as the explicit
+  `Admission` class; the global cap is now an opt-in backstop
+  (`ROUTER_INGRESS_GLOBAL_MAX_INFLIGHT`, default off). Contract:
+  `docs/tr236-ingress.md`; design record incl. the measured finding that an agent
+  container has no gateway to forward to: `docs/router-in-bunker-shortcut.md`.
+
 ## [0.2.0] — 2026-09-24
 
 Minor bump from 0.1.0: 121 features, 85 fixes and 21 docs commits since the

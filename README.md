@@ -414,7 +414,11 @@ that cannot declare those fields is refused by name — there is no silent defau
 to Hermes. Every attempt writes one ledger row (inbound id, endpoint *served*,
 transform, outcome, tokens, cost, and a stated reason wherever a value is
 unknown). Contract, refusal vocabulary and live evidence:
-**`docs/tr236-ingress.md`**.
+**`docs/tr236-ingress.md`**. Admission is per lane — each addressed endpoint has
+its own in-flight budget, queue and circuit breaker, so one unreachable lane can
+never refuse a peer or flood a target; the design record (and the measured
+finding that an agent container has no gateway to forward to) is
+**`docs/router-in-bunker-shortcut.md`** (SCHED-GAP-1713).
 
 ## Architecture
 
@@ -542,7 +546,7 @@ for repo-relative use.
 | `router pricing` | Price table diagnostics (`--json`, `--dry-run`) |
 | `router pricing-audit` | Mechanized pricing audit (TR-070): classifies every active priced lane by evidence class (measured-offset, official, estimate, unbased, free-window-pending, …), flags burn traps (stale/unsourced offsets) and lanes >3x off models.dev list. Takes no flags — `router pricing-audit --help` RUNS the audit; exit 1 = traps found, 0 = clean |
 | `router gaps` | Registry data-quality gaps (`--json`, `--lacking`, `--top`) |
-| `router ingress` | Bus ingress (TR-236): `poll` (drain the bus inbox), `serve` (authenticated push door), `forward` (one message file), `translate` (dry-run the transform), `endpoints` (list/validate the declarations). The model stays the router's choice; see `docs/tr236-ingress.md` |
+| `router ingress` | Bus ingress (TR-236): `poll` (drain the bus inbox), `serve` (authenticated push door), `forward` (one message file), `translate` (dry-run the transform), `endpoints` (list/validate the declarations). Admission and the circuit breaker are PER LANE (SCHED-GAP-1713), so one unreachable endpoint cannot refuse or flood a peer. The model stays the router's choice; see `docs/tr236-ingress.md` and `docs/router-in-bunker-shortcut.md` |
 | `router chain-run` | Execute a named routing chain for a request and record the resulting hop outcomes |
 | `router lifecycle` | Inspect and manage the router's lifecycle state and operational transitions |
 | `router outcomes` | Inspect recorded request outcomes and outcome-derived routing statistics |

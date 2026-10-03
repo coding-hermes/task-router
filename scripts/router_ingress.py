@@ -713,11 +713,318 @@ def build_hop(endpoint, message, model_choice, credential):
 
 # ---------------------------------------------------------------------------
 # Admission control — the TR-169 lesson: an ingress must not amplify.
+#
+# The bound is PER LANE (SCHED-GAP-1713). A single global pool is itself the
+# shared blast radius this file exists to avoid: one unreachable endpoint
+# parked on every slot refuses EVERY lane at once, so one dead agent degrades
+# the whole fleet. Per-lane buckets mean a lane that is hung, dead or being
+# burst at can only spend its own budget; a lane that keeps failing trips its
+# own circuit and is then refused FAST and LOUDLY without taking a slot or
+# touching a peer. The global cap is an opt-in backstop
+# (ROUTER_INGRESS_GLOBAL_MAX_INFLIGHT, 0 = off) and is never what trips first.
 # ---------------------------------------------------------------------------
 
 
+def lane_failure(outcome, reason=None, http_status=None):
+    """Is this attempt evidence that the LANE (endpoint) is unhealthy?
+
+    A 4xx is a request problem, not an endpoint outage: tripping a lane on it
+    would take a healthy endpoint away over a caller's bad payload. Transport
+    errors, timeouts, 5xx and an endpoint that answers without a terminal
+    answer ARE lane failures.
+    """
+    if outcome in ("timeout", "unservable"):
+        return True
+    if outcome == "failed":
+        if http_status is not None:
+            try:
+                code = int(http_status)
+            except (TypeError, ValueError):
+                return True
+            if 400 <= code < 500:
+                return False
+        return True
+    return False
+
+
+class LaneLease:
+    """The slot a lane handed out. The Ingress reports the outcome back here."""
+
+    def __init__(self, guard, lane):
+        self.guard = guard
+        self.lane = lane
+        self.outcome = None
+        self.reason = None
+        self.http_status = None
+        self.ok = False
+        self.settled = False
+
+    def settle(self, outcome=None, reason=None, http_status=None, ok=False):
+        """Record what the hop did and give the slot back. Idempotent."""
+        if self.settled:
+            return None
+        self.settled = True
+        self.outcome, self.reason = outcome, reason
+        self.http_status, self.ok = http_status, bool(ok)
+        return self.guard.release(self)
+
+
+class _LaneState:
+    """One lane's budget and circuit. All mutation happens under ``lock``."""
+
+    def __init__(self, name, max_inflight, queue_max, wait_s, failure_threshold, open_s):
+        self.name = name
+        self.max_inflight = max(1, int(max_inflight))
+        self.queue_max = int(queue_max)
+        self.wait_s = float(wait_s)
+        self.failure_threshold = max(1, int(failure_threshold))
+        self.base_open_s = float(open_s)
+        self.open_s = float(open_s)
+        self._sem = threading.BoundedSemaphore(self.max_inflight)
+        self.lock = threading.Lock()
+        self.inflight = 0
+        self.waiting = 0
+        self.peak = 0
+        self.accepted = 0
+        self.rejected = 0
+        self.consecutive_failures = 0
+        self.total_failures = 0
+        self.total_ok = 0
+        self.last_failure = None
+        self.open_until = 0.0
+        self.open_count = 0
+        self.probe_inflight = False
+        self.last_state_change = None
+
+    def state(self, now=None):
+        now = time.time() if now is None else now
+        if self.open_until and now < self.open_until:
+            return "open"
+        if self.open_until:
+            return "half-open"
+        return "closed"
+
+    def admit(self):
+        """Take the lane's slot, or raise Refusal naming why. Bounded, never forever."""
+        now = time.time()
+        state = self.state(now)
+        if state == "open":
+            self.rejected += 1
+            raise Refusal(
+                "endpoint-circuit-open: lane %r tripped after %d consecutive failures "
+                "(%s); refusing without forwarding, retry in %.0fs"
+                % (self.name, self.consecutive_failures,
+                   self.last_failure or "reason unrecorded",
+                   max(0.0, self.open_until - now)))
+        if state == "half-open":
+            with self.lock:
+                if self.probe_inflight:
+                    self.rejected += 1
+                    raise Refusal("endpoint-circuit-open: lane %r half-open probe already "
+                                  "in flight" % self.name)
+                self.probe_inflight = True
+        acquired = self._sem.acquire(blocking=False)
+        if not acquired:
+            with self.lock:
+                if self.waiting >= self.queue_max:
+                    self.rejected += 1
+                    self.probe_inflight = False
+                    raise Refusal("lane-busy: lane %r queue full (%d waiting, %d in flight)"
+                                  % (self.name, self.queue_max, self.inflight))
+                self.waiting += 1
+            try:
+                acquired = self._sem.acquire(timeout=self.wait_s)
+            finally:
+                with self.lock:
+                    self.waiting -= 1
+            if not acquired:
+                with self.lock:
+                    self.rejected += 1
+                    self.probe_inflight = False
+                raise Refusal("lane-busy: lane %r no slot within %.1fs (max %d in flight)"
+                              % (self.name, self.wait_s, self.max_inflight))
+        with self.lock:
+            self.inflight += 1
+            self.accepted += 1
+            self.peak = max(self.peak, self.inflight)
+
+    def release(self):
+        try:
+            self._sem.release()
+        finally:
+            with self.lock:
+                self.inflight = max(0, self.inflight - 1)
+                self.probe_inflight = False
+
+    def record_failure(self, reason):
+        """Returns 'opened'/'reopened' when the circuit changed, else None."""
+        now = time.time()
+        with self.lock:
+            self.consecutive_failures += 1
+            self.total_failures += 1
+            self.last_failure = reason or "reason unrecorded"
+            if self.open_until and now >= self.open_until:
+                # a half-open probe failed: re-open, backing off further
+                self.open_count += 1
+                self.open_s = min(self.open_s * 2, 3600.0)
+                self.open_until = now + self.open_s
+                self.last_state_change = "reopened"
+                return "reopened"
+            if self.consecutive_failures >= self.failure_threshold:
+                self.open_count += 1
+                self.open_until = now + self.open_s
+                self.last_state_change = "opened"
+                return "opened"
+        return None
+
+    def record_success(self):
+        """Returns True when a lane that had a circuit just came back."""
+        with self.lock:
+            self.total_ok += 1
+            was_open = bool(self.open_until)
+            self.consecutive_failures = 0
+            self.last_failure = None
+            self.open_until = 0.0
+            self.open_s = self.base_open_s
+            if was_open:
+                self.last_state_change = "closed"
+            return was_open
+
+    def stats(self, now=None):
+        with self.lock:
+            return {
+                "state": self.state(now),
+                "max_inflight": self.max_inflight,
+                "queue_max": self.queue_max,
+                "inflight": self.inflight,
+                "waiting": self.waiting,
+                "peak_inflight": self.peak,
+                "accepted": self.accepted,
+                "rejected": self.rejected,
+                "consecutive_failures": self.consecutive_failures,
+                "total_failures": self.total_failures,
+                "total_ok": self.total_ok,
+                "failure_threshold": self.failure_threshold,
+                "open_count": self.open_count,
+                "open_until": round(self.open_until, 3) if self.open_until else None,
+                "last_failure": self.last_failure,
+                "last_state_change": self.last_state_change,
+            }
+
+
+#: Outcomes that are real evidence the endpoint served the work.
+_SUCCESS_OUTCOMES = ("ok", "accepted")
+
+
+class LaneGuard:
+    """Per-lane admission + circuit breaker. The Ingress default.
+
+    ``hold(lane)`` returns a LaneLease or raises Refusal with a lane-scoped,
+    named reason. One lane's trouble can never become another lane's refusal:
+    that separation is the whole point (SCHED-GAP-1713b).
+    """
+
+    def __init__(self, max_inflight=None, queue_max=None, wait_s=None,
+                 failures=None, open_s=None, global_max=None, logger=None):
+        self.per_lane_inflight = int(max_inflight if max_inflight is not None
+                                     else _env_int("ROUTER_INGRESS_LANE_MAX_INFLIGHT", 2))
+        self.per_lane_queue = int(queue_max if queue_max is not None
+                                  else _env_int("ROUTER_INGRESS_LANE_QUEUE_MAX", 8))
+        self.wait_s = float(wait_s if wait_s is not None
+                            else _env_float("ROUTER_INGRESS_LANE_QUEUE_WAIT_S", 20.0))
+        self.failure_threshold = int(failures if failures is not None
+                                     else _env_int("ROUTER_INGRESS_CIRCUIT_FAILURES", 3))
+        self.open_s = float(open_s if open_s is not None
+                            else _env_float("ROUTER_INGRESS_CIRCUIT_OPEN_S", 30.0))
+        self.global_max = int(global_max if global_max is not None
+                              else _env_int("ROUTER_INGRESS_GLOBAL_MAX_INFLIGHT", 0))
+        self._global = (threading.BoundedSemaphore(self.global_max)
+                        if self.global_max > 0 else None)
+        self._lanes = {}
+        self._lock = threading.Lock()
+        self.trips = 0
+        self.recoveries = 0
+        self.log = logger or (lambda *_a, **_k: None)
+
+    def set_logger(self, logger):
+        self.log = logger or (lambda *_a, **_k: None)
+
+    def lane(self, name):
+        name = (name or "").strip() or "<unaddressed>"
+        with self._lock:
+            state = self._lanes.get(name)
+            if state is None:
+                state = _LaneState(name, self.per_lane_inflight, self.per_lane_queue,
+                                   self.wait_s, self.failure_threshold, self.open_s)
+                self._lanes[name] = state
+            return state
+
+    def hold(self, lane_name):
+        """Enter the lane. Raises Refusal (lane-scoped) instead of queueing forever."""
+        state = self.lane(lane_name)
+        if self._global is not None and not self._global.acquire(blocking=False):
+            raise Refusal("overloaded: global backstop full (max %d in flight, all lanes)"
+                          % self.global_max)
+        try:
+            state.admit()
+        except Refusal:
+            if self._global is not None:
+                self._global.release()
+            raise
+        return LaneLease(self, state.name)
+
+    def release(self, lease):
+        """Give the slot back and settle the circuit. Returns the event or None."""
+        state = self._lanes.get(lease.lane)
+        if state is None:
+            return None
+        event = None
+        if lane_failure(lease.outcome, lease.reason, lease.http_status):
+            event = state.record_failure(lease.reason)
+            if event:
+                self.trips += 1
+                stats = state.stats()
+                self.log("LANE %s circuit %s: %d consecutive failures, last=%s; "
+                         "cooldown %.0fs — refusing without forwarding until then"
+                         % (state.name, event.upper(), stats["consecutive_failures"],
+                            stats["last_failure"],
+                            max(0.0, (stats["open_until"] or 0.0) - time.time())))
+        elif lease.ok and lease.outcome in _SUCCESS_OUTCOMES:
+            if state.record_success():
+                event = "closed"
+                self.recoveries += 1
+                stats = state.stats()
+                self.log("LANE %s circuit CLOSED: recovered (%d ok, %d failures total)"
+                         % (state.name, stats["total_ok"], stats["total_failures"]))
+        state.release()
+        if self._global is not None:
+            self._global.release()
+        return event
+
+    def lane_stats(self):
+        with self._lock:
+            lanes = list(self._lanes.items())
+        return {name: state.stats() for name, state in lanes}
+
+    def stats(self):
+        lanes = self.lane_stats()
+        return {"lanes": lanes, "trips": self.trips, "recoveries": self.recoveries,
+                "per_lane_max_inflight": self.per_lane_inflight,
+                "per_lane_queue_max": self.per_lane_queue,
+                "per_lane_queue_wait_s": self.wait_s,
+                "circuit_failure_threshold": self.failure_threshold,
+                "circuit_open_s": self.open_s,
+                "global_max_inflight": self.global_max,
+                "inflight": sum(s["inflight"] for s in lanes.values())}
+
+
 class Admission:
-    """Bound concurrent forwards; refuse (do not queue forever) when full."""
+    """ONE shared pool for every lane — the shared blast radius of SCHED-GAP-1713.
+
+    Kept for callers that explicitly want a single global cap; the Ingress
+    default is LaneGuard. ``hold`` gives it the same interface so the forwarding
+    path never branches on which governor it was handed.
+    """
 
     def __init__(self, max_inflight=None, queue_max=None, wait_s=None):
         self.max_inflight = int(max_inflight if max_inflight is not None
@@ -733,6 +1040,19 @@ class Admission:
         self.peak = 0
         self.accepted = 0
         self.rejected = 0
+        self.log = lambda *_a, **_k: None
+
+    def set_logger(self, logger):
+        self.log = logger or (lambda *_a, **_k: None)
+
+    def hold(self, lane=None):
+        self.__enter__()
+        name = (lane or "").strip() or "<shared>"
+        return LaneLease(self, name)
+
+    def release(self, lease):
+        self.__exit__(None, None, None)
+        return None
 
     def __enter__(self):
         acquired = self._sem.acquire(blocking=False)
@@ -789,8 +1109,12 @@ class Ingress:
         self.ledger = Path(ledger or ledger_path())
         self.resolver = resolver or resolve_model
         self.opener = opener or urllib.request.urlopen
-        self.admission = admission or Admission()
         self.log = logger or (lambda *_a, **_k: None)
+        # The default governor is PER LANE. A shared pool is the blast radius
+        # SCHED-GAP-1713 forbids, so it must be asked for explicitly (Admission).
+        self.admission = admission or LaneGuard()
+        if hasattr(self.admission, "set_logger"):
+            self.admission.set_logger(self.log)
         self._seen = self._load_idempotency_keys()
         self._seen_lock = threading.Lock()
 
@@ -837,6 +1161,7 @@ class Ingress:
             "inbound_id": inbound_id,
             "sender": message["sender"] or None,
             "session": message["session"],
+            "lane": (message["target"] or "").strip() or None,
             "endpoint_requested": message["target"],
             "endpoint_served": None,
             "protocol": None,
@@ -871,16 +1196,20 @@ class Ingress:
             return {"reply": reply, "reply_to": self.reply_target(message),
                     "ledger": row, "ack": ack, "outcome": outcome}
 
-        # -- admission first: a burst must be refused before it reaches anything
+        # -- admission first: a burst must be refused before it reaches anything,
+        #    and the refusal is scoped to THIS lane. Nothing is queued forever.
+        lane_name = (message["target"] or "").strip()
         try:
-            _ctx = self.admission
-            _ctx.__enter__()
+            lease = self.admission.hold(lane_name)
         except Refusal as refusal:
             return finish("refused", refusal.reason)
         try:
             return self._process_locked(message, row, finish, started)
         finally:
-            self.admission.__exit__()
+            # the outcome is what settles the lane's circuit: failures trip it,
+            # a real answer closes it. Never guessed — taken from the ledger row.
+            lease.settle(outcome=row.get("outcome"), reason=row.get("reason"),
+                         http_status=row.get("http_status"), ok=bool(row.get("ok")))
 
     def _process_locked(self, message, row, finish, started):
         if not message["prompt"]:
@@ -978,6 +1307,7 @@ class Ingress:
             "sender_idempotency_key": message.get("idempotency_key"),
             "endpoint": row.get("endpoint_served") or row.get("endpoint_requested"),
             "endpoint_requested": row.get("endpoint_requested"),
+            "lane": row.get("lane"),
             "protocol": row.get("protocol"),
             "transform": row.get("transform"),
             "ok": bool(row.get("ok")),
@@ -1158,6 +1488,8 @@ def _make_handler(ingress, token, verify_sig, logger, bus_sink=None):
 
         def do_GET(self):  # noqa: N802
             if urllib.parse.urlsplit(self.path).path == "/health":
+                # admission.stats() carries per-lane state: that is the operator's
+                # view of WHICH lane is down (state/consecutive_failures/last_failure).
                 return self._json(200, {"status": "ok", "ingress": "task-router",
                                         "admission": ingress.admission.stats(),
                                         "endpoints": sorted(ingress.endpoints)})
