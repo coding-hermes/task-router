@@ -743,3 +743,11 @@ tasks:
   status: complete
   created_at: '2026-10-03T03:18:22.580566+00:00'
   completed_at: '2026-10-03T03:19:25.424795+00:00'
+- id: TR-124
+  title: Capability bars are real but FLAT on the spawn path
+  criteria:
+  - Board rows can declare profile/requirement levels; foreman passes them to router_spawn;
+    P1_* levels re-derived to be meaningful bars
+  status: complete
+  created_at: '2026-10-03T06:33:03.903021+00:00'
+  completed_at: '2026-10-03T07:46:38.456771+00:00'
