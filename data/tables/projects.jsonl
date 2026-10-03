@@ -1,6 +1,7 @@
 {"id": "9router", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "9router-docs", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P3_DOCS"}
 {"id": "9router-dogfood", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
+{"id": "9router-foreman", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "9router-perf", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P2_AGENTIC"}
 {"id": "9router-pm", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
 {"id": "9router-qa", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P9_REVIEW"}
@@ -20,6 +21,7 @@
 {"id": "ai-plays-poke", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P7_MOCK"}
 {"id": "ai-plays-poke-docs", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P3_DOCS"}
 {"id": "ai-plays-poke-dogfood", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
+{"id": "ai-plays-poke-foreman", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "ai-plays-poke-perf", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P2_AGENTIC"}
 {"id": "ai-plays-poke-pm", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
 {"id": "ai-plays-poke-qa", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P9_REVIEW"}
@@ -30,14 +32,18 @@
 {"id": "asce", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "asce-docs", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P3_DOCS"}
 {"id": "asce-dogfood", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
+{"id": "asce-foreman", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "asce-perf", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P2_AGENTIC"}
 {"id": "asce-pm", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
 {"id": "asce-qa", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P9_REVIEW"}
 {"id": "asce-readme", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P3_DOCS"}
+{"id": "asce-releng", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P2_AGENTIC"}
+{"id": "asce-review", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P9_REVIEW"}
 {"id": "asce-sync", "sensitivity": "open", "board_type": "", "stack": "", "profile": "P8_SYNC"}
 {"id": "auger", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "auger-docs", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P3_DOCS"}
 {"id": "auger-dogfood", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
+{"id": "auger-foreman", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "auger-pm", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
 {"id": "auger-qa", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P9_REVIEW"}
 {"id": "auger-readme", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P3_DOCS"}
@@ -51,6 +57,7 @@
 {"id": "boardctl", "sensitivity": "open", "board_type": "jsonl", "stack": "go", "profile": "P0_FORE"}
 {"id": "boardctl-docs", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P3_DOCS"}
 {"id": "boardctl-dogfood", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
+{"id": "boardctl-foreman", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "boardctl-perf", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P2_AGENTIC"}
 {"id": "boardctl-pm", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
 {"id": "boardctl-qa", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P9_REVIEW"}
@@ -61,6 +68,7 @@
 {"id": "bunker", "sensitivity": "proprietary", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "bunker-docs", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P3_DOCS"}
 {"id": "bunker-dogfood", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
+{"id": "bunker-foreman", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "bunker-perf", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P2_AGENTIC"}
 {"id": "bunker-pm", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
 {"id": "bunker-qa", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P9_REVIEW"}
@@ -78,6 +86,7 @@
 {"id": "chimera-v2", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "chimera-v2-docs", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P3_DOCS"}
 {"id": "chimera-v2-dogfood", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
+{"id": "chimera-v2-foreman", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "chimera-v2-perf", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P2_AGENTIC"}
 {"id": "chimera-v2-pm", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
 {"id": "chimera-v2-qa", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P9_REVIEW"}
@@ -88,6 +97,7 @@
 {"id": "coding-hermes-scheduler", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P1_CODING"}
 {"id": "coding-hermes-scheduler-docs", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P3_DOCS"}
 {"id": "coding-hermes-scheduler-dogfood", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
+{"id": "coding-hermes-scheduler-foreman", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "coding-hermes-scheduler-perf", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P2_AGENTIC"}
 {"id": "coding-hermes-scheduler-pm", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
 {"id": "coding-hermes-scheduler-qa", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P9_REVIEW"}
@@ -100,6 +110,7 @@
 {"id": "coding-hermes-tools", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "coding-hermes-tools-docs", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P3_DOCS"}
 {"id": "coding-hermes-tools-dogfood", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
+{"id": "coding-hermes-tools-foreman", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "coding-hermes-tools-perf", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P2_AGENTIC"}
 {"id": "coding-hermes-tools-pm", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
 {"id": "coding-hermes-tools-qa", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P9_REVIEW"}
@@ -110,6 +121,7 @@
 {"id": "consensus", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "consensus-docs", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P3_DOCS"}
 {"id": "consensus-dogfood", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
+{"id": "consensus-foreman", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "consensus-perf", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P2_AGENTIC"}
 {"id": "consensus-pm", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
 {"id": "consensus-qa", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P9_REVIEW"}
@@ -120,6 +132,7 @@
 {"id": "crier", "sensitivity": null, "board_type": null, "stack": null, "profile": "P0_FORE"}
 {"id": "crier-docs", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P3_DOCS"}
 {"id": "crier-dogfood", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
+{"id": "crier-foreman", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "crier-perf", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P2_AGENTIC"}
 {"id": "crier-pm", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
 {"id": "crier-qa", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P9_REVIEW"}
@@ -143,6 +156,7 @@
 {"id": "dexdat-core", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "dexdat-core-docs", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P3_DOCS"}
 {"id": "dexdat-core-dogfood", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
+{"id": "dexdat-core-foreman", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "dexdat-core-perf", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P2_AGENTIC"}
 {"id": "dexdat-core-pm", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
 {"id": "dexdat-core-qa", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P9_REVIEW"}
@@ -153,6 +167,7 @@
 {"id": "dexdat-memory", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "dexdat-memory-docs", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P3_DOCS"}
 {"id": "dexdat-memory-dogfood", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
+{"id": "dexdat-memory-foreman", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "dexdat-memory-perf", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P2_AGENTIC"}
 {"id": "dexdat-memory-pm", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
 {"id": "dexdat-memory-qa", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P9_REVIEW"}
@@ -163,6 +178,7 @@
 {"id": "digest", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "digest-docs", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P3_DOCS"}
 {"id": "digest-dogfood", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
+{"id": "digest-foreman", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "digest-perf", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P2_AGENTIC"}
 {"id": "digest-pm", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
 {"id": "digest-qa", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P9_REVIEW"}
@@ -178,6 +194,7 @@
 {"id": "duckbrain", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "duckbrain-docs", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P3_DOCS"}
 {"id": "duckbrain-dogfood", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
+{"id": "duckbrain-foreman", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "duckbrain-perf", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P2_AGENTIC"}
 {"id": "duckbrain-pm", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
 {"id": "duckbrain-qa", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P9_REVIEW"}
@@ -206,6 +223,7 @@
 {"id": "gitreins", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "gitreins-docs", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P3_DOCS"}
 {"id": "gitreins-dogfood", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
+{"id": "gitreins-foreman", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "gitreins-perf", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P2_AGENTIC"}
 {"id": "gitreins-pm", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
 {"id": "gitreins-poc", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P4_SECURITY"}
@@ -221,9 +239,19 @@
 {"id": "gitreins-sync", "sensitivity": "open", "board_type": "", "stack": "", "profile": "P8_SYNC"}
 {"id": "global-fast", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P7_MOCK"}
 {"id": "global-slow", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P7_MOCK"}
+{"id": "guard-docs", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P3_DOCS"}
+{"id": "guard-dogfood", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
+{"id": "guard-foreman", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
+{"id": "guard-pm", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
+{"id": "guard-qa", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P9_REVIEW"}
+{"id": "guard-readme", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P3_DOCS"}
+{"id": "guard-releng", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P2_AGENTIC"}
+{"id": "guard-review", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P9_REVIEW"}
+{"id": "guard-sync", "sensitivity": "open", "board_type": "", "stack": "", "profile": "P8_SYNC"}
 {"id": "h3", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "h3-docs", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P3_DOCS"}
 {"id": "h3-dogfood", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
+{"id": "h3-foreman", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "h3-perf", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P2_AGENTIC"}
 {"id": "h3-pm", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
 {"id": "h3-protocol-foreman", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
@@ -265,6 +293,7 @@
 {"id": "heading", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "heading-docs", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P3_DOCS"}
 {"id": "heading-dogfood", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
+{"id": "heading-foreman", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "heading-perf", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P2_AGENTIC"}
 {"id": "heading-pm", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
 {"id": "heading-qa", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P9_REVIEW"}
@@ -292,6 +321,7 @@
 {"id": "hermes-canopy", "sensitivity": null, "board_type": null, "stack": null, "profile": "P0_FORE"}
 {"id": "hermes-canopy-docs", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P3_DOCS"}
 {"id": "hermes-canopy-dogfood", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
+{"id": "hermes-canopy-foreman", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "hermes-canopy-perf", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P2_AGENTIC"}
 {"id": "hermes-canopy-pm", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
 {"id": "hermes-canopy-qa", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P9_REVIEW"}
@@ -302,6 +332,7 @@
 {"id": "hermes-dagger", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "hermes-dagger-docs", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P3_DOCS"}
 {"id": "hermes-dagger-dogfood", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
+{"id": "hermes-dagger-foreman", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "hermes-dagger-perf", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P2_AGENTIC"}
 {"id": "hermes-dagger-pm", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
 {"id": "hermes-dagger-qa", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P9_REVIEW"}
@@ -321,6 +352,7 @@
 {"id": "hivemind-work", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P2_AGENTIC"}
 {"id": "hivemind-work-docs", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P3_DOCS"}
 {"id": "hivemind-work-dogfood", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
+{"id": "hivemind-work-foreman", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "hivemind-work-perf", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P2_AGENTIC"}
 {"id": "hivemind-work-pm", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
 {"id": "hivemind-work-qa", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P9_REVIEW"}
@@ -347,6 +379,7 @@
 {"id": "logsey", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "logsey-docs", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P3_DOCS"}
 {"id": "logsey-dogfood", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
+{"id": "logsey-foreman", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "logsey-perf", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P2_AGENTIC"}
 {"id": "logsey-pm", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
 {"id": "logsey-qa", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P9_REVIEW"}
@@ -357,6 +390,7 @@
 {"id": "lore", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "lore-docs", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P3_DOCS"}
 {"id": "lore-dogfood", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
+{"id": "lore-foreman", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "lore-perf", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P2_AGENTIC"}
 {"id": "lore-pm", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
 {"id": "lore-qa", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P9_REVIEW"}
@@ -367,6 +401,7 @@
 {"id": "mafia-ai-benchmark", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "mafia-ai-benchmark-docs", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P3_DOCS"}
 {"id": "mafia-ai-benchmark-dogfood", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
+{"id": "mafia-ai-benchmark-foreman", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "mafia-ai-benchmark-perf", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P2_AGENTIC"}
 {"id": "mafia-ai-benchmark-pm", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
 {"id": "mafia-ai-benchmark-qa", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P9_REVIEW"}
@@ -375,18 +410,32 @@
 {"id": "mafia-ai-benchmark-review", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P9_REVIEW"}
 {"id": "mafia-ai-benchmark-sync", "sensitivity": "open", "board_type": "", "stack": "", "profile": "P8_SYNC"}
 {"id": "mafia-benchmark-sync", "sensitivity": "open", "board_type": "", "stack": "", "profile": "P8_SYNC"}
+{"id": "mischief-docs", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P3_DOCS"}
+{"id": "mischief-dogfood", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
+{"id": "mischief-foreman", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
+{"id": "mischief-pm", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
+{"id": "mischief-qa", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P9_REVIEW"}
+{"id": "mischief-readme", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P3_DOCS"}
+{"id": "mischief-releng", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P2_AGENTIC"}
+{"id": "mischief-review", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P9_REVIEW"}
+{"id": "mischief-sync", "sensitivity": "open", "board_type": "", "stack": "", "profile": "P8_SYNC"}
 {"id": "mon-alert", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P7_MOCK"}
 {"id": "mon-check", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P7_MOCK"}
 {"id": "mon-ping", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P7_MOCK"}
 {"id": "monitoring", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P6_DEFAULT"}
+{"id": "monitoring-docs", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P3_DOCS"}
 {"id": "monitoring-dogfood", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
+{"id": "monitoring-foreman", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "monitoring-pm", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
 {"id": "monitoring-qa", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P9_REVIEW"}
+{"id": "monitoring-readme", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P3_DOCS"}
 {"id": "monitoring-releng", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P2_AGENTIC"}
+{"id": "monitoring-review", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P9_REVIEW"}
 {"id": "monitoring-sync", "sensitivity": "open", "board_type": "", "stack": "", "profile": "P8_SYNC"}
 {"id": "muster", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "muster-docs", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P3_DOCS"}
 {"id": "muster-dogfood", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
+{"id": "muster-foreman", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "muster-perf", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P2_AGENTIC"}
 {"id": "muster-pm", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
 {"id": "muster-qa", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P9_REVIEW"}
@@ -405,6 +454,7 @@
 {"id": "my-project", "sensitivity": null, "board_type": null, "stack": null, "profile": "P0_FORE"}
 {"id": "my-project-docs", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P3_DOCS"}
 {"id": "my-project-dogfood", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
+{"id": "my-project-foreman", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "my-project-perf", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P2_AGENTIC"}
 {"id": "my-project-pm", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
 {"id": "my-project-qa", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P9_REVIEW"}
@@ -417,6 +467,7 @@
 {"id": "off-by-one", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "off-by-one-docs", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P3_DOCS"}
 {"id": "off-by-one-dogfood", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
+{"id": "off-by-one-foreman", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "off-by-one-perf", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P2_AGENTIC"}
 {"id": "off-by-one-pm", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
 {"id": "off-by-one-qa", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P9_REVIEW"}
@@ -427,6 +478,7 @@
 {"id": "pulse", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "pulse-docs", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P3_DOCS"}
 {"id": "pulse-dogfood", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
+{"id": "pulse-foreman", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "pulse-perf", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P2_AGENTIC"}
 {"id": "pulse-pm", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
 {"id": "pulse-qa", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P9_REVIEW"}
@@ -466,6 +518,15 @@
 {"id": "python-audit-typing-sync", "sensitivity": "open", "board_type": "", "stack": "", "profile": "P8_SYNC"}
 {"id": "qa", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P9_REVIEW"}
 {"id": "qa-audit", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P9_REVIEW"}
+{"id": "qa-audit-docs", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P3_DOCS"}
+{"id": "qa-audit-dogfood", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
+{"id": "qa-audit-foreman", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
+{"id": "qa-audit-pm", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
+{"id": "qa-audit-qa", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P9_REVIEW"}
+{"id": "qa-audit-readme", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P3_DOCS"}
+{"id": "qa-audit-releng", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P2_AGENTIC"}
+{"id": "qa-audit-review", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P9_REVIEW"}
+{"id": "qa-audit-sync", "sensitivity": "open", "board_type": "", "stack": "", "profile": "P8_SYNC"}
 {"id": "rabbit-hole", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "rabbit-hole-docs", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P3_DOCS"}
 {"id": "rabbit-hole-dogfood", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
@@ -508,6 +569,7 @@
 {"id": "task-router", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P2_AGENTIC"}
 {"id": "task-router-docs", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P3_DOCS"}
 {"id": "task-router-dogfood", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
+{"id": "task-router-foreman", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "task-router-perf", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P2_AGENTIC"}
 {"id": "task-router-pm", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
 {"id": "task-router-qa", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P9_REVIEW"}
@@ -518,6 +580,7 @@
 {"id": "tatara", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "tatara-docs", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P3_DOCS"}
 {"id": "tatara-dogfood", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
+{"id": "tatara-foreman", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "tatara-pm", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
 {"id": "tatara-qa", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P9_REVIEW"}
 {"id": "tatara-readme", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P3_DOCS"}
@@ -536,6 +599,7 @@
 {"id": "terminal-jail", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "terminal-jail-docs", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P3_DOCS"}
 {"id": "terminal-jail-dogfood", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
+{"id": "terminal-jail-foreman", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "terminal-jail-perf", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P2_AGENTIC"}
 {"id": "terminal-jail-pm", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
 {"id": "terminal-jail-qa", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P9_REVIEW"}
@@ -554,6 +618,7 @@
 {"id": "trouble", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "trouble-docs", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P3_DOCS"}
 {"id": "trouble-dogfood", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
+{"id": "trouble-foreman", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "trouble-perf", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P2_AGENTIC"}
 {"id": "trouble-pm", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
 {"id": "trouble-qa", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P9_REVIEW"}
@@ -572,6 +637,7 @@
 {"id": "warpfs", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "warpfs-docs", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P3_DOCS"}
 {"id": "warpfs-dogfood", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
+{"id": "warpfs-foreman", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}
 {"id": "warpfs-perf", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P2_AGENTIC"}
 {"id": "warpfs-pm", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
 {"id": "warpfs-qa", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P9_REVIEW"}
