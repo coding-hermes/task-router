@@ -110,11 +110,10 @@ def test_spawn_resolves_normally_despite_many_in_flight(tmp_path):
     env = _env(tmp_path)
     env["ROUTING_REGISTRY"] = _write_registry(tmp_path, tables)
 
-    # 2026-09-28: after the 09-27 tier rescale (968e480), the $0 xkiro head is
-    # qwen/qwen3.7-flash:free (minimax-m3:free fails P1_CODING's test>=0 bar
-    # since its estimate-sourced test tier demoted to -1); in-flight rows must
-    # target the head lane itself.
-    head_lane = ("xkiro", "qwen/qwen3.7-flash:free")
+    # 2026-10-03: TR-124 raised P1_CODING bars to >=0, which excludes the $0
+    # qwen/qwen3.7-flash:free head (tier -1 in code_gen/debug); the head is
+    # now xkiro/openai/gpt-5.6-luna. In-flight rows must target the head lane.
+    head_lane = ("xkiro", "openai/gpt-5.6-luna")
     with open(env["LEDGER_FILE"], "a") as f:
         for i in range(99):
             row = {"ts": datetime.datetime.now(datetime.timezone.utc).isoformat(),
