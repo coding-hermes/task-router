@@ -493,11 +493,22 @@ context window.
 ## Versioned, tagged profiles
 
 Profiles are versioned like container images: the row identity is
-`(id, version)` and the human handle is `tag`. Profile references resolve
-**tag first**, then exact id (so existing names like `P0_FORE` keep working).
-Moving a tag to a newer version is a data edit — callers following the tag
-pick up the new version without code changes, while pinned old versions still
-resolve by version. Retagging is idempotent.
+`(id, version)` and the human handle is `tag`. Profile references resolve in
+three steps (TR-131):
+
+1. **Version pin** — `id:version` or `id@version` names the exact
+   `(id, version)` row: `P3_DOCS:1` still resolves the v1 row after the tag
+   moved to v2. A pin naming a version no row carries fails loudly
+   (`PROFILE_NOT_FOUND`) — it never silently upgrades to the tagged row.
+2. **Tag** — a bare tag names exactly one version: the row carrying it
+   (highest `version` wins). Retagging to a newer version is a data edit;
+   callers following the tag pick up the new version without code changes.
+   Because a tag outranks an id on the same string, a retag SHADOWS the old
+   row's handle — reach the shadowed version with a pin (`id:version`).
+3. **Exact id** — legacy ids like `P0_FORE` keep working unchanged.
+
+Every resolve doc carries `resolved_version` — the `version` of the row that
+answered (null when the profile declares no version).
 
 ## Provider mapping
 
@@ -515,7 +526,7 @@ for repo-relative use.
 
 | Command | Purpose |
 |---|---|
-| `router spawn` | Resolve a project or ad-hoc capability profile into a gated fallback chain. Flags: `<project>`, `--profile`, `--profile-req`, `--list-profiles`, `--explain`, `--format`, `--no-health`. A profile id/tag passed as `<project>` resolves as that profile (TR-059) |
+| `router spawn` | Resolve a project or ad-hoc capability profile into a gated fallback chain. Flags: `<project>`, `--profile`, `--profile-req`, `--list-profiles`, `--explain`, `--format`, `--no-health`. A profile id/tag passed as `<project>` resolves as that profile (TR-059); `id:version` / `id@version` pins name one exact version row (TR-131) |
 | `router chain-run` | Side-channel executor (TR-066): resolve a chain for a declared complexity, then walk it hop by hop, running your `--cmd` template per attempt with `ROUTER_PROVIDER` / `ROUTER_MODEL` / `ROUTER_HOP` in the environment (you keep auth). Exit 0 stops the walk; a non-zero attempt advances to the next hop up to `--max-hops 3`; content dissatisfaction is never a retry trigger. Records breaker evidence + one outcome row per attempt unless `--dry-run`. Also: `<project>`/`--profile`/`--profile-req`, `--timeout-s 1800`, `--format text\|json` |
 | `router status` | One-command overview: registry source/freshness, health, quota, circuit, in-flight, gaps (`--format json\|text`) |
 | `router estimate` | Cost preview for a project's chain at given token volumes (`<project>` positional or `--project`; profile id/tag accepted), head + top alternates, PAYG vs subscription annotated |

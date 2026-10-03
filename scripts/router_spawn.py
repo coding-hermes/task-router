@@ -54,7 +54,7 @@ scheduler must NEVER be blocked by the router.
 --format json = PURE JSON on stdout, every path (TR-046 dogfood): diagnostics
 go to stderr; the no-input usage line and --list-profiles also emit JSON.
 """
-import json, os, sys, argparse, contextlib, datetime, time, zlib
+import json, os, re, sys, argparse, contextlib, datetime, time, zlib
 
 # Chain truncation cap (default). 2026-09-10 RCA: a cap below the eligible lane
 # count silently drops the price-sorted TAIL from every resolve (deepseek-foreman
@@ -902,17 +902,53 @@ def _load_registry():
     return _load_registry_with_meta()[0]
 
 
+_VERSION_REF_RE = re.compile(
+    r'^(?P<id>.+?)(?P<sep>[:@])(?P<ver>-?\d+)$')
+
+
+def _split_version_ref(ref):
+    """TR-131: split `id:version` / `id@version` off a profile ref.
+
+    Returns (id, version_int) or None. Splitting is intentional: profile ids
+    legitimately contain `:` and `@` (scope qualifiers like `ocg:x`), so
+    splitting is driven by a numeric SUFFIX, never by the separators alone —
+    `P1_CODING` stays whole, `my:prof` stays whole, `my:prof:2` splits.
+    """
+    if not isinstance(ref, str):
+        return None
+    m = _VERSION_REF_RE.match(ref)
+    if not m:
+        return None
+    return m.group('id'), int(m.group('ver'))
+
+
 def _resolve_profile_tag(profiles, ref):
-    """TR-020: resolve a profile reference (tag or exact id) to an id.
+    """TR-020: resolve a profile reference (pin, tag, or exact id) to an id.
 
     profiles is a dict keyed by profile id. Each row may contain 'tag' and
-    'version'. A tag matches exactly one row (the tagged version). If the ref
-    matches a tag, return that row's id; otherwise return the ref as an exact
-    id (backward compatible with legacy ids like P0_FORE)."""
+    'version'. Resolution order (TR-131):
+      1. `id:version` / `id@version` pin -> the exact (id, version) row
+         (README's "pinned old versions still resolve by version");
+      2. tag -> the tagged version row (a tag takes precedence over an id
+         collision so retagging an existing id changes resolution without
+         renaming project rows);
+      3. exact id (backward compatible with legacy ids like P0_FORE).
+
+    Unmatched pins fall through as the literal ref so the caller's normal
+    not-found error carries the caller's spelling (`profile P3_DOCS:9 not in
+    registry`).
+    """
     if not ref:
         return ref
-    # tag path: a tag takes precedence over an id collision so that retagging
-    # an existing id changes resolution without renaming project rows.
+    # TR-131 pin path: the exact (id, version) row, ahead of tag and id so a
+    # retagged shadow cannot swallow a pinned older version.
+    pin = _split_version_ref(ref)
+    if pin is not None:
+        pin_id, pin_ver = pin
+        row = profiles.get(pin_id)
+        if row is not None and row.get('version') == pin_ver:
+            return pin_id
+    # tag path
     matches = [(r.get('id'), r.get('version') or 0)
                for r in profiles.values()
                if r.get('tag') == ref]
@@ -926,18 +962,24 @@ def _resolve_profile_tag(profiles, ref):
 
 
 def _profile_ref_matches(profiles, ref):
-    """TR-059: does `ref` name a profile — an exact id OR a tag?
+    """TR-059: does `ref` name a profile — a pin, an exact id OR a tag?
 
     Projects and profiles live in DIFFERENT tables, so the project positional
     is a natural place for a caller to put a bare profile name
     (`router spawn P1_CODING`, GET /resolve?project=P1_CODING`). resolve()
     uses this to tell "typo'd project" from "right id, wrong flag".
 
-    Tag matching mirrors _resolve_profile_tag (a tag takes precedence over an
-    id collision), so `matches ⇒ _resolve_profile_tag returns a real profile`.
+    Pin matching mirrors _resolve_profile_tag (an (id, version) pin wins over
+    tag/id and only matches a row that actually carries that version), so
+    `matches ⇒ _resolve_profile_tag returns a real profile`.
     """
     if not ref:
         return False
+    pin = _split_version_ref(ref)
+    if pin is not None:
+        pin_id, pin_ver = pin
+        row = profiles.get(pin_id)
+        return bool(row) and row.get('version') == pin_ver
     if ref in profiles:
         return True
     return any(r.get('tag') == ref for r in profiles.values())
@@ -2407,7 +2449,13 @@ def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=DE
     # fallback-lane block above.
     dh = _data_home_meta(src, fb)
 
-    return {'project': project, 'profile': pid, 'resolved_at': now,
+    # TR-131: WHICH declared version answered. `version` is convention data
+    # (distinct profile rows per version), so the doc names it explicitly —
+    # null when the profile carries no version field at all. Additive.
+    resolved_version = (profiles.get(pid) or {}).get('version')
+
+    return {'project': project, 'profile': pid, 'resolved_version': resolved_version,
+            'resolved_at': now,
             # TR-069 wave 2: per-state model counts — the hiding is always
             # reported ("nothing vanishes silently").
             'lifecycle_counts': _lc_counts,

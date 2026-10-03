@@ -253,3 +253,147 @@ def test_cli_matched_declaration_skips_complexity_scoring(tmp_path):
     assert doc["profile"] == "P1_CODING"
     assert doc["board_profile"]["matched"] is True
     assert "complexity" not in doc, "declared profile must skip the scorer"
+
+
+# --------------------------------- TR-131: version pins + tag shadowing ----
+#
+# Dogfood 2026-09-25: P3_DOCS v1 + a retagged v2 row (tag moved to v2) made
+# v1's own id unreachable — `--profile P3_DOCS:1` / `P3_DOCS@1` were
+# PROFILE_NOT_FOUND and the bare tag resolved v2. The fix: `id:version` /
+# `id@version` pins resolve the exact (id, version) row, ahead of tag and
+# exact id, and the resolve doc reports `resolved_version`.
+
+def _versioned_tables():
+    """The README retag story in table form: P3_DOCS v1 (lenient bar) beside
+    P3_DOCS_V2 v2, which carries the MOVED tag `P3_DOCS` and a strict bar."""
+    tables = _tier_tables()
+    tables["task_profiles"] += [
+        {"id": "P3_DOCS", "title": "docs v1", "version": 1, "tag": "P3_DOCS"},
+        {"id": "P3_DOCS_V2", "title": "docs v2", "version": 2, "tag": "P3_DOCS"},
+    ]
+    tables["task_profile_requirements"] += [
+        {"task_id": "P3_DOCS", "category": "code_gen", "level": -2},
+        {"task_id": "P3_DOCS_V2", "category": "code_gen", "level": 1},
+    ]
+    # the CLI env builder whitelists quota from providers.jsonl ids
+    tables["providers"] = [{"id": "prov"}]
+    return tables
+
+
+@pytest.fixture
+def versioned_registry(monkeypatch, tmp_path):
+    monkeypatch.setattr(rs, "_load_registry_with_meta",
+                        lambda: (_versioned_tables(), "test", False, None))
+    state = tmp_path / "state"
+    state.mkdir()
+    (state / "quota-state.json").write_text(
+        '{"updated": "test", "providers": {"prov": {"status": "open"}}}')
+    monkeypatch.setattr(rs, "MR", str(state))
+    return state
+
+
+def _versioned_cli_env(tmp_path):
+    """_cli_env with the versioned tables instead of the repo's data/tables.
+    ROUTING_REGISTRY must be pointed away too — the loader prefers the seeded
+    registry.json over the data/tables fallback, so leaving it at the repo
+    default would resolve the repo's REAL profiles, not the fixture's."""
+    data = tmp_path / "vdata"
+    data.mkdir()
+    for name, rows in _versioned_tables().items():
+        (data / f"{name}.jsonl").write_text(
+            "\n".join(json.dumps(r) for r in rows) + "\n")
+    state = tmp_path / "vstate"
+    state.mkdir()
+    (state / "quota-state.json").write_text(
+        json.dumps({"updated": "test",
+                    "providers": {"prov": {"status": "open"}}}))
+    return {"ROUTING_DATA_DIR": str(data), "ROUTER_STATE_DIR": str(state),
+            "ROUTING_REGISTRY": str(tmp_path / "absent-registry.json")}
+
+
+def test_pin_ref_resolves_the_exact_version_row():
+    """`id:version` / `id@version` name ONE exact (id, version) row — the pin
+    the README promised. Pins are strict: `P3_DOCS:2` names row id P3_DOCS AT
+    version 2 (none here), never the v2 ROW P3_DOCS_V2 — v2 is pinned by its
+    own id (`P3_DOCS_V2:2`)."""
+    profiles = {r["id"]: r for r in _versioned_tables()["task_profiles"]}
+    assert rs._resolve_profile_tag(profiles, "P3_DOCS:1") == "P3_DOCS"
+    assert rs._resolve_profile_tag(profiles, "P3_DOCS@1") == "P3_DOCS"
+    assert rs._resolve_profile_tag(profiles, "P3_DOCS_V2:2") == "P3_DOCS_V2"
+    assert rs._resolve_profile_tag(profiles, "P3_DOCS_V2@2") == "P3_DOCS_V2"
+    # the shadow must not leak into a pin: :2 does not invent the v2 row
+    assert rs._resolve_profile_tag(profiles, "P3_DOCS:2") != "P3_DOCS_V2"
+
+
+def test_bare_tag_resolution_is_unchanged_by_pins():
+    """TR-020 contract untouched: the bare tag still names the tagged (newest)
+    version — pins are the escape hatch, they do not retag anything."""
+    profiles = {r["id"]: r for r in _versioned_tables()["task_profiles"]}
+    assert rs._resolve_profile_tag(profiles, "P3_DOCS") == "P3_DOCS_V2"
+
+
+def test_pin_ref_matches_only_an_existing_version():
+    """_profile_ref_matches must recognize pins (the project slot resolves
+    them) and refuse a version that does not exist — a pin to v9 (or to a
+    version a row does not carry) must reach the not-found error, never
+    silently upgrade to the tagged row."""
+    profiles = {r["id"]: r for r in _versioned_tables()["task_profiles"]}
+    assert rs._profile_ref_matches(profiles, "P3_DOCS:1") is True
+    assert rs._profile_ref_matches(profiles, "P3_DOCS_V2@2") is True
+    assert rs._profile_ref_matches(profiles, "P3_DOCS:2") is False
+    assert rs._profile_ref_matches(profiles, "P3_DOCS:9") is False
+
+
+def test_shadowing_pin_resolves_v1_not_the_retaged_v2(versioned_registry):
+    """THE TR-131 shadowing test: with v1 + retagged v2 sharing a tag, the
+    pinned ref resolves v1 (its own lenient chain), NOT the v2 the bare tag
+    now shadows onto."""
+    doc = rs.resolve(project="P3_DOCS:1", use_health=False)
+    assert doc["profile"] == "P3_DOCS", doc.get("error")
+    assert doc["resolved_version"] == 1
+    models = {h["model"] for h in doc["chain"]}
+    assert "weak" in models, "v1's lenient bar keeps the cheap lane"
+    assert "strong" in models
+
+
+def test_pinned_v2_runs_the_strict_bars(versioned_registry):
+    """The @ spelling resolves the same row as : and v2's strict bar really
+    applies (the lenient-only lane drops). The v2 row is pinned by its own
+    id — `P3_DOCS_V2@2`."""
+    doc = rs.resolve(project="P3_DOCS_V2@2", use_health=False)
+    assert doc["profile"] == "P3_DOCS_V2", doc.get("error")
+    assert doc["resolved_version"] == 2
+    models = {h["model"] for h in doc["chain"]}
+    assert "weak" not in models, "code_gen -2 must fail the v2 >=1 bar"
+    assert "strong" in models
+
+
+def test_resolve_doc_always_carries_resolved_version(tier_registry):
+    """The AC: every success doc carries `resolved_version`; a versionless
+    profile (no `version` field at all, like P_LEN) reports null."""
+    doc = rs.resolve(project="proj", use_health=False)
+    assert "error" not in doc, doc.get("error")
+    assert "resolved_version" in doc
+    assert doc["resolved_version"] is None
+
+
+def test_pin_to_unknown_version_is_loud_not_found(versioned_registry):
+    """A pin to a version that does not exist dead-ends in the normal
+    not-found error — never the newest row, never a fallback profile."""
+    doc = rs.resolve(project="P3_DOCS:9", use_health=False)
+    assert "error" in doc
+    assert "P3_DOCS:9" in doc["error"]
+
+
+def test_cli_spawn_with_pinned_ref_resolves_v1(tmp_path):
+    """End to end on the real CLI: `router spawn P3_DOCS:1` (project slot)
+    resolves the v1 row with its version on the doc."""
+    p = _run_main(["P3_DOCS:1", "--format", "json"],
+                  _versioned_cli_env(tmp_path))
+    assert p.returncode == 0, p.stderr
+    doc = json.loads(p.stdout)
+    assert "error" not in doc, doc.get("error")
+    assert doc["profile"] == "P3_DOCS"
+    assert doc["resolved_version"] == 1
+    assert doc["resolved_as"] == "profile"
+    assert doc["chain"], "the v1 chain still resolves"
