@@ -1,0 +1,14 @@
+{
+ "before": {
+  "source_registry": "/home/kara/task-router/registry.json",
+  "total": 66,
+  "resolved_chain": 0,
+  "error": 66
+ },
+ "after": {
+  "chain": 66,
+  "no_open_hop": 0,
+  "error": 0
+ },
+ "lanes_added": 66
+}
