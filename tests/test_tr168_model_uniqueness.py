@@ -205,6 +205,16 @@ POST_DEDUPE_ADDITIONS = {
     ("xkiro-2", "stealth/pixel-canary:free"): "TR-217 (3a88c97)",
     ("xkiro-2", "stealth/space-bunny-alpha:free"): "TR-217 (3a88c97)",
     ("xkiro-2", "xiaomi/mimo-v2.6-flash:free"): "TR-217 (3a88c97)",
+    # 2026-10-03 pre-run syncs: models.dev +2 (openrouter inclusionai/
+    # ling-3.1-flash $0 catalog-verified free launch 2026-10-02, synthetic
+    # hf:zai-org/GLM-5.3 $1.4 sticker) and clinepass API +2 (ling-3.1-flash +
+    # switchyard, both plan-swept PAYG-disabled at import). Note: the first
+    # 10-03 seed silently dropped all 4 (lesson seed-silent-fallback-restore-
+    # lanes); re-running the sync writers restored them verbatim before commit.
+    ("clinepass", "ling-3.1-flash"): "TR-217 (2026-10-03 clinepass API sync)",
+    ("clinepass", "switchyard"): "TR-217 (2026-10-03 clinepass API sync)",
+    ("openrouter", "inclusionai/ling-3.1-flash"): "TR-217 (2026-10-03 models.dev sync)",
+    ("synthetic", "hf:zai-org/GLM-5.3"): "TR-217 (2026-10-03 models.dev sync)",
 }
 
 
