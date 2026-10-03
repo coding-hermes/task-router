@@ -10,7 +10,11 @@
       "worktree": "/home/kara/task-router",
       "branch": "main (foreman-implemented, trivial one-file fix; root cause already proven by foreman)",
       "base_sha": "108a79c",
-      "files": ["scripts/router_outcomes_freshness.py", "tests/"]
+      "files": [
+        "scripts/router_outcomes_freshness.py",
+        "tests/"
+      ],
+      "status": "merged"
     },
     {
       "row": "TR-260",
@@ -18,9 +22,16 @@
       "worktree": "/home/kara/worktrees/task-router-TR-260",
       "branch": "wt/TR-260",
       "base_sha": "108a79c",
-      "files": ["data/tables/projects.jsonl", "scripts/router_seed.py", "tests/"]
+      "files": [
+        "data/tables/projects.jsonl",
+        "scripts/router_seed.py",
+        "tests/"
+      ],
+      "status": "merged"
     }
   ],
   "independence_note": "Disjoint file sets (freshness probe vs registry seed tables); no depends_on edges between the rows.",
-  "recovery_note": "Pre-dispatch recovery of wave task-router-foreman-2026-10-02-21-10-30 completed: wt/TR-255 (2d41457) and wt/TR-256 (e5730f1) verified ancestors of origin/main, board rows complete, worktrees/branches reaped, manifest finished_at set."
+  "recovery_note": "Pre-dispatch recovery of wave task-router-foreman-2026-10-02-21-10-30 completed: wt/TR-255 (2d41457) and wt/TR-256 (e5730f1) verified ancestors of origin/main, board rows complete, worktrees/branches reaped, manifest finished_at set.",
+  "finished_at": "2026-10-02T23:30:00Z",
+  "status": "recovered"
 }

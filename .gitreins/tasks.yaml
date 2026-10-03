@@ -712,3 +712,34 @@ tasks:
   status: complete
   created_at: '2026-10-02T13:26:19.214533+00:00'
   completed_at: '2026-10-02T15:33:17.718656+00:00'
+- id: TR-256
+  title: 'RUNTIME DEPLOY DRIFT: reconcile sync_runtime.sh copy-list drift (fleet-cooldown-policy.py
+    both-way divergence, router_health.py stale live)'
+  criteria:
+  - 'Repo and live copies of fleet-cooldown-policy.py and router_health.py reconciled
+    per TR-004 (repo canonical): the live ADMISSION-LAW report block is preserved
+    into the repo copy, TR-205 bounded pagination and TR-235 tri-state verdict reach
+    the live installs, sync_runtime.sh re-run leaves all six copy-list files byte-identical
+    live-vs-repo, a repo-vs-live drift check is added to sync_runtime.sh, tests pass,
+    commit pushed to origin/main'
+  status: complete
+  created_at: '2026-10-02T21:12:34.465945+00:00'
+  completed_at: '2026-10-02T22:30:57.270789+00:00'
+- id: TR-259
+  title: 'outcomes-import red: freshness probe reads wrong column (all messages vs
+    assistant-only)'
+  criteria:
+  - After the fix, router_outcomes_freshness.py reports opencode CURRENT (not BREACH)
+    while the source's newest assistant row is imported; probe source-newest matches
+    the importer's own filter (assistant rows only); unit test covers idle-source
+    semantics; full guard test suite green
+  status: in_progress
+  created_at: '2026-10-02T23:34:32.141361+00:00'
+- id: TR-260
+  title: Seed rows for 66 ROUTER-MISS foreman/satellite lanes
+  criteria:
+  - fleet-policy-test-watchdog suite 2 exits 0; every enabled lane resolves a capability
+    profile (no ROUTER-MISS) in router_spawn.py output
+  status: complete
+  created_at: '2026-10-03T03:18:22.580566+00:00'
+  completed_at: '2026-10-03T03:19:25.424795+00:00'
