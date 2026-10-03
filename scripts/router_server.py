@@ -1975,6 +1975,55 @@ def _proxy_upstream_default(path, body, headers):
     return (status if isinstance(status, int) else 200), payload
 
 
+#: Path segments that name an API version. A provider's `api_base_url` is the
+#: OpenAI-compatible BASE and normally already carries one (muse-code:
+#: https://api.meta.ai/v1, commandcode-2: https://api.commandcode.ai/provider/v1),
+#: while our routes are spelled with the version (/v1/chat/completions).
+_VERSION_SEGMENTS = ('v1', 'v2', 'v3', 'v4', 'v1beta', 'v1alpha')
+
+
+def _join_upstream_url(base, path):
+    """Join a provider base_url with a route WITHOUT doubling the version segment.
+
+    Naive concatenation (``base.rstrip('/') + path``) is wrong for every provider
+    whose base already ends in a version: https://api.meta.ai/v1 +
+    /v1/chat/completions = https://api.meta.ai/v1/v1/chat/completions. Measured
+    2026-10-03: 100% of the last-mile hops were broken this way — 12 scheduler
+    ticks died on
+    ``POST https://api.commandcode.ai/provider/v1/v1/responses -> 404`` and the
+    recorded api_down failures opened 4 commandcode-2 breakers.
+
+    A base that carries NO version segment is joined unchanged, so this is a
+    de-duplication, never a rewrite of the operator's configured base.
+    """
+    base = str(base or '').rstrip('/')
+    segs = [s for s in str(path or '').split('/') if s]
+    tail = base.rsplit('/', 1)[-1]
+    if tail in _VERSION_SEGMENTS and segs and segs[0] == tail:
+        segs = segs[1:]
+    if not segs:
+        return base + '/'
+    return base + '/' + '/'.join(segs)
+
+
+def _hop_uses_provider_last_mile(path, upstream_supplied):
+    """Does a hop on this request ride the provider's OWN last-mile upstream?
+
+    Only the OpenAI CHAT shape may. Two cases must fall back to the default
+    (Hermes gateway) upstream:
+
+    * ``upstream_supplied`` — the caller passed an explicit hop call (the
+      /v1/responses driver does); that upstream is authoritative and last-mile
+      routing must never silently override it.
+    * the /v1/responses shape — the Hermes Responses API exists only on a Hermes
+      gateway. A raw provider carrier speaks the OpenAI chat API, so asking it
+      for /v1/responses can only 404.
+    """
+    if upstream_supplied:
+        return False
+    return not str(path or '').rstrip('/').endswith('/responses')
+
+
 def _provider_upstream_factory(provider_id, providers_map):
     """Return a hop-specific upstream call function for a provider, or None.
 
@@ -1991,7 +2040,7 @@ def _provider_upstream_factory(provider_id, providers_map):
 
     def _call(path, body, headers):
         req = urllib.request.Request(
-            base.rstrip('/') + path,
+            _join_upstream_url(base, path),
             data=json.dumps(body).encode(),
             headers={
                 'Content-Type': 'application/json',
@@ -3385,8 +3434,14 @@ def _proxy_chat_inner(path, body, headers, max_hops=None, upstream=None):
     # get their own hop-level upstream; others fall back to the global upstream.
     provider_routing = _load_provider_routing()
     _default_upstream = upstream or _UPSTREAM_CALL or _proxy_upstream_default
+    # TR-243: last-mile routing is for the OpenAI CHAT shape only. See
+    # _hop_uses_provider_last_mile — the /v1/responses shape lives only on the
+    # Hermes gateway, and a caller-supplied upstream is authoritative.
+    _last_mile_ok = _hop_uses_provider_last_mile(path, upstream is not None)
 
     def _hop_call(prov_id):
+        if not _last_mile_ok:
+            return _default_upstream
         return _provider_upstream_factory(prov_id, provider_routing) or _default_upstream
 
     last = None
