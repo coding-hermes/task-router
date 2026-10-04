@@ -138,6 +138,6 @@ def test_an_empty_lane_list_reports_no_lanes_rather_than_zero_coverage():
     assert b['effective'] == 'price' and b['reason'] == 'no-lanes' and b['coverage'] == 0.0
 
 
-def test_the_default_sort_is_still_price_so_nothing_flips_silently():
-    """The floor is the PRECONDITION for the TR-183 re-rank, not the re-rank."""
-    assert rs.DEFAULT_SORT == 'price'
+def test_default_sort_is_measured_cost_and_floor_gates_evidence():
+    """TR-283: measured cost/task is default; sample/coverage gates prevent thin evidence from ranking."""
+    assert rs.DEFAULT_SORT == 'predicted_cost_per_task'

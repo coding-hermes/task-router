@@ -54,7 +54,14 @@ scheduler must NEVER be blocked by the router.
 --format json = PURE JSON on stdout, every path (TR-046 dogfood): diagnostics
 go to stderr; the no-input usage line and --list-profiles also emit JSON.
 """
-import json, os, re, sys, argparse, contextlib, datetime, time, zlib
+import argparse
+import datetime
+import json
+import os
+import re
+import sys
+import time
+import zlib
 
 # Chain truncation cap (default). 2026-09-10 RCA: a cap below the eligible lane
 # count silently drops the price-sorted TAIL from every resolve (deepseek-foreman
@@ -137,23 +144,12 @@ AVERAGES = os.environ.get('ROUTING_AVERAGES_FILE',
                           os.path.join(_REPO, 'data', 'state', 'outcomes-averages.jsonl'))
 DEFAULT_WINDOW_H = 24
 #: Ordering used when --sort is not given.
-#:
-#: Deliberately the historical 'price' order (plan_tier, effective price), NOT
-#: 'predicted_cost_per_task'. This script is SYMLINKED into the live fleet
-#: (~/.hermes/scripts/router_spawn.py), so a different default silently re-ranks
-#: every fleet resolution — and cost-per-task ranking is not safe as a DEFAULT
-#: yet either: a lane that fails fast records cost 0.0 and would sort first,
-#: while the Hermes backend reports no completion signal to filter on. Opt in
-#: per call with --sort <key> (or set ROUTER_SPAWN_SORT / flip this constant
-#: deliberately).
-#: 2026-10-03 (owner: "make sure you are using the rolling averages to help you
-#: figure out what the right models to be using on tasks over time"). The measured
-#: ordering is the DEFAULT. It is safe by construction, not by optimism: it
-#: degrades to price and says why whenever the chain does not clear the sample
-#: floor (ROUTER_SORT_MIN_SAMPLES=3) or the coverage bar (0.5), and every hop
-#: carries its basis (measured n/window, or fell_back_to_price). Rollback is one
-#: env var: ROUTER_SPAWN_SORT=price. TR-183's hold was a doctrine call, not a
-#: capability gap; the call has been made.
+#: Default ordering is measured cost per completed task (owner directive,
+#: 2026-10-03). It is evidence-gated, not optimistic: when a chain misses the
+#: sample floor or measured-coverage bar it falls back to price and records the
+#: basis on every hop. A thin/no-sample lane never becomes measured-cheap.
+#: `ROUTER_SPAWN_SORT=price` is the explicit rollback; a caller may also pass
+#: `--sort price` for one resolve.
 DEFAULT_SORT = os.environ.get('ROUTER_SPAWN_SORT') or 'predicted_cost_per_task'
 
 
@@ -2742,8 +2738,8 @@ def main():
             print(json.dumps({'profiles': rows}, indent=1))
             return
         for row in rows:
-            rs = ' '.join(f"{c}={'+'*l if l>0 else ('-'*-l if l<0 else '0')}"
-                          for c, l in sorted(row['requirements'].items(),
+            rs = ' '.join(f"{c}={'+'*level if level>0 else ('-'*-level if level<0 else '0')}"
+                          for c, level in sorted(row['requirements'].items(),
                                              key=lambda x: (-x[1], x[0])))
             print(f"{row['id']:<10} {row['title']}")
             print(f'           {rs}')
