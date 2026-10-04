@@ -14,6 +14,7 @@ The runtime contract is **fail-open**: `router_spawn.py` always exits `0`. If re
 - [API server and MCP bridge](#api-server-and-mcp-bridge)
 - [Classified proxy deployment (TR-067)](#classified-proxy-deployment-tr-067)
 - [Bus ingress (TR-236)](#bus-ingress-tr-236)
+- [Automatic board task intake (TR-298)](#automatic-board-task-intake-tr-298)
 - [Architecture](#architecture)
 - [Context windows and capabilities](#context-windows-and-capabilities)
 - [Versioned, tagged profiles](#versioned-tagged-profiles)
@@ -419,6 +420,45 @@ its own in-flight budget, queue and circuit breaker, so one unreachable lane can
 never refuse a peer or flood a target; the design record (and the measured
 finding that an agent container has no gateway to forward to) is
 **`docs/router-in-bunker-shortcut.md`** (SCHED-GAP-1713).
+
+## Automatic board task intake (TR-298)
+
+Owner goal: "every time we have a test go in we pick a model." A new row
+appended to the canonical board (`.coding-hermes/board/tasks.jsonl`, status
+`pending`) IS the "task submitted" event — `scripts/board_task_intake.py`
+tails it and runs the existing `router_spawn.py --from-task <id>` resolve
+automatically: exactly once per new task id (the seen state,
+`data/state/intake-seen.jsonl`, is the idempotence key; a replay resolves
+nothing), fail-open on every error (each failure lands in
+`data/state/intake-resolves.jsonl` with an `error` field; the loop never
+dies), ratings and candidates from the real `--from-task` path only — no
+synthesized profiles. Both ledgers are gitignored runtime state.
+
+```bash
+# drain the current backlog once and exit (testing/CI)
+~/.hermes/venvs/board/bin/python3 scripts/board_task_intake.py \
+    --board .coding-hermes/board/tasks.jsonl --state-dir data/state --once
+
+# daemon: watch the board every 30s
+~/.hermes/venvs/board/bin/python3 scripts/board_task_intake.py \
+    --board .coding-hermes/board/tasks.jsonl --state-dir data/state
+```
+
+Cold start: a daemon boot with a fresh state marks every existing board id
+seen WITHOUT resolving them; `--once` resolves the whole backlog instead.
+A systemd user unit template and the full contract (claim-before-spawn
+crash safety, dangling-claim reconciliation) live in
+**`docs/board-task-intake.md`**. Nothing is installed or started by this
+repo — enabling a service is an explicit operator decision.
+
+Environment overrides (flags win over env):
+
+| Variable | Effect |
+|---|---|
+| `ROUTER_INTAKE_BOARD` | board tasks.jsonl path (same as `--board`) |
+| `ROUTER_INTAKE_STATE_DIR` | state dir for the two ledgers (same as `--state-dir`) |
+| `ROUTER_INTAKE_INTERVAL_S` | poll interval seconds (same as `--interval-s`) |
+| `ROUTER_INTAKE_SPAWN_CMD` | base resolve command to extend per task (default: this python + `scripts/router_spawn.py`) |
 
 ## Architecture
 
