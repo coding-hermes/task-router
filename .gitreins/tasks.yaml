@@ -783,3 +783,14 @@ tasks:
   status: complete
   created_at: '2026-10-04T06:23:42.723103+00:00'
   completed_at: '2026-10-04T07:31:38.455244+00:00'
+- id: TR-292
+  title: "raw per-category levels on board rows \u2014 close criterion 3 (prompt surface)"
+  criteria:
+  - 'The prompt that actually ships carries the instruction to pass raw per-category
+    levels and not an assigned profile: verified by reading the surface the fleet
+    loads (loaded skill library at ~/.hermes/skills/task-router-usage after sync,
+    namespace default_prompt shown to carry no router content), branch wt/TR-292 merged
+    to main, focused tests re-run on the merged tree'
+  status: complete
+  created_at: '2026-10-04T13:19:21.289540+00:00'
+  completed_at: '2026-10-04T13:20:04.438481+00:00'
