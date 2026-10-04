@@ -794,3 +794,13 @@ tasks:
   status: complete
   created_at: '2026-10-04T13:19:21.289540+00:00'
   completed_at: '2026-10-04T13:20:04.438481+00:00'
+- id: TR-298
+  title: 'AUTOMATIC TEST INTAKE: board task -> classifier -> resolve without manual
+    CLI'
+  criteria:
+  - New task row triggers exactly one classification/resolve record; replay of the
+    same id is idempotent; classifier ratings over supported categories; fail-open
+    visible errors
+  status: complete
+  created_at: '2026-10-04T21:51:20.851745+00:00'
+  completed_at: '2026-10-04T22:36:24.213707+00:00'
