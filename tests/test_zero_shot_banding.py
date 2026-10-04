@@ -11,8 +11,6 @@ distinct level-maps and 148 bands, 85% seen once, 0 of 400 live chains bindable.
 import os
 import sys
 
-import pytest
-
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'scripts'))
 import router_outcomes as ro  # noqa: E402
 
@@ -31,11 +29,11 @@ def test_different_shapes_get_different_bands():
 
 
 def test_the_band_is_coarse_and_readable():
-    """A band describes a class: tier plus the two categories carrying the demand."""
+    """A band preserves task tier and the dominant demand category."""
     levels, _ = ro.map_dimensions({'concurrency': 3, 'debugging': 2, 'go': 2}, 3)
     band = ro.band_key(levels)
-    assert band.startswith('b1:')
-    assert band.count('+') <= 1, band
+    assert band.startswith(f'{ro.BAND_VERSION}:')
+    assert '+' not in band
     assert len(band.split(':')) == 3
     assert 'debug' in band or 'reasoning' in band
 

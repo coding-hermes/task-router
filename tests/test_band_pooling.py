@@ -47,10 +47,11 @@ def _row(model='m1', provider='p1', cost=1.0, age_s=0, success=True, source='tes
 # --- 1. the band function's contract ----------------------------------------
 
 def test_band_documented_and_versioned():
-    assert ro.BAND_VERSION == 'b1'
-    assert ro.band_key({'code_gen': 2}).startswith('b1:')
+    assert ro.BAND_VERSION == 'b2'
+    assert ro.band_key({'code_gen': 2}).startswith(f'{ro.BAND_VERSION}:')
     # the version rides INSIDE the key, so a future bump cannot collide
-    assert ro.band_key({'code_gen': 2}) != ro.band_key({'code_gen': 2}).replace('b1', 'b2', 1)
+    assert ro.band_key({'code_gen': 2}) != ro.band_key({'code_gen': 2}).replace(
+        f'{ro.BAND_VERSION}:', 'b999:', 1)
 
 
 def test_non_dominant_level_delta_shares_the_band():

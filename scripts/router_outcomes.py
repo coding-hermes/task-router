@@ -150,7 +150,7 @@ def complexity_sig(requirements):
 # band, and two tasks with the same shape of demand must land in the SAME band.
 # ---------------------------------------------------------------------------
 
-BAND_VERSION = 'b1'
+BAND_VERSION = 'b2'
 
 #: The model's 0..3 dimension/hardness answer -> our signed -5..+5 levels. This
 #: is a POLICY scale, kept in data (data/classifier/dimension-map.jsonl 'scale')
@@ -258,7 +258,9 @@ def band_key(levels):
 
     Deliberately not the exact level-map (that is complexity_sig, which stays for
     reporting). A band must describe a CLASS of task: the overall tier plus the
-    two categories that carry the demand. Ties break alphabetically so the same
+    dominant category that carries the demand. The tier preserves the strongest
+    level; secondary categories are intentionally pooled. Ties break
+    alphabetically so the same
     demand always yields the same string.
     """
     if not isinstance(levels, dict) or not levels:
@@ -268,7 +270,7 @@ def band_key(levels):
         return None
     positive = sorted([c for c, v in pressed.items() if v >= 1], key=lambda c: (-pressed[c], c))
     if positive:
-        top = positive[:2]
+        top = positive[:1]
         tier = 'frontier'
         for need, name in TIER:
             if pressed[top[0]] >= need:
@@ -277,13 +279,8 @@ def band_key(levels):
         else:
             tier = 'easy'
     else:
-        # nothing is pressed above zero: a routine/mechanical task. Name it by the
-        # least-demanding category so different routine shapes can still separate
-        # if the fleet's data says they behave differently.
-        # Routine work is the fleet's volume, so pool it hard: ONE name. Taking two
-        # cheap categories here fragmented the band for tasks that differ only in an
-        # incidental (0-level) tag - measured: {mechanical} vs {rename, formatting}
-        # produced two bands for the same class of work.
+        # Nothing is pressed above zero: routine/mechanical work. Pool under one
+        # least-demanding category; zero-level incidental tags must not fragment it.
         cheapest = sorted(pressed, key=lambda c: (pressed[c], c))[:1]
         top, tier = cheapest, 'easy'
     return '%s:%s:%s' % (BAND_VERSION, tier, '+'.join(top))
@@ -434,7 +431,7 @@ def merge_average_rows(rows):
     for r in rows:
         # TR-289: a band-carrying row pools by its BAND (the coarse key the
         # averages were written under) — exact sigs inside one band differ and
-        # must not fragment the merge. Band-less (pre-b1) rows keep the exact
+        # must not fragment the merge. Band-less legacy rows keep the exact
         # complexity_sig key, so legacy averages are never reinterpreted.
         band = r.get('complexity_band')
         ckey = band if isinstance(band, str) and band else r.get('complexity_sig')

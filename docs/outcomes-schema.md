@@ -144,23 +144,38 @@ numeric provider/model) as non-lanes rather than lanes.
 python3 scripts/outcomes_averages.py --dry-run               # print, write nothing
 python3 scripts/outcomes_averages.py --windows 1d,3d,7d,30d  # configurable windows
 python3 scripts/outcomes_averages.py --merge-backends        # collapse source_system
+python3 scripts/outcomes_averages.py --exact                 # diagnostic exact-key view
 ```
 
 A window is a **half-life**, like the Linux load average: a sample exactly one
 window old contributes weight `0.5`; two windows old, `0.25`. Defaults are
 1d/3d/7d; `--windows` accepts hours (`48`) or durations (`2d`, `12h`).
 
-Bucket = `(source_system, provider, model, complexity_sig)` — i.e. one row per
-backend **and** one row per `(model × complexity SET)`. `complexity_sig` is
-`sha1(canonical_json({category: min_level}))` (TR-065 R1): dict-order
-independent, level-sensitive, so `{code_gen:2, test:1}` and `{security:2,
-review:0}` on ONE model are two independent buckets. Rows that declare nothing
-share the `null` signature (the per-model average for callers who never declare).
-`required_categories` is carried alongside for readability. Which is what
-makes a lane's cost comparable at the task profile it will actually be asked to
-serve. `--merge-backends` collapses `source_system` (sample-count weighted, so a
-100k-sample backend is not averaged as an equal of a 2-sample one) and adds a
-`backends` list to each row.
+By default the averages CLI groups rated rows by
+`(source_system, provider, model, complexity_band)`. TR-289 b2 is a versioned
+coarse task class: dominant category plus a tier derived from its level; the
+secondary categories are pooled. This allows samples from related tasks to
+accumulate without mixing providers or models. Band-less rows keep their exact
+`complexity_sig` key (or `null` when no signature exists), and are never assigned
+a guessed band. `--exact` is a diagnostic/back-compat view grouped only by the
+exact signature.
+
+The exact signature is `sha1(canonical_json({category: min_level}))` (TR-065 R1):
+dict-order independent and level-sensitive. Banded output preserves all exact
+signatures and maps for reporting rather than claiming one representative map:
+
+| field | meaning |
+|---|---|
+| `complexity_band` | versioned b2 pooling key |
+| `complexity_sigs` | sorted distinct exact signatures contributing to the band |
+| `complexity_sig` | set only when one exact signature is unambiguous; otherwise `null` |
+| `required_category_maps` | distinct exact maps contributing to the band |
+| `required_categories` | set only when one exact map is unambiguous; otherwise `null` |
+
+Rows that declare nothing share the `null` signature. `--merge-backends`
+collapses `source_system` (sample-count weighted, so a 100k-sample backend is
+not averaged as an equal of a 2-sample one) and adds a `backends` list to each
+row.
 
 Per window the bucket carries every sort-key input, each `null` when no sample
 carries it:
@@ -191,13 +206,13 @@ yields a JSON summary with `buckets: 0` and exit `0` (fail-open).
 
 `scripts/router_spawn.py` consumes the averages table:
 
-* `--sort <key>` — `predicted_cost_per_task` (the documented default key),
+* `--sort <key>` — `predicted_cost_per_task` (the default key),
   `wall_time`, `turns`, or a mix `ratio:<w1>*<cost>+<w2>*<time>` (both terms are
   min-max normalized across the eligible lanes before blending, and a lane with
   no sample for a term is treated as unknown = worst rather than as best).
-  `price` reproduces the historical ordering; the CLI default stays `price` so a
-  shared/symlinked binary never silently re-ranks the live fleet — pass the flag
-  (or flip the default deliberately) to opt in.
+  The measured sort uses a minimum sample floor and a minimum chain-coverage
+  gate; if evidence is too thin, it falls back to the historical `price` order
+  and reports the reason. Request `price` explicitly to force legacy ordering.
 * `--backend <name>` — isolate the stats lookup to one `source_system`;
   `--merge-backends` aggregates across all (default when no `--backend` given).
 * The same two knobs are accepted by the HTTP `GET /resolve` endpoint as

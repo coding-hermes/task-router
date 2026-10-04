@@ -27,19 +27,22 @@ def test_census_copy_counts_resolver_provider_model_band_join(tmp_path):
     copy = tmp_path / "outcomes-copy.jsonl"
     _write_rows(live, [])
     _write_rows(copy, [
-        {"source_system": "hermes", "provider": "p", "model": "m",
-         "required_categories": {"code_gen": 3, "debug": 1}},
-        {"source_system": "opencode", "provider": "p", "model": "m",
-         "required_categories": {"code_gen": 3, "debug": 2}},
-        {"source_system": "hermes", "provider": "p", "model": "m",
-         "required_categories": {"mechanical": 1}},
+        {"source_system": "router-proxy", "provider": "p", "model": "m",
+         "required_categories": {"code_gen": 3, "debug": 1}, "cost_usd": 1,
+         "chain": [{"provider": "p", "model": "m"}], "ts": 1},
+        {"source_system": "router-proxy", "provider": "p", "model": "m",
+         "required_categories": {"code_gen": 3, "debug": 2}, "cost_usd": 1,
+         "chain": [{"provider": "p", "model": "m"}], "ts": 2},
+        {"source_system": "router-proxy", "provider": "p", "model": "m",
+         "required_categories": {"mechanical": 1}, "cost_usd": 1,
+         "chain": [{"provider": "p", "model": "m"}], "ts": 3},
     ])
     env = dict(os.environ, ROUTING_OUTCOMES_FILE=str(live))
     result = subprocess.run([sys.executable, str(SCRIPT), str(copy)], env=env,
                             capture_output=True, text=True, check=False)
     assert result.returncode == 0, result.stderr
-    assert "BEFORE — exact complexity_sig key" in result.stdout
-    assert "AFTER — b1 coarse band key" in result.stdout
-    assert "buckets: 3" in result.stdout
-    assert result.stdout.count("buckets: 2") == 1
+    assert "BEFORE — exact complexity signature" in result.stdout
+    assert "AFTER — b2 dominant-category band" in result.stdout
+    assert "task classes: 3" in result.stdout
+    assert result.stdout.count("task classes: 2") == 1
     assert live.read_text(encoding="utf-8") == ""

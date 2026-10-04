@@ -102,4 +102,4 @@
 {"alias": "copywriting", "category": "long_doc", "weight": 0.4}
 {"alias": "mocking", "category": "mock", "weight": 1.0}
 {"alias": "fixtures", "category": "mock", "weight": 1.0}
-{"band_version": "b1", "dimension_scale": {"0": 0, "1": 0, "2": 2, "3": 4}, "hardness_floor": {"0": -5, "1": 0, "2": 2, "3": 4}, "kind": "scale"}
+{"band_version": "b2", "dimension_scale": {"0": 0, "1": 0, "2": 2, "3": 4}, "hardness_floor": {"0": -5, "1": 0, "2": 2, "3": 4}, "kind": "scale"}

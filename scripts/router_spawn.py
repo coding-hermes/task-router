@@ -1263,7 +1263,7 @@ def _legacy_sort_key(m):
 
 
 def _sort_price(arg, lanes, ctx):
-    """The legacy ordering (the default)."""
+    """The explicitly requested legacy ordering."""
     return _legacy_sort_key
 
 
@@ -1479,8 +1479,8 @@ def _sort_predicted_cost_per_task(arg, lanes, ctx):
     2), a hash-gated share of resolves probes the stalest low-traffic lane (feature 3,
     default OFF), and the head's win reason is recorded for audit (feature 4).
 
-    Whether the ordering is worth APPLYING is a doctrine call (the default sort stays
-    `price`); whether its evidence can carry that decision is not - that part is measured.
+    The measured sort is the default. It applies measured values only after both the per-lane
+    sample floor and chain-coverage gate clear; otherwise it falls back to price and reports why.
     """
     try:
         return _tr174_sort(arg, lanes, ctx)
