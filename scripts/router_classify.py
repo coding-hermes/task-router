@@ -249,15 +249,15 @@ THINKING_LADDER = ({'reasoning_effort': 'none'}, {'thinking': {'type': 'disabled
 def _thinking_off():
     """The param that turns thinking off: {'reasoning_effort': 'none'} | {'thinking': {...}} | {}.
 
-    ROUTER_CLASSIFY_THINKING=off (default) walks THINKING_LADDER; 'on' sends
-    nothing (the model thinks, as it did before this existed); 'auto' is
-    currently the same as 'on' and exists so a caller can be explicit.
-    ROUTER_CLASSIFY_THINKING_MODE names a rung directly (measured, not guessed:
-    reasoning_effort=minimal is NOT minimal on this endpoint - it burned 741
-    reasoning tokens against the baseline's 122).
+    ROUTER_CLASSIFY_THINKING=off (default) walks THINKING_LADDER; 'on', 'auto',
+    'default', 'true', or '1' sends nothing (the model thinks, as it did before
+    this existed). 'false', '0', 'no', 'disabled', and other values keep the
+    reasoning-off default. ROUTER_CLASSIFY_THINKING_MODE names a rung directly
+    (measured, not guessed: reasoning_effort=minimal is NOT minimal on this
+    endpoint - it burned 741 reasoning tokens against the baseline's 122).
     """
     v = (os.environ.get('ROUTER_CLASSIFY_THINKING') or 'off').strip().lower()
-    if v in ('on', 'auto', 'default', 'false', '0'):
+    if v in ('on', 'auto', 'default', 'true', '1'):
         return {}
     forced = os.environ.get('ROUTER_CLASSIFY_THINKING_MODE')
     if forced == 'none':

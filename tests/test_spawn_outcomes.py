@@ -176,18 +176,20 @@ def test_backend_isolation_changes_the_order(monkeypatch, tmp_path):
 
 # ------------------------------------------------------ component 5: sorting ---
 
-def test_default_sort_keeps_the_legacy_price_order(monkeypatch, tmp_path):
-    """Regression guard: with stats available the DEFAULT ordering must still be
-    the historical (plan_tier, effective price) order — router_spawn.py is
-    symlinked into the live fleet, so a silent re-rank is not acceptable."""
+def test_default_sort_prefers_measured_cost_and_price_is_explicit(monkeypatch, tmp_path):
+    """TR-283: measured cost/task is the default; price remains available by request."""
+    # Import-time default is the product contract; the explicit price sort must
+    # retain the historical normalized-price ordering.
     _wire(monkeypatch, tmp_path, averages=[
-        _row("prov-a", "a-expensive", cost=0.01),   # cheapest per task
+        _row("prov-a", "a-expensive", cost=0.01),  # cheapest per TASK, dear per token
+        _row("prov-b", "b-cheap", cost=0.20),
+        _row("prov-c", "c-mid", cost=0.30),
     ])
-    legacy = router_spawn.resolve(project="proj")
-    assert legacy["sort"] == "price"
-    assert _order(legacy) == ["prov-b/b-cheap", "prov-c/c-mid", "prov-a/a-expensive"]
-    explicit = router_spawn.resolve(project="proj", sort="price")
-    assert _order(explicit) == _order(legacy)
+    default = router_spawn.resolve(project="proj")
+    assert default["sort"] == "predicted_cost_per_task"
+    assert _order(default) == ["prov-a/a-expensive", "prov-b/b-cheap", "prov-c/c-mid"]
+    explicit_price = router_spawn.resolve(project="proj", sort="price")
+    assert _order(explicit_price) == ["prov-b/b-cheap", "prov-c/c-mid", "prov-a/a-expensive"]
 
 
 def test_wall_time_sort_and_unknown_is_worst(monkeypatch, tmp_path):
@@ -279,5 +281,5 @@ def test_the_response_says_how_much_of_the_order_rested_on_measurement(monkeypat
     assert sup["effective"] == "price" and sup["reason"] == "below-coverage-floor"
     assert sup["coverage"] == round(1 / 3, 4)
     # and the price sort reports no sufficiency claim at all, rather than a zero
-    legacy = router_spawn.resolve(project="proj")
+    legacy = router_spawn.resolve(project="proj", sort="price")
     assert legacy["sort_stats"]["sufficiency"] is None

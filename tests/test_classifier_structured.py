@@ -145,6 +145,13 @@ def test_thinking_can_be_turned_back_on_and_a_rung_forced(monkeypatch):
     assert rc._thinking_off() == {'thinking': {'type': 'disabled'}}
 
 
+@pytest.mark.parametrize('value', ['off', 'false', '0', 'no', 'disabled'])
+def test_falsey_thinking_values_disable_reasoning(monkeypatch, value):
+    monkeypatch.setenv('ROUTER_CLASSIFY_THINKING', value)
+    monkeypatch.delenv('ROUTER_CLASSIFY_THINKING_MODE', raising=False)
+    assert rc._thinking_off() == {'reasoning_effort': 'none'}
+
+
 def test_the_thinking_mode_is_recorded_on_the_call_meta(monkeypatch):
     """A provider change must be visible in the ledger, not inferred from latency."""
     monkeypatch.setattr(rc, '_call_lane',
