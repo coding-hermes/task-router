@@ -135,6 +135,160 @@ def complexity_sig(requirements):
     return hashlib.sha1(payload.encode()).hexdigest()
 
 
+
+# ---------------------------------------------------------------------------
+# The model ANSWERS THE QUESTION zero-shot; the router does the converting.
+#
+# Why this split exists (measured 2026-10-03): prompt v1 told the model to pick
+# levels out of our own 21-category vocabulary. That asked it to do the router's
+# job, and it showed: 242 rated requests produced 137 distinct exact level-maps
+# and 148 bands, 85% of them seen exactly once, so the rolling averages could
+# never pool and cost-per-task could not bind on a single one of 400 live chains
+# (~242 days at the observed arrival rate). A band that describes one task is not
+# a band. The model's job is to read the request and say how demanding it is, in
+# its own words; mapping those words onto our categories, quantizing, and banding
+# are DETERMINISTIC ROUTER WORK - the same input must always produce the same
+# band, and two tasks with the same shape of demand must land in the SAME band.
+# ---------------------------------------------------------------------------
+
+BAND_VERSION = 'b1'
+
+#: The model's 0..3 dimension/hardness answer -> our signed -5..+5 levels. This
+#: is a POLICY scale, kept in data (data/classifier/dimension-map.jsonl 'scale')
+#: so it can be revised without touching code.
+_DIM_SCALE = {0: 0, 1: 0, 2: 2, 3: 4}
+_HARD_FLOOR = {0: -5, 1: 0, 2: 2, 3: 4}
+#: max-level -> tier name for the coarse band. Ordered high to low.
+TIER = ((5, 'frontier'), (4, 'hard'), (3, 'hard'), (2, 'mid'), (1, 'mid'))
+
+_ALIAS_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                           'data', 'classifier', 'dimension-map.jsonl')
+
+
+def load_dimension_aliases(path=None):
+    """{alias: [(category, weight)]} from data/classifier/dimension-map.jsonl.
+
+    Data-driven on purpose: the vocabulary of natural words belongs in a file
+    that can grow from observed traffic, not in this code. Unreadable -> empty
+    table, and every unmapped dimension is reported rather than dropped.
+    """
+    table, scale = {}, {}
+    path = path or _ALIAS_PATH
+    try:
+        with open(path) as fh:
+            for line in fh:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    r = json.loads(line)
+                except ValueError:
+                    continue
+                if r.get('kind') == 'scale':
+                    scale = {'dimension_scale': {int(k): v for k, v in (r.get('dimension_scale') or {}).items()},
+                             'hardness_floor': {int(k): v for k, v in (r.get('hardness_floor') or {}).items()},
+                             'band_version': r.get('band_version')}
+                    continue
+                a, c = str(r.get('alias') or '').strip().lower(), r.get('category')
+                if a and c:
+                    table.setdefault(a, []).append((c, float(r.get('weight') or 1.0)))
+    except OSError:
+        pass
+    return table, scale
+
+
+def map_dimensions(dimensions, hardness=None, aliases=None, scale=None):
+    """The model's zero-shot answer -> ({category: level}, meta).
+
+    Never invents a level and never drops a dimension silently: anything the
+    alias table cannot resolve is named in meta['unmapped']. If nothing maps at
+    all, the HARDNESS still produces a usable matrix, because hardness is the
+    direct answer to the question and does not depend on our vocabulary.
+    """
+    aliases = aliases if aliases is not None else load_dimension_aliases()[0]
+    scale = scale or load_dimension_aliases()[1]
+    dim_scale = (scale or {}).get('dimension_scale') or _DIM_SCALE
+    hard_floor = (scale or {}).get('hardness_floor') or _HARD_FLOOR
+
+    levels, unmapped, matched = {}, [], []
+    if isinstance(dimensions, dict):
+        for word, val in dimensions.items():
+            key = str(word).strip().lower()
+            try:
+                v = int(val)
+            except (TypeError, ValueError):
+                continue
+            if v <= 0:
+                continue
+            targets = aliases.get(key)
+            if not targets:
+                unmapped.append(key)
+                continue
+            matched.append(key)
+            for cat, w in targets:
+                lvl = int(round(dim_scale.get(min(3, max(0, v)), 0) * w))
+                if lvl > levels.get(cat, -99):
+                    levels[cat] = lvl
+
+    hard = hardness
+    try:
+        hard = int(hardness)
+    except (TypeError, ValueError):
+        hard = None
+    if hard is not None and hard in hard_floor:
+        floor = hard_floor[hard]
+        if hard == 0:
+            # hardness 0 = routine. Express that as a NEGATIVE demand so the
+            # router picks a cheap lane on purpose rather than by accident.
+            target = max(levels, key=lambda c: levels[c]) if levels else 'mechanical'
+            levels[target] = floor
+        else:
+            top = max(levels, key=lambda c: levels[c]) if levels else None
+            if top is None:
+                # nothing matched our vocabulary: hardness alone still answers.
+                levels['reasoning'] = floor
+                unmapped.append('<hardness-only:no-dimension-matched>')
+            elif levels[top] < floor:
+                levels[top] = floor
+    return levels, {'unmapped': unmapped, 'matched': matched, 'hardness': hard,
+                    'band_version': (scale or {}).get('band_version') or BAND_VERSION}
+
+
+def band_key(levels):
+    """The POOLING key for the rolling averages: coarse, readable, deterministic.
+
+    Deliberately not the exact level-map (that is complexity_sig, which stays for
+    reporting). A band must describe a CLASS of task: the overall tier plus the
+    two categories that carry the demand. Ties break alphabetically so the same
+    demand always yields the same string.
+    """
+    if not isinstance(levels, dict) or not levels:
+        return None
+    pressed = {c: int(v) for c, v in levels.items() if isinstance(v, (int, float))}
+    if not pressed:
+        return None
+    positive = sorted([c for c, v in pressed.items() if v >= 1], key=lambda c: (-pressed[c], c))
+    if positive:
+        top = positive[:2]
+        tier = 'frontier'
+        for need, name in TIER:
+            if pressed[top[0]] >= need:
+                tier = name
+                break
+        else:
+            tier = 'easy'
+    else:
+        # nothing is pressed above zero: a routine/mechanical task. Name it by the
+        # least-demanding category so different routine shapes can still separate
+        # if the fleet's data says they behave differently.
+        # Routine work is the fleet's volume, so pool it hard: ONE name. Taking two
+        # cheap categories here fragmented the band for tasks that differ only in an
+        # incidental (0-level) tag - measured: {mechanical} vs {rename, formatting}
+        # produced two bands for the same class of work.
+        cheapest = sorted(pressed, key=lambda c: (pressed[c], c))[:1]
+        top, tier = cheapest, 'easy'
+    return '%s:%s:%s' % (BAND_VERSION, tier, '+'.join(top))
+
 def row_complexity_sig(row):
     """The bucket key for an outcome row: an explicit complexity_sig wins, then
     a canonical dict (complexity / required_categories), then a profile id

@@ -28,7 +28,17 @@ import urllib.request
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PROMPT_DIR = os.path.join(REPO, 'data', 'classifier')
 LEVEL_MIN, LEVEL_MAX = -5, 5
-DEFAULT_PROMPT_VERSION = 'v1'
+#: v2 asks the model to ANSWER THE QUESTION zero-shot (its own words); the router
+#: maps and bands. v1 constrained the model to our own category vocabulary, which
+#: is why every task minted its own band and the averages never pooled. v1 stays
+#: selectable for rollback: ROUTER_CLASSIFY_PROMPT_VERSION=v1.
+#: v3 is the owner's contract (2026-10-03): the model is GIVEN the supported
+#: category list, it RATES those categories and RANKS them, and the router does the
+#: lookup from that answer - which is how the model list falls out. v2 (free-form
+#: words) asked the model to invent our vocabulary; v1 asked it to omit categories
+#: and gave no ranking. Both stay selectable for rollback:
+#: ROUTER_CLASSIFY_PROMPT_VERSION=v2|v1.
+DEFAULT_PROMPT_VERSION = os.environ.get('ROUTER_CLASSIFY_PROMPT_VERSION') or 'v3'
 
 
 def prompt_path(version=DEFAULT_PROMPT_VERSION):
@@ -68,6 +78,19 @@ def registry_categories(registry_path=None):
     return []
     return sorted({r.get('category') for r in tables.get('task_profile_requirements') or []
                    if r.get('category')})
+
+
+
+def map_dimensions(*a, **k):
+    """Router-side adapter (see router_outcomes.map_dimensions)."""
+    import router_outcomes as ro
+    return ro.map_dimensions(*a, **k)
+
+
+def band_key(*a, **k):
+    """Router-side adapter (see router_outcomes.band_key)."""
+    import router_outcomes as ro
+    return ro.band_key(*a, **k)
 
 
 def _extract_json(raw):
@@ -522,11 +545,50 @@ def classify(text, llm=None, version=DEFAULT_PROMPT_VERSION, categories=None, ti
         out['call_meta'] = meta
         return out
     out['call_meta'] = getattr(raw, 'meta', {}) or {}
-    matrix, conf, problems = validate_matrix(obj, cats)
-    out['problems'].extend(problems)
-    out['confidence'] = conf
-    if matrix is None:
-        return out
+    # v2 answers the question zero-shot (hardness + its own dimension words).
+    # The ROUTER converts: natural words -> categories (data-driven aliases),
+    # hardness -> the signed scale. The model is never asked to do this.
+    out['model_answer'] = obj
+    if 'ratings' in obj:
+        # The owner's contract: the model rates the SUPPORTED categories and ranks
+        # them; the router looks up models from exactly those ratings.
+        ratings = obj.get('ratings') if isinstance(obj.get('ratings'), dict) else {}
+        out['ranking'] = [str(c) for c in (obj.get('ranking') or []) if isinstance(c, (str,))]
+        matrix, conf, problems = validate_matrix({'categories': ratings}, cats)
+        out['problems'].extend(problems)
+        out['confidence'] = obj.get('confidence') or conf
+        out['band'] = band_key(matrix or {})
+        # The ranking must agree with the ratings; if it does not, the ratings win
+        # and the disagreement is recorded (never silently reordered).
+        if out['ranking'] and matrix:
+            bad = [c for c in out['ranking'] if c not in matrix]
+            if bad:
+                out['problems'].append('ranking names unrated categories: ' + ', '.join(bad[:5]))
+            else:
+                ordered = sorted(matrix, key=lambda c: (-matrix[c], c))
+                if [c for c in out['ranking'] if c in matrix] != ordered[:len(out['ranking'])]:
+                    out['problems'].append('ranking disagrees with ratings; ratings used')
+        if matrix is None:
+            return out
+    elif 'hardness' in obj or 'dimensions' in obj:
+        levels, meta = map_dimensions(obj.get('dimensions') or {}, obj.get('hardness'))
+        out['mapping'] = meta
+        if meta.get('unmapped'):
+            out['problems'].append('dimensions not in the alias table (recorded, mapped by hardness): '
+                                   + ', '.join(meta['unmapped'][:6]))
+        matrix, conf, problems = validate_matrix({'categories': levels}, cats)
+        out['problems'].extend(problems)
+        out['confidence'] = obj.get('confidence') or conf
+        out['band'] = band_key(matrix or {})
+        if matrix is None:
+            return out
+    else:
+        matrix, conf, problems = validate_matrix(obj, cats)
+        out['problems'].extend(problems)
+        out['confidence'] = conf
+        out['band'] = band_key(matrix or {})
+        if matrix is None:
+            return out
     out['matrix'] = matrix
     try:
         sys.path.insert(0, os.path.join(REPO, 'scripts'))
