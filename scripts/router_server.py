@@ -15,6 +15,7 @@ import json
 import os
 from pathlib import Path
 import re
+import signal
 import subprocess
 import sys
 import threading
@@ -36,7 +37,8 @@ MAX_BODY_BYTES = 1024 * 1024
 # HTTP ingest and the batch tools.
 if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
-import router_outcomes  # noqa: E402  (stdlib-only sibling script module)
+import router_outcomes  # noqa: E402
+import router_drain  # noqa: E402  (stdlib-only sibling script module)
 import router_wire_ids  # noqa: E402  (TR-148: registry id -> upstream wire id)
 import router_ui_page  # noqa: E402  (TR-150: the one self-contained page)
 import router_health  # noqa: E402  (TR-087 health plane)
@@ -548,6 +550,8 @@ class RouterApplication:
     def __init__(self, mode, edit_key):
         self.mode = mode
         self.edit_key = edit_key
+        self.lifecycle = router_drain.DrainController()
+        self.runtime_identity = router_drain.runtime_identity()
         self.openapi = OPENAPI
         self.operations = self._operation_map()
         # TR-129: populated by main() from the upstream's /v1/capabilities at
@@ -662,7 +666,14 @@ class RouterApplication:
                 if isinstance(payload, dict):
                     payload['admission'] = _admission_stats()
                     payload['classify_cache'] = classify_cache_stats()
+                    payload['runtime'] = {
+                        **self.runtime_identity,
+                        **self.lifecycle.snapshot(),
+                    }
                 return 200, payload
+            if path == "/readyz":
+                state = self.lifecycle.snapshot()
+                return (200 if state['ready'] else 503), state
             if path == "/model_status":
                 provider = query.get("provider")
                 if isinstance(provider, list):
@@ -3848,10 +3859,63 @@ class RouterHandler(BaseHTTPRequestHandler):
 class RouterHTTPServer(ThreadingHTTPServer):
     daemon_threads = True
     allow_reuse_address = True
+    block_on_close = False
 
     def __init__(self, address, app):
         self.app = app
         super().__init__(address, RouterHandler)
+
+    def process_request_thread(self, request, client_address):
+        admitted = self.app.lifecycle.request_started()
+        if not admitted:
+            # shutdown() may race one already-accepted socket after readiness
+            # flipped false. Do not start fresh work during the drain window.
+            try:
+                request.close()
+            finally:
+                self.app.lifecycle.request_finished()
+            return
+        try:
+            super().process_request_thread(request, client_address)
+        finally:
+            self.app.lifecycle.request_finished()
+
+
+def _drain_timeout_s(value=None):
+    """Graceful-drain budget, bounded below systemd's default stop timeout."""
+    raw = value if value is not None else os.environ.get("ROUTER_DRAIN_TIMEOUT_S", "60")
+    try:
+        return max(0.0, min(80.0, float(raw)))
+    except (TypeError, ValueError):
+        return 60.0
+
+
+def _install_graceful_signals(server):
+    """SIGTERM/SIGINT stop admission, stop accept, then drain active handlers.
+
+    ThreadingHTTPServer.shutdown() must run on a thread other than the one in
+    serve_forever(); invoking it directly from a signal handler can deadlock.
+    The helper also waits until serve_forever is entered, covering the tiny
+    boot race between the listening log and the loop.
+    """
+    serving = threading.Event()
+
+    def request_shutdown(signum, _frame):
+        server.app.lifecycle.begin_drain()
+        print(json.dumps({"event": "drain_started", "signal": signum,
+                          **server.app.lifecycle.snapshot()}), flush=True)
+
+        def stop_accepting():
+            serving.wait()
+            server.shutdown()
+
+        threading.Thread(target=stop_accepting, name="router-shutdown",
+                         daemon=True).start()
+
+    previous = {}
+    for sig in (signal.SIGTERM, signal.SIGINT):
+        previous[sig] = signal.signal(sig, request_shutdown)
+    return serving, previous
 
 
 def _classifier_failure_is_fatal(problem_text):
@@ -4061,12 +4125,27 @@ def main(argv=None):
         ),
         flush=True,
     )
+    serving, previous_signals = _install_graceful_signals(server)
     try:
+        serving.set()
         server.serve_forever()
-    except KeyboardInterrupt:
-        pass
     finally:
+        # Also close readiness if serve_forever exits through an unexpected exception.
+        app.lifecycle.begin_drain()
+        # Stop accepting before waiting. Handler threads are daemonized and
+        # block_on_close=False, so this wait is explicitly bounded rather than
+        # allowing one wedged upstream stream to hold systemd's restart forever.
         server.server_close()
+        timeout_s = _drain_timeout_s()
+        drained = app.lifecycle.wait_for_idle(timeout_s)
+        print(json.dumps({
+            "event": "drain_finished",
+            "drained": drained,
+            "timeout_s": timeout_s,
+            **app.lifecycle.snapshot(),
+        }), flush=True)
+        for sig, previous in previous_signals.items():
+            signal.signal(sig, previous)
     return 0
 
 
