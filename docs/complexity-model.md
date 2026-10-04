@@ -109,6 +109,15 @@ reports the match. What is missing is not the function but its **input and its c
 - **R6.4** The routing decision for a row is replayable: given the row, the requirement matrix in force, and
   the averages at that time, the same chain is derivable.
 
+Built state (TR-292, 2026-10-03): a row carries the raw map in `required_categories`
+({category: level}, int −5..+5 — the resolver's existing channel; nothing new invented). The
+write side is `scripts/board_row_levels.py` (normalize / validate); the scalar `complexity` is an
+int 0..5 for ordering only and is type-enforced so the string drift ("moderate" x13) cannot return.
+`router spawn --profile-from-board` reads the row's raw levels as `complexity_source=declared-raw`
+— no classifier call — and a row so resolved follows the same chain as the identical levels on
+`--profile-req` (replayability, pinned in tests/test_row_raw_levels.py). The shipped prompt text
+(skills/task-router-usage) instructs: pass the raw levels of THIS task; never an assigned profile.
+
 ## 7. Non-goals
 
 - Not a cost-only router: the owner's requirement is capability matching first, cost within it.

@@ -51,6 +51,29 @@ router validate                                  # integrity; exit 1 + issues
 router estimate --project my-project --tokens-in 100000 --tokens-out 100000
 router circuit status --json                     # breaker state
 
+## Pass RAW levels of THIS task — never an assigned profile (TR-292, R6.3)
+
+The caller's job is to pass the raw per-category levels of the task at hand
+(`{category: level}`, int −5..+5, the router's canonical vocabulary), NOT to
+pick a profile that was assigned for some other task:
+
+```bash
+# the levels of THIS task, on the command line
+router spawn --profile-req 'code_gen=4 debug=3 reasoning=2' --format json
+
+# the levels live on the board row: required_categories is a raw-level map.
+# Write it with the board tooling, never by hand-editing the JSONL:
+python3 scripts/board_row_levels.py validate --board <board>
+# router spawn --profile-from-board TR-NNN reads those levels as
+# complexity_source=declared-raw — no classifier call, replayable.
+```
+
+Profiles (`--profile P1_CODING`) are a POLICY handle (floor/ceiling, gates),
+not the routing input. The scalar `complexity` on a board row is an int 0..5
+used for ordering only (R6.2). Do not pass a profile as "the complexity of"
+a task; do not write a word ("moderate") into `complexity` — the validator
+(`board_row_levels.py validate`) rejects it.
+
 # After real spawns: record outcomes so breakers learn
 router circuit record-failure <provider> <model> --class overload   # or api_down|out_of_credit|quota_window
 router circuit record-success <provider> <model>
