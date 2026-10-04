@@ -84,11 +84,12 @@ def read_rows(path):
     return rows
 
 
-def build(rows, windows, merge_backends=False, now_s=None):
+def build(rows, windows, merge_backends=False, now_s=None, banding=True):
     """Averages for the given rows. `merge_backends` = one bucket per
     (provider, model, complexity), otherwise one per backend."""
     return ro.compute_averages(rows, scales_h=windows,
-                               merge_backends=merge_backends, now_s=now_s)
+                               merge_backends=merge_backends, now_s=now_s,
+                               banding=banding)
 
 
 def write_rows(path, averages):
@@ -102,7 +103,7 @@ def write_rows(path, averages):
 
 
 def summary(rows, averages, windows, merge_backends, input_path, output_path,
-            dry_run):
+            dry_run, banding=True):
     return {
         'input': input_path,
         'output': output_path,
@@ -110,6 +111,7 @@ def summary(rows, averages, windows, merge_backends, input_path, output_path,
         'buckets': len(averages),
         'windows_h': windows,
         'merge_backends': bool(merge_backends),
+        'banding': bool(banding),
         'dry_run': bool(dry_run),
         'computed_at': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
         'averages': averages,
@@ -131,6 +133,9 @@ def main(argv=None):
     ap.add_argument('--merge-backends', action='store_true',
                     help='collapse the source_system dimension (default: one '
                          'bucket per backend — isolation)')
+    ap.add_argument('--exact', action='store_true',
+                    help='diagnostic/back-compat mode: key averages by exact '
+                         'complexity signature instead of versioned coarse band')
     ap.add_argument('--dry-run', action='store_true',
                     help='compute and print the averages; write nothing')
     ap.add_argument('--now', type=float, default=None,
@@ -147,8 +152,9 @@ def main(argv=None):
     input_path = args.input or ro.outcomes_path()
     output_path = args.output or ro.averages_path()
     rows = read_rows(input_path)
+    banding = not args.exact
     averages = build(rows, windows, merge_backends=args.merge_backends,
-                     now_s=args.now)
+                     now_s=args.now, banding=banding)
     if not args.dry_run and averages:
         try:
             write_rows(output_path, averages)
@@ -157,7 +163,7 @@ def main(argv=None):
                               'output': output_path}))
             return 1
     print(json.dumps(summary(rows, averages, windows, args.merge_backends,
-                             input_path, output_path, args.dry_run),
+                             input_path, output_path, args.dry_run, banding=banding),
                      ensure_ascii=False))
     return 0
 

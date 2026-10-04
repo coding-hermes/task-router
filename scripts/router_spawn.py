@@ -1046,6 +1046,36 @@ def _complexity_keys(profile_id, tables):
     return keys
 
 
+def _band_keys(reqs):
+    """TR-289: the coarse BAND keys a task may join its stats on — the band of
+    its declared requirement set, under the version prefix the averages are
+    written under. Empty when nothing declares levels (the lane then matches
+    unconditioned/merged rows exactly as before). Fail-open: stats optional.
+
+    `reqs` is the profile's (category, level) pair rows, as resolved in
+    resolve(); the shape is normalized here, never assumed."""
+    try:
+        import router_outcomes
+        keys = set()
+        matrix = {}
+        for r in reqs or ():
+            try:
+                cat, lvl = r
+                if cat is not None:
+                    matrix[str(cat)] = int(lvl)
+            except (TypeError, ValueError):
+                continue
+        if matrix:
+            canon = router_outcomes.canonical_complexity(matrix)
+            if canon:
+                b = router_outcomes.band_key(canon)
+                if b:
+                    keys.add(b)
+        return keys
+    except Exception:  # noqa: BLE001 — stats are optional; fail-open
+        return set()
+
+
 def load_outcome_stats(backend=None, merge_backends=None, path=None):
     """(index, meta) — the resolve-time view of the rolling averages.
 
@@ -1097,7 +1127,7 @@ def load_outcome_stats(backend=None, merge_backends=None, path=None):
     return index, meta
 
 
-def lane_stats(index, provider, model, keys):
+def lane_stats(index, provider, model, keys, band_keys=None):
     """(row, match) for a lane: the stats row matching the task's complexity
     reference, else the unconditioned bucket, else a weighted merge of the
     lane's buckets. (None, None) when the store has no sample — never invented.
@@ -1125,6 +1155,10 @@ def lane_stats(index, provider, model, keys):
         for r in rows:
             if _canonical_complexity(r.get('complexity')) == want:
                 return r, 'complexity'
+    for want in band_keys or ():
+        for r in rows:
+            if r.get('complexity_band') == want:
+                return r, 'band'
     for r in rows:
         if r.get('complexity') is None:
             return r, 'unconditioned'
@@ -1150,7 +1184,8 @@ def lane_metric(m, ctx, metric):
                          f'{", ".join(sorted(METRIC_FIELDS))})')
     field = template.format(w=window)
     row, match = lane_stats(ctx.get('index') or {}, m.get('provider'),
-                            m.get('model'), ctx.get('keys'))
+                            m.get('model'), ctx.get('keys'),
+                            band_keys=ctx.get('band_keys'))
     if row is None:
         return None, None
     return row.get(field), {'match': match, 'n_samples': row.get('n_samples'),
@@ -1163,7 +1198,8 @@ def outcome_note(m, ctx):
     ctx = ctx or {}
     window = ctx.get('window_h', DEFAULT_WINDOW_H)
     row, match = lane_stats(ctx.get('index') or {}, m.get('provider'),
-                            m.get('model'), ctx.get('keys'))
+                            m.get('model'), ctx.get('keys'),
+                            band_keys=ctx.get('band_keys'))
     # TR-066 R5: the fallback kind is NAMED, never implicit — a caller must be
     # able to see that an ordering rested on a weaker bucket.
     _FALLBACK_KIND = {'complexity': None, 'unconditioned': 'unconditioned',
@@ -1175,6 +1211,7 @@ def outcome_note(m, ctx):
     if row is not None:
         note['n_samples'] = row.get('n_samples')
         note['complexity_sig'] = row.get('complexity_sig')
+        note['complexity_band'] = row.get('complexity_band')
         note['required_categories'] = row.get('required_categories')
         note['predicted_cost_per_task'] = row.get(f'avg_cost_task_{window}h')
         note['avg_wall_time_s'] = row.get(f'avg_wall_time_{window}h')
@@ -2117,6 +2154,9 @@ def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=DE
             backend=backend, merge_backends=merge_backends)
         sort_ctx = {'index': stats_index, 'meta': stats_meta, 'window_h': window_h,
                     'keys': _complexity_keys(pid, tables),
+                    # TR-289: the coarse band keys the band join may match the
+                    # averages on (the pooling key the store is written under).
+                    'band_keys': _band_keys(reqs),
                     # TR-174 feature 3: the exploration gate keys its deterministic
                     # hash on the resolved profile (falling back to the project).
                     'task_key': str(pid or project or ''),

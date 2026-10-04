@@ -79,6 +79,27 @@ def test_averages_cli_writes_and_merges(tmp_path, capsys):
     assert len(rows) == 1 and 'source_system' not in rows[0]
 
 
+def test_averages_cli_defaults_to_versioned_banding_but_can_report_exact(tmp_path, capsys):
+    req = {'code_gen': 3, 'debug': 1}
+    store = _store_of(tmp_path, [_row(complexity=req)])
+    out = tmp_path / 'averages.jsonl'
+    assert oa.main(['--input', store, '--output', str(out), '--windows', '1d',
+                    '--now', str(NOW)]) == 0
+    payload = json.loads(capsys.readouterr().out)
+    rows = [json.loads(line) for line in out.read_text().splitlines()]
+    assert payload['banding'] is True
+    assert rows[0]['complexity_band'] == ro.band_key(req)
+    assert rows[0]['complexity_sig'] == ro.complexity_sig(req)
+
+    exact = tmp_path / 'exact.jsonl'
+    assert oa.main(['--input', store, '--output', str(exact), '--exact',
+                    '--windows', '1d', '--now', str(NOW)]) == 0
+    assert json.loads(capsys.readouterr().out)['banding'] is False
+    exact_row = json.loads(exact.read_text().strip())
+    assert 'complexity_band' not in exact_row
+    assert exact_row['complexity_sig'] == ro.complexity_sig(req)
+
+
 def test_averages_cli_is_fail_open_on_a_missing_store(tmp_path, capsys):
     import outcomes_averages as oa
     rc = oa.main(['--input', str(tmp_path / 'nope.jsonl'), '--dry-run'])

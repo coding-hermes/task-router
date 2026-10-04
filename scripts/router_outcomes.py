@@ -310,11 +310,39 @@ def row_complexity_sig(row):
     return None
 
 
-def compute_averages(rows, scales_h=DEFAULT_SCALES_H, merge_backends=False, now_s=None):
+def row_band_key(row):
+    """TR-289: the COARSE band key for an outcome row — the pooling key the
+    rolling averages group under (an explicit `complexity_band` on the row
+    wins, so a post-deploy writer row is pooled verbatim; otherwise the band
+    is derived from the row's exact requirement map). Returns None when the
+    row carries no band and no map (imported gateway rows) — such rows share
+    the unconditioned None bucket exactly as before, never a guessed band."""
+    b = row.get('complexity_band')
+    if isinstance(b, str) and b:
+        return b
+    for field in ('required_categories', 'complexity'):
+        v = row.get(field)
+        if isinstance(v, (dict, list)):
+            canon = canonical_complexity(v)
+            if canon:
+                return band_key(canon)
+    return None
+
+
+def compute_averages(rows, scales_h=DEFAULT_SCALES_H, merge_backends=False, now_s=None,
+                     banding=False):
     """Bucket = (source_system, provider, model, complexity_sig) — the signature
     of the declared requirement SET (TR-065 R1/R3), not a single scalar. Rows
     that declare nothing share the None bucket, so a per-model average is still
     available to callers who never declare complexity.
+
+    TR-289 (`banding=True`): the bucket keys on the VERSIONED COARSE BAND
+    (row_band_key) instead of the exact signature — the pooling fix for the
+    measured fragmentation (242 ratings -> 148 bands, 85% seen once, 0/400
+    chains bindable). The exact signature's representative requirement map
+    stays on each row for reporting. A row's explicit `complexity_band` (with
+    its own version prefix) is kept VERBATIM, so a future version's rows pool
+    under their own key space and are never silently reinterpreted.
 
     Per scale each bucket carries every metric the sort rules consume:
     avg_cost_task_<s>h, avg_tokens_in_<s>h, avg_tokens_out_<s>h,
@@ -325,16 +353,34 @@ def compute_averages(rows, scales_h=DEFAULT_SCALES_H, merge_backends=False, now_
     """
     now_s = now_s or time.time()
     buckets, sig_dicts = {}, {}
+    band_signatures, band_maps = {}, {}
     for r in rows:
         sig = row_complexity_sig(r)
-        key = ((r['provider'], r['model'], sig) if merge_backends
-               else (r.get('source_system'), r['provider'], r['model'], sig))
+        if banding:
+            bkey = row_band_key(r)
+            key = ((r['provider'], r['model'], bkey) if merge_backends
+                   else (r.get('source_system'), r['provider'], r['model'], bkey))
+            if bkey:
+                band_signatures.setdefault(bkey, set())
+                band_maps.setdefault(bkey, {})
+                if sig:
+                    band_signatures[bkey].add(sig)
+                canon = canonical_complexity(r.get('required_categories')) or \
+                    canonical_complexity(r.get('complexity'))
+                if canon:
+                    band_maps[bkey][json.dumps(canon, sort_keys=True)] = canon
+                    if bkey not in sig_dicts:
+                        sig_dicts[bkey] = canon
+        else:
+            bkey = sig
+            key = ((r['provider'], r['model'], sig) if merge_backends
+                   else (r.get('source_system'), r['provider'], r['model'], sig))
+            if sig:
+                canon = canonical_complexity(r.get('required_categories')) or \
+                    canonical_complexity(r.get('complexity'))
+                if canon:
+                    sig_dicts[sig] = canon
         buckets.setdefault(key, []).append(r)
-        if sig:
-            canon = canonical_complexity(r.get('required_categories')) or \
-                canonical_complexity(r.get('complexity'))
-            if canon:
-                sig_dicts[sig] = canon
     out = []
     for key, brows in sorted(buckets.items(), key=lambda kv: str(kv[0])):
         if merge_backends:
@@ -343,8 +389,19 @@ def compute_averages(rows, scales_h=DEFAULT_SCALES_H, merge_backends=False, now_
         else:
             src, prov, model, sig = key
             entry = {'source_system': src, 'provider': prov, 'model': model}
-        entry['complexity_sig'] = sig
-        entry['required_categories'] = sig_dicts.get(sig) if sig else None
+        if banding:
+            entry['complexity_band'] = sig
+            # Preserve every exact signature/map contributing to the band.
+            # A singular exact field is meaningful only when unambiguous.
+            exact_sigs = sorted(band_signatures.get(sig, set()))
+            maps = [band_maps[sig][k] for k in sorted(band_maps.get(sig, {}))]
+            entry['complexity_sigs'] = exact_sigs
+            entry['complexity_sig'] = exact_sigs[0] if len(exact_sigs) == 1 else None
+            entry['required_category_maps'] = maps
+            entry['required_categories'] = maps[0] if len(maps) == 1 else None
+        else:
+            entry['complexity_sig'] = sig
+            entry['required_categories'] = sig_dicts.get(sig) if sig else None
         for s in scales_h:
             entry[f'avg_cost_task_{s}h'] = bucket_weighted(brows, 'cost_usd', s, now_s=now_s)
             entry[f'avg_wall_time_{s}h'] = bucket_weighted(brows, 'wall_time_s', s, now_s=now_s)
@@ -374,18 +431,45 @@ def merge_average_rows(rows):
     count toward `n_samples` presence; every weighted metric is None when no
     contributing row carries it.
     """
-    groups = {}
+    groups, band_groups = {}, set()
     for r in rows:
-        key = (r.get('provider'), r.get('model'), r.get('complexity_sig'))
+        # TR-289: a band-carrying row pools by its BAND (the coarse key the
+        # averages were written under) — exact sigs inside one band differ and
+        # must not fragment the merge. Band-less (pre-b1) rows keep the exact
+        # complexity_sig key, so legacy averages are never reinterpreted.
+        band = r.get('complexity_band')
+        ckey = band if isinstance(band, str) and band else r.get('complexity_sig')
+        key = (r.get('provider'), r.get('model'), ckey)
         groups.setdefault(key, []).append(r)
+        if isinstance(band, str) and band:
+            band_groups.add(key)
     metric_fields = sorted({k for r in rows for k in r
                             if k.startswith('avg_')})
     out = []
     for key, grows in sorted(groups.items(), key=lambda kv: str(kv[0])):
         prov, model, sig = key
-        entry = {'provider': prov, 'model': model, 'complexity_sig': sig,
-                 'required_categories': next((r.get('required_categories') for r in grows
-                                              if r.get('required_categories')), None)}
+        band = sig if key in band_groups else None
+        exact_sigs = set()
+        maps = {}
+        for r in grows:
+            exact_sigs.update(x for x in (r.get('complexity_sigs') or []) if isinstance(x, str) and x)
+            value = r.get('complexity_sig')
+            if isinstance(value, str) and value and value != band:
+                exact_sigs.add(value)
+            for mapping in r.get('required_category_maps') or []:
+                if isinstance(mapping, dict):
+                    maps[json.dumps(mapping, sort_keys=True)] = mapping
+            mapping = r.get('required_categories')
+            if isinstance(mapping, dict):
+                maps[json.dumps(mapping, sort_keys=True)] = mapping
+        exact_sigs = sorted(exact_sigs)
+        category_maps = [maps[k] for k in sorted(maps)]
+        entry = {'provider': prov, 'model': model,
+                 'complexity_sig': exact_sigs[0] if len(exact_sigs) == 1 else None,
+                 'complexity_sigs': exact_sigs,
+                 'complexity_band': band,
+                 'required_categories': category_maps[0] if len(category_maps) == 1 else None,
+                 'required_category_maps': category_maps}
         for f in metric_fields:
             wsum = xsum = 0.0
             for r in grows:
@@ -639,6 +723,16 @@ def accumulate_row(path, row, tail_lines=2000, tail_bytes=512 * 1024):
         raise ValueError('row must be an object')
     row = dict(row)
     row.setdefault('steps', 1)          # the first step is still a step count
+    # TR-289: stamp the versioned coarse band at WRITE time (the exact map is
+    # preserved untouched — the band is the pooling key, the sig the reporting
+    # key). Only when the row has no band yet; an explicit stamp is kept.
+    if not row.get('complexity_band'):
+        try:
+            _b = row_band_key(row)
+            if _b:
+                row['complexity_band'] = _b
+        except Exception:               # noqa: BLE001 — the store never fails on stats
+            pass
     if row.get('turns') is None:
         # For a proxied request one model call IS one turn; the counter then
         # tracks the session's steps on the accumulated task row.
