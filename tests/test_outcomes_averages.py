@@ -75,7 +75,7 @@ def test_averages_cli_writes_and_merges(tmp_path, capsys):
     assert rc == 0
     payload = json.loads(capsys.readouterr().out)
     assert payload['buckets'] == 1 and payload['averages'][0]['avg_cost_task_24h'] == pytest.approx(5.0)
-    rows = [json.loads(l) for l in open(out) if l.strip()]
+    rows = [json.loads(line) for line in open(out) if line.strip()]
     assert len(rows) == 1 and 'source_system' not in rows[0]
 
 

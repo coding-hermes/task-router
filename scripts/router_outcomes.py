@@ -23,7 +23,6 @@ import datetime
 import fcntl
 import hashlib
 import json
-import math
 import os
 import sqlite3
 import sys
@@ -593,18 +592,18 @@ def load_outcome_rows(path):
     if not os.path.exists(path):
         return rows
     with open(path) as f:
-        for lineno, l in enumerate(f, 1):
-            if not l.strip():
+        for lineno, line in enumerate(f, 1):
+            if not line.strip():
                 continue
             try:
-                r = json.loads(l)
+                r = json.loads(line)
             except ValueError:
-                _warn_skipped('averages', path, lineno, l)
+                _warn_skipped('averages', path, lineno, line)
                 continue
             if isinstance(r, dict):
                 rows.append(r)
             else:
-                _warn_skipped('averages', path, lineno, l)
+                _warn_skipped('averages', path, lineno, line)
     return rows
 
 
@@ -623,16 +622,16 @@ def append_rows(path, new_rows):
     seen = set()
     if os.path.exists(path):
         with open(path) as f:
-            for lineno, l in enumerate(f, 1):
-                if not l.strip():
+            for lineno, line in enumerate(f, 1):
+                if not line.strip():
                     continue
                 try:
-                    r = json.loads(l)
+                    r = json.loads(line)
                 except ValueError:
-                    _warn_skipped('append_rows', path, lineno, l)
+                    _warn_skipped('append_rows', path, lineno, line)
                     continue
                 if not isinstance(r, dict):
-                    _warn_skipped('append_rows', path, lineno, l)
+                    _warn_skipped('append_rows', path, lineno, line)
                     continue
                 seen.add((r.get('source_system'), r.get('session_id'), r.get('model')))
     os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -664,11 +663,12 @@ def tail_rows(path, max_lines=2000, max_bytes=512 * 1024):
     if start > 0:
         # drop the partial first line
         chunk = chunk.split(b'\n', 1)[1] if b'\n' in chunk else b''
-    lines = [l for l in chunk.decode('utf-8', errors='replace').splitlines() if l.strip()]
+    lines = [line for line in chunk.decode('utf-8', errors='replace').splitlines()
+             if line.strip()]
     rows = []
-    for l in lines[-max_lines:]:
+    for line in lines[-max_lines:]:
         try:
-            rows.append(json.loads(l))
+            rows.append(json.loads(line))
         except ValueError:
             continue
     return rows
@@ -985,7 +985,8 @@ def _registry_prices():
     try:
         path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                             'data', 'tables', 'models.jsonl')
-        tables = {'models': [json.loads(l) for l in open(path, encoding='utf-8') if l.strip()]}
+        tables = {'models': [json.loads(line) for line in open(path, encoding='utf-8')
+                             if line.strip()]}
     except Exception:  # noqa: BLE001
         pass
     m = {}
@@ -1543,7 +1544,8 @@ def main():
     p_avg = sub.add_parser('averages')
     p_avg.add_argument('--merge-backends', action='store_true')
     p_q = sub.add_parser('query')
-    p_q.add_argument('--provider'); p_q.add_argument('--model')
+    p_q.add_argument('--provider')
+    p_q.add_argument('--model')
     p_q.add_argument('--merge-backends', action='store_true')
     args = ap.parse_args()
 
@@ -1574,7 +1576,7 @@ def main():
         if not os.path.exists(AVERAGES):
             print('no averages file — run `averages` first')
             return 1
-        for a in (json.loads(l) for l in open(AVERAGES) if l.strip()):
+        for a in (json.loads(line) for line in open(AVERAGES) if line.strip()):
             if args.provider and a['provider'] != args.provider:
                 continue
             if args.model and a['model'] != args.model:
