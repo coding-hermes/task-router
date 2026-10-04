@@ -23,6 +23,13 @@ dist/
 # TR-049 outcomes store — per-user data, never committed (sample file may be published separately later)
 data/state/outcomes.jsonl
 data/state/outcomes-averages.jsonl
+# TR-298 automatic board intake ledgers — runtime state, never committed
+# (the resolves ledger is the audit trail of every intake decision; a tracked
+# copy would dirty the tree on every resolve). Tracked data/state files
+# (dummy-scheduler-runs.jsonl, modelsdev-cache.json, proxy-smoke.jsonl) are
+# exact names, so this class rule cannot swallow them.
+data/state/intake-seen.jsonl
+data/state/intake-resolves.jsonl
 
 # guard logs are rotational run output (TR-089/TR-105): the countable metric
 # lives in the per-run logs themselves; keep the tree clean, compress old logs.
