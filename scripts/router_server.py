@@ -38,6 +38,7 @@ if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 import router_outcomes  # noqa: E402  (stdlib-only sibling script module)
 import router_wire_ids  # noqa: E402  (TR-148: registry id -> upstream wire id)
+import router_hop_taxonomy  # noqa: E402  (TR-288: the one failure taxonomy)
 import router_ui_page  # noqa: E402  (TR-150: the one self-contained page)
 import router_health  # noqa: E402  (TR-087 health plane)
 import lifecycle_gate  # noqa: E402  (TR-199: R4 no anonymous dates)
@@ -1575,15 +1576,27 @@ HOP_FAILURE_REASONS = (
     "idle-timeout",      # the gateway SSE idle deadline fired (no real event in budget)
     "hop-wall-timeout",  # the transport budget expired (slow, not necessarily dead)
     "transport-error",   # connection refused / DNS / reset / TLS
-    "upstream-4xx",      # the upstream answered with a client error
-    "upstream-5xx",      # the upstream answered with a server error
+    "upstream-4xx",      # the upstream answered with an unclassified client error
+    "upstream-5xx",      # the upstream answered with an unclassified server error
     "unservable-2xx",    # 2xx carrying an error envelope and no content
     "no-hops",           # nothing eligible to attempt
+    # TR-288 taxonomy — the WHY the probe has always known, now on the hop
+    # row. Definitions + blast radius + retry policy live in
+    # scripts/router_hop_taxonomy.py (the one vocabulary for probe, ladder
+    # and ledger).
+    "429-capacity",             # concurrency/rate pressure on THIS model
+    "429-quota-window",         # plan/weekly window exhausted (business codes)
+    "402-no-credit",            # credit exhausted (provider-wide)
+    "401-403-auth",             # auth/permission misconfig (provider-wide)
+    "404-405-route",            # wrong endpoint/model id for this provider
+    "408-timeout",              # the upstream itself reported a timeout
+    "5xx-overloaded",           # transient server-side capacity
+    "context-length-exceeded",  # payload larger than the model's context
 )
 
 
-def _classify_hop_failure(exc=None, status=None, unservable=False):
-    """(reason_code, detail) for one failed hop attempt.
+def _classify_hop_failure(exc=None, status=None, unservable=False, body=None):
+    """(reason_code, detail) for one failed hop attempt (TR-288).
 
     Timeouts are matched by exception type AND by message, because the two
     budgets surface differently: the SSE idle deadline raises the module's own
@@ -1591,6 +1604,14 @@ def _classify_hop_failure(exc=None, status=None, unservable=False):
     TimeoutError from urllib. Anything unrecognised degrades to
     transport-error with the exception name in the detail — never to a code the
     tuple does not define.
+
+    TR-288: an upstream STATUS is now named by the shared taxonomy
+    (scripts/router_hop_taxonomy.py — the same vocabulary the probe and the
+    circuit speak): a 402 no-credit, a 429 quota window, a 401/403 auth and a
+    404/405 route error are distinct codes, not one `upstream-4xx` bucket. The
+    legacy coarse codes (`upstream-4xx` / `upstream-5xx`) stay in the tuple and
+    remain the fallback for statuses the taxonomy does not name — consumers
+    that read them keep working.
     """
     if unservable:
         return "unservable-2xx", "2xx with an error envelope and no choices"
@@ -1614,6 +1635,18 @@ def _classify_hop_failure(exc=None, status=None, unservable=False):
         code = 0
     if code <= 0:
         return "transport-error", "no HTTP status (transport failure)"
+    body_text = ''
+    if isinstance(body, dict):
+        err = body.get('error')
+        if isinstance(err, dict):
+            err = err.get('message')
+        body_text = err if isinstance(err, str) else json.dumps(body)[:300]
+    elif isinstance(body, str):
+        body_text = body[:300]
+    tax = router_hop_taxonomy.code_from_status(code, body_text)
+    if tax is not None:
+        return tax, f"upstream HTTP {code}: {body_text[:160]}" if body_text \
+            else f"upstream HTTP {code}"
     if 400 <= code < 500:
         return "upstream-4xx", f"upstream HTTP {code}"
     if code >= 500:
@@ -2953,6 +2986,55 @@ def _circuit_class(reason):
     return 'api_down'
 
 
+def _demote_on_taxonomy(provider, model, code, detail=''):
+    """TR-288: in-flight demotion from a taxonomy code, fail-open.
+
+    The hourly probe learns a provider is out of credit or at its ceiling up
+    to an hour late; an in-flight 402/429-quota auth failure is FRESH
+    evidence and must gate the next resolve immediately. Two levels, decided
+    by the taxonomy's blast radius:
+
+      model-level  (429-capacity, 5xx-overloaded, timeouts, context length,
+                    404/405) -> circuit record-failure for the (provider,
+                    model) pair only; the provider's other models stay up.
+      provider-level (429-quota-window, 402-no-credit, 401-403-auth) ->
+                    circuit provider-wide demotion IMMEDIATELY (no 3-failure
+                    threshold — the condition is account-wide the moment one
+                    hop proves it) via --provider-hard, plus the router's own
+                    quota gate so the quota/health gates see it too.
+    """
+    try:
+        _p = (provider or '').strip()
+        _m = (model or '').strip()
+        if not _p or not _m or _p.lower() in _NOT_A_LANE or _m.lower() in _NOT_A_LANE:
+            return
+        if router_hop_taxonomy.demote_provider(code):
+            _subprocess_text("router_circuit.py",
+                             ['record-failure', _p, _m,
+                              '--provider-hard', '--class', 'out_of_credit',
+                              f'{code} {detail or "provider-wide condition"}'[:200]])
+            if code in ('429-quota-window', '402-no-credit'):
+                # the plan-window quota gate is the surface the resolver's
+                # quota/health gates already read — a weekly window is the
+                # probe's own vocabulary (quota-state.json), so write it there
+                # too, with a conservative 24h reset (the hourly probe's
+                # calibration is the authority that clears it early).
+                import router_quota
+                router_quota.quota_set(
+                    _p, f'TR-288 in-flight: {code} {detail}'[:200],
+                    (datetime.datetime.now(datetime.timezone.utc)
+                     + datetime.timedelta(seconds=86400)).isoformat(timespec='seconds'))
+        else:
+            fclass = {'429-capacity': 'quota_window',
+                      '404-405-route': 'api_down'}.get(code, 'overload')
+            _subprocess_text("router_circuit.py",
+                             ['record-failure', _p, _m,
+                              '--class', fclass,
+                              f'{code} {detail or "hop failure"}'[:200]])
+    except Exception:  # noqa: BLE001 — demotion must never fail a request
+        pass
+
+
 def _proxy_record(provider, model, ok, requirements, reason='', latency_s=None,
                   source='router-proxy', session_id=None,
                   tokens_in=None, tokens_out=None, cost_usd=None,
@@ -3478,15 +3560,19 @@ def _proxy_chat_inner(path, body, headers, max_hops=None, upstream=None):
         fwd.pop('stream', None)  # TR-120: the mirror is buffered; strip the client's stream wish
         fwd['model'] = wire
         hdrs = {**headers, 'x-router-provider': str(provider)}
-        t0 = time.time()
-        hop_call = _hop_call(provider)
-        exc_seen = None
-        try:
-            status, payload = hop_call(path, fwd, hdrs)
-        except Exception as exc:  # noqa: BLE001 — transport failure == ladder step
-            status, payload = 0, {'error': str(exc)[:300]}
-            exc_seen = exc
-        attempt['latency_s'] = round(time.time() - t0, 3)
+
+        def _attempt_once():
+            t0 = time.time()
+            exc_seen = None
+            try:
+                st_, pl_ = _hop_call(provider)(path, fwd, hdrs)
+            except Exception as exc:  # noqa: BLE001 — transport failure == ladder step
+                st_, pl_ = 0, {'error': str(exc)[:300]}
+                exc_seen = exc
+            lat = round(time.time() - t0, 3)
+            return st_, pl_, exc_seen, lat
+
+        status, payload, exc_seen, attempt['latency_s'] = _attempt_once()
         attempt['status'] = status
         ok = 200 <= int(status or 0) < 300
         if ok and isinstance(payload, dict) and not payload.get('choices') \
@@ -3502,7 +3588,8 @@ def _proxy_chat_inner(path, body, headers, max_hops=None, upstream=None):
         else:
             reason, detail = _classify_hop_failure(
                 exc=exc_seen, status=status,
-                unservable=(attempt.get('outcome') == 'unservable-2xx'))
+                unservable=(attempt.get('outcome') == 'unservable-2xx'),
+                body=payload)
             attempt['reason'] = reason
             attempt['reason_detail'] = detail
             # TR-137: keep the legacy vocabulary for genuine transport/HTTP
@@ -3516,6 +3603,34 @@ def _proxy_chat_inner(path, body, headers, max_hops=None, upstream=None):
                 attempt['timeout_kind'] = reason
             else:
                 attempt['outcome'] = 'transport-failure'
+            # TR-288: the per-code retry policy. A transient 5xx/408/transport
+            # failure retries THE SAME HOP once; every other code skips to the
+            # next hop (quota/auth/credit codes never re-send the payload) and
+            # a context-length failure skips rather than re-sending the same
+            # oversized payload.
+            policy = router_hop_taxonomy.RETRY_POLICY.get(reason, 'skip')
+            attempt['retry_policy'] = policy
+            if policy == 'retry-same' and not attempt.get('retried_same_hop'):
+                attempt['retried_same_hop'] = True
+                status, payload, exc_seen, lat2 = _attempt_once()
+                attempt['latency_s'] = round(attempt['latency_s'] + lat2, 3)
+                attempt['status'] = status
+                ok = 200 <= int(status or 0) < 300
+                if ok:
+                    attempt['outcome'] = 'ok'
+                    attempt.pop('reason', None)
+                    attempt.pop('reason_detail', None)
+                else:
+                    reason, detail = _classify_hop_failure(
+                        exc=exc_seen, status=status, body=payload)
+                    attempt['reason'] = reason
+                    attempt['reason_detail'] = detail
+                    attempt['outcome'] = 'transport-failure'
+            # TR-288 blast radius: the taxonomy code decides WHICH level of
+            # state the failure demotes — immediately, not at the next hourly
+            # probe.
+            if not ok:
+                _demote_on_taxonomy(provider, model, reason, detail)
         meta['ladder'].append(attempt)
         last = (status, payload)
         # On success the row means "time to get an answer" (total ladder time);

@@ -137,6 +137,25 @@ FAILURE_CLASS_MAP = {
     '429 from upstream': ('quota_window', 300),
     'rate limit exceeded': ('quota_window', 300),
     'connection refused': ('api_down', 1800),
+    # TR-288: the shared hop taxonomy (scripts/router_hop_taxonomy.py). The
+    # hop code IS the kind; the class carries the blast radius. 402 and
+    # 401/403 are account-wide the moment one hop proves them, so their class
+    # is HARD (out_of_credit / api_down); a quota WINDOW is provider-wide in
+    # time but model-scoped in the probe's own vocabulary, so it maps to the
+    # SOFT quota_window class (the plan-window quota gate carries the
+    # provider-wide surface for it — see router_quota.quota_set).
+    '429-capacity': ('quota_window', 300),
+    '429-quota-window': ('quota_window', 300),
+    '402-no-credit': ('out_of_credit', 14400),
+    '401-403-auth': ('api_down', 1800),
+    '404-405-route': ('api_down', 1800),
+    '408-timeout': ('overload', 120),
+    '5xx-overloaded': ('overload', 120),
+    'context-length-exceeded': ('overload', 120),
+    'upstream-4xx': ('api_down', 1800),
+    'upstream-5xx': ('overload', 120),
+    'transport-error': ('api_down', 1800),
+    'unservable-2xx': ('overload', 120),
 }
 
 # A ledger row with no hop is not a provider event. The proxy records such rows
@@ -341,7 +360,8 @@ def _open_provider_breaker(st, provider, fclass, now):
     return cd, open_until
 
 
-def record_failure(provider, model, reason='', fclass='api_down', kind=None):
+def record_failure(provider, model, reason='', fclass='api_down', kind=None,
+                   provider_hard=False):
     """Record a failure for (provider, model) with class fclass.
 
     TR-190 classification seam (loud, never silent):
@@ -352,6 +372,13 @@ def record_failure(provider, model, reason='', fclass='api_down', kind=None):
       - an explicit-but-unknown fclass raises the same way (the old behavior
         silently rewrote it to api_down — the 2026-09-25 lockup mechanism).
 
+    TR-288: --provider-hard demotes the PROVIDER IMMEDIATELY — the breaker
+    opens on this one event, no 3-failure threshold. The in-flight request
+    path calls this when a taxonomy code proves an ACCOUNT-WIDE condition
+    (402 no-credit, 401/403 auth, 429 quota window): one hop's response is
+    fresh proof, and waiting for three failures or the next hourly probe
+    burns a failure per hop in the meantime.
+
     No-hop ledger rows (TR-182): placeholder identities (provider or model in
     NOT_A_LANE_IDENTITIES, e.g. the proxy's ('none', 'none') no-hops row) are
     declined BEFORE any state write — a router-internal outcome is not a
@@ -359,8 +386,9 @@ def record_failure(provider, model, reason='', fclass='api_down', kind=None):
 
     For hard classes (api_down/out_of_credit) the provider-level breaker opens
     when >=3 failures of the same class occur within the class cooldown window
-    across any model of that provider.  Soft classes (overload/quota_window)
-    only open the specific (provider, model) pair with a short cooldown.
+    across any model of that provider (or immediately under --provider-hard).
+    Soft classes (overload/quota_window) only open the specific
+    (provider, model) pair with a short cooldown.
     """
     # --- no-hop guard: before the lock, before any state touch.
     _p = (provider or '').strip().lower()
@@ -375,6 +403,9 @@ def record_failure(provider, model, reason='', fclass='api_down', kind=None):
         fclass, _ = failure_class_for(kind=kind)
     else:
         fclass, _ = failure_class_for(fclass=fclass)
+    if provider_hard and fclass not in HARD_CLASSES:
+        print(f'WARNING: --provider-hard with soft class {fclass} — opening '
+              f'the provider breaker anyway (TR-288 in-flight demotion)')
     key = f'{provider}/{model}'
     lf = _acquire_lock()
     try:
@@ -399,6 +430,14 @@ def record_failure(provider, model, reason='', fclass='api_down', kind=None):
 
         # Provider-level breaker for hard classes.
         if fclass in HARD_CLASSES:
+            if provider_hard:
+                pcd, p_open = _open_provider_breaker(st, provider, fclass, now)
+                save(st)
+                print(f'OPEN {key} class={fclass} — {c["failures"]} consecutive failures, '
+                      f'cooldown {cd}s, open until {c["open_until"]}; '
+                      f'PROVIDER BREAKER {provider} class={fclass} open until {p_open} '
+                      f'(--provider-hard: immediate, TR-288)')
+                return 0
             window_s = cd
             recent = _provider_failures_in_window(st['v2'], provider, fclass, now, window_s)
             if recent >= PROVIDER_FAILURE_THRESHOLD:
@@ -580,11 +619,16 @@ def main(argv=None):
                     help='failure kind resolved through FAILURE_CLASS_MAP '
                          '(TR-190); unmapped kinds fail loudly instead of '
                          'defaulting to api_down')
+    pf.add_argument('--provider-hard', dest='provider_hard', action='store_true',
+                    help='open the PROVIDER breaker immediately on this one '
+                         'event (TR-288: in-flight proof of an account-wide '
+                         'condition — no 3-failure threshold)')
     pf.add_argument('reason', nargs='*', default='',
                     help='optional failure reason (multiple words are joined)')
     pf.set_defaults(func=lambda a: record_failure(a.provider, a.model,
                                                   ' '.join(a.reason),
-                                                  fclass=a.fclass, kind=a.kind))
+                                                  fclass=a.fclass, kind=a.kind,
+                                                  provider_hard=a.provider_hard))
 
     ps = sub.add_parser('record-success', help='close the circuit for a pair')
     ps.add_argument('provider')
