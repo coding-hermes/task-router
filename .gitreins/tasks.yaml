@@ -773,14 +773,6 @@ tasks:
     loudly when a metric cannot be measured
   status: in_progress
   created_at: '2026-10-03T22:55:37.617229+00:00'
-- id: TR-287
-  title: structured-output classifier + owner contract landing
-  criteria:
-  - feat/complexity-contract merged to main; targeted test suites green; TR-287 and
-    TR-283 board rows preserved with code-landed status
-  status: complete
-  created_at: '2026-10-04T05:45:57.584317+00:00'
-  completed_at: '2026-10-04T06:52:16.501515+00:00'
 - id: INT-CI-20261004-01
   title: 'CI red on main: 7 stale golden/gate tests after xkiro retirement + TR-283
     measured sort'
