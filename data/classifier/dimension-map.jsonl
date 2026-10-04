@@ -1,0 +1,105 @@
+{"alias": "mechanical", "category": "mechanical", "weight": 1.0}
+{"alias": "rename", "category": "mechanical", "weight": 1.0}
+{"alias": "rename", "category": "code_gen", "weight": 0.3}
+{"alias": "formatting", "category": "mechanical", "weight": 1.0}
+{"alias": "boilerplate", "category": "mechanical", "weight": 1.0}
+{"alias": "config", "category": "mechanical", "weight": 0.7}
+{"alias": "config", "category": "schema", "weight": 0.4}
+{"alias": "docs", "category": "spec_docs", "weight": 1.0}
+{"alias": "documentation", "category": "spec_docs", "weight": 1.0}
+{"alias": "readme", "category": "spec_docs", "weight": 1.0}
+{"alias": "spec", "category": "spec_docs", "weight": 1.0}
+{"alias": "summary", "category": "long_doc", "weight": 0.7}
+{"alias": "summary", "category": "mechanical", "weight": 0.5}
+{"alias": "summarization", "category": "long_doc", "weight": 0.7}
+{"alias": "summarization", "category": "mechanical", "weight": 0.5}
+{"alias": "long document", "category": "long_doc", "weight": 1.0}
+{"alias": "long document handling", "category": "long_doc", "weight": 1.0}
+{"alias": "long context", "category": "long_doc", "weight": 0.8}
+{"alias": "long context", "category": "long_horizon", "weight": 0.4}
+{"alias": "code writing", "category": "code_gen", "weight": 1.0}
+{"alias": "coding", "category": "code_gen", "weight": 1.0}
+{"alias": "implementation", "category": "code_gen", "weight": 1.0}
+{"alias": "feature", "category": "code_gen", "weight": 0.8}
+{"alias": "feature", "category": "spec_docs", "weight": 0.3}
+{"alias": "refactor", "category": "refactor", "weight": 1.0}
+{"alias": "refactor", "category": "code_gen", "weight": 0.5}
+{"alias": "rewrite", "category": "refactor", "weight": 0.8}
+{"alias": "rewrite", "category": "code_gen", "weight": 0.5}
+{"alias": "restructure", "category": "refactor", "weight": 1.0}
+{"alias": "tests", "category": "test", "weight": 1.0}
+{"alias": "testing", "category": "test", "weight": 1.0}
+{"alias": "e2e", "category": "e2e_vision", "weight": 0.8}
+{"alias": "e2e", "category": "test", "weight": 0.8}
+{"alias": "debugging", "category": "debug", "weight": 1.0}
+{"alias": "debugging", "category": "reasoning", "weight": 0.6}
+{"alias": "debug", "category": "debug", "weight": 1.0}
+{"alias": "debug", "category": "reasoning", "weight": 0.6}
+{"alias": "troubleshooting", "category": "debug", "weight": 1.0}
+{"alias": "concurrency", "category": "reasoning", "weight": 0.9}
+{"alias": "concurrency", "category": "debug", "weight": 0.8}
+{"alias": "race", "category": "reasoning", "weight": 0.9}
+{"alias": "race", "category": "debug", "weight": 0.9}
+{"alias": "performance", "category": "reasoning", "weight": 0.6}
+{"alias": "performance", "category": "refactor", "weight": 0.5}
+{"alias": "architecture", "category": "reasoning", "weight": 0.9}
+{"alias": "architecture", "category": "spec_docs", "weight": 0.6}
+{"alias": "architecture", "category": "long_horizon", "weight": 0.7}
+{"alias": "design", "category": "reasoning", "weight": 0.5}
+{"alias": "design", "category": "schema", "weight": 0.5}
+{"alias": "security", "category": "security", "weight": 1.0}
+{"alias": "security", "category": "review", "weight": 0.7}
+{"alias": "security", "category": "reasoning", "weight": 0.5}
+{"alias": "auth", "category": "security", "weight": 0.8}
+{"alias": "auth", "category": "code_gen", "weight": 0.5}
+{"alias": "code review", "category": "review", "weight": 1.0}
+{"alias": "code review", "category": "reasoning", "weight": 0.5}
+{"alias": "review", "category": "review", "weight": 1.0}
+{"alias": "reasoning", "category": "reasoning", "weight": 1.0}
+{"alias": "logic", "category": "reasoning", "weight": 1.0}
+{"alias": "algorithms", "category": "reasoning", "weight": 0.9}
+{"alias": "algorithms", "category": "math", "weight": 0.7}
+{"alias": "math", "category": "math", "weight": 1.0}
+{"alias": "math", "category": "reasoning", "weight": 0.5}
+{"alias": "schema", "category": "schema", "weight": 1.0}
+{"alias": "data model", "category": "schema", "weight": 1.0}
+{"alias": "migration", "category": "schema", "weight": 0.9}
+{"alias": "migration", "category": "code_gen", "weight": 0.5}
+{"alias": "data wrangling", "category": "schema", "weight": 0.5}
+{"alias": "data wrangling", "category": "mechanical", "weight": 0.6}
+{"alias": "sql", "category": "schema", "weight": 0.6}
+{"alias": "sql", "category": "code_gen", "weight": 0.4}
+{"alias": "css", "category": "ui_frontend", "weight": 1.0}
+{"alias": "ui", "category": "ui_frontend", "weight": 1.0}
+{"alias": "frontend", "category": "ui_frontend", "weight": 1.0}
+{"alias": "styling", "category": "ui_frontend", "weight": 1.0}
+{"alias": "html", "category": "ui_frontend", "weight": 0.6}
+{"alias": "html", "category": "code_gen", "weight": 0.4}
+{"alias": "design polish", "category": "ui_frontend", "weight": 0.8}
+{"alias": "design polish", "category": "creative", "weight": 0.6}
+{"alias": "terminal", "category": "terminal", "weight": 1.0}
+{"alias": "shell", "category": "terminal", "weight": 1.0}
+{"alias": "cli", "category": "terminal", "weight": 0.8}
+{"alias": "cli", "category": "code_gen", "weight": 0.5}
+{"alias": "tooling", "category": "tool_use", "weight": 0.8}
+{"alias": "tooling", "category": "terminal", "weight": 0.5}
+{"alias": "tool use", "category": "tool_use", "weight": 1.0}
+{"alias": "orchestration", "category": "delegation", "weight": 1.0}
+{"alias": "orchestration", "category": "agent_tick", "weight": 0.7}
+{"alias": "delegation", "category": "delegation", "weight": 1.0}
+{"alias": "planning", "category": "long_horizon", "weight": 1.0}
+{"alias": "planning", "category": "reasoning", "weight": 0.5}
+{"alias": "multi-step", "category": "long_horizon", "weight": 1.0}
+{"alias": "multi-step", "category": "agent_tick", "weight": 0.6}
+{"alias": "agent", "category": "agent_tick", "weight": 1.0}
+{"alias": "image", "category": "vision", "weight": 1.0}
+{"alias": "screenshot", "category": "vision", "weight": 0.9}
+{"alias": "screenshot", "category": "e2e_vision", "weight": 0.6}
+{"alias": "multilingual", "category": "multilingual", "weight": 1.0}
+{"alias": "translation", "category": "multilingual", "weight": 1.0}
+{"alias": "creative", "category": "creative", "weight": 1.0}
+{"alias": "copywriting", "category": "creative", "weight": 0.8}
+{"alias": "copywriting", "category": "long_doc", "weight": 0.4}
+{"alias": "mocking", "category": "mock", "weight": 1.0}
+{"alias": "fixtures", "category": "mock", "weight": 1.0}
+{"band_version": "b1", "dimension_scale": {"0": 0, "1": 0, "2": 2, "3": 4}, "hardness_floor": {"0": -5, "1": 0, "2": 2, "3": 4}, "kind": "scale"}

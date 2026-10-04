@@ -54,7 +54,14 @@ scheduler must NEVER be blocked by the router.
 --format json = PURE JSON on stdout, every path (TR-046 dogfood): diagnostics
 go to stderr; the no-input usage line and --list-profiles also emit JSON.
 """
-import json, os, re, sys, argparse, contextlib, datetime, time, zlib
+import argparse
+import datetime
+import json
+import os
+import re
+import sys
+import time
+import zlib
 
 # Chain truncation cap (default). 2026-09-10 RCA: a cap below the eligible lane
 # count silently drops the price-sorted TAIL from every resolve (deepseek-foreman
@@ -137,16 +144,13 @@ AVERAGES = os.environ.get('ROUTING_AVERAGES_FILE',
                           os.path.join(_REPO, 'data', 'state', 'outcomes-averages.jsonl'))
 DEFAULT_WINDOW_H = 24
 #: Ordering used when --sort is not given.
-#:
-#: Deliberately the historical 'price' order (plan_tier, effective price), NOT
-#: 'predicted_cost_per_task'. This script is SYMLINKED into the live fleet
-#: (~/.hermes/scripts/router_spawn.py), so a different default silently re-ranks
-#: every fleet resolution — and cost-per-task ranking is not safe as a DEFAULT
-#: yet either: a lane that fails fast records cost 0.0 and would sort first,
-#: while the Hermes backend reports no completion signal to filter on. Opt in
-#: per call with --sort <key> (or set ROUTER_SPAWN_SORT / flip this constant
-#: deliberately).
-DEFAULT_SORT = os.environ.get('ROUTER_SPAWN_SORT') or 'price'
+#: Default ordering is measured cost per completed task (owner directive,
+#: 2026-10-03). It is evidence-gated, not optimistic: when a chain misses the
+#: sample floor or measured-coverage bar it falls back to price and records the
+#: basis on every hop. A thin/no-sample lane never becomes measured-cheap.
+#: `ROUTER_SPAWN_SORT=price` is the explicit rollback; a caller may also pass
+#: `--sort price` for one resolve.
+DEFAULT_SORT = os.environ.get('ROUTER_SPAWN_SORT') or 'predicted_cost_per_task'
 
 
 def row_is_retired(row, today=None):
@@ -1262,86 +1266,6 @@ def measured_basis(m, ctx, floor=None):
         return None, dict(base, basis='below-floor')
     return value, dict(base, basis='measured')
 
-
-def _sort_predicted_cost_per_task(arg, lanes, ctx):
-    """Cheapest measured cost PER COMPLETED TASK first — for lanes that clear the sample
-    floor, and ONLY when enough of the chain is measured to make the ordering evidence
-    rather than a head-swap. Unknown is not free and one sample is not evidence (TR-183).
-
-    MEASURED ON THE LIVE STORE: with the floor at 3, 2 of 65 lanes carried a usable
-    measured cost and the head moved (luna -> mistral-large) on those two; at floor 1 it
-    was 4 lanes and a different head; at floor 10, one lane and a third head. A "better
-    ordering" decided by 3 of 65 candidates is a coin flip wearing a lab coat, so the
-    ordering must CLEAR A COVERAGE BAR or it degrades to price and says why. The bar is
-    MEASURED_MIN_COVERAGE (0.5 by default), settable via ROUTER_SORT_MIN_COVERAGE or the
-    spec's second field (`predicted_cost_per_task:3:0.2`); 0 disables the gate for an
-    experiment, which the response then reports as such.
-
-    Whether the ordering is worth APPLYING is a doctrine call (the default sort stays
-    `price`); whether its evidence can carry that decision is not - that part is measured.
-    """
-    ctx = ctx if isinstance(ctx, dict) else {}
-    floor, min_cov = MEASURED_MIN_SAMPLES, MEASURED_MIN_COVERAGE
-    parts = str(arg if arg not in (None, '') else '').split(':')
-    if parts and parts[0] not in ('', 'None'):
-        try:
-            floor = int(parts[0])
-        except ValueError:
-            pass
-    if len(parts) > 1 and parts[1] not in ('', 'None'):
-        try:
-            min_cov = float(parts[1])
-        except ValueError:
-            pass
-    floor = max(0, floor)
-    min_cov = max(0.0, min_cov)
-
-    # Pre-pass: compute each candidate's basis ONCE, decide the ordering, THEN rank. Sorting
-    # on side effects of the key function would make the result depend on call order.
-    basis_by_lane, measured = {}, {}
-    for m in lanes:
-        value, b = measured_basis(m, ctx, floor)
-        key0 = (m.get('provider'), m.get('model'))
-        basis_by_lane[key0] = (value, b)
-        measured[key0] = b
-    ranked = sum(1 for v, _b in basis_by_lane.values() if v is not None)
-    lanes_n = len(basis_by_lane)
-    coverage = (ranked / lanes_n) if lanes_n else 0.0
-    use_measured = bool(lanes_n) and coverage >= min_cov
-
-    basis = {'sort': 'predicted_cost_per_task', 'floor_samples': floor,
-             'coverage': round(coverage, 4), 'min_coverage': min_cov,
-             'ranked_on_measurement': ranked, 'fell_back_to_price': lanes_n - ranked,
-             'lanes': lanes_n, 'effective': 'measured' if use_measured else 'price'}
-    if not use_measured:
-        basis['reason'] = 'no-lanes' if not lanes_n else 'below-coverage-floor'
-
-    def key(m):
-        key0 = (m.get('provider'), m.get('model'))
-        value, _b = basis_by_lane.get(key0, (None, None))
-        if use_measured and value is not None:
-            return (0, value)
-        return (1, _effective_price(m))
-
-    ctx['_sort_basis'] = basis
-    ctx['_sort_measurements'] = measured
-    return key
-
-
-# ===================================================== TR-174 value ledger ====
-# Per-task VALUE ledger on top of the TR-183 measured floor: a lane that clears
-# the floor but is thin still carries sampling noise, so its measured cost
-# shrinks toward the LIST price (empirical-Bayes blending, feature 1); a cheap
-# lane that fails its tasks never scores as value, so the measured cost is
-# divided by the observed completion rate (feature 2); a lane that has gone
-# quiet can be probed deliberately — a deterministic, hash-gated exploration
-# floor so low-traffic lanes keep refreshing their sample (feature 3); and
-# every winning lane carries a machine-readable selection record so a resolve
-# response explains its own head (feature 4).
-#
-# All of it is OFF on the fleet default: DEFAULT_SORT stays 'price' (the TR-183
-# guard), and the exploration share defaults to 0.0. The ledger is reachable
-# only via --sort predicted_cost_per_task (or ROUTER_SPAWN_SORT).
 
 #: TR-174 feature 1: lanes with n below this ceiling rank on a BLENDED value
 #: (n*measured + W*list) / (n + W) instead of the raw mean — the blend weight W
@@ -2814,8 +2738,8 @@ def main():
             print(json.dumps({'profiles': rows}, indent=1))
             return
         for row in rows:
-            rs = ' '.join(f"{c}={'+'*l if l>0 else ('-'*-l if l<0 else '0')}"
-                          for c, l in sorted(row['requirements'].items(),
+            rs = ' '.join(f"{c}={'+'*level if level>0 else ('-'*-level if level<0 else '0')}"
+                          for c, level in sorted(row['requirements'].items(),
                                              key=lambda x: (-x[1], x[0])))
             print(f"{row['id']:<10} {row['title']}")
             print(f'           {rs}')

@@ -2,7 +2,7 @@
 
 Complete reference for all `ROUTER_*` environment variables used by task-router.
 
-This document supplements the Configuration table in [README.md](../README.md#configuration) with the remaining 39 keys used in code but not documented there.
+This document supplements the Configuration table in [README.md](../README.md#configuration) with detailed entries for the remaining environment variables used in code.
 
 ## Table of Contents
 
@@ -11,6 +11,7 @@ This document supplements the Configuration table in [README.md](../README.md#co
   - [Primary classifier](#primary-classifier)
   - [Classifier fallback](#classifier-fallback)
   - [Classifier cache](#classifier-cache)
+  - [Classifier response shaping](#classifier-response-shaping)
 - [Proxy](#proxy)
   - [Proxy endpoints](#proxy-endpoints)
   - [Proxy timeouts](#proxy-timeouts)
@@ -68,6 +69,24 @@ The server caches classification results to reduce redundant API calls.
 |---|---|---|---|
 | `ROUTER_CLASSIFY_CACHE_MAX` | `router_server.py` | Maximum number of classification results to cache | `512` |
 | `ROUTER_CLASSIFY_CACHE_TTL_S` | `router_server.py` | Time-to-live in seconds for cached classification results | `900` (15 minutes) |
+
+### Classifier response shaping
+
+These options control the prompt version, output budget, structured JSON
+response format, and reasoning mode for each classification call.
+
+| Variable | Used by | Effect | Default |
+|---|---|---|---|
+| `ROUTER_CLASSIFY_PROMPT_VERSION` | `router_classify.py` | Selects the classifier prompt file (`v1`, `v2`, or `v3`); `v1`/`v2` remain available for rollback | `v3` |
+| `ROUTER_CLASSIFY_MAX_TOKENS` | `router_classify.py` | Positive integer completion-token budget; invalid/nonpositive values fall back to the code default | `16384` |
+| `ROUTER_CLASSIFY_STRUCTURED` | `router_classify.py` | `auto` (default) uses the configured structured-response rung and steps down if rejected; `json_schema`/`json_object` force a rung; `off`/`none`/`false`/`0` disables structured output | `auto` |
+| `ROUTER_CLASSIFY_STRUCTURED_MODE` | `router_classify.py` | Preferred structured-response rung used by `auto`; supported values are `json_schema` and `json_object`, with rejection remembered per process | `json_schema` |
+| `ROUTER_CLASSIFY_THINKING` | `router_classify.py` | `off` (default) and `false`/`0`/`no`/`disabled` try reasoning-off parameters; `on`/`auto`/`default`/`true`/`1` sends no override and uses model defaults | `off` |
+| `ROUTER_CLASSIFY_THINKING_MODE` | `router_classify.py` | Forces the reasoning-off rung: `none` sends `reasoning_effort=none`; `disabled` sends `thinking.type=disabled`; any other value uses `none` | unset (default ladder prefers `none`) |
+
+With the default `off` setting, the classifier tries `reasoning_effort=none`
+first, then `thinking.type=disabled` if rejected, then no override. The selected
+structured/thinking rung is recorded in classifier call metadata when available.
 
 ---
 

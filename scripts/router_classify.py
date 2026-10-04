@@ -28,7 +28,17 @@ import urllib.request
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PROMPT_DIR = os.path.join(REPO, 'data', 'classifier')
 LEVEL_MIN, LEVEL_MAX = -5, 5
-DEFAULT_PROMPT_VERSION = 'v1'
+#: v2 asks the model to ANSWER THE QUESTION zero-shot (its own words); the router
+#: maps and bands. v1 constrained the model to our own category vocabulary, which
+#: is why every task minted its own band and the averages never pooled. v1 stays
+#: selectable for rollback: ROUTER_CLASSIFY_PROMPT_VERSION=v1.
+#: v3 is the owner's contract (2026-10-03): the model is GIVEN the supported
+#: category list, it RATES those categories and RANKS them, and the router does the
+#: lookup from that answer - which is how the model list falls out. v2 (free-form
+#: words) asked the model to invent our vocabulary; v1 asked it to omit categories
+#: and gave no ranking. Both stay selectable for rollback:
+#: ROUTER_CLASSIFY_PROMPT_VERSION=v2|v1.
+DEFAULT_PROMPT_VERSION = os.environ.get('ROUTER_CLASSIFY_PROMPT_VERSION') or 'v3'
 
 
 def prompt_path(version=DEFAULT_PROMPT_VERSION):
@@ -43,15 +53,44 @@ def load_prompt(version=DEFAULT_PROMPT_VERSION):
 def registry_categories(registry_path=None):
     """The category vocabulary — DATA-DRIVEN from the registry (union of
     task_profile_requirements), never a hardcoded list."""
-    registry_path = registry_path or os.environ.get('ROUTING_REGISTRY') \
-        or os.path.join(REPO, 'registry.json')
-    try:
-        with open(registry_path) as f:
-            tables = json.load(f).get('tables', {})
-    except (OSError, ValueError):
-        return []
+    # DATA > CODE: the vocabulary is the registry's, never a list in this file.
+    # The path was <repo>/registry.json, but the artefact is written to
+    # <repo>/data/registry.json, so the lookup silently returned [] - and an
+    # empty vocabulary makes validate_matrix PERMISSIVE (it can no longer reject
+    # an unknown category) while making a bare {category: level} answer
+    # unparseable (every key looks unknown). Candidates are tried in order;
+    # ROUTING_REGISTRY still wins, and [] is returned only when none is readable.
+    candidates = [registry_path] if registry_path else [
+        os.environ.get('ROUTING_REGISTRY'),
+        os.path.join(REPO, 'data', 'registry.json'),
+        os.path.join(REPO, 'registry.json'),
+    ]
+    for path in [c for c in candidates if c]:
+        try:
+            with open(path) as f:
+                tables = json.load(f).get('tables', {})
+        except (OSError, ValueError):
+            continue
+        cats = sorted({r.get('category') for r in tables.get('task_profile_requirements') or []
+                       if r.get('category')})
+        if cats:
+            return cats
+    return []
     return sorted({r.get('category') for r in tables.get('task_profile_requirements') or []
                    if r.get('category')})
+
+
+
+def map_dimensions(*a, **k):
+    """Router-side adapter (see router_outcomes.map_dimensions)."""
+    import router_outcomes as ro
+    return ro.map_dimensions(*a, **k)
+
+
+def band_key(*a, **k):
+    """Router-side adapter (see router_outcomes.band_key)."""
+    import router_outcomes as ro
+    return ro.band_key(*a, **k)
 
 
 def _extract_json(raw):
@@ -139,6 +178,94 @@ def validate_matrix(obj, categories):
 _RETRYABLE_STATUS = (429, 500, 502, 503, 504)
 
 
+
+#: The budget for one classification. A reasoning model needs room to think
+#: before it answers, and an empty completion is reported as a rating failure -
+#: so this is deliberately generous, bounded by the model's published ceiling
+#: and never below 4096. Owner 2026-10-03: "make sure you raise this number".
+CLASSIFY_MAX_TOKENS_DEFAULT = 16384
+
+
+def _classify_budget():
+    """Budget in tokens for one classification call (env > default)."""
+    for name in ('ROUTER_CLASSIFY_MAX_TOKENS',):
+        v = os.environ.get(name)
+        if v:
+            try:
+                n = int(v)
+                if n > 0:
+                    return n
+            except ValueError:
+                pass
+    return CLASSIFY_MAX_TOKENS_DEFAULT
+
+
+def _structured_mode():
+    """Which response_format rung to try: json_schema | json_object | none.
+
+    ROUTER_CLASSIFY_STRUCTURED=auto (default) tries the best rung and steps down
+    on the first rejection; 'off' disables structured output entirely (plain
+    prompt + tolerant parse). The step-down happens in default_llm, so a lane
+    that does not support a rung costs one call, not a correctness bug.
+    """
+    v = (os.environ.get('ROUTER_CLASSIFY_STRUCTURED') or 'auto').strip().lower()
+    if v in ('off', 'none', 'false', '0'):
+        return 'none'
+    if v in ('json_schema', 'json_object'):
+        return v
+    # A rung rejected once is remembered for this process, so the ladder steps
+    # down instead of paying a 400 on every call (DeepSeek takes json_object but
+    # rejects json_schema).
+    return os.environ.get('ROUTER_CLASSIFY_STRUCTURED_MODE') or 'json_schema'
+
+
+def _matrix_schema(categories=None):
+    """The complexity matrix as a JSON Schema: {category: signed level}.
+
+    Keys are restricted to the registry's own categories when they are known
+    (the registry is the authority for the list, not this file); levels are the
+    signed -5..+5 scale. `additionalProperties` stays open so an unknown-but-real
+    category is reported rather than rejected - validate_matrix() is the gate
+    that decides what is admissible, and it is not made redundant here.
+    """
+    lvl = {'type': 'integer', 'minimum': -5, 'maximum': 5}
+    cats = list(categories or [])
+    if cats:
+        return {'type': 'object', 'properties': {c: dict(lvl) for c in cats},
+                'additionalProperties': lvl}
+    return {'type': 'object', 'additionalProperties': lvl}
+
+
+#: The classifier is a small structured extraction, so thinking is pure overhead
+#: here: measured on the live endpoint with the same prompt, the production body
+#: spent 122 of 187 completion tokens on reasoning (480 chars of it), while
+#: reasoning_effort='none' answered in 61 tokens with zero reasoning and 35% less
+#: wall time. Two mechanisms work on this endpoint and both are tried, best
+#: first; whichever lands is recorded on the call meta so a provider change is
+#: visible in the ledger rather than inferred from latency.
+THINKING_LADDER = ({'reasoning_effort': 'none'}, {'thinking': {'type': 'disabled'}})
+
+
+def _thinking_off():
+    """The param that turns thinking off: {'reasoning_effort': 'none'} | {'thinking': {...}} | {}.
+
+    ROUTER_CLASSIFY_THINKING=off (default) walks THINKING_LADDER; 'on', 'auto',
+    'default', 'true', or '1' sends nothing (the model thinks, as it did before
+    this existed). 'false', '0', 'no', 'disabled', and other values keep the
+    reasoning-off default. ROUTER_CLASSIFY_THINKING_MODE names a rung directly
+    (measured, not guessed: reasoning_effort=minimal is NOT minimal on this
+    endpoint - it burned 741 reasoning tokens against the baseline's 122).
+    """
+    v = (os.environ.get('ROUTER_CLASSIFY_THINKING') or 'off').strip().lower()
+    if v in ('on', 'auto', 'default', 'true', '1'):
+        return {}
+    forced = os.environ.get('ROUTER_CLASSIFY_THINKING_MODE')
+    if forced == 'none':
+        return dict(THINKING_LADDER[0])
+    if forced == 'disabled':
+        return dict(THINKING_LADDER[1])
+    return dict(THINKING_LADDER[0])
+
 def _classifier_lanes():
     """The configured classifier lanes, primary first.
 
@@ -185,7 +312,7 @@ def _backoff_delay(attempt):
     return min(2 ** (attempt - 1), 8)
 
 
-def default_llm(prompt, text, timeout=60, timeout_s=None):
+def default_llm(prompt, text, timeout=60, timeout_s=None, categories=None):
     """OpenAI-shaped classifier call over the configured lanes.
 
     Primary lane first, with bounded retry + backoff on 429/5xx
@@ -198,11 +325,34 @@ def default_llm(prompt, text, timeout=60, timeout_s=None):
     lanes = _classifier_lanes()
     if not lanes:
         raise RuntimeError('ROUTER_CLASSIFIER_BASE_URL not configured')
-    body = json.dumps({
-        'temperature': 0, 'max_tokens': 700,
+    # max_tokens is a RATING-SUCCESS parameter, not a cost knob: at 700 the
+    # configured reasoning model spent the budget thinking and answered with an
+    # empty completion (no error), which is how 70 of 97 live requests in the
+    # first hour of the flip landed on 'default'. Budget for the reasoning
+    # preamble PLUS the small JSON answer. ROUTER_CLASSIFY_MAX_TOKENS wins.
+    _payload = {
+        'temperature': 0, 'max_tokens': _classify_budget(),
         'messages': [{'role': 'system', 'content': prompt},
                      {'role': 'user', 'content': text}],
-    }).encode()
+    }
+    # STRUCTURED OUTPUT (owner 2026-10-03). The classifier answers with a small
+    # {category: level} object, so ask the API to guarantee the shape instead of
+    # hoping prose contains JSON and parsing around it - the tolerant-parse
+    # heuristic was covering for a missing contract. Ladder, best first, each
+    # rung recorded so a row can say which one produced its answer:
+    #   json_schema -> json_object -> none (plain prompt, tolerant parse).
+    _mode = _structured_mode()
+    _cats = categories if categories is not None else registry_categories()
+    _think = _thinking_off()
+    _payload.update(_think)
+    if _mode == 'json_schema':
+        _payload['response_format'] = {
+            'type': 'json_schema',
+            'json_schema': {'name': 'complexity_matrix', 'strict': False,
+                            'schema': _matrix_schema(_cats)}}
+    elif _mode == 'json_object':
+        _payload['response_format'] = {'type': 'json_object'}
+    body = json.dumps(_payload).encode()
     # Override the primary lane timeout if the caller supplied timeout_s
     if timeout_s is not None and lanes:
         lanes = [dict(lanes[0], timeout=float(timeout_s))] + list(lanes[1:])
@@ -214,7 +364,56 @@ def default_llm(prompt, text, timeout=60, timeout_s=None):
             if attempt > 1:
                 time.sleep(_backoff_delay(attempt - 1))
             try:
-                return _call_lane(lane, body)
+                # Step-down ladder for REJECTED PARAMS (not lane failures). One
+                # param per attempt, and the order is evidence-driven: on this
+                # endpoint response_format=json_schema is the known rejection
+                # (400) while reasoning_effort='none' is accepted, so the rung
+                # that is known-bad goes first. A rejected param must never cost
+                # the rating - the rating is the expensive outcome.
+                try:
+                    got = _call_lane(lane, body)
+                except Exception as exc:  # noqa: BLE001
+                    if not _is_rejection(exc):
+                        raise
+                    m = json.loads(body)
+                    rf = (m.get('response_format') or {}).get('type')
+                    if rf:
+                        nxt = {'json_schema': 'json_object', 'json_object': None}.get(rf)
+                        if nxt:
+                            m['response_format'] = {'type': nxt}
+                            os.environ['ROUTER_CLASSIFY_STRUCTURED_MODE'] = nxt
+                        else:
+                            m.pop('response_format', None)
+                            os.environ['ROUTER_CLASSIFY_STRUCTURED_MODE'] = 'none'
+                        print('classifier: response_format %r rejected (%s) - stepping down to %r'
+                              % (rf, str(exc)[:100], nxt or 'a plain prompt'), file=sys.stderr)
+                    elif m.get('reasoning_effort'):
+                        m.pop('reasoning_effort', None)
+                        m['thinking'] = {'type': 'disabled'}
+                        os.environ['ROUTER_CLASSIFY_THINKING_MODE'] = 'disabled'
+                        print('classifier: reasoning_effort rejected (%s) - trying thinking=disabled'
+                              % str(exc)[:100], file=sys.stderr)
+                    elif m.get('thinking'):
+                        m.pop('thinking', None)
+                        os.environ['ROUTER_CLASSIFY_THINKING'] = 'on'
+                        print('classifier: thinking param rejected (%s) - sending no thinking param'
+                              % str(exc)[:100], file=sys.stderr)
+                    else:
+                        raise
+                    body = json.dumps(m).encode()
+                    got = _call_lane(lane, body)
+                if got or not isinstance(got, Raw):
+                    return got
+                # Empty completion on the first pass: the reasoning model likely
+                # ate the budget. One bounded retry at 4x, then report honestly.
+                if payload_budget := json.loads(body).get('max_tokens'):
+                    retry_body = json.dumps(dict(json.loads(body),
+                                                 max_tokens=payload_budget * 4)).encode()
+                    retry = _call_lane(lane, retry_body)
+                    if retry:
+                        return retry
+                    return Raw('', retried_at=payload_budget * 4, **getattr(retry, 'meta', {}))
+                return got
             except urllib.error.HTTPError as exc:
                 retryable = exc.code in _RETRYABLE_STATUS
                 last_exc = exc
@@ -231,9 +430,42 @@ def default_llm(prompt, text, timeout=60, timeout_s=None):
     raise last_exc if last_exc else RuntimeError('no classifier lane attempted')
 
 
+class Raw(str):
+    """Classifier output that remembers HOW it was produced, without changing
+    the plain-string contract its callers already rely on.
+
+    Why this exists (measured 2026-10-03): the classifier ran on 97 of the first
+    hour of flipped traffic and only 7 produced a usable matrix; the rest fell to
+    'default' - a rating FAILURE, not an absent input. The failure was silent:
+    max_tokens was 700 against a REASONING model, so the budget was spent
+    thinking and the completion came back empty (or as reasoning_content only),
+    with no error and no exception. This is the shape that turns a complexity
+    contract into a fixed-profile router: the router cannot band what it cannot
+    read, and nothing said why. The meta rides the string so a parse failure can
+    name its own cause instead of reporting 'no JSON'. """
+    def __new__(cls, value, **meta):
+        o = super().__new__(cls, value or '')
+        o.meta = meta
+        return o
+
+
+def _is_rejection(exc):
+    """True when the endpoint refused the PARAM (4xx), not when the lane failed.
+
+    A rejected parameter is a formatting problem to step down from; a 5xx or a
+    timeout is a lane problem and belongs to the retry ladder above.
+    """
+    s = str(exc)
+    return '400' in s or 'bad request' in s.lower() or 'unrecognized' in s.lower() \
+        or 'unsupported' in s.lower()
+
 def _call_lane(lane, body):
     """One POST to one classifier lane. `body` is the lane-agnostic request
-    skeleton (messages/params); the model is per-lane data."""
+    skeleton (messages/params); the model is per-lane data.
+
+    Returns Raw: the content when the model produced one; when the budget was
+    consumed by reasoning the string is EMPTY and meta says so ('truncated',
+    'only_reasoning', 'chars_reasoning') - never silently a wrong answer."""
     payload = json.loads(body)
     payload['model'] = lane['model'] or payload.get('model', '')
     key = lane.get('key_value') or (
@@ -246,8 +478,26 @@ def _call_lane(lane, body):
                  'User-Agent': 'task-router-classifier/1.0'})
     with urllib.request.urlopen(req, timeout=lane['timeout']) as resp:
         data = json.loads(resp.read())
-    msg = (data.get('choices') or [{}])[0].get('message') or {}
-    return msg.get('content') or msg.get('reasoning_content') or ''
+    choice = (data.get('choices') or [{}])[0]
+    msg = choice.get('message') or {}
+    content = msg.get('content') or ''
+    reasoning = msg.get('reasoning_content') or ''
+    usage = data.get('usage') or {}
+    finish = choice.get('finish_reason')
+    meta = {'finish_reason': finish, 'max_tokens': payload.get('max_tokens'),
+            'thinking': ('none' if payload.get('reasoning_effort') == 'none'
+                         else 'disabled' if payload.get('thinking') else 'default'),
+            'chars_content': len(content), 'chars_reasoning': len(reasoning),
+            'reasoning_tokens': usage.get('completion_tokens_details', {}).get('reasoning_tokens')
+                                if isinstance(usage.get('completion_tokens_details'), dict) else None,
+            'model': payload.get('model')}
+    if content:
+        return Raw(content, **meta)
+    # Empty completion. If the model reasoned instead, keep the reasoning as a
+    # last-resort parse target but SAY that is what happened.
+    if reasoning:
+        return Raw(reasoning, only_reasoning=True, truncated=(finish == 'length'), **meta)
+    return Raw('', empty=True, truncated=(finish == 'length'), **meta)
 
 
 def classify(text, llm=None, version=DEFAULT_PROMPT_VERSION, categories=None, timeout_s=None):
@@ -271,20 +521,74 @@ def classify(text, llm=None, version=DEFAULT_PROMPT_VERSION, categories=None, ti
         if llm:
             raw = llm(prompt, text)   # injected LLM: no timeout_s kwarg
         else:
-            raw = default_llm(prompt, text, timeout_s=timeout_s)
+            raw = default_llm(prompt, text, timeout_s=timeout_s, categories=cats)
     except Exception as exc:  # noqa: BLE001 — degrade, never crash the request
         out['problems'].append(f'classifier call failed: {str(exc)[:200]}')
         return out
     out['raw'] = (raw or '')[:2000]
     obj = _extract_json(raw)
     if obj is None:
-        out['problems'].append('no JSON object in classifier output')
+        meta = getattr(raw, 'meta', {}) or {}
+        hint = []
+        if not str(raw or '').strip():
+            hint.append('EMPTY completion')
+        if meta.get('truncated'):
+            hint.append('finish_reason=length')
+        if meta.get('only_reasoning'):
+            hint.append('only reasoning_content returned')
+        if meta.get('reasoning_tokens'):
+            hint.append(f"reasoning_tokens={meta['reasoning_tokens']}")
+        # TR-237/R2.3: a rating failure must be diagnosable from the row alone -
+        # 'no JSON object' with no cause is what let this stay invisible.
+        out['problems'].append('no JSON object in classifier output'
+                               + (f" ({', '.join(hint)})" if hint else ''))
+        out['call_meta'] = meta
         return out
-    matrix, conf, problems = validate_matrix(obj, cats)
-    out['problems'].extend(problems)
-    out['confidence'] = conf
-    if matrix is None:
-        return out
+    out['call_meta'] = getattr(raw, 'meta', {}) or {}
+    # v2 answers the question zero-shot (hardness + its own dimension words).
+    # The ROUTER converts: natural words -> categories (data-driven aliases),
+    # hardness -> the signed scale. The model is never asked to do this.
+    out['model_answer'] = obj
+    if 'ratings' in obj:
+        # The owner's contract: the model rates the SUPPORTED categories and ranks
+        # them; the router looks up models from exactly those ratings.
+        ratings = obj.get('ratings') if isinstance(obj.get('ratings'), dict) else {}
+        out['ranking'] = [str(c) for c in (obj.get('ranking') or []) if isinstance(c, (str,))]
+        matrix, conf, problems = validate_matrix({'categories': ratings}, cats)
+        out['problems'].extend(problems)
+        out['confidence'] = obj.get('confidence') or conf
+        out['band'] = band_key(matrix or {})
+        # The ranking must agree with the ratings; if it does not, the ratings win
+        # and the disagreement is recorded (never silently reordered).
+        if out['ranking'] and matrix:
+            bad = [c for c in out['ranking'] if c not in matrix]
+            if bad:
+                out['problems'].append('ranking names unrated categories: ' + ', '.join(bad[:5]))
+            else:
+                ordered = sorted(matrix, key=lambda c: (-matrix[c], c))
+                if [c for c in out['ranking'] if c in matrix] != ordered[:len(out['ranking'])]:
+                    out['problems'].append('ranking disagrees with ratings; ratings used')
+        if matrix is None:
+            return out
+    elif 'hardness' in obj or 'dimensions' in obj:
+        levels, meta = map_dimensions(obj.get('dimensions') or {}, obj.get('hardness'))
+        out['mapping'] = meta
+        if meta.get('unmapped'):
+            out['problems'].append('dimensions not in the alias table (recorded, mapped by hardness): '
+                                   + ', '.join(meta['unmapped'][:6]))
+        matrix, conf, problems = validate_matrix({'categories': levels}, cats)
+        out['problems'].extend(problems)
+        out['confidence'] = obj.get('confidence') or conf
+        out['band'] = band_key(matrix or {})
+        if matrix is None:
+            return out
+    else:
+        matrix, conf, problems = validate_matrix(obj, cats)
+        out['problems'].extend(problems)
+        out['confidence'] = conf
+        out['band'] = band_key(matrix or {})
+        if matrix is None:
+            return out
     out['matrix'] = matrix
     try:
         sys.path.insert(0, os.path.join(REPO, 'scripts'))
