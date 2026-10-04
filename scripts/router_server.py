@@ -2772,6 +2772,9 @@ def _chain_evidence(resolved, chain):
                 continue
             out.append({k: h.get(k) for k in
                         ('hop', 'provider', 'model', 'why', 'codes', 'price', 'effective_price',
+                         # TR-291: the price basis explains the ordering (free-by-promo /
+                         # plan-effective / list); absent means the lane declared no price.
+                         'price_basis',
                          # TR-194: a DEGRADED fallback hop carries its unmet
                          # requirement; dropping it here is how a row can say it
                          # was served degraded without saying what was unmet.

@@ -1191,6 +1191,26 @@ def _effective_price(m):
     return (m.get('normalized_price') or 0.0) * (m.get('token_factor') or 1.0)
 
 
+def _lane_price_basis(m):
+    """TR-291 (2026-10-03): WHY the lane sits where the price sort put it.
+
+    Names the zero explicitly so the ordering is explainable from the row
+    alone: 'free-by-promo' when the registry declares 0.0 (public and
+    normalized both measured zero), 'plan-effective' when the lane draws the
+    metered window at a discounted rate, 'list' for an ordinary sticker, and
+    None (never a string) when the lane declares NO price — unknown stays
+    unknown and must never be dressed as cheap or free.
+    """
+    pub, norm = m.get('public_price'), m.get('normalized_price')
+    if norm is None:
+        return None
+    if norm == 0.0 and (pub == 0.0 or pub is None):
+        return 'free-by-promo'
+    if norm != pub and pub:
+        return f'plan-effective (list {pub:g}/M)'
+    return 'list'
+
+
 def _context_sort_key(m):
     ctx = m.get('context_limit')
     return -(ctx if isinstance(ctx, int) else 0)
@@ -2006,6 +2026,11 @@ def _resolve_fallback(tables, qs, hs, cs, reqs, limit=DEFAULT_CHAIN_LIMIT, profi
                     'model': f.get('model'),
                     'usd_1m': round(float(_pub_prices(m)[0]), 4),
                     'in_per_m': _pub_prices(m)[1], 'out_per_m': _pub_prices(m)[2],
+                    # TR-291: the lane's own declared prices ride on the hop too —
+                    # a genuine $0.0 promo must read as free, never as unknown.
+                    'price': m.get('normalized_price'),
+                    'effective_price': _effective_price(m) if m.get('normalized_price') is not None else None,
+                    'price_basis': _lane_price_basis(m),
                     'data_class': m.get('data_class'),
                     'fallback': True, 'key_env': f.get('key_env'),
                     'requirements_unmet': unmet})
@@ -2371,6 +2396,14 @@ def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=DE
             ent = {'hop': hop, 'provider': prov, 'model': model,
                    'usd_1m': round(float(pub_usd), 4) if pub_usd is not None else None,
                    'in_per_m': pub_in, 'out_per_m': pub_out,
+                   # TR-291 (2026-10-03): the lane's DECLARED prices ride on every
+                   # chain entry — 0.0 included. A genuine free promo must not be
+                   # conflated with an unpriced lane: 0.0 is carried as 0.0, None
+                   # (no declared price) stays None. UNKNOWN IS NOT FREE.
+                   'price': mrow.get('normalized_price'),
+                   'effective_price': (_effective_price(mrow)
+                                       if mrow.get('normalized_price') is not None else None),
+                   'price_basis': _lane_price_basis(mrow),
                    # Cache rates ride along on every hop (Bane 2026-09-24: cache is
                    # the term that compounds in agent loops, so a hop's real cost is
                    # not knowable from in/out alone). None = the provider does not
