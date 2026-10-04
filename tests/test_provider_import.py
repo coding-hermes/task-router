@@ -195,7 +195,18 @@ def test_sticker_prices_fill_a_price_less_catalog():
 
 def test_preset_file_loads_and_matches_live_catalog_shape():
     """The committed xkiro preset must parse and normalize the SAVED live catalog
-    snapshot identically to what we shipped by hand (115 lanes)."""
+    snapshot identically to what we shipped by hand (129 lanes).
+
+    Pin history (TR-168: pin keys + counts with sync provenance):
+    - 115 lanes / 42 free — pin written 2026-09 (pre-carrier-SKU imports).
+    - 129 lanes — +14 carrier SKUs imported 2026-09-26..10-02 (11 cohere/*,
+      mistralai/devstral-medium, 2 sensenova/*; verified all 14 present in the
+      snapshot, none missing, 2026-10-04).
+    - 28 free — was 42: the fake-$0 cleanup (TR-178 2026-10-01 + the
+      09-26..09-29 'fake $0 CLEARED' sweep) moved 15 unpriced non-free SKUs
+      from normalized_price 0.0 to NULL (unpriced, never free); +1 genuinely
+      free (sensenova-6.8-flash-lite). 42 - 15 + 1 = 28. verified 2026-10-04.
+    """
     preset = json.load(open(os.path.join(
         os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
         'data', 'catalogs', 'xkiro.json')))
@@ -203,6 +214,6 @@ def test_preset_file_loads_and_matches_live_catalog_shape():
     if not os.path.exists(snap):
         pytest.skip('live catalog snapshot not on this machine')
     lanes = rpi.normalize(json.load(open(snap)), preset)
-    assert len(lanes) == 115
+    assert len(lanes) == 129
     free = [l for l in lanes.values() if l['normalized_price'] == 0.0]
-    assert len(free) == 42
+    assert len(free) == 28

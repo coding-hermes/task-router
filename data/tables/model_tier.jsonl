@@ -378,7 +378,7 @@
 {"model": "accounts/fireworks/routers/deepseek-flash-latest", "category": "e2e_vision", "perf": 0.55, "tier": 1, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash"}
 {"model": "accounts/fireworks/routers/deepseek-flash-latest", "category": "guard", "perf": 0.88, "tier": 1, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash"}
 {"model": "accounts/fireworks/routers/deepseek-flash-latest", "category": "long_doc", "perf": 0.72, "tier": -3, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash"}
-{"model": "accounts/fireworks/routers/deepseek-flash-latest", "category": "long_horizon", "perf": 0.544, "tier": -4, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash"}
+{"model": "accounts/fireworks/routers/deepseek-flash-latest", "category": "long_horizon", "perf": 0.548, "tier": -4, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash"}
 {"model": "accounts/fireworks/routers/deepseek-flash-latest", "category": "mechanical", "perf": 0.72, "tier": -2, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash"}
 {"model": "accounts/fireworks/routers/deepseek-flash-latest", "category": "mock", "perf": 0.87, "tier": 1, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash"}
 {"model": "accounts/fireworks/routers/deepseek-flash-latest", "category": "multilingual", "perf": 0.9, "tier": 1, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash"}
@@ -883,7 +883,7 @@
 {"model": "deepseek-v4-flash", "category": "e2e_vision", "perf": 0.55, "tier": 1, "tier_source": "measured", "source_ref": "models.jsonl:perf_e2e_vision"}
 {"model": "deepseek-v4-flash", "category": "guard", "perf": 0.88, "tier": 1, "tier_source": "estimate", "source_ref": "QUALITY_ESTIMATES"}
 {"model": "deepseek-v4-flash", "category": "long_doc", "perf": 0.72, "tier": -3, "tier_source": "measured", "source_ref": "models.jsonl:perf_long_doc"}
-{"model": "deepseek-v4-flash", "category": "long_horizon", "perf": 0.544, "tier": -4, "tier_source": "bench", "source_ref": "bench:DeepSWE 54.4 (0731 post-training re-run on identical weights, regolo.ai roundup) research-bench-2026-09-11 — post-training gain, NOT architectural; treat as 0731-generation evidence"}
+{"model": "deepseek-v4-flash", "category": "long_horizon", "perf": 0.548, "tier": -4, "tier_source": "bench", "source_ref": "bench:research-bench-2026-10-04: AutomationBench 54.8 on GA build (mindstudio V4.1 Flash writeup, budget-unknown cross-check 2026-10-04) vs 54.4 on 0731 re-run — marginal GA gain, same weight class. Absolute percent scale -> max_score 1."}
 {"model": "deepseek-v4-flash", "category": "mechanical", "perf": 0.72, "tier": -2, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:deepseek v4 flash"}
 {"model": "deepseek-v4-flash", "category": "mock", "perf": 0.87, "tier": 1, "tier_source": "estimate", "source_ref": "QUALITY_ESTIMATES"}
 {"model": "deepseek-v4-flash", "category": "multilingual", "perf": 0.9, "tier": 1, "tier_source": "estimate", "source_ref": "QUALITY_ESTIMATES"}
@@ -909,7 +909,7 @@
 {"model": "deepseek-v4-flash-flex", "category": "e2e_vision", "perf": 0.55, "tier": 1, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash"}
 {"model": "deepseek-v4-flash-flex", "category": "guard", "perf": 0.88, "tier": 1, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash"}
 {"model": "deepseek-v4-flash-flex", "category": "long_doc", "perf": 0.72, "tier": -3, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash"}
-{"model": "deepseek-v4-flash-flex", "category": "long_horizon", "perf": 0.544, "tier": -4, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash"}
+{"model": "deepseek-v4-flash-flex", "category": "long_horizon", "perf": 0.548, "tier": -4, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash"}
 {"model": "deepseek-v4-flash-flex", "category": "mechanical", "perf": 0.72, "tier": -2, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash"}
 {"model": "deepseek-v4-flash-flex", "category": "mock", "perf": 0.87, "tier": 1, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash"}
 {"model": "deepseek-v4-flash-flex", "category": "multilingual", "perf": 0.9, "tier": 1, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash"}
@@ -1014,7 +1014,7 @@
 {"model": "deepseek/deepseek-v4-flash", "category": "e2e_vision", "perf": 0.55, "tier": 1, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash"}
 {"model": "deepseek/deepseek-v4-flash", "category": "guard", "perf": 0.88, "tier": 1, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash"}
 {"model": "deepseek/deepseek-v4-flash", "category": "long_doc", "perf": 0.72, "tier": -3, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash"}
-{"model": "deepseek/deepseek-v4-flash", "category": "long_horizon", "perf": 0.544, "tier": -4, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash"}
+{"model": "deepseek/deepseek-v4-flash", "category": "long_horizon", "perf": 0.548, "tier": -4, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash"}
 {"model": "deepseek/deepseek-v4-flash", "category": "mechanical", "perf": 0.72, "tier": -2, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash"}
 {"model": "deepseek/deepseek-v4-flash", "category": "mock", "perf": 0.87, "tier": 1, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash"}
 {"model": "deepseek/deepseek-v4-flash", "category": "multilingual", "perf": 0.9, "tier": 1, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash"}
@@ -1034,7 +1034,7 @@
 {"model": "deepseek/deepseek-v4-flash-fast", "category": "e2e_vision", "perf": 0.55, "tier": 1, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash"}
 {"model": "deepseek/deepseek-v4-flash-fast", "category": "guard", "perf": 0.88, "tier": 1, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash"}
 {"model": "deepseek/deepseek-v4-flash-fast", "category": "long_doc", "perf": 0.72, "tier": -3, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash"}
-{"model": "deepseek/deepseek-v4-flash-fast", "category": "long_horizon", "perf": 0.544, "tier": -4, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash"}
+{"model": "deepseek/deepseek-v4-flash-fast", "category": "long_horizon", "perf": 0.548, "tier": -4, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash"}
 {"model": "deepseek/deepseek-v4-flash-fast", "category": "mechanical", "perf": 0.72, "tier": -2, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash"}
 {"model": "deepseek/deepseek-v4-flash-fast", "category": "mock", "perf": 0.87, "tier": 1, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash"}
 {"model": "deepseek/deepseek-v4-flash-fast", "category": "multilingual", "perf": 0.9, "tier": 1, "tier_source": "family", "source_ref": "alias:deepseek-v4-flash"}
@@ -3577,7 +3577,7 @@
 {"model": "~deepseek/deepseek-flash-latest", "category": "e2e_vision", "perf": 0.55, "tier": 1, "tier_source": "family", "source_ref": "alias:accounts/fireworks/routers/deepseek-flash-latest"}
 {"model": "~deepseek/deepseek-flash-latest", "category": "guard", "perf": 0.88, "tier": 1, "tier_source": "family", "source_ref": "alias:accounts/fireworks/routers/deepseek-flash-latest"}
 {"model": "~deepseek/deepseek-flash-latest", "category": "long_doc", "perf": 0.72, "tier": -3, "tier_source": "family", "source_ref": "alias:accounts/fireworks/routers/deepseek-flash-latest"}
-{"model": "~deepseek/deepseek-flash-latest", "category": "long_horizon", "perf": 0.544, "tier": -4, "tier_source": "family", "source_ref": "alias:accounts/fireworks/routers/deepseek-flash-latest"}
+{"model": "~deepseek/deepseek-flash-latest", "category": "long_horizon", "perf": 0.548, "tier": -4, "tier_source": "family", "source_ref": "alias:accounts/fireworks/routers/deepseek-flash-latest"}
 {"model": "~deepseek/deepseek-flash-latest", "category": "mechanical", "perf": 0.72, "tier": -2, "tier_source": "family", "source_ref": "alias:accounts/fireworks/routers/deepseek-flash-latest"}
 {"model": "~deepseek/deepseek-flash-latest", "category": "mock", "perf": 0.87, "tier": 1, "tier_source": "family", "source_ref": "alias:accounts/fireworks/routers/deepseek-flash-latest"}
 {"model": "~deepseek/deepseek-flash-latest", "category": "multilingual", "perf": 0.9, "tier": 1, "tier_source": "family", "source_ref": "alias:accounts/fireworks/routers/deepseek-flash-latest"}
