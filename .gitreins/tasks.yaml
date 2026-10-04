@@ -596,13 +596,13 @@ tasks:
   created_at: '2026-09-30T09:04:38.067501+00:00'
   completed_at: '2026-09-30T14:29:42.129586+00:00'
 - id: TR-204
-  title: TR-204 worker task
+  title: 'sync lane: diagnosability + no false marker + over-cap snapshot path'
   criteria:
-  - Board task TR-204 acceptance criteria met; build/lint/tests green; committed and
-    pushed
+  - AC1 overcap probe names status+body; AC2 force-fail writes no marker; AC3 5 over-cap
+    tables landed+read back; AC4 named size skips; AC5 marker describes real outcome
   status: complete
-  created_at: '2026-09-30T09:04:38.335102+00:00'
-  completed_at: '2026-09-30T15:14:59.649662+00:00'
+  created_at: '2026-10-03T16:32:19.644266+00:00'
+  completed_at: '2026-10-03T16:39:19.042644+00:00'
 - id: TR-197
   title: NULL census with finite reason set
   criteria:
@@ -743,11 +743,51 @@ tasks:
   status: complete
   created_at: '2026-10-03T03:18:22.580566+00:00'
   completed_at: '2026-10-03T03:19:25.424795+00:00'
-- id: TR-124
-  title: Capability bars are real but FLAT on the spawn path
+- id: TR-131
+  title: 'Profile version pinning: id:version / id@version pin syntax'
   criteria:
-  - Board rows can declare profile/requirement levels; foreman passes them to router_spawn;
-    P1_* levels re-derived to be meaningful bars
+  - router spawn --profile <id>:<n> resolves the exact (id,version) row even after
+    the tag moved; unmatched pin falls through to the not-found error; tests pass
   status: complete
-  created_at: '2026-10-03T06:33:03.903021+00:00'
-  completed_at: '2026-10-03T07:46:38.456771+00:00'
+  created_at: '2026-10-03T12:28:49.317652+00:00'
+  completed_at: '2026-10-03T13:18:18.734515+00:00'
+- id: TR-132
+  title: provider_mappings rename rules are seed-report-only
+  criteria:
+  - In router_seed.py, when the reconciliation scan maps an external lane id to a
+    canonical provider, apply the mapping to the seeded models rows (rewrite provider
+    in the derived registry table). Then the docstring is true. Test drives seed with
+    a renamed lane + rule and asserts the lane's routability matches the docstring.
+    router modelsdev sync --dry-run and seed agree on whether the external id is mapped.
+    Suite green; guard PASS.
+  status: pending
+  created_at: '2026-10-03T15:37:38.286013+00:00'
+- id: TR-267
+  title: 'Quality ladder: data-driven metric ladder (type-hint/coverage/wiring) with
+    monotone targets and a non-blocking rule'
+  criteria:
+  - data/tables/quality_ladder.jsonl exists with one row per (metric, stage) with
+    monotone targets; each metric has a mechanical definition_cmd recorded in-repo;
+    docs/quality-ladder.md states the non-blocking rule; a test validates monotonicity
+    + blocking rule; a score verb prints metric values + stage + next target and fails
+    loudly when a metric cannot be measured
+  status: in_progress
+  created_at: '2026-10-03T22:55:37.617229+00:00'
+- id: TR-287
+  title: structured-output classifier + owner contract landing
+  criteria:
+  - feat/complexity-contract merged to main; targeted test suites green; TR-287 and
+    TR-283 board rows preserved with code-landed status
+  status: complete
+  created_at: '2026-10-04T05:45:57.584317+00:00'
+  completed_at: '2026-10-04T06:52:16.501515+00:00'
+- id: INT-CI-20261004-01
+  title: 'CI red on main: 7 stale golden/gate tests after xkiro retirement + TR-283
+    measured sort'
+  criteria:
+  - CI test job green on pushed HEAD; no golden test asserts a pre-retirement head;
+    chain-invariant test encodes the shipped ordering semantics; registry-integrity
+    allowlist includes quality_ladder
+  status: complete
+  created_at: '2026-10-04T06:23:42.723103+00:00'
+  completed_at: '2026-10-04T07:31:38.455244+00:00'
