@@ -2586,6 +2586,37 @@ def profile_ref_for(project=None, task_id=None, board=None):
         return None, {'requested': task_id, 'matched': False,
                       'problems': [f'task {task_id} not found in {len(cands)} '
                                    f'board path(s)']}
+    # TR-292 (Bane 2026-10-03, complexity-model R6.1): a row's
+    # `required_categories` map IS the task's raw per-category levels — the
+    # canonical vocabulary ({category: int -5..+5}, same shape the resolver's
+    # ad-hoc channel and the outcome store already key). The board tooling
+    # (board_row_levels.py) writes it; the caller never passes an assigned
+    # profile when it is present. Precedence: raw levels win over the row's
+    # `profile` field, mirroring the proxy's declared-complexity rule.
+    raw = row.get('required_categories')
+    if isinstance(raw, dict) and raw:
+        levels, bad = {}, []
+        for cat, lvl in raw.items():
+            if isinstance(lvl, bool) or not isinstance(lvl, (int, float)) \
+                    or not -5 <= int(lvl) <= 5:
+                bad.append(str(cat))
+                continue
+            levels[str(cat)] = int(lvl)
+        if levels:
+            meta = {'requested': task_id, 'matched': True, 'raw_levels': levels,
+                    'source': 'declared-raw', 'source_path': where}
+            if bad:
+                meta['problems'] = [
+                    f'ignored non-numeric/out-of-range levels for: {", ".join(bad)}']
+            _err(f"WARNING: board row {row.get('id')} carries raw levels "
+                 f"({len(levels)} categories, complexity_source=declared-raw) — "
+                 f"resolving from them; no profile, no classifier")
+            return '__DECLARED_RAW__', meta
+        # every entry was malformed: fall through, degrade visibly
+        return None, {'requested': task_id, 'matched': False, 'declared_raw': raw,
+                      'problems': ['required_categories present but had no '
+                                   'numeric -5..+5 levels'],
+                      'source_path': where}
     ref = str(row.get('profile') or '').strip()
     if not ref:
         return None, {'requested': task_id, 'matched': False,
@@ -2835,10 +2866,28 @@ def main():
     # blocks (fail-open).
     complexity_meta = None
     board_profile_meta = None
+    declared_raw_adhoc = None
     if args.profile_from_board:
         declared, board_profile_meta = profile_ref_for(
             project=args.project, task_id=args.profile_from_board, board=args.board)
-        if declared:
+        if declared == '__DECLARED_RAW__':
+            # TR-292: the row carried raw per-category levels — they ARE the
+            # requirement list (declared-raw beats profile AND scoring, the
+            # same precedence the proxy's x-router-profile header uses).
+            levels = board_profile_meta.get('raw_levels') or {}
+            declared_raw_adhoc = [f'{c}={v}' for c, v in sorted(levels.items())]
+            if args.adhoc:
+                _err('WARNING: --profile-req ignored — the board row raw levels '
+                     'are the task\'s own complexity (declared-raw wins)')
+            args.adhoc = declared_raw_adhoc
+            complexity_meta = {'source': 'declared-raw', 'degraded': False,
+                               'degrade_reason': None, 'matrix': levels,
+                               'adhoc': declared_raw_adhoc,
+                               'board_task': args.profile_from_board,
+                               'problems': board_profile_meta.get('problems') or []}
+            board_profile_meta = None  # not a profile declaration — keep it off resolve()
+            declared = None
+        elif declared:
             if args.profile_id and args.profile_id != declared:
                 _err(f'WARNING: --profile {args.profile_id} overridden by the '
                      f'board declaration — resolving via --profile {declared}')
@@ -2860,13 +2909,18 @@ def main():
     elif args.from_task:
         task_text, text_src = task_text_for(project=args.project,
                                             task_id=args.from_task, board=args.board)
-    complexity_meta = None
+    # declared-raw from the board row (TR-292) survives this reset — it is the
+    # complexity meta even though there is no task text to score.
+    complexity_meta = None if declared_raw_adhoc is None else complexity_meta
     if task_text:
         # TR-124: a MATCHED board declaration IS the complexity contract —
         # skip scoring entirely (mirrors the proxy's declared-complexity
         # precedence: x-router-profile skips the classifier). An unmatched
         # request (no field/row) still falls through to scoring when text is
         # present, so behavior degrades visibly, not silently.
+        if declared_raw_adhoc is not None:
+            _err('WARNING: board row raw levels (declared-raw) — complexity '
+                 'scoring skipped')
         if board_profile_meta and board_profile_meta.get('matched'):
             _err(f"WARNING: board row declares profile "
                  f"{board_profile_meta.get('declared')} — complexity scoring skipped")
