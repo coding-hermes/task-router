@@ -394,11 +394,14 @@ def test_resolve_forwards_the_outcome_sort_knobs(server_env):
         assert merged["sort_stats"]["backend"] is None
         assert merged["sort_stats"]["merge_backends"] is True
 
-        # no knobs -> the legacy default ordering, reported as such
+        # no knobs -> the owner's default ordering (TR-287: predicted_cost_per_task,
+        # rollback via ROUTER_SPAWN_SORT), reported as such
         code, plain = _request(port, "/resolve?project=my-project")
         assert code == 200
-        assert plain["sort"] == "price"
-        assert plain["sort_stats"]["loaded"] is False
+        assert plain["sort"] == "predicted_cost_per_task"
+        # the default is a stats-backed sort now: the context loads (even when
+        # the store is empty the load attempt is made and reported)
+        assert plain["sort_stats"]["loaded"] is True
 
 
 # ---------------------------------------------------------------------------

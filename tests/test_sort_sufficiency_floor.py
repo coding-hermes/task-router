@@ -34,7 +34,10 @@ def test_one_sample_is_not_evidence():
     # (0.0001 vs 0.9) while PRICE says q/n is cheaper (0.01 vs 0.10). Price wins, so the
     # single-task average did not decide anything.
     assert key(LANES[1]) < key(LANES[0])
-    assert key(LANES[0]) == (1, 0.10) and key(LANES[1]) == (1, 0.01)
+    # Degrade = the FULL legacy ordering (plan_tier, PAYG-last, context, model,
+    # provider) under the fallback bucket — not a bare price tuple.
+    assert key(LANES[0]) == (1, 1 << 30, 0, 0.10, 0, 'm', 'p')
+    assert key(LANES[1]) == (1, 1 << 30, 0, 0.01, 0, 'n', 'q')
 
 
 def test_enough_samples_earn_a_measurement():
@@ -60,7 +63,7 @@ def test_the_floor_is_configurable_and_zero_restores_the_old_behaviour():
     assert ctx['_sort_basis']['blend_ceiling_samples'] == 9
     ctx2 = {'index': _stats(('p', 'm', 5, 0.0005))}
     key2 = rs._sort_predicted_cost_per_task(9, LANES, ctx2)
-    assert key2(LANES[0]) == (1, 0.10)            # raised floor: even 5 samples is not enough
+    assert key2(LANES[0]) == (1, 1 << 30, 0, 0.10, 0, 'm', 'p')  # raised floor: even 5 samples is not enough
     assert ctx2['_sort_basis']['floor_samples'] == 9
     # TR-174 delta, pinned where it changed: with the DEFAULT blend weight a
     # 1-sample mean no longer decides anything — the lane ranks on its blend
@@ -107,7 +110,7 @@ def test_an_under_measured_chain_degrades_to_price_and_names_the_reason():
     assert b['ranked_on_measurement'] == 1 and b['lanes'] == 11
     assert b['coverage'] == round(1 / 11, 4)
     # and the measured lane did NOT get promoted: this is the price order
-    assert key(lanes[0]) == (1, 0.10) and key(lanes[1]) == (1, 0.01)
+    assert key(lanes[0]) == (1, 1 << 30, 0, 0.10, 0, 'm', 'p') and key(lanes[1]) == (1, 1 << 30, 0, 0.01, 0, 'n', 'q')
 
 
 def test_enough_coverage_applies_the_measured_ordering():

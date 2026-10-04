@@ -1531,7 +1531,11 @@ def _tr174_sort(arg, lanes, ctx):
         value, _b = basis_by_lane.get(key0, (None, None))
         if use_measured and value is not None:
             return (0, value)
-        return (1, _effective_price(m))
+        # Degrade = the FULL legacy ordering (plan_tier, PAYG-last, context),
+        # not just raw price — TR-183 doctrine: a plan lane of a lower tier
+        # never loses to a higher-tier/PAYG lane because the measured sort
+        # fell back (quota-gate e2e regression, 2026-10-04).
+        return (1,) + _legacy_sort_key(m)[1:]
 
     # TR-174 feature 4: the WIN record — the head is whoever sorts first under
     # the returned key (the probe lane wins it when exploration fired).
@@ -1572,8 +1576,12 @@ def _tr174_sort(arg, lanes, ctx):
                'completion_term': rate_reason,
                'age_h': (round(age_h, 4) if age_h is not None else None),
                'explore_reason': explore_reason}
-        win_reason[key0] = rec
-        basis['win_reason'] = rec
+        # TR-183 doctrine: a selection record is a CLAIM. Emit it only when
+        # the head actually won on measurement (or an explore probe was
+        # deliberately exercised) — a price-fallback head claims nothing.
+        if is_explore or (use_measured and value is not None):
+            win_reason[key0] = rec
+            basis['win_reason'] = rec
 
     ctx['_sort_basis'] = basis
     ctx['_sort_measurements'] = expected
