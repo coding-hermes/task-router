@@ -41,6 +41,7 @@ Design constraints (from the board row):
 import argparse
 import hashlib
 import json
+import math
 import os
 import subprocess
 import sys
@@ -48,9 +49,10 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from router_outcomes import band_key, append_rows, complexity_sig  # noqa: E402
+from router_outcomes import (BAND_VERSION, AVERAGES, OUTCOMES, averages_path,
+                             band_key, append_rows, complexity_sig,
+                             outcomes_path)  # noqa: E402
 
-BAND_VERSION = 'b1'
 SOURCE_SYSTEM = 'ab_harness'
 DEFAULT_SAMPLE_FLOOR = 3
 
@@ -136,6 +138,7 @@ def fake_executor(provider, model, task, scratch_dir):
     return {
         'served_provider': served['provider'],
         'served_model': served['model'],
+        'billing_provider': served['provider'],
         'billing_base_url': 'https://fixture.invalid/v1',
         'tokens_in': 20000 + (len(task['task_id']) % 900),
         'tokens_cache_read': 1400000 * (len(task['task_id']) % 5),
@@ -180,6 +183,29 @@ def default_verifier(task, ex, attempt_row):
     return run_acceptance_cmd(task['acceptance_cmd'], ex.get('artifact') or '/nonexistent')
 
 
+def sandbox_verifier(task, ex, attempt_row):
+    """Live mode accepts only a verdict returned by the isolated test runner.
+
+    Never run model-generated artifacts on the foreman's host. The configured
+    executor must run the acceptance check in its sandbox and return a typed
+    verdict; the model's reply or `self_reported_success` is not evidence.
+    """
+    verdict = ex.get('acceptance_verdict') if isinstance(ex, dict) else None
+    if (not isinstance(verdict, dict) or verdict.get('sandboxed') is not True
+            or not isinstance(verdict.get('sandbox_id'), str)
+            or not verdict.get('sandbox_id')
+            or not isinstance(verdict.get('verifier'), str)
+            or not verdict.get('verifier')
+            or not isinstance(verdict.get('verifier_sha256'), str)
+            or len(verdict['verifier_sha256']) != 64
+            or any(c not in '0123456789abcdef' for c in verdict['verifier_sha256'].lower())
+            or not isinstance(verdict.get('exit_code'), int)
+            or isinstance(verdict.get('exit_code'), bool)):
+        return False, 'missing independently verified sandbox verdict'
+    detail = str(verdict.get('detail') or verdict['verifier'])
+    return verdict['exit_code'] == 0, detail
+
+
 # --------------------------------------------------------------------------- #
 # Pricing
 # --------------------------------------------------------------------------- #
@@ -190,11 +216,11 @@ def load_price_source(path):
         return {}
     out = {}
     with open(path) as f:
-        for l in f:
-            l = l.strip()
-            if not l:
+        for line in f:
+            line = line.strip()
+            if not line:
                 continue
-            r = json.loads(l)
+            r = json.loads(line)
             out[r['lane']] = r
     return out
 
@@ -214,19 +240,38 @@ def price_for_pair(provider, model, price_source):
 
 
 def attempt_cost(tokens, price):
-    """(cost_usd or None, basis/reason). Missing tokens or price -> None with
-    a reason; never 0."""
+    """(cost_usd or None, basis/reason). `tokens_in` is the Hermes
+    session_model_usage.input_tokens field (uncached input); cache reads are a
+    separate meter. Missing tokens or price -> None with a reason, never 0."""
     if price is None:
         return None, 'no verified price source for lane'
+    if not isinstance(price.get('source'), str) or not price['source'].strip():
+        return None, 'missing price provenance source'
+    def valid_count(value):
+        return isinstance(value, int) and not isinstance(value, bool) and value >= 0
+
     missing = [k for k in ('tokens_in', 'tokens_out')
-               if not isinstance(tokens.get(k), int)]
+               if not valid_count(tokens.get(k))]
+    cache_rate = price.get('cache_read_per_m')
+    cache_count = tokens.get('tokens_cache_read')
+    if not valid_count(cache_count):
+        missing.append('tokens_cache_read')
+    elif cache_rate is None and cache_count > 0:
+        return None, 'missing cache-read price'
     if missing:
         return None, 'missing token meter: ' + ','.join(missing)
+    rates = [price.get('in_per_m'), price.get('out_per_m')]
+    if cache_rate is not None:
+        rates.append(cache_rate)
+    if any(not isinstance(rate, (int, float)) or isinstance(rate, bool)
+           or not math.isfinite(rate) or rate < 0 for rate in rates):
+        return None, 'invalid or missing per-token price'
+    # session_model_usage.input_tokens excludes cached reads; do NOT subtract
+    # cache_count from it. Hermes stores cache reads in their own column.
     cost = (tokens['tokens_in'] * price['in_per_m']
             + tokens['tokens_out'] * price['out_per_m']) / 1e6
-    cache = price.get('cache_read_per_m')
-    if cache is not None and isinstance(tokens.get('tokens_cache_read'), int):
-        cost += tokens['tokens_cache_read'] * cache / 1e6
+    if cache_rate is not None:
+        cost += cache_count * cache_rate / 1e6
     return round(cost, 8), f"price:{price.get('source')}"
 
 
@@ -261,22 +306,47 @@ def run_tasks(tasks, pairs, executor, price_source, run_id, scratch_dir,
                 'requested_model': model,
                 'actual_provider': ex.get('served_provider'),
                 'actual_model': ex.get('served_model'),
+                # router_outcomes/ TR-299 need canonical actual lane keys. Keep
+                # requested_* separately so a silent reroute stays attributable.
+                'provider': ex.get('served_provider'),
+                'model': ex.get('served_model'),
+                'billing_provider': ex.get('billing_provider') or ex.get('served_provider'),
                 'billing_base_url': ex.get('billing_base_url'),
                 'complexity_levels': levels,
+                'required_categories': levels,
                 'complexity_sig': complexity_sig(levels),
                 'complexity_band': band_key(levels),
                 'band_version': BAND_VERSION,
                 'tokens_in': ex.get('tokens_in'),
                 'tokens_cache_read': ex.get('tokens_cache_read'),
+                'cache_read_tokens': ex.get('tokens_cache_read'),
                 'tokens_out': ex.get('tokens_out'),
+                'tokens_reasoning': ex.get('tokens_reasoning'),
                 'api_calls': ex.get('api_calls'),
+                'turns': ex.get('api_calls'),
                 'wall_time_s': wall,
                 'acceptance_cmd': task['acceptance_cmd'],
                 'acceptance_result': detail,
                 'passed': bool(accepted),
+                'sandbox_id': ((ex.get('acceptance_verdict') or {}).get('sandbox_id')
+                               if isinstance(ex.get('acceptance_verdict'), dict) else None),
+                'acceptance_verifier': ((ex.get('acceptance_verdict') or {}).get('verifier')
+                                        if isinstance(ex.get('acceptance_verdict'), dict) else None),
+                'acceptance_verifier_sha256': ((ex.get('acceptance_verdict') or {}).get('verifier_sha256')
+                                               if isinstance(ex.get('acceptance_verdict'), dict) else None),
+                'acceptance_exit_code': ((ex.get('acceptance_verdict') or {}).get('exit_code')
+                                         if isinstance(ex.get('acceptance_verdict'), dict) else None),
             }
             mismatch = ((row['actual_provider'], row['actual_model'])
                         != (provider, model))
+            # A mismatch is not a sample for either the requested lane or the
+            # generic outcomes average. Preserve truth in actual_* fields and
+            # make the canonical aggregation keys absent until TR-299 performs
+            # an explicit, audited reclassification.
+            row['success'] = bool(accepted) if not mismatch else None
+            if mismatch:
+                row['provider'] = None
+                row['model'] = None
             row['requested_served_mismatch'] = mismatch
             lane = f'{provider}/{model}'
             c = counts.setdefault(lane, {
@@ -321,6 +391,7 @@ def rank_lanes(counts, sample_floor):
     out = []
     for lane, c in sorted(counts.items()):
         usable = c['attempts'] - c['excluded']
+        costs_complete = c['cost_attempts'] == usable and not c['missing_cost_reasons']
         entry = {
             'lane': lane,
             'attempts': c['attempts'],
@@ -329,9 +400,9 @@ def rank_lanes(counts, sample_floor):
             'passed': c['passed'],
             'success_rate': round(c['passed'] / usable, 4) if usable else None,
             'cost_per_attempt': (round(c['cost_sum'] / c['cost_attempts'], 6)
-                                 if c['cost_attempts'] else None),
+                                 if costs_complete and c['cost_attempts'] else None),
             'cost_per_passed_task': (round(c['cost_sum'] / c['passed'], 6)
-                                     if c['passed'] and c['cost_attempts'] else None),
+                                     if c['passed'] and costs_complete else None),
             'sample_floor': sample_floor,
         }
         reasons = []
@@ -342,6 +413,8 @@ def rank_lanes(counts, sample_floor):
         if c['missing_cost_reasons']:
             reasons.append('missing cost basis: '
                            + '; '.join(sorted(set(c['missing_cost_reasons']))))
+        if c['cost_attempts'] < usable and not c['missing_cost_reasons']:
+            reasons.append('incomplete metered costs')
         if c['mismatch_count']:
             reasons.append(f'requested/served mismatch on {c["mismatch_count"]} '
                            'attempt(s); excluded from this lane')
@@ -365,8 +438,13 @@ def rank_lanes(counts, sample_floor):
 # --------------------------------------------------------------------------- #
 
 def guard_output(path):
-    p = os.path.abspath(os.path.expanduser(path or ''))
-    forbidden = {os.path.abspath(os.path.expanduser(f)) for f in FORBIDDEN_OUTPUT}
+    p = os.path.realpath(os.path.expanduser(path or ''))
+    forbidden = {os.path.realpath(os.path.expanduser(f)) for f in FORBIDDEN_OUTPUT}
+    # Also protect configured live stores; their paths may differ from the
+    # repository defaults and the module constants may predate an env change.
+    forbidden.update(os.path.realpath(os.path.expanduser(f))
+                     for f in (outcomes_path(), averages_path(), OUTCOMES, AVERAGES)
+                     if f)
     for f in forbidden:
         if p == f or p.startswith(f + os.sep):
             raise SystemExit(
@@ -404,7 +482,7 @@ def main(argv=None):
     ap.add_argument('--lane', action='append', default=[],
                     help='provider/model pair, repeatable (>=4 for --execute)')
     ap.add_argument('--executor-script',
-                    help='path to the meter-reading live executor (required with --execute)')
+                    help='path to the meter-reading executor + sandbox verifier (required with --execute)')
     ap.add_argument('--price-source',
                     help='JSONL of per-lane verified prices '
                          '{lane,in_per_m,cache_read_per_m,out_per_m,source[,basis]}')
@@ -419,8 +497,12 @@ def main(argv=None):
     args = ap.parse_args(argv)
 
     pairs = []
-    for l in args.lane:
-        prov, model = l.split('/', 1)
+    for lane_spec in args.lane:
+        if '/' not in lane_spec:
+            ap.error(f'--lane must be provider/model, got {lane_spec!r}')
+        prov, model = lane_spec.split('/', 1)
+        if not prov or not model:
+            ap.error(f'--lane must be non-empty provider/model, got {lane_spec!r}')
         pairs.append((prov, model))
     if args.execute:
         if len(pairs) < 4:
@@ -430,14 +512,18 @@ def main(argv=None):
 
     out_path = guard_output(args.out)
     report_path = guard_output(args.report)
-    scratch = args.scratch_dir or os.path.join(
-        os.path.dirname(out_path) or '.', 'ab-artifacts')
+    if out_path == report_path:
+        ap.error('--out and --report must be different files')
+    scratch = guard_output(args.scratch_dir or os.path.join(
+        os.path.dirname(out_path) or '.', 'ab-artifacts'))
     os.makedirs(scratch, exist_ok=True)
     os.makedirs(os.path.dirname(out_path) or '.', exist_ok=True)
     os.makedirs(os.path.dirname(report_path) or '.', exist_ok=True)
 
+    verifier = default_verifier
     if args.execute:
         executor = _load_live_executor(args.executor_script)
+        verifier = sandbox_verifier
         mode = 'live (execute; metered)'
     else:
         executor = fake_executor
@@ -450,7 +536,8 @@ def main(argv=None):
                  ('fixture', 'model-c'), ('xkiro', 'openai/gpt-6-luna')]
 
     attempts, lanes = run_tasks(tasks, pairs, executor, price_source,
-                                args.run_id, scratch, args.sample_floor)
+                                args.run_id, scratch, args.sample_floor,
+                                verifier=verifier)
 
     n = append_rows(out_path, attempts)
     write_report(report_path, lanes, args.run_id, args.sample_floor, mode)

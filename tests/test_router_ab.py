@@ -4,7 +4,6 @@ No live model calls anywhere; executor and verifier are fakes/injected."""
 
 import json
 import os
-import subprocess
 import sys
 
 import pytest
@@ -45,7 +44,7 @@ def _run(price_file, tmp_path, pairs=FAKE_PAIRS, **kw):
            sum([[k, v] for k, v in kw.items()], [])
     rc = router_ab.main(args)
     assert rc == 0
-    rows = [json.loads(l) for l in open(out) if l.strip()]
+    rows = [json.loads(line) for line in open(out) if line.strip()]
     rep = json.load(open(report))
     return rows, rep
 
@@ -74,10 +73,11 @@ def test_row_persistence_shape(tmp_path, price_file):
             'requested_model', 'actual_provider', 'actual_model',
             'billing_base_url', 'complexity_levels', 'complexity_sig',
             'complexity_band', 'band_version', 'tokens_in',
-            'tokens_cache_read', 'tokens_out', 'api_calls', 'wall_time_s',
+            'tokens_cache_read', 'cache_read_tokens', 'tokens_out', 'api_calls', 'wall_time_s',
             'acceptance_cmd', 'acceptance_result', 'passed', 'cost_usd',
             'cost_basis', 'price_source', 'requested_served_mismatch',
-            'source_system', 'session_id'}
+            'source_system', 'session_id', 'provider', 'model', 'success',
+            'required_categories', 'billing_provider'}
     missing = need - set(rows[0])
     assert not missing, missing
 
@@ -99,7 +99,9 @@ def test_mismatch_excluded_from_requested_bucket(tmp_path, price_file):
     assert len(mism) == len(router_ab.frozen_tasks())
     assert all(r['excluded'] and r['exclusion_reason'] for r in mism)
     assert all(r['actual_model'] == 'z-ai/glm-5.3-flash' for r in mism)
-    lane = [l for l in rep['lanes'] if l['lane'] == 'xkiro/openai/gpt-6-luna'][0]
+    assert all(r['provider'] is None and r['model'] is None and r['success'] is None
+               for r in mism)
+    lane = [entry for entry in rep['lanes'] if entry['lane'] == 'xkiro/openai/gpt-6-luna'][0]
     assert lane['excluded_mismatch'] == len(router_ab.frozen_tasks())
     assert lane['usable_attempts'] == 0
     assert lane['measured'] is False
@@ -144,7 +146,7 @@ def test_injected_verifier(tmp_path, price_file):
 
 def test_cost_per_passed_task_arithmetic(tmp_path, price_file):
     rows, rep = _run(price_file, tmp_path)
-    lane = [l for l in rep['lanes'] if l['lane'] == 'fixture/model-a'][0]
+    lane = [entry for entry in rep['lanes'] if entry['lane'] == 'fixture/model-a'][0]
     assert lane['measured'] is True
     row_cost = sum(r['cost_usd'] for r in rows
                    if r['requested_model'] == 'model-a'
@@ -155,14 +157,14 @@ def test_cost_per_passed_task_arithmetic(tmp_path, price_file):
     assert lane['cost_per_attempt'] is not None
     assert 0 < lane['success_rate'] <= 1.0
     # ranking: cheapest passing lane first
-    measured = [l for l in rep['lanes'] if l['measured']]
+    measured = [entry for entry in rep['lanes'] if entry['measured']]
     assert measured[0]['lane'] == 'fixture/model-b'  # cheapest of the two passers
 
 
 def test_failed_acceptance_checks_exclude_lane_from_ranking(tmp_path, price_file):
     """A lane passing nothing is unmeasured, never ranked by cheap cost."""
     rows, rep = _run(price_file, tmp_path)
-    lane = [l for l in rep['lanes'] if l['lane'] == 'fixture/model-c'][0]
+    lane = [entry for entry in rep['lanes'] if entry['lane'] == 'fixture/model-c'][0]
     assert lane['passed'] == 0
     assert lane['measured'] is False
     assert 'zero independently passed tasks' in lane['unmeasured_reason']
@@ -173,7 +175,7 @@ def test_missing_price_never_zero_cost(tmp_path):
     empty = tmp_path / 'empty.jsonl'
     empty.write_text('')
     rows, rep = _run(str(empty), tmp_path)
-    lane = [l for l in rep['lanes'] if l['lane'] == 'fixture/model-a'][0]
+    lane = [entry for entry in rep['lanes'] if entry['lane'] == 'fixture/model-a'][0]
     assert lane['measured'] is False
     assert 'no verified price source' in lane['unmeasured_reason']
     assert all(r['cost_usd'] is None for r in rows
@@ -190,9 +192,46 @@ def test_missing_token_meter_reason(tmp_path, price_file, monkeypatch):
 
     monkeypatch.setattr(router_ab, 'fake_executor', no_tokens)
     rows, rep = _run(price_file, tmp_path)
-    lane = [l for l in rep['lanes'] if l['lane'] == 'fixture/model-a'][0]
+    lane = [entry for entry in rep['lanes'] if entry['lane'] == 'fixture/model-a'][0]
     assert lane['measured'] is False
     assert 'missing token meter' in lane['unmeasured_reason']
+
+
+def test_cache_token_is_required_when_cache_price_is_known(price_file):
+    cost, reason = router_ab.attempt_cost(
+        {'tokens_in': 1000, 'tokens_out': 1000},
+        router_ab.load_price_source(price_file)['fixture/model-a'])
+    assert cost is None
+    assert 'tokens_cache_read' in reason
+
+
+def test_uncached_input_and_cached_read_meters_are_billed_separately():
+    price = {'in_per_m': 1.0, 'cache_read_per_m': 0.1,
+             'out_per_m': 2.0, 'source': 'fixture'}
+    # input_tokens is uncached input; cache_read_tokens is an independent meter.
+    cost, basis = router_ab.attempt_cost(
+        {'tokens_in': 10000, 'tokens_cache_read': 7000, 'tokens_out': 1000}, price)
+    assert cost == 0.0127
+    assert basis == 'price:fixture'
+
+
+def test_cached_read_count_may_exceed_uncached_input():
+    price = {'in_per_m': 1.0, 'cache_read_per_m': 0.1,
+             'out_per_m': 2.0, 'source': 'fixture'}
+    cost, reason = router_ab.attempt_cost(
+        {'tokens_in': 5, 'tokens_cache_read': 6, 'tokens_out': 1}, price)
+    assert cost == 0.0000076
+    assert reason == 'price:fixture'
+
+
+def test_incomplete_costs_do_not_publish_partial_cost_per_passed_task():
+    lane = router_ab.rank_lanes({
+        'p/m': {'attempts': 3, 'passed': 3, 'excluded': 0, 'cost_sum': 1.0,
+                'cost_attempts': 2, 'missing_cost_reasons': ['missing meter'],
+                'mismatch_count': 0}}, sample_floor=3)[0]
+    assert lane['measured'] is False
+    assert lane['cost_per_attempt'] is None
+    assert lane['cost_per_passed_task'] is None
 
 
 def test_glm_price_anomaly_excluded_unless_verified(tmp_path, price_file):
@@ -259,6 +298,72 @@ def test_output_guard_refuses_production_paths(tmp_path):
         str(tmp_path / 'scratch.jsonl')
 
 
+def test_output_guard_resolves_symlink_to_production_state(tmp_path):
+    target = os.path.expanduser('~/task-router/data/state/outcomes.jsonl')
+    if not os.path.exists(target):
+        pytest.skip('production ledger absent in this checkout')
+    alias = tmp_path / 'outcomes-alias.jsonl'
+    alias.symlink_to(target)
+    with pytest.raises(SystemExit, match='REFUSED'):
+        router_ab.guard_output(str(alias))
+
+
+def test_output_guard_includes_configured_live_paths(monkeypatch, tmp_path):
+    configured = tmp_path / 'live-custom-outcomes.jsonl'
+    monkeypatch.setenv('ROUTING_OUTCOMES_FILE', str(configured))
+    with pytest.raises(SystemExit, match='REFUSED'):
+        router_ab.guard_output(str(configured))
+
+
+def test_live_verifier_requires_sandboxed_independent_verdict():
+    assert router_ab.sandbox_verifier({}, {}, None) == (
+        False, 'missing independently verified sandbox verdict')
+    ex = {'acceptance_verdict': {
+        'sandboxed': True, 'sandbox_id': 'container-abc',
+        'verifier': 'fixture-check-v1', 'verifier_sha256': 'a' * 64,
+        'exit_code': 0, 'detail': 'tests passed'}}
+    assert router_ab.sandbox_verifier({}, ex, None) == (True, 'tests passed')
+    ex['acceptance_verdict']['exit_code'] = 1
+    assert router_ab.sandbox_verifier({}, ex, None) == (False, 'tests passed')
+
+
+def test_execute_mode_routes_to_sandbox_verifier_without_network(tmp_path, price_file, monkeypatch):
+    def metered_fixture(provider, model, task, scratch):
+        return {
+            'served_provider': provider,
+            'served_model': model,
+            'billing_provider': provider,
+            'billing_base_url': 'https://fixture.invalid/v1',
+            'tokens_in': 100,
+            'tokens_cache_read': 0,
+            'tokens_out': 20,
+            'api_calls': 1,
+            'wall_time_s': 0.01,
+            'acceptance_verdict': {
+                'sandboxed': True,
+                'sandbox_id': 'fixture-sandbox-1',
+                'verifier': 'fixture-acceptance-v1',
+                'verifier_sha256': 'b' * 64,
+                'exit_code': 0,
+                'detail': 'fixture tests pass',
+            },
+        }
+
+    monkeypatch.setattr(router_ab, '_load_live_executor', lambda _path: metered_fixture)
+    out = str(tmp_path / 'execute-rows.jsonl')
+    report = str(tmp_path / 'execute-report.json')
+    args = ['--execute', '--executor-script', str(tmp_path / 'fake-executor.py'),
+            '--out', out, '--report', report, '--price-source', price_file,
+            '--run-id', 'sandbox-fixture']
+    for provider, model in FAKE_PAIRS:
+        args.extend(['--lane', f'{provider}/{model}'])
+    assert router_ab.main(args) == 0
+    rows = [json.loads(line) for line in open(out) if line.strip()]
+    assert rows and all(row['passed'] for row in rows)
+    assert all(row['sandbox_id'] == 'fixture-sandbox-1' for row in rows)
+    assert all(row['acceptance_verifier_sha256'] == 'b' * 64 for row in rows)
+
+
 def test_execute_refuses_without_four_lanes():
     with pytest.raises(SystemExit):
         router_ab.main(['--execute', '--out', '/tmp/x.jsonl',
@@ -267,10 +372,9 @@ def test_execute_refuses_without_four_lanes():
 
 
 def test_execute_refuses_without_executor_script():
-    lanes = [f'--lane p/m{i}' for i in range(4)]
     argv = ['--execute', '--out', '/tmp/x.jsonl', '--report', '/tmp/x.json']
-    for l in ['p/m1', 'p/m2', 'p/m3', 'p/m4']:
-        argv += ['--lane', l]
+    for lane_spec in ['p/m1', 'p/m2', 'p/m3', 'p/m4']:
+        argv += ['--lane', lane_spec]
     with pytest.raises(SystemExit):
         router_ab.main(argv)
 

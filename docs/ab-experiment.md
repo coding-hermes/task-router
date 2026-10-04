@@ -18,15 +18,18 @@ model claiming success.
 ## Files
 
 - `scripts/router_ab.py` — the harness (offline-first; see below)
-- `tests/test_router_ab.py` — the offline behavior suite (21 cells, all offline)
+- `tests/test_router_ab.py` — the offline behavior suite (29 cells, all offline)
 
 ## The frozen task set
 
 One run executes the SAME 4 lane-tasks on every provider/model pair
 (`frozen_tasks()` in the script): `ab-fix-null-reason`, `ab-regex-allowlist`,
-`ab-tz-window-fix`, `ab-band-pooling-note`. Each carries an explicit
-acceptance command (`grep`/`python3` over the attempt's artifact) and the raw
-category levels that drive the band key.
+`ab-tz-window-fix`, `ab-band-pooling-note`. Each carries an explicit acceptance
+command and raw category levels that drive the band key. Dry-run mode only
+checks deterministic fixture artifacts. A live executor must run model-produced
+artifacts and acceptance commands inside its isolated sandbox, then return the
+sandbox id, verifier id + SHA-256, exit code, and detail. The foreman's process
+never executes live model artifacts.
 
 ## Modes
 
@@ -34,11 +37,13 @@ category levels that drive the band key.
   API call, no production ledger write. Output goes only to the `--out` /
   `--report` paths you name.
 - **`--execute`**: the real run. Refuses unless given >= 4 explicit
-  `--lane provider/model` pairs AND `--executor-script` — a meter-reading
-  wrapper whose served-model identity and tokens come from state.db
+  `--lane provider/model` pairs AND `--executor-script` — a meter-reading,
+  sandboxed wrapper whose served-model identity and tokens come from state.db
   `session_model_usage` (billing_provider + billing_base_url + model), never
-  from the requested flag. **Not run by the worker; it waits for foreman
-  review** (it consumes quota/billing).
+  from the requested flag. The executor must return an independently run
+  sandbox verdict; `--execute` routes that through `sandbox_verifier`, not the
+  host-side shell verifier used for fixture files. **Not run by the worker; it
+  waits for foreman review** (it consumes quota/billing).
 
 ## The requested-vs-served mismatch rule (the xkiro trap)
 
@@ -48,10 +53,17 @@ pair and the actual served pair (plus `billing_base_url`) per attempt, and:
 
 - flags the mismatch (`requested_served_mismatch: true`, `exclusion_reason`),
 - EXCLUDES the sample from the requested lane's bucket (no pass, no cost),
+- leaves canonical `provider` / `model` / `success` null for aggregation; only
+  `actual_*` records the rerouted lane until TR-299 explicitly reclassifies it,
 - never counts a GLM run as Luna.
 
 ## Missing is never 0 / the sample floor
 
+- `tokens_in` is the state.db `session_model_usage.input_tokens` meter
+  (uncached input); `tokens_cache_read` is the separate cache meter. The cost
+  formula prices those separately, never subtracts cache tokens from input.
+  A missing cache meter, missing cache-read rate when cache tokens are present,
+  or cache reads without a verified price leaves the cost unknown.
 - No verified price for a lane, or a missing token meter, leaves `cost_usd`
   NULL with a `cost_basis` reason string; the lane reports unmeasured, never
   ranked at $0.
@@ -76,6 +88,7 @@ Attempt rows are appended through `router_outcomes.append_rows` (dedupe key
 `source_system`/`session_id`/`model`, so re-running the same run id is
 idempotent) and carry everything TR-299 needs per row: task id, attempt id,
 requested/served pair, billing base URL, `complexity_levels`,
+canonical actual `provider` / `model` (null on reroute mismatch),
 `complexity_sig`, versioned `complexity_band` (TR-289's `band_key()`,
 imported — not reimplemented), `band_version`, tokens in / cache-read / out,
 API calls, wall time, `price_source`, `cost_usd`, `cost_basis`, acceptance
@@ -110,4 +123,7 @@ python3 scripts/router_ab.py --execute \
 The worker ran ONLY the dry-run fixture mode and the offline test suite. No
 real A/B experiment has executed, no quota was consumed, and no live rolling
 average was updated. The measured run needs foreman-approved lanes, verified
-price sources and a meter-reading executor script.
+price sources, and a meter-reading executor with a sandboxed independent
+acceptance verifier. The worker's requested `gpt-6-luna @ xkiro` call was
+actually served as `z-ai/glm-5.3-flash @ xkiro`; that identity was verified from
+state.db, not inferred from the command line.
