@@ -2655,7 +2655,7 @@
 {"model": "openai/gpt-5.6-luna", "category": "refactor", "perf": 0.5, "source": "family", "source_ref": "alias:gpt-5.6-luna"}
 {"model": "openai/gpt-5.6-luna", "category": "review", "perf": 0.72, "source": "family", "source_ref": "alias:gpt-5.6-luna"}
 {"model": "openai/gpt-5.6-luna", "category": "schema", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/SCHEMA"}
-{"model": "openai/gpt-5.6-luna", "category": "terminal", "perf": 0.85, "source": "family", "source_ref": "alias:gpt-5.6-luna"}
+{"model": "openai/gpt-5.6-luna", "category": "terminal", "perf": 0.847, "source": "bench", "source_ref": "bench:Terminal-Bench"}
 {"model": "openai/gpt-5.6-luna", "category": "test", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/TEST"}
 {"model": "openai/gpt-5.6-luna", "category": "tool_use", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/T1-TOOL"}
 {"model": "openai/gpt-5.6-luna", "category": "vision", "perf": 1.0, "source": "family", "source_ref": "alias:gpt-5.6-luna"}
