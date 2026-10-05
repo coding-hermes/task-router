@@ -194,15 +194,47 @@ def test_sticker_prices_fill_a_price_less_catalog():
 
 
 def test_preset_file_loads_and_matches_live_catalog_shape():
-    """The committed xkiro preset must parse and normalize the SAVED live catalog
-    snapshot identically to what we shipped by hand (115 lanes)."""
+    """The committed xkiro preset must parse and normalize a live catalog
+    snapshot into a coherent lane set (per-model id keying, priced/free split,
+    sticker overrides honored).
+
+    ch:trace row=TR-289 evidence=/tmp/tr289_probe_hermetic.txt — the old form
+    read an AMBIENT /tmp/xkiro_models.json (a machine-local dump that drifts
+    with the provider's catalog: it grew 115 -> 129 models) and pinned those
+    drift-varying counts. The fixture is now written INTO THE TEST: 4 models
+    exercising every normalize branch (priced plan lane, :free lane, $0-carrier
+    sticker-priced SKU, unpriced no-sticker gap), so the assertion is
+    deterministic on every machine and still proves the preset wiring
+    (field_map + blend + sticker table) end to end.
+    """
     preset = json.load(open(os.path.join(
         os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
         'data', 'catalogs', 'xkiro.json')))
-    snap = '/tmp/xkiro_models.json'
-    if not os.path.exists(snap):
-        pytest.skip('live catalog snapshot not on this machine')
-    lanes = rpi.normalize(json.load(open(snap)), preset)
-    assert len(lanes) == 115
+    stickered = next(iter(preset['sticker_prices']))  # a declared-sticker SKU
+    catalog = {'data': [
+        # priced plan lane: blend(0.96, 0.04) of the catalog prices
+        {'id': 'z-ai/glm-5.3-flash', 'pricing': {'input': 0.1, 'output': 0.9},
+         'context_length': 200000},
+        # free-allowance lane keeps its literal 0.0 (the ':free' carve-out)
+        {'id': 'qwen/qwen3.7-plus:free', 'pricing': {'input': 0.0, 'output': 0.0},
+         'context_length': 100000},
+        # carrier prices a stickered SKU at $0 -> sticker's IN price, not a fake zero
+        {'id': stickered, 'pricing': {'input': 0.0, 'output': 0.0},
+         'context_length': 32000},
+        # no pricing, no sticker -> the visible unpriced gap (None, never 0.0)
+        {'id': 'vendor/no-price-anywhere', 'pricing': None, 'context_length': 8000},
+    ]}
+    lanes = rpi.normalize(catalog, preset)
+    assert sorted(lanes) == sorted(['qwen/qwen3.7-plus:free',
+                                    'vendor/no-price-anywhere',
+                                    stickered, 'z-ai/glm-5.3-flash'])
+    priced = lanes['z-ai/glm-5.3-flash']['normalized_price']
+    assert priced == pytest.approx(round(0.96 * 0.1 + 0.04 * 0.9, 6))
     free = [l for l in lanes.values() if l['normalized_price'] == 0.0]
-    assert len(free) == 42
+    assert [l['model'] for l in free] == ['qwen/qwen3.7-plus:free']
+    # sticker override: the carrier $0 is NOT trusted; the declared IN sticker wins
+    st_in = float(preset['sticker_prices'][stickered]['in'])
+    assert lanes[stickered]['normalized_price'] == pytest.approx(st_in)
+    assert lanes[stickered]['public_in_per_m'] == pytest.approx(st_in)
+    # honest gap: unpriced stays None
+    assert lanes['vendor/no-price-anywhere']['normalized_price'] is None

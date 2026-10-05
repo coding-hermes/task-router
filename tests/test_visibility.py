@@ -29,6 +29,38 @@ import sys
 
 import pytest
 
+# ch:trace row=TR-289 evidence=/tmp/tr289_probe_hermetic.txt — the in-process
+# _resolve helper pins the measured-sort inputs to EMPTY scratch files and
+# forces the explicit price sort, so no test here reads the repo's gitignored
+# data/state/outcomes-averages.jsonl / outcomes.jsonl and no resolve depends
+# on ambient measured samples. Test modules that import router_spawn keep
+# module-global knobs consistent for the whole session.
+_AVERAGES_SEAM = {"armed": False}
+
+
+@pytest.fixture(autouse=True)
+def _price_sort_default(tmp_path, monkeypatch):
+    """TR-289 hermetic seam: the default sort is measured (predicted_cost_per_task),
+    so a resolve with NO pinned stats store silently reads the repo's gitignored
+    runtime data/state/outcomes-averages.jsonl — ambient data deciding golden
+    heads. Every test here gets EMPTY stats files (no-sample lanes fall back to
+    the price order inside the measured sort) plus the explicit `price` sort,
+    which also keeps the below-coverage fallback ordering identical to the
+    pinned (plan_tier, price) key the golden heads encode. Purpose-built
+    measured-sort tests arm _AVERAGES_SEAM and write their own fixture rows.
+    """
+    avg = tmp_path / "outcomes-averages.jsonl"
+    out = tmp_path / "outcomes.jsonl"
+    avg.write_text("")
+    out.write_text("")
+    monkeypatch.setenv("ROUTING_AVERAGES_FILE", str(avg))
+    monkeypatch.setenv("ROUTING_OUTCOMES_FILE", str(out))
+    if not _AVERAGES_SEAM["armed"]:
+        monkeypatch.setattr(router_spawn, "DEFAULT_SORT", "price")
+    yield
+    _AVERAGES_SEAM["armed"] = False
+
+
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                                 "scripts"))
 import router_spawn  # noqa: E402
@@ -165,7 +197,10 @@ def test_corrupt_registry_source_fallback_and_warning(monkeypatch, tmp_path):
     assert r["head"] is not None  # resilience: resolution still works
     # the fallback data is the committed registry — head must match the
     # golden fixed-point head for this profile (same tables as registry.json)
-    assert _pair(r["head"]) == "xkiro/openai/gpt-5.6-luna"  # 2026-10-03: TR-124 raised P1_CODING bars to {code_gen,debug,refactor,test}>=0; qwen3.7-flash:free excluded (tier -1 in code_gen/debug), head moved to gpt-5.6-luna
+    # ch:trace row=TR-289 evidence=/tmp/tr289_full_suite.txt — golden
+    # refreshed on this branch's committed tables: gpt-5.6-luna retired
+    # (valid_to 2026-10-03) — the price head is xkiro/z-ai/glm-5.3-flash.
+    assert _pair(r["head"]) == "xkiro/z-ai/glm-5.3-flash"
 
 
 def test_missing_registry_source_fallback(monkeypatch, tmp_path):
@@ -199,7 +234,10 @@ def test_missing_health_state_reported_false(monkeypatch, tmp_path):
     # behavior unchanged: a missing health file must NOT fabricate a DOWN
     # gate — the chain still resolves to the healthy head
     assert r["head"] is not None
-    assert _pair(r["head"]) == "xkiro/openai/gpt-5.6-luna"  # 2026-10-03: TR-124 raised P1_CODING bars to {code_gen,debug,refactor,test}>=0; qwen3.7-flash:free excluded (tier -1 in code_gen/debug), head moved to gpt-5.6-luna
+    # ch:trace row=TR-289 evidence=/tmp/tr289_full_suite.txt — golden
+    # refreshed on this branch's committed tables: gpt-5.6-luna retired
+    # (valid_to 2026-10-03) — the price head is xkiro/z-ai/glm-5.3-flash.
+    assert _pair(r["head"]) == "xkiro/z-ai/glm-5.3-flash"
 
 
 def test_missing_all_state_files_reported(monkeypatch, tmp_path):

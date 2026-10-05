@@ -558,7 +558,15 @@ def test_end_to_end_gate_written_by_the_cli_is_honored_by_the_resolver(tmp_path)
                '--state-dir', str(state))
     assert p.returncode == 0, p.stderr
     env = dict(os.environ, ROUTER_STATE_DIR=str(state), ROUTING_REGISTRY=reg,
-               ROUTING_DATA_DIR=str(tmp_path / 'data'))
+               ROUTING_DATA_DIR=str(tmp_path / 'data'),
+               # ch:trace row=TR-289 evidence=/tmp/tr289_probe_hermetic.txt —
+               # hermetic stats: EMPTY scratch files + the explicit price sort
+               # (the documented ROUTER_SPAWN_SORT rollback), so the spawned
+               # resolver never reads the repo's gitignored runtime store and
+               # the pinned price-order head holds.
+               ROUTING_AVERAGES_FILE=str(tmp_path / 'outcomes-averages.jsonl'),
+               ROUTING_OUTCOMES_FILE=str(tmp_path / 'outcomes.jsonl'),
+               ROUTER_SPAWN_SORT='price')
     proc = subprocess.run([sys.executable, os.path.join(SCRIPTS, 'router_spawn.py'),
                            'demo', '--format', 'json'],
                           capture_output=True, text=True, timeout=SEED_TIMEOUT, env=env)

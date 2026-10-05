@@ -57,7 +57,13 @@ def test_valid_matrix_parses_with_sig():
     assert res['matrix'] == {'code_gen': 2, 'test': 1}
     assert res['confidence'] == 0.8
     assert res['complexity_sig']
-    assert res['prompt_version'] == 'v1' and res['problems'] == []
+    # ch:trace row=TR-289 evidence=/tmp/tr289_probe_hermetic.txt — the prompt
+    # default moved v1 -> v3 on the classifier line (commit 3039486, this
+    # branch); the golden below follows the shipped default, and v1 stays
+    # selectable via ROUTER_CLASSIFY_PROMPT_VERSION (rollback contract).
+    assert res['prompt_version'] == rc.DEFAULT_PROMPT_VERSION
+    assert res['prompt_version'].startswith('v')
+    assert res['problems'] == []
 
 
 def test_fenced_json_is_tolerated():

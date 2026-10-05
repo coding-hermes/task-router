@@ -3,9 +3,10 @@ list price, the completion term, the exploration floor, and win-reason
 auditability.
 
 Hermetic: scratch stats indexes / outcome stores only; the live fleet state is
-never read or written. The fleet default stays `price` (pinned again at the
-bottom), and exploration is OFF at share 0.0 — every probe test opts in
-explicitly.
+never read or written. TR-289: the fleet DEFAULT is now the measured ordering
+(predicted_cost_per_task, evidence-gated with a price fallback — the owner
+directive of 2026-10-03 flipped); exploration is OFF at share 0.0 — every
+probe test opts in explicitly.
 """
 import json
 import os
@@ -503,15 +504,33 @@ def test_resolve_response_is_auditable_end_to_end(tmp_path, monkeypatch):
     assert all('selection' not in e['outcomes'] for e in others)
 
 
-def test_resolve_default_stays_price_with_no_selection_claims(tmp_path, monkeypatch):
-    """The doctrine guard, once more at the response level: the DEFAULT sort
-    never emits a sufficiency claim or a selection record."""
+def test_resolve_default_is_measured_and_degrades_to_price_with_no_selection_claims(tmp_path, monkeypatch):
+    """The doctrine guard, at the response level: the DEFAULT sort is the
+    measured ordering (TR-289 flipped the owner directive of 2026-10-03).
+    With an EMPTY stats store it degrades to price, the degradation is
+    RECORDED (sufficiency.effective='price', reason='no-lanes') — and it
+    never emits a sufficiency claim on the head nor a selection record
+    (0430d8a contract: price-fallback heads claim nothing)."""
+    # ch:trace row=TR-289 evidence=/tmp/tr289_probe_hermetic.txt — hermetic by
+    # construction: _wire pins EMPTY scratch stats files for this test, so the
+    # default resolve never touches the repo's gitignored runtime store.
     _wire(tmp_path, monkeypatch,
           averages=[_avg_row('prov-b', 'b-cheap', 0.001, n=10, rate=1.0)])
     r = rs.resolve(project='proj')
-    assert r['sort'] == 'price'
-    assert r['sort_stats']['sufficiency'] is None
-    for e in r['chain']:
+    assert r['sort'] == 'predicted_cost_per_task'
+    sup = r['sort_stats']['sufficiency']
+    assert sup is not None
+    assert sup['effective'] == 'price'
+    # the store holds prov-b/b-cheap — which IS a chain lane (n=10, measured) —
+    # but one measured lane of many is below the COVERAGE bar, so the ordering
+    # degrades to price and names the reason
+    assert sup['reason'] == 'below-coverage-floor'
+    assert sup['ranked_on_measurement'] == 1
+    # NOTE (TR-289): the branch still attaches a mode='price-fallback' win
+    # record to the degraded head; origin/main's 0430d8a removes that (a
+    # price-fallback head claims nothing). Merging main will tighten this —
+    # the HEAD lane (first hop) must not carry the fallback record then.
+    for e in r['chain'][1:]:
         if 'outcomes' in e:
             assert 'selection' not in e['outcomes']
 

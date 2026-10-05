@@ -74,6 +74,13 @@ def server_env(tmp_path):
         # from a test run.
         "ROUTING_OUTCOMES_FILE": str(tmp_path / "outcomes.jsonl"),
         "ROUTING_AVERAGES_FILE": str(tmp_path / "outcomes-averages.jsonl"),
+        # ch:trace row=TR-289 evidence=/tmp/tr289_probe_hermetic.txt — the
+        # spawned resolver's DEFAULT sort is now measured; pin the explicit
+        # price sort (the documented ROUTER_SPAWN_SORT rollback env) so these
+        # HTTP-surface tests pin the price-order head regardless of ambient
+        # measured samples in the repo's gitignored runtime store. The empty
+        # ROUTING_* files above keep even an explicit measured request hermetic.
+        "ROUTER_SPAWN_SORT": "price",
     }
 
 
@@ -394,7 +401,55 @@ def test_resolve_forwards_the_outcome_sort_knobs(server_env):
         assert merged["sort_stats"]["backend"] is None
         assert merged["sort_stats"]["merge_backends"] is True
 
-        # no knobs -> the legacy default ordering, reported as such
+        # ch:trace row=TR-289 evidence=/tmp/tr289_probe_hermetic.txt — the
+        # forwarding contract, asserted against an EXPLICIT measured store
+        # written into the tmp stats file: ?sort forwards, window_h/backwards
+        # knobs reach the chain, and the measured basis is recorded
+        # (sufficiency.effective=measured + the price head under ?sort=price).
+        # The fixture lanes are the top TWO lanes of my-project's price chain
+        # (the same model on both xkiro providers), so the measured value —
+        # not an invented lane — decides the head.
+        avg = Path(server_env["ROUTING_AVERAGES_FILE"])
+        # the store is JSONL — one JSON object PER LINE; the rows carry BOTH
+        # the 24h and 72h window fields (the resolve is made with window_h=72,
+        # and lane_metric reads avg_cost_task_<window>h)
+        avg.write_text(
+            json.dumps({"source_system": "sample-hermes", "provider": "xkiro",
+                        "model": "qwen/qwen3.7-plus:free", "complexity": None,
+                        "n_samples": 10, "avg_cost_task_24h": 0.9,
+                        "avg_cost_task_72h": 0.9}) + "\n" +
+            json.dumps({"source_system": "sample-hermes", "provider": "xkiro-2",
+                        "model": "qwen/qwen3.7-plus:free", "complexity": None,
+                        "n_samples": 10, "avg_cost_task_24h": 0.1,
+                        "avg_cost_task_72h": 0.1}) + "\n")
+        code, measured = _request(
+            port, "/resolve?project=my-project&sort=predicted_cost_per_task:1:0"
+                  "&window_h=72&backend=sample-hermes")
+        assert code == 200, measured
+        assert measured["sort"] == "predicted_cost_per_task"
+        assert measured["sort_stats"]["loaded"] is True
+        assert measured["sort_stats"]["window_h"] == 72
+        assert measured["sort_stats"]["backend"] == "sample-hermes"
+        # the head follows the measured value, not the list price, and the
+        # basis is RECORDED on the response
+        assert (measured["head"]["provider"], measured["head"]["model"]) == \
+            ("xkiro-2", "qwen/qwen3.7-plus:free")
+        assert measured["sort_stats"]["sufficiency"]["effective"] == "measured"
+        assert measured["sort_stats"]["sufficiency"]["sort"] == \
+            "predicted_cost_per_task"
+
+        # ?sort=price still forwards and pins the price-order head explicitly
+        code, priced = _request(
+            port, "/resolve?project=my-project&sort=price&window_h=72"
+                  "&backend=sample-hermes")
+        assert code == 200, priced
+        assert priced["sort"] == "price"
+        assert priced["sort_stats"]["loaded"] is False
+        assert (priced["head"]["provider"], priced["head"]["model"]) == \
+            ("xkiro", "qwen/qwen3.7-plus:free")
+
+        # no knobs -> the pinned default ordering (this env pins price), not
+        # an accident of ambient measured data
         code, plain = _request(port, "/resolve?project=my-project")
         assert code == 200
         assert plain["sort"] == "price"

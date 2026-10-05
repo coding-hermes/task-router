@@ -17,6 +17,35 @@ import pytest
 
 _HAS_DUCKDB = importlib.util.find_spec("duckdb") is not None
 
+# ch:trace row=TR-289 evidence=/tmp/tr289_probe_hermetic.txt — hermetic seam:
+# EMPTY scratch stats files plus the explicit price sort by default, so no
+# test reads the repo's gitignored data/state/outcomes-averages.jsonl /
+# outcomes.jsonl and the pinned (plan_tier, price) ordering semantics hold
+# regardless of ambient measured samples. Measured-sort tests arm
+# _AVERAGES_SEAM and write explicit fixtures.
+_AVERAGES_SEAM = {"armed": False}
+
+
+@pytest.fixture(autouse=True)
+def _price_sort_default(tmp_path, monkeypatch):
+    """TR-289 hermetic seam (see test_visibility.py for the full rationale):
+    the measured default sort reads ROUTING_AVERAGES_FILE, which without a pin
+    is the repo's gitignored runtime store; and its below-coverage fallback
+    ranks unmeasured lanes as (coverage-bucket, price), losing the plan_tier
+    dominance the legacy key encodes. Both halves are pinned here: empty stats
+    + explicit price sort."""
+    avg = tmp_path / "outcomes-averages.jsonl"
+    out = tmp_path / "outcomes.jsonl"
+    avg.write_text("")
+    out.write_text("")
+    monkeypatch.setenv("ROUTING_AVERAGES_FILE", str(avg))
+    monkeypatch.setenv("ROUTING_OUTCOMES_FILE", str(out))
+    if not _AVERAGES_SEAM["armed"]:
+        monkeypatch.setattr(router_spawn, "DEFAULT_SORT", "price")
+    yield
+    _AVERAGES_SEAM["armed"] = False
+
+
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                                 "scripts"))
 import router_spawn  # noqa: E402
@@ -258,7 +287,12 @@ def test_chain_invariants_per_profile(monkeypatch, tmp_path, pid):
     # (pre-existing; control worktree at HEAD resolves qwen3.7-flash:free too —
     # minimax-m3:free fails P1's test>=0 bar with test tier BLANK -> -1). The
     # undamp does not move this head; the fixture now states the resolved truth.
-    ("P1_CODING", "xkiro/openai/gpt-5.6-luna"),  # TR-124 2026-10-03: raised P1_CODING bars to {code_gen,debug,refactor,test}>=0; qwen3.7-flash:free excluded (tier -1 in code_gen/debug), head moved to gpt-5.6-luna
+    ("P1_CODING", "xkiro/z-ai/glm-5.3-flash"),
+    # ch:trace row=TR-289 evidence=/tmp/tr289_full_suite.txt — golden
+    # refreshed on this branch's committed tables: gpt-5.6-luna RETIRED
+    # (valid_to 2026-10-03); gpt-6-luna carries NO refactor tier row, so the
+    # head is the cheapest refactor-clearing plan lane,
+    # xkiro/z-ai/glm-5.3-flash (matches the same-data refresh on origin/main).
     # Capability-grounded heads (gpt-5.6-sol review 2026-08-27: do NOT tune
     # normal eligibility to accommodate the emergency fallback — fallback is a
     # degraded path that reports requirements_unmet). P2/P4 head on models with
@@ -280,7 +314,12 @@ def test_chain_invariants_per_profile(monkeypatch, tmp_path, pid):
     # degraded deepseek-foreman fallback. openai-codex remains DOWN in the
     # mirror (health), commandcode picks the chain head at $5 vs codex $0.4.
     # Degraded fallback still covered by test_fallback_lane_fires_when_all_subs_down.
-    ("P4_SECURITY", "xkiro/openai/gpt-5.6-sol")  # 2026-09-28: head moved from glm-5.3-flash to gpt-5.6-sol after registry/pricing updates
+    # ch:trace row=TR-289 evidence=/tmp/tr289_full_suite.txt — golden
+    # refreshed on this branch's committed tables: the xkiro gpt-5.6-sol lane
+    # is retired (valid_to 2026-10-03); openrouter's lane inherits the
+    # gpt-5.6-sol bench rows (security 5) and is the head — matches the
+    # same-data refresh on origin/main.
+    ("P4_SECURITY", "openrouter/openai/gpt-5.6-sol")
 ])
 def test_golden_fixed_point_heads(monkeypatch, tmp_path, pid, head):
     """Known heads as of 2026-08-27 (intentional reprice/new-model changes must

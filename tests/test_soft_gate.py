@@ -37,9 +37,18 @@ def _run(cmd, *args, timeout=60, env_extra=None):
 
 
 def _env(tmp_path):
+    # ch:trace row=TR-289 evidence=/tmp/tr289_probe_hermetic.txt — the spawned
+    # router_spawn.py defaults to the measured sort and would otherwise read
+    # the repo's gitignored data/state/outcomes-averages.jsonl. Pin EMPTY
+    # stats files (no samples → price order inside the measured sort) AND the
+    # explicit price sort (ROUTER_SPAWN_SORT is the documented rollback env),
+    # so these gate/visibility tests pin the price-order heads deterministically.
     return {"ROUTER_STATE_DIR": str(tmp_path / "state"),
             "LEDGER_FILE": str(tmp_path / "ledger.jsonl"),
-            "TASK_ROUTER_HOME": str(tmp_path)}
+            "TASK_ROUTER_HOME": str(tmp_path),
+            "ROUTING_AVERAGES_FILE": str(tmp_path / "outcomes-averages.jsonl"),
+            "ROUTING_OUTCOMES_FILE": str(tmp_path / "outcomes.jsonl"),
+            "ROUTER_SPAWN_SORT": "price"}
 
 
 def _state_dir(tmp_path, providers=None, health=None, circuit=None):
@@ -111,9 +120,10 @@ def test_spawn_resolves_normally_despite_many_in_flight(tmp_path):
     env["ROUTING_REGISTRY"] = _write_registry(tmp_path, tables)
 
     # 2026-10-03: TR-124 raised P1_CODING bars to >=0, which excludes the $0
-    # qwen/qwen3.7-flash:free head (tier -1 in code_gen/debug); the head is
-    # now xkiro/openai/gpt-5.6-luna. In-flight rows must target the head lane.
-    head_lane = ("xkiro", "openai/gpt-5.6-luna")
+    # qwen/qwen3.7-flash:free head (tier -1 in code_gen/debug). TR-289
+    # 2026-10-04: gpt-5.6-luna is then retired (valid_to 2026-10-03), so the
+    # head lane is xkiro/z-ai/glm-5.3-flash. In-flight rows must target it.
+    head_lane = ("xkiro", "z-ai/glm-5.3-flash")
     with open(env["LEDGER_FILE"], "a") as f:
         for i in range(99):
             row = {"ts": datetime.datetime.now(datetime.timezone.utc).isoformat(),
@@ -169,13 +179,15 @@ def test_soft_gate_default_off_does_not_exclude_busy_models(tmp_path):
     provs = _open_providers(tables)
     # Only leave xkiro open; gate all others so the head must be the
     # provider's cheapest test-eligible lane if it is not excluded by the
-    # (disabled) soft gate. 2026-10-03: that head is gpt-5.6-luna after
-    # TR-124 raised P1_CODING bars to {code_gen,debug,refactor,test}>=0.
+    # (disabled) soft gate. ch:trace row=TR-289 evidence=/tmp/tr289_full_suite.txt
+    # — head refreshed on the branch's tables: that head is
+    # z-ai/glm-5.3-flash — TR-124 excluded qwen3.7-flash:free, and
+    # gpt-5.6-luna retired (valid_to 2026-10-03).
     for p in provs:
         if p != "xkiro":
             provs[p] = {"status": "gated", "reason": "gate-off-test"}
     qdoc = {"updated": "test", "providers": provs,
-            "models": {"xkiro/openai/gpt-5.6-luna": {"concurrency_limit": 5}}}
+            "models": {"xkiro/z-ai/glm-5.3-flash": {"concurrency_limit": 5}}}
     d = tmp_path / "state"
     d.mkdir(exist_ok=True)
     json.dump(qdoc, open(d / "quota-state.json", "w"))
@@ -188,7 +200,7 @@ def test_soft_gate_default_off_does_not_exclude_busy_models(tmp_path):
         for i in range(5):
             row = {"ts": datetime.datetime.now(datetime.timezone.utc).isoformat(),
                    "trace_id": f"tr-limit-{i}", "provider": "xkiro",
-                   "model": "openai/gpt-5.6-luna", "outcome": "started"}
+                   "model": "z-ai/glm-5.3-flash", "outcome": "started"}
             f.write(json.dumps(row) + "\n")
 
     p = _run(SCRIPT, "coding-hermes-scheduler", "--format", "json", env_extra=env)
@@ -196,7 +208,7 @@ def test_soft_gate_default_off_does_not_exclude_busy_models(tmp_path):
     data = json.loads(p.stdout)
     assert data.get("error") is None, data.get("error")
     assert data["head"] is not None
-    assert (data["head"]["provider"], data["head"]["model"]) == ("xkiro", "openai/gpt-5.6-luna")
+    assert (data["head"]["provider"], data["head"]["model"]) == ("xkiro", "z-ai/glm-5.3-flash")
 
 
 def test_soft_gate_on_excludes_busy_models(tmp_path):
@@ -205,14 +217,16 @@ def test_soft_gate_on_excludes_busy_models(tmp_path):
     provs = _open_providers(tables)
     # Leave only xkiro and one fallback option open so the head shift is
     # deterministic when the busy model is excluded.
-    # 2026-10-03: the busy lane is gpt-5.6-luna — the xkiro head after
-    # TR-124 tier bar raise. It sits mid-chain, so with the gate ON
-    # it is excluded individually and the chain head advances off-provider.
+    # ch:trace row=TR-289 evidence=/tmp/tr289_full_suite.txt — the busy lane
+    # is z-ai/glm-5.3-flash — the xkiro
+    # head after TR-124's bar raise plus gpt-5.6-luna's retirement. It sits
+    # mid-chain, so with the gate ON it is excluded individually and the
+    # chain head advances off-provider.
     for p in provs:
         if p not in ("xkiro", "ollama-cloud"):
             provs[p] = {"status": "gated", "reason": "gate-on-test"}
     qdoc = {"updated": "test", "providers": provs, "soft_gate": True,
-            "models": {"xkiro/openai/gpt-5.6-luna": {"concurrency_limit": 5}}}
+            "models": {"xkiro/z-ai/glm-5.3-flash": {"concurrency_limit": 5}}}
     d = tmp_path / "state"
     d.mkdir(exist_ok=True)
     json.dump(qdoc, open(d / "quota-state.json", "w"))
@@ -225,7 +239,7 @@ def test_soft_gate_on_excludes_busy_models(tmp_path):
         for i in range(5):
             row = {"ts": datetime.datetime.now(datetime.timezone.utc).isoformat(),
                    "trace_id": f"tr-limit-{i}", "provider": "xkiro",
-                   "model": "openai/gpt-5.6-luna", "outcome": "started"}
+                   "model": "z-ai/glm-5.3-flash", "outcome": "started"}
             f.write(json.dumps(row) + "\n")
 
     p = _run(SCRIPT, "coding-hermes-scheduler", "--format", "json", env_extra=env)
@@ -233,9 +247,9 @@ def test_soft_gate_on_excludes_busy_models(tmp_path):
     data = json.loads(p.stdout)
     assert data.get("error") is None, data.get("error")
     head = (data["head"]["provider"], data["head"]["model"]) if data["head"] else None
-    assert head != ("xkiro", "openai/gpt-5.6-luna"), data["head"]
+    assert head != ("xkiro", "z-ai/glm-5.3-flash"), data["head"]
     excluded = {_pair_str(e) for e in data.get("exclusions", [])}
-    assert "xkiro/openai/gpt-5.6-luna" in excluded
+    assert "xkiro/z-ai/glm-5.3-flash" in excluded
 
 
 # ------------------------------------------------------------------ AC5: fail-open --
