@@ -167,25 +167,40 @@ def test_zero_sorts_ahead_of_positive_and_none_never_beats_measured():
 
 # ------------------------------------------------------- live-registry behaviour
 
-def test_live_bunny_promo_lanes_carry_price_zero(monkeypatch, tmp_path):
-    """On the committed registry the genuine promo lanes (commandcode /
-    opencode-go / openrouter Space Bunny, normalized 0.0) reach the chain with
-    price 0.0 + basis free-by-promo — the original defect, pinned. P1_CODING
-    requires test>=0, which these lanes lack, so an ad-hoc requirement set the
-    promos DO clear (mechanical=-3) drives the chain, mirroring the live
-    reproduce command."""
+def _declared_price(tables, provider, model):
+    for m in tables["models"]:
+        if m.get("provider") == provider and m.get("model") == model:
+            return m.get("normalized_price")
+    return None
+
+
+def test_live_chain_carries_declared_prices(monkeypatch, tmp_path):
+    """On the committed registry, every chain entry's price equals the lane's
+    declared normalized_price — a genuine zero included, and a declared price
+    is never dropped to None. Data-driven so sibling repricing (e.g.
+    opencode-go/space-bunny 0.0 -> 0.168 after the branch was cut) rotates the
+    sample instead of rotting a hardcoded expectation (2026-10-06 lesson).
+    P1_CODING requires test>=0, which these lanes lack, so an ad-hoc
+    requirement set the promos DO clear (mechanical=-3) drives the chain,
+    mirroring the live reproduce command."""
     tables = _load_tables()
     monkeypatch.setattr(router_spawn, "REGISTRY", _registry(tmp_path, tables))
     monkeypatch.setattr(router_spawn, "MR", _state_dir(tmp_path))
     r = router_spawn.resolve(project="coding-hermes-scheduler",
                              adhoc=["mechanical=-3"])
     assert "error" not in r, r.get("error")
-    promos = [c for c in r["chain"]
-              if c["provider"] in ("commandcode", "commandcode-2", "opencode-go",
-                                   "opencode-go-2", "openrouter")
-              and "bunny" in (c["model"] or "")]
-    assert promos, "expected the Space Bunny promo lanes in the chain"
-    for c in promos:
-        assert c["price"] == 0.0 and c["effective_price"] == 0.0, (
-            f"{c['provider']}/{c['model']} must carry 0.0, got {c['price']}")
-        assert c["price_basis"] == "free-by-promo", c["price_basis"]
+    chain = r["chain"]
+    assert len(chain) > 100, f"expected the full fleet chain, got {len(chain)}"
+    zero_entries = [c for c in chain if c.get("price") == 0.0]
+    assert zero_entries, "expected at least one genuine zero on the chain"
+    for c in zero_entries:
+        assert c["price_basis"] == "free-by-promo", (
+            f"{c['provider']}/{c['model']} zero must name its basis, "
+            f"got {c['price_basis']}")
+    dropped = []
+    for c in chain:
+        declared = _declared_price(tables, c["provider"], c["model"])
+        if declared is not None and c["price"] is None:
+            dropped.append((c["provider"], c["model"], declared))
+    assert not dropped, (
+        f"declared prices dropped to None on the chain: {dropped[:5]}")
