@@ -402,10 +402,50 @@ def default_llm(prompt, text, timeout=60, timeout_s=None, categories=None):
                         raise
                     body = json.dumps(m).encode()
                     got = _call_lane(lane, body)
-                if got or not isinstance(got, Raw):
+                # A whitespace-only completion counts as EMPTY: the bad pair
+                # answers with a single space, which is truthy (measured 10-06).
+                if (got and str(got).strip()) or not isinstance(got, Raw):
                     return got
-                # Empty completion on the first pass: the reasoning model likely
-                # ate the budget. One bounded retry at 4x, then report honestly.
+                # Empty (or whitespace-only) completion. Two measured causes,
+                # each with its own remedy, both taken before an expensive
+                # budget retry:
+                #   (1) response_format=json_object + reasoning_effort='none'
+                #       TOGETHER on this endpoint: the model answers with a
+                #       single space, finish=stop, no error (measured 10-06,
+                #       TR-139 census). Either param alone is fine. Measured
+                #       ladder: KEEP the structured output, drop the effort
+                #       param first (json_object without reasoning_effort rates
+                #       correctly); only if that still comes back empty drop
+                #       the structured mode too (a plain prompt without any
+                #       effort param makes this model answer lazily, 'OK').
+                #   (2) a reasoning model ate the whole budget (the original
+                #       10-03 cause). Retry at 4x, then report honestly.
+                body_obj = json.loads(body)
+                rf = (body_obj.get('response_format') or {}).get('type')
+                if rf and got.meta.get('finish_reason') == 'stop':
+                    m = dict(body_obj)
+                    if m.pop('reasoning_effort', None) is not None:
+                        os.environ.pop('ROUTER_CLASSIFY_THINKING_MODE', None)
+                        os.environ['ROUTER_CLASSIFY_THINKING'] = 'on'
+                        print('classifier: empty completion with response_format=%r '
+                              '(- stop) - dropping reasoning_effort, keeping '
+                              'structured output (TR-139)' % rf, file=sys.stderr)
+                        retry = _call_lane(lane, json.dumps(m).encode())
+                        if retry and str(retry or '').strip():
+                            return retry
+                    nxt = {'json_schema': 'json_object', 'json_object': None}.get(rf)
+                    if nxt:
+                        m['response_format'] = {'type': nxt}
+                        os.environ['ROUTER_CLASSIFY_STRUCTURED_MODE'] = nxt
+                    else:
+                        m.pop('response_format', None)
+                        os.environ['ROUTER_CLASSIFY_STRUCTURED_MODE'] = 'none'
+                    print('classifier: still empty - stepping down to %r (TR-139)'
+                          % (nxt or 'a plain prompt'), file=sys.stderr)
+                    retry = _call_lane(lane, json.dumps(m).encode())
+                    if retry:
+                        return retry
+                    got = retry  # fall through to the budget retry below
                 if payload_budget := json.loads(body).get('max_tokens'):
                     retry_body = json.dumps(dict(json.loads(body),
                                                  max_tokens=payload_budget * 4)).encode()
