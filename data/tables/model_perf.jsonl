@@ -1504,7 +1504,7 @@
 {"model": "gpt-5.6-luna", "category": "code_gen", "perf": 0.667, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/T2-CODE"}
 {"model": "gpt-5.6-luna", "category": "debug", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/T5-DEBUG"}
 {"model": "gpt-5.6-luna", "category": "delegation", "perf": 0.75, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/DELEGATION"}
-{"model": "gpt-5.6-luna", "category": "e2e_vision", "perf": 1.0, "source": "measured", "source_ref": "models.jsonl:perf_e2e_vision"}
+{"model": "gpt-5.6-luna", "category": "e2e_vision", "perf": 1.0, "source": "bench", "source_ref": "bench:106 hard browser tasks (vendor)"}
 {"model": "gpt-5.6-luna", "category": "guard", "perf": 0.8, "source": "estimate", "source_ref": "QUALITY_ESTIMATES"}
 {"model": "gpt-5.6-luna", "category": "long_doc", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-DOC"}
 {"model": "gpt-5.6-luna", "category": "long_horizon", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-HORIZON"}
@@ -1512,7 +1512,6 @@
 {"model": "gpt-5.6-luna", "category": "multilingual", "perf": 0.82, "source": "estimate", "source_ref": "QUALITY_ESTIMATES"}
 {"model": "gpt-5.6-luna", "category": "reasoning", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/T3-REASON"}
 {"model": "gpt-5.6-luna", "category": "refactor", "perf": 0.5, "source": "bench", "source_ref": "bench:battery-T2-CODE"}
-{"model": "gpt-5.6-luna", "category": "review", "perf": 0.72, "source": "measured", "source_ref": "models.jsonl:perf_review"}
 {"model": "gpt-5.6-luna", "category": "schema", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/SCHEMA"}
 {"model": "gpt-5.6-luna", "category": "terminal", "perf": 0.85, "source": "estimate", "source_ref": "PROFILE_TAGS:gpt-5.6 luna"}
 {"model": "gpt-5.6-luna", "category": "test", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/TEST"}
@@ -1522,7 +1521,6 @@
 {"model": "gpt-5.6-sol", "category": "code_gen", "perf": 0.9904610492845787, "source": "bench", "source_ref": "bench:SWE-rebench"}
 {"model": "gpt-5.6-sol", "category": "debug", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/T5-DEBUG"}
 {"model": "gpt-5.6-sol", "category": "delegation", "perf": 0.75, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/DELEGATION"}
-{"model": "gpt-5.6-sol", "category": "e2e_vision", "perf": 0.7, "source": "measured", "source_ref": "models.jsonl:perf_e2e_vision"}
 {"model": "gpt-5.6-sol", "category": "guard", "perf": 0.92, "source": "estimate", "source_ref": "QUALITY_ESTIMATES"}
 {"model": "gpt-5.6-sol", "category": "long_doc", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-DOC"}
 {"model": "gpt-5.6-sol", "category": "long_horizon", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-HORIZON"}
@@ -1611,7 +1609,9 @@
 {"model": "gpt-6.1-sol", "category": "reasoning", "perf": 1.0, "source": "family", "source_ref": "alias:openai/gpt-6.1-sol"}
 {"model": "gpt-6.1-sol", "category": "review", "perf": 1.0, "source": "family", "source_ref": "alias:openai/gpt-6.1-sol"}
 {"model": "gpt-6.1-sol", "category": "schema", "perf": 1.0, "source": "family", "source_ref": "alias:openai/gpt-6.1-sol"}
+{"model": "gpt-6.1-sol", "category": "security", "perf": 0.85, "source": "bench", "source_ref": "bench:ExploitBench"}
 {"model": "gpt-6.1-sol", "category": "spec_docs", "perf": 1.0, "source": "family", "source_ref": "alias:openai/gpt-6.1-sol"}
+{"model": "gpt-6.1-sol", "category": "terminal", "perf": 0.95, "source": "bench", "source_ref": "bench:Terminal-Bench"}
 {"model": "gpt-6.1-sol", "category": "test", "perf": 1.0, "source": "family", "source_ref": "alias:openai/gpt-6.1-sol"}
 {"model": "gpt-6.1-sol", "category": "tool_use", "perf": 1.0, "source": "family", "source_ref": "alias:openai/gpt-6.1-sol"}
 {"model": "gpt-oss-120b", "category": "code_gen", "perf": 0.72, "source": "estimate", "source_ref": "PROFILE_TAGS:gpt-oss"}
@@ -2653,7 +2653,6 @@
 {"model": "openai/gpt-5.6-luna", "category": "multilingual", "perf": 0.82, "source": "family", "source_ref": "alias:gpt-5.6-luna"}
 {"model": "openai/gpt-5.6-luna", "category": "reasoning", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/T3-REASON"}
 {"model": "openai/gpt-5.6-luna", "category": "refactor", "perf": 0.5, "source": "family", "source_ref": "alias:gpt-5.6-luna"}
-{"model": "openai/gpt-5.6-luna", "category": "review", "perf": 0.72, "source": "family", "source_ref": "alias:gpt-5.6-luna"}
 {"model": "openai/gpt-5.6-luna", "category": "schema", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/SCHEMA"}
 {"model": "openai/gpt-5.6-luna", "category": "terminal", "perf": 0.847, "source": "bench", "source_ref": "bench:Terminal-Bench"}
 {"model": "openai/gpt-5.6-luna", "category": "test", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/TEST"}
@@ -2663,7 +2662,6 @@
 {"model": "openai/gpt-5.6-sol", "category": "code_gen", "perf": 0.667, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/T2-CODE"}
 {"model": "openai/gpt-5.6-sol", "category": "debug", "perf": 0.667, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/T5-DEBUG"}
 {"model": "openai/gpt-5.6-sol", "category": "delegation", "perf": 0.5, "source": "bench", "source_ref": "bench:DELEGATION"}
-{"model": "openai/gpt-5.6-sol", "category": "e2e_vision", "perf": 0.7, "source": "family", "source_ref": "alias:gpt-5.6-sol"}
 {"model": "openai/gpt-5.6-sol", "category": "guard", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/GUARD-V2"}
 {"model": "openai/gpt-5.6-sol", "category": "long_doc", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-DOC"}
 {"model": "openai/gpt-5.6-sol", "category": "long_horizon", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-HORIZON"}
