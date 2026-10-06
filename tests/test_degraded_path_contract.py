@@ -38,12 +38,21 @@ import router_server as rsrv  # noqa: E402
 import router_spawn  # noqa: E402
 import router_degraded_path_falsifier as falsifier  # noqa: E402
 
-#: The measured incident rating (live ledger, 2026-09-26): guard>=2 +
-#: terminal>=2 + mechanical>=1 + agent_tick>=2 + tool_use>=2 +
-#: long_horizon>=1 has NO clearing lane in the COMMITTED tables either
-#: (eligible=0 — verified against data/tables at the time of writing).
-UNSAT_MATRIX = {'guard': 2, 'terminal': 2, 'mechanical': 1, 'agent_tick': 2,
-                'tool_use': 2, 'long_horizon': 1}
+#: TR-194's ORIGINAL incident matrix (2026-09-26): guard>=2 + terminal>=2 +
+#: mechanical>=1 + agent_tick>=2 + tool_use>=2 + long_horizon>=1. NO LONGER
+#: unsatisfiable — TR-284 (2026-10-03/06) declared gpt-6.1-sol security tier 2
+#: (bench ExploitBench, perf 0.85) plus terminal tier 5 (bench Terminal-Bench),
+#: which clears every category in the old matrix; the resolver now returns a
+#: successful chain for it. The test needs an UNSATISFIABLE rating, not this
+#: historical one, so the matrix was re-derived from the committed tables
+#: (2026-10-06): math has exactly ONE tier-5 model (qwen3.5:397b, tier 5 at
+#: perf 1.0, AIME26) and security has exactly TWO tier-5 models (the
+#: gpt-5.6-sol mirrors) — disjoint sets, so NO model in the registry can clear
+#: math>=5 AND security>=5 simultaneously. Every other category has >= 2
+#: top-tier holders, so the intersection is what makes this empty. In-scale
+#: (category_levels.jsonl defines -5..+5 for both) and still measured against
+#: data/tables at the time of writing.
+UNSAT_MATRIX = {'math': 5, 'security': 5}
 UNSAT_REQS = sorted(UNSAT_MATRIX.items())
 #: A profile with deep eligible coverage in the same tables (P1_CODING,
 #: eligible=235) — the SATISFIABLE arm.

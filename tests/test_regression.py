@@ -284,7 +284,16 @@ def test_chain_invariants_per_profile(monkeypatch, tmp_path, pid):
     # degraded deepseek-foreman fallback. openai-codex remains DOWN in the
     # mirror (health), commandcode picks the chain head at $5 vs codex $0.4.
     # Degraded fallback still covered by test_fallback_lane_fires_when_all_subs_down.
-    ("P4_SECURITY", "openrouter/openai/gpt-5.6-sol")  # 2026-10-04: xkiro gpt-5.6-sol retired (valid_to 2026-10-03, replaced_by gpt-6.1-sol which carries NO security tier) — openrouter's lane inherits the gpt-5.6-sol bench rows (security 5) and is now the head. TR-284's single-sourcing, worsened by the retirement.
+    # TR-284 2026-10-06 CI fix: gpt-5.6-sol/gpt-5.6-luna retired on the last
+    # four carriers (valid_to 2026-10-03, replaced_by gpt-6.1-sol / gpt-6-luna)
+    # and gpt-6.1-sol now carries a DECLARED security tier 2 (bench
+    # ExploitBench, perf 0.85 — tier_source=bench, so it clears the P4
+    # security>=2 gate the predecessor's bench rows used to clear). The old
+    # openrouter/gpt-5.6-sol lane is retired and drops out of the chain
+    # entirely; the new head is commandcode/gpt-6.1-sol at $2.0/M with
+    # openai-codex/gpt-6.1-sol at $2.32/M behind it (live resolve 2026-10-06).
+    # Still ONE model across two carriers — tracked as TR-318.
+    ("P4_SECURITY", "commandcode/gpt-6.1-sol")
 ])
 def test_golden_fixed_point_heads(monkeypatch, tmp_path, pid, head):
     """Known heads as of 2026-08-27 (intentional reprice/new-model changes must
