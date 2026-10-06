@@ -762,17 +762,6 @@ tasks:
     Suite green; guard PASS.
   status: pending
   created_at: '2026-10-03T15:37:38.286013+00:00'
-- id: TR-267
-  title: 'Quality ladder: data-driven metric ladder (type-hint/coverage/wiring) with
-    monotone targets and a non-blocking rule'
-  criteria:
-  - data/tables/quality_ladder.jsonl exists with one row per (metric, stage) with
-    monotone targets; each metric has a mechanical definition_cmd recorded in-repo;
-    docs/quality-ladder.md states the non-blocking rule; a test validates monotonicity
-    + blocking rule; a score verb prints metric values + stage + next target and fails
-    loudly when a metric cannot be measured
-  status: in_progress
-  created_at: '2026-10-03T22:55:37.617229+00:00'
 - id: INT-CI-20261004-01
   title: 'CI red on main: 7 stale golden/gate tests after xkiro retirement + TR-283
     measured sort'
