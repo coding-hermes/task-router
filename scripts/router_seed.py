@@ -644,12 +644,85 @@ for _key, _cats in _derived_keys.items():
             _added += 1
 print(f'probe keys derived from the battery spec: {len(_derived_keys)} keys, {_added} new mappings')
 
+# ---------- 4a-bis. TR-181: a benchmark row's OWN category ----------------
+#: registry categories that own a percentile scale — a benchmark row may only
+#: contribute to one of these (CATS is the seed's canonical list, section 2).
+#: (TR-318: hoisted ABOVE the overlay loop — the loop's row-level exclusion
+#: reads these constants at module-execution time, and the loop used to sit
+#: textually before their definition.)
+_BRIDGE_CATS = tuple(CATS)
+#: sources whose values are degenerate BY CONSTRUCTION and must never become a
+#: tier:
+#:   battery-T4-INSTR-floor  — a pass/fail floor test: 40+ models at 1.0, the
+#:                             exact degeneracy the TR-002 quality estimates
+#:                             exist to replace;
+#:   xkiro-live-battery      — the perfcols rows say they are 'already carried
+#:                             via the perf_* columns' and the 09-16 probe row
+#:                             says 'no overlay pattern BY DESIGN'.
+_BRIDGE_EXCLUDE_SRC = ('battery-T4-INSTR-floor', 'xkiro-live-battery',
+                       # 2026-09-27: the six blocking-category probes SATURATED —
+                       # 7 of 7 lanes scored a perfect 4/4 on all of them, so they
+                       # carry no ranking signal and would hand every model a top
+                       # tier in guard/mock/review/spec_docs/mechanical/
+                       # multilingual. Same defect class as battery-T4-INSTR-floor
+                       # ("40+ models at 1.0"): a floor test, not a discriminator.
+                       # The rows stay in benchmarks.jsonl as evidence that a lane
+                       # CLEARS the floor; they just must not set a tier.
+                       # guard/mock/multilingual are already excluded from
+                       # CATEGORY_ESTIMATES for the same reason.
+                       'live-probe-2026-09-27/GUARD', 'live-probe-2026-09-27/MOCK',
+                       'live-probe-2026-09-27/REVIEW', 'live-probe-2026-09-27/SPEC-DOCS',
+                       'live-probe-2026-09-27/MECHANICAL', 'live-probe-2026-09-27/MULTILINGUAL')
+#: ...and rows whose OWN source text declares that it is NOT to be overlaid.
+#: Three live examples: the 09-19 Z.AI FlashX DeepSWE row ('inert by design -
+#: no overlay pattern in the source string; vendor scale, shared Flash stack'),
+#: the 09-19 Qwen agentic-terminal row ('held INERT deliberately') and the
+#: 09-25 composite-tracker row ('source token withheld by design'). The
+#: declaration IS data: a pass that silently overrides it would rewrite a
+#: documented decision — and for FlashX specifically it would re-land the parent
+#: Flash stack's number as if it were FlashX's own measurement.
+_BRIDGE_INERT_MARKERS = ('inert', 'by design', 'no overlay pattern')
+
 overlay = []  # (provider, model, category, rel_score, bench_source)
+
+
+def _overlay_row_excluded(src):
+    """Row-level enforcement of the overlay's declared inertness (TR-318).
+
+    _BRIDGE_EXCLUDE_SRC / _BRIDGE_INERT_MARKERS guard the SQL bridge
+    (apply_benchmark_categories) but NOT this loop — and the derived bare keys
+    ('GUARD', 'REVIEW', ...) built from router_probe_ingest.BATTERIES
+    LIKE-match the deliberately-unregistered saturated v1 sources
+    ('live-probe-2026-09-27/GUARD: ...'), resurrecting the floor-test values
+    the seed's own comment says must never set a tier (36 false 1.0s,
+    six models). A row whose source carries an excluded token is skipped
+    UNLESS a newer discriminative generation claims it: the bare 'GUARD'
+    exclusion must not swallow 'GUARD-V2'. Version tokens are matched
+    AFTER the exclusion token in the same string (\\-V2/-V3 suffix before
+    the ': ' separator), so the carve-out cannot re-admit a v1 row.
+    """
+    low = src.lower()
+    if any(m in low for m in _BRIDGE_INERT_MARKERS):
+        return True
+    for p in _BRIDGE_EXCLUDE_SRC:
+        if p not in src:
+            continue
+        if p.endswith(('GUARD', 'REVIEW', 'MOCK', 'MECHANICAL',
+                       'SPEC-DOCS', 'MULTILINGUAL')):
+            tail = src[src.index(p) + len(p):]
+            if re.match(r'^-V[23][/: ]', tail):
+                continue          # the V2/V3 successor generation, not v1
+        return True
+    return False
+
+
 for src, cats in BENCH_OVERLAY.items():
-    rows = con.execute("SELECT model, category, score, max_score FROM benchmarks WHERE source LIKE ?",
+    rows = con.execute("SELECT model, category, score, max_score, source FROM benchmarks WHERE source LIKE ?",
                        [f'%{src}%']).fetchall()
-    for model, row_cat, score, mx in rows:
+    for model, row_cat, score, mx, row_src in rows:
         if not mx:
+            continue
+        if _overlay_row_excluded(str(row_src or '')):
             continue
         # RANK-FIDELITY (2026-09-27): when a source's list names several
         # categories AND the row declares one of them, the row's own category
@@ -1009,43 +1082,6 @@ def apply_category_estimates():
     return n
 
 
-# ---------- 4a-bis. TR-181: a benchmark row's OWN category ----------------
-#: registry categories that own a percentile scale — a benchmark row may only
-#: contribute to one of these (CATS is the seed's canonical list, section 2).
-_BRIDGE_CATS = tuple(CATS)
-#: sources whose values are degenerate BY CONSTRUCTION and must never become a
-#: tier:
-#:   battery-T4-INSTR-floor  — a pass/fail floor test: 40+ models at 1.0, the
-#:                             exact degeneracy the TR-002 quality estimates
-#:                             exist to replace;
-#:   xkiro-live-battery      — the perfcols rows say they are 'already carried
-#:                             via the perf_* columns' and the 09-16 probe row
-#:                             says 'no overlay pattern BY DESIGN'.
-_BRIDGE_EXCLUDE_SRC = ('battery-T4-INSTR-floor', 'xkiro-live-battery',
-                       # 2026-09-27: the six blocking-category probes SATURATED —
-                       # 7 of 7 lanes scored a perfect 4/4 on all of them, so they
-                       # carry no ranking signal and would hand every model a top
-                       # tier in guard/mock/review/spec_docs/mechanical/
-                       # multilingual. Same defect class as battery-T4-INSTR-floor
-                       # ("40+ models at 1.0"): a floor test, not a discriminator.
-                       # The rows stay in benchmarks.jsonl as evidence that a lane
-                       # CLEARS the floor; they just must not set a tier.
-                       # guard/mock/multilingual are already excluded from
-                       # CATEGORY_ESTIMATES for the same reason.
-                       'live-probe-2026-09-27/GUARD', 'live-probe-2026-09-27/MOCK',
-                       'live-probe-2026-09-27/REVIEW', 'live-probe-2026-09-27/SPEC-DOCS',
-                       'live-probe-2026-09-27/MECHANICAL', 'live-probe-2026-09-27/MULTILINGUAL')
-#: ...and rows whose OWN source text declares that it is NOT to be overlaid.
-#: Three live examples: the 09-19 Z.AI FlashX DeepSWE row ('inert by design -
-#: no overlay pattern in the source string; vendor scale, shared Flash stack'),
-#: the 09-19 Qwen agentic-terminal row ('held INERT deliberately') and the
-#: 09-25 composite-tracker row ('source token withheld by design'). The
-#: declaration IS data: a pass that silently overrides it would rewrite a
-#: documented decision — and for FlashX specifically it would re-land the parent
-#: Flash stack's number as if it were FlashX's own measurement.
-_BRIDGE_INERT_MARKERS = ('inert', 'by design', 'no overlay pattern')
-
-
 def apply_benchmark_categories():
     """Carry the benchmark table's OWN category labels into model_perf.
 
@@ -1121,7 +1157,7 @@ def apply_quality_estimates():
             if v is None:
                 continue
             cur = con.execute(
-                "SELECT perf FROM model_perf WHERE model=? AND category=?",
+                "SELECT perf, source FROM model_perf WHERE model=? AND category=?",
                 [name, cat]).fetchone()
             if not cur:
                 # TR-181: gap-fill (never a replace). Same live-lane rule as the
@@ -1139,6 +1175,17 @@ def apply_quality_estimates():
                 continue
             degenerate = (cat in ('guard', 'mock') and cur[0] in (0.0, 1.0)) or \
                          (cat == 'multilingual' and abs(cur[0] - 0.50) < 0.001)
+            # TR-318: a BENCH row in {0.0, 1.0} is discriminating evidence,
+            # not degeneracy. The {0.0, 1.0} vocabulary was written to undo
+            # battery-T4-INSTR-floor saturation — but that source is already
+            # excluded at the overlay door (_BRIDGE_EXCLUDE_SRC) and the v2/v3
+            # probes are graded 0..4 with partial credit, so they DO produce
+            # honest 0.0/1.0. Live proof the old rule bit: gpt-5.6-sol's guard
+            # measured 1.0 on GUARD-V2, the overlay landed it, and this pass
+            # wrote the 0.92 survey estimate back over the measurement on the
+            # same seed. A bench row is never estimate-clobbered.
+            if degenerate and cur[1] == 'bench':
+                degenerate = False
             if degenerate:
                 con.execute(
                     "UPDATE model_perf SET perf=?, source='estimate', source_ref='QUALITY_ESTIMATES' "
@@ -1231,7 +1278,7 @@ def apply_overlay():
                         "WHERE lower(model)=? AND category=?",
                         [rel, f'bench:{bsrc}', model.lower(), cat])
             n_upd += 1
-        elif cur[0] < rel:
+        elif cur[1] == 'estimate' or cur[0] < rel:
             # Bane 2026-09-01: a measured benchmark score beats ANY estimate —
             # not just the neutral 0.50 fill. The 0.50-only rule let a stale
             # pre-correction fill (deepseek-v4-flash review 0.60, born in the
@@ -1239,6 +1286,18 @@ def apply_overlay():
             # fleet-evidence pass) block real evidence AND, when the review
             # q10 boundary moved 0.60→0.61, silently exclude the fleet
             # workhorse from every P0_FORE chain. Estimates lose to evidence.
+            #
+            # TR-318 (2026-10-06): the same rule in BOTH directions. The arm
+            # was `cur[0] < rel` — a measurement only won when it scored
+            # HIGHER, so a too-high survey estimate was permanently immune to
+            # the measurement that contradicts it (the exact asymmetry the
+            # _is_declaration arm fixes for models.jsonl seeds: evidence
+            # loses to an estimate regardless of which number is larger).
+            # Measured on the committed data: glm-5.3-flash guard carried the
+            # QUALITY_ESTIMATES 0.8 while its committed GUARD-V2 row reads
+            # 0.0 (guard 0/4, live-probe-2026-09-27) — 16 estimate rows
+            # across 10 models shadowed lower bench evidence (guard, review,
+            # security, terminal, spec_docs, code_gen, tool_use).
             con.execute("UPDATE model_perf SET perf=?, source='bench', source_ref=? "
                         "WHERE lower(model)=? AND category=?",
                         [rel, f'bench:{bsrc}', model.lower(), cat])
