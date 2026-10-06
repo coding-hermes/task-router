@@ -1114,8 +1114,24 @@ def apply_quality_estimates():
     was unsatisfiable by construction), guard 14/42, mock 14/42. The insert path
     below installs the SAME documented value with the SAME provenance; nothing is
     invented and surveyed values still win over the estimate.
+
+    TR-318 (2026-10-06): a (model, category) cell the benchmark overlay list
+    carries MEASURED evidence for is never degenerate filler, whatever its
+    value. The replace test keys on the VALUE alone (`cur[0] in (0.0, 1.0)`),
+    but every n=1 probe row lands exactly there (0/4 or 4/4 of a 4-check
+    battery), so this pass — running AFTER apply_overlay — re-overwrote the
+    measurement with the survey estimate (measured stomp: glm-5.3-flash guard
+    0.0 bench:live-probe-2026-09-27/GUARD-V2 -> 0.8 'estimate', gpt-5.6-sol
+    guard 1.0 -> 0.92 and mock 1.0 -> 0.86). Evidence ranking, not score
+    ranking: a measurement wins over an estimate in BOTH directions, the same
+    precedence apply_overlay already enforces against profile-tag estimates.
     """
+    # `overlay` is the measured (model, category, rel, bench_source) list the
+    # overlay derivation built above (hand keys + probe keys derived from the
+    # battery spec) — the exact cells apply_overlay just wrote or upgraded.
+    measured_cells = {(m, c) for m, c, _rel, _bsrc in overlay}
     n = 0
+    n_measured_skip = 0
     for name, (g, m, ml) in QUALITY_ESTIMATES.items():
         for cat, v in (('guard', g), ('mock', m), ('multilingual', ml)):
             if v is None:
@@ -1126,7 +1142,10 @@ def apply_quality_estimates():
             if not cur:
                 # TR-181: gap-fill (never a replace). Same live-lane rule as the
                 # other estimate passes: a name with no live lane cannot carry a
-                # tier row, so an estimate for it would be noise.
+                # tier row, so an estimate for it would be noise. TR-318: a
+                # measured cell is already owned — apply_overlay inserted it.
+                if (name, cat) in measured_cells:
+                    continue
                 if con.execute("SELECT 1 FROM models WHERE model=? AND "
                                "(valid_to IS NULL OR valid_to > CURRENT_DATE) AND "
                                "(available_from IS NULL OR available_from <= CURRENT_DATE) "
@@ -1137,6 +1156,13 @@ def apply_quality_estimates():
                         [name, cat, float(v), 'estimate', 'QUALITY_ESTIMATES'])
                     n += 1
                 continue
+            if (name, cat) in measured_cells:
+                # TR-318: the measured row (source='bench', ref
+                # 'bench:live-probe-...') stays. A row whose source is already a
+                # measurement can still read 0.0/1.0/0.50 — that is the
+                # measurement, not degeneracy.
+                n_measured_skip += 1
+                continue
             degenerate = (cat in ('guard', 'mock') and cur[0] in (0.0, 1.0)) or \
                          (cat == 'multilingual' and abs(cur[0] - 0.50) < 0.001)
             if degenerate:
@@ -1145,6 +1171,9 @@ def apply_quality_estimates():
                     "WHERE model=? AND category=?",
                     [v, name, cat])
                 n += 1
+    if n_measured_skip:
+        print(f'TR-318: {n_measured_skip} estimate cell(s) skipped — measured '
+              f'evidence already owns them (estimate never overwrites a measurement)')
     return n
 
 

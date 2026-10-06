@@ -220,7 +220,7 @@
 {"model": "accounts/fireworks/models/glm-5p3-flash", "category": "debug", "perf": 0.667, "source": "family", "source_ref": "alias:glm-5.3-flash"}
 {"model": "accounts/fireworks/models/glm-5p3-flash", "category": "delegation", "perf": 1.0, "source": "family", "source_ref": "alias:glm-5.3-flash"}
 {"model": "accounts/fireworks/models/glm-5p3-flash", "category": "e2e_vision", "perf": 0.35, "source": "family", "source_ref": "alias:glm-5.3-flash"}
-{"model": "accounts/fireworks/models/glm-5p3-flash", "category": "guard", "perf": 0.8, "source": "family", "source_ref": "alias:glm-5.3-flash"}
+{"model": "accounts/fireworks/models/glm-5p3-flash", "category": "guard", "perf": 0.0, "source": "family", "source_ref": "alias:glm-5.3-flash"}
 {"model": "accounts/fireworks/models/glm-5p3-flash", "category": "long_doc", "perf": 1.0, "source": "family", "source_ref": "alias:glm-5.3-flash"}
 {"model": "accounts/fireworks/models/glm-5p3-flash", "category": "long_horizon", "perf": 1.0, "source": "family", "source_ref": "alias:glm-5.3-flash"}
 {"model": "accounts/fireworks/models/glm-5p3-flash", "category": "mock", "perf": 0.6, "source": "family", "source_ref": "alias:glm-5.3-flash"}
@@ -480,7 +480,7 @@
 {"model": "accounts/fireworks/routers/glm-flash-latest", "category": "debug", "perf": 0.667, "source": "family", "source_ref": "alias:glm-5.3-flash"}
 {"model": "accounts/fireworks/routers/glm-flash-latest", "category": "delegation", "perf": 1.0, "source": "family", "source_ref": "alias:glm-5.3-flash"}
 {"model": "accounts/fireworks/routers/glm-flash-latest", "category": "e2e_vision", "perf": 0.35, "source": "family", "source_ref": "alias:glm-5.3-flash"}
-{"model": "accounts/fireworks/routers/glm-flash-latest", "category": "guard", "perf": 0.8, "source": "family", "source_ref": "alias:glm-5.3-flash"}
+{"model": "accounts/fireworks/routers/glm-flash-latest", "category": "guard", "perf": 0.0, "source": "family", "source_ref": "alias:glm-5.3-flash"}
 {"model": "accounts/fireworks/routers/glm-flash-latest", "category": "long_doc", "perf": 1.0, "source": "family", "source_ref": "alias:glm-5.3-flash"}
 {"model": "accounts/fireworks/routers/glm-flash-latest", "category": "long_horizon", "perf": 1.0, "source": "family", "source_ref": "alias:glm-5.3-flash"}
 {"model": "accounts/fireworks/routers/glm-flash-latest", "category": "mock", "perf": 0.6, "source": "family", "source_ref": "alias:glm-5.3-flash"}
@@ -1209,7 +1209,7 @@
 {"model": "glm-5-3-flash", "category": "debug", "perf": 0.667, "source": "family", "source_ref": "alias:glm-5.3-flash"}
 {"model": "glm-5-3-flash", "category": "delegation", "perf": 1.0, "source": "family", "source_ref": "alias:glm-5.3-flash"}
 {"model": "glm-5-3-flash", "category": "e2e_vision", "perf": 0.35, "source": "family", "source_ref": "alias:glm-5.3-flash"}
-{"model": "glm-5-3-flash", "category": "guard", "perf": 0.8, "source": "family", "source_ref": "alias:glm-5.3-flash"}
+{"model": "glm-5-3-flash", "category": "guard", "perf": 0.0, "source": "family", "source_ref": "alias:glm-5.3-flash"}
 {"model": "glm-5-3-flash", "category": "long_doc", "perf": 1.0, "source": "family", "source_ref": "alias:glm-5.3-flash"}
 {"model": "glm-5-3-flash", "category": "long_horizon", "perf": 1.0, "source": "family", "source_ref": "alias:glm-5.3-flash"}
 {"model": "glm-5-3-flash", "category": "mock", "perf": 0.6, "source": "family", "source_ref": "alias:glm-5.3-flash"}
@@ -1411,7 +1411,7 @@
 {"model": "glm-5.3-flash", "category": "debug", "perf": 0.667, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/T5-DEBUG"}
 {"model": "glm-5.3-flash", "category": "delegation", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/DELEGATION"}
 {"model": "glm-5.3-flash", "category": "e2e_vision", "perf": 0.35, "source": "measured", "source_ref": "models.jsonl:perf_e2e_vision"}
-{"model": "glm-5.3-flash", "category": "guard", "perf": 0.8, "source": "estimate", "source_ref": "QUALITY_ESTIMATES"}
+{"model": "glm-5.3-flash", "category": "guard", "perf": 0.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/GUARD-V2"}
 {"model": "glm-5.3-flash", "category": "long_doc", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-DOC"}
 {"model": "glm-5.3-flash", "category": "long_horizon", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-HORIZON"}
 {"model": "glm-5.3-flash", "category": "mock", "perf": 0.6, "source": "measured", "source_ref": "models.jsonl:perf_mock"}
@@ -1521,11 +1521,11 @@
 {"model": "gpt-5.6-sol", "category": "code_gen", "perf": 0.9904610492845787, "source": "bench", "source_ref": "bench:SWE-rebench"}
 {"model": "gpt-5.6-sol", "category": "debug", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/T5-DEBUG"}
 {"model": "gpt-5.6-sol", "category": "delegation", "perf": 0.75, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/DELEGATION"}
-{"model": "gpt-5.6-sol", "category": "guard", "perf": 0.92, "source": "estimate", "source_ref": "QUALITY_ESTIMATES"}
+{"model": "gpt-5.6-sol", "category": "guard", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/GUARD-V2"}
 {"model": "gpt-5.6-sol", "category": "long_doc", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-DOC"}
 {"model": "gpt-5.6-sol", "category": "long_horizon", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-HORIZON"}
 {"model": "gpt-5.6-sol", "category": "mechanical", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/MECHANICAL-V3"}
-{"model": "gpt-5.6-sol", "category": "mock", "perf": 0.86, "source": "estimate", "source_ref": "QUALITY_ESTIMATES"}
+{"model": "gpt-5.6-sol", "category": "mock", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/MOCK-V3"}
 {"model": "gpt-5.6-sol", "category": "multilingual", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/MULTILINGUAL-V3"}
 {"model": "gpt-5.6-sol", "category": "reasoning", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/T3-REASON"}
 {"model": "gpt-5.6-sol", "category": "refactor", "perf": 0.5, "source": "bench", "source_ref": "bench:battery-T2-CODE"}
@@ -3486,7 +3486,7 @@
 {"model": "z-ai/glm-5.3-flash", "category": "debug", "perf": 0.843, "source": "bench", "source_ref": "bench:Terminal-Bench zai-official-2026-08-26"}
 {"model": "z-ai/glm-5.3-flash", "category": "delegation", "perf": 1.0, "source": "family", "source_ref": "alias:glm-5.3-flash"}
 {"model": "z-ai/glm-5.3-flash", "category": "e2e_vision", "perf": 0.35, "source": "family", "source_ref": "alias:glm-5.3-flash"}
-{"model": "z-ai/glm-5.3-flash", "category": "guard", "perf": 0.8, "source": "family", "source_ref": "alias:glm-5.3-flash"}
+{"model": "z-ai/glm-5.3-flash", "category": "guard", "perf": 0.0, "source": "family", "source_ref": "alias:glm-5.3-flash"}
 {"model": "z-ai/glm-5.3-flash", "category": "long_doc", "perf": 0.5529999999999999, "source": "bench", "source_ref": "bench:zai-official-2026-08-26"}
 {"model": "z-ai/glm-5.3-flash", "category": "long_horizon", "perf": 1.0, "source": "family", "source_ref": "alias:glm-5.3-flash"}
 {"model": "z-ai/glm-5.3-flash", "category": "mock", "perf": 0.6, "source": "family", "source_ref": "alias:glm-5.3-flash"}
@@ -3678,7 +3678,7 @@
 {"model": "~z-ai/glm-flash-latest", "category": "debug", "perf": 0.667, "source": "family", "source_ref": "alias:accounts/fireworks/routers/glm-flash-latest"}
 {"model": "~z-ai/glm-flash-latest", "category": "delegation", "perf": 1.0, "source": "family", "source_ref": "alias:accounts/fireworks/routers/glm-flash-latest"}
 {"model": "~z-ai/glm-flash-latest", "category": "e2e_vision", "perf": 0.35, "source": "family", "source_ref": "alias:accounts/fireworks/routers/glm-flash-latest"}
-{"model": "~z-ai/glm-flash-latest", "category": "guard", "perf": 0.8, "source": "family", "source_ref": "alias:accounts/fireworks/routers/glm-flash-latest"}
+{"model": "~z-ai/glm-flash-latest", "category": "guard", "perf": 0.0, "source": "family", "source_ref": "alias:accounts/fireworks/routers/glm-flash-latest"}
 {"model": "~z-ai/glm-flash-latest", "category": "long_doc", "perf": 1.0, "source": "family", "source_ref": "alias:accounts/fireworks/routers/glm-flash-latest"}
 {"model": "~z-ai/glm-flash-latest", "category": "long_horizon", "perf": 1.0, "source": "family", "source_ref": "alias:accounts/fireworks/routers/glm-flash-latest"}
 {"model": "~z-ai/glm-flash-latest", "category": "mock", "perf": 0.6, "source": "family", "source_ref": "alias:accounts/fireworks/routers/glm-flash-latest"}

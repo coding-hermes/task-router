@@ -65,8 +65,8 @@
 {"category": "e2e_vision", "level": 4, "label": "++++", "min_perf": 0.8958399999999999}
 {"category": "e2e_vision", "level": 5, "label": "+++++", "min_perf": 0.991072}
 {"category": "guard", "level": -5, "label": "-----", "min_perf": 0.0}
-{"category": "guard", "level": -4, "label": "----", "min_perf": 0.653}
-{"category": "guard", "level": -3, "label": "---", "min_perf": 0.6880000000000001}
+{"category": "guard", "level": -4, "label": "----", "min_perf": 0.06500000000000006}
+{"category": "guard", "level": -3, "label": "---", "min_perf": 0.68}
 {"category": "guard", "level": -2, "label": "--", "min_perf": 0.8}
 {"category": "guard", "level": -1, "label": "-", "min_perf": 0.8}
 {"category": "guard", "level": 0, "label": "0", "min_perf": 0.85}
