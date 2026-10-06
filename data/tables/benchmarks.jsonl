@@ -495,8 +495,10 @@
 {"model": "glm-5.2-short-flex", "category": "schema", "score": 1.0, "max_score": 1.0, "source": "live-probe-2026-09-27/SCHEMA: agentic deterministic battery (schema 4/4, n=1 small-probe, NOT large-bench)", "valid_from": "2026-09-27"}
 {"model": "glm-5.2-short-flex", "category": "test", "score": 1.0, "max_score": 1.0, "source": "live-probe-2026-09-27/TEST: agentic deterministic battery (test 4/4, n=1 small-probe, NOT large-bench)", "valid_from": "2026-09-27"}
 {"model": "glm-5.2-short-flex", "category": "tool_use", "score": 1.0, "max_score": 1.0, "source": "live-probe-2026-09-27/T1-TOOL: v5 deterministic battery (T1-TOOL 3/3, n=1 small-probe, NOT large-bench)", "valid_from": "2026-09-27"}
+{"model": "glm-5.3", "category": "guard", "score": 0.0, "max_score": 1.0, "source": "live-probe-2026-10-06/GUARD-V2: extended2 deterministic battery (guard 0/4, n=1 small-probe, NOT large-bench)", "valid_from": "2026-10-06"}
 {"model": "glm-5.3", "category": "long-doc", "score": 75.0, "max_score": 100.0, "source": "BrowseComp-class (vendor, ~0.83 rel) | denominator repair 2026-09-08: best-known-denominator 90.4 -> true scale 100 (rel 0.83->0.75; provenance class, grok-4.6 09-06 precedent)", "valid_from": null}
 {"model": "glm-5.3", "category": "reasoning", "score": 92.0, "max_score": 100.0, "source": "GPQA-D (vendor)", "valid_from": null}
+{"model": "glm-5.3", "category": "review", "score": 1.0, "max_score": 1.0, "source": "live-probe-2026-10-06/REVIEW-V2: extended2 deterministic battery (review 4/4, n=1 small-probe, NOT large-bench)", "valid_from": "2026-10-06"}
 {"model": "glm-5.3", "category": "review", "score": 54.4, "max_score": 76.5, "source": "ExploitBench (independent)", "valid_from": null}
 {"model": "glm-5.3", "category": "security", "score": 0.544, "max_score": 1.0, "source": "ExploitBench research-bench-2026-08-27", "valid_from": "2026-08-27"}
 {"model": "glm-5.3", "category": "sentiment", "score": 0.8, "max_score": 1.0, "source": "research-bench-2026-08-27", "valid_from": "2026-08-27"}
@@ -1790,6 +1792,8 @@
 {"model": "z-ai/glm-4.7-flashx", "category": "schema", "score": 1.0, "max_score": 1.0, "source": "live-probe-2026-09-27/SCHEMA: agentic deterministic battery (schema 4/4, n=1 small-probe, NOT large-bench)", "valid_from": "2026-09-27"}
 {"model": "z-ai/glm-4.7-flashx", "category": "test", "score": 1.0, "max_score": 1.0, "source": "live-probe-2026-09-27/TEST: agentic deterministic battery (test 4/4, n=1 small-probe, NOT large-bench)", "valid_from": "2026-09-27"}
 {"model": "z-ai/glm-4.7-flashx", "category": "tool_use", "score": 1.0, "max_score": 1.0, "source": "live-probe-2026-09-27/T1-TOOL: v5 deterministic battery (T1-TOOL 3/3, n=1 small-probe, NOT large-bench)", "valid_from": "2026-09-27"}
+{"model": "z-ai/glm-5.3", "category": "guard", "score": 1.0, "max_score": 1.0, "source": "live-probe-2026-10-06/GUARD-V2: extended2 deterministic battery (guard 4/4, n=1 small-probe, NOT large-bench)", "valid_from": "2026-10-06"}
+{"model": "z-ai/glm-5.3", "category": "review", "score": 1.0, "max_score": 1.0, "source": "live-probe-2026-10-06/REVIEW-V2: extended2 deterministic battery (review 4/4, n=1 small-probe, NOT large-bench)", "valid_from": "2026-10-06"}
 {"model": "z-ai/glm-5.3-flash", "category": "agent-tick", "score": 48.8, "max_score": 100.0, "source": "zai-official-2026-08-26", "valid_from": null}
 {"model": "z-ai/glm-5.3-flash", "category": "agent-tick", "score": 78.4, "max_score": 100.0, "source": "zai-official-2026-08-26", "valid_from": null}
 {"model": "z-ai/glm-5.3-flash", "category": "code_gen", "score": 1.0, "max_score": 1.0, "source": "xkiro-live-battery-2026-09-16 (pass/fail probe; no overlay pattern by design)", "valid_from": "2026-09-16"}

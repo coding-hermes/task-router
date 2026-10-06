@@ -293,7 +293,13 @@ def test_chain_invariants_per_profile(monkeypatch, tmp_path, pid):
     # entirely; the new head is commandcode/gpt-6.1-sol at $2.0/M with
     # openai-codex/gpt-6.1-sol at $2.32/M behind it (live resolve 2026-10-06).
     # Still ONE model across two carriers — tracked as TR-318.
-    ("P4_SECURITY", "commandcode/gpt-6.1-sol")
+    # TR-318 2026-10-06 fix: the discriminating GUARD-V2/REVIEW-V2 battery
+    # (extended2, committed to benchmarks.jsonl) measured z-ai/glm-5.3 (the
+    # FULL 5.3 weights, live on openrouter/xkiro/zai-glm/…) guard 4/4 review
+    # 4/4 — unlike glm-5.3-flash (0/4, 09-27). With review and guard tiers
+    # measured on the 5.3 family, P4_SECURITY resolves TWO distinct models
+    # and the cheapest lane (xkiro z-ai/glm-5.3 $0.0507/M) becomes the head.
+    ("P4_SECURITY", "xkiro/z-ai/glm-5.3")
 ])
 def test_golden_fixed_point_heads(monkeypatch, tmp_path, pid, head):
     """Known heads as of 2026-08-27 (intentional reprice/new-model changes must
