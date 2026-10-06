@@ -804,3 +804,34 @@ tasks:
   status: complete
   created_at: '2026-10-04T21:51:20.851745+00:00'
   completed_at: '2026-10-04T22:36:24.213707+00:00'
+- id: TR-284
+  title: Retire gpt-5.6-sol/luna on non-xkiro carriers, gated on declared gpt-6.1-sol
+    security tier
+  criteria:
+  - P4_SECURITY chain (router_spawn.py --profile-req 'security=2 guard=0 review=0')
+    resolves to >=2 distinct models; all 11 profiles still resolve non-empty; lifecycle
+    rows carry valid_to+replaced_by for gpt-5.6-sol/gpt-5.6-luna on openai-codex,
+    openrouter, commandcode, commandcode-2
+  status: complete
+  created_at: '2026-10-06T11:40:05.133669+00:00'
+  completed_at: '2026-10-06T11:56:38.956366+00:00'
+- id: INT-CI-20261006-TR284
+  title: 'Fix CI red: TR-284 retirement broke golden-head fixture + degraded-path
+    contract'
+  criteria:
+  - test_golden_fixed_point_heads[P4_SECURITY] expects commandcode/gpt-6.1-sol (not
+    retired gpt-5.6-sol); degraded-path tests use a genuinely unsatisfiable profile
+    (gpt-6.1-sol now clears P4_SECURITY); full suite green
+  status: complete
+  created_at: '2026-10-06T13:32:56.260072+00:00'
+  completed_at: '2026-10-06T14:37:29.001856+00:00'
+- id: TR-268
+  title: 'TYPE-HINT LADDER STAGE 0: score instrument, baseline, regression floor'
+  criteria:
+  - A single in-repo command computes annotated-function % (returns and args separately)
+    per module and overall, states its tool; the baseline is committed as data with
+    measured_at+tool version+raw counts; a regression floor is wired so a drop below
+    the floor fails, and a stage target never blocks.
+  status: complete
+  created_at: '2026-10-06T15:09:36.140192+00:00'
+  completed_at: '2026-10-06T15:32:37.083355+00:00'
