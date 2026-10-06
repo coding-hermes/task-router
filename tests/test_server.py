@@ -440,9 +440,43 @@ def test_resolve_accepts_a_bare_profile_name(server_env):
         assert code == 200 and "error" not in proj
         assert proj["resolved_as"] == "project"
 
-        # A name that is neither keeps the unchanged error, with no hint.
+        # A name that is neither keeps the error shape, but as a 400 now
+        # (TR-REV-20261005-2: status-based clients must not swallow it) with
+        # no hint on a non-match.
         code, bad = _request(port, "/resolve?project=some-nonexistent-thing")
-        assert code == 200
+        assert code == 400, bad
         assert bad["error"] == "project some-nonexistent-thing not in registry"
         assert "use --profile" not in bad["error"]
+
+
+# ---------------------------------------------------------------------------
+# TR-REV-20261005-1 — ?profile= resolution + TR-REV-20261005-2 error statuses
+# ---------------------------------------------------------------------------
+
+def test_resolve_honors_the_profile_param(server_env):
+    """?profile=P1_CODING alone resolves like the documented CLI
+    `--profile P1_CODING` — chain-for-chain identical."""
+    with _server(server_env) as port:
+        code, payload = _request(port, "/resolve?profile=P1_CODING")
+        assert code == 200, payload
+        assert "error" not in payload, payload.get("error")
+        assert payload["profile"] == "P1_CODING"
+        assert payload["resolved_as"] == "profile-arg"
+        assert payload["chain"], "empty chain makes the parity check vacuous"
+
+        proc = subprocess.run(
+            [PY, str(REPO / "scripts" / "router_spawn.py"), "--profile",
+             "P1_CODING", "--format", "json"],
+            cwd=REPO, env=server_env, capture_output=True, text=True, timeout=60)
+        assert proc.returncode == 0, proc.stderr
+        flag = json.loads(proc.stdout)
+        assert [(h["provider"], h["model"]) for h in payload["chain"]] == \
+            [(h["provider"], h["model"]) for h in flag["chain"]]
+
+
+def test_resolve_neither_project_nor_profile_is_400(server_env):
+    with _server(server_env) as port:
+        code, payload = _request(port, "/resolve")
+        assert code == 400, payload
+        assert payload["error"] == "project query parameter is required"
 

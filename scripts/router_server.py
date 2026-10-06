@@ -713,9 +713,23 @@ class RouterApplication:
                 project = query.get("project")
                 if isinstance(project, list):
                     project = project[0] if project else None
-                if not project:
+                profile_q = query.get("profile")
+                if isinstance(profile_q, list):
+                    profile_q = profile_q[0] if profile_q else None
+                if not project and not profile_q:
                     return 400, {"error": "project query parameter is required"}
-                argv = [project, "--format", "json"]
+                if profile_q and not project:
+                    # TR-REV-20261005-1: the README documents profile-only
+                    # resolution on the CLI (`router spawn --profile P`); the
+                    # HTTP surface dropped the ?profile= param entirely, so the
+                    # documented call 400'd. Mirror the CLI: no project + a
+                    # profile -> the --profile arm of router_spawn.py.
+                    argv = ["--profile", str(profile_q), "--format", "json"]
+                else:
+                    argv = [str(project), "--format", "json"]
+                    if profile_q:
+                        # Same flag the CLI takes when both are given.
+                        argv += ["--profile", str(profile_q)]
                 # Training-data opt-in (Bane 2026-09-01): default OFF. Pass
                 # ?allow_training=1 to include lanes whose terms train on
                 # prompts/completions (e.g. muse-spark-1.2-contributor).
@@ -742,7 +756,15 @@ class RouterApplication:
                     merge = merge[0] if merge else None
                 if merge and str(merge) not in ("0", "false", "no"):
                     argv.append("--merge-backends")
-                return 200, _subprocess_json("router_spawn.py", argv)
+                # TR-REV-20261005-2: an unknown project returns 400, not
+                # 200-with-error-body — status-based clients must not silently
+                # swallow a failed resolve (they cannot distinguish it from
+                # success the way an error-inspecting client can).
+                resolved = _subprocess_json("router_spawn.py", argv)
+                if isinstance(resolved, dict) and resolved.get("error") \
+                        and "not in registry" in str(resolved.get("error")):
+                    return 400, resolved
+                return 200, resolved
             if path == "/profiles":
                 return 200, {"profiles": _read_jsonl("task_profiles")}
             if path == "/providers":
