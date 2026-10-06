@@ -551,7 +551,10 @@ def test_registry_integrity():
                 "provider_quota",
                 # TR-267 quality ladder (commit ab28657, 2026-10-03):
                 # one (metric, stage) row per quality stage — data sidecar
-                "quality_ladder"}
+                "quality_ladder",
+                # TR-268 type-hint ladder stage 0 baseline (commit 9139a15,
+                # 2026-10-06): per-module annotation scores — data sidecar
+                "type_hint_baseline"}
     assert core <= set(tables), f"missing core tables: {core - set(tables)}"
     assert set(tables) - core <= sidecars, f"unexpected tables: {set(tables) - core - sidecars}"
     models = tables["models"]
