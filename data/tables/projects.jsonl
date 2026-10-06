@@ -654,3 +654,4 @@
 {"id": "wojons-mythos-readme", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P3_DOCS"}
 {"id": "zz-gap12-probe", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P7_MOCK"}
 {"id": "zz-schedgap-011-probe", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P7_MOCK"}
+{"id": "mischief-chaos", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P9_REVIEW"}
