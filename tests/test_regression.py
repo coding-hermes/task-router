@@ -560,7 +560,11 @@ def test_registry_integrity():
                 "quality_ladder",
                 # TR-268 type-hint ladder stage 0 baseline (commit 9139a15,
                 # 2026-10-06): per-module annotation scores — data sidecar
-                "type_hint_baseline"}
+                "type_hint_baseline",
+                # TR-208 usage/balance endpoint declarations (2026-10-07):
+                # poller config as data — method+URL+field paths per provider,
+                # status=no-endpoint rows carry the reason
+                "provider_usage_endpoints"}
     assert core <= set(tables), f"missing core tables: {core - set(tables)}"
     assert set(tables) - core <= sidecars, f"unexpected tables: {set(tables) - core - sidecars}"
     models = tables["models"]

@@ -211,6 +211,7 @@ The bus→router door: `scripts/router_ingress.py`. Contract and evidence in
 | `ROUTER_WEB_URL` | `proxy_acceptance.py` | Base URL for the router web UI | `http://127.0.0.1:9093` |
 | `ROUTER_SPAWN_SORT` | `router_spawn.py` | Default sort key for spawn results (can be overridden with `--sort`) | `price` |
 | `ROUTER_MODEL_ROUTER_DIR` | `router_health.py` | Directory containing the model router configuration | `~/.hermes/model-router` |
+| `ROUTER_QUOTA_POLL_INTERVAL_S` | `router_quota_poller.py` | TR-208: cache freshness for the usage/balance poller — a cached observation younger than this is served WITHOUT a network call (the poller never runs per-request); overridable per call with `--interval` | `900` |
 
 ---
 

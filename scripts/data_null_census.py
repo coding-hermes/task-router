@@ -150,6 +150,14 @@ STRUCTURAL = {
     "provider_mappings.jsonl": {
         "replacement": "pattern-map rule: strip/normalize, no replacement string",
     },
+    # TR-208: endpoint rows carry no reason (a pollable endpoint is not a
+    # "reason" row); no-endpoint rows deliberately OMIT the endpoint fields
+    # entirely (validated by scripts/router_quota_poller.py), so a null on a
+    # live row here would be a row-shape bug, not data debt — but the census
+    # still needs the designed-absence declared to count the table.
+    "provider_usage_endpoints.jsonl": {
+        "notes": "no notes on this row",
+    },
     "provider_quota.jsonl": {
         "limit": "limit not published / not numeric",
         "reset_anchor": "reset schedule not published",
