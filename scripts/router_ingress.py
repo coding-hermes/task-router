@@ -98,8 +98,18 @@ DEFAULT_REPLY_TO = "orchestrator"
 
 
 def _state_dir() -> Path:
-    """Where runtime artifacts live (mirrors the proxy's ROUTER_STATE_DIR)."""
-    return Path(os.environ.get("ROUTER_STATE_DIR") or (Path.home() / ".hermes" / "model-router"))
+    """Where runtime artifacts live (mirrors the proxy's ROUTER_STATE_DIR).
+
+    TR-REV-20261005-3: the resolve moved into scripts/state_dir.py (env wins
+    silently; ONE stderr warning on non-canonical, env-unset invocations).
+    """
+    try:
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        import state_dir as _state_dir_mod
+    except ImportError:  # live byte-copy not yet synced -> old behavior, silent
+        return Path(os.environ.get("ROUTER_STATE_DIR")
+                    or (Path.home() / ".hermes" / "model-router"))
+    return Path(_state_dir_mod.resolve_state_dir(script_file=__file__))
 
 
 def _env_int(name: str, default: int) -> int:

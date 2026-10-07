@@ -56,7 +56,7 @@ done
 # canonical write path. The lane (agent or cron) invokes it from
 # ~/.hermes/scripts/, so a symlink would put its realpath outside the scripts
 # dir; the byte-identical copy keeps the repo as single source of truth.
-for f in provider_health_probe.py router-data-quality.sh fleet-cooldown-policy.py router_health.py router_validate.py sync_task_router_duckbrain.py; do
+for f in provider_health_probe.py state_dir.py router-data-quality.sh fleet-cooldown-policy.py router_health.py router_validate.py sync_task_router_duckbrain.py; do
   want=644; [ "${f##*.}" = "sh" ] && want=755
   if [ "${f}" = "fleet-cooldown-policy.py" ]; then
     # ── SCHED-PERF-006 deploy-hash guard ──────────────────────────────────

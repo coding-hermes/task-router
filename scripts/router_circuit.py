@@ -75,9 +75,20 @@ import sys
 import tempfile
 import time
 
-STATE = os.path.join(os.environ.get('ROUTER_STATE_DIR',
-                     os.path.expanduser('~/.hermes/model-router')),
-                     'circuit-state.json')
+# TR-REV-20261005-3: shared state-dir resolve (see scripts/state_dir.py):
+# env wins silently; canonical live-install invocations stay silent; anything
+# else gets ONE stderr warning naming ROUTER_STATE_DIR before any state IO.
+sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+try:
+    import state_dir as _state_dir_mod
+except ImportError:  # live byte-copy not yet synced -> old behavior, silent
+    _state_dir_mod = None
+if _state_dir_mod is not None:
+    _MR = _state_dir_mod.resolve_state_dir(script_file=__file__)
+else:
+    _MR = os.environ.get('ROUTER_STATE_DIR',
+                         os.path.expanduser('~/.hermes/model-router'))
+STATE = os.path.join(_MR, 'circuit-state.json')
 BASE_COOLDOWN_S = 300   # 5m
 MAX_COOLDOWN_S = 3600   # 1h
 

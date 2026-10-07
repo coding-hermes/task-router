@@ -3015,7 +3015,16 @@ def _proxy_record(provider, model, ok, requirements, reason='', latency_s=None,
                # STORE_FIELDS came up short; the alias is filled from the same
                # matrix rather than invented.
                'complexity': requirements.get('matrix'),
-               'required_categories': requirements.get('matrix'),
+               # TR-REV-20261005-3 follow-through: when there is NO matrix (a
+               # declared profile — no rating ran), the levels the chain was
+               # admitted on live in requirements['levels'] (resolved through
+               # router_outcomes.required_levels above). The row and the
+               # envelope can never disagree: alias the levels, never None on
+               # a seeded host. A PRESENT matrix (classifier or floor) still
+               # wins — that dict is the per-category evidence.
+               'required_categories': (requirements.get('matrix')
+                                       if requirements.get('matrix') is not None
+                                       else requirements.get('levels')),
                'complexity_sig': requirements.get('complexity_sig'),
                'profile_id': requirements.get('profile_id'),
                'turns': None,

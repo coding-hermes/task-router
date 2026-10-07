@@ -22,6 +22,19 @@ import json
 import os
 import sys
 
+# TR-REV-20261005-3: shared state-dir resolve (see scripts/state_dir.py),
+# computed at import so the warning lands before any state read/write.
+sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+try:
+    import state_dir as _state_dir_mod
+except ImportError:  # live byte-copy not yet synced -> old silent default
+    _state_dir_mod = None
+if _state_dir_mod is not None:
+    _MR = _state_dir_mod.resolve_state_dir(script_file=__file__)
+else:
+    _MR = os.environ.get('ROUTER_STATE_DIR',
+                         os.path.expanduser('~/.hermes/model-router'))
+
 # TR-202: realpath, never abspath — this script is exec'd through the
 # ~/.hermes/scripts symlink; an abspath idiom on __file__ would derive the
 # repo root from ~/.hermes and read the wrong providers.jsonl.
@@ -42,12 +55,9 @@ def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument('--repo', default=DEFAULT_REPO,
                     help='task-router repo root (default: script parent)')
+    # TR-REV-20261005-3: shared state-dir resolve (see module head).
     ap.add_argument('--quota-state',
-                    default=os.path.join(
-                        os.environ.get('ROUTER_STATE_DIR',
-                                       os.path.expanduser(
-                                           '~/.hermes/model-router')),
-                        'quota-state.json'),
+                    default=os.path.join(_MR, 'quota-state.json'),
                     help='quota-state.json path (default: the deployment '
                          'state the resolver reads; ROUTER_STATE_DIR wins)')
     args = ap.parse_args(argv)

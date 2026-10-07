@@ -13,7 +13,18 @@ Exit 0 always (a delivery line is more useful than a cron error).
 """
 import collections, datetime as dt, json, os, sys
 
-MR = os.environ.get('ROUTER_STATE_DIR', os.path.expanduser('~/.hermes/model-router'))
+# TR-REV-20261005-3: shared state-dir resolve (see scripts/state_dir.py):
+# env wins silently; canonical live-install invocations stay silent; anything
+# else gets ONE stderr warning naming ROUTER_STATE_DIR before any state IO.
+sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+try:
+    import state_dir as _state_dir_mod
+except ImportError:  # live byte-copy not yet synced -> old behavior, silent
+    _state_dir_mod = None
+if _state_dir_mod is not None:
+    MR = _state_dir_mod.resolve_state_dir(script_file=__file__)
+else:
+    MR = os.environ.get('ROUTER_STATE_DIR', os.path.expanduser('~/.hermes/model-router'))
 HEALTH_JSONL = f'{MR}/health.jsonl'
 DASH = os.path.expanduser('~/.hermes/dashboards/provider-health/latest.json')
 URL = os.environ.get('PROVIDER_HEALTH_URL',

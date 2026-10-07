@@ -123,9 +123,21 @@ _HERE = os.path.dirname(os.path.realpath(__file__))
 _REPO = os.path.dirname(_HERE)
 REGISTRY = os.environ.get('ROUTING_REGISTRY', os.path.join(_REPO, 'registry.json'))
 DATA_DIR = os.environ.get('ROUTING_DATA_DIR', os.path.join(_REPO, 'data', 'tables'))
-# State dir (quota/health/circuit/ledger). Env-overridable so tests are hermetic
-# and ops can point at a scratch dir; default identical to the historical path.
-MR = os.environ.get('ROUTER_STATE_DIR', os.path.expanduser('~/.hermes/model-router'))
+# State dir (quota/health/circuit/ledger). TR-REV-20261005-3: the duplicated
+# env-or-shared-default resolve moved into scripts/state_dir.py — one warning
+# on stderr (through _err, so quiet mode is respected) when the env is unset
+# AND this process was not started through the canonical live install
+# (~/.hermes/scripts). Default stays byte-identical; fail-open untouched:
+# resolve_state_dir never raises and the ImportError fallback below keeps the
+# old silent default if the sibling module is missing from a stale copy.
+try:
+    import state_dir as _state_dir_mod
+except ImportError:  # live byte-copy not yet synced -> old behavior, silent
+    _state_dir_mod = None
+if _state_dir_mod is not None:
+    MR = _state_dir_mod.resolve_state_dir(script_file=__file__, warn=_err)
+else:
+    MR = os.environ.get('ROUTER_STATE_DIR', os.path.expanduser('~/.hermes/model-router'))
 
 # Metrics file location (TR-021).  TASK_ROUTER_HOME wins for container/hermetic
 # isolation; otherwise repo-local data/metrics.jsonl (gitignored runtime state).

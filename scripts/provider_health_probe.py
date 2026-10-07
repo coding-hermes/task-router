@@ -82,8 +82,19 @@ import json, os, socket, sys, time, datetime, urllib.request, urllib.error
 # and tests can be hermetic; defaults are byte-identical to the historical paths.
 # REPO is resolved through realpath so this module works BOTH from the repo and from its live
 # symlink at ~/.hermes/scripts/ (abspath would give ~/.hermes and read the wrong tree).
+# TR-REV-20261005-3: the state-dir resolve itself moved into scripts/state_dir.py
+# (env wins silently; canonical live-install invocations stay silent; anything
+# else gets ONE stderr warning naming ROUTER_STATE_DIR before any state IO).
+sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+try:
+    import state_dir as _state_dir_mod
+except ImportError:  # live byte-copy not yet synced -> old behavior, silent
+    _state_dir_mod = None
 _REPO = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-MR = os.environ.get('ROUTER_STATE_DIR', os.path.expanduser('~/.hermes/model-router'))
+if _state_dir_mod is not None:
+    MR = _state_dir_mod.resolve_state_dir(script_file=__file__)
+else:
+    MR = os.environ.get('ROUTER_STATE_DIR', os.path.expanduser('~/.hermes/model-router'))
 HEALTH_JSONL = f'{MR}/health.jsonl'
 HEALTH_STATE = f'{MR}/health-state.json'
 # TR-CI: the registry and the data tables live IN THE REPO, so their defaults must be repo-relative.
