@@ -809,6 +809,16 @@ if MAPPINGS:
         if _rule is not None and _mapped in _canon:
             print(f'  mapping: external lane {_pid!r} -> canonical provider {_mapped!r} '
                   f'(rule {_rule.get("id")})')
+            # TR-132: APPLY the mapping to the models table so the lane resolves
+            # to the canonical provider (not just report it)
+            try:
+                con.execute(
+                    "UPDATE models SET provider = ? WHERE provider = ?",
+                    [_mapped, _pid]
+                )
+                print(f'    applied: rewrote models.provider {_pid!r} -> {_mapped!r}')
+            except Exception as e:
+                print(f'    FAIL: could not apply mapping: {e}')
         else:
             print(f'  GAP: lane provider {_pid!r} not in providers.jsonl and no '
                   f'provider_mappings rule resolves it (visible gap, never silent)')
