@@ -16,6 +16,14 @@ complexity reference) so a lane's cost is comparable at the task profile it
 will be asked to serve.  `--merge-backends` collapses the source dimension
 (sample-count weighted) into (provider, model, complexity).
 
+TR-299: `--extra-input` folds a second store (the VERIFIED outcome store
+written by scripts/verified_outcomes.py — actual served lane + independent
+acceptance verdicts) into the same computation, so every verified row counts
+in the same rolling buckets the resolve path consumes. Verified rows carry
+success=True/False from board acceptance checks; rows whose verdict is still
+null are counted (n_samples) but never as passes (cost_per_passed_task_*h
+stays NULL with a cost_per_passed_task_basis reason).
+
 Paths (TR-049 component 2): `--input` > $ROUTING_OUTCOMES_FILE > the
 repo-relative gitignored default; `--output` > $ROUTING_AVERAGES_FILE > the
 repo-relative default.
@@ -84,10 +92,28 @@ def read_rows(path):
     return rows
 
 
-def build(rows, windows, merge_backends=False, now_s=None):
+def build(rows, windows, merge_backends=False, now_s=None, extra_rows=None):
     """Averages for the given rows. `merge_backends` = one bucket per
-    (provider, model, complexity), otherwise one per backend."""
-    return ro.compute_averages(rows, scales_h=windows,
+    (provider, model, complexity), otherwise one per backend.
+    `extra_rows` (TR-299): verified-outcome rows folded into the SAME
+    computation (same buckets, same decay) — None or [] means none.
+
+    A verified row SUPERSEDES a main-store row with the same identity key
+    (source_system, session_id, model): both rows describe the same session —
+    the billed-lane projection and the actual-lane + verdict projection — and
+    counting both would bill the session twice. The verified row wins (it
+    carries the actual lane and the independent verdict); the dedupe is
+    bounded (set over extra keys), never O(n^2)."""
+    all_rows = list(rows or [])
+    if extra_rows:
+        supersede = {(r.get('source_system'), r.get('session_id'), r.get('model'))
+                     for r in extra_rows
+                     if r.get('session_id') is not None}
+        all_rows = [r for r in all_rows
+                    if (r.get('source_system'), r.get('session_id'), r.get('model'))
+                    not in supersede]
+        all_rows.extend(extra_rows)
+    return ro.compute_averages(all_rows, scales_h=windows,
                                merge_backends=merge_backends, now_s=now_s)
 
 
@@ -102,9 +128,11 @@ def write_rows(path, averages):
 
 
 def summary(rows, averages, windows, merge_backends, input_path, output_path,
-            dry_run):
+            dry_run, extra_paths=None, extra_rows=0):
     return {
         'input': input_path,
+        'extra_inputs': list(extra_paths or []),
+        'extra_rows': int(extra_rows),
         'output': output_path,
         'rows': len(rows),
         'buckets': len(averages),
@@ -123,6 +151,9 @@ def main(argv=None):
                     'the outcome store.')
     ap.add_argument('--input', help='outcome store JSONL '
                                     '(default $ROUTING_OUTCOMES_FILE)')
+    ap.add_argument('--extra-input', action='append', default=None,
+                    help='additional store to fold into the same computation '
+                         '(TR-299: the verified-outcome store; repeatable)')
     ap.add_argument('--output', help='averages JSONL to write '
                                      '(default $ROUTING_AVERAGES_FILE)')
     ap.add_argument('--windows', default=None,
@@ -147,8 +178,11 @@ def main(argv=None):
     input_path = args.input or ro.outcomes_path()
     output_path = args.output or ro.averages_path()
     rows = read_rows(input_path)
+    extra_rows = []
+    for extra in (args.extra_input or []):
+        extra_rows.extend(read_rows(extra))
     averages = build(rows, windows, merge_backends=args.merge_backends,
-                     now_s=args.now)
+                     now_s=args.now, extra_rows=extra_rows)
     if not args.dry_run and averages:
         try:
             write_rows(output_path, averages)
@@ -157,7 +191,9 @@ def main(argv=None):
                               'output': output_path}))
             return 1
     print(json.dumps(summary(rows, averages, windows, args.merge_backends,
-                             input_path, output_path, args.dry_run),
+                             input_path, output_path, args.dry_run,
+                             extra_paths=args.extra_input,
+                             extra_rows=len(extra_rows)),
                      ensure_ascii=False))
     return 0
 

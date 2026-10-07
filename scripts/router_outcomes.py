@@ -345,6 +345,22 @@ def compute_averages(rows, scales_h=DEFAULT_SCALES_H, merge_backends=False, now_
             entry = {'source_system': src, 'provider': prov, 'model': model}
         entry['complexity_sig'] = sig
         entry['required_categories'] = sig_dicts.get(sig) if sig else None
+        # TR-299: decay-weighted cost over PASSED tasks only (independent
+        # acceptance verdicts), so a cheap lane that fails its tasks cannot
+        # read as cheap-per-passed-task. NULL with the reason when the bucket
+        # holds zero passed samples — never a fabricated 0, never "infinite".
+        passed = [r for r in brows if r.get('success') is True]
+        unknown = [r for r in brows if r.get('success') is None]
+        if passed:
+            entry['cost_per_passed_task_basis'] = f'n_passed={len(passed)}'
+        elif unknown:
+            entry['cost_per_passed_task_basis'] = (
+                f'unverified: {len(unknown)} of {len(brows)} sample(s) carry no '
+                'independent acceptance verdict (success=null)')
+        else:
+            entry['cost_per_passed_task_basis'] = (
+                f'no-passed-samples: 0 of {len(brows)} sample(s) passed '
+                'independent acceptance')
         for s in scales_h:
             entry[f'avg_cost_task_{s}h'] = bucket_weighted(brows, 'cost_usd', s, now_s=now_s)
             entry[f'avg_wall_time_{s}h'] = bucket_weighted(brows, 'wall_time_s', s, now_s=now_s)
@@ -355,13 +371,41 @@ def compute_averages(rows, scales_h=DEFAULT_SCALES_H, merge_backends=False, now_
                    for r in brows
                    if r.get('tokens_in') is not None or r.get('tokens_out') is not None]
             entry[f'avg_tokens_total_{s}h'] = bucket_weighted(tot, 'tokens_total', s, now_s=now_s) if tot else None
+            entry[f'cost_per_passed_task_{s}h'] = (
+                bucket_weighted(passed, 'cost_usd', s, now_s=now_s) if passed else None)
         entry['n_samples'] = len(brows)
+        entry['n_passed'] = len(passed)
         entry['n_completed'] = sum(1 for r in brows if r.get('success'))
         known = sum(1 for r in brows if r.get('success') is not None)
         entry['n_success_known'] = known
         entry['success_rate'] = (entry['n_completed'] / known) if known else None
         out.append(entry)
     return out
+
+
+#: TR-183/TR-299: below this many INDEPENDENTLY VERIFIED samples a bucket
+#: stays unranked, whatever its mean says — one lucky cheap pass is not
+#: evidence. Same default as the resolve-side MEASURED_MIN_SAMPLES (env-
+#: overridable) so the write side and the read side floor together.
+UNRANKED_MIN_VERIFIED = int(os.environ.get('ROUTER_SORT_MIN_SAMPLES') or 3)
+
+
+def ranking_verdict(entry, floor=None):
+    """(ranked: bool, reason: str|None) — the TR-299 unranked-with-reason gate.
+
+    A bucket ranks only when it holds >= floor independently verified samples
+    (n_success_known). Everything else carries a reason that names the count
+    and what would change it — a NULL metric with a stated reason, never a
+    silent zero (Bane's null-with-reason law)."""
+    floor = UNRANKED_MIN_VERIFIED if floor is None else floor
+    if floor <= 0:
+        return True, None
+    known = entry.get('n_success_known') or 0
+    if known < floor:
+        return False, (f'insufficient verified samples: {known} of '
+                       f'{entry.get("n_samples")} (need {floor} independent '
+                       'acceptance verdicts to rank this band)')
+    return True, None
 
 
 def merge_average_rows(rows):
@@ -610,6 +654,18 @@ def _merge_task_rows(prev, incoming):
     out['turns'] = (prev_turns or 0) + (inc_turns if isinstance(inc_turns, int) and inc_turns > 0 else 1)
     out['steps'] = (prev.get('steps') or 1) + 1
     out['success'] = bool(prev.get('success')) or bool(incoming.get('success'))
+    # TR-299: an INDEPENDENT verdict is the newest evidence and updates the
+    # row; a plain step's success flag stays sticky. Only a row that carries
+    # acceptance evidence (acceptance_status, set by the verified leg) may
+    # overwrite — a live hop that failed must never flip a task that
+    # succeeded, but a re-run whose board verdict changed must land.
+    if incoming.get('acceptance_status') not in (None, '', {}, []):
+        out['acceptance_status'] = incoming['acceptance_status']
+        value = incoming.get('acceptance_source')
+        if value not in (None, '', {}, []):
+            out['acceptance_source'] = value
+        if incoming.get('success') is not None:
+            out['success'] = bool(incoming['success'])
     for field in ('ts', 'task_label', 'complexity', 'profile_id', 'required_categories',
                   'complexity_sig', 'provider', 'model', 'session_id', 'source_system',
                   'hermes_session'):
