@@ -108,6 +108,8 @@ structured/thinking rung is recorded in classifier call metadata when available.
 | `ROUTER_PROXY_HOP_WALL_S` | `router_server.py` | Wall-clock timeout in seconds for the entire proxy request (all hops combined) | `3600` (1 hour) |
 | `ROUTER_PROXY_IDLE_TIMEOUT_S` | `router_server.py` | Idle timeout in seconds for proxy connections | `1800` (30 minutes) |
 | `ROUTER_PROXY_STREAM_HOPS` | `router_server.py` | Comma-separated list of hop indices that should stream responses (empty = none) | — (empty) |
+| `ROUTER_PROXY_DEADLINE_HEADER_ALIASES` | `router_server.py` | Case-insensitive request-header aliases the TR-264 deadline contract reads (`X-Caller-Name`, `X-Caller-Budget-S`, `X-Caller-Deadline-Mode`, `X-Caller-Idle-Budget-S`, `X-Caller-Max-Hops`, `X-Caller-Margin-S`) | — (fixed map) |
+| `ROUTER_PROXY_HOP_ELAPSED_HEADER` | `router_server.py` | Internal bookkeeping header (`x-router-hop-elapsed-s`) carrying the seconds already charged to a declared budget before a hop leaves; stripped on forward | — (internal) |
 
 ### Proxy concurrency
 
