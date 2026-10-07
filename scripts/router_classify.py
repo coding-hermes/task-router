@@ -176,6 +176,12 @@ def validate_matrix(obj, categories):
 #: HTTP statuses worth a bounded retry: rate limiting and upstream hiccups —
 #: never a 4xx from OUR payload (that is a bug, retrying it is waste).
 _RETRYABLE_STATUS = (429, 500, 502, 503, 504)
+#: Statuses that mean the LANE itself is dead (out of credit, bad key, forbidden)
+#: rather than the request being wrong. Retrying the primary on these is waste
+#: (measured 2026-10-07: DeepSeek 402 Insufficient Balance burned every request
+#: and the fallback lane was never reached because 402 is not retryable, so the
+#: lane loop raised on the primary). These skip straight to the next lane.
+_LANE_DEAD_STATUS = (401, 402, 403)
 
 
 
@@ -456,7 +462,15 @@ def default_llm(prompt, text, timeout=60, timeout_s=None, categories=None):
                 return got
             except urllib.error.HTTPError as exc:
                 retryable = exc.code in _RETRYABLE_STATUS
+                lane_dead = exc.code in _LANE_DEAD_STATUS
                 last_exc = exc
+                if lane_dead and lane_idx < len(lanes) - 1:
+                    # Out of credit / bad key / forbidden: retrying THIS lane is
+                    # waste and the next lane may be perfectly healthy. Move on
+                    # immediately (measured 2026-10-07, DeepSeek 402).
+                    print('classifier: lane %d dead (HTTP %d) - failing over to '
+                          'the next lane' % (lane_idx, exc.code), file=sys.stderr)
+                    break
                 if not retryable or attempt >= attempts:
                     if lane_idx < len(lanes) - 1 and retryable:
                         break   # fall to the next lane, do not raise yet
