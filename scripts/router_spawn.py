@@ -965,6 +965,97 @@ def _resolve_profile_tag(profiles, ref):
     return ref
 
 
+# ---------------------------------------------------------------------------
+# TR-139 (reopened, 2026-10-03): the default arm of resolve() — no project, no
+# --profile, no --profile-req, i.e. an UNRATED prompt — used to stamp the
+# priciest profile in the registry (P0_FORE). Measured live: 65 of 97 post-flip
+# proxy rows carried profile_id=P0_FORE. The unrated fallback is now the
+# CHEAPEST registered profile (sum of the profile's own chain prices, built by
+# the same _build_chain contract resolve() uses), overridable per operator.
+#: The explicit LAST RESORT: used only when neither the cheapest-profile scan
+#: nor the operator override can name a profile (unusable registry). P0_FORE
+#: survives ONLY here, named — never as an implicit stamp.
+DEFAULT_PROFILE = 'P0_FORE'
+
+#: TR-139 operator override: pin the unrated/default fallback profile. Unset or
+#: empty = the cheapest registered profile. A value the registry cannot
+#: validate is dropped VISIBLY (problems[] names the ignore) — never a silent
+#: no-op, and never honoured for a profile the registry does not declare.
+EMPTY_MATRIX_PROFILE_ENV = 'ROUTER_EMPTY_MATRIX_PROFILE'
+
+
+def _cheapest_profile_id(tables, profiles, reqs_by_profile):
+    """The cheapest registered profile by the sum of its chain's lane prices.
+
+    "Cheapest" is measured on the lanes the profile can actually route: the
+    chain is built with _build_chain (same eligibility, same price ordering as
+    resolve()), then the per-hop prices are summed. Ties break deterministically
+    by profile id (sorted iteration + strict <). Returns None when no profile
+    resolves a priced chain — the caller owns the last resort.
+    """
+    best_pid, best_cost = None, None
+    for pid in sorted(profiles):
+        try:
+            rows = _build_chain(tables, reqs_by_profile.get(pid) or [])
+        except Exception as exc:  # noqa: BLE001 — fail-open: skip a profile
+            # whose chain cannot be built; the scan must never block a resolve.
+            _err(f'WARNING: cheapest-profile scan skipped {pid} — '
+                 f'{str(exc)[:160]}')
+            continue
+        prices = [r[3] for r in rows if isinstance(r[3], (int, float))]
+        if not prices:
+            continue
+        cost = float(sum(prices))
+        if best_cost is None or cost < best_cost:
+            best_pid, best_cost = pid, cost
+    return best_pid
+
+
+def _empty_matrix_fallback(tables, profiles, reqs_by_profile):
+    """The unrated/default fallback profile (TR-139 reopened): CHEAPEST first.
+
+    Precedence: a valid ROUTER_EMPTY_MATRIX_PROFILE pin wins; otherwise the
+    cheapest registered profile; otherwise the explicitly-named DEFAULT_PROFILE
+    last resort (unusable registry / no priced chain anywhere).
+
+    Returns (pid, meta). meta always carries complexity_source ('default' —
+    the spawn-side unrated arm; the proxy layer emits 'classifier-empty' /
+    'declared'), the chosen profile_id, a degrade_reason naming what failed,
+    and problems[] for a visibly-ignored override. Never raises.
+    """
+    meta = {'complexity_source': 'default', 'profile_id': None,
+            'degrade_reason': None, 'problems': []}
+    env_pin = os.environ.get(EMPTY_MATRIX_PROFILE_ENV) or ''
+    pin = None
+    if env_pin:
+        pin = _resolve_profile_tag(profiles, env_pin)
+        if not pin or pin not in profiles:
+            meta['problems'].append(
+                f'{EMPTY_MATRIX_PROFILE_ENV}={env_pin} override ignored: '
+                f'profile not in registry — cheapest-profile default applies')
+            pin = None
+    if pin:
+        meta['profile_id'] = pin
+        meta['degrade_reason'] = (
+            f'unrated fallback: env override {EMPTY_MATRIX_PROFILE_ENV}='
+            f'{env_pin} -> profile {pin} (beats the cheapest-profile default)')
+        return pin, meta
+    pid = _cheapest_profile_id(tables, profiles, reqs_by_profile) if profiles else None
+    if pid is None:
+        meta['profile_id'] = DEFAULT_PROFILE
+        meta['degrade_reason'] = (
+            'unrated fallback: no usable registry / priced profile chain — '
+            f'last resort {DEFAULT_PROFILE}')
+        if env_pin:
+            meta['degrade_reason'] += f' (override {env_pin!r} not in registry)'
+        return meta['profile_id'], meta
+    meta['profile_id'] = pid
+    meta['degrade_reason'] = (
+        f'unrated fallback: cheapest registered profile '
+        f'({EMPTY_MATRIX_PROFILE_ENV} unset)')
+    return pid, meta
+
+
 def _profile_ref_matches(profiles, ref):
     """TR-059: does `ref` name a profile — a pin, an exact id OR a tag?
 
@@ -2039,6 +2130,10 @@ def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=DE
     # slot actually named a profile (TR-059-FIX criterion: the caller must be
     # told `use --profile X` whether the resolve succeeds or dead-ends).
     profile_hint = None
+    # TR-139 (reopened): the unrated/default fallback's own envelope stamp —
+    # set ONLY when the default arm fired (never on rated inputs); merged into
+    # the payload below so every fallback is countable from the ledger.
+    default_profile_meta = None
     pid = profile_id
     if adhoc:
         resolved_as = 'adhoc'
@@ -2105,10 +2200,23 @@ def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=DE
     else:
         # --profile argument may be a tag or an exact id.
         resolved_as = 'profile-arg' if profile_id else 'default'
-        pid = _resolve_profile_tag(profiles, pid or 'P0_FORE')
-        reqs = reqs_by_profile.get(pid, [])
+        pid = _resolve_profile_tag(profiles, pid or 'P0_FORE') \
+            if profile_id else None
+        reqs = reqs_by_profile.get(pid, []) if pid else []
     if not pid and not adhoc:
-        pid = 'P0_FORE'
+        # TR-139 (reopened): unrated/default input — the caller gave NO profile
+        # signal. The old code stamped P0_FORE (the priciest seat; measured
+        # live 2026-10-03: 65 of 97 post-flip proxy rows carried it). The
+        # fallback is now the CHEAPEST registered profile, with the operator
+        # override ROUTER_EMPTY_MATRIX_PROFILE taking precedence. The choice
+        # is STAMPED on the payload (default_profile) so the envelope names
+        # complexity_source + the chosen profile_id + degrade_reason on every
+        # fallback — the unrated rate is countable from the ledger.
+        fb_pid, fb_meta = _empty_matrix_fallback(tables, profiles,
+                                                 reqs_by_profile)
+        pid = fb_pid
+        default_profile_meta = fb_meta
+        reqs = reqs_by_profile.get(pid, [])
     if pid and pid not in profiles:
         err = {'error': f'profile {pid} not in registry',
                'code': 'PROFILE_NOT_FOUND', 'retryable': False,
@@ -2493,7 +2601,14 @@ def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=DE
                 # TR-183 precondition: how much of THIS ordering actually rested on measurement.
                 # Absent (None) for the price sort — never a fabricated zero.
                 'sufficiency': (sort_ctx or {}).get('_sort_basis'),
-            },
+                },
+                # TR-139 (reopened): the unrated/default fallback's own record —
+                # null unless the default arm fired. complexity_source
+                # ('default' | 'classifier-empty' | 'declared' as stamped by the
+                # proxy layer), the chosen profile_id, and degrade_reason naming
+                # what failed: the envelope makes the unrated rate countable from
+                # the ledger.
+                'default_profile': default_profile_meta,
             # TR-021: carry the raw chain rows to the metrics hook without
             # recomputing.  This key is intentionally NOT part of the public
             # contract and is stripped before JSON serialization in main().
