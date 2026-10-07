@@ -1,0 +1,12 @@
+{
+  "tick": "task-router-foreman-2026-10-07-08-49-57",
+  "project": "task-router",
+  "wave_budget": 3,
+  "workers": [
+    {"task_id": "TR-208", "title": "Quota L1: usage/balance endpoint poller", "model": "glm-5.3-flash", "provider": "zai-glm"},
+    {"task_id": "TR-195", "title": "No-hops-rate baseline and threshold", "model": "glm-5.3-flash", "provider": "zai-glm"},
+    {"task_id": "TR-187", "title": "Coverage baseline and floor for router + proxy modules", "model": "glm-5.3-flash", "provider": "zai-glm"}
+  ],
+  "independence_check": "TR-208 touches scripts/quota poller modules (new), TR-195 ledger/UI series module (new), TR-187 tests/ + coverage config only — no shared files; no depends_on edges between rows.",
+  "ch_trace": "ch:trace row=TR-208 wave=task-router-foreman-2026-10-07-08-49-57; ch:trace row=TR-195 wave=task-router-foreman-2026-10-07-08-49-57; ch:trace row=TR-187 wave=task-router-foreman-2026-10-07-08-49-57"
+}
