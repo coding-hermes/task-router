@@ -289,6 +289,37 @@ Headers that steer the router (all optional):
 The caller's `Authorization` / `x-api-key` are forwarded upstream unchanged —
 the router never stores or invents keys.
 
+**The `model` field in the request body does NOT pin a lane.** A vanilla
+OpenAI-compatible call carries only `model` + `messages`; the router forwards
+the body's `model` to whichever hop it selected verbatim (it is a hint the
+served lane may honour or ignore), and never treats it as a routing command.
+Selection comes from the profile/complexity resolution below — so a client that
+points its provider entry at the proxy and asks for `model: X` is served by the
+chain's head for ITS declared (or rated) complexity, not necessarily by X.
+
+**How a caller actually steers: declare, don't imply.**
+- `x-router-profile: P1_CODING` declares the task profile — the chain is the
+  profile's own requirement set (registry `task_profile_requirements`, resolved
+  via `router_outcomes.required_levels`), every scorer is skipped, and the
+  outcome row is attributed: `complexity_source: "declared"`,
+  `profile_id: "P1_CODING"`, `degrade_reason: null`.
+- To request a SPECIFIC lane, declare a profile that only that lane clears, or
+  send the requirement set directly with `x-router-sort` reordering (any
+  TR-065 metric) / `x-router-window-h` / `x-router-max-hops` as listed above.
+- With NO profile header the prompt text is rated (classifier, or JEV via
+  `x-router-scorer: jev`). When no rating is available the call is still served
+  — fail-open, on the cheap floor — and the row says so in named fields, never
+  by inference: `complexity_source` is `classifier-empty` (rated, presses no
+  category) or `default` (rating failed), `profile_id` is `null` (TR-139: a
+  rating failure no longer bills like P0_FORE), and `degrade_reason` names the
+  cause in one field (e.g. `no JSON object in classifier output`, then
+  `unrated -> fail-cheap floor requirements`). The ledger UI shows the same
+  fields per row (`/api/ui/ledger`; the flow drill-down renders
+  "rating source" + the classifier evidence). A 2026-09-29 measurement of a
+  Hermes agent calling through a plain provider entry showed every row in the
+  `default`/`classifier-empty` classes: the fix for attribution is sending
+  `x-router-profile`, not reading the `model` field as a lane pin.
+
 **Auth.** Every POST to the server is key-gated by default (read-only mode
 answers `403`, edit mode needs `X-API-Key`). For a gateway-shaped client
 whose own credential is the real gate, start the server with
