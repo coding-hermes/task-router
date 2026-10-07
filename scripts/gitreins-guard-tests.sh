@@ -79,6 +79,16 @@ if [ "$RC" -ne 0 ]; then
   exit 1
 fi
 
+# TR-201: the null-debt PREVENTION gate rides along with the suite — the
+# committed data/tables must hold the three invariants (wipe-shape, dead
+# column, anonymous lifecycle dates) whenever the guard grades the tree.
+"$PY" "$(dirname "$0")/null_debt_invariants.py"
+RC_GATE=$?
+if [ "$RC_GATE" -ne 0 ]; then
+  echo "ERROR: null_debt_invariants.py failed (exit $RC_GATE) — see output above."
+  exit 1
+fi
+
 # ---------------------------------------------------------------------------
 # CI gate (see docs/ci-gate.md). This suite runs WITH this box's live state
 # present; CI runs it with none, so a green run here is not evidence about CI.

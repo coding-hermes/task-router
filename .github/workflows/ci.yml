@@ -72,6 +72,14 @@ jobs:
           print('data/tables ok:', {k: v for k, v in sorted(tables.items())})
           EOF
 
+      # TR-201: null-debt PREVENTION invariants — the wipe-shape (INV1), the
+      # dead-column shape (INV2) and anonymous lifecycle dates (INV3, the
+      # TR-199 R4 predicate) fail the push. Runs on the committed data/
+      # tables; scratch-dir behavior is pinned by
+      # tests/test_null_debt_invariants.py in the suite step above.
+      - name: Null-debt invariants (TR-201)
+        run: python3 scripts/null_debt_invariants.py
+
       # ---------------------------------------------------------------------
       # Proxy-path harnesses (TR-186): scripts/proxy_acceptance.py,
       # scripts/proxy_smoke.py, scripts/dummy_scheduler.py.
