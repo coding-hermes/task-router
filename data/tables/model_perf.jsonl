@@ -2323,6 +2323,7 @@
 {"model": "mistralai/mistral-large-2512", "category": "schema", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
 {"model": "mistralai/mistral-large-2512", "category": "test", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
 {"model": "mistralai/mistral-large-2512", "category": "tool_use", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
+{"model": "mistralai/mistral-large-4-0", "category": "test", "perf": 0.72, "source": "estimate", "source_ref": "CATEGORY_ESTIMATES"}
 {"model": "mistralai/mistral-medium-3.5", "category": "agent_tick", "perf": 0.75, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/AGENT-TICK"}
 {"model": "mistralai/mistral-medium-3.5", "category": "code_gen", "perf": 0.333, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/T2-CODE"}
 {"model": "mistralai/mistral-medium-3.5", "category": "debug", "perf": 0.667, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/T5-DEBUG"}

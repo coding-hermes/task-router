@@ -198,6 +198,14 @@ POST_DEDUPE_ADDITIONS = {
     ("xkiro", "stealth/pixel-canary:free"): "TR-217 (3a88c97)",
     ("xkiro", "stealth/space-bunny-alpha:free"): "TR-217 (3a88c97)",
     ("xkiro", "xiaomi/mimo-v2.6-flash:free"): "TR-217 (3a88c97)",
+    # 2026-10-07 pre-run syncs: models.dev +2 (openrouter google/
+    # gemini-nano-banana-2.1 — image-output model, DISABLED same day as a
+    # phantom-head — and mistralai/mistral-large-4-0) and clinepass API +2
+    # (gemini-nano-banana-2.1, mistral-large-4-0 — both catalog rows).
+    ("clinepass", "gemini-nano-banana-2.1"): "TR-217 (2026-10-07 clinepass API sync)",
+    ("clinepass", "mistral-large-4-0"): "TR-217 (2026-10-07 clinepass API sync)",
+    ("openrouter", "google/gemini-nano-banana-2.1"): "TR-217 (2026-10-07 models.dev sync)",
+    ("openrouter", "mistralai/mistral-large-4-0"): "TR-217 (2026-10-07 models.dev sync)",
     ("xkiro-2", "dots-studio/dots-3-note-preview:free"): "TR-217 (3a88c97)",
     ("xkiro-2", "inclusionai/ling-3.0-flash-sante:free"): "TR-217 (3a88c97)",
     ("xkiro-2", "liquid/lfm-2.5-2.6b:free"): "TR-217 (3a88c97)",

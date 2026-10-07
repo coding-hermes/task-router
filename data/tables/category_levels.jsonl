@@ -223,7 +223,7 @@
 {"category": "test", "level": -3, "label": "---", "min_perf": 0.72}
 {"category": "test", "level": -2, "label": "--", "min_perf": 0.72}
 {"category": "test", "level": -1, "label": "-", "min_perf": 0.72}
-{"category": "test", "level": 0, "label": "0", "min_perf": 0.95}
+{"category": "test", "level": 0, "label": "0", "min_perf": 0.8999999999999999}
 {"category": "test", "level": 1, "label": "+", "min_perf": 1.0}
 {"category": "test", "level": 2, "label": "++", "min_perf": 1.0}
 {"category": "test", "level": 3, "label": "+++", "min_perf": 1.0}
