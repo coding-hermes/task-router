@@ -410,6 +410,7 @@
 {"id": "mafia-ai-benchmark-review", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P9_REVIEW"}
 {"id": "mafia-ai-benchmark-sync", "sensitivity": "open", "board_type": "", "stack": "", "profile": "P8_SYNC"}
 {"id": "mafia-benchmark-sync", "sensitivity": "open", "board_type": "", "stack": "", "profile": "P8_SYNC"}
+{"id": "mischief-chaos", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P9_REVIEW"}
 {"id": "mischief-docs", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P3_DOCS"}
 {"id": "mischief-dogfood", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
 {"id": "mischief-foreman", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P0_FORE"}

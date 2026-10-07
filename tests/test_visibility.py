@@ -165,7 +165,7 @@ def test_corrupt_registry_source_fallback_and_warning(monkeypatch, tmp_path):
     assert r["head"] is not None  # resilience: resolution still works
     # the fallback data is the committed registry — head must match the
     # golden fixed-point head for this profile (same tables as registry.json)
-    assert _pair(r["head"]) == "xkiro/openai/gpt-5.6-luna"  # 2026-10-03: TR-124 raised P1_CODING bars to {code_gen,debug,refactor,test}>=0; qwen3.7-flash:free excluded (tier -1 in code_gen/debug), head moved to gpt-5.6-luna
+    assert _pair(r["head"]) == "xkiro/z-ai/glm-5.3-flash"  # 2026-10-04: gpt-5.6-luna retired (xkiro seat retirement, valid_to 2026-10-03); head = cheapest eligible plan lane, matching test_regression's golden fixture
 
 
 def test_missing_registry_source_fallback(monkeypatch, tmp_path):
@@ -199,7 +199,7 @@ def test_missing_health_state_reported_false(monkeypatch, tmp_path):
     # behavior unchanged: a missing health file must NOT fabricate a DOWN
     # gate — the chain still resolves to the healthy head
     assert r["head"] is not None
-    assert _pair(r["head"]) == "xkiro/openai/gpt-5.6-luna"  # 2026-10-03: TR-124 raised P1_CODING bars to {code_gen,debug,refactor,test}>=0; qwen3.7-flash:free excluded (tier -1 in code_gen/debug), head moved to gpt-5.6-luna
+    assert _pair(r["head"]) == "xkiro/z-ai/glm-5.3-flash"  # 2026-10-04: gpt-5.6-luna retired (xkiro seat retirement, valid_to 2026-10-03); head = cheapest eligible plan lane, matching test_regression's golden fixture
 
 
 def test_missing_all_state_files_reported(monkeypatch, tmp_path):

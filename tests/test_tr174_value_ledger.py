@@ -350,9 +350,10 @@ def test_exploit_head_records_its_full_basis():
     assert ctx['_win_reason'][('p', 'm')] is rec
 
 
-def test_price_fallback_head_is_named_when_nothing_is_measured():
-    """Coverage gate fails => the head is the price winner in price-fallback
-    mode, with expected_cost None and the per-lane reason kept."""
+def test_price_fallback_head_claims_nothing_in_the_win_record():
+    """Coverage gate fails => the head is the price winner, and (TR-183
+    doctrine) it emits NO selection record — a price-fallback head is not a
+    measured claim. The per-lane reasons stay in the sort basis."""
     index = _stats(('p', 'm', 1, 0.0001))
     lanes = LANES + [{'provider': 'z%d' % i, 'model': 'lane%d' % i}
                      for i in range(9)]
@@ -360,10 +361,8 @@ def test_price_fallback_head_is_named_when_nothing_is_measured():
     rs._sort_predicted_cost_per_task(None, lanes, ctx)
     b = ctx['_sort_basis']
     assert b['effective'] == 'price' and b['reason'] == 'below-coverage-floor'
-    rec = b['win_reason']
-    assert rec['mode'] == 'price-fallback'
-    assert rec['expected_cost'] is None
-    assert rec['basis'] == 'no-sample'           # q/n has no stats row at all
+    assert 'win_reason' not in b
+    assert ctx['_win_reason'] == {}
 
 
 def test_band_is_recorded_when_the_row_carries_categories():
@@ -503,14 +502,17 @@ def test_resolve_response_is_auditable_end_to_end(tmp_path, monkeypatch):
     assert all('selection' not in e['outcomes'] for e in others)
 
 
-def test_resolve_default_stays_price_with_no_selection_claims(tmp_path, monkeypatch):
-    """The doctrine guard, once more at the response level: the DEFAULT sort
-    never emits a sufficiency claim or a selection record."""
+def test_resolve_default_sorts_by_predicted_cost_with_no_selection_claims(tmp_path, monkeypatch):
+    """The TR-287 owner contract (DEFAULT_SORT=predicted_cost_per_task,
+    rollback ROUTER_SPAWN_SORT=price): the DEFAULT sort may emit a sufficiency
+    record, but never a selection claim when the coverage bar fails, and the
+    degrade reports itself."""
     _wire(tmp_path, monkeypatch,
           averages=[_avg_row('prov-b', 'b-cheap', 0.001, n=10, rate=1.0)])
     r = rs.resolve(project='proj')
-    assert r['sort'] == 'price'
-    assert r['sort_stats']['sufficiency'] is None
+    assert r['sort'] == 'predicted_cost_per_task'
+    sup = r['sort_stats']['sufficiency']
+    assert sup is not None and sup.get('effective') == 'price'
     for e in r['chain']:
         if 'outcomes' in e:
             assert 'selection' not in e['outcomes']

@@ -6,6 +6,25 @@ curated from the git log, not generated).
 
 ## [Unreleased]
 
+### Added
+
+- **Verified outcome feedback leg (TR-299)**: `scripts/verified_outcomes.py`
+  projects every completed task outcome into
+  `data/state/outcomes-verified.jsonl` under the lane that ACTUALLY served it
+  (derived from the immutable `billing_base_url` host, never the re-stamped
+  `billing_provider` label), with the exact token/call/wall-time meter and a
+  pass/fail taken from the board row's independent acceptance evidence — not
+  the worker's report. Side-purpose usage rows (title generation, approval,
+  background review) never bill to the task lane. The write is an atomic
+  projection: re-running a session is byte-identical (idempotent). The
+  rolling averages gain `cost_per_passed_task_<N>h` (NULL with a reason at
+  zero passes — cheap failures cannot read as cheap per passed task),
+  `n_passed`, and an unranked-with-reason gate
+  (`router_outcomes.ranking_verdict`) below the verified-sample floor;
+  `outcomes_averages.py --extra-input` folds the verified store in, with
+  verified rows superseding same-key billed-lane rows. Schema:
+  `docs/outcomes-schema.md` §"Verified outcomes".
+
 ### Changed
 
 - **Ingress admission and failure handling are now PER LANE** (SCHED-GAP-1713).

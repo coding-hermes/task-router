@@ -208,6 +208,58 @@ store has a sample for it, otherwise the price proxy
 (`normalized_price × token_factor`) — an unknown lane keeps its price rank
 instead of being treated as free.
 
+## Verified outcomes (TR-299) — the actual served lane + independent pass/fail
+
+`scripts/verified_outcomes.py` is the steady-state consumer of every completed
+task outcome. It projects (gateway `state.db` × board `tasks.jsonl`) into a
+second store — `data/state/outcomes-verified.jsonl` (path env:
+`ROUTING_OUTCOMES_VERIFIED_FILE`) — whose rows the rolling averages fold in:
+
+```bash
+python3 scripts/verified_outcomes.py --dry-run     # collect, write nothing
+python3 scripts/verified_outcomes.py               # atomic projection write
+python3 scripts/outcomes_averages.py --extra-input data/state/outcomes-verified.jsonl
+```
+
+What a verified row adds over a plain Hermes-driver row:
+
+| field | meaning |
+|---|---|
+| `provider`, `model` | the lane that ACTUALLY served the session — derived from the immutable `billing_base_url` host, never the re-stamped `billing_provider` label |
+| `tokens_in` (incl. cache reads), `cache_read_tokens`, `tokens_out`, `tokens_reasoning`, `turns` | the session's exact meter, main lane only |
+| `cost_usd` + `price_basis` | the gateway estimate, with the plan-effective replacement when the meter reads zero (TR-070) and NULL + reason above the $1000 corruption bound |
+| `success`, `acceptance_status`, `acceptance_source` | pass/fail from the board row's acceptance evidence (closure, `worker_status`, per-criterion results, evidence) — worker prose in title/detail is deliberately NOT a verdict; `null` always carries `unranked_reason` |
+| `complexity_sig` / `band` | the board row's `required_categories` through the SAME `band_key()` the resolve side uses (R3.1: one function, write side and read side) |
+| `task_key` | the board join key (session display_name/session_key; timestamped foreman run keys collapse to their stable project prefix) |
+
+Derivation rules worth trusting:
+
+* A session's side-purpose calls (`title_generation`, `approval`,
+  `background_review`, `compression`, `vision`, `goal_judge` — measured
+  2026-10-06) are NOT the task's lane and are excluded by name. A non-empty
+  `task` value outside that set is billed to NOTHING and the row says so
+  (unclassified, with the reason) — never silently folded into the main lane.
+* The write is an ATOMIC PROJECTION (tmp + rename), not an append: the same
+  (DB, board) state yields a byte-identical store, so re-running a session
+  adds no row and never double-counts (the accumulate path is for live steps
+  landing one at a time; a full re-derivation must replace, not add).
+* `--extra-input` folds the verified store into the rolling averages, and a
+  verified row SUPERSEDES a main-store row with the same identity key
+  (`source_system, session_id, model`) — the billed-lane projection and the
+  actual-lane projection describe one session; counting both bills it twice.
+
+Rolling-average fields the verified leg adds per bucket:
+
+| field | meaning |
+|---|---|
+| `cost_per_passed_task_<N>h` | decay-weighted cost over PASSED tasks only (independent verdicts). NULL with `cost_per_passed_task_basis` when the bucket holds zero passes (`no-passed-samples: 0 of N …`) or no verdicts (`unverified: N of M …`) — a cheap lane that fails its tasks cannot read as cheap-per-passed-task |
+| `n_passed` | rows whose independent verdict is True |
+| `ranking` gate | `router_outcomes.ranking_verdict(entry)` → `(ranked, reason)`: below `ROUTER_SORT_MIN_SAMPLES` (the same knob as the resolve-side measured floor, default 3) independently-verified samples a bucket stays unranked WITH a reason naming the counts |
+
+Failure mode is fail-open end to end: a missing gateway DB, an unreadable
+board, or a task absent from the board produce reasoned rows (or an empty
+result), never a crash — nothing here may block the resolve path.
+
 ## Seed derivation
 
 `scripts/router_seed.py` emits the averages as the registry table

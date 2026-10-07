@@ -89,9 +89,13 @@ def _resolve(monkeypatch, tmp_path, tables, project="coding-hermes-scheduler", p
     reg = tmp_path / "registry.json"
     reg.write_text(json.dumps({"version": 3, "tables": tables}))
     monkeypatch.setattr(router_spawn, "REGISTRY", str(reg))
+    # This test pins the LEGACY ordering invariant (plan_tier, price); the
+    # TR-287 default (predicted_cost_per_task) reorders measured chains on
+    # purpose, so pin the legacy key explicitly rather than via monkeypatched
+    # env — the invariant under test is the sort itself, not the default.
     if profile:
-        return router_spawn.resolve(profile_id=profile)
-    return router_spawn.resolve(project=project)
+        return router_spawn.resolve(profile_id=profile, sort='price')
+    return router_spawn.resolve(project=project, sort='price')
 
 
 def _payg_providers(tables):
@@ -258,7 +262,7 @@ def test_chain_invariants_per_profile(monkeypatch, tmp_path, pid):
     # (pre-existing; control worktree at HEAD resolves qwen3.7-flash:free too —
     # minimax-m3:free fails P1's test>=0 bar with test tier BLANK -> -1). The
     # undamp does not move this head; the fixture now states the resolved truth.
-    ("P1_CODING", "xkiro/openai/gpt-5.6-luna"),  # TR-124 2026-10-03: raised P1_CODING bars to {code_gen,debug,refactor,test}>=0; qwen3.7-flash:free excluded (tier -1 in code_gen/debug), head moved to gpt-5.6-luna
+    ("P1_CODING", "xkiro/z-ai/glm-5.3-flash"),  # 2026-10-04: gpt-5.6-luna retired (valid_to 2026-10-03); gpt-6-luna carries NO refactor tier row, so the head is the cheapest refactor-clearing plan lane, xkiro/z-ai/glm-5.3-flash (0.005467/M effective; xkiro wins the tie-break over xkiro-2)
     # Capability-grounded heads (gpt-5.6-sol review 2026-08-27: do NOT tune
     # normal eligibility to accommodate the emergency fallback — fallback is a
     # degraded path that reports requirements_unmet). P2/P4 head on models with
@@ -280,7 +284,22 @@ def test_chain_invariants_per_profile(monkeypatch, tmp_path, pid):
     # degraded deepseek-foreman fallback. openai-codex remains DOWN in the
     # mirror (health), commandcode picks the chain head at $5 vs codex $0.4.
     # Degraded fallback still covered by test_fallback_lane_fires_when_all_subs_down.
-    ("P4_SECURITY", "xkiro/openai/gpt-5.6-sol")  # 2026-09-28: head moved from glm-5.3-flash to gpt-5.6-sol after registry/pricing updates
+    # TR-284 2026-10-06 CI fix: gpt-5.6-sol/gpt-5.6-luna retired on the last
+    # four carriers (valid_to 2026-10-03, replaced_by gpt-6.1-sol / gpt-6-luna)
+    # and gpt-6.1-sol now carries a DECLARED security tier 2 (bench
+    # ExploitBench, perf 0.85 — tier_source=bench, so it clears the P4
+    # security>=2 gate the predecessor's bench rows used to clear). The old
+    # openrouter/gpt-5.6-sol lane is retired and drops out of the chain
+    # entirely; the new head is commandcode/gpt-6.1-sol at $2.0/M with
+    # openai-codex/gpt-6.1-sol at $2.32/M behind it (live resolve 2026-10-06).
+    # Still ONE model across two carriers — tracked as TR-318.
+    # TR-318 2026-10-06 fix: the discriminating GUARD-V2/REVIEW-V2 battery
+    # (extended2, committed to benchmarks.jsonl) measured z-ai/glm-5.3 (the
+    # FULL 5.3 weights, live on openrouter/xkiro/zai-glm/…) guard 4/4 review
+    # 4/4 — unlike glm-5.3-flash (0/4, 09-27). With review and guard tiers
+    # measured on the 5.3 family, P4_SECURITY resolves TWO distinct models
+    # and the cheapest lane (xkiro z-ai/glm-5.3 $0.0507/M) becomes the head.
+    ("P4_SECURITY", "xkiro/z-ai/glm-5.3")
 ])
 def test_golden_fixed_point_heads(monkeypatch, tmp_path, pid, head):
     """Known heads as of 2026-08-27 (intentional reprice/new-model changes must
@@ -535,7 +554,13 @@ def test_registry_integrity():
                 "model_outcomes",
                 # Provider quota ledger (commit 777c7dc, 2026-09-26):
                 # commandcode rollover correction — data sidecar like plan_terms
-                "provider_quota"}
+                "provider_quota",
+                # TR-267 quality ladder (commit ab28657, 2026-10-03):
+                # one (metric, stage) row per quality stage — data sidecar
+                "quality_ladder",
+                # TR-268 type-hint ladder stage 0 baseline (commit 9139a15,
+                # 2026-10-06): per-module annotation scores — data sidecar
+                "type_hint_baseline"}
     assert core <= set(tables), f"missing core tables: {core - set(tables)}"
     assert set(tables) - core <= sidecars, f"unexpected tables: {set(tables) - core - sidecars}"
     models = tables["models"]

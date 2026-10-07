@@ -176,6 +176,17 @@ STRUCTURAL = {
         "guard": "no guard sample yet",
         "mock": "no mock sample yet",
     },
+    # quality_ladder (TR-267): a stage target is either SET or not yet
+    # declared — the design says "seeded at 0 pending TR-187/TR-282", so a
+    # missing target/definition_cmd is the declared seed state, not debt
+    "quality_ladder.jsonl": {
+        "stage": "metric rows carry one stage each; a missing stage is the declared seed state",
+        "target": "stage seeded without a target yet (TR-187/TR-282 pending)",
+        "definition_cmd": "stage seeded without a measuring command yet",
+        "note": "stage seeded without a note yet",
+        "block": "stage seeded without a blocking rule yet",
+        "priority": "stage seeded without a priority yet",
+    },
     "sample-outcomes.jsonl": {
         "complexity": "sample row predates the complexity field",
         "profile_id": "sample row predates profile tagging",

@@ -57,7 +57,8 @@ def test_valid_matrix_parses_with_sig():
     assert res['matrix'] == {'code_gen': 2, 'test': 1}
     assert res['confidence'] == 0.8
     assert res['complexity_sig']
-    assert res['prompt_version'] == 'v1' and res['problems'] == []
+    # TR-287 owner contract: prompt v3 replaced v1 as the shipped default
+    assert res['prompt_version'] == 'v3' and res['problems'] == []
 
 
 def test_fenced_json_is_tolerated():

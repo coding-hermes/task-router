@@ -215,6 +215,11 @@ POST_DEDUPE_ADDITIONS = {
     ("clinepass", "switchyard"): "TR-217 (2026-10-03 clinepass API sync)",
     ("openrouter", "inclusionai/ling-3.1-flash"): "TR-217 (2026-10-03 models.dev sync)",
     ("synthetic", "hf:zai-org/GLM-5.3"): "TR-217 (2026-10-03 models.dev sync)",
+    # 2026-10-05/06 pre-run models.dev sync: +1 (opencode-go/space-bunny,
+    # catalog-only import; priced 0.168 sub-bucket blended est same run; the
+    # stealth/space-bunny-alpha + pixel-canary mirror lanes were disabled
+    # upstream-unpriceable 2026-10-06 — row EDITS do not affect this pin).
+    ("opencode-go", "space-bunny"): "TR-217 (2026-10-05 models.dev sync)",
 }
 
 

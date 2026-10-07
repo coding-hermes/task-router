@@ -394,11 +394,14 @@ def test_resolve_forwards_the_outcome_sort_knobs(server_env):
         assert merged["sort_stats"]["backend"] is None
         assert merged["sort_stats"]["merge_backends"] is True
 
-        # no knobs -> the legacy default ordering, reported as such
+        # no knobs -> the owner's default ordering (TR-287: predicted_cost_per_task,
+        # rollback via ROUTER_SPAWN_SORT), reported as such
         code, plain = _request(port, "/resolve?project=my-project")
         assert code == 200
-        assert plain["sort"] == "price"
-        assert plain["sort_stats"]["loaded"] is False
+        assert plain["sort"] == "predicted_cost_per_task"
+        # the default is a stats-backed sort now: the context loads (even when
+        # the store is empty the load attempt is made and reported)
+        assert plain["sort_stats"]["loaded"] is True
 
 
 # ---------------------------------------------------------------------------
@@ -437,9 +440,43 @@ def test_resolve_accepts_a_bare_profile_name(server_env):
         assert code == 200 and "error" not in proj
         assert proj["resolved_as"] == "project"
 
-        # A name that is neither keeps the unchanged error, with no hint.
+        # A name that is neither keeps the error shape, but as a 400 now
+        # (TR-REV-20261005-2: status-based clients must not swallow it) with
+        # no hint on a non-match.
         code, bad = _request(port, "/resolve?project=some-nonexistent-thing")
-        assert code == 200
+        assert code == 400, bad
         assert bad["error"] == "project some-nonexistent-thing not in registry"
         assert "use --profile" not in bad["error"]
+
+
+# ---------------------------------------------------------------------------
+# TR-REV-20261005-1 — ?profile= resolution + TR-REV-20261005-2 error statuses
+# ---------------------------------------------------------------------------
+
+def test_resolve_honors_the_profile_param(server_env):
+    """?profile=P1_CODING alone resolves like the documented CLI
+    `--profile P1_CODING` — chain-for-chain identical."""
+    with _server(server_env) as port:
+        code, payload = _request(port, "/resolve?profile=P1_CODING")
+        assert code == 200, payload
+        assert "error" not in payload, payload.get("error")
+        assert payload["profile"] == "P1_CODING"
+        assert payload["resolved_as"] == "profile-arg"
+        assert payload["chain"], "empty chain makes the parity check vacuous"
+
+        proc = subprocess.run(
+            [PY, str(REPO / "scripts" / "router_spawn.py"), "--profile",
+             "P1_CODING", "--format", "json"],
+            cwd=REPO, env=server_env, capture_output=True, text=True, timeout=60)
+        assert proc.returncode == 0, proc.stderr
+        flag = json.loads(proc.stdout)
+        assert [(h["provider"], h["model"]) for h in payload["chain"]] == \
+            [(h["provider"], h["model"]) for h in flag["chain"]]
+
+
+def test_resolve_neither_project_nor_profile_is_400(server_env):
+    with _server(server_env) as port:
+        code, payload = _request(port, "/resolve")
+        assert code == 400, payload
+        assert payload["error"] == "project query parameter is required"
 

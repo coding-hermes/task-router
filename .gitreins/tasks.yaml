@@ -596,13 +596,13 @@ tasks:
   created_at: '2026-09-30T09:04:38.067501+00:00'
   completed_at: '2026-09-30T14:29:42.129586+00:00'
 - id: TR-204
-  title: TR-204 worker task
+  title: 'sync lane: diagnosability + no false marker + over-cap snapshot path'
   criteria:
-  - Board task TR-204 acceptance criteria met; build/lint/tests green; committed and
-    pushed
+  - AC1 overcap probe names status+body; AC2 force-fail writes no marker; AC3 5 over-cap
+    tables landed+read back; AC4 named size skips; AC5 marker describes real outcome
   status: complete
-  created_at: '2026-09-30T09:04:38.335102+00:00'
-  completed_at: '2026-09-30T15:14:59.649662+00:00'
+  created_at: '2026-10-03T16:32:19.644266+00:00'
+  completed_at: '2026-10-03T16:39:19.042644+00:00'
 - id: TR-197
   title: NULL census with finite reason set
   criteria:
@@ -743,11 +743,84 @@ tasks:
   status: complete
   created_at: '2026-10-03T03:18:22.580566+00:00'
   completed_at: '2026-10-03T03:19:25.424795+00:00'
-- id: TR-124
-  title: Capability bars are real but FLAT on the spawn path
+- id: TR-131
+  title: 'Profile version pinning: id:version / id@version pin syntax'
   criteria:
-  - Board rows can declare profile/requirement levels; foreman passes them to router_spawn;
-    P1_* levels re-derived to be meaningful bars
+  - router spawn --profile <id>:<n> resolves the exact (id,version) row even after
+    the tag moved; unmatched pin falls through to the not-found error; tests pass
   status: complete
-  created_at: '2026-10-03T06:33:03.903021+00:00'
-  completed_at: '2026-10-03T07:46:38.456771+00:00'
+  created_at: '2026-10-03T12:28:49.317652+00:00'
+  completed_at: '2026-10-03T13:18:18.734515+00:00'
+- id: TR-132
+  title: provider_mappings rename rules are seed-report-only
+  criteria:
+  - In router_seed.py, when the reconciliation scan maps an external lane id to a
+    canonical provider, apply the mapping to the seeded models rows (rewrite provider
+    in the derived registry table). Then the docstring is true. Test drives seed with
+    a renamed lane + rule and asserts the lane's routability matches the docstring.
+    router modelsdev sync --dry-run and seed agree on whether the external id is mapped.
+    Suite green; guard PASS.
+  status: pending
+  created_at: '2026-10-03T15:37:38.286013+00:00'
+- id: INT-CI-20261004-01
+  title: 'CI red on main: 7 stale golden/gate tests after xkiro retirement + TR-283
+    measured sort'
+  criteria:
+  - CI test job green on pushed HEAD; no golden test asserts a pre-retirement head;
+    chain-invariant test encodes the shipped ordering semantics; registry-integrity
+    allowlist includes quality_ladder
+  status: complete
+  created_at: '2026-10-04T06:23:42.723103+00:00'
+  completed_at: '2026-10-04T07:31:38.455244+00:00'
+- id: TR-292
+  title: "raw per-category levels on board rows \u2014 close criterion 3 (prompt surface)"
+  criteria:
+  - 'The prompt that actually ships carries the instruction to pass raw per-category
+    levels and not an assigned profile: verified by reading the surface the fleet
+    loads (loaded skill library at ~/.hermes/skills/task-router-usage after sync,
+    namespace default_prompt shown to carry no router content), branch wt/TR-292 merged
+    to main, focused tests re-run on the merged tree'
+  status: complete
+  created_at: '2026-10-04T13:19:21.289540+00:00'
+  completed_at: '2026-10-04T13:20:04.438481+00:00'
+- id: TR-298
+  title: 'AUTOMATIC TEST INTAKE: board task -> classifier -> resolve without manual
+    CLI'
+  criteria:
+  - New task row triggers exactly one classification/resolve record; replay of the
+    same id is idempotent; classifier ratings over supported categories; fail-open
+    visible errors
+  status: complete
+  created_at: '2026-10-04T21:51:20.851745+00:00'
+  completed_at: '2026-10-04T22:36:24.213707+00:00'
+- id: TR-284
+  title: Retire gpt-5.6-sol/luna on non-xkiro carriers, gated on declared gpt-6.1-sol
+    security tier
+  criteria:
+  - P4_SECURITY chain (router_spawn.py --profile-req 'security=2 guard=0 review=0')
+    resolves to >=2 distinct models; all 11 profiles still resolve non-empty; lifecycle
+    rows carry valid_to+replaced_by for gpt-5.6-sol/gpt-5.6-luna on openai-codex,
+    openrouter, commandcode, commandcode-2
+  status: complete
+  created_at: '2026-10-06T11:40:05.133669+00:00'
+  completed_at: '2026-10-06T11:56:38.956366+00:00'
+- id: INT-CI-20261006-TR284
+  title: 'Fix CI red: TR-284 retirement broke golden-head fixture + degraded-path
+    contract'
+  criteria:
+  - test_golden_fixed_point_heads[P4_SECURITY] expects commandcode/gpt-6.1-sol (not
+    retired gpt-5.6-sol); degraded-path tests use a genuinely unsatisfiable profile
+    (gpt-6.1-sol now clears P4_SECURITY); full suite green
+  status: complete
+  created_at: '2026-10-06T13:32:56.260072+00:00'
+  completed_at: '2026-10-06T14:37:29.001856+00:00'
+- id: TR-268
+  title: 'TYPE-HINT LADDER STAGE 0: score instrument, baseline, regression floor'
+  criteria:
+  - A single in-repo command computes annotated-function % (returns and args separately)
+    per module and overall, states its tool; the baseline is committed as data with
+    measured_at+tool version+raw counts; a regression floor is wired so a drop below
+    the floor fails, and a stage target never blocks.
+  status: complete
+  created_at: '2026-10-06T15:09:36.140192+00:00'
+  completed_at: '2026-10-06T15:32:37.083355+00:00'
