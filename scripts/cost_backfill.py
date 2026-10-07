@@ -15,11 +15,19 @@ Rules (no fabrication):
 
 Default is a DRY RUN. --apply writes, after backing the ledger up.
 """
-import argparse, collections, json, shutil, sys, time
+import argparse, collections, json, os, shutil, sys, time
 from datetime import datetime, timezone
 
-LEDGER = '/home/kara/task-router/data/state/outcomes.jsonl'
-REGISTRY = '/home/kara/task-router/registry.json'
+# TR-202 re-pass (2026-10-07): these were hardcoded /home/kara/task-router
+# paths — wrong tree on any other checkout/host and unresolvable from a
+# worktree. Repo-relative defaults (realpath so a live symlink exec still
+# lands in the real tree, same idiom as router_seed.py) + the shared
+# ROUTING_* env overrides every sibling tool honours.
+_SCRIPTS_DIR = os.path.dirname(os.path.realpath(__file__))
+_REPO = os.path.dirname(_SCRIPTS_DIR)
+LEDGER = os.environ.get('ROUTING_OUTCOMES_FILE',
+                        os.path.join(_REPO, 'data', 'state', 'outcomes.jsonl'))
+REGISTRY = os.environ.get('ROUTING_REGISTRY', os.path.join(_REPO, 'registry.json'))
 STAMP = 'backfill-20260926: public split (in_per_m/out_per_m) from registry'
 
 

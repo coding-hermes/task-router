@@ -95,8 +95,15 @@ SPOT_CHECK = os.environ.get(
     os.path.expanduser(
         '~/.hermes/skills/mlops/model-intelligence/scripts/or-family-spot-check.py'))
 SEED_SCRIPT = os.path.join(_REPO, 'scripts', 'router_seed.py')
-ROUTING_NS = os.environ.get('ROUTING_NS', '/home/kara/duckbrain/namespaces/routing')
-TASKROUTER_NS = os.environ.get('TASKROUTER_NS', '/home/kara/duckbrain/namespaces/task-router')
+# TR-202 re-pass (2026-10-07): were hardcoded /home/kara/duckbrain/... —
+# identical to the mirror path TR-045/TR-048 took out of router_seed.py's
+# default resolution. expanduser is byte-identical on this box (the home IS
+# /home/kara) and correct on any other user/host; ROUTING_NS/TASKROUTER_NS
+# still win.
+ROUTING_NS = os.environ.get('ROUTING_NS',
+                            os.path.expanduser('~/duckbrain/namespaces/routing'))
+TASKROUTER_NS = os.environ.get(
+    'TASKROUTER_NS', os.path.expanduser('~/duckbrain/namespaces/task-router'))
 REPO = _REPO
 
 # Base tables exported to BOTH namespaces by `export`.

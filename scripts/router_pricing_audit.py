@@ -60,7 +60,8 @@ MODELS = os.path.join(REPO, 'data', 'tables', 'models.jsonl')
 PLANS = os.path.join(REPO, 'data', 'tables', 'plan_terms.jsonl')
 MD_CACHE = os.environ.get('ROUTING_MD_CACHE',
                           os.path.join(REPO, 'data', 'state', 'modelsdev-cache.json'))
-STATE_DB = os.environ.get('ROUTING_STATE_DB', '/home/kara/.hermes/state.db')
+STATE_DB = os.environ.get('ROUTING_STATE_DB',
+                          os.path.expanduser('~/.hermes/state.db'))
 
 #: The metered-usage discipline begins here. Only an OFFSET stamp older than this
 #: is stale — a list/sticker price is not usage-derived and cannot "go stale".

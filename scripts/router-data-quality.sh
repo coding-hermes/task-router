@@ -11,7 +11,11 @@
 # pipeline that silently skips a step feeds the agent stale data). The gap
 # report's JSON is never truncated (full output; the agent reads the file).
 set -euo pipefail
-cd /home/kara/task-router || exit 1
+# TR-202 re-pass (2026-10-07): was `cd /home/kara/task-router` — a second
+# checkout or a worktree run silently exercised the MAIN tree (or exited 1).
+# Derive the repo from THIS script's location instead.
+REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$REPO_DIR" || exit 1
 PY="${PYTHON:-$HOME/.hermes/venvs/board/bin/python3}"
 
 echo "== learning memory (duckbrain task-router ns: doctrine + providers + lessons) =="

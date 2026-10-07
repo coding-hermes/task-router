@@ -39,6 +39,27 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
 
+# TR-202 re-pass (2026-10-07): phase0's reconfigure.py path was hardcoded to
+# /home/kara/.hermes/scripts/ — wrong on any other user/host/checkout. Resolve
+# it once: the checkout's own copy first (a worktree run heals its OWN tree),
+# then the canonical live install. The LAST candidate is returned even when
+# absent — same visible failure the hardcoded path had, but home-relative,
+# never /home/kara.
+def _find_reconfigure_script() -> Path:
+    candidates = [
+        REPO / 'scripts' / 'reconfigure.py',
+        Path('~/.hermes/scripts/reconfigure.py').expanduser(),
+    ]
+    for c in candidates[:-1]:
+        try:
+            if c.exists():
+                return c
+        except OSError:
+            continue
+    return candidates[-1]
+
+_RECONFIGURE_SCRIPT = _find_reconfigure_script()
+
 # TR-108: reuse the validate module's canonical freshness predicate instead of
 # re-deriving mtime math here (the FRESHNESS_SLACK_S slack and the content
 # tiebreak are part of the definition of stale — re-deriving them drifts).
@@ -60,7 +81,12 @@ REGISTRY_TABLES = [
 ]
 
 PIPELINE_STEPS = [
-    ("phase0_reconfigure", ["python3", "/home/kara/.hermes/scripts/reconfigure.py"]),
+    # TR-202 re-pass (2026-10-07): phase0's reconfigure.py path was hardcoded
+    # to /home/kara/.hermes/scripts/ — wrong on any other host/checkout. It
+    # resolves now (repo scripts dir first — a checkout sibling exists — then
+    # the live install dir), so a worktree run heals its OWN tree.
+    ("phase0_reconfigure", ["python3",
+                            str(_RECONFIGURE_SCRIPT)]),
     ("phase1_data_quality", ["bash", "scripts/router-data-quality.sh"]),
     ("phase2_seed", ["$PY", "scripts/router_seed.py"]),
     ("phase3_export", ["$PY", "scripts/router_maintain.py", "export"]),

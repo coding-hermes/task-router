@@ -38,8 +38,14 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-LEDGER = Path('/home/kara/task-router/data/state/outcomes.jsonl')
-RAW_OUT = Path('/home/kara/task-router/data/state/dummy-scheduler-runs.jsonl')
+# TR-202 re-pass (2026-10-07): was /home/kara/task-router/... — repo-relative
+# now (realpath, symlink-safe), ledger honouring the shared ROUTING_OUTCOMES_FILE
+# override like every other state tool.
+_SCRIPTS_DIR = os.path.dirname(os.path.realpath(__file__))
+_REPO = os.path.dirname(_SCRIPTS_DIR)
+LEDGER = os.environ.get('ROUTING_OUTCOMES_FILE',
+                        os.path.join(_REPO, 'data', 'state', 'outcomes.jsonl'))
+RAW_OUT = os.path.join(_REPO, 'data', 'state', 'dummy-scheduler-runs.jsonl')
 
 # A foreman-SHAPED prompt: real ticks are thousands of chars, so the harness pads to
 # --prompt-chars. But the CONTENT must stay non-actionable: this is synthetic load, not a

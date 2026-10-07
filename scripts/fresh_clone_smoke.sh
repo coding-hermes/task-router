@@ -19,7 +19,19 @@ KEEP=0
 [ "${1:-}" = "--keep" ] && KEEP=1
 HERE="$(cd "$(dirname "$0")/.." && pwd)"
 WORK="$(mktemp -d /tmp/fresh-smoke-XXXXXX)"
-PY="${PYTHON:-/home/kara/.hermes/venvs/board/bin/python3}"
+# TR-202 re-pass (2026-10-07): the default interpreter was hardcoded to
+# /home/kara/.hermes/venvs/board/bin/python3 — a stranger's clone exits 2
+# before running a single check. Keep the board-venv preference (existence
+# probed, $HOME-relative) but fall back to PATH python3 elsewhere; PYTHON=
+# still wins.
+PY="${PYTHON:-}"
+if [ -z "$PY" ]; then
+  if [ -x "${HOME:-}/.hermes/venvs/board/bin/python3" ]; then
+    PY="${HOME}/.hermes/venvs/board/bin/python3"
+  else
+    PY="$(command -v python3 || echo python3)"
+  fi
+fi
 FAIL=0
 
 # A stranger's HOME has no ~/.hermes, no ~/.local/share/task-router, no registry.
