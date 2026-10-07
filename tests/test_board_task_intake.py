@@ -31,6 +31,8 @@ from pathlib import Path
 import pytest
 
 REPO = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(REPO / "tests"))
+import conftest  # noqa: E402  (QA-TASK-ROUTER-9 clean-machine helpers)
 SCRIPTS = REPO / "scripts"
 
 sys.path.insert(0, str(SCRIPTS))
@@ -500,6 +502,9 @@ def test_intake_env_keys_documented():
         assert key in docs, f"{key} missing from README/docs/configuration.md"
 
 
+@pytest.mark.skipif(
+    not conftest.repo_commit_resolvable(),
+    reason="frozen tree, no .git")
 def test_intake_state_files_gitignored():
     """The intake ledgers are runtime state (like the outcomes store, TR-049):
     a run must never dirty the tree."""
@@ -517,6 +522,9 @@ def test_intake_state_files_gitignored():
         f"stdout={p.stdout!r} stderr={p.stderr!r}")
 
 
+@pytest.mark.skipif(
+    not conftest.repo_commit_resolvable(),
+    reason="frozen tree, no .git")
 def test_stale_gitignore_rule_cleaned_up():
     """The broad data/state/*.jsonl rule must not swallow TRACKED state
     files (modelsdev-cache.json is fine — it's .json — but the repo tracks

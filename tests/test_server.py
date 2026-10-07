@@ -15,12 +15,12 @@ import urllib.request
 
 import pytest
 
+import conftest  # noqa: E402  (QA-TASK-ROUTER-9 clean-machine helpers)
+
 REPO = Path(__file__).resolve().parents[1]
-PY = (
-    "/home/kara/.hermes/venvs/board/bin/python3"
-    if os.path.exists("/home/kara/.hermes/venvs/board/bin/python3")
-    else sys.executable  # CI / fresh clone: no Bane-host venv
-)
+# QA-TASK-ROUTER-9: os.path-based probe (see conftest.router_python) — the
+# pathlib form raises EACCES through a foreign-uid ancestor and kills collection.
+PY = conftest.router_python()
 SERVER = REPO / "scripts" / "router_server.py"
 
 

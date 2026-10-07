@@ -6,20 +6,43 @@ _RETRYABLE_STATUS, so the lane loop raised on the primary and the configured
 fallback lane was never attempted. Pins both arms:
   - 402 on primary -> fallback answers (no retry of the dead primary)
   - 429 on primary -> primary retried first (bounded), then fallback
+
+QA-TASK-ROUTER-9 hardening: the import goes through an explicit scripts/
+sys.path insert (a bare `import router_classify` fails COLLECTION on any
+surface where pytest's rootdir differs from the repo root — measured
+standalone in the frozen-tree suite), and the fake response CLOSES its bytes
+like a real HTTPResponse so no unclosed-handle warning is left for the
+collector to turn into an unraisable crash.
 """
 
 import json
+import os
+import sys
 import urllib.error
 
 import pytest
 
-import router_classify
+sys.path.insert(0, os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'scripts'))
+import router_classify  # noqa: E402
 
 
 class _FakeResponse:
     def __init__(self, code):
         self.code = code
-        self.read = lambda: b'{}'
+        self._payload = b'{}'
+
+    def read(self, *args, **kwargs):
+        return self._payload
+
+    def close(self):
+        pass
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
 
 
 def _http_error(code):

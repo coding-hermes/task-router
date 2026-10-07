@@ -23,6 +23,7 @@ repo-root class rule absent, which is the actual defect this row names.
 import os
 import shutil
 import subprocess
+import sys
 
 import pytest
 
@@ -33,7 +34,24 @@ GIT = shutil.which("git")
 POLICY_DOC = os.path.join(REPO, "docs", "decisions",
                           "review-tr-003-metrics-ledger-retention.md")
 
-pytestmark = pytest.mark.skipif(GIT is None, reason="git not available")
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import conftest  # noqa: E402  (QA-TASK-ROUTER-9 clean-machine helpers)
+
+
+#: QA-TASK-ROUTER-9: every check below shells out to git against the REPO
+#: (check-ignore / ls-files), which exits 128 on a frozen git-archive tree —
+#: QA measured 5 such failures. Named skip when .git is absent (the
+#: BUILD_COMMIT override is irrelevant here: these are repo-index checks).
+def _frozen_reason():
+    if GIT is None:
+        return "git not available"
+    if not os.path.exists(os.path.join(REPO, ".git")):
+        return "frozen tree, no .git"
+    return None
+
+
+pytestmark = pytest.mark.skipif(
+    _frozen_reason() is not None, reason=_frozen_reason() or "ok")
 
 # ---------------------------------------------------------------------------
 # GitReins runtime artifacts — the class this row is about.

@@ -117,6 +117,17 @@ def _read_jsonl(path):
 
 
 def git_commit():
+    # QA-TASK-ROUTER-9: a frozen tree (git-archive export, synced deploy, clean
+    # machine) has no .git, so the HEAD read below returns "unknown" and every
+    # health-identity consumer reports an unresolved commit. An explicit
+    # BUILD_COMMIT / ROUTER_COMMIT env override wins FIRST: the packager or
+    # deploy wrapper stamps the revision it exported, and the served identity
+    # becomes real instead of a sentinel. Fail-open preserved — when neither
+    # env nor .git is available the answer stays "unknown".
+    for env_name in ("BUILD_COMMIT", "ROUTER_COMMIT"):
+        value = (os.environ.get(env_name) or "").strip()
+        if value:
+            return value[:12]
     # .git may be a DIR (normal checkout) or a FILE pointing at the real
     # gitdir (a linked worktree, wt/* branches) — handle both, else every
     # worktree run reports commit "unknown" and the health gate fails.

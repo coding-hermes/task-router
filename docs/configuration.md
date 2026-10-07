@@ -148,6 +148,7 @@ structured/thinking rung is recorded in classifier call metadata when available.
 | Variable | Used by | Effect | Default |
 |---|---|---|---|
 | `ROUTER_HEALTH_URL` | `router_health_probe.py` | Base URL for the health probe canary | `http://127.0.0.1:9092` |
+| `ROUTER_COMMIT` | `router_health.py` | Commit identity override for frozen trees (git-archive exports with no `.git`); `BUILD_COMMIT` wins when both are set | — |
 | `ROUTER_VERIFY_GATEWAY` | `verify_proxy_deployment.py` | Base URL for the gateway to verify against | `http://127.0.0.1:8642` |
 | `ROUTER_VERIFY_PROXY` | `verify_proxy_deployment.py` | Base URL for the proxy to verify against | `http://127.0.0.1:9391` |
 | `ROUTER_VERIFY_KEY` | `verify_proxy_deployment.py` | API key for verification requests (overrides `API_SERVER_KEY` if set) | — |

@@ -6,11 +6,23 @@ import sys
 import time
 from pathlib import Path
 
+import pytest
+
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "scripts"))
+sys.path.insert(0, str(REPO / "tests"))
+import conftest  # noqa: E402  (QA-TASK-ROUTER-9 clean-machine helpers)
 import router_refresh_resume as rrr  # noqa: E402
 
+#: QA-TASK-ROUTER-9: the plan's head/last-good commits come from `git log`
+#: against the REPO — BUILD_COMMIT cannot reproduce history, so this gates on
+#: .git strictly. A frozen tree yields None-with-no-error (fail-open kept).
+_frozen_skip = pytest.mark.skipif(
+    not conftest.repo_has_git(),
+    reason="frozen tree, no .git")
 
+
+@_frozen_skip
 def test_resume_plan_is_fail_open_and_wellshaped():
     plan = rrr.build_plan()
     assert "error" not in plan or plan.get("error") is None
@@ -23,6 +35,7 @@ def test_resume_plan_is_fail_open_and_wellshaped():
         assert d["path"] in rrr.REGISTRY_TABLES
 
 
+@_frozen_skip
 def test_resume_cli_exits_zero_with_json():
     proc = subprocess.run(
         [sys.executable, str(REPO / "scripts" / "router_refresh_resume.py")],

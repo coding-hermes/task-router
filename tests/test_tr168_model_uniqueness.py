@@ -37,6 +37,8 @@ import sys
 import pytest
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(REPO, "tests"))
+import conftest  # noqa: E402  (QA-TASK-ROUTER-9 clean-machine helpers)
 DATA_DIR = os.path.join(REPO, "data", "tables")
 MODELS = os.path.join(DATA_DIR, "models.jsonl")
 SEED = os.path.join(REPO, "scripts", "router_seed.py")
@@ -231,6 +233,12 @@ POST_DEDUPE_ADDITIONS = {
 }
 
 
+# QA-TASK-ROUTER-9: `git show 1fcd9aa:...` needs real git HISTORY —
+# BUILD_COMMIT can stamp an identity but cannot answer a historical read,
+# so this pins on .git strictly.
+@pytest.mark.skipif(
+    not conftest.repo_has_git(),
+    reason="frozen tree, no .git")
 def test_only_the_five_twin_lines_were_removed_and_survivors_edited():
     """The dedupe touched ONLY the 5 fold sites — and later, ONLY the lanes
     named in POST_DEDUPE_ADDITIONS may have been appended: every pre-dedupe

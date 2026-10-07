@@ -14,9 +14,19 @@ import pytest
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(REPO, 'scripts'))
+import conftest  # noqa: E402  (QA-TASK-ROUTER-9 clean-machine helpers)
 import router_health as rh   # noqa: E402
 
 
+#: QA-TASK-ROUTER-9: the live-identity test below asserts /health reports a
+#: REAL commit — needs .git, or the BUILD_COMMIT/ROUTER_COMMIT override
+#: router_health.git_commit() honours in a frozen tree. Named skip there.
+_frozen_skip = pytest.mark.skipif(
+    not conftest.repo_commit_resolvable(),
+    reason="frozen tree, no .git and no BUILD_COMMIT/ROUTER_COMMIT override")
+
+
+@_frozen_skip
 def test_health_reports_the_identity_block_and_a_stale_verdict():
     payload = rh.health(mode='read-only')
     assert payload['commit'] and payload['commit'] != 'unknown'
@@ -37,7 +47,14 @@ def test_the_reported_commit_is_the_LOADED_one_not_the_repo_head(monkeypatch):
     assert payload['stale'] is True
 
 
+@_frozen_skip
 def test_a_source_change_since_boot_is_stale(monkeypatch):
+    """QA-TASK-ROUTER-9: the deploy-stale verdict is (source_sha, commit)
+    compared together. A frozen tree cannot produce the commit half, so
+    code_identity() — correctly, per test_an_unknown_boot_commit_is_None...
+    — returns stale None instead of a half-informed verdict, and this test's
+    `is True` can never hold. Named skip there; the None-with-reason contract
+    itself is pinned by the unskipped test below."""
     monkeypatch.setattr(rh, '_LOADED_SOURCE_SHA', 'deadbeefdeadbeef')
     payload = rh.health(mode='read-only')
     assert payload['stale'] is True, 'files changed on disk since this process loaded -> deploy needed'

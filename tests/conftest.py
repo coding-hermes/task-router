@@ -22,6 +22,62 @@ SEED_TIMEOUT = 600
 #: Pipeline scripts that load the registry through duckdb.
 SEED_PIPELINES = ("router_seed.py", "router_pricing.py")
 
+
+# ---------------------------------------------------------------------------
+# QA-TASK-ROUTER-9: clean-machine-safe helpers for subprocess tests.
+#
+# Measured failure (bunker-las-03, agent uid, frozen tree): pytest died at
+# COLLECTION with `PermissionError: [Errno 13]` in <1s, zero tests run. The
+# trigger was a module-level `Path("/home/kara/.hermes/...").exists()` probe:
+# pathlib's exists() only swallows ENOENT/ENOTDIR/EBADF/ELOOP — an EACCES on
+# the stat (a foreign-uid 0700 ancestor, as on a synced multi-tenant box)
+# PROPAGATES and kills collection. os.path.exists() swallows every OSError
+# and answers False. Two rules follow, pinned by tests/test_clean_machine.py:
+#
+# 1. NEVER probe filesystem existence with pathlib at test-module import —
+#    use router_python() / os.path.exists(). No exec bits, no /home/kara
+#    requirement, no writes outside tmp_path at collection time.
+# 2. A test asserting a REAL commit must skip, with a named reason, when the
+#    tree can't produce one (no .git AND no BUILD_COMMIT/ROUTER_COMMIT env
+#    override — the frozen-tree escape hatch router_health.git_commit()
+#    honours since QA-TASK-ROUTER-9).
+# ---------------------------------------------------------------------------
+ROUTER_BOARD_PY = "/home/kara/.hermes/venvs/board/bin/python3"
+
+
+def router_python():
+    """sys.executable unless Bane's board venv is REALLY present.
+
+    os.path.exists — NEVER pathlib — per the EACCES collection rule above:
+    a stat through an unreadable foreign-uid ancestor must read as "absent",
+    not raise.
+    """
+    return ROUTER_BOARD_PY if os.path.exists(ROUTER_BOARD_PY) else sys.executable
+
+
+def repo_commit_resolvable():
+    """True when THIS tree can produce a real commit identity for /health.
+
+    .git present (dir on a normal checkout, FILE on a linked worktree), or
+    the BUILD_COMMIT/ROUTER_COMMIT env override router_health.git_commit()
+    honours — what a git-archive export / synced frozen tree needs.
+    """
+    if os.environ.get("BUILD_COMMIT") or os.environ.get("ROUTER_COMMIT"):
+        return True
+    return repo_has_git()
+
+
+def repo_has_git():
+    """True when the tree can answer git HISTORY queries (log/show).
+
+    Strictly the .git check: BUILD_COMMIT stamps an identity but cannot
+    reproduce history, so tests that `git log` / `git show` the repo
+    (refresh-resume plan, TR-168 historical pin) must gate on this, not on
+    repo_commit_resolvable().
+    """
+    repo = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    return os.path.exists(os.path.join(repo, ".git"))
+
 # ---------------------------------------------------------------------------
 # TR-077 (Bane 2026-09-19): shared session seed for READ-ONLY consumers.
 #

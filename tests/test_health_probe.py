@@ -22,13 +22,15 @@ from pathlib import Path
 
 import pytest
 
+import conftest  # noqa: E402  (QA-TASK-ROUTER-9 clean-machine helpers)
+
 REPO = Path(__file__).resolve().parents[1]
 SCRIPTS = REPO / "scripts"
-PY = (
-    "/home/kara/.hermes/venvs/board/bin/python3"
-    if Path("/home/kara/.hermes/venvs/board/bin/python3").exists()
-    else sys.executable
-)
+# QA-TASK-ROUTER-9: os.path.exists (via conftest.router_python), NOT pathlib —
+# Path.exists() raises EACCES through a foreign-uid ancestor dir (measured on
+# bunker-las-03: the stat never ran, collection died in 0.82s). No exec bits
+# and no /home/kara requirement at import; the fallback is sys.executable.
+PY = conftest.router_python()
 PROBE = SCRIPTS / "router_health_probe.py"
 SERVER = SCRIPTS / "router_server.py"
 
@@ -37,6 +39,15 @@ try:
     import router_health_probe as probe  # noqa: E402
 except Exception as exc:
     pytest.skip(f"router_health_probe not available: {exc}", allow_module_level=True)
+
+#: Frozen trees (git-archive exports) have no .git — the end-to-end probe runs
+#: below assert a PASS verdict, which needs a real commit (via .git or the
+#: BUILD_COMMIT/ROUTER_COMMIT override router_health.git_commit() honours).
+#: The Layer-1 judge tests are pure and run everywhere. Named skip, per the QA
+#: battery's requirement.
+_frozen_skip = pytest.mark.skipif(
+    not conftest.repo_commit_resolvable(),
+    reason="frozen tree, no .git and no BUILD_COMMIT/ROUTER_COMMIT override")
 
 _MODEL_ROW = {
     "provider": "fakeprov", "model": "fake-model", "normalized_price": 1.0,
@@ -221,6 +232,7 @@ def _run_probe(url, *extra):
         cwd=REPO, capture_output=True, text=True, timeout=60)
 
 
+@_frozen_skip
 def test_probe_passes_against_a_healthy_instance(tmp_path):
     env, _ = _registry_home(tmp_path)
     port = _free_port()
@@ -233,6 +245,7 @@ def test_probe_passes_against_a_healthy_instance(tmp_path):
     assert payload["commit"] != "unknown"
 
 
+@_frozen_skip
 def test_probe_fails_when_the_registry_is_deliberately_made_stale(tmp_path):
     """AC2, end to end: start healthy, confirm PASS, age the registry on the
     running home, restart against the same home, confirm FAIL.
@@ -266,6 +279,7 @@ def test_probe_fails_when_the_registry_is_deliberately_made_stale(tmp_path):
     assert any("gate INVALID" in f for f in payload["failures"]), payload["failures"]
 
 
+@_frozen_skip
 def test_probe_fails_on_the_absolute_age_cap(tmp_path):
     """--max-age-h is the 'reseed daily' knob: a non-stale but old registry."""
     env, reg = _registry_home(tmp_path)
@@ -292,6 +306,7 @@ def test_probe_reports_cannot_run_when_nothing_is_listening():
     assert payload["reason"]
 
 
+@_frozen_skip
 def test_probe_human_output_is_key_value_lines(tmp_path):
     """Without --json the output is the key=value dialect the canary's shell
     helpers parse (grep '^key=')."""
