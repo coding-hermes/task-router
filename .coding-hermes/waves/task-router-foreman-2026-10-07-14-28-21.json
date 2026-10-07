@@ -1,0 +1,11 @@
+{
+  "tick": "task-router-foreman-2026-10-07-14-28-21",
+  "wave_budget": 3,
+  "workers": [
+    {"task": "TR-249", "worktree": "/home/kara/worktrees/task-router-TR-249", "branch": "wt/TR-249"},
+    {"task": "TR-250", "worktree": "/home/kara/worktrees/task-router-TR-250", "branch": "wt/TR-250"},
+    {"task": "TR-202", "worktree": "/home/kara/worktrees/task-router-TR-202", "branch": "wt/TR-202"}
+  ],
+  "dispatched": "2026-10-07T14:40:00-05:00",
+  "independence": "TR-249/TR-250/TR-202 touch disjoint files (completion gate + attribution script + abspath audit); no depends_on edges among them"
+}
