@@ -129,6 +129,10 @@ def build_openapi():
             {"name": "group", "in": "query", "required": False, "schema": string, "description": "total (default) | lane | band"},
             {"name": "scan_limit", "in": "query", "required": False, "schema": integer, "description": "Store rows to tail-scan (default 200000)"},
         ]),
+        "/api/ui/nohops": ("getUiNohops", "TR-195: the no-hops rate over the window with its sample size, hourly buckets each with their own n, the recorded baseline + threshold verdict, and the top blocking category (TR-185). The SAME computation the alerter posts — the UI and the alert can never disagree. ROUTER_NOHOPS_* envs and data/nohops-baseline.json; alerting itself is scripts/router_nohops.py.", [
+            {"name": "window_h", "in": "query", "required": False, "schema": number, "description": "How far back to read (default 24)"},
+            {"name": "scan_limit", "in": "query", "required": False, "schema": integer, "description": "Store rows to tail-scan (default 200000)"},
+        ]),
         "/api/ui/board": ("getUiBoard", "TR-150/156: search the board JSONL for the UI. Reports total_rows/total_matched like the ledger search.", [
             {"name": "q", "in": "query", "required": False, "schema": string, "description": "Free text over id, title, status, reasoning, notes"},
             {"name": "status", "in": "query", "required": False, "schema": string, "description": "Exact board status"},
@@ -644,6 +648,33 @@ class RouterApplication:
                 # TR-152: traffic and cost over time, bucketed, with per-bucket sample counts.
                 return 200, router_ui_page.series(
                     query, router_outcomes.outcomes_path())
+            if path == "/api/ui/nohops":
+                # TR-195: the no-hops rate + hourly buckets + threshold verdict.
+                # The SAME hourly_nohops_rate() the alerter reads — the UI and
+                # the alert can never disagree about the number.
+                import router_nohops
+                rows, meta = router_nohops.load_store_rows(
+                    router_outcomes.outcomes_path(),
+                    scan_limit=int(router_ui_page._series_float(
+                        query, "scan_limit", 200000) or 200000))
+                if meta.get("error"):
+                    return 200, {"error": meta["error"], "rows_scanned": 0,
+                                 "hours": []}
+                window_h = router_ui_page._series_float(query, "window_h", 24.0)
+                result = router_nohops.evaluate(
+                    rows, window_h=window_h, baseline=None)
+                res = dict(result["series"])
+                res.update({"store": meta["store"],
+                            "rows_scanned": meta["rows_scanned"],
+                            "parse_failed": meta["parse_failed"],
+                            "baseline_source": result["baseline_source"],
+                            "threshold": result["payload"]["threshold"],
+                            "threshold_source":
+                                result["payload"]["threshold_source"],
+                            "breached": result["payload"]["alert"],
+                            "breach_reason":
+                                result["payload"]["breach_reason"]})
+                return 200, res
             if path == "/api/ui/board":
                 # TR-150/156: the board panel's search over the repo's JSONL board.
                 # TR-202: realpath — the live router_web-managed server execs this

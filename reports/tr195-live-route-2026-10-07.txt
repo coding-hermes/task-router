@@ -1,0 +1,10 @@
+WARNING [router state-dir] ROUTER_STATE_DIR is unset and this process was not started through the canonical live install (/home/kara/.hermes/scripts): using the SHARED production state dir /home/kara/.hermes/model-router — set ROUTER_STATE_DIR=<dir> to isolate.
+route status: 200
+route: rate 0.177329 n 3220 (571/3220)
+route threshold: 0.227329 | baseline file threshold
+route breached: False | rate 0.177329 <= threshold 0.227329
+route blocking: terminal 496 | hours: 169 | rows_scanned: 362532
+baseline: baseline file /home/kara/worktrees/task-router-TR-195/data/nohops-baseline.json
+alerter: rate 0.177329 n 3220 threshold 0.227329 alert False
+UI-AND-ALERT-SAME-NUMBER: True
+probe-rc=0

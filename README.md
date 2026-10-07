@@ -204,7 +204,9 @@ ROUTER_EDIT_API_KEY=... router server --mode edit
     exclusion), `/api/ui/flow?id=<session>` (one request end to end),
     `/api/ui/series` (traffic + cost buckets), `/api/ui/board` (board
     search), `/api/ui/ledger` (ledger search; truncation always
-    disclosed).
+    disclosed), `/api/ui/nohops` (TR-195 no-hops rate + hourly buckets +
+    baseline/threshold verdict — the SAME number the alerter posts, so
+    the UI and the alert can never disagree).
   - **Interop** — `/v1/models` (alias `/models`): the OpenAI-compatible
     model list every client probes first.
 - Writes (edit mode + `X-API-Key` header only): `POST /circuit/record`,

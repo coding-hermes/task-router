@@ -1,0 +1,20 @@
+{
+  "computed": "2026-10-07T09:29:54+00:00",
+  "excluded": {
+    "non_resolves": 195688,
+    "rejected": 175,
+    "untimestamped": 0
+  },
+  "headroom": 0.05,
+  "how_to_recompute": "ROUTING_OUTCOMES_FILE=<live store> python3 scripts/router_nohops.py baseline --window-h 168.0 --write",
+  "kind": "nohops-baseline",
+  "nohops": 571,
+  "rate": 0.177329,
+  "resolves": 3220,
+  "store": "/home/kara/task-router/data/state/outcomes.jsonl",
+  "store_rows_scanned": 362532,
+  "task": "TR-195",
+  "threshold": 0.227329,
+  "threshold_note": "rate + headroom (baseline rate + headroom)",
+  "window_h": 168.0
+}

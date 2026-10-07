@@ -343,6 +343,7 @@ def test_no_quota_limit_literals_in_scripts():
         ("router_provider_import.py", 10000): "MAX_LANE_PRICE_PER_M price sanity cap",
         ("router_server.py", 200000): "ledger tail-scan default",
         ("router_ui_page.py", 200000): "ledger tail-scan default",
+        ("router_nohops.py", 200000): "ledger tail-scan default (TR-195, same role)",
     }
     violations = []
     for name in sorted(os.listdir(SCRIPTS)):

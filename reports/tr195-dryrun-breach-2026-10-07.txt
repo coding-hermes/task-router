@@ -1,0 +1,21 @@
+[dry-run] STUB POST (no ROUTER_NOHOPS_WEBHOOK_URL configured)
+[dry-run] POST payload:
+{
+  "alert": true,
+  "breach_reason": null,
+  "kind": "nohops-alert",
+  "min_n": 10,
+  "n": 143,
+  "nohops": 28,
+  "rate": 0.195804,
+  "resolves": 143,
+  "text": "NO-HOPS ALERT: rate 0.195804 over the last 24.0h crossed threshold 0.15 (28/143 resolves with zero eligible hops; top blocking category (TR-185): agent_tick (2 no-hop resolves require it))",
+  "threshold": 0.15,
+  "threshold_source": "env ROUTER_NOHOPS_THRESHOLD",
+  "top_blocking_category": "agent_tick",
+  "top_blocking_category_count": 2,
+  "window_h": 24.0
+}
+[dry-run] store: /home/kara/task-router/data/state/outcomes.jsonl rows_scanned=362532 parse_failed=0
+[dry-run] delivered to: stub-post (dry-run)
+dryrun-breach-exit=1
