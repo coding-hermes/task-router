@@ -515,12 +515,6 @@ tasks:
   - Implementation committed on wt/TR-199, tests green, acceptance criteria met
   status: in_progress
   created_at: '2026-09-29T08:27:07.258062+00:00'
-- id: TR-202
-  title: task-router TR-202
-  criteria:
-  - Implementation committed on wt/TR-202, tests green, acceptance criteria met
-  status: in_progress
-  created_at: '2026-09-29T08:27:07.491431+00:00'
 - id: DOC-2
   title: task-router DOC-2
   criteria:
@@ -824,3 +818,10 @@ tasks:
   status: complete
   created_at: '2026-10-06T15:09:36.140192+00:00'
   completed_at: '2026-10-06T15:32:37.083355+00:00'
+- id: GITREINS-402-TEST
+  title: Judge failover proof after deepseek 402
+  criteria:
+  - tier2 verdict completes with real LLM output via z.ai failover
+  status: complete
+  created_at: '2026-10-07T16:17:06.219885+00:00'
+  completed_at: '2026-10-07T16:17:10.187891+00:00'
