@@ -212,6 +212,12 @@ The bus→router door: `scripts/router_ingress.py`. Contract and evidence in
 | `ROUTER_SPAWN_SORT` | `router_spawn.py` | Default sort key for spawn results (can be overridden with `--sort`) | `price` |
 | `ROUTER_MODEL_ROUTER_DIR` | `router_health.py` | Directory containing the model router configuration | `~/.hermes/model-router` |
 | `ROUTER_QUOTA_POLL_INTERVAL_S` | `router_quota_poller.py` | TR-208: cache freshness for the usage/balance poller — a cached observation younger than this is served WITHOUT a network call (the poller never runs per-request); overridable per call with `--interval` | `900` |
+| `ROUTER_NOHOPS_THRESHOLD` | `router_nohops.py` | Absolute no-hops-rate alert threshold (overrides the baseline-derived value; a malformed value falls through to the baseline ladder) | baseline `threshold`, else baseline `rate` + headroom, else 0.10 |
+| `ROUTER_NOHOPS_HEADROOM` | `router_nohops.py` | Margin added to the baseline rate when no explicit threshold exists | `0.05` |
+| `ROUTER_NOHOPS_MIN_N` | `router_nohops.py` | Minimum resolve sample in the window before an alarm may fire (below it the verdict names the shortfall instead of alerting) | `10` |
+| `ROUTER_NOHOPS_BASELINE` | `router_nohops.py` | Path to the recorded baseline JSON | `data/nohops-baseline.json` |
+| `ROUTER_NOHOPS_EVENTS_FILE` | `router_nohops.py` | Events log a delivered alert is always appended to | `data/state/router-events.jsonl` |
+| `ROUTER_NOHOPS_WEBHOOK_URL` | `router_nohops.py` | Deliver-thread webhook the alert payload is POSTed to (unset = events log only; dry-run never contacts it) | — (unset) |
 
 ---
 
