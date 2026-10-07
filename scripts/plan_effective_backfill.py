@@ -26,13 +26,18 @@ import time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import router_outcomes as ro  # noqa: E402
 
-STORE = os.path.expanduser('~/.hermes/model-router/../task-router/data/state/outcomes.jsonl')
+# TR-202 re-pass (2026-10-07): the old module global STORE (a never-referenced
+# os.path-joinery default routed through the model-router dir) and the
+# hardcoded absolute --store default are gone — the default resolves through
+# router_outcomes' TR-049 resolver (ROUTING_OUTCOMES_FILE -> the importing
+# module's repo-relative gitignored state store).
+def _default_store() -> str:
+    return ro.outcomes_path()
 
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('--store', default=os.environ.get(
-        'ROUTING_OUTCOMES_FILE', '/home/kara/task-router/data/state/outcomes.jsonl'))
+    ap.add_argument('--store', default=_default_store())
     ap.add_argument('--apply', action='store_true')
     a = ap.parse_args()
 

@@ -32,6 +32,10 @@ if SCRIPTS not in sys.path:
 SYNC_RUNTIME = os.path.join(SCRIPTS, 'sync_runtime.sh')
 
 # Modules FIXED under TR-202 (abspath -> realpath), exec'd through a symlink.
+# 2026-10-07 re-pass: cost_backfill / dummy_scheduler / proxy_smoke swapped
+# hardcoded /home/kara data-state paths for realpath repo-relative defaults
+# (they are NOT in sync_runtime.sh's live-install lists, but they ride the
+# same symlink-safe idiom — see tests/test_tr202_abspath_portability.py).
 FIXED = [
     'router_clinepass.py',
     'router_gaps.py',
@@ -39,6 +43,9 @@ FIXED = [
     'router_plan_sweep.py',
     'router_pricing.py',
     'router_probefix.py',
+    'cost_backfill.py',
+    'dummy_scheduler.py',
+    'proxy_smoke.py',
 ]
 
 # Already-correct neighbours kept as regression controls: realpath / resolve

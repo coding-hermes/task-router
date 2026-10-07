@@ -18,8 +18,14 @@ delta proving whether a proxied row was written for each request.
 import argparse, json, os, statistics, threading, time, urllib.error, urllib.request
 from pathlib import Path
 
-OUT = Path('/home/kara/task-router/data/state/proxy-smoke.jsonl')
-LEDGER = Path('/home/kara/task-router/data/state/outcomes.jsonl')
+# TR-202 re-pass (2026-10-07): were /home/kara/task-router/... — repo-relative
+# now (realpath, symlink-safe); ledger honours ROUTING_OUTCOMES_FILE.
+_SCRIPTS_DIR = os.path.dirname(os.path.realpath(__file__))
+_REPO = os.path.dirname(_SCRIPTS_DIR)
+OUT = Path(os.environ.get('ROUTING_DATA_DIR',
+                          os.path.join(_REPO, 'data', 'state'))) / 'proxy-smoke.jsonl'
+LEDGER = os.environ.get('ROUTING_OUTCOMES_FILE',
+                        os.path.join(_REPO, 'data', 'state', 'outcomes.jsonl'))
 PROMPT = "Reply with exactly: SMOKE-OK"
 _lock = threading.Lock()
 
