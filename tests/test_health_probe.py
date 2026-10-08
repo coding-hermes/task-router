@@ -24,11 +24,27 @@ import pytest
 
 REPO = Path(__file__).resolve().parents[1]
 SCRIPTS = REPO / "scripts"
-PY = (
-    "/home/kara/.hermes/venvs/board/bin/python3"
-    if Path("/home/kara/.hermes/venvs/board/bin/python3").exists()
-    else sys.executable
-)
+
+
+def _board_venv_python() -> str:
+    """Prefer the board venv interpreter, fall back to sys.executable.
+
+    Guarded against OSError, not just absence: on a clean-machine QA agent a
+    foreign-uid 0700 /home/<user> makes Path.exists() RAISE PermissionError
+    (EACCES is not in pathlib's ignored-errno set) at module import — which
+    aborts the entire pytest collection (QA-TASK-ROUTER-8/9). An unreadable
+    path is treated as absent.
+    """
+    candidate = Path("/home/kara/.hermes/venvs/board/bin/python3")
+    try:
+        if candidate.exists():
+            return str(candidate)
+    except OSError:
+        pass
+    return sys.executable
+
+
+PY = _board_venv_python()
 PROBE = SCRIPTS / "router_health_probe.py"
 SERVER = SCRIPTS / "router_server.py"
 
