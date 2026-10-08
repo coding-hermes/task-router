@@ -12,26 +12,29 @@ jobs:
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 45  # RELEASE-005: full suite outgrew 10m — runs on e14b744+ were cancelled mid-suite. INT-CI-20261002-01: the guard-parity step now REALLY runs (guard script works in CI since 6060e9a), so the job fits TWO full-suite runs (~19 min each on runners) — 45 min covers both + setup.
-    env:
-      # TR-203 follow-up (run 37747633956): every pytest process in this job
-      # must see ONE hermetic router state dir. Without it, any script that
-      # resolves the default state dir touches the RUNNER HOME
-      # (~/.hermes/model-router) — and TR-288's in-flight demotion
-      # (router_server._demote_on_taxonomy -> router_quota.quota_set) WRITES
-      # quota-state.json there when a proxy test drives a 402/429-quota hop:
-      # tests/test_proxy_deadline_contract.py imports router_server at module
-      # scope (router_quota.STATE_DIR freezes at that import, BEFORE its
-      # ROUTER_STATE_DIR monkeypatch lands) and its 402 hop wrote
-      # {'quota_exhausted': {'p1': ...}} into the runner home mid-suite. The
-      # guard step then runs a FRESH pytest process in the same home, where
-      # tests/test_policy_gate_coverage.py finds a quota-state.json with NO
-      # providers rows and fails 29 providers "policy-gate-missing-row"
-      # (skipped in the suite step only because the file did not exist yet —
-      # the coverage gate sorts before the proxy tests alphabetically).
-      # Same content the Fresh-clone smoke step mirrors: every provider open,
-      # no gates. Nothing writes a provider row there, so the coverage gate
-      # still sees the full ci-mirror plane and enforces on it.
-      ROUTER_STATE_DIR: /tmp/router-ci-state
+    # NOTE (TR-203 follow-up, run 37747633956): there is deliberately NO
+    # job-level `env: ROUTER_STATE_DIR:` here. Two things break with one:
+    #   * task_router.cli._apply_env_exports uses os.environ.setdefault to
+    #     redirect `router circuit` etc. into the test's tmp data home — an
+    #     ambient var pre-empts EVERY setdefault, and
+    #     tests/test_cli_paths.py::test_circuit_status_end_to_end_in_tmp_home
+    #     fails ("circuit state did not land in data home", reproduced
+    #     locally; run 37761941822).
+    #   * 35+ test modules import router_server/router_quota at COLLECTION
+    #     time, so router_quota.STATE_DIR freezes from the ambient env before
+    #     any fixture could set it.
+    # The fix is filesystem-shaped instead: the first step seeds the DEFAULT
+    # state dir ($HOME/.hermes/model-router) with the ci-mirror policy. Then
+    # the TR-288 in-flight demotion writer (router_server._demote_on_taxonomy
+    # -> router_quota.quota_set) that tests/test_proxy_deadline_contract.py's
+    # 402 hop triggers mid-suite (module-scope import freezes STATE_DIR to the
+    # default BEFORE the fixture's monkeypatch lands; only _subprocess_text is
+    # stubbed, not the quota write) lands its stray quota_exhausted rows in a
+    # plane that already carries every provider's row — read-modify-write
+    # preserves them, and tests/test_policy_gate_coverage.py (the guard step's
+    # fresh pytest process) audits a REAL deployment plane instead of
+    # skipping (suite step: file absent early -> skip) or failing 29
+    # "policy-gate-missing-row" (run 37747633956).
     steps:
       - uses: actions/checkout@v4
         with:
@@ -42,15 +45,19 @@ jobs:
           # fetch is cheap.
           fetch-depth: 0
 
-      - name: Hermetic router state dir (job-level ROUTER_STATE_DIR)
+      - name: Router state plane at the default path (ci-mirror)
         run: |
-          # Create the dir the job-level env names BEFORE any test process
-          # starts, reusing the Fresh-clone smoke step's ci-mirror policy:
+          # Seed $HOME/.hermes/model-router — the DEFAULT state dir every
+          # router script resolves when ROUTER_STATE_DIR is unset — with the
+          # same ci-mirror policy the Fresh-clone smoke step uses:
           # grok-build/crof GATED, everything else open, no circuits, all
-          # providers healthy — the deployment shape the TR-203 coverage
-          # gate is written to audit.
-          mkdir -p "$ROUTER_STATE_DIR"
-          python3 - "$ROUTER_STATE_DIR" <<'EOF'
+          # providers healthy. A runner then looks like a DEPLOYED box to
+          # the policy-gate coverage gate (which audits the real plane and
+          # keeps its teeth: an un-onboarded provider still fails it), and
+          # stray state writes from suite tests stay inside a file that
+          # never loses a provider row.
+          mkdir -p "$HOME/.hermes/model-router"
+          python3 - "$HOME/.hermes/model-router" <<'EOF'
           import json, os, sys
           state = sys.argv[1]
           provs = {}
@@ -63,7 +70,8 @@ jobs:
                     open(os.path.join(state, 'health-state.json'), 'w'))
           json.dump({'version': 1, 'pairs': {}},
                     open(os.path.join(state, 'circuit-state.json'), 'w'))
-          print('router state seeded:', len(provs), 'providers (ci-mirror: grok-build/crof gated)')
+          print('router state seeded at', state, ':',
+                len(provs), 'providers (ci-mirror: grok-build/crof gated)')
           EOF
 
       - uses: actions/setup-python@v5
