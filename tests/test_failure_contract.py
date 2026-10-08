@@ -46,6 +46,18 @@ EXPECTED_ACTIONS = {
     # eligible) — the 2026-09-26 incident shape, named so the escalation can
     # tell a data gap from a gate storm. Same caller action as no-hops.
     'unservable-rating': 'stop-and-escalate',
+    # TR-288: the shared hop taxonomy — each code is a hop-row class the
+    # ladder can emit; the blast radius lives in
+    # scripts/router_hop_taxonomy.py (BLAST_RADIUS) and the retry policy in
+    # its RETRY_POLICY.
+    '429-capacity': 'advance-the-ladder',
+    '429-quota-window': 'advance-the-ladder',
+    '402-no-credit': 'advance-the-ladder',
+    '401-403-auth': 'advance-the-ladder',
+    '404-405-route': 'advance-the-ladder',
+    '408-timeout': 'advance-the-ladder',
+    '5xx-overloaded': 'advance-the-ladder',
+    'context-length-exceeded': 'advance-the-ladder',
 }
 
 #: Classes the contract names that have NO failure_reason literal (they never
@@ -190,7 +202,7 @@ def test_c1_client_faults_never_retry_and_never_burn_the_ladder():
     states the never-retry rule."""
     doc = open(DOC).read().lower()
     assert 'tr-096' in doc and 'never retried' in doc and 'never burns the ladder' in doc
-    reason, _ = rsrv._classify_hop_failure(status=404)
+    reason, _ = rsrv._classify_hop_failure(status=422)
     assert reason == 'upstream-4xx'
     src = open(SERVER_SRC).read()
     assert '_normalize_developer_role' in src, (

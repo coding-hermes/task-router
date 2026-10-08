@@ -78,6 +78,9 @@ Calibration gotchas (TR-001, live-verified 2026-08-27/08-31):
 """
 import json, os, socket, sys, time, datetime, urllib.request, urllib.error
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import router_hop_taxonomy  # noqa: E402  (TR-288: the one failure taxonomy)
+
 # Env-overridable paths (same convention as router_spawn.py) so calibration runs
 # and tests can be hermetic; defaults are byte-identical to the historical paths.
 # REPO is resolved through realpath so this module works BOTH from the repo and from its live
@@ -396,9 +399,15 @@ def ping(base, key, model, params=None, extra_headers=None):
     if r['status'] == 'OK':
         return {'status': 'SLOW' if r['latency_ms'] > SLOW_MS else 'OK', 'latency_ms': r['latency_ms']}
     if r['status'] == 'HTTPERR':
+        # TR-288: name WHY with the shared taxonomy (router_hop_taxonomy) —
+        # the same code the hop ladder and the ledger row will carry — so
+        # probe, ladder and ledger answer a failure with one vocabulary.
+        body = r.get('http_body') or ''
+        r['failure_code'] = router_hop_taxonomy.code_from_status(r['code'], body)
         if r['code'] == 503:
             err = _fmt_http_err(r) + ' (overloaded)' if r.get('http_body') else 'HTTP 503 (overloaded)'
-            return {'status': 'OVERLOADED', 'error': err, 'latency_ms': r['latency_ms']}
+            return {'status': 'OVERLOADED', 'error': err, 'latency_ms': r['latency_ms'],
+                    'failure_code': r['failure_code']}
         if r['code'] >= 500:
             # one retry — 5xx is transient capacity, not an outage (Bane 08-28/08-31)
             r2 = _req(base, key, model, params, TIMEOUT_S, extra_headers)
@@ -407,10 +416,12 @@ def ping(base, key, model, params=None, extra_headers=None):
                         'latency_ms': r2['latency_ms'], 'note': f'ok on 5xx retry (first HTTP {r["code"]})'}
             if r2['status'] == 'HTTPERR' and r2['code'] < 500:
                 return {'status': 'DOWN', 'error': _fmt_http_err(r2) + f' (after HTTP {r["code"]})',
-                        'latency_ms': r2['latency_ms']}
+                        'latency_ms': r2['latency_ms'],
+                        'failure_code': router_hop_taxonomy.code_from_status(r2['code'], r2.get('http_body') or '')}
             return {'status': 'DOWN', 'error': _fmt_http_err(r) + ' (persists after retry)',
-                    'latency_ms': r['latency_ms']}
-        return {'status': 'DOWN', 'error': _fmt_http_err(r), 'latency_ms': r['latency_ms']}
+                    'latency_ms': r['latency_ms'], 'failure_code': r['failure_code']}
+        return {'status': 'DOWN', 'error': _fmt_http_err(r), 'latency_ms': r['latency_ms'],
+                'failure_code': r['failure_code']}
     if r['status'] == 'TIMEOUT_ERR':
         # thinking models need a long rope — retry once at LONG_TIMEOUT_S (Bane 08-31)
         r2 = _req(base, key, model, params, LONG_TIMEOUT_S, extra_headers)
@@ -418,9 +429,13 @@ def ping(base, key, model, params=None, extra_headers=None):
             return {'status': 'SLOW', 'latency_ms': r2['latency_ms'],
                     'note': f'thinking — answered in {r2["latency_ms"]}ms (first attempt timed out at {TIMEOUT_S}s)'}
         if r2['status'] == 'TIMEOUT_ERR':
-            return {'status': 'TIMEOUT', 'error': f'no response in {LONG_TIMEOUT_S}s (thinking?)', 'latency_ms': None}
+            return {'status': 'TIMEOUT', 'error': f'no response in {LONG_TIMEOUT_S}s (thinking?)',
+                    'latency_ms': None, 'failure_code': 'hop-wall-timeout'}
         if r2['status'] == 'HTTPERR':
-            return {'status': 'DOWN', 'error': _fmt_http_err(r2) + ' on slow retry', 'latency_ms': r2['latency_ms']}
+            return {'status': 'DOWN', 'error': _fmt_http_err(r2) + ' on slow retry',
+                    'latency_ms': r2['latency_ms'],
+                    'failure_code': router_hop_taxonomy.code_from_status(
+                        r2['code'], r2.get('http_body') or '')}
         return {'status': 'DOWN', 'error': r2.get('error', 'error on slow retry'), 'latency_ms': r2.get('latency_ms')}
     return {'status': 'DOWN', 'error': r.get('error'), 'latency_ms': r.get('latency_ms')}
 

@@ -402,6 +402,19 @@ EXPECTED_KIND_MAP = {
     "429 from upstream": ("quota_window", 300),
     "rate limit exceeded": ("quota_window", 300),
     "connection refused": ("api_down", 1800),
+    # TR-288: the shared hop taxonomy codes, kind -> (class, window).
+    "429-capacity": ("quota_window", 300),
+    "429-quota-window": ("quota_window", 300),
+    "402-no-credit": ("out_of_credit", 14400),
+    "401-403-auth": ("api_down", 1800),
+    "404-405-route": ("api_down", 1800),
+    "408-timeout": ("overload", 120),
+    "5xx-overloaded": ("overload", 120),
+    "context-length-exceeded": ("overload", 120),
+    "upstream-4xx": ("api_down", 1800),
+    "upstream-5xx": ("overload", 120),
+    "transport-error": ("api_down", 1800),
+    "unservable-2xx": ("overload", 120),
 }
 
 
@@ -452,7 +465,8 @@ def test_failure_class_table_end_to_end_per_row(tmp_path):
         # class is the one that can open provider-wide breakers.
         assert rc.HARD_CLASSES == frozenset(("api_down", "out_of_credit"))
         if fclass in rc.HARD_CLASSES:
-            assert rc.CLASS_COOLDOWN_S[fclass] == 1800 and fclass == "api_down", kind
+            assert rc.CLASS_COOLDOWN_S[fclass] == EXPECTED_KIND_MAP[kind][1] \
+                and fclass in ("api_down", "out_of_credit"), kind
 
 
 def test_unmapped_failure_kind_fails_loudly_not_hard_default():

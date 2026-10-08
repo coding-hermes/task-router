@@ -178,7 +178,13 @@ def test_forwarded_budget_is_decremented_not_passed_through(
 
 
 def test_second_hop_forwards_the_remaining_budget(proxy_env, monkeypatch):
-    """Two hops: hop 1 fails, hop 2 must see hop 1's elapsed time charged."""
+    """Hop 1 fails with a non-retryable code, hop 2 sees hop 1's time charged.
+
+    TR-288 composes with TR-264: a transient 503 RETRIES the same hop (same
+    budget, by design), so this test uses a 402/no-credit code — RETRY_POLICY
+    says 'skip', the ladder advances, and the deadline must charge hop 1's
+    elapsed time before hop 2 leaves.
+    """
     seen = {}
     calls = {'n': 0}
 
@@ -186,10 +192,10 @@ def test_second_hop_forwards_the_remaining_budget(proxy_env, monkeypatch):
         calls['n'] += 1
         seen.setdefault('headers', []).append(dict(headers))
         if calls['n'] == 1:
-            return 503, {'error': 'hop one dies'}
+            return 402, {'error': 'no credit on hop one'}
         return 200, {'choices': [{'message': {'role': 'assistant',
                                               'content': 'ok'},
-                                   'finish_reason': 'stop'}]}
+                                       'finish_reason': 'stop'}]}
 
     _wire(monkeypatch, [('p1', 'm1'), ('p2', 'm2')])
     _recorder(monkeypatch)

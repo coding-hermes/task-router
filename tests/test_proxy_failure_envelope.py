@@ -82,8 +82,8 @@ def test_the_idle_deadline_is_NOT_a_transport_failure():
 
 def test_the_transport_wall_is_distinct_from_the_idle_deadline():
     assert rsrv._classify_hop_failure(exc=TimeoutError('timed out'))[0] == 'hop-wall-timeout'
-    assert rsrv._classify_hop_failure(status=503)[0] == 'upstream-5xx'
-    assert rsrv._classify_hop_failure(status=404)[0] == 'upstream-4xx'
+    # TR-288: a 503 is now named by the taxonomy (the probe's OVERLOADED code)
+    assert rsrv._classify_hop_failure(status=503)[0] == '5xx-overloaded'
     assert rsrv._classify_hop_failure(status=200, unservable=True)[0] == 'unservable-2xx'
 
 
@@ -117,10 +117,16 @@ def test_genuine_transport_failures_keep_the_legacy_vocabulary(proxy_env, monkey
 
 
 def test_an_upstream_5xx_is_labelled_as_such(proxy_env, monkeypatch):
+    """TR-288: the 5xx now carries its taxonomy name (5xx-overloaded) instead
+    of the coarse upstream-5xx — the probe's OVERLOADED vocabulary, and the
+    retry-once class."""
     def upstream(path, body, headers):
         return 503, {'error': 'upstream exploded'}
     _, payload = _run(monkeypatch, upstream)
-    assert [a['reason'] for a in payload['_router']['ladder']] == ['upstream-5xx', 'upstream-5xx']
+    assert [a['reason'] for a in payload['_router']['ladder']] == \
+        ['5xx-overloaded', '5xx-overloaded']
+    assert [a['retry_policy'] for a in payload['_router']['ladder']] == \
+        ['retry-same', 'retry-same']
 
 
 # ---------- TR-136: the failure envelope ----------
