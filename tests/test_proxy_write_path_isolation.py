@@ -182,13 +182,13 @@ _CASES = {
                     hop_status=0, circuit_class='overload'),
     'rate-limited-429': dict(provider='tr191-rl429', expect_status=429,
                              expect=dict(success=False, route_outcome='failed',
-                                         failure_reason='upstream-4xx',
+                                         failure_reason='429-quota-window',
                                          hops_attempted=1, served_by_hop=None,
                                          price_basis=PRICE_NO_USAGE),
                              hop_status=429, circuit_class='quota_window'),
     'overloaded-503': dict(provider='tr191-503', expect_status=503,
                            expect=dict(success=False, route_outcome='failed',
-                                       failure_reason='upstream-5xx',
+                                       failure_reason='5xx-overloaded',
                                        hops_attempted=1, served_by_hop=None,
                                        price_basis=PRICE_NO_USAGE),
                            hop_status=503, circuit_class='api_down'),
@@ -271,8 +271,17 @@ def _run_case(tmp_path, monkeypatch, case):
         assert st['pairs'][key]['class'] == spec['circuit_class']
         assert st['pairs'][key]['open_until'], f'{case}: breaker must carry open_until'
         v2 = st.get('v2') or {}
-        assert not (v2.get('provider_breakers') or {}), (
-            f'{case}: one failure must not open a provider breaker')
+        pb = v2.get('provider_breakers') or {}
+        # TR-288 blast radius: provider-wide codes (credit, quota window)
+        # DEMOTE the provider; pair-local codes (overload, transport) must not.
+        if spec['circuit_class'] == 'quota_window':
+            assert provider in pb, (
+                f'{case}: a quota-window 429 must demote the provider (TR-288)')
+            assert pb[provider]['class'] in ('quota_window', 'out_of_credit'), (
+                f'{case}: provider breaker class = {pb[provider]["class"]}')
+        elif spec['circuit_class'] == 'api_down':
+            assert provider not in pb, (
+                f'{case}: a pair-local 5xx must NOT demote the provider (TR-288)')
     if os.path.exists(os.path.join(LIVE_DIR, 'circuit-state.json')):
         live_bytes = open(os.path.join(LIVE_DIR, 'circuit-state.json'), 'rb').read()
         assert b'tr191-' not in live_bytes, (

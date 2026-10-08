@@ -78,7 +78,7 @@ Calibration gotchas (TR-001, live-verified 2026-08-27/08-31):
 """
 import json, os, socket, sys, time, datetime, urllib.request, urllib.error
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
 import router_hop_taxonomy  # noqa: E402  (TR-288: the one failure taxonomy)
 
 # Env-overridable paths (same convention as router_spawn.py) so calibration runs
