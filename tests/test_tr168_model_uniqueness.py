@@ -228,6 +228,18 @@ POST_DEDUPE_ADDITIONS = {
     # stealth/space-bunny-alpha + pixel-canary mirror lanes were disabled
     # upstream-unpriceable 2026-10-06 — row EDITS do not affect this pin).
     ("opencode-go", "space-bunny"): "TR-217 (2026-10-05 models.dev sync)",
+    # 2026-10-08 pre-run models.dev sync: +3 (opencode-go claude-haiku-5-5
+    # catalog-only import, priced 0.116 sub-bucket blended est same run;
+    # openrouter anthropic/claude-haiku-5.5 PAYG sticker 0.10 same run;
+    # ollama-cloud mistral-large-4 catalog-only import, bucket-plan lane left
+    # NULL with stamp + model_note 2026-10-08).
+    ("opencode-go", "claude-haiku-5-5"): "TR-217 (2026-10-08 models.dev sync)",
+    ("openrouter", "anthropic/claude-haiku-5.5"): "TR-217 (2026-10-08 models.dev sync)",
+    ("ollama-cloud", "mistral-large-4"): "TR-217 (2026-10-08 models.dev sync)",
+    # 2026-10-08 pre-run clinepass API sync: +2 (claude-haiku-5.5 + :batch,
+    # catalog rows; PAYG sticker priced same run).
+    ("clinepass", "claude-haiku-5.5"): "TR-217 (2026-10-08 clinepass API sync)",
+    ("clinepass", "claude-haiku-5.5:batch"): "TR-217 (2026-10-08 clinepass API sync)",
 }
 
 
