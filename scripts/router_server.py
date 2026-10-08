@@ -1489,11 +1489,42 @@ def _hermes_responses_call(path, body, headers, _opener=None):
     session_key = headers.get('x-hermes-session-key')
     if session_key:
         fwd_headers['X-Hermes-Session-Key'] = session_key
+    # TR-264: the hop itself carries the deadline wire headers, sourced from
+    # the ladder's derived block (x-router-deadline-echo) when present.
+    for _name, _value in _deadline_wire_headers(
+            headers.get('x-router-deadline-echo') or {}).items():
+        fwd_headers.setdefault(_name, _value)
+    # TR-264: the /v1/responses hop obeys the same forward rule as the default
+    # upstream site — a declared X-Caller-Budget-S never rides through
+    # unchanged; this layer charges its own elapsed time (measured by the
+    # ladder into x-router-hop-elapsed-s) against the declared total before
+    # the hop leaves. Parse is fail-open: a malformed header degrades to
+    # forward-as-received-minus-aliases, never a failed request.
+    _dl_declared, _dl_problems = _parse_caller_deadline(headers)
+    try:
+        _dl_elapsed = float(headers.get(ROUTER_PROXY_HOP_ELAPSED_HEADER) or 0.0)
+    except (TypeError, ValueError):
+        _dl_elapsed = 0.0
+    for alias in ROUTER_PROXY_DEADLINE_HEADER_ALIASES:
+        fwd_headers.pop(alias, None)
+        fwd_headers.pop(alias.title(), None)
+    fwd_headers.pop(ROUTER_PROXY_HOP_ELAPSED_HEADER, None)
+    if _dl_declared.get('budget_s') is not None:
+        fwd_headers['X-Caller-Budget-S'] = (
+            f"{max(0.0, _dl_declared['budget_s'] - _dl_elapsed):.6f}")
+        fwd_headers['X-Router-Hop-Elapsed-S'] = f'{_dl_elapsed:.3f}'
+        fwd_headers['X-Caller-Deadline-Mode'] = _dl_declared.get('mode') or 'idle'
+        if _dl_declared.get('margin_s') is not None:
+            fwd_headers['X-Caller-Margin-S'] = f"{_dl_declared['margin_s']:.6f}"
     fwd_body = dict(body)
     want_stream = bool(fwd_body.pop('stream', None))
     # TR-241: one ladder helper budgets both upstream sites (the default
     # gateway caller below used to compute its own — the two disagreed).
     timeout = _hop_budget_s(want_stream)
+    # TR-264: a declared budget is an upper bound for THIS hop too (this site
+    # has no derive context — the ladder carries the row/envelope evidence).
+    if _dl_declared.get('budget_s') is not None:
+        timeout = min(timeout, max(0.0, _dl_declared['budget_s'] - _dl_elapsed))
     req = urllib.request.Request(
         base.rstrip('/') + path,
         data=json.dumps(fwd_body).encode(),
@@ -1594,6 +1625,19 @@ def _hermes_proxy_chat(body, headers, upstream=None):
         merged = {**(headers if isinstance(headers, dict) else {})}
         if hermes_session_key:
             merged['x-hermes-session-key'] = hermes_session_key
+        # TR-264: the ladder's derived deadline rides to the hop call site as
+        # a private key; _hermes_responses_call stamps the same wire headers
+        # the buffered upstream path forwards (never silently dropped).
+        try:
+            merged['x-router-deadline-echo'] = {
+                'declared': bool(dl_declared_b),
+                'declared_s': hop_dl.get('budget_s'),
+                'mode': hop_dl.get('mode'),
+                'applied_s': hop_dl.get('hop_budget_s'),
+                'layer': 'router-proxy',
+                'stricter_reason': hop_dl.get('stricter_reason')}
+        except Exception:  # noqa: BLE001 — a lost echo never fails the hop
+            pass
         status, payload, session_id = upstream(path, hop_body, merged)
         if session_id:
             payload = dict(payload)
@@ -1855,6 +1899,192 @@ def _hop_budget_s(want_stream):
     return min(_proxy_hop_timeout_s(), ceiling)
 
 
+#: THE CALLER-DECLARED DEADLINE CONTRACT (TR-264). TR-241 built a ladder from
+#: what THIS layer guessed about its caller; a caller that DECLARES its own
+#: budget (X-Caller-Budget-S etc.) turns the ladder into arithmetic: this
+#: layer's budget is the declared total minus elapsed time minus the declared
+#: housekeeping margin, and the hop forwarded downstream carries the
+#: decremented remainder — never the original. Absent headers keep the
+#: TR-241 defaults, and every row + response stamps declared=false so a
+#: default can never masquerade as an honour. Reading is fail-open: any
+#: header surprise degrades to declared=false WITH a recorded reason, never
+#: a failed request.
+ROUTER_PROXY_DEADLINE_HEADER_ALIASES = {
+    'x-caller-name': 'X-Caller-Name',
+    'x-caller-budget-s': 'X-Caller-Budget-S',
+    'x-caller-deadline-mode': 'X-Caller-Deadline-Mode',
+    'x-caller-idle-budget-s': 'X-Caller-Idle-Budget-S',
+    'x-caller-max-hops': 'X-Caller-Max-Hops',
+    'x-caller-margin-s': 'X-Caller-Margin-S',
+}
+#: This layer's own bookkeeping header: the elapsed time already charged to
+#: the declared budget before a hop left (stripped on forward like the rest).
+ROUTER_PROXY_HOP_ELAPSED_HEADER = 'x-router-hop-elapsed-s'
+
+
+def _parse_caller_deadline(headers):
+    """TR-264 READ half: the caller's declared deadline from the request headers.
+
+    Header names are case-insensitive (the ladder lowercases once at entry, but
+    callers of this helper may hand it raw wsgi-style dicts). Returns
+    (declared_dict, problems): `declared` holds ONLY the keys actually declared
+    (budget_s / mode / idle_budget_s / max_hops / margin_s / name); `problems`
+    names every dropped value — a dropped header is NEVER guessed, per the
+    fleet convention that a null must carry a reason. Never raises.
+    """
+    declared, problems = {}, []
+    try:
+        norm = {}
+        for k, v in dict(headers or {}).items():
+            key = str(k).strip().lower()
+            val = v.strip() if isinstance(v, str) else v
+            norm[key] = val
+    except Exception as exc:  # noqa: BLE001 — fail-open: a live request cannot die here
+        return {}, [f'deadline headers unreadable: {type(exc).__name__}: {str(exc)[:80]}']
+
+    def _num(header):
+        raw = norm.get(header)
+        if raw is None or raw == '':
+            return None
+        try:
+            val = float(raw)
+        except (TypeError, ValueError):
+            problems.append(f'{header}: dropped unparsable value {str(raw)[:60]!r}')
+            return None
+        if val != val or val < 0:  # NaN or negative — neither is a budget
+            problems.append(f'{header}: dropped out-of-range value {val!r}')
+            return None
+        return val
+
+    for header, key in (('x-caller-budget-s', 'budget_s'),
+                        ('x-caller-idle-budget-s', 'idle_budget_s'),
+                        ('x-caller-max-hops', 'max_hops'),
+                        ('x-caller-margin-s', 'margin_s')):
+        val = _num(header)
+        if val is not None:
+            declared[key] = val
+    mode_raw = norm.get('x-caller-deadline-mode')
+    if mode_raw:
+        mode = str(mode_raw).strip().lower()
+        if mode in ('idle', 'wall'):
+            declared['mode'] = mode
+        else:
+            problems.append(
+                f'x-caller-deadline-mode: dropped unknown mode {str(mode_raw)[:60]!r} '
+                f'(expected idle|wall)')
+    name = norm.get('x-caller-name')
+    if name:
+        declared['name'] = str(name).strip()[:128]
+    return declared, problems
+
+
+def _deadline_wire_headers(block):
+    """TR-264: the response ECHO as wire headers, from a deadline block.
+
+    One vocabulary for every surface (buffered `_send` extra, the SSE
+    synthesizers, the `_router_headers` dict): a client reads the same five
+    names whatever shape it asked for. Never raises.
+    """
+    try:
+        h = {'X-Applied-Layer': str(block.get('layer') or 'router-proxy'),
+             'X-Applied-Declared': 'true' if block.get('declared') else 'false'}
+        if block.get('declared'):
+            h['X-Applied-Deadline-Mode'] = str(block.get('mode') or 'idle')
+            declared_s = block.get('declared_s')
+            applied_s = block.get('applied_s')
+            stricter = block.get('stricter_reason')
+            if declared_s is not None:
+                h['X-Applied-Budget-S'] = f"{float(declared_s):.6f}"
+            if applied_s is not None:
+                h['X-Applied-Hop-Budget-S'] = f"{float(applied_s):.6f}"
+            if stricter:
+                h['X-Applied-Stricter-Than-Caller'] = str(stricter)[:400]
+        if isinstance(block.get('problems'), list) and block['problems']:
+            h['X-Router-Deadline-Problems'] = \
+                '; '.join(str(p) for p in block['problems'])[:400]
+        return h
+    except Exception:  # noqa: BLE001 — an echo defect may never fail the reply
+        return {}
+
+
+def _deadline_declared(declared):
+    """TR-264: does this request carry a caller-declared deadline at all?
+
+    Any one of the budget shapes declares; a bare X-Caller-Name does not (a
+    label is not a deadline)."""
+    return bool(declared.get('budget_s') is not None
+                or declared.get('idle_budget_s') is not None
+                or declared.get('mode'))
+
+
+def _no_deadline(reason):
+    """TR-264: the explicit undeclared deadline block. A null never stands
+    alone — every null field carries its reason."""
+    return {'declared': False, 'declared_s': None,
+            'declared_reason': reason,
+            'mode': None, 'mode_reason': 'not declared',
+            'applied_s': None, 'applied_reason': reason,
+            'hop_budget_s': None, 'layer': 'router-proxy',
+            'aligned': True, 'stricter_reason': None,
+            'caller_name': None}
+
+
+def _derive_deadline_budget(declared, want_stream, elapsed_s=0.0):
+    """TR-264 DERIVE half: this layer's budgets as a function of the declared values.
+
+    mode=wall: the declared total minus this hop's already-elapsed time minus
+    the declared margin, clamped by the TR-241 ladder (streamed wall backstop /
+    buffered caller-patience ceiling). mode=idle: the same applied budget, and
+    the caller's declared idle budget feeds the idle watch. Returns a dict:
+    declared_s, mode, budget_s (applied total for the FORWARD), hop_budget_s
+    (this layer's transport budget), idle_budget_s (the SSE watch), and
+    stricter_reason (None when the applied budget honours the declared
+    remaining; a human-readable reason when the ladder forced us stricter).
+    """
+    mode = declared.get('mode') or 'idle'
+    margin = declared.get('margin_s') or 0.0
+    elapsed = elapsed_s if elapsed_s and elapsed_s > 0 else 0.0
+    stricter_reason = None
+    declared_budget = declared.get('budget_s')
+    if declared_budget is None:
+        # Undeclared: today's configured defaults, verbatim (TR-241).
+        hop = _hop_budget_s(want_stream)
+        return {'declared_s': None, 'mode': mode, 'budget_s': None,
+                'hop_budget_s': hop, 'idle_budget_s': _proxy_idle_budget_s(),
+                'stricter_reason': None, 'elapsed_s': elapsed, 'margin_s': margin}
+    remaining = max(0.0, float(declared_budget) - elapsed - margin)
+    hop = remaining
+    ceiling = ROUTER_CALLER_PATIENCE_S - ROUTER_HOP_LADDER_MARGIN_S
+    if want_stream:
+        wall = min(_proxy_wall_ceiling_s(), ceiling)
+        if hop > wall:
+            hop = wall
+            stricter_reason = (
+                f'ladder wall backstop clamped the streamed hop to {hop:g}s '
+                f'(caller declared {declared_budget:g}s total, {elapsed:g}s elapsed, '
+                f'{margin:g}s margin)')
+    else:
+        if hop > ceiling:
+            hop = ceiling
+            stricter_reason = (
+                f'ladder clamp: a buffered hop may never reach the caller patience '
+                f'({ROUTER_CALLER_PATIENCE_S:g}s minus ladder margin '
+                f'{ROUTER_HOP_LADDER_MARGIN_S:g}s = {ceiling:g}s ceiling; caller '
+                f'declared {declared_budget:g}s total, {elapsed:g}s elapsed, '
+                f'{margin:g}s margin)')
+    idle = declared.get('idle_budget_s')
+    if idle is None:
+        idle = _proxy_idle_budget_s()
+    if idle > hop:
+        # The transport budget bounds the watch: arithmetic identity, not a
+        # stricter choice (the hop budget carries the reason when clamped).
+        idle = hop
+    return {'declared_s': float(declared_budget), 'mode': mode,
+            'budget_s': remaining, 'hop_budget_s': hop, 'idle_budget_s': idle,
+            'stricter_reason': stricter_reason,
+            'elapsed_s': elapsed, 'margin_s': margin}
+
+
 def _collect_openai_stream(lines, path='/v1/chat/completions', on_event=None, watch=None):
     """Assemble an SSE stream into the buffered payload a non-streaming client expects.
 
@@ -1948,10 +2178,11 @@ def _collect_openai_stream(lines, path='/v1/chat/completions', on_event=None, wa
     return payload
 
 
-def _proxy_upstream_default(path, body, headers):
+def _proxy_upstream_default(path, body, headers, _opener=None):
     """POST the request to the upstream gateway (default: the Hermes gateway
     on localhost). Returns (status, payload-dict). Transport failure raises —
-    the ladder treats it exactly like a 5xx."""
+    the ladder treats it exactly like a 5xx. `_opener` is the test seam for
+    the socket (same shape as _hermes_responses_call's)."""
     base = os.environ.get('ROUTER_PROXY_UPSTREAM', 'http://127.0.0.1:8642')
     # TR-138: ask the gateway to STREAM even though the client wants a buffered
     # answer. Measured 2026-09-24: three live hops were killed at exactly 180.1s
@@ -1964,10 +2195,36 @@ def _proxy_upstream_default(path, body, headers):
     # untouched, and the assembled answer is what the caller gets.
     ask_stream = (_stream_hops_enabled() and str(path).rstrip('/').endswith('/chat/completions'))
     send_body = {**body, 'stream': True} if ask_stream else body
+    # TR-264: READ the caller's declared deadline (fail-open), charge what the
+    # ladder already spent (this hop's `headers` carry x-router-hop-elapsed-s
+    # when the ladder declared a budget), then FORWARD the decremented
+    # remainder — never the caller's original value unchanged. The aliases are
+    # stripped first so a stale value can never survive under our stamp.
+    dl_declared, dl_problems = _parse_caller_deadline(headers)
+    try:
+        dl_elapsed = float(headers.get(ROUTER_PROXY_HOP_ELAPSED_HEADER) or 0.0)
+    except (TypeError, ValueError):
+        dl_elapsed = 0.0
+    dl = _derive_deadline_budget(dl_declared, ask_stream or bool(body.get('stream')),
+                                 elapsed_s=dl_elapsed)
+    fwd_headers = {k: v for k, v in headers.items()
+                   if k.lower() in ('authorization', 'x-api-key')}
+    for alias in ROUTER_PROXY_DEADLINE_HEADER_ALIASES:
+        fwd_headers.pop(alias, None)
+    fwd_headers.pop(ROUTER_PROXY_HOP_ELAPSED_HEADER, None)
+    if dl['budget_s'] is not None:
+        fwd_headers['X-Caller-Budget-S'] = f"{dl['budget_s']:.6f}"
+        fwd_headers['X-Caller-Deadline-Mode'] = dl['mode']
+        fwd_headers['X-Caller-Margin-S'] = f"{dl['margin_s']:.6f}"
+        fwd_headers['X-Router-Hop-Elapsed-S'] = f'{dl_elapsed:.3f}'
+        if dl_declared.get('idle_budget_s') is not None:
+            fwd_headers['X-Caller-Idle-Budget-S'] = f"{dl_declared['idle_budget_s']:.6f}"
+        if dl_problems:
+            # A dropped header is never silent (TR-264 fail-open contract).
+            fwd_headers['X-Router-Deadline-Problems'] = '; '.join(dl_problems)[:400]
     req = urllib.request.Request(
         base.rstrip('/') + path, data=json.dumps(send_body).encode(),
-        headers={k: v for k, v in headers.items()
-                 if k.lower() in ('authorization', 'x-api-key', 'content-type')}
+        headers=fwd_headers
         | {'Content-Type': 'application/json', 'User-Agent': 'task-router-proxy/1.0'})
     # TR-138: when the hop asked the upstream to stream, the budget is the IDLE
     # watch (plus the wall as a backstop), and the stream is assembled into the
@@ -1977,9 +2234,13 @@ def _proxy_upstream_default(path, body, headers):
     # TR-241: the ladder helper owns the budget for BOTH shapes — the
     # buffered branch used to take _proxy_hop_timeout_s() alone, ten times
     # below the caller's patience, killing slow-but-alive work.
-    budget = _hop_budget_s(want_stream)
+    # TR-264: a declared caller budget replaces the guess with arithmetic
+    # (declared minus elapsed minus margin, ladder-clamped); undeclared
+    # requests keep exactly the configured default.
+    budget = dl['hop_budget_s']
+    watch_budget = dl['idle_budget_s']
     try:
-        with urllib.request.urlopen(req, timeout=budget) as resp:
+        with (_opener or urllib.request.urlopen)(req, timeout=budget) as resp:
             ctype = ''
             try:
                 ctype = (resp.headers.get('Content-Type') or '')
@@ -2004,7 +2265,7 @@ def _proxy_upstream_default(path, body, headers):
             # regression guard). The content type is the fact, the request is
             # only a wish.
             if 'text/event-stream' in ctype:
-                watch = _HermesIdleWatch(_proxy_idle_budget_s())
+                watch = _HermesIdleWatch(watch_budget)  # TR-264: declared feeds the watch
                 payload = _collect_openai_stream(_sse_lines(resp, watch), path, watch=watch)
                 if gw_session:
                     payload['_router_hermes_session_id'] = gw_session
@@ -3020,7 +3281,7 @@ def _proxy_record(provider, model, ok, requirements, reason='', latency_s=None,
                   degrade_reason=None, steps=None, chain_evidence=None,
                   classifier_evidence=None, attempts=None,
                   prompt_chars=None, prompt_sha=None, session_stats=None,
-                  caller_session_key=None):
+                  caller_session_key=None, deadline=None):
     """One outcome row per attempt + breaker evidence (best effort, fail-open).
 
     TR-071: `source` is the DRIVER identity when the caller declared one
@@ -3130,6 +3391,18 @@ def _proxy_record(provider, model, ok, requirements, reason='', latency_s=None,
                # This is the per-task join key the ledger was missing: one line
                # names the tick AND the lane/cost facts already on the row.
                'caller_session_key': caller_session_key,
+               # TR-264: the deadline verdict on EVERY row (criterion A/C).
+               # Undeclared reads {'declared': False, 'declared_s': None,
+               # 'declared_reason': 'caller declared no deadline headers', ...} —
+               # a null with its reason, never a bare null (fleet convention).
+               'deadline': deadline if isinstance(deadline, dict) else {
+                   'declared': False, 'declared_s': None,
+                   'declared_reason': 'caller declared no deadline headers',
+                   'mode': None, 'mode_reason': 'not declared',
+                   'applied_s': None, 'applied_reason': 'no declared budget',
+                   'hop_budget_s': None, 'layer': 'router-proxy',
+                   'aligned': True, 'stricter_reason': None,
+                   'caller_name': None},
                'task_label': reason[:200] or None, 'ts': time.time()}
         if parent_session_id:
             # Accumulate: one row per (source_system, session, model) that grows as
@@ -3238,6 +3511,15 @@ def proxy_chat(path, body, headers, max_hops=None, upstream=None):
         except Exception:  # noqa: BLE001 — a refusal must still be answerable
             pass
         retry_s = 5
+        # TR-264: even the refusal carries the deadline verdict — the caller
+        # learns whether its declared budget was honoured (it was: nothing was
+        # served against it) without reading the body.
+        try:
+            _dl_hdrs = {str(k).strip().lower(): v for k, v in (headers or {}).items()}
+            _dl_d, _dl_p = _parse_caller_deadline(_dl_hdrs)
+            _dl_declared_b = _deadline_declared(_dl_d)
+        except Exception:  # noqa: BLE001 — a refusal must still be answerable
+            _dl_declared_b = False
         return 429, {
             'error': reason,
             'retry_after_s': retry_s,
@@ -3249,6 +3531,24 @@ def proxy_chat(path, body, headers, max_hops=None, upstream=None):
                 'note': ('admission refused: the proxy bounds work in flight and queue depth, '
                          'and refuses rather than accepting a load it cannot serve'),
                 'usage': None, 'cost_usd': None,
+                # TR-264: the refusal deadline block mirrors the caller's
+                # declaration — declared=True when headers declared (nothing
+                # was served against the budget, so applied_s=None with that
+                # reason); declared=False with its own reason otherwise.
+                'deadline': ({'declared': True,
+                              'declared_s': _dl_d.get('budget_s'),
+                              'mode': _dl_d.get('mode') or 'idle',
+                              'applied_s': None,
+                              'applied_reason': 'request refused before any '
+                                                'hop ran; budget untouched',
+                              'hop_budget_s': None,
+                              'layer': 'router-proxy',
+                              'aligned': True, 'stricter_reason': None,
+                              'caller_name': _dl_d.get('name'),
+                              **({'problems': _dl_p} if _dl_p else {})}
+                             if _dl_declared_b else
+                             _no_deadline('request refused before any hop '
+                                          'ran; caller declared no deadline')),
             }}
 
 
@@ -3257,6 +3557,11 @@ def _proxy_chat_inner(path, body, headers, max_hops=None, upstream=None):
     shaped error with the ladder trail (fail-open, the caller is a live client)."""
     headers = {k.lower(): v for k, v in (headers or {}).items()}
     body = body if isinstance(body, dict) else {}
+    # TR-264: READ the caller-declared deadline once, at entry, fail-open. Any
+    # dropped header is named in `dl_problems` (a null never stands without a
+    # reason) and the request proceeds with what survived.
+    dl_declared, dl_problems = _parse_caller_deadline(headers)
+    dl_declared_b = _deadline_declared(dl_declared)
     # TR-071: a DRIVER may declare itself so proxied attempts are attributed to
     # it instead of landing as anonymous 'router-proxy' traffic. Validated
     # against the driver registry, so a typo or a random header value cannot
@@ -3298,6 +3603,13 @@ def _proxy_chat_inner(path, body, headers, max_hops=None, upstream=None):
                    os.environ.get('ROUTER_PROXY_MAX_HOPS') or (max_hops or 3))
     except (TypeError, ValueError):
         hops = 3
+    if dl_declared.get('max_hops') is not None:
+        # TR-264: X-Caller-Max-Hops is an ALIAS into the existing hops
+        # decision — it steers the same knob, it never creates a second one.
+        try:
+            hops = int(dl_declared['max_hops'])
+        except (TypeError, ValueError):
+            dl_problems.append('x-caller-max-hops: non-integer value dropped')
     source, requirements = _proxy_requirements(body, headers, path)
     # TR-163: one measurement per request, reused by every row this request writes.
     _prompt_stats = _prompt_evidence(body)
@@ -3408,6 +3720,66 @@ def _proxy_chat_inner(path, body, headers, max_hops=None, upstream=None):
     session_id = (f'{source_system}:{declared_session}' if declared_session
                   else _fallback_proxy_session_id(source_system))
 
+    # TR-264: the clock the deadline arithmetic charges against — the
+    # declared budget starts spending the moment this layer accepted the
+    # request, not when the first hop leaves.
+    dl_t0 = time.time()
+
+    def _dl_deadline(elapsed_s, dl, problems=None):
+        """TR-264: the ledger deadline block for one exit.
+
+        Undeclared: every null names its reason (declared_reason /
+        applied_reason), never a bare null. Declared: applied_s is this
+        layer's budget for the FINAL answer (the whole ladder), aligned is
+        True unless the ladder forced a stricter budget, and stricter_reason
+        carries the ladder's excuse. Elapsed time may keep the applied budget
+        below the declared remaining — that is arithmetic (time already
+        spent), not strictness, and is named as such.
+        """
+        if not dl_declared_b:
+            reason = 'caller declared no deadline headers'
+            blk = _no_deadline(reason)
+            if problems:
+                blk['problems'] = problems
+            return blk
+        declared_total = dl['declared_s']
+        applied = dl['hop_budget_s']
+        stricter = dl.get('stricter_reason')
+        remaining_declared = max(0.0, float(declared_total)
+                                 - float(elapsed_s or 0.0)
+                                 - float(dl.get('margin_s') or 0.0))
+        if not stricter and applied + 1e-9 < remaining_declared:
+            stricter = (f'time already charged: {float(elapsed_s or 0.0):g}s elapsed '
+                        f'+ {float(dl.get("margin_s") or 0.0):g}s margin against the '
+                        f'declared {float(declared_total):g}s total')
+        return {'declared': True, 'declared_s': float(declared_total),
+                'mode': dl['mode'],
+                'applied_s': float(applied),
+                'layer': 'router-proxy',
+                'aligned': stricter is None,
+                'stricter_reason': stricter,
+                'idle_budget_s': dl.get('idle_budget_s'),
+                'margin_s': float(dl.get('margin_s') or 0.0),
+                'elapsed_s': float(elapsed_s or 0.0),
+                'remaining_declared_s': remaining_declared,
+                'caller_name': dl_declared.get('name'),
+                **({'problems': problems} if problems else {})}
+
+    def _dl_echo(dl, elapsed_s, problems=None):
+        """TR-264: the response ECHO — the client-facing reply stamps what
+        this layer actually applied (criterion E), never what it guessed."""
+        h = {'X-Applied-Layer': 'router-proxy', 'X-Applied-Declared':
+             'true' if dl_declared_b else 'false'}
+        if dl_declared_b:
+            h['X-Applied-Deadline-Mode'] = str(dl.get('mode') or 'idle')
+            h['X-Applied-Budget-S'] = f"{float(dl['declared_s']):.6f}"
+            h['X-Applied-Hop-Budget-S'] = f"{float(dl['hop_budget_s']):.6f}"
+            if dl.get('stricter_reason'):
+                h['X-Applied-Stricter-Than-Caller'] = str(dl['stricter_reason'])[:400]
+        if problems:
+            h['X-Router-Deadline-Problems'] = '; '.join(problems)[:400]
+        return h
+
     meta = {'complexity_source': source, 'requirements': requirements,
             'sort': resolved.get('sort'), 'chain_length': len(chain),
             'max_hops': hops, 'ladder': [],
@@ -3422,6 +3794,11 @@ def _proxy_chat_inner(path, body, headers, max_hops=None, upstream=None):
             'stream_hops': _stream_hops_enabled(),
             'idle_budget_s': _proxy_idle_budget_s(),
             'wall_ceiling_s': _proxy_wall_ceiling_s(),
+            # TR-264: the deadline verdict rides the envelope too, so a caller
+            # reads it without joining the ledger. Stamped by EVERY exit below
+            # via meta['deadline'] = ...; absent is impossible.
+            'deadline': _dl_deadline(0.0, _derive_deadline_budget(
+                dl_declared, False, elapsed_s=0.0)),
             'problems': list(caller_problems)}
     if dev_rewrites:
         # never silent: the caller's payload was adjusted
@@ -3476,6 +3853,12 @@ def _proxy_chat_inner(path, body, headers, max_hops=None, upstream=None):
         # TR-136: this is the OTHER blind exit — it returns before the ladder, so
         # it needs the same envelope or a caller cannot tell it apart from a
         # transport death.
+        # TR-264: the deadline verdict is stamped on this exit too — declared
+        # or not, the caller gets the echo headers and the row gets the block.
+        dl = _derive_deadline_budget(dl_declared, False,
+                                     elapsed_s=time.time() - dl_t0)
+        meta['deadline'] = _dl_deadline(time.time() - dl_t0, dl,
+                                        problems=list(dl_problems))
         _proxy_record('none', 'none', False, requirements,
                       reason=error_msg,
                       latency_s=round(time.time() - ladder_t0, 3), source=source_system,
@@ -3487,13 +3870,15 @@ def _proxy_chat_inner(path, body, headers, max_hops=None, upstream=None):
                       steps=0,
                       chain_evidence=_chain_evidence(resolved, chain),
                       classifier_evidence=_classifier_evidence(requirements, source),
-                      prompt_chars=_prompt_stats[0], prompt_sha=_prompt_stats[1])
+                      prompt_chars=_prompt_stats[0], prompt_sha=_prompt_stats[1],
+                      deadline=meta['deadline'])
         return 503, {'error': error_msg,
                      'registry_missing': registry_missing,
                      '_router': _failure_envelope(meta, session_id, source_system,
                                                   parent_session_id, ladder_t0,
                                                   'no-hops', [], failure_reason,
-                                                  registry_missing=registry_missing)}
+                                                  registry_missing=registry_missing),
+                     **meta}
 
     # Load per-provider routing (last-mile): providers with api_base_url defined
     # get their own hop-level upstream; others fall back to the global upstream.
@@ -3542,7 +3927,26 @@ def _proxy_chat_inner(path, body, headers, max_hops=None, upstream=None):
         fwd = dict(body)
         fwd.pop('stream', None)  # TR-120: the mirror is buffered; strip the client's stream wish
         fwd['model'] = wire
-        hdrs = {**headers, 'x-router-provider': str(provider)}
+        # TR-264: the DECLARED budget is charged this layer's elapsed time and
+        # the declared margin BEFORE the hop leaves; the hop call site re-derives
+        # from the forwarded value (declared - elapsed - margin) and clamps by
+        # the same ladder. Undeclared requests forward nothing and keep the
+        # configured default (never a silent guess).
+        dl_elapsed = time.time() - dl_t0
+        hop_dl = _derive_deadline_budget(dl_declared, True, elapsed_s=dl_elapsed)
+        fwd_headers = {**headers, 'x-router-provider': str(provider)}
+        if dl_declared_b:
+            for alias in ROUTER_PROXY_DEADLINE_HEADER_ALIASES:
+                fwd_headers.pop(alias, None)
+            fwd_headers.pop(ROUTER_PROXY_HOP_ELAPSED_HEADER, None)
+            fwd_headers['X-Caller-Budget-S'] = f"{hop_dl['budget_s']:.6f}"
+            fwd_headers['X-Caller-Deadline-Mode'] = hop_dl['mode']
+            fwd_headers['X-Caller-Margin-S'] = f"{hop_dl['margin_s']:.6f}"
+            fwd_headers['X-Router-Hop-Elapsed-S'] = f'{dl_elapsed:.3f}'
+            if dl_declared.get('idle_budget_s') is not None:
+                fwd_headers['X-Caller-Idle-Budget-S'] = \
+                    f"{dl_declared['idle_budget_s']:.6f}"
+        hdrs = fwd_headers
         t0 = time.time()
         hop_call = _hop_call(provider)
         exc_seen = None
@@ -3553,6 +3957,10 @@ def _proxy_chat_inner(path, body, headers, max_hops=None, upstream=None):
             exc_seen = exc
         attempt['latency_s'] = round(time.time() - t0, 3)
         attempt['status'] = status
+        if dl_declared_b:
+            # TR-264: the hop's own budget is evidence — the row and the echo
+            # prove which budget the serving hop actually ran under.
+            attempt['deadline_hop_budget_s'] = hop_dl['hop_budget_s']
         ok = 200 <= int(status or 0) < 300
         if ok and isinstance(payload, dict) and not payload.get('choices') \
                 and payload.get('error') and path == '/v1/chat/completions':
@@ -3625,6 +4033,8 @@ def _proxy_chat_inner(path, body, headers, max_hops=None, upstream=None):
                           if isinstance(payload, dict) else None),
                       route_outcome='served' if ok else 'failed',
                       failure_reason=None if ok else attempt.get('reason'),
+                      deadline=_dl_deadline(time.time() - dl_t0, hop_dl,
+                                            problems=list(dl_problems)),
                       hops_attempted=len(meta['ladder']), served_by_hop=(hop.get('hop') if ok else None),
                       max_hops=hops, complexity_source=source,
                       degrade_reason=(requirements.get('problems') or [None])[0],
@@ -3683,9 +4093,23 @@ def _proxy_chat_inner(path, body, headers, max_hops=None, upstream=None):
                               # never disagree.
                               'steps': len(meta['ladder']),
                               'wall_time_s': wall}
+            # TR-264: the deadline verdict over the WHOLE ladder, stamped
+            # before the response leaves (criterion A: applied_s present).
+            meta['deadline'] = _dl_deadline(time.time() - dl_t0, hop_dl,
+                                            problems=list(dl_problems))
+            out['_router']['deadline'] = meta['deadline']
+            out['_router_headers'] = _dl_echo(hop_dl, time.time() - dl_t0,
+                                              problems=list(dl_problems))
             return 200, out
     status, payload = last or (502, {'error': 'no hops attempted'})
     out = dict(payload) if isinstance(payload, dict) else {'upstream': payload}
+    # TR-264: the exhausted ladder carries the same deadline verdict and echo
+    # as the served one — a caller whose budget was honoured into a wall of
+    # failures can tell the difference from a caller that was silently
+    # clamped.
+    dl = _derive_deadline_budget(dl_declared, True, elapsed_s=time.time() - dl_t0)
+    meta['deadline'] = _dl_deadline(time.time() - dl_t0, dl,
+                                    problems=list(dl_problems))
     # TR-136: the failure envelope must be as informative as the LEDGER. Measured
     # 2026-09-24: a real proxied 502 returned served_by/usage/cost/session/
     # wall_time all null while the ledger row for the same request held the
@@ -3698,6 +4122,9 @@ def _proxy_chat_inner(path, body, headers, max_hops=None, upstream=None):
     out['_router'] = _failure_envelope(meta, session_id, source_system, parent_session_id,
                                        ladder_t0, terminal, tried,
                                        'no hop served a response')
+    out['_router']['deadline'] = meta['deadline']
+    out['_router_headers'] = _dl_echo(dl, time.time() - dl_t0,
+                                      problems=list(dl_problems))
     return (status if isinstance(status, int) and status >= 400 else 502), out
 
 
@@ -3814,6 +4241,18 @@ class RouterHandler(BaseHTTPRequestHandler):
             # session id (SOURCE B: the gateway sends it on buffered responses
             # too) rides the response headers.
             extra = {}
+            if parsed.path in PROXY_PATHS and isinstance(payload, dict):
+                # TR-264: the deadline echo rides EVERY proxied reply — served,
+                # exhausted and the 429 refusal alike. `_router_headers`
+                # (the ladder's own dict) wins when present; the 429 envelope
+                # carries only the deadline block, so it is echoed from there.
+                if isinstance(payload.get("_router_headers"), dict):
+                    extra.update(payload["_router_headers"])
+                else:
+                    meta429 = payload.get("_router")
+                    if isinstance(meta429, dict) and \
+                            isinstance(meta429.get("deadline"), dict):
+                        extra.update(_deadline_wire_headers(meta429["deadline"]))
             if parsed.path == "/v1/responses" and status == 200 \
                     and isinstance(payload, dict):
                 meta = payload.get("_router")
@@ -3836,6 +4275,12 @@ class RouterHandler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Content-Type", "text/event-stream; charset=utf-8")
         self.send_header("Cache-Control", "no-cache")
+        # TR-264: a streaming client gets the deadline echo on the stream
+        # headers — the same names the buffered reply carries.
+        _meta = payload.get("_router") if isinstance(payload, dict) else None
+        if isinstance(_meta, dict) and isinstance(_meta.get("deadline"), dict):
+            for _k, _v in _deadline_wire_headers(_meta["deadline"]).items():
+                self.send_header(_k, _v)
         self.end_headers()
         def _frame(obj):
             self.wfile.write(b"data: " + json.dumps(obj).encode() + b"\n\n")
@@ -3874,6 +4319,11 @@ class RouterHandler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Content-Type", "text/event-stream; charset=utf-8")
         self.send_header("Cache-Control", "no-cache")
+        # TR-264: deadline echo on the /v1/responses stream headers too.
+        _meta = payload.get("_router") if isinstance(payload, dict) else None
+        if isinstance(_meta, dict) and isinstance(_meta.get("deadline"), dict):
+            for _k, _v in _deadline_wire_headers(_meta["deadline"]).items():
+                self.send_header(_k, _v)
         session_id = ""
         if isinstance(payload, dict):
             meta = payload.get("_router")
