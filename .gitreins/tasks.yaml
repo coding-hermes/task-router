@@ -825,3 +825,31 @@ tasks:
   status: complete
   created_at: '2026-10-07T16:17:06.219885+00:00'
   completed_at: '2026-10-07T16:17:10.187891+00:00'
+- id: TR-201
+  title: 'Null-debt invariants: >=50%-null lane, 100%-null column, dated-without-provenance,
+    watched census'
+  criteria:
+  - "A test suite asserts three invariants over data/tables: no live lane >=50% null\
+    \ columns; no 100%-null column without allow-list+reason; no dated row without\
+    \ lifecycle_source \u2014 each proven by failing on a deliberately-broken fixture\
+    \ and passing clean; and the census runs on a schedule publishing the unexplained\
+    \ count"
+  status: complete
+  created_at: '2026-10-07T17:14:48.391430+00:00'
+  completed_at: '2026-10-07T18:55:24.280021+00:00'
+- id: TR-264
+  title: caller-declared deadline contract in proxy
+  criteria:
+  - Proxy reads X-Caller-* headers, derives+decrements hop budget, echoes X-Applied-*
+    response headers, records deadline on ledger rows; 12 new tests pass, suite green
+  status: complete
+  created_at: '2026-10-08T04:42:01.828233+00:00'
+  completed_at: '2026-10-08T04:42:08.407379+00:00'
+- id: QA-TASK-ROUTER-9
+  title: Clean-machine collection EACCES + expired pinned test clock
+  criteria:
+  - Full pytest suite collects and passes on a foreign-uid clean tree; both red QA
+    cells' root causes fixed at commit
+  status: complete
+  created_at: '2026-10-08T06:37:09.954497+00:00'
+  completed_at: '2026-10-08T06:38:03.833105+00:00'
