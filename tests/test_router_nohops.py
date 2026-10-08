@@ -14,6 +14,7 @@ Pinned here, from the row:
 import json
 import os
 import sys
+import time
 import urllib.parse
 
 import pytest
@@ -24,7 +25,10 @@ import router_nohops as rn       # noqa: E402
 import router_outcomes as ro     # noqa: E402
 import router_server as rsrv     # noqa: E402
 
-NOW = 1_791_360_000.0  # 2026-10-07T05:20:00Z, pinned — tests never read the clock
+NOW = time.time()  # captured once at import — every row/window in this module
+# is relative to it, so nothing slides out of a live 24h window as the wall
+# clock advances (the old pinned 1_791_360_000.0 expired 2026-10-08 and made
+# every real-clock evaluate() path see an empty window).
 
 
 def row(ts_h_ago, outcome, reqs=None, **kw):
@@ -187,6 +191,12 @@ def test_env_headroom_override(hermetic, monkeypatch):
 # ---------- the verdict + alert payload ----------
 
 def verdict(rows, hermetic, **kw):
+    # Pin the window to NOW: the row factory stamps ts relative to NOW, and
+    # evaluate() defaults to the real clock — a live 24h window slides past
+    # the pinned rows within a day (observed 2026-10-08: the oldest row fell
+    # out, n=0, breach silently unassertable). The module doctrine is that
+    # tests never read the clock; this helper was the one violator.
+    kw.setdefault("now_s", NOW)
     return rn.evaluate(rows, baseline=None, **kw)
 
 
