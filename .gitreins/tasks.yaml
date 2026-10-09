@@ -875,5 +875,6 @@ tasks:
     reuses the price table with unknown price -> NULL not 0; remaining NULL with reason
     when limit NULL; per-provider keying test proves 498 lanes under one $10 window
     count as ONE budget
-  status: in_progress
+  status: complete
   created_at: '2026-10-09T20:00:14.736267+00:00'
+  completed_at: '2026-10-09T21:30:05.555990+00:00'
