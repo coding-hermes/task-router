@@ -853,3 +853,15 @@ tasks:
   status: complete
   created_at: '2026-10-08T06:37:09.954497+00:00'
   completed_at: '2026-10-08T06:38:03.833105+00:00'
+- id: TR-165
+  title: Evidence for lanes reading tier -1
+  criteria:
+  - 'Every lane named in docs/catalog-freshness-2026-09-25.md still-unevidenced section
+    ends as: (a) measured via live-probe battery or vendor benchmark row reaching
+    BENCH_OVERLAY, or (b) a documented gap row in model_notes naming why it cannot
+    be measured yet. Target: gpt-6-luna-pro/sol-pro/astra-pro + :batch SKUs, mimo-v2.6-pro-ultraspeed,
+    stealth/pixel-canary, stealth/space-bunny-alpha, commandcode aion-3.5, perceptron-mk1.5,
+    typesafe/jev-router, fireworks/ember-1, stepfun/step-5-preview, xkiro cohere/*
+    (16), xkiro anthropic/claude-sonnet-4/4.5.'
+  status: in_progress
+  created_at: '2026-10-09T18:48:12.135034+00:00'
