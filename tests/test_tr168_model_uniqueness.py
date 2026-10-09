@@ -240,6 +240,19 @@ POST_DEDUPE_ADDITIONS = {
     # catalog rows; PAYG sticker priced same run).
     ("clinepass", "claude-haiku-5.5"): "TR-217 (2026-10-08 clinepass API sync)",
     ("clinepass", "claude-haiku-5.5:batch"): "TR-217 (2026-10-08 clinepass API sync)",
+    # 2026-10-08/09 pre-run syncs: clinepass API +2 (ling-3.0-flash-sante,
+    # step-5-preview — clinepass-api provenance, catalog rows); models.dev
+    # +2 (neuralwatt mimo-v2.6-pro + -flex, normalized:payg-sticker);
+    # opencode-go +1 (step-5-preview-free, sub-bucket blended est);
+    # openrouter +2 (inclusionai/ling-3.0-flash-sante,
+    # stepfun/step-5-preview — normalized:payg-sticker).
+    ("clinepass", "ling-3.0-flash-sante"): "TR-217 (2026-10-09 clinepass API sync)",
+    ("clinepass", "step-5-preview"): "TR-217 (2026-10-09 clinepass API sync)",
+    ("neuralwatt", "mimo-v2.6-pro"): "TR-217 (2026-10-09 models.dev sync)",
+    ("neuralwatt", "mimo-v2.6-pro-flex"): "TR-217 (2026-10-09 models.dev sync)",
+    ("opencode-go", "step-5-preview-free"): "TR-217 (2026-10-09 models.dev sync)",
+    ("openrouter", "inclusionai/ling-3.0-flash-sante"): "TR-217 (2026-10-09 models.dev sync)",
+    ("openrouter", "stepfun/step-5-preview"): "TR-217 (2026-10-09 models.dev sync)",
 }
 
 
