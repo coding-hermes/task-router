@@ -620,6 +620,11 @@ def test_ac7_cli_via_router_wrapper(tmp_path):
     # written there); pointing it at the repo would drop quota-state.json into
     # the checkout on every test run. Script resolution is __file__-derived.
     env["TASK_ROUTER_HOME"] = str(tmp_path)
+    # CI runs pytest as `pytest tests/` with the repo NOT on sys.path (no `pip
+    # install -e .` in ci.yml), and cli.py does `from task_router import
+    # paths` at import time — put the repo on PYTHONPATH like an editable
+    # install would (matches the installed `router` entry point).
+    env["PYTHONPATH"] = REPO + os.pathsep + env.get("PYTHONPATH", "")
     p = subprocess.run([sys.executable, router, "quota", "accounting",
                         "--ledger", led, "--limits", lim, "--now", str(T0),
                         "--json"],
