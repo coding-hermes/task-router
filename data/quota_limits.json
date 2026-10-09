@@ -1,0 +1,5 @@
+{
+ "_comment": "TR-209 quota L2 limit config — read at QUERY time by scripts/router_quota_accounting.py (`router quota accounting`). This is CONFIGURATION, not state: the accounting itself is derived from the outcome ledger (data/state/outcomes.jsonl) and this file is never written back. window: rolling_5h | rolling_daily | daily | rolling (+ window_hours) | weekly | monthly. limit_usd: number, or null/absent = no limit (remaining stays NULL with the reason). Providers absent from 'providers' still appear in the view with spent only.",
+ "default_window": "rolling_5h",
+ "providers": {}
+}

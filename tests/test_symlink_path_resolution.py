@@ -56,6 +56,9 @@ CONTROLS = [
     'router_diff.py',
     'router_validate.py',
     'provider_health_probe.py',
+    # TR-209: the L2 accounting view is live-installed (symlink) and resolves
+    # its limit-config default from the repo tree — keep it symlink-safe.
+    'router_quota_accounting.py',
 ]
 
 

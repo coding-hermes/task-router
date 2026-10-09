@@ -33,6 +33,10 @@ CLI:
         [--state-dir D] [--json]
   clear (<provider> | --all) [--state-file P] [--state-dir D] [--json]
   status [<provider>] [--json] [--state-file P] [--state-dir D]
+  accounting [--provider P] [--ledger PATH] [--limits PATH] [--now WHEN]
+        [--json]        (TR-209: L2 per-provider spent/remaining/resets_at,
+        derived from the outcome ledger — delegates to
+        router_quota_accounting.py)
 Exit codes: 0 ok, 2 usage/validation error (operator error — never masked),
 1 unexpected failure (clean stderr message, no traceback).
 """
@@ -351,6 +355,33 @@ def quota_status(provider=None, state_file_arg=None, state_dir_arg=None,
     return 0
 
 
+# ------------------------------------------------------------ accounting ----
+
+
+def _accounting(rest):
+    """Delegate `accounting ...` to router_quota_accounting.py (TR-209).
+
+    One file per quota layer is the TR-206..208 layout, so the L2 view lives
+    in its own module; this re-dispatch keeps `router quota accounting` as a
+    single operator surface and propagates its exit codes verbatim
+    (0 ok / 2 usage / 1 failure).
+    """
+    import runpy
+    path = os.path.join(_HERE, 'router_quota_accounting.py')
+    sys.argv = [path] + list(rest)
+    try:
+        runpy.run_path(path, run_name='__main__')
+    except SystemExit as e:
+        code = e.code
+        if code is None:
+            return 0
+        try:
+            return int(code)
+        except (TypeError, ValueError):
+            return 1
+    return 0
+
+
 # ------------------------------------------------------------------ main ----
 
 
@@ -390,6 +421,21 @@ def main(argv=None):
     pst.add_argument('--json', action='store_true')
     add_target(pst)
 
+    pac = sub.add_parser('accounting',
+                         help='L2 quota accounting: spent/remaining/resets_at '
+                              'per provider, derived from the outcome ledger '
+                              '(TR-209; no second store)')
+    pac.add_argument('--provider', default=None)
+    pac.add_argument('--ledger', default=None,
+                     help='outcome ledger (default: $ROUTING_OUTCOMES_FILE '
+                          'or data/state/outcomes.jsonl)')
+    pac.add_argument('--limits', default=None,
+                     help='limit config JSON (default: '
+                          '$ROUTER_QUOTA_LIMITS_FILE or data/quota_limits.json)')
+    pac.add_argument('--now', default=None,
+                     help='freeze the clock: ISO-8601 or epoch seconds')
+    pac.add_argument('--json', action='store_true')
+
     a = parser.parse_args(argv)
     try:
         if a.command == 'set':
@@ -405,6 +451,15 @@ def main(argv=None):
             prov = _validate_provider(parser, a.provider) if a.provider else None
             return quota_clear(prov, all_=a.all_, state_file_arg=a.state_file,
                                state_dir_arg=a.state_dir, as_json=a.json)
+        if a.command == 'accounting':
+            rest = [f'--provider={a.provider}'] if a.provider else []
+            for flag in ('ledger', 'limits', 'now'):
+                v = getattr(a, flag)
+                if v:
+                    rest.append(f'--{flag}={v}')
+            if a.json:
+                rest.append('--json')
+            return _accounting(rest)
         prov = _validate_provider(parser, a.provider) if a.provider else None
         return quota_status(prov, state_file_arg=a.state_file,
                             state_dir_arg=a.state_dir, as_json=a.json)

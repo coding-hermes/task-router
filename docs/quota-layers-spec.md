@@ -98,6 +98,13 @@ dollars and our ledger is denominated in tokens, the conversion is that one func
 **Per-provider (not per-lane).** A provider with 498 clinepass lanes and one $10 credit window is a *single*
 budget; lane count is irrelevant to it. This is why the layer keys on provider+account, not on model.
 
+*Implemented 2026-10-09 (TR-209): `scripts/router_quota_accounting.py` — the view over
+`data/state/outcomes.jsonl`, reached as `router quota accounting`; the limit side of this L2 layer is a
+simple per-provider `{window, limit_usd}` JSON (`data/quota_limits.json`, `$ROUTER_QUOTA_LIMITS_FILE`),
+read at query time, never stored state. The L0 `provider_quota.jsonl` research table remains the
+limits-of-record for provider plan terms; the L2 config exists because L0 carries per-window *plan* limits
+in token/credit units, while the L2 ledger query is denominated in dollars.*
+
 ## 5. L3 — policy (the three consumers)
 
 1. **Pacing / spacing** — the thing that stops "over-running the provider at once".

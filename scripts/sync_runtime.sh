@@ -26,6 +26,7 @@ drifted=""   # TR-256 drift gate accumulator (set -u: must exist before use)
 # router_server.py + router_web.py joined TR-017/TR-018 (API+MCP server, web UI):
 # long-lived processes exec'd by operators/systemd — symlink keeps them canonical.
 for f in router_spawn.py router_circuit.py router_quota.py router_ledger.py router_seed.py router_maintain.py \
+         router_quota_accounting.py \
          router_modelsdev.py router_gaps.py router_pricing.py router_clinepass.py router_plan_sweep.py \
          router_learn.py router_server.py router_web.py router_status.py router_estimate.py \
          router_diff.py router_metrics.py router_validate.py router_probefix.py router_refresh_resume.py \
