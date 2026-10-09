@@ -863,5 +863,17 @@ tasks:
     stealth/pixel-canary, stealth/space-bunny-alpha, commandcode aion-3.5, perceptron-mk1.5,
     typesafe/jev-router, fireworks/ember-1, stepfun/step-5-preview, xkiro cohere/*
     (16), xkiro anthropic/claude-sonnet-4/4.5.'
-  status: in_progress
+  status: complete
   created_at: '2026-10-09T18:48:12.135034+00:00'
+  completed_at: '2026-10-09T19:07:43.203515+00:00'
+- id: TR-209
+  title: 'Quota L2: accounting view over the ledger'
+  criteria:
+  - Accounting (spent/remaining/resets_at/headroom per provider+window) is derived
+    as a query over data/state/outcomes.jsonl with no second store; boundary-tested
+    windows (rolling 5h, weekly, calendar month, out-of-order rows); unit conversion
+    reuses the price table with unknown price -> NULL not 0; remaining NULL with reason
+    when limit NULL; per-provider keying test proves 498 lanes under one $10 window
+    count as ONE budget
+  status: in_progress
+  created_at: '2026-10-09T20:00:14.736267+00:00'
