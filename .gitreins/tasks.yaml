@@ -884,3 +884,13 @@ tasks:
   status: complete
   created_at: '2026-10-10T15:34:05.760630+00:00'
   completed_at: '2026-10-10T15:34:28.045936+00:00'
+- id: TR-210
+  title: 'Quota L3: pacing gate (do not over-run a provider)'
+  criteria:
+  - 'Admission-level pacing so a window is never burst-spent: admit only while spent+est
+    <= limit*margin, paced by remaining/time_to_reset. Fuzz test: random traffic over
+    a synthetic window never exceeds limit*safety_margin. Soft-spacing preferred over
+    refusal. Cross-account rotation only to an account with headroom. Unknown limit
+    = no constraint. Reuses existing admission counters.'
+  status: in_progress
+  created_at: '2026-10-10T16:26:08.919934+00:00'
