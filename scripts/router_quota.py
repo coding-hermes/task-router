@@ -43,6 +43,12 @@ CLI:
                         (TR-210: L3 pacing gate — admit / soft-space / refuse
         one call against the L2 window, explicit counted refusals, bounded
         waits — delegates to router_quota_pacing.py)
+  burn [--provider P] [--ledger PATH] [--limits PATH] [--now WHEN]
+        [--plan-kind P=K,...] [--json]
+                        (TR-211: L3 burn-surplus finder — per window, project
+        expected_unused = remaining - (current_rate * time_to_reset) and
+        surface windows that will expire unused; report only, never
+        auto-spends — delegates to router_quota_burn.py)
 Exit codes: 0 ok, 2 usage/validation error (operator error — never masked),
 1 unexpected failure (clean stderr message, no traceback).
 """
@@ -406,6 +412,19 @@ def _pacing(rest):
     return _delegate('router_quota_pacing.py', args)
 
 
+def _burn(rest):
+    """Delegate `burn ...` to router_quota_burn.py (TR-211, the L3 finder).
+
+    Mirrors _pacing exactly: the L3 module names its one verb explicitly
+    (`burn ...`), so the delegate re-adds that token — `router quota burn`
+    and `router_quota_burn.py burn` are the same invocation.
+    """
+    args = list(rest)
+    if not args or args[0] != 'burn':
+        args = ['burn', *args]
+    return _delegate('router_quota_burn.py', args)
+
+
 # ------------------------------------------------------------------ main ----
 
 
@@ -493,6 +512,29 @@ def main(argv=None):
                      help='upper bound on any computed delay (default 30s)')
     ppc.add_argument('--json', action='store_true')
 
+    # L3 burn-surplus (TR-211). Mirrored explicitly like `pacing`; the burn
+    # module owns its own defaults, so every flag stays None here.
+    pbr = sub.add_parser('burn',
+                         help='L3 quota burn-surplus finder: windows whose '
+                              'quota will expire unused, projected from the '
+                              'outcome ledger (TR-211; report only, never '
+                              'auto-spends)')
+    pbr.add_argument('--provider', default=None,
+                     help='restrict the report to one provider')
+    pbr.add_argument('--ledger', default=None,
+                     help='outcome ledger (default: $ROUTING_OUTCOMES_FILE '
+                          'or data/state/outcomes.jsonl)')
+    pbr.add_argument('--limits', default=None,
+                     help='limit config JSON (default: '
+                          '$ROUTER_QUOTA_LIMITS_FILE or data/quota_limits.json)')
+    pbr.add_argument('--now', default=None,
+                     help='freeze the clock: ISO-8601 or epoch seconds')
+    pbr.add_argument('--plan-kind', dest='plan_kind', default=None,
+                     help='explicit cost-basis override PROVIDER=KIND '
+                          'comma-separated (wins over the limit config '
+                          'plan_kind)')
+    pbr.add_argument('--json', action='store_true')
+
     a = parser.parse_args(argv)
     try:
         if a.command == 'set':
@@ -527,6 +569,15 @@ def main(argv=None):
             if a.json:
                 rest.append('--json')
             return _pacing(rest)
+        if a.command == 'burn':
+            rest = []
+            for flag in ('provider', 'ledger', 'limits', 'now', 'plan_kind'):
+                v = getattr(a, flag)
+                if v is not None:
+                    rest.append(f'--{flag.replace("_", "-")}={v}')
+            if a.json:
+                rest.append('--json')
+            return _burn(rest)
         prov = _validate_provider(parser, a.provider) if a.provider else None
         return quota_status(prov, state_file_arg=a.state_file,
                             state_dir_arg=a.state_dir, as_json=a.json)

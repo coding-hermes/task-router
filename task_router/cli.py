@@ -537,7 +537,7 @@ def _print_help():
     texts = {
         "spawn":      "resolve a task/profile to a model chain (fail-open JSON/text)",
         "circuit":    "circuit-breaker state for (provider, model) pairs",
-        "quota":      "plan-window quota gates (429 exhaustion): set/clear/status; plus accounting (TR-209 L2 view)",
+        "quota":      "plan-window quota gates (429 exhaustion): set/clear/status; plus accounting (TR-209 L2 view), pacing (TR-210 L3 gate), burn (TR-211 L3 burn-surplus finder)",
         "gaps":       "registry coverage gap report",
         "ledger":     "spawn-ledger start/end/status (TR-007)",
         "maintain":   "registry repair/export/reprice maintenance",
