@@ -899,3 +899,14 @@ tasks:
   status: complete
   created_at: '2026-10-10T17:44:47.259765+00:00'
   completed_at: '2026-10-10T18:03:29.510022+00:00'
+- id: TR-211
+  title: 'Quota L3: burn-surplus finder'
+  criteria:
+  - scripts/router_quota_burn.py computes expected_unused = remaining - (current_rate
+    * time_to_reset) per provider window from the L2 accounting view; emits provider/window/surplus/reset/marginal-cash
+    report only (never auto-spends); subscription windows labelled subscription-covered;
+    synthetic-window tests cover expiring-with-surplus vs plenty-left-with-time; full
+    pytest suite green.
+  status: complete
+  created_at: '2026-10-10T18:54:22.522589+00:00'
+  completed_at: '2026-10-10T19:28:27.491628+00:00'
