@@ -114,6 +114,13 @@ in token/credit units, while the L2 ledger query is denominated in dollars.*
    refusal is counted (`_ADMISSION` already has the shape for this). Cross-account rotation is a *policy knob*
    here, not a new mechanism: when account A is paced out, the chain may move to account B **only** if B's
    own window has headroom.
+
+   *Implemented 2026-10-10 (TR-210): `scripts/router_quota_pacing.py` — the gate as a PURE decision over
+   the L2 view (`PacingGate.decide` / `PacingGate.pick_account`), reached as `router quota pacing`. The
+   module writes nothing (no second store) and never sleeps: it COMPUTES a delay, and a delay past
+   `wait_cap_s` becomes a refusal instead of a stall. Counters are the caller's own `_ADMISSION`-shaped
+   object, incremented exactly once per decision. NOT yet wired onto the live request path — the gate is
+   the policy, admission wiring is a separate change. Consumers 2 and 3 are TR-213 / TR-211.*
 2. **Chain preference** — lane ordering gains one term: prefer lanes whose window has headroom, deprioritise
    lanes near their ceiling, and keep the existing rules intact (plan lanes before PAYG, measured cost before
    price when coverage allows). Quota is a *tie-breaker and a guard*, never a silent re-rank of the fleet.
@@ -143,6 +150,9 @@ in token/credit units, while the L2 ledger query is denominated in dollars.*
 - **L3**: pacing refuses at the ceiling and never above it (fuzz: random traffic, assert
   `spent ≤ limit × margin` always); burn-surplus selection on synthetic windows (expiring vs plenty-left);
   a paced-out account does not silently move to a sibling account with no headroom.
+  *(The pacing half is implemented and enforced by `tests/test_quota_pacing.py`, 31 tests: the fuzz
+  invariant, the exact margin line, soft-spacing vs the wait cap, counted refusals that name the window,
+  cross-account rotation, unknown-limit visibility, counter reuse, and the CLI.)*
 - **Live smoke** (opt-in, bounded): hit the readback endpoints for providers where we have keys; assert the
   response parses and the value is plausible; never run in CI (live-only harness, same rule as the acceptance
   battery).

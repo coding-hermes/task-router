@@ -884,3 +884,17 @@ tasks:
   status: complete
   created_at: '2026-10-10T15:34:05.760630+00:00'
   completed_at: '2026-10-10T15:34:28.045936+00:00'
+- id: TR-210
+  title: 'Quota L3: pacing gate (do not over-run a provider)'
+  criteria:
+  - 'scripts/router_quota_pacing.py: admit only while spent+est <= limit*safety_margin
+    with soft-spacing (delay) preferred over refusal; an exhausted window refuses
+    EXPLICITLY naming the window and is COUNTED; cross-account rotation moves only
+    to a sibling with its own headroom; an unknown/unusable limit contributes NO constraint
+    and the fact is recorded (counter + reason); the caller''s existing admission
+    counters are reused and incremented exactly once per decision; no unbounded wait
+    on the request path (a delay past the wait cap is a refusal). Reached as ''router
+    quota pacing''. tests/test_quota_pacing.py: 31 tests incl. the fuzz invariant
+    (200x200 random calls never exceed limit*margin). Full suite green.'
+  status: in_progress
+  created_at: '2026-10-10T17:44:47.259765+00:00'

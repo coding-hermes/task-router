@@ -37,6 +37,12 @@ CLI:
         [--json]        (TR-209: L2 per-provider spent/remaining/resets_at,
         derived from the outcome ledger — delegates to
         router_quota_accounting.py)
+  pacing --provider P [--cost-c USD] [--accounts A[,B]] [--blocks-json PATH]
+        [--ledger PATH] [--limits PATH] [--now WHEN] [--margin 0.9]
+        [--wait-s S] [--wait-cap-s S] [--json]
+                        (TR-210: L3 pacing gate — admit / soft-space / refuse
+        one call against the L2 window, explicit counted refusals, bounded
+        waits — delegates to router_quota_pacing.py)
 Exit codes: 0 ok, 2 usage/validation error (operator error — never masked),
 1 unexpected failure (clean stderr message, no traceback).
 """
@@ -358,16 +364,16 @@ def quota_status(provider=None, state_file_arg=None, state_dir_arg=None,
 # ------------------------------------------------------------ accounting ----
 
 
-def _accounting(rest):
-    """Delegate `accounting ...` to router_quota_accounting.py (TR-209).
+def _delegate(module, rest):
+    """Run another quota-layer module as __main__, propagating its exit code.
 
-    One file per quota layer is the TR-206..208 layout, so the L2 view lives
-    in its own module; this re-dispatch keeps `router quota accounting` as a
-    single operator surface and propagates its exit codes verbatim
-    (0 ok / 2 usage / 1 failure).
+    One file per quota layer is the TR-206..210 layout (L2 accounting view,
+    L3 pacing gate), so each layer lives in its own module; this re-dispatch
+    keeps `router quota <layer>` as a single operator surface and propagates
+    exit codes verbatim (0 ok / 2 usage / 1 failure).
     """
     import runpy
-    path = os.path.join(_HERE, 'router_quota_accounting.py')
+    path = os.path.join(_HERE, module)
     sys.argv = [path] + list(rest)
     try:
         runpy.run_path(path, run_name='__main__')
@@ -380,6 +386,24 @@ def _accounting(rest):
         except (TypeError, ValueError):
             return 1
     return 0
+
+
+def _accounting(rest):
+    """Delegate `accounting ...` to router_quota_accounting.py (TR-209)."""
+    return _delegate('router_quota_accounting.py', rest)
+
+
+def _pacing(rest):
+    """Delegate `pacing ...` to router_quota_pacing.py (TR-210, the L3 gate).
+
+    The L3 module names its one verb explicitly (`pacing --provider ...`), so
+    the delegate re-adds that token: `router quota pacing --provider P` and
+    `router_quota_pacing.py pacing --provider P` are the same invocation.
+    """
+    args = list(rest)
+    if not args or args[0] != 'pacing':
+        args = ['pacing', *args]
+    return _delegate('router_quota_pacing.py', args)
 
 
 # ------------------------------------------------------------------ main ----
@@ -436,6 +460,39 @@ def main(argv=None):
                      help='freeze the clock: ISO-8601 or epoch seconds')
     pac.add_argument('--json', action='store_true')
 
+    # L3 (TR-210). Mirrored explicitly like `accounting`; every default stays
+    # None so the L3 module owns its own defaults (DEFAULT_MARGIN / wait cap).
+    ppc = sub.add_parser('pacing',
+                         help='L3 quota pacing gate: admit / soft-space / '
+                              'refuse one call against the provider window '
+                              'derived from the outcome ledger (TR-210)')
+    ppc.add_argument('--provider', required=True,
+                     help='provider to pace (the L2 view is provider-keyed)')
+    ppc.add_argument('--cost-c', dest='cost_c', type=float, default=None,
+                     help='estimated cost of the call in USD')
+    ppc.add_argument('--accounts', default=None,
+                     help='preferred account key for cross-account rotation')
+    ppc.add_argument('--blocks-json', dest='blocks_json', default=None,
+                     help='path to a JSON object {account: L2 block} for '
+                          'cross-account rotation')
+    ppc.add_argument('--ledger', default=None,
+                     help='outcome ledger (default: $ROUTING_OUTCOMES_FILE '
+                          'or data/state/outcomes.jsonl)')
+    ppc.add_argument('--limits', default=None,
+                     help='limit config JSON (default: '
+                          '$ROUTER_QUOTA_LIMITS_FILE or data/quota_limits.json)')
+    ppc.add_argument('--now', default=None,
+                     help='freeze the clock: ISO-8601 or epoch seconds')
+    ppc.add_argument('--margin', type=float, default=None,
+                     help='safety margin in (0, 1] (default 0.9)')
+    ppc.add_argument('--wait-s', dest='wait_s', type=float, default=None,
+                     help='bounded wait the caller may absorb (0 = refuse '
+                          'instead of delay)')
+    ppc.add_argument('--wait-cap-s', dest='wait_cap_s', type=float,
+                     default=None,
+                     help='upper bound on any computed delay (default 30s)')
+    ppc.add_argument('--json', action='store_true')
+
     a = parser.parse_args(argv)
     try:
         if a.command == 'set':
@@ -460,6 +517,16 @@ def main(argv=None):
             if a.json:
                 rest.append('--json')
             return _accounting(rest)
+        if a.command == 'pacing':
+            rest = [f'--provider={a.provider}']
+            for flag in ('cost_c', 'accounts', 'blocks_json', 'ledger',
+                         'limits', 'now', 'margin', 'wait_s', 'wait_cap_s'):
+                v = getattr(a, flag)
+                if v is not None:
+                    rest.append(f'--{flag.replace("_", "-")}={v}')
+            if a.json:
+                rest.append('--json')
+            return _pacing(rest)
         prov = _validate_provider(parser, a.provider) if a.provider else None
         return quota_status(prov, state_file_arg=a.state_file,
                             state_dir_arg=a.state_dir, as_json=a.json)
