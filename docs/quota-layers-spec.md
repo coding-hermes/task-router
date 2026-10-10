@@ -121,6 +121,16 @@ in token/credit units, while the L2 ledger query is denominated in dollars.*
    `wait_cap_s` becomes a refusal instead of a stall. Counters are the caller's own `_ADMISSION`-shaped
    object, incremented exactly once per decision. NOT yet wired onto the live request path — the gate is
    the policy, admission wiring is a separate change. Consumers 2 and 3 are TR-213 / TR-211.*
+
+   *Implemented 2026-10-10 (TR-211): `scripts/router_quota_burn.py` — the projection as a PURE
+   function over the L2 view (`project_window` / `find_surplus` / `find_surplus_ledger`), reached as
+   `router quota burn`. Elapsed time comes from the SAME window arithmetic the L2 view uses; the
+   module writes nothing, calls no network, spawns nothing — the report (and its `--json` document)
+   goes to stdout only. Every entry is labelled `estimated` with `basis: derived-from-ledger`; a
+   no-limit or unpriceable window is verdict `unknown` with the L2 reason travelling (NULL, never 0);
+   and every entry carries `cost_basis` / `subscription_covered` sourced from the limit config
+   `plan_kind` or an explicit `--plan-kind` override — undeclared means the marginal cash is NULL
+   with the reason, never guessed to $0 (burning is still the owner's call per project).*
 2. **Chain preference** — lane ordering gains one term: prefer lanes whose window has headroom, deprioritise
    lanes near their ceiling, and keep the existing rules intact (plan lanes before PAYG, measured cost before
    price when coverage allows). Quota is a *tie-breaker and a guard*, never a silent re-rank of the fleet.
@@ -152,7 +162,11 @@ in token/credit units, while the L2 ledger query is denominated in dollars.*
   a paced-out account does not silently move to a sibling account with no headroom.
   *(The pacing half is implemented and enforced by `tests/test_quota_pacing.py`, 31 tests: the fuzz
   invariant, the exact margin line, soft-spacing vs the wait cap, counted refusals that name the window,
-  cross-account rotation, unknown-limit visibility, counter reuse, and the CLI.)*
+  cross-account rotation, unknown-limit visibility, counter reuse, and the CLI. The burn-surplus half is
+  implemented and enforced by `tests/test_quota_burn.py`: the exact projection (rolling and calendar),
+  expiring-with-surplus vs plenty-left-with-time, negative surplus => no-burn, no-limit => NULL with the
+  reason, writes-nothing/no-network/no-spawn, cost-basis honesty (subscription-covered vs metered vs
+  unknown, never free money unnamed), and the `router quota burn` CLI surface.)*
 - **Live smoke** (opt-in, bounded): hit the readback endpoints for providers where we have keys; assert the
   response parses and the value is plausible; never run in CI (live-only harness, same rule as the acceptance
   battery).
