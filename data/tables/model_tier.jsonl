@@ -2038,6 +2038,7 @@
 {"model": "kimi-k3-flex", "category": "ui_frontend", "perf": 0.72, "tier": 3, "tier_source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "kimi-k3-flex", "category": "vision", "perf": 0.72, "tier": 3, "tier_source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "laguna-s-2.1", "category": "test", "perf": 0.72, "tier": -1, "tier_source": "estimate", "source_ref": "CATEGORY_ESTIMATES"}
+{"model": "ling-3.0-flash-sante", "category": "test", "perf": 0.72, "tier": -1, "tier_source": "estimate", "source_ref": "CATEGORY_ESTIMATES"}
 {"model": "ling-3.0-flash-sante:free", "category": "test", "perf": 0.72, "tier": -1, "tier_source": "family", "source_ref": "alias:inclusionai/ling-3.0-flash-sante:free"}
 {"model": "longcat-2.0", "category": "agent_tick", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:meituan/longcat-2.0"}
 {"model": "longcat-2.0", "category": "code_gen", "perf": 0.85, "tier": 2, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:longcat"}
