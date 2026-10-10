@@ -572,15 +572,13 @@ tasks:
   created_at: '2026-09-30T06:30:19.067512+00:00'
   completed_at: '2026-09-30T06:41:00.117948+00:00'
 - id: TR-247
-  title: "Three dark lanes: crof static site, kimi dead key, ollama-cloud 11/11 failures\
-    \ \u2014 per-lane root cause + fix"
+  title: Three dark lanes diagnostic
   criteria:
-  - 'Per-lane verdict with evidence in scripts/router_health.py state handling: crof,
-    kimi (p1/bad) and ollama-cloud each diagnosed distinctly and the routing state
-    corrected or a fix landed; health probe re-run; committed and pushed'
+  - Each dark lane has a named root cause with evidence; crof base_url corrected or
+    disabled; kimi key rotated or disabled; ollama-cloud 11/11 diagnosed
   status: complete
-  created_at: '2026-09-30T07:11:07.974169+00:00'
-  completed_at: '2026-09-30T08:18:35.283664+00:00'
+  created_at: '2026-10-10T01:04:30.707247+00:00'
+  completed_at: '2026-10-10T01:13:17.088840+00:00'
 - id: TR-187
   title: TR-187 worker task
   criteria:
@@ -878,3 +876,11 @@ tasks:
   status: complete
   created_at: '2026-10-09T20:00:14.736267+00:00'
   completed_at: '2026-10-09T21:30:05.555990+00:00'
+- id: TR-160
+  title: Repoint the scheduler's Hermes calls through the task-router proxy
+  criteria:
+  - Scheduler gateway-url points at router proxy 127.0.0.1:9391, verified from the
+    wire (proxy ledger rows), rollback is one drop-in removal
+  status: complete
+  created_at: '2026-10-10T15:34:05.760630+00:00'
+  completed_at: '2026-10-10T15:34:28.045936+00:00'
