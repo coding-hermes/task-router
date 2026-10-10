@@ -414,6 +414,7 @@
 {"id": "mischief-chaos-dogfood", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
 {"id": "mischief-chaos-pm", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}
 {"id": "mischief-chaos-qa", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P9_REVIEW"}
+{"id": "mischief-chaos-releng", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P2_AGENTIC"}
 {"id": "mischief-chaos-sync", "sensitivity": "open", "board_type": "", "stack": "", "profile": "P8_SYNC"}
 {"id": "mischief-docs", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P3_DOCS"}
 {"id": "mischief-dogfood", "sensitivity": "open", "board_type": "jsonl", "stack": "", "profile": "P8_SYNC"}

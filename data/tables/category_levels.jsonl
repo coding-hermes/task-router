@@ -196,13 +196,13 @@
 {"category": "security", "level": 3, "label": "+++", "min_perf": 0.88}
 {"category": "security", "level": 4, "label": "++++", "min_perf": 0.94}
 {"category": "security", "level": 5, "label": "+++++", "min_perf": 0.988}
-{"category": "spec_docs", "level": -5, "label": "-----", "min_perf": 0.61456}
-{"category": "spec_docs", "level": -4, "label": "----", "min_perf": 0.6482}
-{"category": "spec_docs", "level": -3, "label": "---", "min_perf": 0.6698000000000001}
+{"category": "spec_docs", "level": -5, "label": "-----", "min_perf": 0.62812}
+{"category": "spec_docs", "level": -4, "label": "----", "min_perf": 0.664}
+{"category": "spec_docs", "level": -3, "label": "---", "min_perf": 0.667}
 {"category": "spec_docs", "level": -2, "label": "--", "min_perf": 0.6817}
 {"category": "spec_docs", "level": -1, "label": "-", "min_perf": 0.72}
-{"category": "spec_docs", "level": 0, "label": "0", "min_perf": 0.833}
-{"category": "spec_docs", "level": 1, "label": "+", "min_perf": 0.99}
+{"category": "spec_docs", "level": 0, "label": "0", "min_perf": 0.7490000000000001}
+{"category": "spec_docs", "level": 1, "label": "+", "min_perf": 1.0}
 {"category": "spec_docs", "level": 2, "label": "++", "min_perf": 1.0}
 {"category": "spec_docs", "level": 3, "label": "+++", "min_perf": 1.0}
 {"category": "spec_docs", "level": 4, "label": "++++", "min_perf": 1.0}
@@ -215,7 +215,7 @@
 {"category": "terminal", "level": 0, "label": "0", "min_perf": 0.8270000000000001}
 {"category": "terminal", "level": 1, "label": "+", "min_perf": 0.843}
 {"category": "terminal", "level": 2, "label": "++", "min_perf": 0.8532}
-{"category": "terminal", "level": 3, "label": "+++", "min_perf": 0.8966363636363636}
+{"category": "terminal", "level": 3, "label": "+++", "min_perf": 0.9014363636363636}
 {"category": "terminal", "level": 4, "label": "++++", "min_perf": 0.9272727272727271}
 {"category": "terminal", "level": 5, "label": "+++++", "min_perf": 0.95}
 {"category": "test", "level": -5, "label": "-----", "min_perf": 0.72}
