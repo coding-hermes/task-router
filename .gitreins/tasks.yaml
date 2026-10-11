@@ -910,17 +910,6 @@ tasks:
   status: complete
   created_at: '2026-10-10T18:54:22.522589+00:00'
   completed_at: '2026-10-10T19:28:27.491628+00:00'
-- id: TR-167
-  title: Wire all four carrier presets into the daily refresh so a new model wave
-    never needs a hand edit
-  criteria:
-  - The model-router-refresh cron's pre-run script runs a dry-run import for EVERY
-    preset in data/catalogs/ and reports the diff (new lanes, price moves, catalog
-    removals); adding a new carrier means dropping one preset file, with no prompt
-    edit. A run that finds new lanes files them into the registry (or reports them
-    loudly if it cannot price them).
-  status: in_progress
-  created_at: '2026-10-11T04:16:08.142583+00:00'
 - id: TR-183
   title: 'Sort re-rank: implemented, floored, coverage-gated, decision closed'
   criteria:

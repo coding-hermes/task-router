@@ -1,0 +1,46 @@
+{
+  "task": "TR-185",
+  "title": "Per-category perf evidence source attribution in router_tier_coverage.py",
+  "recorded_at": "2026-10-11T05:30:00-05:00",
+  "author": "follow-up worker (rework + record)",
+  "supersedes": [
+    "28912d7 (first TR-185 commit: non-monotone relax simulation — replaced asked level instead of capping, live output showed 518->526 WORSE with 'Delta: --0.6%'; false blanket why-thin claims)",
+    "f3894fb (swept this worker's staged fix + tests into its commit via a bare git commit while the guard ran; also swept unrelated .coverage / wave files / docs)"
+  ],
+  "head_at_record": "cc9ba34",
+  "files": [
+    "scripts/router_tier_coverage.py",
+    "tests/test_tr185_tier_evidence.py"
+  ],
+  "evidence": {
+    "live_run": {
+      "command": "~/.hermes/venvs/board/bin/python3 scripts/router_tier_coverage.py",
+      "registry": "registry.json (seeded 2026-10-11)",
+      "sample": "1367 rated-nohops proxied rows",
+      "before": "518/1367 = 37.9% unsatisfiable",
+      "terminal_evidence": "97 models: measured=0, bench=23, family=65, estimate=9",
+      "after_terminal_4_to_2": "518/1367 = 37.9% (delta 0 rows — measured, not guessed: 411/518 unsat rows ask terminal >= 3; only 2 eligible lanes clear terminal >= 4 and the co-required agent_tick 4 / tool_use 4 bars block them)",
+      "after_terminal_drop_minus1": "29/1367 = 2.1% (delta +489 rows, +35.8 pts)",
+      "speed": "64s -> 1.6s (alias-tier memoization enabling multi-simulation)"
+    },
+    "independent_crosscheck": "Non-memoized reimplementation (/tmp scratch) reproduced base 518, cap terminal->2 => 518, cap terminal->-1 => 29/1367 — matches the shipped simulation exactly.",
+    "tests": {
+      "file": "tests/test_tr185_tier_evidence.py",
+      "count": 8,
+      "hermetic": true,
+      "red_proof": "all 8 fail on the pre-fix tree (28912d7), all pass at HEAD",
+      "full_suite_at_head": "2114 passed, 4 warnings in 885.10s (SUITE_RC=0), log /tmp/tr185_full_suite.log"
+    },
+    "tier2_judge": {
+      "command": "gitreins judge TR-185 --ephemeral --persist-verdict (5 criteria mirroring the row's ACs)",
+      "result": "COMPLETE — 5/5 PASS at commit cc9ba34",
+      "verdict": ".gitreins/verdicts/verdict.json",
+      "job_log": "/tmp/tr185_judge.json"
+    }
+  },
+  "residual_honesty": [
+    "The Record commit is a DOCS-only change: the tier-1 guard runs DEGRADED PASS on a docs-only diff (no staged source files), while tier-2 judged the full source state at cc9ba34 — both halves banked here.",
+    "The relax default simulates the dominant blocker at hardest-2 (terminal 4->2) per the row's example; the zero delta it reports is the honest measured result, with the drop-category bound (-1) printed alongside so the wall (co-requirements) is visible.",
+    "AC example in the row quoted 'security has 0 perf evidence because the category was added but no benchmarks exist yet' — live data shows security carries 33 rows (family=26, bench=4, estimate=3, measured=0), so the shipped why-thin states the real counts instead of the example's zero story."
+  ]
+}
