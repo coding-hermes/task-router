@@ -57,6 +57,7 @@ from router_spawn import (row_is_retired, _alias_tiers, _fold_tier_names,  # noq
 
 REGISTRY = os.environ.get('ROUTING_REGISTRY', os.path.join(_REPO, 'registry.json'))
 LEDGER = os.environ.get('ROUTER_OUTCOMES', os.path.join(_REPO, 'data', 'state', 'outcomes.jsonl'))
+PERF_TABLE = os.path.join(_REPO, 'data', 'tables', 'model_perf.jsonl')
 
 
 def load_tables(path):
@@ -81,6 +82,29 @@ def load_tables(path):
                     rows.append(json.loads(line))
         t[name] = rows
     return t, data_dir
+
+
+def load_perf_sources(path):
+    """Load model_perf.jsonl -> {category: {source: count}} and {category: total_count}."""
+    cat_sources = collections.defaultdict(lambda: collections.Counter())
+    cat_totals = collections.Counter()
+    if not os.path.exists(path):
+        return cat_sources, cat_totals
+    with open(path) as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                row = json.loads(line)
+            except Exception:
+                continue
+            cat = row.get('category')
+            src = row.get('source', 'unknown')
+            if cat:
+                cat_sources[cat][src] += 1
+                cat_totals[cat] += 1
+    return cat_sources, cat_totals
 
 
 def load_sample(path, sample, ts_max=None):
@@ -146,25 +170,31 @@ def clears(mt, reqs):
     return True
 
 
-def measure(tables, sample_rows):
+def measure(tables, sample_rows, req_overrides=None):
+    """Measure satisfiability. req_overrides: {category: new_level} to simulate relaxation."""
     tiers, folded, eligible, registry = build(tables)
     ok_e = ok_r = 0
-    cat_ask = collections.Counter()          # how often the classifier asks a category
-    cat_fail = collections.Counter()         # how often that category was the blocker
-    cat_max = {}                             # hardest level asked per category
+    cat_ask = collections.Counter()
+    cat_fail = collections.Counter()
+    cat_max = {}
     per_row = []
     for row, reqs in sample_rows:
-        for c, l in reqs.items():
+        # Apply overrides if simulating relaxation
+        effective_reqs = dict(reqs)
+        if req_overrides:
+            for cat, new_lvl in req_overrides.items():
+                if cat in effective_reqs:
+                    effective_reqs[cat] = new_lvl
+        for c, l in effective_reqs.items():
             cat_ask[c] += 1
             cat_max[c] = max(cat_max.get(c, -99), l)
-        e = any(clears(_alias_tiers(tiers, folded, m.get('model')), reqs) for m in eligible)
-        r = any(clears(_alias_tiers(tiers, folded, m.get('model')), reqs) for m in registry)
+        e = any(clears(_alias_tiers(tiers, folded, m.get('model')), effective_reqs) for m in eligible)
+        r = any(clears(_alias_tiers(tiers, folded, m.get('model')), effective_reqs) for m in registry)
         ok_e += bool(e)
         ok_r += bool(r)
         if not e:
-            # which requirements had the thinnest support across ELIGIBLE lanes
             worst = None
-            for cat, lvl in reqs.items():
+            for cat, lvl in effective_reqs.items():
                 n = sum(1 for m in eligible
                         if (_alias_tiers(tiers, folded, m.get('model')).get(cat)
                             if _alias_tiers(tiers, folded, m.get('model')).get(cat) is not None
@@ -226,10 +256,20 @@ def main():
     rows = load_sample(args.ledger, args.sample, ts_max=args.ts_max)
     res = measure(tables, rows)
     cov = coverage_table(tables, cats=res['cat_ask'], levels=res['cat_max'])
+    perf_sources, perf_totals = load_perf_sources(PERF_TABLE)
 
     if args.json:
+        # Build perf evidence dict for JSON output
+        perf_evidence = {}
+        for cat in sorted(res['cat_ask']):
+            sources = dict(perf_sources.get(cat, {}))
+            perf_evidence[cat] = {
+                'total_models_with_perf': perf_totals.get(cat, 0),
+                'by_source': sources,
+            }
         print(json.dumps({'registry': src, 'sample': args.sample, 'ts_max': args.ts_max,
-                          'metric': res, 'coverage': cov}, indent=1, sort_keys=True))
+                          'metric': res, 'coverage': cov, 'perf_evidence': perf_evidence},
+                         indent=1, sort_keys=True))
         return 0
 
     print(f'registry   : {src}')
@@ -253,10 +293,90 @@ def main():
         print(f'  {cat:<14}{res["cat_ask"][cat]:>7}{c["models_with_tier"]:>8}'
               f'{(c["eligible_clearing_level"] if c["eligible_clearing_level"] is not None else -1):>10}'
               f'{res["cat_max"][cat]:>9}')
+
+    # === TR-185: perf evidence source attribution ===
     if res['cat_fail']:
-        print('\nblocking category (thinnest support in the unsatisfiable rows):')
+        print('\nperf evidence sources (from data/tables/model_perf.jsonl):')
+        print(f'  {"category":<14}{"total":>7}{"measured":>9}{"bench":>7}{"family":>8}{"estimate":>9}')
         for cat, n in collections.Counter(res['cat_fail']).most_common(8):
-            print(f'  {cat:<14}{n}')
+            total = perf_totals.get(cat, 0)
+            src_counts = perf_sources.get(cat, {})
+            measured = src_counts.get('measured', 0)
+            bench = src_counts.get('bench', 0)
+            family = src_counts.get('family', 0)
+            estimate = src_counts.get('estimate', 0)
+            print(f'  {cat:<14}{total:>7}{measured:>9}{bench:>7}{family:>8}{estimate:>9}')
+
+        print('\nwhy coverage is thin (measurement, not guess):')
+        for cat, n in collections.Counter(res['cat_fail']).most_common(8):
+            total = perf_totals.get(cat, 0)
+            src_counts = perf_sources.get(cat, {})
+            if total == 0:
+                print(f'  {cat}: 0 perf evidence rows in model_perf.jsonl — '
+                      f'no model has been measured/benchmarked on {cat} tasks')
+            else:
+                measured = src_counts.get('measured', 0)
+                bench = src_counts.get('bench', 0)
+                family = src_counts.get('family', 0)
+                estimate = src_counts.get('estimate', 0)
+                # Determine dominant source
+                sources_present = []
+                if measured: sources_present.append(f'{measured} measured')
+                if bench: sources_present.append(f'{bench} bench')
+                if family: sources_present.append(f'{family} family-inherited')
+                if estimate: sources_present.append(f'{estimate} estimate')
+                if sources_present:
+                    print(f'  {cat}: {total} perf rows exist ({", ".join(sources_present)}) '
+                          f'but tier coverage is thin — perf data exists but tier table lacks entries')
+                else:
+                    print(f'  {cat}: {total} perf rows but all sources are unknown/unclassified')
+
+        print('\nproposed fixes:')
+        for cat, n in collections.Counter(res['cat_fail']).most_common(8):
+            total = perf_totals.get(cat, 0)
+            asked_level = res['cat_max'].get(cat, 0)
+            clearing = cov[cat]['eligible_clearing_level']
+            if clearing is None:
+                clearing = 0
+            # EXPANDS EVIDENCE fix
+            if total == 0:
+                print(f'  [EXPANDS EVIDENCE] {cat}: run {cat} benchmarks on N models '
+                      f'to populate model_perf.jsonl (currently 0 perf rows)')
+            else:
+                measured = perf_sources.get(cat, {}).get('measured', 0)
+                if measured == 0:
+                    print(f'  [EXPANDS EVIDENCE] {cat}: upgrade {total} family/estimate rows '
+                          f'to measured perf via actual benchmarks (currently 0 measured)')
+                else:
+                    print(f'  [EXPANDS EVIDENCE] {cat}: add more measured benchmarks '
+                          f'(currently {measured}/{total} are measured)')
+            # RELAXES REQUIREMENT fix
+            if asked_level > 1 and clearing < (asked_level * len(rows) * 0.1):
+                relaxed = max(1, asked_level - 2)
+                # Simulate relaxation
+                relaxed_res = measure(tables, rows, req_overrides={cat: relaxed})
+                delta = res['rate_eligible'] - relaxed_res['rate_eligible']
+                print(f'  [RELAXES REQUIREMENT] {cat}: lower tier requirement from '
+                      f'{asked_level} to {relaxed} (owner decision — reduces unsatisfiable by {delta:.1%})')
+
+        # === Before/after unsatisfiable rate ===
+        print(f'\nunsatisfiable rate:')
+        print(f'  Before: {res["unsat_eligible"]}/{res["n"]} = {res["rate_eligible"]:.1%} '
+              f'unsatisfiable (n={res["n"]} {args.sample} rows)')
+        # Simulate relaxing the top blocking category
+        top_cat = collections.Counter(res['cat_fail']).most_common(1)
+        if top_cat:
+            cat = top_cat[0][0]
+            asked_level = res['cat_max'].get(cat, 0)
+            if asked_level > 1:
+                relaxed = max(1, asked_level - 2)
+                relaxed_res = measure(tables, rows, req_overrides={cat: relaxed})
+                print(f'  After relaxing {cat} {asked_level}→{relaxed}: '
+                      f'{relaxed_res["unsat_eligible"]}/{relaxed_res["n"]} = '
+                      f'{relaxed_res["rate_eligible"]:.1%} unsatisfiable (n={relaxed_res["n"]})')
+                delta = res['rate_eligible'] - relaxed_res['rate_eligible']
+                print(f'  Delta: -{delta:.1%}')
+
     return 0
 
 
