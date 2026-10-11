@@ -1,0 +1,13 @@
+{
+  "scheduler_tick_id": "task-router-2026-09-29-05-53-48",
+  "created": "2026-09-29",
+  "budget": 8,
+  "tasks": [
+    {"id": "TR-241", "worktree": "/home/kara/worktrees/task-router-TR-241", "branch": "wt/TR-241", "base": "origin/main", "base_sha": "b34c9fd"},
+    {"id": "TR-240", "worktree": "/home/kara/worktrees/task-router-TR-240", "branch": "wt/TR-240", "base": "origin/main", "base_sha": "b34c9fd"},
+    {"id": "TR-235", "worktree": "/home/kara/worktrees/task-router-TR-235", "branch": "wt/TR-235", "base": "origin/main", "base_sha": "b34c9fd"}
+  ],
+  "worker_model": "glm-5.3-flash",
+  "worker_provider": "zai-glm",
+  "independence": "no depends_on edges between the three; touch disjoint files (proxy_server timeout budget / ci_gate_check.py / router_server.py health)"
+}
