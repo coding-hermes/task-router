@@ -11,7 +11,15 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 45  # RELEASE-005: full suite outgrew 10m — runs on e14b744+ were cancelled mid-suite. INT-CI-20261002-01: the guard-parity step now REALLY runs (guard script works in CI since 6060e9a), so the job fits TWO full-suite runs (~19 min each on runners) — 45 min covers both + setup.
+    # INT-CI-20261011-01: this job runs the FULL suite TWICE (pytest below,
+    # then the guard script re-runs pytest + null-debt invariants + CI gate).
+    # Measured on ubuntu-latest: suite ~917s (run 36953390462), so two suites
+    # + seeding + gates ≈ 32-40 min — and every run on 2026-10-11 was
+    # cancelled by GitHub AT the 45:00 job timeout, mid guard step, and
+    # reported as conclusion=cancelled (runs 38115197909, 38123736300,
+    # 38112991322, 38114315608). 75 min gives both full-suite runs margin
+    # without inviting hung jobs (per-step hang risk is unchanged).
+    timeout-minutes: 75
     # NOTE (TR-203 follow-up, run 37747633956): there is deliberately NO
     # job-level `env: ROUTER_STATE_DIR:` here. Two things break with one:
     #   * task_router.cli._apply_env_exports uses os.environ.setdefault to
