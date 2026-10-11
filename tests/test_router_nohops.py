@@ -25,7 +25,7 @@ import router_nohops as rn       # noqa: E402
 import router_outcomes as ro     # noqa: E402
 import router_server as rsrv     # noqa: E402
 
-NOW = time.time()  # captured once at import — every row/window in this module
+NOW = (int(time.time() / 3600) * 3600) + 3599  # captured once at import — every row/window in this module
 # is relative to it, so nothing slides out of a live 24h window as the wall
 # clock advances (the old pinned 1_791_360_000.0 expired 2026-10-08 and made
 # every real-clock evaluate() path see an empty window).
