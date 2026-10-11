@@ -584,3 +584,4 @@
 {"id": 20261011092003, "type": null, "task_id": "INT-CI-20261009-01", "detail": "{\"status\":\"pending\"}", "tick": null, "timestamp": "2026-10-11T11:03:12.378568+00:00", "event_type": "task_updated", "actor": "foreman"}
 {"id": 20261011092004, "type": null, "task_id": "INT-CI-20261011-02", "detail": "{\"id\":\"INT-CI-20261011-02\",\"status\":\"pending\"}", "tick": null, "timestamp": "2026-10-11T20:51:36.082931+00:00", "event_type": "task_created", "actor": "foreman"}
 {"id": 20261011092005, "type": null, "task_id": "TR-236", "detail": "{\"status\":\"complete\"}", "tick": null, "timestamp": "2026-10-11T21:02:55.737208+00:00", "event_type": "task_completed", "actor": "foreman"}
+{"id": 20261011092006, "type": null, "task_id": "RELEASE-003", "detail": "{\"status\":\"complete\"}", "tick": null, "timestamp": "2026-10-11T21:59:39.072376+00:00", "event_type": "task_completed", "actor": "foreman"}
