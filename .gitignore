@@ -48,3 +48,9 @@ data/state/intake-resolves.jsonl
 data/state/outcomes.jsonl.backup-*
 data/state/outcomes.jsonl.bak-*
 .coding-hermes/board/.lock
+
+# TR-185 follow-up cleanup: coverage, scratch reports, old wave manifests
+.coverage
+gap_findings.txt
+reports/*.html
+.coding-hermes/waves/*.json
