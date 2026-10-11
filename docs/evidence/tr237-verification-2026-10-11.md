@@ -69,3 +69,35 @@ against current HEAD instead of re-implementing working code.
 No production service touched, no restart, no push. The historical board evidence
 rows (`classifier-empty` / `default` with `profile_id=P0_FORE`) predate TR-139 +
 4c3be2e; current HEAD is the corrected behavior.
+
+## Worker-tick record — commit collision + re-landed audit trail (2026-10-11 18:4x)
+
+During this tick a concurrent actor landed two commits on the same shared tree:
+
+- `d12f79f` "test(proxy): preserve declared profile attribution" — additive and
+  correct: one new test (`test_model_field_does_not_pin_the_selected_hop`,
+  pins that the outbound body's model is rewritten to the selected hop's wire
+  id — `fwd['model'] = wire`, router_server.py) and an expanded
+  docs/integration.md exact-hop section (verified real against source:
+  `/resolve?profile=` exists with the TR-REV-20261005-1 profile-only arm;
+  `scripts/router_chain_run.py` exports ROUTER_PROVIDER/ROUTER_MODEL/ROUTER_HOP;
+  `x-router-max-hops` read at router_server.py:3684).
+- `839b2e2` "docs: record TR-237 verification" — committed THIS file
+  byte-identical (`git show 839b2e2:<path> | cmp - <path>` → identical) while it
+  sat staged; the sibling's bare commit swept it. Per doctrine the sibling
+  commit is NOT amended or reverted; this section re-lands the full audit
+  record, because the sweeping commit's message does not carry it.
+
+Full-suite gate: `python3 -m pytest -q tests/` → **2114 passed, 6 warnings in
+1101.71s** at c512a5a+d12f79f's-tree (log /tmp/tr237-full-suite.log, run
+18:20–18:38). At final HEAD (839b2e2) the affected suites re-ran green:
+test_proxy_declared_profile.py 5 passed (incl. the sibling's new test),
+doc_parity + proxy_classify + envelope + degraded_path + hermes-driver
+→ 55 passed total. The docs-only record commit's gitreins guard short-circuits
+(no source files staged) — the suites above are the real gate.
+
+No production service touched, no restart, nothing pushed. Historical ledger
+rows reading `classifier-empty` / `default` with `profile_id=P0_FORE` predate
+TR-139 + 4c3be2e; current HEAD records declared profiles as
+`complexity_source='declared'` + the caller's profile_id, and absent profiles
+as the named floor/default classes with an explicit reason.
