@@ -100,6 +100,13 @@ def _ok_upstream():
     return upstream
 
 
+def _capturing_upstream(seen):
+    def upstream(path, body, headers):
+        seen['body'] = dict(body)
+        return 200, {'choices': [{'message': {'content': 'hi'}}], 'model': body.get('model')}
+    return upstream
+
+
 def _last_row(store):
     lines = [ln for ln in store.read_text().splitlines() if ln.strip()]
     assert len(lines) == 1, f'one request -> exactly one ledger row, got {len(lines)}'
@@ -107,6 +114,23 @@ def _last_row(store):
 
 
 # ---------------------------------------------------------------- criterion 1+2
+
+def test_model_field_does_not_pin_the_selected_hop(monkeypatch, tmp_path):
+    """A vanilla OpenAI model name is forwarded as a hint, not a lane selector."""
+    _wire_proxy(monkeypatch, tmp_path, classifier=_PoisonClassifier)
+    seen = {}
+    status, out = rsrv.proxy_chat(
+        '/v1/chat/completions', _hermes_body(),
+        {'x-router-profile': REAL_PROFILE}, upstream=_capturing_upstream(seen))
+
+    assert status == 200
+    # The proxy rewrites the outbound model to the selected hop's wire id;
+    # the caller's arbitrary OpenAI model name never selects that hop.
+    assert seen['body']['model'] == 'm1'
+    assert out['_router']['served_by']['provider'] == 'p1'
+    assert out['_router']['served_by']['model'] == 'm1'
+    assert _hermes_body()['model'] != out['_router']['served_by']['model']
+
 
 def test_declared_profile_lands_on_the_ledger_row(monkeypatch, tmp_path):
     """A Hermes-shaped call that declares a real task profile: the ROW carries

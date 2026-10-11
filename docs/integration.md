@@ -303,9 +303,16 @@ chain's head for ITS declared (or rated) complexity, not necessarily by X.
   via `router_outcomes.required_levels`), every scorer is skipped, and the
   outcome row is attributed: `complexity_source: "declared"`,
   `profile_id: "P1_CODING"`, `degrade_reason: null`.
-- To request a SPECIFIC lane, declare a profile that only that lane clears, or
-  send the requirement set directly with `x-router-sort` reordering (any
-  TR-065 metric) / `x-router-window-h` / `x-router-max-hops` as listed above.
+- To request a SPECIFIC lane, use the exact-hop request method: first resolve the
+  chain with `router spawn --profile P1_CODING --format json` (or the equivalent
+  `/resolve?profile=P1_CODING`), then send the returned `provider`/`model` pair
+  through the side-channel executor (`router_chain_run.py --profile P1_CODING
+  --cmd '...'`). The executor exposes the selected hop as `ROUTER_PROVIDER`,
+  `ROUTER_MODEL`, and `ROUTER_HOP`; this is the supported exact-hop method.
+  For proxy calls, there is no exact-hop header: declare a profile that only the
+  desired lane clears, then use `x-router-max-hops: 1` to bound the request.
+  `x-router-sort` / `x-router-window-h` change ordering and evidence; they do
+  not turn the body `model` into a lane pin.
 - With NO profile header the prompt text is rated (classifier, or JEV via
   `x-router-scorer: jev`). When no rating is available the call is still served
   — fail-open, on the cheap floor — and the row says so in named fields, never
