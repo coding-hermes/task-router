@@ -609,8 +609,9 @@ tasks:
   - Verify the free-lane doctrine against current generated pricing data, record the
     dated decision and measurements, preserve unknown lanes with explicit reasons,
     and complete with green focused tests and CI evidence.
-  status: in_progress
+  status: complete
   created_at: '2026-10-11T10:11:27.732976+00:00'
+  completed_at: '2026-10-11T10:17:29.739158+00:00'
 - id: TR-205
   title: TR-205 worker task
   criteria:
