@@ -604,12 +604,13 @@ tasks:
   created_at: '2026-10-02T02:38:33.919580+00:00'
   completed_at: '2026-10-02T07:51:45.128662+00:00'
 - id: TR-179
-  title: TR-179 worker task
+  title: TR-179 free-lane window-cost doctrine verification
   criteria:
-  - Board task TR-179 acceptance criteria met; build/lint/tests green; committed and
-    pushed
+  - Verify the free-lane doctrine against current generated pricing data, record the
+    dated decision and measurements, preserve unknown lanes with explicit reasons,
+    and complete with green focused tests and CI evidence.
   status: in_progress
-  created_at: '2026-09-30T09:04:38.861491+00:00'
+  created_at: '2026-10-11T10:11:27.732976+00:00'
 - id: TR-205
   title: TR-205 worker task
   criteria:
@@ -920,3 +921,11 @@ tasks:
   status: complete
   created_at: '2026-10-11T05:31:17.426618+00:00'
   completed_at: '2026-10-11T05:31:24.900061+00:00'
+- id: INT-CI-20261011-01
+  title: Fix CI job timeout cancelling guard step
+  criteria:
+  - No main-branch CI run cancelled at the job timeout after the fix lands; timeout-minutes
+    raised with documented arithmetic
+  status: complete
+  created_at: '2026-10-11T08:59:30.103845+00:00'
+  completed_at: '2026-10-11T08:59:30.574323+00:00'
