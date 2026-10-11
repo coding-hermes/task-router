@@ -631,6 +631,7 @@
 {"model": "gpt-5.6-sol", "category": "tool_use", "score": 1.0, "max_score": 1.0, "source": "live-probe-2026-09-27/T1-TOOL: v5 deterministic battery (T1-TOOL 3/3, n=1 small-probe, NOT large-bench)", "valid_from": "2026-09-27"}
 {"model": "gpt-5.6-terra", "category": "agent-tick", "score": 1.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
 {"model": "gpt-5.6-terra", "category": "agent_tick", "score": 0.77, "max_score": 1.0, "source": "AA Coding Agent Index research-bench-2026-10-02: refresh — AA article restates Terra(max)=77 with ~60% per-task cost reduction vs Sol. Standing CONFIRMED (existing derived 0.774).", "valid_from": "2026-10-02"}
+{"model": "gpt-5.6-terra", "category": "agent_tick", "score": 0.77, "max_score": 1.0, "source": "AA Coding Agent Index research-bench-2026-10-11: Terra(max)=77 on the AA coding-agent composite (artificialanalysis.ai GPT-5.6 article, Oct refresh). Measured composite, absolute 100-point scale. Sits between luna 75 and retired sol 79.", "valid_from": "2026-10-11"}
 {"model": "gpt-5.6-terra", "category": "agent_tick", "score": 0.774, "max_score": 1.0, "source": "AA Coding Agent Index research-bench-2026-09-07", "valid_from": "2026-09-07"}
 {"model": "gpt-5.6-terra", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
 {"model": "gpt-5.6-terra", "category": "debug", "score": 3.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
