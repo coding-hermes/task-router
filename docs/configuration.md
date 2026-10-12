@@ -110,6 +110,7 @@ structured/thinking rung is recorded in classifier call metadata when available.
 | `ROUTER_PROXY_STREAM_HOPS` | `router_server.py` | Comma-separated list of hop indices that should stream responses (empty = none) | — (empty) |
 | `ROUTER_PROXY_DEADLINE_HEADER_ALIASES` | `router_server.py` | Case-insensitive request-header aliases the TR-264 deadline contract reads (`X-Caller-Name`, `X-Caller-Budget-S`, `X-Caller-Deadline-Mode`, `X-Caller-Idle-Budget-S`, `X-Caller-Max-Hops`, `X-Caller-Margin-S`) | — (fixed map) |
 | `ROUTER_PROXY_HOP_ELAPSED_HEADER` | `router_server.py` | Internal bookkeeping header (`x-router-hop-elapsed-s`) carrying the seconds already charged to a declared budget before a hop leaves; stripped on forward | — (internal) |
+| `ROUTER_DRAIN_TIMEOUT_S` | `router_server.py` | Bounded graceful-drain window on SIGTERM: how long the server keeps serving in-flight requests before closing (clamped hard at 80s). See `docs/graceful-restart.md` | `60` |
 
 ### Proxy concurrency
 
