@@ -939,3 +939,19 @@ tasks:
   status: complete
   created_at: '2026-10-12T02:53:54.669513+00:00'
   completed_at: '2026-10-12T02:55:46.646077+00:00'
+- id: TR-301
+  title: test_symlink_path_resolution cost_backfill flake under full-suite ordering
+  criteria:
+  - 3 consecutive full-suite green runs; leak root-caused and fixed; no skip gates
+  status: complete
+  created_at: '2026-10-12T03:02:34.518571+00:00'
+  completed_at: '2026-10-12T04:51:07.357675+00:00'
+- id: TR-221
+  title: Ranking backfill probe harness and coverage evidence
+  criteria:
+  - A repeatable dry-run tier probe exists with single-category evidence, coverage
+    documentation, explicit null reasons, tests, and the full verification battery
+    passes.
+  status: complete
+  created_at: '2026-10-12T07:16:02.210026+00:00'
+  completed_at: '2026-10-12T11:29:10.827825+00:00'
