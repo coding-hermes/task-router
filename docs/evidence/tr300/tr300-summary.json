@@ -1,0 +1,20 @@
+{
+  "harness": "tr300_e2e_goal_gate.py",
+  "all_acs_proven": true,
+  "acs": [
+    "AC1",
+    "AC5",
+    "AC2",
+    "AC6",
+    "AC3",
+    "AC4"
+  ],
+  "live_proxy_used": true,
+  "star_lane": [
+    "xkiro",
+    "openai/gpt-6-luna"
+  ],
+  "injected_lanes": 35,
+  "wall_s": 37.4,
+  "finished_at": "2026-10-12T02:55:17+00:00"
+}

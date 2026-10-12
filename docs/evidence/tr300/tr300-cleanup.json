@@ -1,0 +1,6 @@
+{
+  "phase": "cleanup",
+  "stale_rows_swept_at_start": 0,
+  "synthetic_rows_removed": 105,
+  "circuit_state_restored": true
+}

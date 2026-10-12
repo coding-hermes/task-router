@@ -1,0 +1,95 @@
+{
+  "phase": "ac4-provider-wide",
+  "provider_removed": "commandcode",
+  "providers_before": [
+    "commandcode",
+    "commandcode-2",
+    "deepseek",
+    "deepseek-foreman",
+    "neuralwatt",
+    "openai-codex",
+    "opencode-go",
+    "opencode-go-2",
+    "openrouter",
+    "xkiro",
+    "xkiro-2"
+  ],
+  "providers_after": [
+    "commandcode-2",
+    "deepseek",
+    "deepseek-foreman",
+    "neuralwatt",
+    "openai-codex",
+    "opencode-go",
+    "opencode-go-2",
+    "openrouter",
+    "xkiro",
+    "xkiro-2"
+  ],
+  "continues_on": [
+    "commandcode-2",
+    "deepseek",
+    "deepseek-foreman",
+    "neuralwatt",
+    "openai-codex"
+  ],
+  "exclusion_evidence": [
+    {
+      "provider": "commandcode",
+      "model": "xiaomi/mimo-v2.6-flash",
+      "why": [
+        "model SLOW (5576ms)",
+        "circuit OPEN (provider-level, out_of_credit) until 2026-10-12T06:55:12+00:00 (0 failures)"
+      ]
+    },
+    {
+      "provider": "commandcode",
+      "model": "stepfun/Step-3.7-Flash",
+      "why": [
+        "circuit OPEN (provider-level, out_of_credit) until 2026-10-12T06:55:12+00:00 (0 failures)"
+      ]
+    },
+    {
+      "provider": "commandcode",
+      "model": "z-ai/glm-5.3-flashx",
+      "why": [
+        "circuit OPEN (provider-level, out_of_credit) until 2026-10-12T06:55:12+00:00 (0 failures)"
+      ]
+    },
+    {
+      "provider": "commandcode",
+      "model": "xiaomi/mimo-v2.6-pro",
+      "why": [
+        "circuit OPEN (provider-level, out_of_credit) until 2026-10-12T06:55:12+00:00 (0 failures)"
+      ]
+    },
+    {
+      "provider": "commandcode",
+      "model": "tencent/hy4-preview",
+      "why": [
+        "circuit OPEN (provider-level, out_of_credit) until 2026-10-12T06:55:12+00:00 (0 failures)"
+      ]
+    },
+    {
+      "provider": "commandcode",
+      "model": "gpt-6-sol",
+      "why": [
+        "circuit OPEN (provider-level, out_of_credit) until 2026-10-12T06:55:12+00:00 (0 failures)"
+      ]
+    },
+    {
+      "provider": "commandcode",
+      "model": "claude-opus-5-5",
+      "why": [
+        "circuit OPEN (provider-level, out_of_credit) until 2026-10-12T06:55:12+00:00 (0 failures)"
+      ]
+    },
+    {
+      "provider": "commandcode",
+      "model": "gpt-6-astra",
+      "why": [
+        "circuit OPEN (provider-level, out_of_credit) until 2026-10-12T06:55:12+00:00 (0 failures)"
+      ]
+    }
+  ]
+}

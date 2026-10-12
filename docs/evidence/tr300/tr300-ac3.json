@@ -1,0 +1,38 @@
+{
+  "phase": "ac3-pair-local",
+  "demoted_pair": [
+    "xkiro",
+    "qwen/qwen3.8-omni-flash:free"
+  ],
+  "sibling_kept": [
+    "xkiro",
+    "qwen/qwen3-vl-plus:free"
+  ],
+  "provider_lanes_before": [
+    "anthropic/claude-opus-5.5",
+    "openai/gpt-6-astra",
+    "openai/gpt-6-luna",
+    "openai/gpt-6-sol",
+    "qwen/qwen3-vl-plus:free",
+    "qwen/qwen3.8-omni-flash:free",
+    "xiaomi/mimo-v2.6-flash",
+    "xiaomi/mimo-v2.6-pro"
+  ],
+  "provider_lanes_after": [
+    "anthropic/claude-opus-5.5",
+    "openai/gpt-6-astra",
+    "openai/gpt-6-luna",
+    "openai/gpt-6-sol",
+    "qwen/qwen3-vl-plus:free",
+    "xiaomi/mimo-v2.6-flash",
+    "xiaomi/mimo-v2.6-pro"
+  ],
+  "exclusion_evidence": [
+    [
+      "xkiro",
+      "qwen/qwen3.8-omni-flash:free"
+    ]
+  ],
+  "chain_length_before": 58,
+  "chain_length_after": 57
+}

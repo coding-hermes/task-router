@@ -1,0 +1,15 @@
+{
+  "phase": "ac6-reorder",
+  "star_lane": [
+    "xkiro",
+    "openai/gpt-6-luna"
+  ],
+  "pre_injection_position": 5,
+  "post_injection_position": 1,
+  "reordered": true,
+  "basis": "TR-174 blended measured cost-per-PASSED-task (TR-299), 3 verified passes >= floor 3; coverage bar 0.5 cleared with 35/64 lanes measured",
+  "post_chain_head": [
+    "xkiro",
+    "openai/gpt-6-luna"
+  ]
+}
