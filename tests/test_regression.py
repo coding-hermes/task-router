@@ -564,7 +564,12 @@ def test_registry_integrity():
                 # TR-208 usage/balance endpoint declarations (2026-10-07):
                 # poller config as data — method+URL+field paths per provider,
                 # status=no-endpoint rows carry the reason
-                "provider_usage_endpoints"}
+                "provider_usage_endpoints",
+                # TR-197/TR-221 null-reason sidecar (2026-10-12): explicit
+                # reasons for tier/pricing NULLs on live lanes (field-keyed,
+                # e.g. field: model_tier, reason: no-sample-yet) — the
+                # "a NULL must carry a reason" contract as data
+                "null_reasons"}
     assert core <= set(tables), f"missing core tables: {core - set(tables)}"
     assert set(tables) - core <= sidecars, f"unexpected tables: {set(tables) - core - sidecars}"
     models = tables["models"]

@@ -334,10 +334,24 @@ def _alias_tiers(tiers, folded, model):
     own = tiers.get(model)
     if own is None:
         own = folded.get(str(model).lower())
-    chain = _alias_chain(model)
-    if len(chain) < 2:
-        return own or {}
     merged = dict(own or {})
+    # CASE-VARIANT FILL (2026-10-12, openrouter/meituan/longcat-2.0): tier
+    # evidence is per MODEL and lower(model) is the join key, but the tier
+    # table can carry BOTH casings of one physical model with DISJOINT
+    # category coverage (the lowercase lane's older rows + the capital-C id's
+    # 2026-10-11 measured wave). _alias_chain cycle-guards on folded names,
+    # so a case-only alias (base folds to the start) collapses to [model]
+    # and never resolves — while own-dict-wins keeps the missing categories
+    # BLANK even though measured evidence exists under the other casing.
+    # Fill exactly those categories from the same-name-different-case keys;
+    # own evidence always wins; no table writes, no quantile-pool effect.
+    low = str(model).lower()
+    for name, cats in (tiers or {}).items():
+        if name != model and str(name).lower() == low and cats:
+            for cat, tier in cats.items():
+                if merged.get(cat) is None:
+                    merged[cat] = tier
+    chain = _alias_chain(model)
     for alt in chain[1:]:
         base = tiers.get(alt) or folded.get(alt) or {}
         for cat, tier in base.items():

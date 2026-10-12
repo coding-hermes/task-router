@@ -697,54 +697,91 @@ def main():
         ext = {'provider': prov, 'model': model}
         ext2 = {'provider': prov, 'model': model}
         ext3 = {'provider': prov, 'model': model}
+        # Per-battery isolation (TR-221, measured 2026-10-11): one shared
+        # try/except around the whole lane let a single task's HTTP 400 —
+        # groq gpt-oss-20b answers the T1-TOOL probe with literal tool-call
+        # JSON and groq's tool-choice validator rejects it with
+        # tool_use_failed — POISON every other battery of that lane: the
+        # except stamped 'error' on v5/agentic/extended alike and the ingester
+        # filed nothing, so a lane that answers 10 of 10 extended probes
+        # recorded as one error. Each battery now fails alone; a poisoned
+        # battery carries its own error keys and the rest are measured.
         try:
             if not fill_only:
-                for tid, mx, prompt, scorer in V5:
-                    content, lat = call(base, key, model, prompt, extra, provider=prov)
-                    v5[tid] = scorer(content)
-                    v5[tid + '_lat'] = round(lat, 1)
-                    if not (content or '').strip():
-                        v5[tid + '_empty'] = True     # gap, not a zero score
-                for cat, prompt, checks in AGENTIC:
-                    content, lat = call(base, key, model, prompt, extra, provider=prov)
-                    passed = [n for n, fn in checks if fn(content)]
-                    ag[cat] = {'passed': len(passed), 'total': len(checks), 'lat': round(lat, 1),
-                               'failed': [n for n, _ in checks if n not in passed]}
-                    if not (content or '').strip():
-                        ag[cat]['empty'] = True
+                try:
+                    for tid, mx, prompt, scorer in V5:
+                        content, lat = call(base, key, model, prompt, extra, provider=prov)
+                        v5[tid] = scorer(content)
+                        v5[tid + '_lat'] = round(lat, 1)
+                        if not (content or '').strip():
+                            v5[tid + '_empty'] = True     # gap, not a zero score
+                except Exception as e:  # noqa: BLE001
+                    v5['error'] = str(e)[:140]
+                    v5['error_class'] = err_class(e)
+                    print(f'ERR  {prov}/{model} [v5]: [{err_class(e)}] {str(e)[:80]}', flush=True)
+                try:
+                    for cat, prompt, checks in AGENTIC:
+                        content, lat = call(base, key, model, prompt, extra, provider=prov)
+                        passed = [n for n, fn in checks if fn(content)]
+                        ag[cat] = {'passed': len(passed), 'total': len(checks), 'lat': round(lat, 1),
+                                   'failed': [n for n, _ in checks if n not in passed]}
+                        if not (content or '').strip():
+                            ag[cat]['empty'] = True
+                except Exception as e:  # noqa: BLE001
+                    ag['error'] = str(e)[:140]
+                    ag['error_class'] = err_class(e)
+                    print(f'ERR  {prov}/{model} [agentic]: [{err_class(e)}] {str(e)[:80]}', flush=True)
             if args.extended:
-                for cat, prompt, checks in EXTENDED:
-                    content, lat = call(base, key, model, prompt, extra, provider=prov)
-                    passed = [n for n, fn in checks if fn(content)]
-                    ext[cat] = {'passed': len(passed), 'total': len(checks), 'lat': round(lat, 1),
-                                'failed': [n for n, _ in checks if n not in passed]}
-                    # A response with nothing in it is NOT a score of zero. An
-                    # empty answer usually means truncation, a refusal, or a
-                    # context error; recording it as 0.0 makes "we could not
-                    # measure this" indistinguishable from "it failed", and the
-                    # tier scale then drops the lane to the floor. Ten zero-flat
-                    # lanes on neuralwatt (a PAID sub) exist for exactly this
-                    # reason. The flag lets the ingester file it as a gap.
-                    if not (content or '').strip():
-                        ext[cat]['empty'] = True
+                try:
+                    for cat, prompt, checks in EXTENDED:
+                        content, lat = call(base, key, model, prompt, extra, provider=prov)
+                        passed = [n for n, fn in checks if fn(content)]
+                        ext[cat] = {'passed': len(passed), 'total': len(checks), 'lat': round(lat, 1),
+                                    'failed': [n for n, _ in checks if n not in passed]}
+                        # A response with nothing in it is NOT a score of zero. An
+                        # empty answer usually means truncation, a refusal, or a
+                        # context error; recording it as 0.0 makes "we could not
+                        # measure this" indistinguishable from "it failed", and the
+                        # tier scale then drops the lane to the floor. Ten zero-flat
+                        # lanes on neuralwatt (a PAID sub) exist for exactly this
+                        # reason. The flag lets the ingester file it as a gap.
+                        if not (content or '').strip():
+                            ext[cat]['empty'] = True
+                except Exception as e:  # noqa: BLE001
+                    ext['error'] = str(e)[:140]
+                    ext['error_class'] = err_class(e)
+                    print(f'ERR  {prov}/{model} [extended]: [{err_class(e)}] {str(e)[:80]}', flush=True)
             if args.extended2:
-                for cat, prompt, checks in EXTENDED_V2:
-                    content, lat = call(base, key, model, prompt, extra, provider=prov)
-                    passed = [n for n, fn in checks if fn(content)]
-                    ext2[cat] = {'passed': len(passed), 'total': len(checks), 'lat': round(lat, 1),
-                                 'failed': [n for n, _ in checks if n not in passed]}
-                    if not (content or '').strip():
-                        ext2[cat]['empty'] = True
+                try:
+                    for cat, prompt, checks in EXTENDED_V2:
+                        content, lat = call(base, key, model, prompt, extra, provider=prov)
+                        passed = [n for n, fn in checks if fn(content)]
+                        ext2[cat] = {'passed': len(passed), 'total': len(checks), 'lat': round(lat, 1),
+                                     'failed': [n for n, _ in checks if n not in passed]}
+                        if not (content or '').strip():
+                            ext2[cat]['empty'] = True
+                except Exception as e:  # noqa: BLE001
+                    ext2['error'] = str(e)[:140]
+                    ext2['error_class'] = err_class(e)
+                    print(f'ERR  {prov}/{model} [extended2]: [{err_class(e)}] {str(e)[:80]}', flush=True)
             if args.extended3:
-                for cat, prompt, checks in EXTENDED_V3:
-                    content, lat = call(base, key, model, prompt, extra, provider=prov)
-                    passed = [n for n, fn in checks if fn(content)]
-                    ext3[cat] = {'passed': len(passed), 'total': len(checks), 'lat': round(lat, 1),
-                                 'failed': [n for n, _ in checks if n not in passed]}
-                    if not (content or '').strip():
-                        ext3[cat]['empty'] = True
+                try:
+                    for cat, prompt, checks in EXTENDED_V3:
+                        content, lat = call(base, key, model, prompt, extra, provider=prov)
+                        passed = [n for n, fn in checks if fn(content)]
+                        ext3[cat] = {'passed': len(passed), 'total': len(checks), 'lat': round(lat, 1),
+                                     'failed': [n for n, _ in checks if n not in passed]}
+                        if not (content or '').strip():
+                            ext3[cat]['empty'] = True
+                except Exception as e:  # noqa: BLE001
+                    ext3['error'] = str(e)[:140]
+                    ext3['error_class'] = err_class(e)
+                    print(f'ERR  {prov}/{model} [extended3]: [{err_class(e)}] {str(e)[:80]}', flush=True)
             print(f'done {prov}/{model}', flush=True)
         except Exception as e:  # noqa: BLE001
+            # Last-resort guard (buffer bookkeeping must never die mid-flush):
+            # battery-local excepts above catch every probe failure, so reaching
+            # this means something OUTSIDE the battery loops raised.
             v5['error'] = ag['error'] = ext['error'] = str(e)[:140]
             v5['error_class'] = ag['error_class'] = ext['error_class'] = err_class(e)
             print(f'ERR  {prov}/{model}: [{err_class(e)}] {str(e)[:80]}', flush=True)

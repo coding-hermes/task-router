@@ -181,3 +181,32 @@
 {"provider": "commandcode", "model": "inclusionai/ling-3.0-flash-sante:free", "error": "HTTP 404: {\"error\":{\"message\":\"{\\\"error\\\":{\\\"message\\\":\\\"This model is unavailable for free. The paid version is available now - use this slug instead: inclusionai/ling-3.0-flash-sante\\\",\\\"code\\\":404},\\\"user_id\\\":\\\"org_3CkEouwwVeZTu5u6F71lpCWyt8h\\\"}\",\"type\":\"not_found_error\"}}", "candidate": "inclusionai/ling-3.1-flash:free", "ts": "2026-10-11T10:00:44+00:00", "source": "auto", "action": "replace-or-exclude (agent)"}
 {"provider": "commandcode-2", "model": "inclusionai/ling-3.0-flash-sante:free", "error": "HTTP 404: {\"error\":{\"message\":\"{\\\"error\\\":{\\\"message\\\":\\\"This model is unavailable for free. The paid version is available now - use this slug instead: inclusionai/ling-3.0-flash-sante\\\",\\\"code\\\":404},\\\"user_id\\\":\\\"org_3CkEouwwVeZTu5u6F71lpCWyt8h\\\"}\",\"type\":\"not_found_error\"}}", "candidate": "inclusionai/ling-3.1-flash:free", "ts": "2026-10-11T10:00:44+00:00", "source": "auto", "action": "replace-or-exclude (agent)"}
 {"provider": "openrouter", "model": "inclusionai/ling-3.0-flash-sante:free", "error": "HTTP 404: {\"error\":{\"message\":\"This model is unavailable for free. The paid version is available now - use this slug instead: inclusionai/ling-3.0-flash-sante\",\"code\":404},\"user_id\":\"user_2tmPp5jGsjt2m3oP1P1v2q1Ao7i\"}", "candidate": "apodex/apodex-1.1-mini:free", "ts": "2026-10-11T10:00:44+00:00", "source": "auto", "action": "replace-or-exclude (agent)"}
+{"provider": "xkiro", "model": "minimax/minimax-m2.7-highspeed:free", "error": "[not_served] HTTP Error 404: Not Found"}
+{"provider": "xkiro", "model": "moonshotai/kimi-k2.7-code-highspeed", "error": "[not_served] HTTP Error 404: Not Found"}
+{"provider": "xkiro", "model": "moonshotai/kimi-k2.8-preview", "error": "[not_served] HTTP Error 404: Not Found"}
+{"provider": "xkiro", "model": "moonshotai/kimi-k3-256k", "error": "[not_served] HTTP Error 404: Not Found"}
+{"provider": "xkiro", "model": "xiaomi/mimo-v2.6-flash:free", "error": "[not_served] HTTP Error 404: Not Found"}
+{"provider": "xkiro-2", "model": "minimax/minimax-m2.7-highspeed:free", "error": "[not_served] HTTP Error 404: Not Found"}
+{"provider": "xkiro-2", "model": "moonshotai/kimi-k2.7-code-highspeed", "error": "[not_served] HTTP Error 404: Not Found"}
+{"provider": "xkiro-2", "model": "moonshotai/kimi-k2.8-preview", "error": "[not_served] HTTP Error 404: Not Found"}
+{"provider": "xkiro-2", "model": "moonshotai/kimi-k3-256k", "error": "[not_served] HTTP Error 404: Not Found"}
+{"provider": "xkiro-2", "model": "xiaomi/mimo-v2.6-flash:free", "error": "[not_served] HTTP Error 404: Not Found"}
+{"provider": "commandcode", "model": "claude-fable-5", "error": "[not_in_plan] HTTP Error 403: Forbidden"}
+{"provider": "commandcode", "model": "claude-fable-5-1", "error": "[not_in_plan] HTTP Error 403: Forbidden"}
+{"provider": "commandcode", "model": "claude-haiku-4-5-20251001", "error": "[not_in_plan] HTTP Error 403: Forbidden"}
+{"provider": "commandcode", "model": "claude-opus-5-5", "error": "[not_in_plan] HTTP Error 403: Forbidden"}
+{"provider": "commandcode", "model": "claude-sonnet-5", "error": "[not_in_plan] HTTP Error 403: Forbidden"}
+{"provider": "commandcode", "model": "google/gemini-3.5-flash-lite", "error": "[not_in_plan] HTTP Error 403: Forbidden"}
+{"provider": "commandcode", "model": "gpt-5.3-codex", "error": "[not_in_plan] HTTP Error 403: Forbidden"}
+{"provider": "commandcode", "model": "gpt-5.4-mini", "error": "[not_in_plan] HTTP Error 403: Forbidden"}
+{"provider": "commandcode", "model": "gpt-5.6-terra", "error": "[not_in_plan] HTTP Error 403: Forbidden"}
+{"provider": "commandcode", "model": "gpt-6-astra", "error": "[not_in_plan] HTTP Error 403: Forbidden"}
+{"provider": "commandcode", "model": "sakana/fugu-ultra", "error": "[not_in_plan] HTTP Error 403: Forbidden"}
+{"provider": "commandcode-2", "model": "claude-haiku-4-5-20251001", "error": "[not_in_plan] HTTP Error 403: Forbidden"}
+{"provider": "commandcode-2", "model": "claude-sonnet-5", "error": "[not_in_plan] HTTP Error 403: Forbidden"}
+{"provider": "commandcode-2", "model": "google/gemini-3.5-flash-lite", "error": "[not_in_plan] HTTP Error 403: Forbidden"}
+{"provider": "commandcode-2", "model": "gpt-5.3-codex", "error": "[not_in_plan] HTTP Error 403: Forbidden"}
+{"provider": "commandcode-2", "model": "gpt-5.4-mini", "error": "[not_in_plan] HTTP Error 403: Forbidden"}
+{"provider": "commandcode-2", "model": "gpt-5.6-terra", "error": "[not_in_plan] HTTP Error 403: Forbidden"}
+{"provider": "commandcode-2", "model": "sakana/fugu-ultra", "error": "[not_in_plan] HTTP Error 403: Forbidden"}
+{"provider": "openrouter", "model": "google/lyria-3-clip-preview", "error": "HTTP 400: {\"error\":{\"message\":\"Provider returned error\",\"code\":400,\"metadata\":{\"raw\":\"{\\n  \\\"error\\\": {\\n    \\\"code\\\": 400,\\n    \\\"message\\\": \\\"Request contains an invalid argument.\\\",\\n    \\\"status\\\": \\\"INVALID_ARGUMENT\\\"\\n  }\\n}\\n\",\"provider_name\":\"Google AI Studio\",\"is_byok\":false,\"provider_error_code\":\"40", "candidate": null, "ts": "2026-10-12T10:00:25+00:00", "source": "auto", "action": "verify (catalog serves id \u2014 likely transient/auth)"}

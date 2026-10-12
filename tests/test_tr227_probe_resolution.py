@@ -232,21 +232,36 @@ def test_dry_run_targets_all_four_instances(tmp_path):
     for prov in TR227_INSTANCES:
         assert not any(prov in s for s in skips), \
             f"{prov} still skipped: {[s for s in skips if prov in s]}"
-    # The three lanes that used to SKIP quietly must now be reachable. Lanes
-    # still UNRANKED appear as target lines by default; already-ranked lanes
-    # (meta-model: 108 muse tier rows) are filtered BY DESIGN and become
-    # measurable through the --models fill path. Both shapes prove resolution:
-    # no SKIP line + the provider's real base_url on the target line.
-    for prov in ("commandcode", "grok-build"):
-        assert any(prov in l for l in out.splitlines()
-                   if l.startswith(("   ", "target"))), \
-            f"{prov} never appeared as a target line"
+    # The three lanes that used to SKIP quietly must now be reachable. Two
+    # shapes prove resolution — the same contract the comments below already
+    # honor for deepseek/meta-model:
+    #   (a) default targets: lanes still UNRANKED appear as target lines
+    #       (TR-221 waves drain these over time — commandcode went 14 → 0
+    #       on 2026-10-12 — so absence here is success, not breakage);
+    #   (b) fill path: an explicit --models run for a ranked lane must NOT
+    #       SKIP and must print its real base_url (already-ranked lanes are
+    #       filtered from default targets BY DESIGN).
+    fill_target = {"commandcode": "z-ai/glm-5.3-flash", "grok-build": "grok-build-0.1"}
 
     def fill_run(prov, model):
         return subprocess.run(
             [sys.executable, PROBE_RUN, "--providers", prov,
              "--models", model, "--dry-run"],
             cwd=REPO, env=env, capture_output=True, text=True, timeout=60)
+
+    for prov in ("commandcode", "grok-build"):
+        has_target_line = any(prov in l for l in out.splitlines()
+                              if l.startswith(("   ", "target")) and "SKIP" not in l)
+        if has_target_line:
+            continue
+        proc_fill = fill_run(prov, fill_target[prov])
+        assert proc_fill.returncode == 0, proc_fill.stderr[-400:]
+        assert not any(prov in l for l in proc_fill.stdout.splitlines()
+                       if l.strip().startswith("SKIP")), \
+            f"{prov}: fill run unexpectedly SKIPped"
+        assert any(prov in l for l in proc_fill.stdout.splitlines()
+                   if l.startswith(("   ", "target"))), \
+            f"{prov}: fill run produced no target line"
 
     # deepseek's registry lanes are all ranked too — fill path shows the alias
     # fix resolving to the PAYG seat.
