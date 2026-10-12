@@ -605,3 +605,5 @@
 {"id": 20261011092024, "type": null, "task_id": "TR-REV-1012-2", "detail": "{\"id\":\"TR-REV-1012-2\",\"status\":\"pending\"}", "tick": null, "timestamp": "2026-10-12T19:17:35.259442+00:00", "event_type": "task_created", "actor": "foreman"}
 {"id": 20261011092025, "type": null, "task_id": "TR-REV-1012-3", "detail": "{\"id\":\"TR-REV-1012-3\",\"status\":\"pending\"}", "tick": null, "timestamp": "2026-10-12T19:17:35.279493+00:00", "event_type": "task_created", "actor": "foreman"}
 {"id": 20261011092026, "type": null, "task_id": "TR-222", "detail": "{\"status\":\"pending\"}", "tick": null, "timestamp": "2026-10-12T19:34:57.264372+00:00", "event_type": "task_updated", "actor": "foreman"}
+{"id": 20261011092027, "type": null, "task_id": "TR-251", "detail": "{\"status\":\"in_progress\"}", "tick": null, "timestamp": "2026-10-12T19:41:09.315321+00:00", "event_type": "task_updated", "actor": "foreman"}
+{"id": 20261011092028, "type": null, "task_id": "TR-251", "detail": "{\"status\":\"pending\"}", "tick": null, "timestamp": "2026-10-12T20:06:51.829234+00:00", "event_type": "task_updated", "actor": "foreman"}
