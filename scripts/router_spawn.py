@@ -2156,8 +2156,17 @@ def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=DE
     if sort_spec != 'price':
         stats_index, stats_meta = load_outcome_stats(
             backend=backend, merge_backends=merge_backends)
+        keys = _complexity_keys(pid, tables)
+        if adhoc and reqs:
+            # TR-300 AC2: an ad-hoc band's DECLARED requirements are the
+            # task's complexity reference exactly as a profile's are —
+            # without them no lane can ever match its exact-band stats row
+            # and measured ordering is unreachable for adhoc resolves.
+            sig_map = {str(c): l for c, l in reqs if c != 'min_context'}
+            if sig_map:
+                keys = set(keys) | {_canonical_complexity(sig_map)}
         sort_ctx = {'index': stats_index, 'meta': stats_meta, 'window_h': window_h,
-                    'keys': _complexity_keys(pid, tables),
+                    'keys': keys,
                     # TR-174 feature 3: the exploration gate keys its deterministic
                     # hash on the resolved profile (falling back to the project).
                     'task_key': str(pid or project or ''),
