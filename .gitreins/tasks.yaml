@@ -930,3 +930,12 @@ tasks:
   status: complete
   created_at: '2026-10-11T08:59:30.103845+00:00'
   completed_at: '2026-10-11T08:59:30.574323+00:00'
+- id: TR-300
+  title: 'END-TO-END GOAL GATE: prove task arrival -> ratings -> eligible chain ->
+    Hermes attempt/fallback -> verified outcome -> improved next resolve'
+  criteria:
+  - Harness scripts/tr300_e2e_goal_gate.py runs the full feedback loop against the
+    live proxy; adhoc resolves can order measured; commit ancestor of origin/main
+  status: complete
+  created_at: '2026-10-12T02:53:54.669513+00:00'
+  completed_at: '2026-10-12T02:55:46.646077+00:00'
