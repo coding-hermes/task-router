@@ -2140,6 +2140,24 @@
 {"model": "longcat-2.0", "category": "terminal", "perf": 0.708, "source": "bench", "source_ref": "bench:Terminal-Bench"}
 {"model": "longcat-2.0", "category": "test", "perf": 0.72, "source": "estimate", "source_ref": "CATEGORY_ESTIMATES"}
 {"model": "longcat-2.0", "category": "tool_use", "perf": 1.0, "source": "family", "source_ref": "alias:meituan/longcat-2.0"}
+{"model": "longcat-2.5-preview", "category": "agent_tick", "perf": 1.0, "source": "family", "source_ref": "alias:longcat-2.0"}
+{"model": "longcat-2.5-preview", "category": "code_gen", "perf": 0.85, "source": "family", "source_ref": "alias:longcat-2.0"}
+{"model": "longcat-2.5-preview", "category": "creative", "perf": 0.85, "source": "family", "source_ref": "alias:longcat-2.0"}
+{"model": "longcat-2.5-preview", "category": "debug", "perf": 1.0, "source": "family", "source_ref": "alias:longcat-2.0"}
+{"model": "longcat-2.5-preview", "category": "delegation", "perf": 1.0, "source": "family", "source_ref": "alias:longcat-2.0"}
+{"model": "longcat-2.5-preview", "category": "guard", "perf": 1.0, "source": "family", "source_ref": "alias:longcat-2.0"}
+{"model": "longcat-2.5-preview", "category": "long_doc", "perf": 1.0, "source": "family", "source_ref": "alias:longcat-2.0"}
+{"model": "longcat-2.5-preview", "category": "long_horizon", "perf": 0.72, "source": "family", "source_ref": "alias:longcat-2.0"}
+{"model": "longcat-2.5-preview", "category": "mechanical", "perf": 1.0, "source": "family", "source_ref": "alias:longcat-2.0"}
+{"model": "longcat-2.5-preview", "category": "mock", "perf": 1.0, "source": "family", "source_ref": "alias:longcat-2.0"}
+{"model": "longcat-2.5-preview", "category": "multilingual", "perf": 1.0, "source": "family", "source_ref": "alias:longcat-2.0"}
+{"model": "longcat-2.5-preview", "category": "reasoning", "perf": 1.0, "source": "family", "source_ref": "alias:longcat-2.0"}
+{"model": "longcat-2.5-preview", "category": "review", "perf": 0.75, "source": "family", "source_ref": "alias:longcat-2.0"}
+{"model": "longcat-2.5-preview", "category": "schema", "perf": 1.0, "source": "family", "source_ref": "alias:longcat-2.0"}
+{"model": "longcat-2.5-preview", "category": "spec_docs", "perf": 0.667, "source": "family", "source_ref": "alias:longcat-2.0"}
+{"model": "longcat-2.5-preview", "category": "terminal", "perf": 0.708, "source": "family", "source_ref": "alias:longcat-2.0"}
+{"model": "longcat-2.5-preview", "category": "test", "perf": 0.72, "source": "family", "source_ref": "alias:longcat-2.0"}
+{"model": "longcat-2.5-preview", "category": "tool_use", "perf": 1.0, "source": "family", "source_ref": "alias:longcat-2.0"}
 {"model": "meituan/LongCat-2.0", "category": "guard", "perf": 1.0, "source": "bench", "source_ref": "bench:GUARD"}
 {"model": "meituan/LongCat-2.0", "category": "mechanical", "perf": 1.0, "source": "bench", "source_ref": "bench:MECHANICAL"}
 {"model": "meituan/LongCat-2.0", "category": "mock", "perf": 1.0, "source": "bench", "source_ref": "bench:MOCK"}
@@ -2174,6 +2192,24 @@
 {"model": "meituan/longcat-2.0", "category": "schema", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/SCHEMA"}
 {"model": "meituan/longcat-2.0", "category": "test", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
 {"model": "meituan/longcat-2.0", "category": "tool_use", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
+{"model": "meituan/longcat-2.5-preview:free", "category": "agent_tick", "perf": 1.0, "source": "family", "source_ref": "alias:longcat-2.0"}
+{"model": "meituan/longcat-2.5-preview:free", "category": "code_gen", "perf": 0.85, "source": "family", "source_ref": "alias:longcat-2.0"}
+{"model": "meituan/longcat-2.5-preview:free", "category": "creative", "perf": 0.85, "source": "family", "source_ref": "alias:longcat-2.0"}
+{"model": "meituan/longcat-2.5-preview:free", "category": "debug", "perf": 1.0, "source": "family", "source_ref": "alias:longcat-2.0"}
+{"model": "meituan/longcat-2.5-preview:free", "category": "delegation", "perf": 1.0, "source": "family", "source_ref": "alias:longcat-2.0"}
+{"model": "meituan/longcat-2.5-preview:free", "category": "guard", "perf": 1.0, "source": "family", "source_ref": "alias:longcat-2.0"}
+{"model": "meituan/longcat-2.5-preview:free", "category": "long_doc", "perf": 1.0, "source": "family", "source_ref": "alias:longcat-2.0"}
+{"model": "meituan/longcat-2.5-preview:free", "category": "long_horizon", "perf": 0.72, "source": "family", "source_ref": "alias:longcat-2.0"}
+{"model": "meituan/longcat-2.5-preview:free", "category": "mechanical", "perf": 1.0, "source": "family", "source_ref": "alias:longcat-2.0"}
+{"model": "meituan/longcat-2.5-preview:free", "category": "mock", "perf": 1.0, "source": "family", "source_ref": "alias:longcat-2.0"}
+{"model": "meituan/longcat-2.5-preview:free", "category": "multilingual", "perf": 1.0, "source": "family", "source_ref": "alias:longcat-2.0"}
+{"model": "meituan/longcat-2.5-preview:free", "category": "reasoning", "perf": 1.0, "source": "family", "source_ref": "alias:longcat-2.0"}
+{"model": "meituan/longcat-2.5-preview:free", "category": "review", "perf": 0.75, "source": "family", "source_ref": "alias:longcat-2.0"}
+{"model": "meituan/longcat-2.5-preview:free", "category": "schema", "perf": 1.0, "source": "family", "source_ref": "alias:longcat-2.0"}
+{"model": "meituan/longcat-2.5-preview:free", "category": "spec_docs", "perf": 0.667, "source": "family", "source_ref": "alias:longcat-2.0"}
+{"model": "meituan/longcat-2.5-preview:free", "category": "terminal", "perf": 0.708, "source": "family", "source_ref": "alias:longcat-2.0"}
+{"model": "meituan/longcat-2.5-preview:free", "category": "test", "perf": 0.72, "source": "family", "source_ref": "alias:longcat-2.0"}
+{"model": "meituan/longcat-2.5-preview:free", "category": "tool_use", "perf": 1.0, "source": "family", "source_ref": "alias:longcat-2.0"}
 {"model": "meta.llama4-maverick-17b-instruct-v1:0", "category": "test", "perf": 0.72, "source": "estimate", "source_ref": "CATEGORY_ESTIMATES"}
 {"model": "meta.llama4-scout-17b-instruct-v1:0", "category": "test", "perf": 0.72, "source": "estimate", "source_ref": "CATEGORY_ESTIMATES"}
 {"model": "meta/muse-spark-1.1", "category": "code_gen", "perf": 0.667, "source": "family", "source_ref": "alias:muse-spark-1.1"}
@@ -2546,6 +2582,13 @@
 {"model": "moonshotai/Kimi-K3", "category": "ui_frontend", "perf": 0.72, "source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "moonshotai/Kimi-K3", "category": "vision", "perf": 0.72, "source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "moonshotai/kimi-k2-thinking", "category": "test", "perf": 0.72, "source": "family", "source_ref": "alias:kimi-k2-thinking"}
+{"model": "moonshotai/kimi-k2.8-preview", "category": "multilingual", "perf": 0.88, "source": "estimate", "source_ref": "QUALITY_ESTIMATES"}
+{"model": "moonshotai/kimi-k2.8-preview-agent", "category": "code_gen", "perf": 0.72, "source": "estimate", "source_ref": "PROFILE_TAGS:kimi k2"}
+{"model": "moonshotai/kimi-k2.8-preview-agent", "category": "long_horizon", "perf": 0.85, "source": "estimate", "source_ref": "PROFILE_TAGS:kimi k2"}
+{"model": "moonshotai/kimi-k2.8-preview-agent", "category": "multilingual", "perf": 0.88, "source": "family", "source_ref": "alias:moonshotai/kimi-k2.8-preview"}
+{"model": "moonshotai/kimi-k2.8-preview-agent", "category": "refactor", "perf": 0.72, "source": "estimate", "source_ref": "PROFILE_TAGS:kimi k2"}
+{"model": "moonshotai/kimi-k2.8-preview-agent", "category": "test", "perf": 0.72, "source": "estimate", "source_ref": "PROFILE_TAGS:kimi k2"}
+{"model": "moonshotai/kimi-k2.8-preview-agent", "category": "tool_use", "perf": 0.85, "source": "estimate", "source_ref": "PROFILE_TAGS:kimi k2"}
 {"model": "muse-glimmer-30b", "category": "test", "perf": 0.72, "source": "estimate", "source_ref": "CATEGORY_ESTIMATES"}
 {"model": "muse-spark-1.1", "category": "code_gen", "perf": 0.667, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/T2-CODE"}
 {"model": "muse-spark-1.1", "category": "debug", "perf": 0.667, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/T5-DEBUG"}

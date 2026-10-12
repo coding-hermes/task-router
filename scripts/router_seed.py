@@ -878,11 +878,25 @@ PROFILE_MODELS = {
     'hy3': [('opencode-go', 'hy3')],
     'longcat': [('opencode-go', 'longcat-2.0')],
     'nemotron': [],
-    'kimi k2': [('clinepass', 'kimi-k2.7-code')],
+    'kimi k2': [('clinepass', 'kimi-k2.7-code'),
+                # TR-222 (2026-10-12): K2.8 preview rides the k2 family tags via
+                # its xkiro lane (the bare id 404s upstream; the -agent serving
+                # form is live). Family evidence, not a new survey — the
+                # quantile pools are untouched (k2.8 is NOT in any PROFILE_TAGS
+                # list; these pairs only gate which live lanes inherit).
+                ('xkiro', 'moonshotai/kimi-k2.8-preview-agent')],
     'mimo': [('opencode-go', 'mimo-v2.5'), ('clinepass', 'mimo-v2.5')],
     'mimo-v2.5-pro': [('opencode-go', 'mimo-v2.5-pro'), ('clinepass', 'mimo-v2.5-pro')],
     'hy4-preview': [('opencode-go', 'hy4-preview')],
-    'qwen3.7-max': [('opencode-go', 'qwen3.7-max'), ('clinepass', 'qwen3.7-max')],
+    'qwen3.7-max': [('opencode-go', 'qwen3.7-max'), ('clinepass', 'qwen3.7-max'),
+                    # TR-222 (2026-10-12): the vt=2026-09-26 lifecycle-stamped
+                    # commandcode/commandcode-2 vendor-prefixed mirrors of the
+                    # SAME still-current model (re-verified live in the
+                    # commandcode 88-id catalog 2026-10-12) inherit the family
+                    # tags again, so their reprice-corrected 3.0 lanes re-enter
+                    # chains instead of resolving tier=None on every P0 profile.
+                    ('commandcode', 'Qwen/Qwen3.7-Max'),
+                    ('commandcode-2', 'Qwen/Qwen3.7-Max')],
     'qwen3.8': [('opencode-go', 'qwen3.8-max')],
     'gpt-oss': [('groq', 'gpt-oss-120b'), ('synthetic', 'gpt-oss-120b')],
     'qwen3.6-27b': [('groq', 'qwen3.6-27b')],

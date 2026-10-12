@@ -253,6 +253,13 @@ POST_DEDUPE_ADDITIONS = {
     ("opencode-go", "step-5-preview-free"): "TR-217 (2026-10-09 models.dev sync)",
     ("openrouter", "inclusionai/ling-3.0-flash-sante"): "TR-217 (2026-10-09 models.dev sync)",
     ("openrouter", "stepfun/step-5-preview"): "TR-217 (2026-10-09 models.dev sync)",
+    # TR-222 (2026-10-12): xkiro kimi-k2.8 lane family — the bare k2.8-preview
+    # id 404s upstream (live probe; the -agent serving form is the only one the
+    # xkiro catalog lists), so the roster model onboarded as TWO dated rows
+    # (xkiro + xkiro-2 mirror twin). Plus the LongCat-2.5 preview :free SKU.
+    ("xkiro", "moonshotai/kimi-k2.8-preview-agent"): "TR-222 (2026-10-12 xkiro live catalog)",
+    ("xkiro-2", "moonshotai/kimi-k2.8-preview-agent"): "TR-222 (2026-10-12 xkiro live catalog)",
+    ("xkiro", "meituan/longcat-2.5-preview:free"): "TR-222 (2026-10-12 xkiro live catalog)",
 }
 
 
