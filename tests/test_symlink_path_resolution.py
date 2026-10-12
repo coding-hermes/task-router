@@ -20,6 +20,7 @@ passes.
 import os
 import re
 import runpy
+import shutil
 import sys
 
 import pytest
@@ -76,22 +77,37 @@ REPO_DERIVED = {
     'HEAL_SCRIPT', '_DEFAULT_OUTCOMES', '_DEFAULT_AVERAGES',
 }
 # The subset that must also EXIST on disk in the real tree (default env, no
-# overrides): they are the tables/files every consumer reads.
+# overrides): they are the tables/files every consumer reads. REGISTRY is
+# deliberately NOT here: registry.json is gitignored machine state (TR-175),
+# seeded by CI/fleet ops and absent in fresh clones and worktrees — and its
+# default path is <repo>/registry.json BY DESIGN, which the inside-REPO check
+# above already pins. Asserting its existence here made this parametrised
+# test ambient-checkout-dependent: on any unseeded checkout, the
+# cost_backfill.py case (which exports REGISTRY without DATA_DIR) failed
+# with "does not exist on disk" BEFORE the router_seed.py control case —
+# whose import-time seed body writes registry.json — could create it,
+# silently healing every later run (TR-301 order-dependence).
 MUST_EXIST = {
-    'DATA_DIR', 'REGISTRY', 'PROMPT_DIR', 'BANDS_PATH', 'MODELS', 'PLANS',
+    'DATA_DIR', 'PROMPT_DIR', 'BANDS_PATH', 'MODELS', 'PLANS',
     '_HERE', '_SCRIPTS_DIR', 'HEAL_SCRIPT',
 }
 
 
-def _module_constants_through_symlink(module_file, link_dir):
-    """Exec repo script via a symlink in link_dir; return its path constants."""
+def _module_constants_through_symlink(module_file, link_dir, repo=None):
+    """Exec repo script via a symlink in link_dir; return its path constants.
+
+    `repo` (default: this checkout) is the tree the ROUTING_* env pins point
+    at; the TR-301 regressions pass a scratch repo so the probe never touches
+    this checkout's machine state."""
+    repo = repo or REPO
     link = os.path.join(link_dir, os.path.basename(module_file))
+    os.makedirs(link_dir, exist_ok=True)
     os.symlink(module_file, link)
     with pytest.MonkeyPatch.context() as mp:
         # Hermetic: the modules honour these env overrides; pin them so a test
         # run never reads (or writes) operator state.
-        mp.setenv('ROUTING_DATA_DIR', os.path.join(REPO, 'data', 'tables'))
-        mp.setenv('ROUTING_REGISTRY', os.path.join(REPO, 'registry.json'))
+        mp.setenv('ROUTING_DATA_DIR', os.path.join(repo, 'data', 'tables'))
+        mp.setenv('ROUTING_REGISTRY', os.path.join(repo, 'registry.json'))
         mp.delenv('ROUTER_STATE_DIR', raising=False)
         buf = open(os.devnull, 'w')
         saved, sys.stdout = sys.stdout, buf
@@ -104,18 +120,105 @@ def _module_constants_through_symlink(module_file, link_dir):
             if k in REPO_DERIVED and isinstance(v, str) and os.path.isabs(v)}
 
 
-@pytest.mark.parametrize('module_file', FIXED + CONTROLS)
-def test_repo_constants_resolve_inside_real_tree_through_symlink(module_file, tmp_path):
+def _assert_symlink_contract(module_file, repo, tmp_path):
+    """The TR-202 contract, shared by the parametrised suite and the TR-301
+    regressions: exec module_file through a scratch symlink under `repo` and
+    assert every repo-derived constant lands inside it (and MUST_EXIST ones
+    exist on disk). Keeping ONE body means a regression test exercises the
+    exact assertion path the suite runs."""
     consts = _module_constants_through_symlink(
-        os.path.join(SCRIPTS, module_file), str(tmp_path))
+        os.path.join(repo, 'scripts', module_file), str(tmp_path), repo=repo)
     assert consts, f'{module_file}: no repo-derived path constants found — audit list stale'
     for name, val in sorted(consts.items()):
-        assert _is_inside(REPO, val), (
+        assert _is_inside(repo, val), (
             f'{module_file}: {name} resolved to {val!r}, outside the real tree '
-            f'{REPO!r} — abspath(__file__) regression through the live symlink')
+            f'{repo!r} — abspath(__file__) regression through the live symlink')
         if name in MUST_EXIST:
             assert os.path.exists(val), (
                 f'{module_file}: {name} = {val!r} does not exist on disk')
+
+
+@pytest.mark.parametrize('module_file', FIXED + CONTROLS)
+def test_repo_constants_resolve_inside_real_tree_through_symlink(module_file, tmp_path):
+    _assert_symlink_contract(module_file, REPO, tmp_path)
+
+
+# --------------------------------------------------------------------------
+# TR-301 regression: the exists-checks must be a function of the COMMITTED
+# tree only. registry.json is gitignored machine state (TR-175) — seeded by
+# CI/fleet ops, absent in fresh clones and worktrees. Asserting its existence
+# (via the old MUST_EXIST entry) failed exactly the cost_backfill.py case on
+# any unseeded checkout: it exports REGISTRY without DATA_DIR and sits BEFORE
+# the router_seed.py control case, whose import-time seed body writes
+# registry.json — silently healing every later run. Order-dependent, local
+# full-suite only, never hit CI. Pinned here twice: (a) behaviourally, the
+# cost_backfill case passes on a PRISTINE copy with the registry HIDDEN;
+# (b) structurally, no MUST_EXIST constant may default to a gitignored path,
+# so the ambient-dependence class cannot re-enter through another module.
+# --------------------------------------------------------------------------
+
+def test_cost_backfill_case_passes_on_unseeded_checkout(tmp_path):
+    """Behavioural pin for the TR-301 root cause: the exists-half of the
+    contract must hold on a checkout WITHOUT gitignored machine state (fresh
+    clone / worktree shape). A scratch repo containing ONLY the committed
+    cost_backfill.py stands in for the unseeded checkout; the shared contract
+    helper runs the exact suite assertions against it. Pre-fix this failed
+    verbatim: "cost_backfill.py: REGISTRY = '<scratch>/registry.json' does
+    not exist on disk" — reverting the MUST_EXIST change must reproduce it."""
+    scratch = tmp_path / 'unseeded-checkout'
+    (scratch / 'scripts').mkdir(parents=True)
+    shutil.copy2(os.path.join(SCRIPTS, 'cost_backfill.py'),
+                 scratch / 'scripts' / 'cost_backfill.py')
+    _assert_symlink_contract('cost_backfill.py', str(scratch),
+                             str(tmp_path / 'contract-links'))
+
+
+def _declared_env_default(name):
+    """Literal default paths of module constant `name` as declared across
+    scripts/ (the TR-202 convention: NAME = os.environ.get('X', <literal
+    path>)). Returns [(script, relative-path)] using only the quoted path
+    segments of the default expression."""
+    pat = re.compile(
+        r"^%s = os\.environ\.get\('[^']+',\s*(.+)\)\s*$" % re.escape(name))
+    hits = []
+    for fn in sorted(os.listdir(SCRIPTS)):
+        if not fn.endswith('.py'):
+            continue
+        with open(os.path.join(SCRIPTS, fn)) as f:
+            for line in f:
+                m = pat.match(line.strip())
+                if m:
+                    segs = re.findall(r"'([^']+)'", m.group(1))
+                    if segs:
+                        hits.append((fn, os.path.join(*segs)))
+    return hits
+
+
+def test_must_exist_never_pins_gitignored_state():
+    """Class tripwire: MUST_EXIST may demand EXISTENCE only for constants
+    whose DEFAULT resolution is committed (present in every clone/worktree).
+    The offender class is a default path that .gitignore declares machine
+    state — registry.json (TR-175) is the one that bit: pinning it made the
+    suite order-dependent (TR-301). Belt and braces: the historical pair is
+    asserted explicitly, then every MUST_EXIST name with a literal env
+    default is checked against .gitignore."""
+    with open(os.path.join(REPO, '.gitignore')) as f:
+        ignored = {line.strip() for line in f
+                   if line.strip() and not line.startswith('#')}
+    assert 'REGISTRY' not in MUST_EXIST, (
+        'REGISTRY re-pinned as MUST_EXIST: registry.json is gitignored '
+        'machine state — an unseeded clone/worktree fails the case and the '
+        'import-time seed in the later router_seed.py control case silently '
+        'heals it (TR-301 order dependence)')
+    offenders = []
+    for name in sorted(MUST_EXIST):
+        for script, rel in _declared_env_default(name):
+            if rel in ignored:
+                offenders.append((name, script, rel))
+    assert not offenders, (
+        f'MUST_EXIST pins gitignored defaults: {offenders} — a fresh clone '
+        f'or worktree without seeded machine state fails those cases '
+        f'(TR-301 class); assert the path lands inside the repo instead')
 
 
 def test_probe_technique_discriminates_abspath_from_realpath(tmp_path):
