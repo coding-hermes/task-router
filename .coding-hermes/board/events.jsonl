@@ -599,3 +599,4 @@
 {"id": 20261011092018, "type": null, "task_id": "TR-290", "detail": "{\"status\":\"pending\"}", "tick": null, "timestamp": "2026-10-12T17:29:31.0574+00:00", "event_type": "task_updated", "actor": "foreman"}
 {"id": 20261011092019, "type": null, "task_id": "TR-239", "detail": "{\"status\":\"failed\"}", "tick": null, "timestamp": "2026-10-12T18:00:42.489156+00:00", "event_type": "task_updated", "actor": "foreman"}
 {"id": 20261011092020, "type": null, "task_id": "TR-290", "detail": "{\"status\":\"failed\"}", "tick": null, "timestamp": "2026-10-12T18:00:53.188888+00:00", "event_type": "task_updated", "actor": "foreman"}
+{"id": 20261011092021, "type": null, "task_id": "TR-251", "detail": "{\"status\":\"pending\"}", "tick": null, "timestamp": "2026-10-12T18:31:32.418549+00:00", "event_type": "task_updated", "actor": "foreman"}
