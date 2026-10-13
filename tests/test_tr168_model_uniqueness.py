@@ -147,6 +147,11 @@ def test_deduped_pair_keeps_union_row_with_twin_provenance(
 #: must name its importer commit — an append that is not in this list (and not
 #: added here with its evidence) fails the pin exactly like a lost lane.
 POST_DEDUPE_ADDITIONS = {
+    # clinepass API sync 2026-10-13 (model-registry-data-quality cron pre-run):
+    # new catalog lane listed by GET /models; chat-probed 404 at all three id
+    # forms; plan sweep disabled it (not in included_models, no discount).
+    # Evidence: probe_fixes clinepass/muse-wonder row 2026-10-13.
+    ("clinepass", "muse-wonder"): "clinepass sync 2026-10-13 (sweep-disabled)",
     # TR-217 weekly MODEL lane 2026-09-29: router_modelsdev.py sync imports.
     # sonnet-5.5 live-verified (chat 200); the two daybreak ids are catalog
     # rows for the documented-gap model_notes (absent from the live listing).
