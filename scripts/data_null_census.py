@@ -179,7 +179,10 @@ STRUCTURAL = {
         "explains_probe": "rule not tied to a probe story",
     },
     "providers.jsonl": {
-        # TR-200: valid_to removed with the column (0/29 ever set);
+        # TR-200 merge: valid_to KEPT with recorded reason — retirement
+        # readers live (modelsdev skip-retired, release_backfill stamps,
+        # validate_provider_quota roster); null = provider not retired.
+        "valid_to": "provider not retired (no retirement date exists)",
         # api_base_url/api_key_env KEEP their entries (live on 2/29 rows).
         "api_base_url": "base URL private to the operator (key-based config)",
         "api_key_env": "credential handled outside the registry",

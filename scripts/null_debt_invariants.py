@@ -94,6 +94,13 @@ NULL_OK = {
         "readers live (spawn coming_soon / server /v1/models / lifecycle "
         "digest) — null means 'no announcement', populating would invent "
         "dates (TR-200 allowlist decision)",
+    # TR-200 merge: providers.valid_to KEPT — retirement readers live
+    # (modelsdev skip-retired, release_backfill retire stamps,
+    # validate_provider_quota live-roster); null = provider not retired.
+    ("providers.jsonl", "valid_to"):
+        "no provider retirement was ever recorded (0/29); readers live — "
+        "null means 'not retired', populating would invent dates "
+        "(TR-200 allowlist decision)",
     ("fallback_lanes.jsonl", "valid_to"):
         "fallback-lane mirror rows keep valid_to explicitly null until a "
         "retirement date exists (TR-197 STRUCTURAL 'lane not retired'); "
