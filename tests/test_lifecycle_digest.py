@@ -53,11 +53,39 @@ def test_digest_registered_in_cli_contract():
     assert cli.COMMANDS["lifecycle"] == "router_lifecycle.py"
 
 
-def test_digest_exports_registry_view():
+def test_digest_exports_registry_view(tmp_path):
     """Same contract as spawn/chain-run: the digest must read the registry the
-    resolver reads (TR-056 defect class: divergent fleet views)."""
-    exports = cli._home_env_exports()["lifecycle"]
-    assert exports["ROUTING_REGISTRY"] == cli._home_env_exports()["spawn"]["ROUTING_REGISTRY"]
+    resolver reads (TR-056 defect class: divergent fleet views).
+
+    TR-REV-1012-1: that alignment no longer travels through a
+    ROUTING_REGISTRY export (deliberately removed from EVERY command — the
+    export preempted operator overrides). The contract now holds through the
+    shared scripts/registry_path.py resolver: neither export map carries the
+    key, and both modules resolve the SAME registry.json (proven under a
+    TASK_ROUTER_HOME, the tier the CLI dispatch relies on)."""
+    assert "ROUTING_REGISTRY" not in cli._home_env_exports()["lifecycle"]
+    assert "ROUTING_REGISTRY" not in cli._home_env_exports()["spawn"]
+    import os as _os
+    import subprocess as _subprocess
+    import sys as _sys
+
+    scripts = _os.path.join(cli.REPO, "scripts")
+    env = dict(_os.environ)
+    for k in ("ROUTING_REGISTRY", "TASK_ROUTER_HOME", "XDG_DATA_HOME",
+              "ROUTING_DATA_DIR", "ROUTER_STATE_DIR"):
+        env.pop(k, None)
+    home = str(tmp_path / "dh")
+    env["TASK_ROUTER_HOME"] = home
+    env["PYTHONPATH"] = scripts + _os.pathsep + env.get("PYTHONPATH", "")
+    proc = _subprocess.run(
+        [_sys.executable, "-c",
+         "import router_lifecycle as rlc, router_spawn as rsp; "
+         "print(rlc.rs.REGISTRY, rsp.REGISTRY)"],
+        capture_output=True, text=True, env=env, timeout=120, cwd=cli.REPO)
+    assert proc.returncode == 0, proc.stderr[-500:]
+    digest_reg, spawn_reg = proc.stdout.split()
+    assert digest_reg == spawn_reg
+    assert digest_reg == _os.path.join(home, "registry.json")
 
 
 def test_digest_nothing_readable_is_empty_not_crash(tmp_path, capsys):

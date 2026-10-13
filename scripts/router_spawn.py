@@ -121,7 +121,19 @@ def _err(msg):
 # Repo-relative defaults: the project is self-contained (clone → use).
 _HERE = os.path.dirname(os.path.realpath(__file__))
 _REPO = os.path.dirname(_HERE)
-REGISTRY = os.environ.get('ROUTING_REGISTRY', os.path.join(_REPO, 'registry.json'))
+try:
+    import registry_path as _registry_path_mod
+except ImportError:  # live byte-copy not yet synced (sync_runtime.sh) -> old default
+    _registry_path_mod = None
+
+if _registry_path_mod is not None:
+    # TR-REV-1012-1: ONE shared resolver across seed/spawn/validate/status —
+    # ROUTING_REGISTRY > TASK_ROUTER_HOME/registry.json > <repo>/registry.json
+    # > XDG data home (scripts/registry_path.py). The <repo> default is the
+    # file router_seed.py writes; ROUTING_REGISTRY stays authoritative.
+    REGISTRY = _registry_path_mod.resolve_registry_path(repo_root=_REPO)
+else:
+    REGISTRY = os.environ.get('ROUTING_REGISTRY', os.path.join(_REPO, 'registry.json'))
 DATA_DIR = os.environ.get('ROUTING_DATA_DIR', os.path.join(_REPO, 'data', 'tables'))
 # State dir (quota/health/circuit/ledger). TR-REV-20261005-3: the duplicated
 # env-or-shared-default resolve moved into scripts/state_dir.py — one warning

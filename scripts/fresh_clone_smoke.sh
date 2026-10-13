@@ -89,10 +89,9 @@ fi
 # ---- 5. status must stop reporting the sample-table fallback ---------------
 # Deliberately school-agnostic: instead of hard-coding where the registry "should"
 # be, this asserts the CONTRACT ("no longer the fallback") and then checks that the
-# path status itself reports really exists. The two invocation schools disagree
-# today (CLI writes ~/.local/share/task-router/registry.json; direct scripts use
-# <repo>/registry.json) — that is filed separately, and this smoke must not depend
-# on which one wins.
+# path status itself reports really exists. TR-REV-1012-1 (2026-10-12): both
+# schools now agree through scripts/registry_path.py — the repo-root registry is
+# the default everywhere, TASK_ROUTER_HOME/XDG only move it when set explicitly.
 if (cd "$WORK/checkout" && "$V/router" status >"$WORK/status.json" 2>"$WORK/status.err"); then
   if "$PY" - "$WORK/status.json" <<'PYEOF'
 import json, os, sys
@@ -124,17 +123,16 @@ else
 fi
 
 # ---- 6. and the direct-script school still works (both must bootstrap) ------
+# TR-REV-1012-1: `router validate` (CLI school) and the bare scripts resolve
+# through scripts/registry_path.py now, so after a CLI seed this MUST exit 0.
+# A failure here is the seed/validate path split re-appearing — not a warning.
 if [ "$SEEDED" -eq 1 ]; then
   (cd "$WORK/checkout" && "$V/router" validate --json >"$WORK/validate.json" 2>&1)
   rc=$?
   if [ "$rc" -eq 0 ]; then
     pass "router validate agrees the checkout is healthy (exit 0)"
   else
-    # Not a false alarm: this is the documented "seed then validate" path, and it
-    # is exactly the trap a newcomer hits by mixing the README's CLI steps with
-    # the direct-script steps in AGENTS.md.
-    say "  NOTE  router validate exited $rc after a successful seed — the two registry"
-    say "        locations disagree (see the board row for this finding)"
+    fail "router validate exited $rc after a successful seed — the schools disagree"
   fi
 fi
 

@@ -18,7 +18,18 @@ import duckdb, json, re, shutil, os, subprocess, datetime, sys, time
 # Repo-relative defaults: the project is self-contained (clone → seed → use).
 _HERE = os.path.dirname(os.path.realpath(__file__))
 _REPO = os.path.dirname(_HERE)
-REGISTRY = os.environ.get('ROUTING_REGISTRY', os.path.join(_REPO, 'registry.json'))
+try:
+    import registry_path as _registry_path_mod
+except ImportError:  # live byte-copy not yet synced (sync_runtime.sh) -> old default
+    _registry_path_mod = None
+
+if _registry_path_mod is not None:
+    # TR-REV-1012-1: shared resolver (scripts/registry_path.py) — the seed
+    # default stays <repo>/registry.json (the artifact make serve reads);
+    # ROUTING_REGISTRY override keeps maintenance/tests hermetic.
+    REGISTRY = _registry_path_mod.resolve_registry_path(repo_root=_REPO)
+else:
+    REGISTRY = os.environ.get('ROUTING_REGISTRY', os.path.join(_REPO, 'registry.json'))
 DATA_DIR = os.environ.get('ROUTING_DATA_DIR', os.path.join(_REPO, 'data', 'tables'))
 
 # ---- TR-048: direct-invocation NS guard (script layer of the TR-045 CLI guard)

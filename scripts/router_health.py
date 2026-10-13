@@ -179,16 +179,26 @@ def code_identity():
         "error": err,
     }
 
+try:
+    import registry_path as _registry_path_mod
+except ImportError:  # live byte-copy not yet synced (sync_runtime.sh) -> old default
+    _registry_path_mod = None
+
+
 def registry_path():
     """The registry.json this process reads, resolved AT CALL TIME.
 
     Same resolution order as router_spawn.py / router_seed.py /
-    router_validate.py: ROUTING_REGISTRY wins, <repo>/registry.json otherwise.
-    Resolved per call rather than from router_validate's import-time constant
-    so the reported path is the file the process will actually read if the env
-    is set after import (test fixtures, and any wrapper that sets it lazily) —
-    a frozen path is how /health ends up describing a file nobody reads.
+    router_validate.py via scripts/registry_path.py (TR-REV-1012-1):
+    ROUTING_REGISTRY wins, then TASK_ROUTER_HOME/registry.json, then
+    <repo>/registry.json, then the XDG data home. Resolved per call rather
+    than from an import-time constant so the reported path is the file the
+    process will actually read if the env is set after import (test
+    fixtures, and any wrapper that sets it lazily) — a frozen path is how
+    /health ends up describing a file nobody reads.
     """
+    if _registry_path_mod is not None:
+        return Path(_registry_path_mod.resolve_registry_path(repo_root=str(REPO)))
     return Path(os.environ.get("ROUTING_REGISTRY", str(REPO / "registry.json")))
 
 
