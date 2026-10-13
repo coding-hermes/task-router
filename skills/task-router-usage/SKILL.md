@@ -198,3 +198,38 @@ For the CLI/runtime scripts the live installs are SYMLINKS into the repo
 (so always current), but six files are BYTE COPIES under `~/.hermes/scripts/`
 (see sync_runtime.sh) and can drift both directions — byte-compare before
 blaming "repo fixed, live broken" or vice versa.
+
+## Bus ingress (TR-236) — the inbound door
+
+`scripts/router_ingress.py` has four verbs: `endpoints` (validate
+declarations), `translate` (preview one message, no forward), `forward`
+(one message, no bus), `poll`/`serve` (bus doors). Endpoints are DATA in
+`data/endpoints.jsonl` — a new target needs no code. The refusal ladder is
+the product: unknown endpoint, auth-unresolved, transport-error, and
+endpoint-http-NNN are all NAMED in the ledger row with `null_reasons`
+explaining every NULL. Use `translate` first when debugging a profile or
+endpoint; it shows `model_reason` honestly.
+
+Pitfalls (run 33): a resolver error (profile not in registry) does NOT
+refuse — forward still fires the HTTP call with no model field and the
+target may 400; the real cause is only in `null_reasons.model_chosen`
+(TR-323). And `forward` exits 1 on a resolver-error failure but 0 on every
+other ledgered failure — check the ledger row, not the exit code, to judge
+outcome (fix pending, see row).
+
+## Board task intake (TR-298)
+
+`scripts/board_task_intake.py --board <tasks.jsonl> --state-dir <dir>
+[--once]` resolves each NEW pending id exactly once (claim-before-spawn
+seen state; a replay or daemon restart re-resolves nothing — a dangling
+claim is recovered with an explicit error row, verified). Malformed board
+lines are skipped non-fatally.
+
+Pitfalls (runs 32-33): (1) isolate BOTH planes — TASK_ROUTER_HOME redirects
+the registry but the spawn subprocess reads its gate plane from
+ROUTER_STATE_DIR default ~/.hermes/model-router (TR-319); (2) a fresh box
+without scorer credentials (ROUTER_CLASSIFIER_BASE_URL / OR_JEV) resolves
+NOTHING: spawn answers NO_INPUT with an empty stderr and the intake ledger
+error names neither cause (TR-322). On the control host both scorers exist,
+which is why the daemon looks healthy there. Test intake on a scratch board
+file, never the live one.
