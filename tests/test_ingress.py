@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import os
+import subprocess
 import sys
 import threading
 import time
@@ -77,6 +78,8 @@ class StubHandler(BaseHTTPRequestHandler):
         })
         if "/missing" in path:
             return self._send(404, json.dumps({"error": "not found"}))
+        if "/boom500" in path:
+            return self._send(500, json.dumps({"error": "upstream exploded"}))
         if "broken-sse" in path:
             return self._send(200, "event: response.output_text.delta\n"
                                    'data: {"type": "response.output_text.delta", "delta": "x"}\n\n',
@@ -482,13 +485,51 @@ def test_model_none_endpoint_never_asks_the_router(tmp_path, stub):
     assert "model" not in json.loads(StubHandler.seen[-1]["body"])
 
 
-def test_resolver_failure_is_recorded_not_hidden(tmp_path, stub):
+def test_model_unresolved_on_router_endpoint_refuses_before_the_hop(tmp_path, stub):
+    """TR-323 — a router-model endpoint with NO resolved pair refuses.
+
+    A refusal means the doomed call is never fired: build_hop would send no
+    model field, and the multi-model target would answer 400 while the ledger
+    showed a plain endpoint failure. The record must name the routing cause.
+    """
     ingress = make_ingress(tmp_path, [hermes_row(stub)],
                            resolver=lambda profile=None, project=None: (None, "registry missing"))
     out = ingress.process(envelope({"endpoint": "hermes-stub", "prompt": "hi"}))
+    assert out["outcome"] == "refused"
+    assert out["ledger"]["outcome"] == "refused"
+    assert out["ledger"]["reason"] == "model-unresolved: registry missing"
     assert out["ledger"]["model_chosen"] is None
     assert out["ledger"]["null_reasons"]["model_chosen"] == "registry missing"
+    assert out["ledger"]["ok"] is False
+    # the endpoint never received the doomed call
+    assert StubHandler.seen == []
+    # and it is not a lane outage: the circuit must not trip on it
+    assert not ri.lane_failure("refused", out["ledger"]["reason"], out["ledger"].get("http_status"))
+
+
+def test_model_unresolved_reasons_all_refuse(tmp_path, stub):
+    """Every resolver-failure shape lands as the same named refusal."""
+    for reason in ("resolver failed: TimeoutExpired", "resolver output is not JSON",
+                   "resolver error: no model satisfies P1", "resolver returned no head pair"):
+        ingress = make_ingress(tmp_path, [hermes_row(stub)],
+                               resolver=lambda profile=None, project=None, _r=reason: (None, _r))
+        out = ingress.process(envelope({"endpoint": "hermes-stub", "prompt": "hi"}))
+        assert out["ledger"]["outcome"] == "refused"
+        assert out["ledger"]["reason"] == "model-unresolved: %s" % reason
+    assert StubHandler.seen == []
+
+
+def test_resolver_failure_is_recorded_not_hidden(tmp_path, stub):
+    """TR-323 split: on a model='none' endpoint the fail-open contract holds —
+    no pair is BY DESIGN (the resolver is never even asked), so the hop fires
+    without a model field and the null carries the honest declaration reason."""
+    ingress = make_ingress(tmp_path, [hermes_row(stub, model="none")],
+                           resolver=lambda profile=None, project=None: (None, "registry missing"))
+    out = ingress.process(envelope({"endpoint": "hermes-stub", "prompt": "hi"}))
     assert out["ledger"]["ok"] is True             # fail-open on routing, loud in the record
+    assert out["ledger"]["model_chosen"] is None
+    assert out["ledger"]["null_reasons"]["model_chosen"] == "endpoint declared model=none"
+    assert "model" not in json.loads(StubHandler.seen[-1]["body"])
 
 
 # ---------------------------------------------------------------------------
@@ -847,3 +888,103 @@ def test_health_reports_per_lane_state(ingress_server):
     assert "admission" in doc and "lanes" in doc["admission"]
     lane = doc["admission"]["lanes"]["hermes-stub"]
     assert lane["state"] == "closed" and lane["accepted"] == 1
+
+
+# ---------------------------------------------------------------------------
+# TR-323 — the forward door's exit code: the ledger IS the outcome surface
+# ---------------------------------------------------------------------------
+
+
+def _write_resolver(tmp_path, name, stdout):
+    """A staged ROUTER_INGRESS_RESOLVE script: deterministic, no real registry."""
+    path = tmp_path / name
+    path.write_text("print(%r)\n" % stdout, encoding="utf-8")
+    return str(path)
+
+
+def _run_forward(tmp_path, message, endpoints_path, expect_rc, env_extra=None):
+    msg_path = tmp_path / "msg.json"
+    msg_path.write_text(json.dumps(message), encoding="utf-8")
+    ledger = tmp_path / ("cli-ledger-%s.jsonl" % message.get("endpoint", "x"))
+    env = dict(os.environ, **(env_extra or {}))
+    proc = subprocess.run(
+        [sys.executable, str(SCRIPTS / "router_ingress.py"),
+         "--endpoints", str(endpoints_path), "--ledger", str(ledger),
+         "forward", "--message-file", str(msg_path), "--json"],
+        capture_output=True, text=True, timeout=60, env=env)
+    assert proc.returncode == expect_rc, (proc.returncode, proc.stdout[-400:], proc.stderr[-400:])
+    rows = [json.loads(line) for line in ledger.read_text().splitlines() if line.strip()] \
+        if ledger.exists() else []
+    return proc, rows
+
+
+def test_forward_exits_zero_when_a_ledger_row_was_written(tmp_path, stub):
+    """Refused (model-unresolved) and 5xx are ledgered failures: exit 0, row written."""
+    endpoints = write_endpoints(tmp_path, [hermes_row(stub)])
+    # (a) resolver cannot resolve -> model-unresolved refusal, ledgered
+    bad_resolver = _write_resolver(tmp_path, "bad_resolver.py",
+                                   '{"error": "no model satisfies P1_CODING"}')
+    msg_path = tmp_path / "msg.json"
+    msg_path.write_text(json.dumps({"endpoint": "hermes-stub", "prompt": "hi",
+                                    "profile": "P1_CODING"}), encoding="utf-8")
+    ledger = tmp_path / "cli-ledger.jsonl"
+    proc = subprocess.run(
+        [sys.executable, str(SCRIPTS / "router_ingress.py"),
+         "--endpoints", str(endpoints), "--ledger", str(ledger),
+         "forward", "--message-file", str(msg_path), "--json"],
+        capture_output=True, text=True, timeout=60,
+        env=dict(os.environ, ROUTER_INGRESS_RESOLVE=bad_resolver))
+    assert proc.returncode == 0, (proc.returncode, proc.stdout[-400:], proc.stderr[-400:])
+    rows = [json.loads(line) for line in ledger.read_text().splitlines() if line.strip()]
+    assert len(rows) == 1 and rows[0]["outcome"] == "refused"
+    assert rows[0]["reason"].startswith("model-unresolved:")
+    assert StubHandler.seen == []                   # the doomed call was never fired
+
+    # (b) an upstream 5xx is a ledgered failure too: exit 0
+    good_resolver = _write_resolver(tmp_path, "good_resolver.py",
+                                    '{"head": {"provider": "stub", "model": "stub/cli-model"}}')
+    endpoints_5xx = write_endpoints(tmp_path, [{**hermes_row(stub + "/boom500"), "id": "boom"}])
+    seen_before = len(StubHandler.seen)
+    proc, rows = _run_forward(tmp_path, {"endpoint": "boom", "prompt": "hi",
+                                         "profile": "P1_CODING"}, endpoints_5xx, 0,
+                              env_extra={"ROUTER_INGRESS_RESOLVE": good_resolver})
+    assert rows[0]["outcome"] == "failed" and rows[0]["http_status"] == 500
+    assert len(StubHandler.seen) == seen_before + 1  # this hop DID fire and failed
+
+
+def test_forward_exits_zero_on_other_ledgered_failures(tmp_path, stub):
+    """transport-error is a ledgered failure: exit 0, row written."""
+    good_resolver = _write_resolver(tmp_path, "good_resolver.py",
+                                    '{"head": {"provider": "stub", "model": "stub/cli-model"}}')
+    endpoints = write_endpoints(tmp_path, [hermes_row("http://127.0.0.1:9", id="dark")])
+    proc, rows = _run_forward(tmp_path, {"endpoint": "dark", "prompt": "hi",
+                                         "profile": "P1_CODING"}, endpoints, 0,
+                              env_extra={"ROUTER_INGRESS_RESOLVE": good_resolver})
+    assert rows[0]["outcome"] == "failed"
+    assert rows[0]["reason"].startswith("transport-error:")
+    assert rows[0]["ok"] is False
+
+
+def test_forward_exits_nonzero_only_when_no_ledger_row_exists(tmp_path, stub):
+    """A CLI crash before any ledger append is the only nonzero exit."""
+    endpoints = write_endpoints(tmp_path, [hermes_row(stub)])
+    # a malformed message file crashes before any row can be written
+    bad = tmp_path / "bad.json"
+    bad.write_text("{not json", encoding="utf-8")
+    ledger = tmp_path / "crash-ledger.jsonl"
+    proc = subprocess.run(
+        [sys.executable, str(SCRIPTS / "router_ingress.py"),
+         "--endpoints", str(endpoints), "--ledger", str(ledger),
+         "forward", "--message-file", str(bad)],
+        capture_output=True, text=True, timeout=60)
+    assert proc.returncode != 0
+    assert not ledger.exists() or not ledger.read_text().strip()
+
+    # contrast: the same door, a ledgered success, exits 0
+    good_resolver = _write_resolver(tmp_path, "good_resolver.py",
+                                    '{"head": {"provider": "stub", "model": "stub/cli-model"}}')
+    proc, rows = _run_forward(tmp_path, {"endpoint": "hermes-stub", "prompt": "hi",
+                                         "profile": "P1_CODING"}, endpoints, 0,
+                              env_extra={"ROUTER_INGRESS_RESOLVE": good_resolver})
+    assert rows[0]["outcome"] == "ok"               # healthy control resolves + forwards
+    assert json.loads(StubHandler.seen[-1]["body"])["model"] == "stub/cli-model"
