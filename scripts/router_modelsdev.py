@@ -165,7 +165,7 @@ def load_mappings(data_dir=None):
     return rules
 
 
-def map_provider_name(name, mappings):
+def map_provider_name(name, mappings) -> tuple:
     """Map an external name through the rules (FILE ORDER, FIRST MATCH WINS).
     Returns (mapped_name, rule_or_None). No match -> (name, None).
     Rules with direction 'modelsdev-silence' (TR-045) are SKIPPED here —
@@ -180,7 +180,7 @@ def map_provider_name(name, mappings):
     return name, None
 
 
-def is_silenced_external(name, mappings):
+def is_silenced_external(name, mappings) -> bool:
     """TR-045: True when a provider_mappings.jsonl rule with direction
     'modelsdev-silence' matches the external id — a known-unmapped models.dev
     provider (data-driven silence, never silent code)."""
@@ -190,7 +190,7 @@ def is_silenced_external(name, mappings):
     return False
 
 
-def resolve_external_provider(external_id, mappings, provider_ids):
+def resolve_external_provider(external_id, mappings, provider_ids) -> tuple:
     """External (models.dev) name -> our registry provider id.
     Order: mapping rule (first match wins) -> canonical id / exact table hit
     / case-insensitive table hit -> None (unmapped, a visible gap)."""
@@ -238,7 +238,7 @@ def load_providers():
     return rows
 
 
-def enabled_providers(providers, models):
+def enabled_providers(providers, models) -> tuple:
     """ENABLED = providers.jsonl row with archive=false AND >=1 models.jsonl
     row referencing the id (routable). Returns (enabled_ids, disabled map
     id -> reason). See module docstring for the definition."""
@@ -270,7 +270,7 @@ def fetch_api(dry_run):
 
 
 # -------------------------------------------------------------------- sync ----
-def run_sync(api, models, catalog, mappings, include_all=False, dry_run=False):
+def run_sync(api, models, catalog, mappings, include_all: bool=False, dry_run: bool=False) -> dict:
     """TR-019 sync core: enabled providers only (unless include_all), mapping
     rules applied to external models.dev ids BEFORE table matching. Returns a
     summary dict — the --json payload / the human report source. Network-free
@@ -428,14 +428,14 @@ def run_sync(api, models, catalog, mappings, include_all=False, dry_run=False):
 
 # catalog-only filter: skip niche/audio/tiny models the fleet will never route
 # (whisper, prompt-guard, orpheus...). Keep chat-capable or big-context ones.
-def _relevant(meta):
+def _relevant(meta) -> bool:
     if meta.get('reasoning') or meta.get('tool_call') or meta.get('vision'):
         return True
     ctx = (meta.get('limit') or {}).get('context') or 0
     return ctx >= 32000
 
 
-def _write_rows(path, rows):
+def _write_rows(path, rows) -> None:
     # TR-199 (spec R4): no anonymous dates — gate the models table by path;
     # model_catalog.jsonl carries no lifecycle dates and is not gated.
     if os.path.basename(path) == 'models.jsonl':
@@ -450,7 +450,7 @@ def _write_rows(path, rows):
     os.replace(path + '.tmp', path)
 
 
-def _apply_writes(summary, models, verbose=True):
+def _apply_writes(summary, models, verbose: bool=True) -> tuple:
     """Write model_catalog.jsonl / models.jsonl from a run_sync summary.
     Atomic-ish tmp+rename, per repo convention. Returns (wrote_catalog,
     wrote_models, n_added). TR-035: models.jsonl is written when there are
@@ -520,7 +520,7 @@ def _is_dynamic_route(provider, model):
         return False
 
 
-def _documented_null(provider, model, notes=None):
+def _documented_null(provider, model, notes=None) -> bool:
     """True when model_notes.jsonl already explains this lane's NULL price.
 
     TR-043 refinement (found by auditing my own filed rows): a NULL price is not
@@ -610,7 +610,7 @@ def _pricing_gaps(models):
     return gaps
 
 
-def _file_gap_rows(gaps, dry_run=False):
+def _file_gap_rows(gaps, dry_run: bool=False) -> int:
     """Append one board row per unpriced lane (TR-043).
 
     A board row is the mechanism Bane asked for: instead of the gap sitting
@@ -678,7 +678,7 @@ def _file_gap_rows(gaps, dry_run=False):
     return len(pending)
 
 
-def _print_human(summary):
+def _print_human(summary) -> None:
     print(f"== models.dev sync ({summary['providers_on_modelsdev']} providers on catalog) ==")
     for t in summary['touched_providers']:
         print(f"  -> {t['provider']}  via {t['via']}  (models.dev: {t['modelsdev']})")
@@ -703,7 +703,7 @@ def _print_human(summary):
     print('(subscription-aware) — models.dev stickers are catalog reference only.')
 
 
-def main(argv=None):
+def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = ap.add_subparsers(dest='action')
     p_sync = sub.add_parser('sync', help='catalog sync (enabled providers only; --all includes disabled)')

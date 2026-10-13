@@ -13,7 +13,7 @@ lane worth routing ('temporary free lane'); otherwise the PAYG gap.
 """
 
 
-def price(row, terms, catalog, helpers, ctx):
+def price(row, terms, catalog, helpers, ctx) -> tuple:
     discounts = (ctx or {}).get('discounts') or []
     today = (ctx or {}).get('today')
     included = terms.get('included_models') or []

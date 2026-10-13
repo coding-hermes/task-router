@@ -75,11 +75,11 @@ def parse_snapshot(path, date):
     return profiles
 
 
-def _pair(price, provider, model):
+def _pair(price, provider, model) -> str:
     return f'{provider}/{model}'
 
 
-def diff(old, new, d_old, d_new):
+def diff(old, new, d_old, d_new) -> dict:
     profiles = sorted(set(old) | set(new))
     per_profile = []
     totals = {'profiles_compared': 0, 'head_moves': 0,
@@ -172,7 +172,7 @@ def render_text(doc):
     return '\n'.join(lines)
 
 
-def main(argv=None):
+def main(argv=None) -> int:
     ap = argparse.ArgumentParser(
         description='Diff two docs/chains-<date>.md snapshots (head moves, '
                     'lane changes, price deltas)')

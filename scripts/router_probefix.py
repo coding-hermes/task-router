@@ -78,7 +78,7 @@ def load_env():
     return env
 
 
-def load_providers():
+def load_providers() -> tuple:
     """probe_providers.jsonl -> ({id: row}, {id: row}) — enabled rows, disabled
     rows. TR-247: disabled rows are returned so sync can never re-append a
     disabled provider as a fresh enabled one, and reports can say why a lane
@@ -164,7 +164,7 @@ def load_probe_explanations():
     return out
 
 
-def explain(prov, model, error, explanations):
+def explain(prov, model, error, explanations) -> tuple | None:
     """-> (rule, detail) when a provider_rules contract explains this failure."""
     for rx, rule, detail in explanations.get(prov, []):
         if rx.search(error or ''):
@@ -172,7 +172,7 @@ def explain(prov, model, error, explanations):
     return None
 
 
-def append_row(fname, row):
+def append_row(fname, row) -> None:
     path = os.path.join(DATA_DIR, fname)
     with open(path, 'a') as f:
         f.write(json.dumps(row) + '\n')
@@ -209,7 +209,7 @@ def normalize(s):
     return re.sub(r'[^a-z0-9/._-]', '', s)
 
 
-def fetch_live_catalog(prov, row, env):
+def fetch_live_catalog(prov, row, env) -> list | None:
     """GET {base}/models with the provider key. Returns list of ids or None."""
     base, key_env = row.get('base_url'), row.get('key_env')
     if not base or not key_env:
@@ -255,7 +255,7 @@ def version_family(a, b):
     return re.sub(r'\d+', '#', a) == re.sub(r'\d+', '#', b) and a != b
 
 
-def live_serves(live, model):
+def live_serves(live, model) -> bool:
     """Exact id or normalized-equal id present in the provider's live catalog."""
     if not live:
         return False
@@ -268,7 +268,7 @@ def live_serves(live, model):
     return False
 
 
-def resolve(prov, model, error, providers, env):
+def resolve(prov, model, error, providers, env) -> tuple:
     """-> ('skip', reason, None) | ('fix', fix_to, via) | ('stuck', None, None)
     | ('gap', candidate, None) | ('unexplained', None, None)."""
     fixes = {(r['provider'], r['model']) for r in load_rows('probe_fixes.jsonl')}
@@ -376,7 +376,7 @@ def sync_providers(env, dry_run):
     return added
 
 
-def main(argv=None):
+def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument('--runs', type=int, default=48, help='health.jsonl runs to scan (default 48)')
     ap.add_argument('--dry-run', action='store_true', help='print findings, write nothing')

@@ -74,7 +74,7 @@ def _jsonl_write_atomic(path, rows):
     return backup
 
 
-def jsonl_upsert(path, key_fields, key_values, updates, insert_if_missing=True):
+def jsonl_upsert(path, key_fields, key_values, updates, insert_if_missing: bool=True) -> tuple:
     """Read raw lines, update ONLY the row matching key_fields==key_values,
     byte-preserve everything else. Returns (changed: bool, backup_path)."""
     if not path.exists():
@@ -106,7 +106,7 @@ def jsonl_patch_fields(path, key_fields, key_values, updates):
 # Data access
 # --------------------------------------------------------------------------- #
 class Store:
-    def __init__(self, data_dir):
+    def __init__(self, data_dir) -> None:
         self.data_dir = Path(data_dir)
         self.providers = self.data_dir / "providers.jsonl"
         self.task_profiles = self.data_dir / "task_profiles.jsonl"
@@ -147,7 +147,7 @@ class Store:
 # Preview (subprocess the real resolve engine — preview == reality)
 # --------------------------------------------------------------------------- #
 def resolve_preview(store, profile=None, project=None,
-                    tokens_in=1_000_000, tokens_out=1_000_000):
+                    tokens_in: int=1_000_000, tokens_out: int=1_000_000):
     args = [PY, str(SPAWN), "--format", "json"]
     if project:
         args.append(str(project))
@@ -211,11 +211,11 @@ class RouterWebHandler(BaseHTTPRequestHandler):
 
     server_version = "router-web/1.0"
 
-    def log_message(self, *args):  # quiet
+    def log_message(self, *args) -> None:  # quiet
         pass
 
     # ---- helpers ---------------------------------------------------------- #
-    def _send(self, code, payload, ctype="application/json"):
+    def _send(self, code, payload, ctype: str="application/json") -> None:
         # TR-150: a str payload is the HTML page — serve it verbatim. It used to fall
         # through json.dumps(), which wrapped the whole document in quotes and escaped
         # every newline, so the browser received one JSON string: the markup half-rendered
@@ -242,7 +242,7 @@ class RouterWebHandler(BaseHTTPRequestHandler):
             return {}
         return json.loads(self.rfile.read(length).decode())
 
-    def _write_gate(self):
+    def _write_gate(self) -> tuple | None:
         """Return None if allowed, else an (code, msg) tuple for write ops."""
         if self.mode != "edit":
             return (403, {"error": "read-only mode — edits disabled"})
@@ -251,16 +251,16 @@ class RouterWebHandler(BaseHTTPRequestHandler):
             return (401, {"error": "unauthorized — missing/invalid X-API-Key"})
         return None
 
-    def _q(self):
+    def _q(self) -> tuple:
         from urllib.parse import urlparse, parse_qs
         u = urlparse(self.path)
         return u.path, parse_qs(u.query)
 
     # ---- routing ---------------------------------------------------------- #
-    def do_OPTIONS(self):
+    def do_OPTIONS(self) -> None:
         self._send(204, b"")
 
-    def do_GET(self):
+    def do_GET(self) -> None:
         path, q = self._q()
         if path in ("/", "/index.html"):
             self._send(200, PAGE_HTML, "text/html; charset=utf-8")
@@ -331,13 +331,13 @@ class RouterWebHandler(BaseHTTPRequestHandler):
             return
         self._send(404, {"error": "not found"})
 
-    def do_POST(self):
+    def do_POST(self) -> None:
         self._write_dispatch("POST")
 
-    def do_PUT(self):
+    def do_PUT(self) -> None:
         self._write_dispatch("PUT")
 
-    def _write_dispatch(self, method):
+    def _write_dispatch(self, method) -> None:
         path, _ = self._q()
         gate = self._write_gate()
         if gate is not None:
@@ -362,7 +362,7 @@ class RouterWebHandler(BaseHTTPRequestHandler):
             self._send(400, {"error": str(exc)[:300]})
 
     # ---- edits ------------------------------------------------------------- #
-    def _edit_provider(self, body):
+    def _edit_provider(self, body) -> None:
         pid = body.get("id")
         if not pid:
             self._send(400, {"error": "id required"})
@@ -383,7 +383,7 @@ class RouterWebHandler(BaseHTTPRequestHandler):
         self._send(200, {"ok": True, "id": pid, "updates": updates,
                          "backup": str(backup)})
 
-    def _edit_profile_req(self, body):
+    def _edit_profile_req(self, body) -> None:
         tid = body.get("task_id")
         cat = body.get("category")
         if not tid or not cat:
@@ -398,7 +398,7 @@ class RouterWebHandler(BaseHTTPRequestHandler):
                          "level": level, "inserted": not changed,
                          "backup": str(backup)})
 
-    def _edit_discount(self, body):
+    def _edit_discount(self, body) -> None:
         prov = body.get("provider")
         model = body.get("model")
         if not prov or not model:
@@ -440,7 +440,7 @@ def make_server(host, port, mode, edit_key, data_dir=None):
     return httpd
 
 
-def main(argv=None):
+def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="Task Router web UI (TR-017)")
     ap.add_argument("--host", default=DEFAULT_HOST)
     ap.add_argument("--port", type=int, default=DEFAULT_PORT)

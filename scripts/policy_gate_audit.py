@@ -51,7 +51,7 @@ def load_jsonl(path):
     return rows
 
 
-def main(argv=None):
+def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument('--repo', default=DEFAULT_REPO,
                     help='task-router repo root (default: script parent)')

@@ -45,8 +45,9 @@ Invocation example (box-local, one pass over the inbox):
 No third-party imports. The bus client is the one the fleet already ships
 (`crier/clients/python/crier_client.py`), loaded from ``CRIER_CLIENT_PATH``.
 """
-
 from __future__ import annotations
+
+from collections.abc import Iterator
 
 import argparse
 import hmac
@@ -147,14 +148,14 @@ class Endpoint:
     the forwarding path can never meet a half-declared endpoint and improvise.
     """
 
-    def __init__(self, raw, source: str = ""):
+    def __init__(self, raw, source: str = "") -> None:
         self.raw = dict(raw or {})
         self.source = source
         self.problems = []
         self._validate()
 
     # -- validation --------------------------------------------------------
-    def _validate(self):
+    def _validate(self) -> None:
         for field in REQUIRED_FIELDS:
             value = self.raw.get(field)
             if field == "timeout_s":
@@ -215,7 +216,7 @@ class Endpoint:
         return str(self.raw.get("reply") or "").strip()
 
     @property
-    def timeout_s(self):
+    def timeout_s(self) -> float:
         try:
             return float(self.raw.get("timeout_s"))
         except (TypeError, ValueError):
@@ -230,10 +231,10 @@ class Endpoint:
         return str(self.raw.get("description") or "").strip()
 
     @property
-    def usable(self):
+    def usable(self) -> bool:
         return not self.problems
 
-    def refusal_reason(self):
+    def refusal_reason(self) -> str:
         """The named reason this endpoint is refused ('' when it is usable)."""
         if not self.problems:
             return ""
@@ -256,7 +257,7 @@ class Endpoint:
         return out
 
 
-def load_endpoints(path=None):
+def load_endpoints(path=None) -> tuple:
     """Read the endpoint registry. Returns (endpoints, problems).
 
     A damaged line is a problem, not a crash: the rest of the registry still
@@ -295,7 +296,7 @@ def load_endpoints(path=None):
 # ---------------------------------------------------------------------------
 
 
-def resolve_auth(ref, env=None):
+def resolve_auth(ref, env=None) -> tuple:
     """Resolve an endpoint's auth reference. Returns (value_or_None, reason).
 
     References:
@@ -366,7 +367,7 @@ _PROMPT_KEYS = ("prompt", "text", "task", "message", "body", "input")
 class Refusal(Exception):
     """A named, bus-visible refusal. Never carries a secret."""
 
-    def __init__(self, reason):
+    def __init__(self, reason) -> None:
         super().__init__(reason)
         self.reason = reason
 
@@ -446,7 +447,7 @@ def normalize_message(payload, envelope=None):
     }
 
 
-def resolve_model(profile=None, project=None, runner=None, timeout_s=None):
+def resolve_model(profile=None, project=None, runner=None, timeout_s=None) -> tuple:
     """Ask the ROUTER which pair should serve this request (never the caller).
 
     Returns (choice, reason) where choice is ``{'provider': .., 'model': ..}`` or
@@ -509,7 +510,7 @@ def _dotted_get(obj, path):
     return cur
 
 
-def _hermes_response_text(payload):
+def _hermes_response_text(payload) -> tuple:
     """Extract the assistant text from a Hermes /v1/responses envelope."""
     if not isinstance(payload, dict):
         return None, None
@@ -555,7 +556,7 @@ def _served_model(value):
     return value.strip()
 
 
-def _usage(payload):
+def _usage(payload) -> tuple:
     """(tokens_in, tokens_out) from whichever usage shape the endpoint used."""
     usage = payload.get("usage") if isinstance(payload, dict) else None
     if not isinstance(usage, dict):
@@ -573,7 +574,7 @@ def _usage(payload):
     return tin, tout
 
 
-def parse_sse_events(lines):
+def parse_sse_events(lines) -> Iterator[dict]:
     """Consume an SSE byte/line stream; yield decoded JSON events in order.
 
     Mirrors the proxy's reader (TR-129) on the points that matter: `:` comments
@@ -608,7 +609,7 @@ def parse_sse_events(lines):
             data_lines.append(line[len("data:"):].strip())
 
 
-def extract_reply(reply_rule, status, body_text, headers=None):
+def extract_reply(reply_rule, status, body_text, headers=None) -> tuple:
     """Apply an endpoint's declared extraction rule to a response.
 
     Returns (reply_text, reason, served_model, tokens_in, tokens_out, terminal).
@@ -654,7 +655,7 @@ def extract_reply(reply_rule, status, body_text, headers=None):
     return None, "unknown reply rule %r" % (reply_rule,), None, None, None, True
 
 
-def build_hop(endpoint, message, model_choice, credential):
+def build_hop(endpoint, message, model_choice, credential) -> dict:
     """Translate one message for one endpoint into a concrete HTTP request.
 
     Returns a dict: url, headers, body (dict), transform (a stable id for the
@@ -735,7 +736,7 @@ def build_hop(endpoint, message, model_choice, credential):
 # ---------------------------------------------------------------------------
 
 
-def lane_failure(outcome, reason=None, http_status=None):
+def lane_failure(outcome, reason=None, http_status=None) -> bool:
     """Is this attempt evidence that the LANE (endpoint) is unhealthy?
 
     A 4xx is a request problem, not an endpoint outage: tripping a lane on it
@@ -760,7 +761,7 @@ def lane_failure(outcome, reason=None, http_status=None):
 class LaneLease:
     """The slot a lane handed out. The Ingress reports the outcome back here."""
 
-    def __init__(self, guard, lane):
+    def __init__(self, guard, lane) -> None:
         self.guard = guard
         self.lane = lane
         self.outcome = None
@@ -769,7 +770,7 @@ class LaneLease:
         self.ok = False
         self.settled = False
 
-    def settle(self, outcome=None, reason=None, http_status=None, ok=False):
+    def settle(self, outcome=None, reason=None, http_status=None, ok: bool=False):
         """Record what the hop did and give the slot back. Idempotent."""
         if self.settled:
             return None
@@ -782,7 +783,7 @@ class LaneLease:
 class _LaneState:
     """One lane's budget and circuit. All mutation happens under ``lock``."""
 
-    def __init__(self, name, max_inflight, queue_max, wait_s, failure_threshold, open_s):
+    def __init__(self, name, max_inflight, queue_max, wait_s, failure_threshold, open_s) -> None:
         self.name = name
         self.max_inflight = max(1, int(max_inflight))
         self.queue_max = int(queue_max)
@@ -806,7 +807,7 @@ class _LaneState:
         self.probe_inflight = False
         self.last_state_change = None
 
-    def state(self, now=None):
+    def state(self, now=None) -> str:
         now = time.time() if now is None else now
         if self.open_until and now < self.open_until:
             return "open"
@@ -814,7 +815,7 @@ class _LaneState:
             return "half-open"
         return "closed"
 
-    def admit(self):
+    def admit(self) -> None:
         """Take the lane's slot, or raise Refusal naming why. Bounded, never forever."""
         now = time.time()
         state = self.state(now)
@@ -858,7 +859,7 @@ class _LaneState:
             self.accepted += 1
             self.peak = max(self.peak, self.inflight)
 
-    def release(self):
+    def release(self) -> None:
         try:
             self._sem.release()
         finally:
@@ -866,7 +867,7 @@ class _LaneState:
                 self.inflight = max(0, self.inflight - 1)
                 self.probe_inflight = False
 
-    def record_failure(self, reason):
+    def record_failure(self, reason) -> str | None:
         """Returns 'opened'/'reopened' when the circuit changed, else None."""
         now = time.time()
         with self.lock:
@@ -900,7 +901,7 @@ class _LaneState:
                 self.last_state_change = "closed"
             return was_open
 
-    def stats(self, now=None):
+    def stats(self, now=None) -> dict:
         with self.lock:
             return {
                 "state": self.state(now),
@@ -935,7 +936,7 @@ class LaneGuard:
     """
 
     def __init__(self, max_inflight=None, queue_max=None, wait_s=None,
-                 failures=None, open_s=None, global_max=None, logger=None):
+                 failures=None, open_s=None, global_max=None, logger=None) -> None:
         self.per_lane_inflight = int(max_inflight if max_inflight is not None
                                      else _env_int("ROUTER_INGRESS_LANE_MAX_INFLIGHT", 2))
         self.per_lane_queue = int(queue_max if queue_max is not None
@@ -956,7 +957,7 @@ class LaneGuard:
         self.recoveries = 0
         self.log = logger or (lambda *_a, **_k: None)
 
-    def set_logger(self, logger):
+    def set_logger(self, logger) -> None:
         self.log = logger or (lambda *_a, **_k: None)
 
     def lane(self, name):
@@ -1011,12 +1012,12 @@ class LaneGuard:
             self._global.release()
         return event
 
-    def lane_stats(self):
+    def lane_stats(self) -> dict:
         with self._lock:
             lanes = list(self._lanes.items())
         return {name: state.stats() for name, state in lanes}
 
-    def stats(self):
+    def stats(self) -> dict:
         lanes = self.lane_stats()
         return {"lanes": lanes, "trips": self.trips, "recoveries": self.recoveries,
                 "per_lane_max_inflight": self.per_lane_inflight,
@@ -1036,7 +1037,7 @@ class Admission:
     path never branches on which governor it was handed.
     """
 
-    def __init__(self, max_inflight=None, queue_max=None, wait_s=None):
+    def __init__(self, max_inflight=None, queue_max=None, wait_s=None) -> None:
         self.max_inflight = int(max_inflight if max_inflight is not None
                                 else _env_int("ROUTER_INGRESS_MAX_INFLIGHT", 4))
         self.queue_max = int(queue_max if queue_max is not None
@@ -1052,7 +1053,7 @@ class Admission:
         self.rejected = 0
         self.log = lambda *_a, **_k: None
 
-    def set_logger(self, logger):
+    def set_logger(self, logger) -> None:
         self.log = logger or (lambda *_a, **_k: None)
 
     def hold(self, lane=None):
@@ -1060,7 +1061,7 @@ class Admission:
         name = (lane or "").strip() or "<shared>"
         return LaneLease(self, name)
 
-    def release(self, lease):
+    def release(self, lease) -> None:
         self.__exit__(None, None, None)
         return None
 
@@ -1089,7 +1090,7 @@ class Admission:
             self.peak = max(self.peak, self.inflight)
         return self
 
-    def __exit__(self, *exc):
+    def __exit__(self, *exc) -> bool:
         try:
             self._sem.release()
         finally:
@@ -1097,7 +1098,7 @@ class Admission:
                 self.inflight = max(0, self.inflight - 1)
         return False
 
-    def stats(self):
+    def stats(self) -> dict:
         return {"max_inflight": self.max_inflight, "queue_max": self.queue_max,
                 "queue_wait_s": self.wait_s, "inflight": self.inflight,
                 "waiting": self.waiting, "peak_inflight": self.peak,
@@ -1113,7 +1114,7 @@ class Ingress:
     """Translate + forward + reply + ledger. Bus-agnostic (the transport injects)."""
 
     def __init__(self, endpoints, ledger=None, resolver=None, opener=None,
-                 admission=None, logger=None):
+                 admission=None, logger=None) -> None:
         self.endpoints = {e.id: e for e in endpoints if e.id}
         self.endpoint_problems = [e.refusal_reason() for e in endpoints if not e.usable]
         self.ledger = Path(ledger or ledger_path())
@@ -1189,7 +1190,7 @@ class Ingress:
             "null_reasons": {},
         }
 
-        def finish(outcome, reason, ok=False, reply_text=None, ack=True, extra=None):
+        def finish(outcome, reason, ok: bool=False, reply_text=None, ack: bool=True, extra=None) -> dict:
             row["outcome"] = outcome
             row["reason"] = reason
             row["ok"] = ok
@@ -1311,7 +1312,7 @@ class Ingress:
         return finish("ok", why, ok=True, reply_text=reply_text)
 
     # -- reply envelope ----------------------------------------------------
-    def build_reply(self, message, row, reply_text):
+    def build_reply(self, message, row, reply_text) -> dict:
         return {
             "in_reply_to": message.get("inbound_id") or "",
             "sender_idempotency_key": message.get("idempotency_key"),
@@ -1368,7 +1369,7 @@ class BusTransport:
     """Crier inboxes: retrieve (leased) -> process -> reply -> ack."""
 
     def __init__(self, base=None, token=None, ids=None, key_dir=None, client_path=None,
-                 ingress=None, logger=None):
+                 ingress=None, logger=None) -> None:
         self.base = _bus_url(base)
         self.token = token if token is not None else _bus_token()
         ids = ids or [i.strip() for i in
@@ -1389,7 +1390,7 @@ class BusTransport:
             self._clients[ident] = self._crier.Crier(
                 self.base, agent_id=ident, key_path=str(key_path), token=self.token, timeout=30.0)
 
-    def poll_once(self, limit=1, lease_seconds=1800):
+    def poll_once(self, limit: int=1, lease_seconds: int=1800):
         """One pass over every configured inbox. Returns the results list."""
         results = []
         for ident, client in self._clients.items():
@@ -1438,7 +1439,7 @@ def _bus_token():
         return None
 
 
-def forward_file(ingress, path, endpoint_id=None, json_out=False):
+def forward_file(ingress, path, endpoint_id=None, json_out: bool=False):
     """Load one envelope from a file and run it (the offline path tests use)."""
     doc = json.loads(Path(path).read_text(encoding="utf-8"))
     if isinstance(doc, dict) and "payload" in doc and "id" in doc:
@@ -1475,7 +1476,7 @@ def _make_handler(ingress, token, verify_sig, logger, bus_sink=None):
     class IngressHandler(BaseHTTPRequestHandler):
         server_version = "task-router-ingress/1.0"
 
-        def _json(self, status, doc):
+        def _json(self, status, doc) -> None:
             body = json.dumps(doc).encode()
             self.send_response(status)
             self.send_header("Content-Type", "application/json")
@@ -1483,10 +1484,10 @@ def _make_handler(ingress, token, verify_sig, logger, bus_sink=None):
             self.end_headers()
             self.wfile.write(body)
 
-        def log_message(self, fmt, *args):  # keep the server quiet; the ledger is the record
+        def log_message(self, fmt, *args) -> None:  # keep the server quiet; the ledger is the record
             logger("http %s" % (fmt % args))
 
-        def _refuse(self, status, reason):
+        def _refuse(self, status, reason) -> None:
             row = ingress.append_ledger({
                 "ts": _iso_now(), "ingress": "task-router", "inbound_id": None,
                 "endpoint_requested": None, "endpoint_served": None, "protocol": None,
@@ -1557,7 +1558,7 @@ def _make_handler(ingress, token, verify_sig, logger, bus_sink=None):
     return IngressHandler
 
 
-def serve(ingress, host, port, token, verify_sig=None, logger=None, bus_sink=None):
+def serve(ingress, host, port, token, verify_sig=None, logger=None, bus_sink=None) -> None:
     from http.server import ThreadingHTTPServer
     handler = _make_handler(ingress, token, verify_sig, logger or (lambda *_a: None),
                             bus_sink=bus_sink)
@@ -1576,7 +1577,7 @@ class BusSink:
     the bus; this is what makes the two doors symmetric (both report back).
     """
 
-    def __init__(self, ident=None, base=None, key_dir=None, token=None, client_path=None):
+    def __init__(self, ident=None, base=None, key_dir=None, token=None, client_path=None) -> None:
         self.ident = ident or (os.environ.get("ROUTER_INGRESS_BUS_IDS") or "task-router").split(",")[0].strip()
         base = _bus_url(base)
         key_dir = Path(os.path.expanduser(str(key_dir or os.environ.get("ROUTER_INGRESS_KEY_DIR")
@@ -1588,7 +1589,7 @@ class BusSink:
         self.client = crier.Crier(base, agent_id=self.ident, key_path=str(key_path),
                                   token=token if token is not None else _bus_token(), timeout=30.0)
 
-    def __call__(self, payload, target):
+    def __call__(self, payload, target) -> str:
         """Returns a stated delivery outcome — never a bare None (fail loud)."""
         try:
             self.client.deliver(target, payload, sender=self.ident)
@@ -1597,7 +1598,7 @@ class BusSink:
             return "failed:%s (%s)" % (exc.__class__.__name__, str(exc)[:200])
 
 
-def make_signature_verifier(agent_keys, client_path=None, window_s=30):
+def make_signature_verifier(agent_keys, client_path=None, window_s: int=30):
     """Build a verifier for the bus's own scheme: X-Agent-ID/Ts/Sig.
 
     The signature is the crier signing string ("METHOD\\npath\\nts", hex ed25519)
@@ -1607,7 +1608,7 @@ def make_signature_verifier(agent_keys, client_path=None, window_s=30):
     """
     crier = load_crier_client(client_path)
 
-    def verify(headers, method, path):
+    def verify(headers, method, path) -> str | None:
         ident = (headers.get("X-Agent-ID") or "").strip()
         ts = (headers.get("X-Agent-Ts") or "").strip()
         sig = (headers.get("X-Agent-Sig") or "").strip()
@@ -1678,7 +1679,7 @@ def _build_ingress(args):
     return Ingress(endpoints, ledger=args.ledger, logger=lambda m: print(m, file=sys.stderr))
 
 
-def cmd_endpoints(args):
+def cmd_endpoints(args) -> int:
     endpoints, problems = load_endpoints(args.endpoints)
     if args.json:
         print(json.dumps({"endpoints": [e.public() for e in endpoints], "problems": problems},
@@ -1696,7 +1697,7 @@ def cmd_endpoints(args):
     return 0 if not any(not e.usable for e in endpoints) and not problems else 1
 
 
-def cmd_translate(args):
+def cmd_translate(args) -> int:
     ingress = _build_ingress(args)
     doc = json.loads(Path(args.message_file).read_text(encoding="utf-8"))
     envelope = doc if isinstance(doc, dict) and "payload" in doc else {"id": "translate", "payload": doc}
@@ -1731,13 +1732,13 @@ def cmd_translate(args):
     return 0
 
 
-def cmd_forward(args):
+def cmd_forward(args) -> int:
     ingress = _build_ingress(args)
     out = forward_file(ingress, args.message_file, endpoint_id=args.endpoint, json_out=args.json)
     return 0 if out["ledger"].get("ok") else 1
 
 
-def cmd_poll(args):
+def cmd_poll(args) -> int:
     ingress = _build_ingress(args)
     transport = BusTransport(ingress=ingress, base=args.bus_url, ids=args.bus_ids,
                              key_dir=args.key_dir, logger=lambda m: print(m, file=sys.stderr))
@@ -1751,7 +1752,7 @@ def cmd_poll(args):
             time.sleep(args.poll_s)
 
 
-def cmd_serve(args):
+def cmd_serve(args) -> int:
     ingress = _build_ingress(args)
     token = None
     if args.token_file:

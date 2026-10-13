@@ -255,7 +255,7 @@ def is_live(r):
     return not r.get("archive") and not r.get("disabled") and not r.get("valid_to")
 
 
-def lane_state_reason(r):
+def lane_state_reason(r) -> str | None:
     if r.get("archive"):
         return "archived"
     if r.get("disabled"):
@@ -311,7 +311,7 @@ def classify(fn, rows, stamps):
     return out
 
 
-def main(argv=None):
+def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="the NULL census (TR-197)")
     ap.add_argument("--json", action="store_true", help="machine census on stdout")
     ap.add_argument(

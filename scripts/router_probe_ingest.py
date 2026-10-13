@@ -94,7 +94,7 @@ BATTERIES = {
 }
 
 
-def load(name):
+def load(name) -> list:
     with open(os.path.join(DATA_DIR, f'{name}.jsonl'), encoding='utf-8') as fh:
         return [json.loads(l) for l in fh if l.strip()]
 

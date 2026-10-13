@@ -84,7 +84,7 @@ _TIER_WORKTREE = "/worktrees/"
 _TIER_ARCHIVE = ("/relocated-from-tmp/", "/.hermes/release-engineer/")
 
 
-def classify_path(path):
+def classify_path(path) -> str:
     """Return "primary", "worktree" or "archive" for a board path."""
     if any(marker in path for marker in _TIER_ARCHIVE):
         return "archive"
@@ -93,7 +93,7 @@ def classify_path(path):
     return "primary"
 
 
-def find_boards(roots, max_depth=6):
+def find_boards(roots, max_depth: int=6) -> list:
     """Return every `tasks.jsonl` under the roots, deepest-first pruning.
 
     Symlinked directories ARE followed (`followlinks=True`) with a visited-realpath
@@ -139,7 +139,7 @@ def find_boards(roots, max_depth=6):
     return sorted(found)
 
 
-def parse_board(path):
+def parse_board(path) -> tuple:
     """Parse one board: -> (rows, unparseable_line_count).
 
     Tolerant by design — DF-BOARDCTL-9 proved that a single spec-invalid line
@@ -162,7 +162,7 @@ def parse_board(path):
     return rows, bad
 
 
-def classify(value):
+def classify(value) -> str:
     """Classify one stored priority value.
 
     Returns one of: "canonical", "absent", "corrupt-fragment", "off-vocabulary".
@@ -181,7 +181,7 @@ def classify(value):
     return "off-vocabulary"
 
 
-def census_board(rows):
+def census_board(rows) -> dict:
     """Summarise one board's priorities.
 
     `histogram` counts EVERY stored value — canonical, off-vocabulary, corrupt
@@ -210,7 +210,7 @@ def census_board(rows):
     }
 
 
-def run(roots=None, max_depth=6):
+def run(roots=None, max_depth: int=6) -> dict:
     """Census the fleet.
 
     Returns the report dict. Boards are deduped by realpath (symlinked satellite
@@ -344,7 +344,7 @@ def render(report):
     return "\n".join(out) + "\n"
 
 
-def main(argv=None):
+def main(argv=None) -> int:
     ap = argparse.ArgumentParser(
         description="fleet-wide priority-vocabulary census (REVIEW-TR-002)")
     ap.add_argument("--root", action="append", dest="roots", default=None,

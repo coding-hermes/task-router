@@ -41,7 +41,7 @@ def _pdot(s):
     return re.sub(r'(?<=[a-z0-9])p(?=[0-9])', '.', str(s).lower())
 
 
-def _split_tag(mid):
+def _split_tag(mid) -> tuple:
     """Split a model id into (path segments, name, tag).
 
     ':' is a TAG separator only when it appears after the last '/' — otherwise
@@ -56,7 +56,7 @@ def _split_tag(mid):
     return segs, last, None
 
 
-def _keys(mid, with_tag=True):
+def _keys(mid, with_tag: bool=True):
     """Comparison keys for one id.
 
     Keys shorter than 3 chars are dropped — they match too much to be evidence
@@ -149,7 +149,7 @@ def _catalog_index(cache):
     return out
 
 
-def _match(pid_index, mid):
+def _match(pid_index, mid) -> tuple:
     """Return (kind, catalog_id). Strongest tier first."""
     exact, base, toks = pid_index
     for k in _keys(mid, with_tag=True):
@@ -250,7 +250,7 @@ def _fmt_date(d):
     return str(d)[:10] if d else '-'
 
 
-def build_report(rows, today=None, show_retired=False):
+def build_report(rows, today=None, show_retired: bool=False):
     """Grouped report: counts by state, then the lanes that need a decision."""
     groups = {'coming_soon': [], 'live': [], 'retiring': [], 'retired': []}
     for m in rows:
@@ -361,7 +361,7 @@ def load_rows():
                      'registry.json')])
 
 
-def main(argv=None):
+def main(argv=None) -> int:
     import argparse
     ap = argparse.ArgumentParser(description='TR-069 model lifecycle digest')
     ap.add_argument('--json', action='store_true', help='machine-readable output')

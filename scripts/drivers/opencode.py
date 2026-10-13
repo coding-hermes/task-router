@@ -63,8 +63,8 @@ class OpenCodeDriver(Driver):
     compat = {}
 
     @classmethod
-    def config(cls, proxy_base='http://127.0.0.1:9092',
-               provider_name='router', model_ids=None):
+    def config(cls, proxy_base: str='http://127.0.0.1:9092',
+               provider_name: str='router', model_ids=None) -> dict:
         """The `opencode.jsonc` fragment that routes opencode through the proxy.
 
         Shaped for an ADDITIVE merge into a user's existing file.
@@ -117,7 +117,7 @@ class OpenCodeDriver(Driver):
         return ro.import_opencode(db_path or DEFAULT_DB)
 
     @classmethod
-    def row_for(cls, **kw):
+    def row_for(cls, **kw) -> dict:
         """One outcome row in the TR-049 shape."""
         return {'source_system': cls.id, 'session_id': kw.get('session_id'),
                 'task_label': kw.get('task_label'),

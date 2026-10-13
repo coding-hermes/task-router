@@ -290,7 +290,7 @@ _PROBE_DAMP = 0.85
 _PROBE_DAMP_TOL = 0.0051
 
 
-def undamp_probe_benchmarks():
+def undamp_probe_benchmarks() -> tuple:
     """Rewrite damped live-probe benchmark rows to their raw fraction (TR-232).
 
     Why: router_probe_ingest.py stored score = 0.85 * passed/total (small-n
@@ -410,7 +410,7 @@ try:
         _lc_rows = [json.loads(_l) for _l in _f if _l.strip()]
 except FileNotFoundError:
     pass
-def overlay_update(overlay, updatable):
+def overlay_update(overlay, updatable) -> tuple:
     """(columns, args) for ONE lifecycle overlay — ONLY the keys it names.
 
     TR-180: this used to be `SET <every column> = _o.get(c)`, so any column the
@@ -686,7 +686,7 @@ _BRIDGE_INERT_MARKERS = ('inert', 'by design', 'no overlay pattern')
 overlay = []  # (provider, model, category, rel_score, bench_source)
 
 
-def _overlay_row_excluded(src):
+def _overlay_row_excluded(src) -> bool:
     """Row-level enforcement of the overlay's declared inertness (TR-318).
 
     _BRIDGE_EXCLUDE_SRC / _BRIDGE_INERT_MARKERS guard the SQL bridge
@@ -759,7 +759,7 @@ def load_mappings():
     return rules
 
 
-def map_provider_name(name, mappings):
+def map_provider_name(name, mappings) -> tuple:
     """First-match-wins through the rules -> (mapped_name, rule_or_None)."""
     import re as _re
     for rule in mappings:
@@ -1408,7 +1408,7 @@ def apply_aliases():
             cur = nxt
         return out
 
-    def perfs_exact(name):
+    def perfs_exact(name) -> dict:
         """Rows stored under EXACTLY this spelling = the variant's own evidence.
 
         The skip test must be spelling-exact: `perfs_fold` below matches ANY
@@ -1421,7 +1421,7 @@ def apply_aliases():
         return dict(con.execute("SELECT category, perf FROM model_perf "
                                "WHERE model=?", [name]).fetchall())
 
-    def perfs_fold(lower_name):
+    def perfs_fold(lower_name) -> dict:
         """Rows for any casing of a name — the resolver's view of a BASE
         (`router_spawn._alias_tiers` falls back to a case-folded lookup). First
         row in table order wins for a duplicate category (deterministic)."""
@@ -1712,7 +1712,7 @@ for r in con.execute("""
 ALL_TABLES = ['providers', 'models', 'archetypes', 'benchmarks', 'projects',
               'level_defs', 'category_levels', 'model_perf', 'model_tier',
               'task_profiles', 'task_profile_requirements']
-def _dump_registry():
+def _dump_registry() -> None:
     doc = {'version': 3,
            'generated_at': datetime.datetime.now(datetime.timezone.utc).isoformat(timespec='seconds'),
            'source': 'router_seed.py (in-memory duckdb engine)',

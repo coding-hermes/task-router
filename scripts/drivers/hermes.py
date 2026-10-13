@@ -32,7 +32,7 @@ class HermesDriver(Driver):
     base_url_shape = '/v1'
 
     @classmethod
-    def config(cls, proxy_base='http://127.0.0.1:9092'):
+    def config(cls, proxy_base: str='http://127.0.0.1:9092') -> dict:
         """A `config.yaml` provider entry that routes hermes through the proxy.
 
         Deliberately shaped like the EXISTING provider entries so it is additive
@@ -60,7 +60,7 @@ class HermesDriver(Driver):
         return ro.import_hermes(db_path or STATE_DB)
 
     @classmethod
-    def row_for(cls, **kw):
+    def row_for(cls, **kw) -> dict:
         """One outcome row in the TR-049 shape."""
         return {'source_system': cls.id, 'session_id': kw.get('session_id'),
                 'task_label': kw.get('task_label'), 'complexity': kw.get('complexity'),

@@ -31,7 +31,7 @@ URL = os.environ.get('PROVIDER_HEALTH_URL',
                      'http://karahermes-mde-7840hs-2.tail448ac.ts.net:9095/')
 
 
-def load_last_two(path):
+def load_last_two(path) -> tuple:
     prev = cur = None
     if not os.path.exists(path):
         return None, None
@@ -48,7 +48,7 @@ def load_last_two(path):
     return prev, cur
 
 
-def main():
+def main() -> int:
     prev, cur = load_last_two(HEALTH_JSONL)
     try:
         dash = json.load(open(DASH)) if os.path.exists(DASH) else {}

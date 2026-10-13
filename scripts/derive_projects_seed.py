@@ -63,7 +63,7 @@ SUFFIX_PROFILE = {
 }
 
 
-def classify_lane(lane_id):
+def classify_lane(lane_id) -> tuple:
     """(profile, board_type) for a lane id, from the table's own conventions.
 
     Raises ValueError on a suffix with no precedent — an unclassified lane is
@@ -86,7 +86,7 @@ def classify_lane(lane_id):
     return profile, board_type
 
 
-def enabled_fleet_lanes(db_path):
+def enabled_fleet_lanes(db_path) -> set:
     """Set of enabled lane ids from the scheduler DB (authoritative per TR-260)."""
     con = sqlite3.connect(db_path)
     try:
@@ -95,13 +95,13 @@ def enabled_fleet_lanes(db_path):
         con.close()
 
 
-def fleet_toml_lanes(fleet_path):
+def fleet_toml_lanes(fleet_path) -> set:
     with open(fleet_path, 'rb') as f:
         fleet = tomllib.load(f)
     return {p['name'] for p in fleet.get('projects') or []}
 
 
-def load_projects_rows(tables_dir):
+def load_projects_rows(tables_dir) -> tuple:
     path = os.path.join(tables_dir, 'projects.jsonl')
     rows = []
     if os.path.exists(path):
@@ -113,7 +113,7 @@ def load_projects_rows(tables_dir):
     return rows, path
 
 
-def profiles_in_registry(tables_dir):
+def profiles_in_registry(tables_dir) -> set:
     """Profile ids declared in data/tables/task_profiles.jsonl (plus the
     bootstrap dict in router_seed.py — same ids)."""
     path = os.path.join(tables_dir, 'task_profiles.jsonl')
@@ -127,7 +127,7 @@ def profiles_in_registry(tables_dir):
     return {p for p in out if p}
 
 
-def main(argv=None):
+def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument('--fleet', default=DEFAULT_FLEET)
     ap.add_argument('--db', default=DEFAULT_DB)

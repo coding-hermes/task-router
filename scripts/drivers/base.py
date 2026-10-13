@@ -3,6 +3,7 @@
 Every driver satisfies exactly this shape (SPEC-PROXY-DRIVERS §2). Nothing here
 knows about a specific host system, and nothing here prices a lane.
 """
+from typing import NoReturn
 
 
 class Driver:
@@ -45,12 +46,12 @@ class Driver:
         return cls.id
 
     @classmethod
-    def config(cls, proxy_base):
+    def config(cls, proxy_base) -> NoReturn:
         """The snippet a user applies to route this host through the proxy."""
         raise NotImplementedError
 
     @classmethod
-    def row_for(cls, **kw):
+    def row_for(cls, **kw) -> NoReturn:
         """Telemetry reader: host's own store -> one TR-049 outcome row."""
         raise NotImplementedError
 
@@ -71,13 +72,13 @@ def get_driver(driver_id):
     return _REGISTRY.get(driver_id)
 
 
-def list_drivers():
+def list_drivers() -> list:
     if not _REGISTRY:
         _autoload()
     return sorted(_REGISTRY)
 
 
-def _autoload():
+def _autoload() -> None:
     import importlib
     import os
     import pkgutil

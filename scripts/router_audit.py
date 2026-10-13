@@ -48,7 +48,7 @@ def active_lanes(tables):
     return out
 
 
-def category_universe(tables):
+def category_universe(tables) -> list:
     """Categories any profile can require — the vocabulary that decides
     eligibility. Data-driven: never a hardcoded category list."""
     cats = {r.get('category') for r in tables.get('task_profile_requirements') or []
@@ -56,7 +56,7 @@ def category_universe(tables):
     return sorted(cats)
 
 
-def lane_report(tables, lane, universe, tiers_by_model, profile_reqs):
+def lane_report(tables, lane, universe, tiers_by_model, profile_reqs) -> dict:
     model = lane.get('model')
     rows = tiers_by_model.get(model, [])
     covered = {r['category'] for r in rows}
@@ -86,7 +86,7 @@ def lane_report(tables, lane, universe, tiers_by_model, profile_reqs):
     }
 
 
-def audit_tiers(tables, provider=None):
+def audit_tiers(tables, provider=None) -> dict:
     universe = category_universe(tables)
     tiers_by_model = defaultdict(list)
     unprovenanced = 0
@@ -140,7 +140,7 @@ def audit_tiers(tables, provider=None):
     }
 
 
-def main():
+def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.split('\n')[1])
     sub = ap.add_subparsers(dest='cmd', required=True)
     a = sub.add_parser('audit-tiers')

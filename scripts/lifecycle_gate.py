@@ -56,7 +56,7 @@ def has_date(row):
     return _has_date(row)
 
 
-def extract_source(row):
+def extract_source(row) -> str:
     """Provenance string of a row, for refusal messages ('<unset>' when absent)."""
     src = row.get('lifecycle_source')
     if src is None or (isinstance(src, str) and not src.strip()):
@@ -64,7 +64,7 @@ def extract_source(row):
     return str(src)
 
 
-def find_offenders(table, rows):
+def find_offenders(table, rows) -> list:
     """[(index, row)] among `rows` whose date has no lifecycle_source."""
     if table not in TABLE_KEYS:
         return []
@@ -72,7 +72,7 @@ def find_offenders(table, rows):
             if isinstance(r, dict) and _has_date(r) and not str(r.get('lifecycle_source') or '').strip()]
 
 
-def describe_offender(table, row, index=None):
+def describe_offender(table, row, index=None) -> str:
     lane = f"{row.get('provider')}/{row.get('model')}" if row.get('model') is not None \
         else str(row.get('id') or row)
     idx = f"[{index}] " if index is not None else ''
@@ -92,7 +92,7 @@ def gate_rows(table, rows):
     return rows
 
 
-def gate_file(path, table=None, exempt=()):
+def gate_file(path, table=None, exempt: tuple=()):
     """Gate one data/tables/*.jsonl by path. Returns offender descriptions
     ([] = clean). `exempt` is a table-name allowlist for READ-side checks."""
     table = table or os.path.splitext(os.path.basename(path))[0]
@@ -110,7 +110,7 @@ def gate_file(path, table=None, exempt=()):
     return bad
 
 
-def gate_data_dir(data_dir, exempt=('models',)):
+def gate_data_dir(data_dir, exempt: tuple=('models',)):
     """Gate every gated table under a data dir. Returns {table: [descriptions]}
     for the tables that offend ([]-valued tables are omitted). Read-side
     default exempts models (see module docstring)."""

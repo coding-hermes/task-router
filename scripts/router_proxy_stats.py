@@ -58,7 +58,7 @@ def windows_from_env():
     return tuple(hours) or DEFAULT_WINDOWS_H
 
 
-def band_for(row):
+def band_for(row) -> tuple:
     """(band, source) for one outcome row — None band when the row says nothing.
 
     An unknown complexity is left unknown: importing a band from a proxy id or
@@ -92,7 +92,7 @@ def is_proxy_row(row):
     return str(row.get('source_system') or '').startswith('router-proxy')
 
 
-def collect(path, window_h, now=None):
+def collect(path, window_h, now=None) -> tuple:
     """Rows for the proxy, inside the window. Prefiltered, then parsed.
 
     Returns (kept, scanned, matched) so a report can disclose how much of the
@@ -130,7 +130,7 @@ def _mean(values):
     return (sum(vals) / len(vals)) if vals else None
 
 
-def rollup(rows, grouping='model_band'):
+def rollup(rows, grouping: str='model_band'):
     """Aggregate rows into {key: metrics}.
 
     grouping 'model_band' keys by (provider, model, band); 'model' collapses the
@@ -200,7 +200,7 @@ def rollup(rows, grouping='model_band'):
     return out
 
 
-def get_rollup(path, windows=None, now=None, grouping='model_band'):
+def get_rollup(path, windows=None, now=None, grouping: str='model_band'):
     """{window_label: {'hours','rows_scanned','proxy_rows_matched','groups'}}.
 
     Every window states its own scan counts, so "nothing ran" and "I did not look"
@@ -218,7 +218,7 @@ def get_rollup(path, windows=None, now=None, grouping='model_band'):
     return out
 
 
-def snapshot(path, rollup_data, generated_at):
+def snapshot(path, rollup_data, generated_at) -> str:
     """The JSONL snapshot line for one rollup (deterministic given generated_at)."""
     return json.dumps({'generated_at': generated_at, 'kind': 'proxy-rolling-averages',
                        'windows': rollup_data}, sort_keys=True)
@@ -254,7 +254,7 @@ def cache_ttl_s():
     return _env_float('ROUTER_PROXY_STATS_TTL_S', 60.0)
 
 
-def get_rollup_cached(path, windows=None, grouping='model_band'):
+def get_rollup_cached(path, windows=None, grouping: str='model_band') -> dict:
     """Cached rollup with a DISCLOSED age. The ledger is ~115 MB, so a per-request
     scan is not free; the age is always reported so a stale number is visible as
     a stale number."""
@@ -272,7 +272,7 @@ def get_rollup_cached(path, windows=None, grouping='model_band'):
             'ttl_s': ttl}
 
 
-def rolling_for(provider, model, band, path=None, grouping='model_band'):
+def rolling_for(provider, model, band, path=None, grouping: str='model_band'):
     """The served lane's own rolling block, for the proxy envelope.
 
     Fail-open and None-honest: an unknown lane returns None rather than zeros, so

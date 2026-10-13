@@ -94,7 +94,7 @@ def _load_fixes():
     return fixes
 
 
-def reset_cache():
+def reset_cache() -> None:
     """Forget the memoized probe_fixes table (test seam / data reload)."""
     global _FIXES_CACHE
     _FIXES_CACHE = None

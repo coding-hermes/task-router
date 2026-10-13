@@ -182,7 +182,7 @@ def _num(raw):
         return None
 
 
-def _flag(raw):
+def _flag(raw) -> bool | None:
     """Parse a true/false header value; None otherwise."""
     if raw is None:
         return None
@@ -206,7 +206,7 @@ def _observation(
     seen_headers,
     detail,
     observed_at,
-):
+) -> dict:
     """Build one spec §3 observation. Keys are exactly SPEC_OBSERVATION_KEYS."""
     source_detail = {"mechanism": mechanism, "headers": list(seen_headers)}
     source_detail.update(detail)
@@ -224,7 +224,7 @@ def _observation(
     }
 
 
-def read_anthropic_unified(headers, provider_id="unknown", account="default", observed_at=None):
+def read_anthropic_unified(headers, provider_id: str="unknown", account: str="default", observed_at=None):
     """anthropic-ratelimit-unified-* adapter (spec §3 rung 1).
 
     The -utilization headers carry a fraction of the window USED, not a
@@ -273,7 +273,7 @@ def read_anthropic_unified(headers, provider_id="unknown", account="default", ob
     return observations
 
 
-def read_x_ratelimit(headers, provider_id="unknown", account="default", observed_at=None):
+def read_x_ratelimit(headers, provider_id: str="unknown", account: str="default", observed_at=None):
     """x-ratelimit-* family adapter (OpenAI/Groq/Fireworks-style).
 
     Emits one observation per window the present headers describe:
@@ -450,7 +450,7 @@ def read_x_ratelimit(headers, provider_id="unknown", account="default", observed
     return observations
 
 
-def read_x_codex(headers, provider_id="unknown", account="default", observed_at=None):
+def read_x_codex(headers, provider_id: str="unknown", account: str="default", observed_at=None):
     """x-codex-* percent-style adapter (recorded live mechanism, openai-codex rows).
 
     Each positional window (primary, secondary) carries a used-percent on a
@@ -547,7 +547,7 @@ def read_x_codex(headers, provider_id="unknown", account="default", observed_at=
     return observations
 
 
-def read_retry_after(headers, provider_id="unknown", account="default", observed_at=None):
+def read_retry_after(headers, provider_id: str="unknown", account: str="default", observed_at=None) -> list:
     """retry-after adapter — the single throttle header (spec §3 rung 1).
 
     An observation may carry ONLY retry-after with a reset hint: the 429 does
@@ -658,11 +658,11 @@ def known_header_names(quota_table=DEFAULT_QUOTA_TABLE):
 def read_observation(
     provider_id,
     headers,
-    account="default",
+    account: str="default",
     known_names=None,
     now=None,
     quota_table=DEFAULT_QUOTA_TABLE,
-):
+) -> tuple:
     """Ladder rung 1: try every header mechanism against this response.
 
     Returns (observations, next_rung):
@@ -703,7 +703,7 @@ def read_observation(
     return [], fall_through
 
 
-def _main(argv=None):
+def _main(argv=None) -> int:
     parser = argparse.ArgumentParser(
         description="Quota L1 rung-1 header readback: observations from recorded response headers."
     )

@@ -8,7 +8,7 @@ in-price of <or-id>'.
 """
 
 
-def price(row, terms, catalog, helpers, ctx):
+def price(row, terms, catalog, helpers, ctx) -> tuple:
     ev = ((row.get('price_evidence')) or '')
     prov = ((row.get('provider')) or '').lower()
     if 'estimate' not in ev.lower():

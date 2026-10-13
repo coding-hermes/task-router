@@ -5,7 +5,7 @@ normalized = rate_per_minute / tokens_per_minute * 1e6 (evidence
 """
 
 
-def price(row, terms, catalog, helpers, ctx):
+def price(row, terms, catalog, helpers, ctx) -> tuple:
     rate = terms.get('rate_per_minute')
     tpm = terms.get('tokens_per_minute')
     if not (rate and tpm):

@@ -60,7 +60,7 @@ LIVE_INSTALL_DIR = os.path.realpath(os.path.expanduser('~/.hermes/scripts'))
 _WARNED = set()
 
 
-def _default_warn(message):
+def _default_warn(message) -> None:
     """Sink used when the caller passes none: one line on stderr, guarded."""
     try:
         print(message, file=sys.stderr)

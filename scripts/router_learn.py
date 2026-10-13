@@ -31,7 +31,7 @@ CLI = ["node", "bin/duckbrain.js"]
 TODAY = datetime.date.today().strftime("%Y-%m-%d")
 
 
-def _cli(*args):
+def _cli(*args) -> tuple:
     """Run duckbrain CLI; return (rc, stdout)."""
     p = subprocess.run(CLI + list(args), cwd=DB, capture_output=True, text=True,
                        timeout=120)
@@ -46,7 +46,7 @@ def _verify(key, text):
     return rc
 
 
-def _write(key, domain, text, attrs):
+def _write(key, domain, text, attrs) -> int:
     attr = json.dumps(attrs)
     rc, out = _cli("remember", key, "--namespace=" + NS, "--domain=" + domain,
                    "--attr=" + attr, "--wait", "--content=" + text)
@@ -58,7 +58,7 @@ def _write(key, domain, text, attrs):
     return 0
 
 
-def dump():
+def dump() -> None:
     """Print doctrine + providers + recent lessons (for cron context)."""
     print("=" * 60)
     print("TASK-ROUTER LEARNING MEMORY (duckbrain ns=task-router)")
@@ -129,12 +129,12 @@ def _extract_content(recall_out):
     return ""
 
 
-def lesson(slug, text):
+def lesson(slug, text) -> None:
     key = f"/lessons/{TODAY}-{slug}"
     _write(key, "event", text, {"date": TODAY, "kind": "lesson"})
 
 
-def doctrine(key, text):
+def doctrine(key, text) -> int | None:
     k = f"/doctrine/{key}"
     # idempotent: same text sha -> skip (avoid duplicate rows)
     sha = hashlib.sha256(text.encode()).hexdigest()[:12]
@@ -147,7 +147,7 @@ def doctrine(key, text):
     _write(k, "concept", text, {"date": TODAY, "sha": sha})
 
 
-def provider(name, text):
+def provider(name, text) -> int | None:
     k = f"/providers/{name}"
     sha = hashlib.sha256(text.encode()).hexdigest()[:12]
     existing = _scan_keys("/providers/")
@@ -159,7 +159,7 @@ def provider(name, text):
     _write(k, "concept", text, {"date": TODAY, "sha": sha})
 
 
-def main(argv=None):
+def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = ap.add_subparsers(dest="cmd")
     sub.add_parser("dump")

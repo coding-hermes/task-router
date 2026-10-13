@@ -496,7 +496,7 @@ def page_html():
     return PAGE
 
 
-def board_search(query, path, repo_root=None, check_paths=200):
+def board_search(query, path, repo_root=None, check_paths: int=200):
     """Search the board JSONL for the page's board panel (TR-156).
 
     Same honesty contract as the ledger search - it reports how much it read - plus the two things
@@ -570,7 +570,7 @@ def board_search(query, path, repo_root=None, check_paths=200):
 
     dupes = [{'id': k, 'count': v} for k, v in sorted(duplicates.items()) if v > 1]
 
-    def _idnum(s):
+    def _idnum(s) -> int:
         try:
             return int(str(s).split('-')[1])
         except (IndexError, ValueError):
@@ -765,7 +765,7 @@ def series(query, store_path, now_s=None):
 
 # ------------------------------------------------------------------- TR-153 flow
 
-def _gateway_session(session_id, base, key):
+def _gateway_session(session_id, base, key) -> tuple:
     """Read one session from the Hermes gateway. Returns (payload, error)."""
     import urllib.request
     import urllib.error
@@ -926,7 +926,7 @@ def flow(query, store_path, now_s=None, session_fetch=None):
 
 # ------------------------------------------------------------------- TR-154 chain
 
-def chain_view(query, resolved, price_map=None, detail_limit=60):
+def chain_view(query, resolved, price_map=None, detail_limit: int=60):
     """TR-154: the eligible chain in effective-price order, and EVERY exclusion with its code.
 
     The resolver already emits both halves; what this view adds is the answer to "why this lane and
@@ -994,7 +994,7 @@ def chain_view(query, resolved, price_map=None, detail_limit=60):
 # ------------------------------------------------------------------ TR-155 registry
 
 #: The categories the ladder knows. A level outside the ladder is refused, never clamped.
-def _known_categories(category_levels):
+def _known_categories(category_levels) -> set:
     return {r.get('category') for r in (category_levels or []) if r.get('category')}
 
 
@@ -1124,7 +1124,7 @@ def registry_browse(query, tables, level_limit=None):
 
 
 def registry_edit(body, provided_key, expected_key, tables, overlay_path, audit_path,
-                  actor='ui', now_s=None):
+                  actor: str='ui', now_s=None):
     """TR-155 (write half): a guarded, validated, audited, revertible edit.
 
     Guarantees this returns, all of them testable:

@@ -70,7 +70,7 @@ def resolve_chain(project):
     return doc
 
 
-def _plan_of(prov_row):
+def _plan_of(prov_row) -> tuple:
     """(billing, plan_name) — providers.plan == 'PAYG' → metered per-token."""
     plan = prov_row.get('plan')
     if plan == 'PAYG':
@@ -78,7 +78,7 @@ def _plan_of(prov_row):
     return 'subscription', plan
 
 
-def _hop_cost(m, tin, tout):
+def _hop_cost(m, tin, tout) -> tuple:
     """(cost_usd, basis, in_cost, out_cost) from a registry models row.
 
     Public in/out split is authoritative when known (matches the actual
@@ -99,7 +99,7 @@ def _hop_cost(m, tin, tout):
     return None, 'unpriced', None, None
 
 
-def estimate(project, tin, tout):
+def estimate(project, tin, tout) -> dict:
     doc = resolve_chain(project)
     if doc.get('error'):
         return {'project': project, 'tokens_in': tin, 'tokens_out': tout,
@@ -190,7 +190,7 @@ def render_text(e):
     if e.get('degraded_fallback'):
         lines.append('  (DEGRADED fallback chain)')
 
-    def line(p, tag):
+    def line(p, tag) -> str:
         if p is None:
             return '  (no hops)'
         cost = f"${p['cost_usd']:.4f}" if p['cost_usd'] is not None else 'UNPRICED'
@@ -215,7 +215,7 @@ def render_text(e):
     return '\n'.join(lines)
 
 
-def main(argv=None):
+def main(argv=None) -> int:
     ap = argparse.ArgumentParser(
         description='Per-hop cost preview for a project chain (public prices)')
     # TR-059: the project can be given POSITIONALLY (`router estimate X`) or

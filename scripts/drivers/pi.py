@@ -45,7 +45,7 @@ class PiDriver(Driver):
               'supports_reasoning_effort': False}
 
     @classmethod
-    def config(cls, proxy_base='http://127.0.0.1:9092', model_ids=None):
+    def config(cls, proxy_base: str='http://127.0.0.1:9092', model_ids=None) -> dict:
         """A `~/.pi/agent/models.json` fragment routing pi through the proxy.
 
         Shaped exactly like pi's documented custom-provider entries so it is
@@ -84,7 +84,7 @@ class PiDriver(Driver):
         return {'providers': {'task-router': entry}}
 
     @classmethod
-    def extension_source(cls, proxy_base='http://127.0.0.1:9092'):
+    def extension_source(cls, proxy_base: str='http://127.0.0.1:9092') -> str:
         """The `pi.registerProvider()` form, for dynamic model discovery.
 
         Emitted as a string rather than written anywhere: installing an extension
@@ -109,7 +109,7 @@ class PiDriver(Driver):
         return ro.import_pi(sessions_dir or SESSIONS_DIR)
 
     @classmethod
-    def row_for(cls, **kw):
+    def row_for(cls, **kw) -> dict:
         """One outcome row in the TR-049 shape."""
         return {'source_system': cls.id, 'session_id': kw.get('session_id'),
                 'task_label': kw.get('task_label'),

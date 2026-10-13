@@ -84,7 +84,7 @@ def latest_by_id(path):
     return latest
 
 
-def complexity_drift(row):
+def complexity_drift(row) -> tuple | None:
     """The normalised complexity for a row, or None when it needs none.
     Returns (new_value, was) — was is the offending scalar string."""
     v = row.get('complexity')
@@ -169,7 +169,7 @@ def cmd_normalize(args):
     return 0
 
 
-def cmd_validate(args):
+def cmd_validate(args) -> int:
     problems = []
     seen_latest = latest_by_id(args.board)
     for rid, (n, row) in sorted(seen_latest.items(), key=lambda kv: kv[1][0]):

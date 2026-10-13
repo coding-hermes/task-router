@@ -53,7 +53,7 @@ def dig(d, dotted):
 MAX_LANE_PRICE_PER_M = 10000.0
 
 
-def _scaled_price(value, scale):
+def _scaled_price(value, scale) -> float | None:
     """Catalog price -> per-1M lane price, or None when it is not a real price.
 
     NEVER a fabricated number: OpenRouter's `openrouter/fusion` pseudo-model
@@ -172,7 +172,7 @@ def normalize(catalog, preset):
     return out
 
 
-def diff(existing, new):
+def diff(existing, new) -> dict:
     """existing: {(provider,model): row}; new: {model_id: lane} ->
     {added:[...], changed:[(model, fields)], unchanged:[...], removed:[...]}"""
     added, changed, unchanged, removed = [], [], [], []
@@ -218,7 +218,7 @@ def apply_lanes(path, provider, new_lanes, plan_tier, price_evidence, drift=None
     out = []
     mult = float(usage_multiplier or 1.0)
 
-    def plan_effective(lane, priced_from_catalog=True):
+    def plan_effective(lane, priced_from_catalog: bool=True):
         """Apply the plan multiplier to a lane whose price came from the
         catalog in THIS pass. A lane whose price was preserved (catalog had no
         price) or kept for its window-cost story must NOT be divided again."""
@@ -339,7 +339,7 @@ def apply_lanes(path, provider, new_lanes, plan_tier, price_evidence, drift=None
     return updated, appended
 
 
-def ensure_probe_row(path, preset):
+def ensure_probe_row(path, preset) -> bool:
     """Idempotently ensure probe_providers.jsonl carries this provider (key_env only)."""
     rows = [json.loads(l) for l in open(path) if l.strip()]
     if any(r.get('id') == preset['id'] for r in rows):
@@ -371,7 +371,7 @@ def load_preset(name):
     return json.load(open(path))
 
 
-def main():
+def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.split('\n')[1])
     ap.add_argument('--preset', required=True, help='preset name in data/catalogs/<name>.json')
     ap.add_argument('--dry-run', action='store_true', help='diff only, write nothing')

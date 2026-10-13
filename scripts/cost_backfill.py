@@ -46,7 +46,7 @@ def load_prices():
     return px
 
 
-def main():
+def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument('--apply', action='store_true')
     ap.add_argument('--limit', type=int, default=0, help='cap rows written (0 = all)')

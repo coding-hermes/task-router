@@ -49,7 +49,7 @@ def _rows(name):
     return out
 
 
-def _write(name, rows):
+def _write(name, rows) -> None:
     # TR-199 (spec R4): no anonymous dates — a row carrying a lifecycle date
     # without lifecycle_source must never reach the file. Fails LOUD (raise)
     # so the cron pipeline's `set -e` aborts instead of silently persisting it.
@@ -61,12 +61,12 @@ def _write(name, rows):
     os.replace(path + '.tmp', path)
 
 
-def _msg(*parts):
+def _msg(*parts) -> None:
     """Human-facing prose → stderr, keeping stdout pure for --json."""
     print(*parts, file=sys.stderr)
 
 
-def sweep(apply=False, quiet=False):
+def sweep(apply: bool=False, quiet: bool=False):
     today = datetime.date.today().isoformat()
     models = _rows('models')
     terms = _rows('plan_terms')
@@ -79,7 +79,7 @@ def sweep(apply=False, quiet=False):
         return [], 0
 
     # active discount coverage: model-level rows valid today (valid_to null = open)
-    def _active(d):
+    def _active(d) -> bool:
         if d.get('valid_from') and d['valid_from'] > today:
             return False
         if d.get('valid_to') and d['valid_to'] < today:
@@ -143,7 +143,7 @@ def sweep(apply=False, quiet=False):
     return to_disable, len(to_disable)
 
 
-def main(argv=None):
+def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description='disable lanes outside flat plans (dry-run default)')
     ap.add_argument('--apply', action='store_true', help='write the disables (default: report only)')
     ap.add_argument('--json', action='store_true')

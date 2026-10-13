@@ -12,7 +12,7 @@ HTML = OUTDIR + '/task-router-xray.html'
 
 
 
-def _rel_count():
+def _rel_count() -> int | None:
     """Release objects at origin, or None when gh cannot answer. Never guess."""
     import json as _j
     out = sh('timeout 60 gh release list --repo coding-hermes/task-router --limit 50 --json tagName 2>/dev/null')
@@ -26,7 +26,7 @@ def _rel_count():
 
 # ch:trace row=TR-252 spec=docs/traceability-doctrine.md#hard-rules test=tests/test_doc_parity.py doc=docs/traceability-doctrine.md evidence=reports/xray/ witness=tag:v0.2.0@origin memory=/project/task-router/xray-first-film-2026-10-01
 
-def sh(cmd, t=90):
+def sh(cmd, t: int=90):
     try:
         p = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=t, cwd=REPO)
         return (p.stdout or '').strip()

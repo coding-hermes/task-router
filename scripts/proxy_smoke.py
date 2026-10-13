@@ -93,7 +93,7 @@ def one(idx, args, key, out):
     return row
 
 
-def main():
+def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument('--n', type=int, default=4)
     ap.add_argument('--concurrency', type=int, default=1)

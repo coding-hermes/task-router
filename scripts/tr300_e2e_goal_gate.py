@@ -132,7 +132,7 @@ ADHOC_TUPLES = [(s.partition('=')[0], int(s.partition('=')[2]))
 INJECTED_LEVELS = {'code_gen': 1, 'reasoning': 1}
 
 
-def _derive_pool():
+def _derive_pool() -> tuple:
     """(ordered [(provider, model, normalized_price)], paid-only prefix list)
     for the harness band, from the live registry's ELIGIBLE pool in its
     price-order. Fails loudly when the registry is unusable — the harness
@@ -210,7 +210,7 @@ def _iso_now():
     return datetime.datetime.now(datetime.timezone.utc).isoformat(timespec='seconds')
 
 
-def http_json(method, url, body=None, headers=None, timeout=120.0):
+def http_json(method, url, body=None, headers=None, timeout: float=120.0) -> tuple:
     """One HTTP request -> (status:int, payload:dict). Raises on transport error."""
     data = json.dumps(body).encode() if body is not None else None
     req = urllib.request.Request(url, data=data, method=method,
@@ -257,7 +257,7 @@ def band_sig(levels):
     return ro.complexity_sig(levels)
 
 
-def rebuild_averages():
+def rebuild_averages() -> int:
     """The production write path for the resolve-time stats view: rebuild the
     rolling averages from the LIVE outcome store (the proxy's own recorder
     and the synthetic injections both land there). Returns the bucket count."""
@@ -268,7 +268,7 @@ def rebuild_averages():
     return len(avgs)
 
 
-def resolve_chain(requirements, label='resolve'):
+def resolve_chain(requirements, label: str='resolve'):
     """Run the LIVE resolver on the harness state (isolated state dir +
     averages file, exported at import time), scoped to the synthetic backend
     and the default measured sort (explicit, so ambient env cannot skew the
@@ -321,7 +321,7 @@ def head_mode(resolved):
     return ((resolved.get('sort_stats') or {}).get('sufficiency') or {}).get('effective')
 
 
-def submit_to_proxy(prompt, nonce, key):
+def submit_to_proxy(prompt, nonce, key) -> tuple:
     """One full loop leg: POST the task through the live proxy, capture the
     envelope, wait for the proxy's own outcome row in the live ledger."""
     status, payload = http_json(
@@ -358,7 +358,7 @@ def submit_to_proxy(prompt, nonce, key):
     return status, payload, router, sid, row
 
 
-def verify_pass(payload, router, row):
+def verify_pass(payload, router, row) -> tuple:
     """AC5: the INDEPENDENT verifier. Pass = the task's acceptance keyword
     appears in the answer OR the answer arrived within the wall budget.
     Never reads the proxy's HTTP status or its recorded success flag."""
@@ -379,8 +379,8 @@ def verify_pass(payload, router, row):
 
 
 def inject_synthetic(provider, model, success, cost_usd, session_id,
-                     required_levels, sig, wall_time_s=2.5,
-                     tokens_in=1500, tokens_out=300):
+                     required_levels, sig, wall_time_s: float=2.5,
+                     tokens_in: int=1500, tokens_out: int=300):
     """Append one synthetic outcome row with the documented schema + the
     tr300 marker. source_system stays exactly SYN_SOURCE."""
     row = {'source_system': SYN_SOURCE,
@@ -448,7 +448,7 @@ def snapshot_circuit():
         return None
 
 
-def restore_circuit(snapshot, harness_pairs, harness_providers):
+def restore_circuit(snapshot, harness_pairs, harness_providers) -> None:
     """Restore the harness circuit file to the snapshot content, minus any
     entries the harness phases created (belt to the suspenders: the snapshot
     predates them, so this is normally a no-op)."""
@@ -527,7 +527,7 @@ def run_loop(label, prompt, nonce, key):
     return trace
 
 
-def phase_ac2_baseline(resolved):
+def phase_ac2_baseline(resolved) -> dict:
     """AC2 first leg: no synthetic samples -> every candidate price-fallback
     and the resolve's own sufficiency block says effective='price'."""
     cands = candidate_entries(resolved)
@@ -545,7 +545,7 @@ def phase_ac2_baseline(resolved):
             'resolved_at': resolved.get('resolved_at')}
 
 
-def phase_ac2_measured(resolved, star):
+def phase_ac2_measured(resolved, star) -> dict:
     """AC2 second leg: >= floor verified samples across >= coverage bar lanes
     -> the star lane reads ordering_basis='measured' and the head mode
     flips."""
@@ -583,7 +583,7 @@ def run_ac3(prov_a, model_a, prov_b, model_b, requirements):
     assert rc == 0, f'AC3: record_failure returned {rc}'
     after = resolve_chain(requirements, 'ac3-after')
 
-    def lanes(res, provider):
+    def lanes(res, provider) -> set:
         return {h.get('model') for h in (res.get('chain') or [])
                 if h.get('provider') == provider}
 
@@ -627,7 +627,7 @@ def run_ac4(provider, requirements):
     assert rc == 0, f'AC4: record_failure returned {rc}'
     after = resolve_chain(requirements, 'ac4-after')
 
-    def provs(res):
+    def provs(res) -> set:
         return {h.get('provider') for h in (res.get('chain') or [])}
 
     before_p, after_p = provs(before), provs(after)
@@ -654,7 +654,7 @@ def run_ac4(provider, requirements):
                 {'provider': p, 'model': m, 'why': w[:2]} for p, m, w in excl[:10]]}
 
 
-def build_artifacts(outdir, doc):
+def build_artifacts(outdir, doc) -> None:
     os.makedirs(outdir, exist_ok=True)
     for name, blob in doc.items():
         path = os.path.join(outdir, f'tr300-{name}.json')
@@ -663,7 +663,7 @@ def build_artifacts(outdir, doc):
         print(f'artifact: {path}')
 
 
-def main(argv=None):
+def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split('\n')[1])
     ap.add_argument('--out', default=DEFAULT_ARTIFACT_DIR,
                     help='artifact directory (default data/state/tr300)')

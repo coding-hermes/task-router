@@ -98,8 +98,8 @@ def _match(d: dict, q: str | None, flt: dict) -> bool:
 
 
 def ledger_search(q=None, outcome=None, source=None, provider=None, model=None,
-                  band=None, since=None, until=None, sort="ts", desc=True,
-                  limit=DEFAULT_LIMIT, offset=0, path: Path = LEDGER) -> dict:
+                  band=None, since=None, until=None, sort: str="ts", desc: bool=True,
+                  limit=DEFAULT_LIMIT, offset: int=0, path: Path = LEDGER) -> dict:
     """Search the outcome ledger. Honest about the window it read."""
     try:
         limit = max(1, min(int(limit), PAGE_CEILING))
@@ -130,7 +130,7 @@ def ledger_search(q=None, outcome=None, source=None, provider=None, model=None,
         rows.append(d)
 
     if sort:
-        def key(d):
+        def key(d) -> tuple:
             v = d.get(sort)
             if v is None:
                 # None sorts last regardless of direction, so a missing value can
@@ -174,7 +174,7 @@ def _cost_stats(rows: list[dict]) -> dict:
     return out
 
 
-def series(hours=24, bucket="hour", path: Path = LEDGER, now=None) -> dict:
+def series(hours: int=24, bucket: str="hour", path: Path = LEDGER, now=None) -> dict:
     """Bucketed traffic: requests, unique lanes, tokens, cost, success rate, hops.
 
     Buckets with no traffic are omitted (never a fabricated zero line), and each
@@ -368,7 +368,7 @@ def hermes_session(gateway_session_id: str, db: Path | None = None) -> dict:
     return {"found": True, "session_id": r[0], "source": r[1], "model": r[2]}
 
 
-def board(search=None, status=None, priority=None, owner=None, limit=100, offset=0,
+def board(search=None, status=None, priority=None, owner=None, limit: int=100, offset: int=0,
           path: Path = BOARD) -> dict:
     """The router board: find tasks, their times, their rows. Read-only."""
     try:

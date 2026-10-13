@@ -15,7 +15,7 @@ blended estimate 0.96 × OR-in + 0.04 × OR-out over the matched OR id
 _RATE_EVIDENCE = 'opencode-go: sub-bucket 12/req/31250 (rate=opencode.ai/go)'
 
 
-def price(row, terms, catalog, helpers, ctx):
+def price(row, terms, catalog, helpers, ctx) -> tuple:
     prices = (ctx or {}).get('spot_prices') or {}
     mdl = ((row.get('model')) or '').lower()
     rates = (terms or {}).get('requests_per_5h') or {}

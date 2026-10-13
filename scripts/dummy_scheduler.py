@@ -85,7 +85,7 @@ def ledger_count():
     return n
 
 
-def one_request(idx, base, key, prompt, model, provider, timeout, results, lock, stop):
+def one_request(idx, base, key, prompt, model, provider, timeout, results, lock, stop) -> None:
     if stop.is_set():
         return
     tick = f'dummy-scheduler-{int(time.time())}-{idx}'
@@ -147,7 +147,7 @@ def one_request(idx, base, key, prompt, model, provider, timeout, results, lock,
             f.write(json.dumps(rec) + '\n')
 
 
-def main():
+def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument('--n', type=int, default=3, help='how many requests to send')
     ap.add_argument('--concurrency', type=int, default=1)

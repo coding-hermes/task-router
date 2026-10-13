@@ -50,7 +50,7 @@ DEFAULT_URL = os.environ.get("ROUTER_HEALTH_URL", "http://127.0.0.1:9092")
 PASS, FAIL, CANNOT_RUN = 0, 1, 2
 
 
-def fetch_health(url, timeout):
+def fetch_health(url, timeout) -> tuple:
     """-> (payload, None) or (None, reason). Never raises."""
     target = url.rstrip("/") + "/health"
     try:
@@ -74,7 +74,7 @@ def fetch_health(url, timeout):
     return payload, None
 
 
-def judge(payload, max_age_h=None):
+def judge(payload, max_age_h=None) -> tuple:
     """-> (failures, observations). Pure function; the whole verdict lives here."""
     failures = []
     obs = {}

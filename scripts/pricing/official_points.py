@@ -7,7 +7,7 @@ zai credit points). Unpriced lanes stay documented gaps.
 """
 
 
-def price(row, terms, catalog, helpers, ctx):
+def price(row, terms, catalog, helpers, ctx) -> tuple:
     # manual-formula model: lanes carry researched prices already (official
     # formula / official+estimate); unpriced lanes stay documented gaps.
     return None, None, 'official-points (manual formula row)'

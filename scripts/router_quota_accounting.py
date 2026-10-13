@@ -183,7 +183,7 @@ def _iso(epoch):
         .isoformat(timespec='seconds')
 
 
-def window_bounds(kind, now_ts, window_hours=None):
+def window_bounds(kind, now_ts, window_hours=None) -> tuple | None:
     """(start_ts, resets_at_ts|None, seconds) for a window kind, or None when
     the kind is unusable. resets_at None = rolling: derived per provider from
     the OLDEST in-window row (spec §4), not from the window arithmetic."""
@@ -220,7 +220,7 @@ def window_bounds(kind, now_ts, window_hours=None):
     return now - seconds, None, seconds
 
 
-def _in_window(ts, bounds, now_ts):
+def _in_window(ts, bounds, now_ts) -> bool:
     """Window membership — boundary semantics pinned by tests (AC2):
     rolling (resets None): start < ts <= now; calendar: start <= ts < resets."""
     start, resets, _seconds = bounds
@@ -233,7 +233,7 @@ def _in_window(ts, bounds, now_ts):
 
 # --------------------------------------------------------------- conversion --
 
-def _convert_usd(row):
+def _convert_usd(row) -> tuple:
     """(usd|None, klass, detail) for one ledger row.
 
     The row's own measured cost_usd wins. Otherwise the router's price-table
@@ -258,7 +258,7 @@ def _convert_usd(row):
     return float(cost), 'price-table', basis
 
 
-def _num_or_0(v):
+def _num_or_0(v) -> int:
     if isinstance(v, bool) or not isinstance(v, (int, float)):
         return 0
     return int(v) if math.isfinite(v) else 0
@@ -394,7 +394,7 @@ def account_provider(provider, rows, cfg, now_ts, default_window=DEFAULT_WINDOW)
     return block
 
 
-def account(rows, limits, now_ts):
+def account(rows, limits, now_ts) -> list:
     """Per-provider blocks over ledger rows — the L2 VIEW (pure function).
 
     Grouping is by `provider` ONLY (spec §4: the lane count never multiplies
@@ -435,11 +435,11 @@ def account_ledger(path=None, limits=None, now_ts=None):
 
 # -------------------------------------------------------------------- CLI ----
 
-def _fmt_usd(v):
+def _fmt_usd(v) -> str:
     return '-' if v is None else f'{v:.4f}'
 
 
-def _print_human(blocks, ledger, limits_file, as_of):
+def _print_human(blocks, ledger, limits_file, as_of) -> int:
     print(f'L2 quota accounting — view over {ledger}')
     print(f'  as of {as_of} · limits: {limits_file}')
     if not blocks:
@@ -459,7 +459,7 @@ def _print_human(blocks, ledger, limits_file, as_of):
     return 0
 
 
-def main(argv=None):
+def main(argv=None) -> int | None:
     argv = list(sys.argv[1:] if argv is None else argv)
     parser = argparse.ArgumentParser(
         prog='router_quota_accounting.py',

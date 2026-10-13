@@ -49,7 +49,7 @@ if _HERE not in sys.path:
 import router_outcomes as ro  # noqa: E402  (single source of truth for the math)
 
 
-def parse_windows(spec):
+def parse_windows(spec) -> list:
     """'24,72,168' | '1d,3d,7d' | '12h,1d' -> sorted unique hour list."""
     if spec is None or str(spec).strip() == '':
         return list(ro.DEFAULT_SCALES_H)
@@ -92,7 +92,7 @@ def read_rows(path):
     return rows
 
 
-def build(rows, windows, merge_backends=False, now_s=None, extra_rows=None):
+def build(rows, windows, merge_backends: bool=False, now_s=None, extra_rows=None):
     """Averages for the given rows. `merge_backends` = one bucket per
     (provider, model, complexity), otherwise one per backend.
     `extra_rows` (TR-299): verified-outcome rows folded into the SAME
@@ -128,7 +128,7 @@ def write_rows(path, averages):
 
 
 def summary(rows, averages, windows, merge_backends, input_path, output_path,
-            dry_run, extra_paths=None, extra_rows=0):
+            dry_run, extra_paths=None, extra_rows: int=0) -> dict:
     return {
         'input': input_path,
         'extra_inputs': list(extra_paths or []),
@@ -144,7 +144,7 @@ def summary(rows, averages, windows, merge_backends, input_path, output_path,
     }
 
 
-def main(argv=None):
+def main(argv=None) -> int:
     ap = argparse.ArgumentParser(
         prog='outcomes_averages.py',
         description='Rolling (exponential-decay) cost-per-task averages from '

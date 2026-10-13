@@ -89,7 +89,7 @@ def find_paid_sibling(md, model):
             'blend': round((pr[0] + pr[1]) / 2, 6), 'reseller': pid != want}
 
 
-def main():
+def main() -> int:
     apply = '--apply' in sys.argv
     import router_pricing_audit as pa
 

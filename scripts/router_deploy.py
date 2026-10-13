@@ -46,7 +46,7 @@ def parse_args(argv=None):
 
 
 def verify_deployment(ready_status, ready_body, health_status, health_body,
-                      *, old_pid, expected_digest):
+                      *, old_pid, expected_digest) -> dict:
     """Pure post-restart verdict; require readiness, a new PID, and exact source."""
     checks = []
     if ready_status != 200 or not isinstance(ready_body, dict) or ready_body.get("ready") is not True:
@@ -65,7 +65,7 @@ def verify_deployment(ready_status, ready_body, health_status, health_body,
     return {"ok": not checks, "checks": checks, "runtime": runtime}
 
 
-def _http_json(url, timeout=2.0):
+def _http_json(url, timeout: float=2.0) -> tuple:
     req = urllib.request.Request(url, headers={"Accept": "application/json"})
     try:
         with urllib.request.urlopen(req, timeout=timeout) as response:
@@ -78,12 +78,12 @@ def _http_json(url, timeout=2.0):
         return exc.code, body
 
 
-def _systemctl(*args, timeout=100):
+def _systemctl(*args, timeout: int=100):
     return subprocess.run(["systemctl", "--user", *args], cwd=REPO,
                           capture_output=True, text=True, timeout=timeout)
 
 
-def _old_pid(unit):
+def _old_pid(unit) -> int:
     result = _systemctl("show", unit, "-p", "MainPID", "--value")
     if result.returncode != 0:
         raise RuntimeError("systemctl show failed: %s" % (result.stderr.strip() or result.stdout.strip()))
@@ -122,8 +122,8 @@ def _preflight(repo):
     )
 
 
-def deploy(services=None, *, apply=False, allow_dirty=False, timeout_s=90.0,
-           repo=REPO, systemctl=_systemctl):
+def deploy(services=None, *, apply: bool=False, allow_dirty: bool=False, timeout_s: float=90.0,
+           repo=REPO, systemctl=_systemctl) -> tuple:
     """Execute or plan a sequential deploy. Service manager injectable for tests."""
     names = services or ["task-router-server", "task-router-proxy"]
     unknown = sorted(set(names) - set(SERVICES))

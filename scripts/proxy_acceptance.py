@@ -42,7 +42,7 @@ PROOF_LONG_RUN = Path("/tmp/idle_proof.json")
 RESULTS: list[dict] = []
 
 
-def record(gate, ok, detail, measurement=None, skipped=None):
+def record(gate, ok, detail, measurement=None, skipped=None) -> None:
     RESULTS.append({"gate": gate, "status": "SKIP" if skipped else ("PASS" if ok else "FAIL"),
                     "detail": detail, "measurement": measurement})
     tag = "SKIP" if skipped else ("PASS" if ok else "FAIL")
@@ -61,7 +61,7 @@ def gateway_key():
     return ""
 
 
-def post(path, body, headers=None, timeout=240):
+def post(path, body, headers=None, timeout: int=240) -> tuple:
     req = urllib.request.Request(PROXY + path, data=json.dumps(body).encode(),
                                  headers={"content-type": "application/json", **(headers or {})},
                                  method="POST")
@@ -72,7 +72,7 @@ def post(path, body, headers=None, timeout=240):
         return e.code, e.read(), dict(e.headers)
 
 
-def get(url, timeout=60):
+def get(url, timeout: int=60) -> tuple:
     try:
         with urllib.request.urlopen(url, timeout=timeout) as r:
             return r.status, r.read(), dict(r.headers)
@@ -80,7 +80,7 @@ def get(url, timeout=60):
         return e.code, e.read(), dict(e.headers)
 
 
-def ledger_rows_since(ts, proxy_only=False):
+def ledger_rows_since(ts, proxy_only: bool=False):
     out = []
     if not LEDGER.exists():
         return out
@@ -124,7 +124,7 @@ def gate_scheduler_shape():
     return sid
 
 
-def gate_shape_no_keepalive_assumption():
+def gate_shape_no_keepalive_assumption() -> None:
     """The report must not claim long turns are safe on a 232s run (232 < 300)."""
     doc = (REPO / "docs" / "proxy-readiness-report-2026-09-26.html")
     if not doc.exists():
@@ -137,7 +137,7 @@ def gate_shape_no_keepalive_assumption():
            if ok else "the report still presents the 232s run as proof of long-turn safety")
 
 
-def gate_session_keying():
+def gate_session_keying() -> None:
     """What actually decides a Hermes session on the api path?
 
     READ FROM THE GATEWAY SOURCE (gateway/platforms/api_server.py):
@@ -191,7 +191,7 @@ def gate_session_keying():
             "message_count": msgs[0] if msgs else None})
 
 
-def gate_failure_honesty():
+def gate_failure_honesty() -> None:
     """A failed proxied call must explain itself in the artefact that survives.
 
     Fault injection would be tidier but the proxy has no such switch, and a fabricated
@@ -219,7 +219,7 @@ def gate_failure_honesty():
             "steps": steps, "cost": priced, "wall_time_s": r.get("wall_time_s")})
 
 
-def gate_surface_404():
+def gate_surface_404() -> None:
     status, raw, _ = post("/v1/definitely-not-a-route",
                           {"x": 1}, {"authorization": f"Bearer {gateway_key()}"}, timeout=60)
     text = raw.decode("utf-8", "replace")
@@ -229,7 +229,7 @@ def gate_surface_404():
            f"unknown path -> {status} (expected 404 + endpoint surface)", {"status": status})
 
 
-def gate_health_truth():
+def gate_health_truth() -> None:
     status, raw, _ = get(PROXY + "/health")
     try:
         h = json.loads(raw)
@@ -245,7 +245,7 @@ def gate_health_truth():
            {"loaded": loaded, "head": head, "stale": h.get("stale")})
 
 
-def gate_stats_live(before_ts, expect_increase=True):
+def gate_stats_live(before_ts, expect_increase: bool=True) -> None:
     status, raw, _ = get(PROXY + "/proxy/stats")
     try:
         s = json.loads(raw)
@@ -261,7 +261,7 @@ def gate_stats_live(before_ts, expect_increase=True):
            {"matched": matched, "groups": len(w.get("groups") or {}), "scanned": w.get("rows_scanned")})
 
 
-def gate_custody(session_from_shape):
+def gate_custody(session_from_shape) -> None:
     """envelope session ids must match the ledger row, and Hermes must have the session."""
     if not session_from_shape:
         record("custody_chain", False, "no session id captured from the shape gate")
@@ -289,7 +289,7 @@ def gate_custody(session_from_shape):
            {"row_session": hit.get("session_id"), "state_db": list(found) if found else None})
 
 
-def gate_pointer_alignment():
+def gate_pointer_alignment() -> None:
     """The proxy's idle budget must not be stricter than the caller's tolerance."""
     status, raw, _ = get(PROXY + "/health")
     try:
@@ -314,7 +314,7 @@ def gate_pointer_alignment():
            {"idle_budget_s": idle, "wall_ceiling_s": wall, "caller_tolerance_s": sched_tolerance})
 
 
-def gate_long_run(with_long_run):
+def gate_long_run(with_long_run) -> None:
     """The shape that died at 305s: a turn whose tool runs quietly."""
     global PROOF_LONG_RUN
     if not with_long_run:
@@ -352,7 +352,7 @@ def gate_long_run(with_long_run):
            {"status": status, "wall_s": round(wall, 1), "fresh_run": True})
 
 
-def post_web(path, body, timeout=60):
+def post_web(path, body, timeout: int=60) -> tuple:
     req = urllib.request.Request(WEB + path, data=json.dumps(body).encode(),
                                  headers={"content-type": "application/json"}, method="POST")
     try:
@@ -362,7 +362,7 @@ def post_web(path, body, timeout=60):
         return e.code, e.read(), dict(e.headers)
 
 
-def gate_write_safety():
+def gate_write_safety() -> None:
     """A mutation without the edit key must be refused, never silently applied."""
     st, raw, _ = post_web("/api/settings/providers", {"id": "x", "archive": True})
     body = raw.decode("utf-8", "replace")[:120]
@@ -373,7 +373,7 @@ def gate_write_safety():
            {"status": st, "body": body})
 
 
-def main():
+def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--with-long-run", action="store_true", help="also run the ~400s silent turn")
     ap.add_argument("--json", default=None)

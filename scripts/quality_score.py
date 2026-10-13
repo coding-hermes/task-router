@@ -77,7 +77,7 @@ def load_ladder(path):
     return rows
 
 
-def stage_targets(ladder, metric):
+def stage_targets(ladder, metric) -> dict:
     """stage -> target for one metric, sorted by stage (floor rows excluded).
 
     The `floor` row kind carries stage=null and is not a rung; it is handled
@@ -90,7 +90,7 @@ def stage_targets(ladder, metric):
     return dict(sorted(table.items()))
 
 
-def stage_for(value, targets):
+def stage_for(value, targets) -> tuple:
     """(highest achieved stage, next target above the value) for one metric.
 
     achieved is None while the value sits below the stage-0 target; next is
@@ -128,7 +128,7 @@ def metric_floor(ladder, metric, baseline):
 # type_hint_pct — the AST scan (the one instrumented metric).
 # ---------------------------------------------------------------------------
 
-def scan_type_hints(scripts_dir):
+def scan_type_hints(scripts_dir) -> dict:
     """AST scan over scripts/ -> measurement dict.
 
     Counts every FunctionDef and AsyncFunctionDef reachable in the tree
@@ -256,7 +256,7 @@ def render(report, scripts_dir):
     return "\n".join(out) + "\n"
 
 
-def main(argv=None):
+def main(argv=None) -> int:
     ap = argparse.ArgumentParser(
         description="quality-ladder score verb: current value, stage, next "
                     "target per metric (TR-267)")

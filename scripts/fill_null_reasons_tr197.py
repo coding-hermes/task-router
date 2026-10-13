@@ -77,7 +77,7 @@ LIVE = {k: r for k, r in BY_LANE.items() if is_live(r)}
 _ctx_fills = {}
 
 
-def _ctx_twin(model, value, note):
+def _ctx_twin(model, value, note) -> None:
     _ctx_fills[("clinepass", model)] = (
         value,
         "sibling-lane consensus: %s carries context_limit=%s on the twin "
@@ -258,7 +258,7 @@ _arch_targets = [k for k, r in LIVE.items() if r.get("archive") is None]
 STAMPS = collections.OrderedDict()
 
 
-def _stamp(prov, model, fields, reason, evidence):
+def _stamp(prov, model, fields, reason, evidence) -> None:
     for f in fields:
         STAMPS[(prov, model, f)] = (reason, evidence)
 

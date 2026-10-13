@@ -124,7 +124,7 @@ def _extract_json(raw):
     return obj if isinstance(obj, dict) else None
 
 
-def validate_matrix(obj, categories):
+def validate_matrix(obj, categories) -> tuple:
     """obj -> (matrix, confidence, problems). Unknown categories are REJECTED
     (reported), levels clamped, empty matrix allowed (a task may require
     nothing special)."""
@@ -225,7 +225,7 @@ def _structured_mode():
     return os.environ.get('ROUTER_CLASSIFY_STRUCTURED_MODE') or 'json_schema'
 
 
-def _matrix_schema(categories=None):
+def _matrix_schema(categories=None) -> dict:
     """The complexity matrix as a JSON Schema: {category: signed level}.
 
     Keys are restricted to the registry's own categories when they are known
@@ -252,7 +252,7 @@ def _matrix_schema(categories=None):
 THINKING_LADDER = ({'reasoning_effort': 'none'}, {'thinking': {'type': 'disabled'}})
 
 
-def _thinking_off():
+def _thinking_off() -> dict:
     """The param that turns thinking off: {'reasoning_effort': 'none'} | {'thinking': {...}} | {}.
 
     ROUTER_CLASSIFY_THINKING=off (default) walks THINKING_LADDER; 'on', 'auto',
@@ -272,7 +272,7 @@ def _thinking_off():
         return dict(THINKING_LADDER[1])
     return dict(THINKING_LADDER[0])
 
-def _classifier_lanes():
+def _classifier_lanes() -> list:
     """The configured classifier lanes, primary first.
 
     Lane 0: ROUTER_CLASSIFIER_BASE_URL/_MODEL/_KEY_ENV (the existing primary —
@@ -318,7 +318,7 @@ def _backoff_delay(attempt):
     return min(2 ** (attempt - 1), 8)
 
 
-def default_llm(prompt, text, timeout=60, timeout_s=None, categories=None):
+def default_llm(prompt, text, timeout: int=60, timeout_s=None, categories=None):
     """OpenAI-shaped classifier call over the configured lanes.
 
     Primary lane first, with bounded retry + backoff on 429/5xx
@@ -653,7 +653,7 @@ def classify(text, llm=None, version=DEFAULT_PROMPT_VERSION, categories=None, ti
     return out
 
 
-def main():
+def main() -> int:
     import argparse
     ap = argparse.ArgumentParser(description=__doc__.split('\n')[1])
     ap.add_argument('--text')

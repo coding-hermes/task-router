@@ -95,18 +95,18 @@ DEFAULT_CHAIN_LIMIT = 1024
 #   else                              -> True   (the new default)
 # False is returned ONLY when ROUTER_MISS_VERBOSE is set and ROUTER_SPAWN_QUIET
 # is not, so an explicit --quiet still wins over the verbose opt-in.
-def _truthy_env(val):
+def _truthy_env(val) -> bool:
     """Exact-match truthiness for the router's env flags ('1'/'true'/'yes')."""
     return val in ('1', 'true', 'yes')
 
 
-def _quiet():
+def _quiet() -> bool:
     if _truthy_env(os.environ.get('ROUTER_SPAWN_QUIET', '')):
         return True
     return not _truthy_env(os.environ.get('ROUTER_MISS_VERBOSE', ''))
 
 
-def _err(msg):
+def _err(msg) -> None:
     """Write a diagnostic line to stderr unless quiet mode is enabled."""
     if not _quiet():
         try:
@@ -165,7 +165,7 @@ DEFAULT_WINDOW_H = 24
 DEFAULT_SORT = os.environ.get('ROUTER_SPAWN_SORT') or 'predicted_cost_per_task'
 
 
-def row_is_retired(row, today=None):
+def row_is_retired(row, today=None) -> bool:
     """Has this registry row passed its retirement date?
 
     `valid_to` on models.jsonl is the model's RETIREMENT date (20 rows carry
@@ -200,7 +200,7 @@ def _days_until(date_str, today):
         return None
 
 
-def lifecycle_state(row, today=None):
+def lifecycle_state(row, today=None) -> str:
     """TR-069 wave 2: the four lifecycle states, derived from DATES only.
 
     coming_soon — available_from is a FUTURE date (announced, not yet routable)
@@ -457,7 +457,7 @@ def load_quota_gates(qdoc, now=None):
     return out
 
 
-def quota_gate_summary(gates):
+def quota_gate_summary(gates) -> dict:
     """{source-less summary} of a load_quota_gates() map for the resolve output.
 
     Two sorted lists: `gated` = actively excluded providers (the fact an
@@ -477,7 +477,7 @@ def quota_gate_summary(gates):
     return {'gated': gated, 'expired': expired}
 
 
-def ledger_has_traces(state_dir):
+def ledger_has_traces(state_dir) -> bool:
     """True when the spawn ledger exists AND holds at least one non-empty line.
 
     Path resolution: LEDGER_FILE env (the router_ledger.py shared contract)
@@ -548,7 +548,7 @@ def ledger_in_flight(state_dir):
         return {}
 
 
-def _effective_caps(profiles, qdoc, pid):
+def _effective_caps(profiles, qdoc, pid) -> dict:
     """Effective two-knob diversity caps + per-model concurrency default.
 
     Per-profile task_profiles columns beat the global 'diversity' defaults in
@@ -648,7 +648,7 @@ def exclusion_codes(why):
     return codes
 
 
-def _prune_diversity(out_chain, exclusions, reasons, cons_cap, tot_cap):
+def _prune_diversity(out_chain, exclusions, reasons, cons_cap, tot_cap) -> None:
     """Walk the price-ordered survivor chain; drop diversity violators.
 
     Per provider: consecutive_run counts hops IN A ROW (resets when the
@@ -692,12 +692,12 @@ def _metrics_path():
     return METRICS_FILE
 
 
-def _routing_env_names():
+def _routing_env_names() -> list:
     """Names of ROUTING_* / ROUTER_* / TASK_ROUTER_* env vars present (no values)."""
     return sorted(k for k in os.environ if k.startswith(('ROUTING_', 'ROUTER_', 'TASK_ROUTER_')))
 
 
-def _append_metrics(rows, result):
+def _append_metrics(rows, result) -> None:
     """Append one row per chain hop to the metrics JSONL file (TR-021).
 
     rows is the list of tuples as produced by _build_chain (each tuple is
@@ -788,7 +788,7 @@ def _append_metrics(rows, result):
         pass
 
 
-def _validate_adhoc(adhoc, tables):
+def _validate_adhoc(adhoc, tables) -> tuple:
     """Validate --profile-req requirements (TR-023). Returns (reqs, error).
 
     Honest input validation: a typo'd category or out-of-range level must be
@@ -852,7 +852,7 @@ def _validate_adhoc(adhoc, tables):
     return reqs, None
 
 
-def _stamp_payg_providers(tables):
+def _stamp_payg_providers(tables) -> None:
     """Snapshot the PAYG provider set + stamp every lane row (Bane 2026-09-19).
 
     Data-driven from the providers table: `plan = 'PAYG'` names the pay-per-
@@ -872,7 +872,7 @@ def _stamp_payg_providers(tables):
         tables['_payg_providers'] = set()
 
 
-def _load_registry_with_meta():
+def _load_registry_with_meta() -> tuple:
     """(tables, source, fallback_used, warning) — registry.json, else data/tables.
 
     TR-025: resolve output must SAY where its data came from. registry.json
@@ -936,7 +936,7 @@ _VERSION_REF_RE = re.compile(
     r'^(?P<id>.+?)(?P<sep>[:@])(?P<ver>-?\d+)$')
 
 
-def _split_version_ref(ref):
+def _split_version_ref(ref) -> tuple | None:
     """TR-131: split `id:version` / `id@version` off a profile ref.
 
     Returns (id, version_int) or None. Splitting is intentional: profile ids
@@ -1068,7 +1068,7 @@ def _complexity_keys(profile_id, tables):
     return keys
 
 
-def load_outcome_stats(backend=None, merge_backends=None, path=None):
+def load_outcome_stats(backend=None, merge_backends=None, path=None) -> tuple:
     """(index, meta) — the resolve-time view of the rolling averages.
 
     index = {(provider, model): [row, ...]}
@@ -1119,7 +1119,7 @@ def load_outcome_stats(backend=None, merge_backends=None, path=None):
     return index, meta
 
 
-def lane_stats(index, provider, model, keys):
+def lane_stats(index, provider, model, keys) -> tuple:
     """(row, match) for a lane: the stats row matching the task's complexity
     reference, else the unconditioned bucket, else a weighted merge of the
     lane's buckets. (None, None) when the store has no sample — never invented.
@@ -1161,7 +1161,7 @@ def lane_stats(index, provider, model, keys):
     return rows[0], 'fallback'
 
 
-def lane_metric(m, ctx, metric):
+def lane_metric(m, ctx, metric) -> tuple:
     """(value, provenance) for one metric of one lane. (None, None) when the
     store has no sample for the lane."""
     ctx = ctx or {}
@@ -1221,7 +1221,7 @@ def _effective_price(m):
     return (m.get('normalized_price') or 0.0) * (m.get('token_factor') or 1.0)
 
 
-def _lane_price_basis(m):
+def _lane_price_basis(m) -> str | None:
     """TR-291 (2026-10-03): WHY the lane sits where the price sort put it.
 
     Names the zero explicitly so the ordering is explainable from the row
@@ -1246,7 +1246,7 @@ def _context_sort_key(m):
     return -(ctx if isinstance(ctx, int) else 0)
 
 
-def _legacy_sort_key(m):
+def _legacy_sort_key(m) -> tuple:
     """The historical chain order: (plan_tier, effective price, larger context
     first, model, provider) — unchanged since TR-015.
 
@@ -1290,7 +1290,7 @@ MEASURED_MIN_SAMPLES = int(os.environ.get('ROUTER_SORT_MIN_SAMPLES') or 3)
 MEASURED_MIN_COVERAGE = float(os.environ.get('ROUTER_SORT_MIN_COVERAGE') or 0.5)
 
 
-def measured_basis(m, ctx, floor=None):
+def measured_basis(m, ctx, floor=None) -> tuple:
     """(value, basis) for a lane's measured cost per task.
 
     `basis` is the provenance a caller needs to judge the ordering: the floor in
@@ -1321,7 +1321,7 @@ BLEND_CEIL_SAMPLES = int(os.environ.get('ROUTER_SORT_BLEND_CEIL') or 9)
 BLEND_WEIGHT = float(os.environ.get('ROUTER_SORT_BLEND_WEIGHT') or 5)
 
 
-def _blend_cfg(spec):
+def _blend_cfg(spec) -> tuple:
     """(ceil, weight) from the optional 3rd/4th spec fields, env defaults.
 
     A blend pseudo-count of 0 == raw measured means (the pre-TR-174 behaviour).
@@ -1346,7 +1346,7 @@ def _blend_cfg(spec):
 COMPLETION_RATE_FLOOR = float(os.environ.get('ROUTER_SORT_COMPLETION_FLOOR') or 0.1)
 
 
-def completion_term(row):
+def completion_term(row) -> tuple:
     """(effective_cost_or_None, reason) — divide a measured cost by the row's
     observed completion rate (cost per COMPLETED task). Absent success data is
     reported, never guessed as 1.0: basis 'no-completion-term' and the division
@@ -1369,7 +1369,7 @@ EXPLORE_SHARE = float(os.environ.get('ROUTER_SORT_EXPLORE_SHARE') or 0.0)
 EXPLORE_MIN_AGE_H = float(os.environ.get('ROUTER_SORT_EXPLORE_MIN_AGE_H') or 24)
 
 
-def _lane_last_outcome_age_h(provider, model, ctx):
+def _lane_last_outcome_age_h(provider, model, ctx) -> tuple:
     """(age_h, source) since the lane's most recent outcome row, or (None,
     reason). Scans the RAW outcome store once per resolve (cached on ctx) —
     the averages rows carry no timestamp, so the store is the only witness.
@@ -1409,7 +1409,7 @@ def _lane_last_outcome_age_h(provider, model, ctx):
     return ages.get((provider, model)), source
 
 
-def _explore_pick(lanes, ctx, min_age_h):
+def _explore_pick(lanes, ctx, min_age_h) -> tuple:
     """The exploration lane: fewest in-window samples among lanes older than
     the aging threshold; ties by (price, provider, model) so the pick is
     reproducible. (lane, None) — or (None, reason) when nothing qualifies."""
@@ -1433,7 +1433,7 @@ def _lane_sample_n(m, ctx):
     return n if isinstance(n, int) else 0
 
 
-def lane_expected_value(m, ctx, floor, blend_ceil, blend_w):
+def lane_expected_value(m, ctx, floor, blend_ceil, blend_w) -> tuple:
     """(value, basis) — the lane's expected cost per COMPLETED task (the TR-174
     ranking value; exploration adds a separate head-selection gate).
 
@@ -1739,7 +1739,7 @@ SORT_KEYS = {
 }
 
 
-def make_sort_key(spec, lanes, ctx):
+def make_sort_key(spec, lanes, ctx) -> tuple:
     """(key callable, resolved name) for a sort spec. Raises ValueError on an
     unknown key or a malformed ratio — the caller degrades visibly (fail-open,
     never a hard stop)."""
@@ -1754,7 +1754,7 @@ def make_sort_key(spec, lanes, ctx):
 
 
 def _build_chain(tables, reqs, limit=DEFAULT_CHAIN_LIMIT, sort_spec=None, sort_ctx=None,
-                 lifecycle_counts=None):
+                 lifecycle_counts=None) -> list:
     """Replicates v_task_chain exactly, in pure python.
 
     reqs = [(category, level), ...] (profile requirements or ad-hoc).
@@ -1879,7 +1879,7 @@ def _build_chain(tables, reqs, limit=DEFAULT_CHAIN_LIMIT, sort_spec=None, sort_c
             for i, m in enumerate(eligible[:limit])]
 
 
-def _pub_prices(m):
+def _pub_prices(m) -> tuple:
     """Public-price triplet for a model row: (usd_1m, in_per_m, out_per_m).
 
     Bane 2026-08-27: cost reporting ("what did it cost to build feature X")
@@ -2041,9 +2041,9 @@ def _data_home_meta(source, fallback_used):
     return meta
 
 
-def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=DEFAULT_CHAIN_LIMIT,
-            allow_training=False, allow_slow=None, sort=None, backend=None,
-            merge_backends=False, window_h=DEFAULT_WINDOW_H, ref_meta=None):
+def resolve(project=None, profile_id=None, adhoc=None, use_health: bool=True, limit=DEFAULT_CHAIN_LIMIT,
+            allow_training: bool=False, allow_slow=None, sort=None, backend=None,
+            merge_backends: bool=False, window_h=DEFAULT_WINDOW_H, ref_meta=None):
     tables, src, fb, warn = _load_registry_with_meta()
     warnings = [warn] if warn else []
     projects = {r.get('id'): r for r in tables.get('projects') or []}
@@ -2541,7 +2541,7 @@ def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=DE
             # contract and is stripped before JSON serialization in main().
             '_chain_rows': chain_rows}
 
-def profile_ref_for(project=None, task_id=None, board=None):
+def profile_ref_for(project=None, task_id=None, board=None) -> tuple:
     """TR-124 (Bane 2026-09-24): the board row declares its own capability bar.
 
     A board task row may carry a `profile` field — an exact profile id
@@ -2648,7 +2648,7 @@ def profile_ref_for(project=None, task_id=None, board=None):
 COMPLEXITY_SCORERS = ('auto', 'classifier', 'jev')
 
 
-def complexity_requirements(text, scorer='auto', classify_fn=None, classify_name=None):
+def complexity_requirements(text, scorer: str='auto', classify_fn=None, classify_name=None) -> tuple:
     """Requirement levels derived from the TASK's own complexity.
 
     Bane 2026-09-23: a profile alone made the spawn path a fixed list. The router
@@ -2728,7 +2728,7 @@ def complexity_requirements(text, scorer='auto', classify_fn=None, classify_name
     return None, meta
 
 
-def task_text_for(project=None, task_id=None, board=None):
+def task_text_for(project=None, task_id=None, board=None) -> tuple:
     """Task text the router should score: the board row's own title+description.
 
     Bane 2026-09-23: "the board is outlining the task" — so the board row IS the
@@ -2774,7 +2774,7 @@ def task_text_for(project=None, task_id=None, board=None):
     return None, f'task {task_id} not found in {len(cands)} board path(s)'
 
 
-def main():
+def main() -> None:
     ap = argparse.ArgumentParser(description='Task router — resolve chain for project/profile')
     ap.add_argument('project', nargs='?')
     ap.add_argument('--profile', dest='profile_id')

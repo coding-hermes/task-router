@@ -33,7 +33,7 @@ ENV_XDG = "XDG_DATA_HOME"
 DEFAULT_SUBDIR = "task-router"
 
 
-def resolve_data_home(create=True):
+def resolve_data_home(create: bool=True):
     """Return the task-router data home directory.
 
     TASK_ROUTER_HOME wins over XDG_DATA_HOME; XDG wins over the XDG default

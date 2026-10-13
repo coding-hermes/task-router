@@ -25,7 +25,7 @@ import unittest
 SCRIPT = os.path.expanduser('~/.hermes/scripts/fleet-cooldown-policy.py')
 
 
-def _run(argv, env_extra=None, cwd=None):
+def _run(argv, env_extra=None, cwd=None) -> tuple:
     """Invoke the deployed script with the given argv; return (rc, stdout, stderr)."""
     env = os.environ.copy()
     if env_extra:
@@ -37,7 +37,7 @@ def _run(argv, env_extra=None, cwd=None):
     return proc.returncode, proc.stdout, proc.stderr
 
 
-def _isolated_guard():
+def _isolated_guard() -> tuple:
     """Run the guard functions in-process with a temp sidecar.
 
     Imports the deployed module under a redirected CANONICAL_HASH_PATH
@@ -57,7 +57,7 @@ def _isolated_guard():
 class BootstrapPathTest(unittest.TestCase):
     """First run with no sidecar — golden-record bootstrap, returns OK."""
 
-    def test_bootstrap_writes_sidecar_and_returns_ok(self):
+    def test_bootstrap_writes_sidecar_and_returns_ok(self) -> None:
         mod, tmp = _isolated_guard()
         try:
             self.assertFalse(os.path.exists(mod.CANONICAL_HASH_PATH))
@@ -73,7 +73,7 @@ class BootstrapPathTest(unittest.TestCase):
             import shutil
             shutil.rmtree(tmp, ignore_errors=True)
 
-    def test_bootstrap_is_idempotent(self):
+    def test_bootstrap_is_idempotent(self) -> None:
         mod, tmp = _isolated_guard()
         try:
             mod.verify_deploy_hash()
@@ -93,7 +93,7 @@ class BootstrapPathTest(unittest.TestCase):
 class MismatchPathTest(unittest.TestCase):
     """Deployed != sidecar — fail loud, do NOT auto-bump."""
 
-    def test_mismatch_returns_false_and_preserves_sidecar(self):
+    def test_mismatch_returns_false_and_preserves_sidecar(self) -> None:
         mod, tmp = _isolated_guard()
         try:
             mod.verify_deploy_hash()  # bootstrap
@@ -124,7 +124,7 @@ class MismatchPathTest(unittest.TestCase):
 class UpdateCanonicalTest(unittest.TestCase):
     """--update-canonical bumps the sidecar to the deployed hash."""
 
-    def test_update_canonical_writes_deployed_hash(self):
+    def test_update_canonical_writes_deployed_hash(self) -> None:
         mod, tmp = _isolated_guard()
         try:
             mod.verify_deploy_hash()  # bootstrap
@@ -156,7 +156,7 @@ class EndToEndTest(unittest.TestCase):
     deployed script (the test battery is itself the contract).
     """
 
-    def test_verify_happy_path(self):
+    def test_verify_happy_path(self) -> None:
         # Use a temp HOME so the sidecar lives in our test sandbox. This
         # needs the deployed script to honor a HOME override, which it
         # does via os.path.expanduser('~/.hermes/scripts/...') — but
@@ -190,7 +190,7 @@ class EndToEndTest(unittest.TestCase):
             self.assertNotIn('DEPLOY HASH MISMATCH', out,
                              msg=f'stdout: {out}\nstderr: {err}')
 
-    def test_dry_run_tolerates_hash_mismatch(self):
+    def test_dry_run_tolerates_hash_mismatch(self) -> None:
         """--dry-run is intentionally read-only; refusing it on hash
         mismatch would be noise. Verify it still proceeds."""
         with tempfile.TemporaryDirectory() as tmp_home:

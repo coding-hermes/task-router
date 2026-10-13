@@ -31,7 +31,7 @@ REQUIRED = ('row',)
 BOUND = ('verdict', 'commit')
 
 
-def walk(roots, max_bytes=2_000_000):
+def walk(roots, max_bytes: int=2_000_000):
     for root in roots:
         root = os.path.abspath(os.path.expanduser(root))
         if os.path.isfile(root):
@@ -51,7 +51,7 @@ def walk(roots, max_bytes=2_000_000):
                 yield p
 
 
-def parse_line(line):
+def parse_line(line) -> dict | None:
     m = MARKER.search(line)
     if not m:
         return None
@@ -92,7 +92,7 @@ def validate(marker, where):
     return problems
 
 
-def main():
+def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument('row', nargs='?', help='work-unit id to search for')
     ap.add_argument('--roots', nargs='*', default=['.'], help='roots to scan (default: cwd)')

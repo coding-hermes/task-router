@@ -63,7 +63,7 @@ def _parse_utc(ts):
         return None
 
 
-def _parse_duration(s):
+def _parse_duration(s) -> int | None:
     """Convert a duration string like 24h, 7d, 30m into seconds."""
     s = str(s).strip()
     if not s:
@@ -117,7 +117,7 @@ def _filter_rows(path, since=None, profile=None):
         yield row
 
 
-def _aggregates(rows):
+def _aggregates(rows) -> tuple:
     providers, models, pairs = {}, {}, {}
     for row in rows:
         p = row.get("provider")
@@ -137,7 +137,7 @@ def _top(mapping, n):
     return items
 
 
-def _table(items, headers):
+def _table(items, headers) -> None:
     if not items:
         print("no rows in window")
         return
@@ -147,7 +147,7 @@ def _table(items, headers):
         print("  ".join(str(cell).ljust(widths[i]) for i, cell in enumerate(row)))
 
 
-def main(argv=None):
+def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="Resolve metrics query (TR-021)")
     ap.add_argument("--top-providers", nargs="?", const=10, type=int,
                     help="show top N providers by hop count (default 10)")

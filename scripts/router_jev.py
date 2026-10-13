@@ -110,7 +110,7 @@ def band_for(score, bands=None):
     return bands[-1] if score > bands[-1]['score_max'] else bands[0]
 
 
-def data_categories(path=None):
+def data_categories(path=None) -> list:
     """Category vocabulary from the LEVEL DATA file (data/tables/category_levels.jsonl).
 
     Fallback used when the registry-derived vocabulary is unavailable (e.g. a
@@ -133,7 +133,7 @@ def data_categories(path=None):
     return sorted(cats)
 
 
-def score_to_matrix(score, bands=None, categories=None):
+def score_to_matrix(score, bands=None, categories=None) -> tuple:
     """(matrix, band, problems) — the SAME matrix shape the classifier returns
     (category -> signed level, -5..+5). Validated through router_classify's own
     validator so both scorers cannot drift apart.
@@ -180,7 +180,7 @@ def score_to_matrix(score, bands=None, categories=None):
 
 # ------------------------------------------------------------------- JEV ---
 
-def _http(url, payload, headers, timeout):
+def _http(url, payload, headers, timeout) -> tuple:
     req = urllib.request.Request(url, data=json.dumps(payload).encode(),
                                  headers=headers, method='POST')
     try:
@@ -192,7 +192,7 @@ def _http(url, payload, headers, timeout):
         return 0, str(exc)[:200]
 
 
-def ask_hardness(state, http=None, timeout=90, criteria=None, model=None):
+def ask_hardness(state, http=None, timeout: int=90, criteria=None, model=None):
     """One JEV request → dict(score, confidence, probabilities, legend, cost,
     model, problems). Fail-closed: keys are tried in order, every failure is
     reported, and a malformed answer is a problem — never a default score."""
@@ -226,7 +226,7 @@ def ask_hardness(state, http=None, timeout=90, criteria=None, model=None):
     return out
 
 
-def classify(text, http=None, bands=None, timeout=90, categories=None):
+def classify(text, http=None, bands=None, timeout: int=90, categories=None):
     """Drop-in peer of router_classify.classify: same result keys so the proxy
     can swap scorers without branching downstream."""
     out = {'scorer': 'jev', 'model': JEV_MODEL, 'matrix': None, 'complexity_sig': None,
@@ -261,7 +261,7 @@ def classify(text, http=None, bands=None, timeout=90, categories=None):
     return out
 
 
-def main(argv=None):
+def main(argv=None) -> int:
     import argparse
     ap = argparse.ArgumentParser(description=__doc__.split('\n')[1])
     ap.add_argument('--text')

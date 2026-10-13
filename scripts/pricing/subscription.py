@@ -6,5 +6,5 @@ unpriced lanes stay documented gaps. Never machine-priced here.
 """
 
 
-def price(row, terms, catalog, helpers, ctx):
+def price(row, terms, catalog, helpers, ctx) -> tuple:
     return None, None, 'subscription (manual formula row)'

@@ -41,7 +41,7 @@ import router_wire_ids as rwi  # noqa: E402  (TR-148: registry id -> wire id)
 SOURCE = 'chain-run'
 
 
-def _breaker(provider, model, ok, reason=''):
+def _breaker(provider, model, ok, reason: str='') -> None:
     """Forward evidence to the router's breaker store (subprocess: the CLI form
     is the documented interface and honours ROUTER_STATE_DIR)."""
     script = os.path.join(REPO, 'scripts', 'router_circuit.py')
@@ -55,8 +55,8 @@ def _breaker(provider, model, ok, reason=''):
         pass
 
 
-def run_chain(chain, cmd_template, max_hops=3, session_id=None, profile_id=None,
-              requirements=None, dry_run=False, timeout_s=1800, env_extra=None,
+def run_chain(chain, cmd_template, max_hops: int=3, session_id=None, profile_id=None,
+              requirements=None, dry_run: bool=False, timeout_s: int=1800, env_extra=None,
               store=None, source=SOURCE):
     """Walk the resolved chain. Returns the summary dict (also printed by main)."""
     attempts = []
@@ -128,7 +128,7 @@ def run_chain(chain, cmd_template, max_hops=3, session_id=None, profile_id=None,
     return result
 
 
-def main():
+def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.split('\n')[1])
     ap.add_argument('project', nargs='?')
     ap.add_argument('--profile')

@@ -50,7 +50,7 @@ def _epoch(v):
     return f / 1000.0 if f > 1e12 else f
 
 
-def _newest_hermes():
+def _newest_hermes() -> tuple:
     path = os.path.expanduser(HERMES_DB)
     if not os.path.exists(path):
         return None, 'absent'
@@ -65,7 +65,7 @@ def _newest_hermes():
     return (ts, 'ok') if ts else (None, 'no meter rows')
 
 
-def _newest_pi():
+def _newest_pi() -> tuple:
     base = os.path.expanduser(PI_DIR)
     if not os.path.isdir(base):
         return None, 'absent'
@@ -83,7 +83,7 @@ def _newest_pi():
     return (newest, 'ok') if newest else (None, 'no session files')
 
 
-def _newest_opencode():
+def _newest_opencode() -> tuple:
     path = os.path.expanduser(OPENCODE_DB)
     if not os.path.exists(path):
         return None, 'absent'
@@ -104,7 +104,7 @@ def _newest_opencode():
     return (ts, 'ok') if ts else (None, 'no messages')
 
 
-def _newest_openclaw():
+def _newest_openclaw() -> tuple:
     base = os.path.expanduser(OPENCLAW_DIR)
     if not os.path.isdir(base):
         return None, 'absent'
@@ -149,7 +149,7 @@ def store_newest_by_source(store_path):
     return newest
 
 
-def check(store_path=None, budget_h=None, now_s=None, sources=None):
+def check(store_path=None, budget_h=None, now_s=None, sources=None) -> dict:
     """Returns a dict: verdict, present, absent, breaches, per-source detail."""
     import router_outcomes as ro
     store_path = store_path or ro.outcomes_path()
@@ -189,12 +189,12 @@ def check(store_path=None, budget_h=None, now_s=None, sources=None):
             'store': store_path}
 
 
-def _ago(ts, now_s):
+def _ago(ts, now_s) -> str:
     h = (now_s - ts) / 3600.0
     return f'{h:.2f}h ago'
 
 
-def main(argv=None):
+def main(argv=None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
     budget = os.environ.get('OUTCOMES_FRESHNESS_MAX_AGE_H')
     try:

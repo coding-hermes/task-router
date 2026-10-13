@@ -72,7 +72,7 @@ def _rows(name):
     return out
 
 
-def _write(name, rows):
+def _write(name, rows) -> None:
     # TR-199 (spec R4): no anonymous dates on the write path.
     lifecycle_gate.gate_rows(name, rows)
     path = os.path.join(DATA_DIR, f'{name}.jsonl')
@@ -82,7 +82,7 @@ def _write(name, rows):
     os.replace(path + '.tmp', path)
 
 
-def normalize(dry_run, quiet=False):
+def normalize(dry_run, quiet: bool=False) -> dict:
     models = _rows('models')
     terms = {t['provider']: t for t in _rows('plan_terms')}
     catalog = {(c['provider'], c['model']): c for c in _rows('model_catalog')}
@@ -203,7 +203,7 @@ def normalize(dry_run, quiet=False):
             'filled_public': filled_public}
 
 
-def main(argv=None):
+def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument('--dry-run', action='store_true')
     ap.add_argument('--json', action='store_true')

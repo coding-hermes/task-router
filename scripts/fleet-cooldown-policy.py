@@ -57,7 +57,7 @@ API = 'http://127.0.0.1:9090'
 # (which is how the 'below-fast residue' accumulated fleet-wide: 7 lanes sat at
 # 900s against a 21600 pin). Read the same 0600 env file the daemon loads; when
 # it is absent we send no header, so read-only/older daemons stay usable.
-def _operator_headers():
+def _operator_headers() -> dict:
     tok = os.environ.get('SCHEDULER_OPERATOR_TOKEN', '')
     if not tok:
         try:
@@ -180,7 +180,7 @@ FAMILY_CANONICAL = {
 FAMILY_ALSO_ALLOWED = {'-releng': {259200}}
 
 
-def family_canonical(name):
+def family_canonical(name) -> tuple:
     """The canonical cadence for a satellite family, or None for a primary."""
     for sfx, val in FAMILY_CANONICAL.items():
         if name.endswith(sfx):
@@ -441,7 +441,7 @@ def _sha256_file(path):
     return h.hexdigest()
 
 
-def verify_deploy_hash():
+def verify_deploy_hash() -> tuple:
     """Check the deployed script against the canonical sidecar.
 
     Returns (ok: bool, status: str, detail: str).
@@ -466,7 +466,7 @@ def verify_deploy_hash():
     return False, STATUS_MISMATCH, canonical_hash
 
 
-def write_canonical_hash(deployed_hash=None):
+def write_canonical_hash(deployed_hash=None) -> None:
     """Write the canonical sidecar for the currently deployed script.
 
     If deployed_hash is None it is read from the deployed script.
@@ -477,12 +477,12 @@ def write_canonical_hash(deployed_hash=None):
         f.write(deployed_hash + '\n')
 
 
-def _parse_args():
+def _parse_args() -> dict:
     """Minimal argv parser so we can check for --update-canonical."""
     return {'--update-canonical': '--update-canonical' in sys.argv}
 
 
-def _retired_apply_guard():
+def _retired_apply_guard() -> None:
     """RETIRED WRITE PATH — owner ruling 2026-10-02.
 
     The correction engine (REDUCE/RAISE/PROMOTE/REVERT) is retired. Bane
@@ -829,7 +829,7 @@ def read_fleet_pins(path=None):
             pins[n.group(1)] = int(c.group(1)) if c else None
     return pins
 
-def write_fleet_pins(projects, namespaces=None):
+def write_fleet_pins(projects, namespaces=None) -> int:
     """Write [[projects]] pins for EVERY project from API state, enabled or not.
 
     Disabled/paused lanes are emitted with `enabled = false` so the file
@@ -940,7 +940,7 @@ def write_fleet_pins(projects, namespaces=None):
         f.write('\n'.join(out))
     return len(all_projects)
 
-def count_fleet_toml_project_blocks(path=None):
+def count_fleet_toml_project_blocks(path=None) -> int:
     """Count [[projects]] blocks in fleet.toml (parity tripwire)."""
     path = path or fleet_toml_path()
     import re as _re
@@ -950,7 +950,7 @@ def count_fleet_toml_project_blocks(path=None):
         return 0
     return len(_re.findall(r'^\s*\[\[projects\]\]\s*$', txt, _re.M))
 
-def check_db_file_parity(projects, path=None):
+def check_db_file_parity(projects, path=None) -> tuple:
     """Fail loudly when the live DB project count != fleet.toml blocks.
 
     SCHED-GAP-1662: the file must describe the WHOLE fleet. Returns

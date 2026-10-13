@@ -35,7 +35,7 @@ def _default_store() -> str:
     return ro.outcomes_path()
 
 
-def main():
+def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument('--store', default=_default_store())
     ap.add_argument('--apply', action='store_true')
