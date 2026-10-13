@@ -384,3 +384,17 @@ proxy incident and re-proven today: ask the process, never the disk. The
 proxy test plan's F-01 rule ("deploy = sync+restart; a pull is not a
 deploy") needs its missing half: a restart is not a deploy either — the
 receipt is the process's own boot identity matching HEAD.
+
+## 2026-10-13 run 32 — intake/ingress/credentials angle
+
+The two-plane state split is the recurring trap: registry lives under
+TASK_ROUTER_HOME, gates/health/circuit under ROUTER_STATE_DIR (default
+~/.hermes/model-router). Sandbox BOTH or resolves silently empty (TR-319).
+The right way: export both, copy quota-state.json + circuit-state.json into
+the scratch gate dir, then drive. Ingress debugging ladder that worked:
+forward --message-file for the offline refusal ladder, serve for anything
+that must accumulate state (circuit, admission), poll against the real bus.
+Circuit state is per-process — never proof the breaker is broken from
+repeated forward calls (TR-321). Install leg ran on bunker-mvp: fresh
+clone → venv → pip -e → seed → spawn → validate 14/14 in 39.5s; spawn
+161ms±15 warm — nothing slow enough to profile.
