@@ -36,9 +36,22 @@ import os
 import re
 import sys
 
+REPO = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 DATA_DIR = os.environ.get(
     'ROUTING_DATA_DIR',
-    os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), 'data', 'tables'))
+    os.path.join(REPO, 'data', 'tables'))
+
+#: TR-223 (credential acceptance): providers whose unranked lanes are a
+#: CREDENTIAL fact, not a ranking failure. Measured live 2026-10-13:
+#: GET /api/v1/models -> 200 (public), GET /api/v1/key with the provisioned
+#: OPENROUTER_API_KEY -> 401 ("API key expired"). Every openrouter lane is
+#: therefore unmeasurable by probe until the key is rotated — reporting those
+#: 274 lanes as "unranked, go measure them" sends the next tick to do work
+#: nobody can do. The reason is carried on every report these lanes appear in.
+CREDENTIAL_BLOCKED = {
+    'openrouter': 'credential-expired',
+}
+
 
 
 def load(name) -> list:
@@ -207,6 +220,13 @@ def provenance_audit(models, perf, tiers, all_models=None) -> tuple:
     return flat, mirror + cross, thin, cross
 
 
+def credential_block_reason(provider: str) -> str | None:
+    """TR-223: the named reason when a lane's unranked state is a credential
+    fact (CREDENTIAL_BLOCKED), else None. Never guessed — the entry must have
+    been measured live before it is added here."""
+    return CREDENTIAL_BLOCKED.get(provider)
+
+
 def next_wave(models, tiers, perf, active):
     """The actionable probe targets, so the loop is repeatable without hand-listing.
 
@@ -226,7 +246,7 @@ def next_wave(models, tiers, perf, active):
         skip = set(_pr.SKIP_REASON)
     except Exception:            # noqa: BLE001
         skip = {'minimax', 'opencode-go', 'opencode-go-2', 'openai-codex'}
-    skip |= {'openrouter'}       # key expired (401 on chat/completions)
+    skip |= set(CREDENTIAL_BLOCKED)   # TR-223: openrouter key expired (401)
     flat, inherited, _thin, cross = provenance_audit(active, perf, tiers,
                                                      all_models=models)
     have = {(m['provider'], m['model']) for m in active}
@@ -289,6 +309,14 @@ def main():
         return 0
 
     if args.json:
+        # TR-223: the credential-blocked slice of the UNRANKED count, named per
+        # provider. Measured live 2026-10-13: openrouter /api/v1/models -> 200,
+        # /api/v1/key with the provisioned key -> 401 (expired). These lanes
+        # look healthy from the outside and cannot be measured at all — the
+        # count is a credential failure, not a ranking failure, and stays
+        # visible with its reason until the key is rotated.
+        cred_unranked = collections.Counter(
+            m['provider'] for m in unranked if m['provider'] in CREDENTIAL_BLOCKED)
         # A blocked family is only ACTIONABLE if its successor can be measured at all.
         # Without this the audit reports "rank first, then retire" for lanes whose real
         # blocker is a credential, a plan entitlement, or another deployment's provider —
@@ -322,6 +350,7 @@ def main():
             'flat_evidence': len(flat), 'alias_only': len(inherited),
             'alias_cross_provider': len(cross), 'thin_evidence': len(thin_ev),
             'blocked_by_unreachable': len(unreachable),
+            'credential_blocked_unranked': dict(cred_unranked),
             'decay_blocked_families': blocked,
             'inversion_families': invs,
         }, indent=1))
@@ -332,7 +361,15 @@ def main():
     print('=' * 74)
     print(f'   active/priced: {len(active)}   unranked: {len(unranked)}   thin(<6 of {total_cats}): {len(thin)}')
     print('   by provider:', dict(collections.Counter(m['provider'] for m in unranked).most_common(12)))
-    print_ = unranked[:12]
+    cred = {p: sum(1 for m in unranked if m['provider'] == p)
+            for p in CREDENTIAL_BLOCKED
+            if any(m['provider'] == p for m in unranked)}
+    if cred:
+        # TR-223: name the credential fact where the count is printed, so the
+        # audit never reads as "go measure these" when the key is dead.
+        print(f"   CREDENTIAL-BLOCKED (cannot be measured until the key is rotated): {cred}"
+              f" — reason: {', '.join(CREDENTIAL_BLOCKED[p] for p in cred)}")
+    print_ = [m for m in unranked if m['provider'] not in CREDENTIAL_BLOCKED][:12]
     for m in print_:
         print(f"      {m['provider']:14s} {m['model'][:44]:44s} price={m.get('normalized_price')}")
 
