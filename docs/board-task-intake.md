@@ -32,11 +32,31 @@ Per poll (default every 30s):
    - append the result to `data/state/intake-resolves.jsonl`:
      `{id, ts, source, resolved_at, chain_head: {provider, model, usd_1m},
      complexity_source, returncode, resolve: <full spawn payload>, error?}`;
+     when the resolve's complexity block is degraded (or carries problems) the
+     cause is mirrored FLAT onto the row — `complexity_degraded`,
+     `degrade_reason`, `problems`, and `profile_fallback` when the default
+     profile rescued the resolve (TR-322) — so the ledger names the cause
+     without opening the payload. A degraded resolve is NOT an `error`:
+     fail-open still returned a model.
    - complete the claim in the seen state.
 4. Fail-open: any error (spawn crash, timeout, garbage stdout, the spawn's
    own `{"error": ...}` payload) becomes a record with an `error` field in
    the resolves ledger and the loop keeps running. The daemon never exits
    on a bad poll.
+
+### Fresh machines: scoring degrades, the resolve does not (TR-322)
+
+On a machine with no scorer credentials (no `ROUTER_CLASSIFIER_BASE_URL`, no
+`OR_JEV` in the env or `~/.hermes/.env`) and a board row that declares no
+profile, scoring degrades but the resolve still picks a model: the spawn
+falls back to the documented default profile **P0_FORE** and stamps
+`complexity.degraded`, `complexity.degrade_reason`,
+`complexity.problems` (both scorer outages, named) and
+`complexity.profile_fallback` on the payload; the degrade WARNING goes to
+stderr even in quiet mode, so the ledger's `stderr_tail` and the flat mirror
+both carry the cause. Pin the chain on a fresh host by declaring `profile`
+(or `required_categories`) on the board row, or set the scorer credentials —
+the fallback only fires when NOTHING names a profile.
 
 ## Idempotence
 

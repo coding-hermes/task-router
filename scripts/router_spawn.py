@@ -81,6 +81,14 @@ import zlib
 # positions measured at ~513+).
 DEFAULT_CHAIN_LIMIT = 1024
 
+#: TR-322 (Bane 2026-10-13): documented degrade target when complexity scoring
+#: is unavailable and NOTHING else names a profile (fresh machine, no scorer
+#: credentials, board row without `profile`/`required_categories`). The router
+#: must still pick a model — the default foreman profile P0_FORE drives the
+#: chain — with the degrade reason stamped on the payload. Mirror of the
+#: resolve()-API's own input-less fallback (resolved_as='default' -> P0_FORE).
+DEFAULT_FALLBACK_PROFILE = 'P0_FORE'
+
 
 # TR-033 / TR-055: --quiet / ROUTER_SPAWN_QUIET=1 suppresses stderr telemetry.
 # TR-055 (2026-09-17 re-measure): the DEFAULT FLIPPED to quiet.  Per-lane
@@ -106,9 +114,16 @@ def _quiet() -> bool:
     return not _truthy_env(os.environ.get('ROUTER_MISS_VERBOSE', ''))
 
 
-def _err(msg) -> None:
-    """Write a diagnostic line to stderr unless quiet mode is enabled."""
-    if not _quiet():
+def _err(msg, force: bool = False) -> None:
+    """Write a diagnostic line to stderr unless quiet mode is enabled.
+
+    force=True (TR-322): write even in quiet mode. The fresh-machine intake
+    fallback fires this with a degrade WARNING that MUST survive the quiet
+    default — board_task_intake records the spawn's stderr tail, and a
+    warning suppressed by default is exactly how TR-322's ledger row ended
+    up blind ({error: no project/profile given}, empty stderr tail).
+    """
+    if force or not _quiet():
         try:
             print(msg, file=sys.stderr)
         except Exception:
@@ -2953,8 +2968,32 @@ def main() -> None:
                     _err('WARNING: --profile-req ignored — task complexity requirements win')
                 args.adhoc = adhoc
             else:
-                _err(f"WARNING: complexity scoring degraded to the profile — "
-                     f"{complexity_meta.get('degrade_reason')}")
+                # TR-322 (Bane 2026-10-13): a scorer outage degrades to the
+                # profile — but the fresh-machine case has NO profile anywhere
+                # (no board declaration, no --profile, no project row), which
+                # used to dead-end at NO_INPUT with the degrade warning stuck
+                # in quiet mode. Fail-open to the documented default profile
+                # instead; the degrade reason stays stamped on the payload so
+                # the ledger row names the cause.
+                _err('WARNING: complexity scoring degraded to the profile — '
+                     f"{complexity_meta.get('degrade_reason')}", force=True)
+                if (not args.profile_id and not args.adhoc
+                        and not (board_profile_meta
+                                 and board_profile_meta.get('matched'))
+                        and not declared_raw_adhoc):
+                    args.profile_id = DEFAULT_FALLBACK_PROFILE
+                    complexity_meta['profile_fallback'] = {
+                        'profile': DEFAULT_FALLBACK_PROFILE,
+                        'reason': 'scoring degraded with no profile available '
+                                  f'(no board declaration, no --profile, no '
+                                  f'project row) — resolved via the default '
+                                  f'profile {DEFAULT_FALLBACK_PROFILE} '
+                                  f'(TR-322)'}
+                    _err(f"WARNING: no profile to degrade to — resolving via "
+                         f"the default profile {DEFAULT_FALLBACK_PROFILE} "
+                         f"(TR-322); set ROUTER_SCORER credentials or declare "
+                         f"a profile on the board row to pin the chain",
+                         force=True)
     elif complexity_meta is None and (args.prompt_file or args.from_task):
         _err(f"WARNING: no task text available ({text_src}) — resolving from the profile")
 

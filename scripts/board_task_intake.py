@@ -334,6 +334,21 @@ class BoardIntake:
             rec['chain_head'] = _chain_head_of(payload)
             rec['complexity_source'] = (payload.get('complexity') or {}).get(
                 'source')
+            # TR-322 (Bane 2026-10-13): mirror the complexity block's degrade
+            # provenance FLAT onto the row, so the cause is visible in the
+            # ledger without opening the full resolve payload. A degraded
+            # resolve is NOT an error (fail-open) — but "no model picked and
+            # nobody knows why" was exactly the blind ledger row this closes:
+            # complexity_degraded/degrade_reason/problems name the scorer
+            # outage, profile_fallback names the default-profile rescue.
+            cx = payload.get('complexity') or {}
+            if isinstance(cx, dict) and cx:
+                rec['complexity_degraded'] = bool(cx.get('degraded'))
+                if cx.get('degraded') or cx.get('problems'):
+                    rec['degrade_reason'] = cx.get('degrade_reason')
+                    rec['problems'] = list(cx.get('problems') or [])
+                if cx.get('profile_fallback'):
+                    rec['profile_fallback'] = cx.get('profile_fallback')
             rec['resolve'] = payload
             if payload.get('error'):
                 # The spawn's own fail-open shape (exit 0): resolved, but the
