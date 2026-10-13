@@ -36,7 +36,10 @@ ALLOWLIST = {
     # Probe gaps: candidate only set when gap is a candidate for filling
     "probe_gaps": {"candidate"},
     # Model catalog: sparse cols only set when API/cache applies
-    # TR-200: vision/modality/knowledge_cutoff removed with the columns.
+    # (TR-200: vision/modality/knowledge_cutoff are POPULATED from models.dev's
+    # `modalities`/`knowledge` keys since the payload schema drift was fixed;
+    # they stay allowlisted because a source that publishes no such field
+    # leaves an honest null)
     "model_catalog": {
         "fetched_at",
         "family",
@@ -48,17 +51,23 @@ ALLOWLIST = {
         "cache_read",
     },
     # Providers: sparse cols only set when provider has these attributes
-    # TR-200: valid_to removed with the column (0/29 ever set).
-    "providers": {"api_base_url", "api_key_env", "concurrency"},
+    # (TR-200: valid_to stays — reader live in spawn/modelsdev/release-backfill
+    # retirement paths; null = provider not retired. Optional knob by design.)
+    "providers": {"valid_to", "api_base_url", "api_key_env", "concurrency"},
     # Task profiles: max_* only set when profile limits concurrency
-    # TR-200: the max_*_per_provider columns were removed (0/11 ever set).
+    # (TR-200: both knobs stay — readers live in router_spawn._effective_caps
+    # (per-profile override beats the quota-state global, tested) and the
+    # /listings/profile API contract; null = unbounded for that profile.)
     "task_profiles": {
         "allow_slow",
     },
-    # Projects: stack only set when project declares a stack
-    "projects": {"stack"},
+    # Projects: TR-200 removed `stack` (100% empty, no reader); no other
+    # sparse-by-design column exists in this table
+    "projects": set(),
     # Models: sparse cols only set when model has these attributes
-    # TR-200: available_from removed with the column (0/1905 ever set).
+    # (TR-200: available_from stays — readers live in router_spawn.py
+    # coming_soon classification + router_server.py /v1/models window +
+    # router_lifecycle.py digest; null = no availability announcement exists.)
     "models": {
         "disabled_reason",
         "lifecycle_checked_at",

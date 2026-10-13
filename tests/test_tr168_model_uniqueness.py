@@ -260,6 +260,13 @@ POST_DEDUPE_ADDITIONS = {
     ("xkiro", "moonshotai/kimi-k2.8-preview-agent"): "TR-222 (2026-10-12 xkiro live catalog)",
     ("xkiro-2", "moonshotai/kimi-k2.8-preview-agent"): "TR-222 (2026-10-12 xkiro live catalog)",
     ("xkiro", "meituan/longcat-2.5-preview:free"): "TR-222 (2026-10-12 xkiro live catalog)",
+    # TR-200 (2026-10-12): models.dev payload schema drift — the flat
+    # vision/modality/knowledge_cutoff keys became modalities/knowledge.
+    # Fixing the reader made `meta/muse-wonder` (openrouter) pass the
+    # relevance gate for the first time (reasoning + 1M ctx, text out):
+    # a legitimate chat-lane import, priced same run by router_pricing.py
+    # (normalized:payg-sticker).
+    ("openrouter", "meta/muse-wonder"): "TR-200 (2026-10-12 models.dev sync)",
 }
 
 
@@ -323,6 +330,10 @@ def test_only_the_five_twin_lines_were_removed_and_survivors_edited():
                 f"lane {post_key} appended past the pre-dedupe baseline and "
                 f"not in POST_DEDUPE_ADDITIONS — unexplained models.jsonl change")
             additions_seen.append(post_key)
+            # a tail append consumes NO pre line — without this continue the
+            # row falls through to pre_lines[pi] and IndexErrors (latent bug,
+            # first exposed by the TR-200 tail append of muse-wonder)
+            continue
         if (pi + 1) in SURVIVOR_LINES:
             survivors_edited.append(pi + 1)
         else:

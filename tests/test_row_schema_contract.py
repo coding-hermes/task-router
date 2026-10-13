@@ -292,3 +292,29 @@ def test_no_hop_row_carries_the_explaining_fields_and_no_chain(ledger, monkeypat
     # and it does NOT carry a chain: empty (or absent) — never a fabricated hop
     assert not row.get('chain'), \
         f"a no-hop row must not carry a chain, got {row.get('chain')!r}"
+
+
+# ---------------------------------------------------------------------------
+# 3. TR-200: `tokens_used` is a REMOVED field — the writer must never emit it.
+# ---------------------------------------------------------------------------
+def test_removed_tokens_used_field_is_never_written(ledger, monkeypatch):
+    """TR-200 regression pin.
+
+    `tokens_used` was named in the original null census as the dead ledger
+    field (653/653 rows null). Investigation found NO writer and NO reader
+    anywhere in scripts/ — the field existed only in the census counter, which
+    TR-197 already dropped. The row's token fields are tokens_in / tokens_out
+    / tokens_reasoning, all written from the upstream usage payload. This pin
+    keeps the removed name from silently returning through a later edit: any
+    writer that re-emits it fails here with the field named.
+    """
+    row, _evidence = _served_row_with_evidence(ledger, monkeypatch)
+    assert 'tokens_used' not in row, (
+        "TR-200 removed ledger field 'tokens_used' was written by the row "
+        "builder; the token fields are tokens_in/tokens_out/tokens_reasoning"
+    )
+    # the real token fields carry the usage the upstream reported
+    assert row.get('tokens_in') == 10 and row.get('tokens_out') == 2, (
+        f"served row token usage drifted: tokens_in={row.get('tokens_in')!r} "
+        f"tokens_out={row.get('tokens_out')!r}"
+    )

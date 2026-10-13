@@ -158,13 +158,14 @@ def test_committed_table_has_all_tr260_lanes_with_pinned_profiles():
     assert not wrong, (
         f"TR-260 lanes committed with the wrong profile (table convention): {wrong}"
     )
-    # foreman primaries must be P0_FORE rows shaped like the 5 pre-TR-260
-    # precedents (5-column schema, open, board_type jsonl)
+    # foreman primaries must be P0_FORE rows shaped like the pre-TR-260
+    # precedents (4-column schema since TR-200 dropped the dead `stack`
+    # column, open, board_type jsonl)
     for lid in ("asce-foreman", "h3-foreman", "qa-audit-foreman"):
         r = rows[lid]
-        assert set(r) == {"id", "sensitivity", "board_type", "stack", "profile"}, \
-            f"{lid}: row shape drifted from the 5-column projects schema: {sorted(r)}"
-        assert r["board_type"] == "jsonl" and r["stack"] == ""
+        assert set(r) == {"id", "sensitivity", "board_type", "profile"}, \
+            f"{lid}: row shape drifted from the 4-column projects schema: {sorted(r)}"
+        assert r["board_type"] == "jsonl"
 
 
 # ---------------------------------------------------------------------------
@@ -257,7 +258,7 @@ def fleet_world(tmp_path):
     _write_fleet(fleet, names)
     _write_tables(tables, project_rows=[
         {"id": "existing-proj", "sensitivity": "open", "board_type": "jsonl",
-         "stack": "", "profile": "P0_FORE"},
+         "profile": "P0_FORE"},
     ])
     return {"db": db, "fleet": fleet, "tables": tables, "names": names}
 
@@ -281,7 +282,7 @@ def test_generator_appends_missing_and_is_idempotent(fleet_world):
     assert got["newproj-foreman"]["profile"] == "P0_FORE"
     assert got["newproj-docs"]["profile"] == "P3_DOCS"
     assert got["newproj-sync"] == {"id": "newproj-sync", "sensitivity": "open",
-                                   "board_type": "", "stack": "",
+                                   "board_type": "",
                                    "profile": "P8_SYNC"}
     assert got["existing-proj"]["profile"] == "P0_FORE"  # prior rows untouched
 
@@ -343,7 +344,7 @@ def test_generator_db_fleet_divergence_names_both_sides(tmp_path):
     _write_fleet(fleet, ["fleet-only-lane", "shared-lane"])
     _write_tables(tables, project_rows=[
         {"id": "shared-lane", "sensitivity": "open", "board_type": "jsonl",
-         "stack": "", "profile": "P0_FORE"}])
+         "profile": "P0_FORE"}])
     p = _run_gen(db, fleet, tables)
     assert p.returncode == 0, p.stderr[-400:]
     # db is authoritative per TR-260, but the divergence must be NAMED

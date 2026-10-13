@@ -288,6 +288,13 @@ def run_sync(api, models, catalog, mappings, include_all: bool=False, dry_run: b
 
     adds, cat_new = [], 0
     touched, skipped, unmapped, silenced = [], [], [], []
+    # TR-200 lane: backfill the capability fields on EXISTING model_catalog
+    # rows from the same payload (vision / modality / knowledge_cutoff).
+    # FILL-ONLY: a field is written when our value is null and the payload
+    # carries one — an existing value is never overwritten, and a field the
+    # payload does not publish stays honestly null (census allowlist).
+    cat_refreshed = {'vision': 0, 'modality': 0, 'knowledge_cutoff': 0}
+    cat_refreshed_rows = []
     # TR-035 lane 1: capability refresh on EXISTING registry rows (context_limit
     # / vision / thinking) + per-change evidence for the weekly research lane.
     refreshed = {'context_limit': 0, 'vision': 0, 'thinking': 0}
@@ -352,17 +359,34 @@ def run_sync(api, models, catalog, mappings, include_all: bool=False, dry_run: b
         via = f'mapping rule {rule["id"]} ({rule["match"]})' if rule else \
             ('default table alias' if md_id != our_id else 'exact id')
         touched.append({'provider': our_id, 'modelsdev': md_id, 'via': via})
+        # TR-200: fill null capability fields on the EXISTING catalog rows of
+        # this provider from the same payload (fill-only, never overwrite).
+        for c in catalog:
+            if c.get('provider') != our_id:
+                continue
+            meta = prov['models'].get(c.get('model'))
+            if not isinstance(meta, dict):
+                continue
+            m_vision, m_modality, m_knowledge = _modalities_fields(meta)
+            for field, new in (('vision', m_vision),
+                               ('modality', m_modality),
+                               ('knowledge_cutoff', m_knowledge)):
+                if c.get(field) is None and new is not None:
+                    c[field] = new
+                    cat_refreshed[field] += 1
+                    cat_refreshed_rows.append({'provider': our_id,
+                                               'model': c.get('model'),
+                                               'field': field, 'new': new})
         for mname, meta in sorted(prov['models'].items()):
             if not _relevant(meta):
                 continue
             cost = meta.get('cost') or {}
-            # TR-200: catalog vision/modality/knowledge_cutoff dropped (100%
-            # null across 1187 rows — models.dev publishes neither for any
-            # relevant lane we mirror; the routing-visible capability flags
-            # live on models.jsonl via the TR-035 refresh lane).
+            m_vision, m_modality, m_knowledge = _modalities_fields(meta)
             cat = {'provider': our_id, 'model': mname, 'family': meta.get('family'),
                    'context_window': meta.get('limit', {}).get('context'),
                    'reasoning': meta.get('reasoning'), 'tool_call': meta.get('tool_call'),
+                   'vision': m_vision, 'modality': m_modality,
+                   'knowledge_cutoff': m_knowledge,
                    'cost_input': cost.get('input'), 'cost_output': cost.get('output'),
                    'source': 'models.dev', 'fetched_at': None}
             if (our_id, mname) not in cat_have:
@@ -389,11 +413,17 @@ def run_sync(api, models, catalog, mappings, include_all: bool=False, dry_run: b
                 # and fields the catalog does not carry (never overwrite a known
                 # value with null).
                 ctx = (meta.get('limit') or {}).get('context')
+                m_vision, _m_modality, _m_knowledge = _modalities_fields(meta)
                 cat_fields = {}
                 if ctx:
                     cat_fields['context_limit'] = ctx
-                if meta.get('vision') is not None:
-                    cat_fields['vision'] = meta.get('vision')
+                # TR-200 scope: the REFRESH path fills vision only when TRUE —
+                # models.jsonl's convention is null = capability unresearched
+                # (never guessed), and the new modalities payload would
+                # otherwise stamp vision=false onto every text lane. Catalog
+                # rows and new registry adds carry the honest bool either way.
+                if m_vision:
+                    cat_fields['vision'] = m_vision
                 if meta.get('reasoning') is not None:
                     cat_fields['thinking'] = meta.get('reasoning')
                 for row in models:
@@ -420,6 +450,8 @@ def run_sync(api, models, catalog, mappings, include_all: bool=False, dry_run: b
         'catalog_new': cat_new,
         'refreshed': refreshed,
         'refreshed_rows': refreshed_rows,
+        'catalog_refreshed': cat_refreshed,
+        'catalog_refreshed_rows': cat_refreshed_rows,
         'new_models': [{'provider': p, 'model': m, 'note': note}
                        for p, m, _meta, note in adds],
         'adds': adds,           # internal (meta kept for the write path)
@@ -430,10 +462,65 @@ def run_sync(api, models, catalog, mappings, include_all: bool=False, dry_run: b
 
 # catalog-only filter: skip niche/audio/tiny models the fleet will never route
 # (whisper, prompt-guard, orpheus...). Keep chat-capable or big-context ones.
-def _relevant(meta) -> bool:
-    if meta.get('reasoning') or meta.get('tool_call') or meta.get('vision'):
+def _modalities_fields(meta):
+    """(vision, modality, knowledge_cutoff) from one models.dev model entry.
+
+    TR-200: the models.dev payload schema drifted — the flat `vision` boolean,
+    `modality` string and `knowledge_cutoff` string were replaced by a
+    `modalities` object ({'input': [...], 'output': [...]}) and a `knowledge`
+    'YYYY-MM' string. Reading the old keys is why model_catalog.vision /
+    .modality / .knowledge_cutoff sat 100% null while a writer ran daily.
+    New keys are canonical; the legacy flat keys still win when present so
+    older cached payloads and test fixtures keep working. When neither shape
+    carries a field, that field is None — an honest null (the census
+    allowlist covers "source publishes no such field"), never a guess.
+    """
+    vision = meta.get('vision')
+    modality = meta.get('modality')
+    knowledge = meta.get('knowledge_cutoff')
+    mods = meta.get('modalities')
+    if isinstance(mods, dict):
+        inputs = mods.get('input') or []
+        outputs = mods.get('output') or []
+        if vision is None:
+            vision = 'image' in inputs
+        if not modality and (inputs or outputs):
+            modality = '+'.join(inputs) + '->' + '+'.join(outputs)
+    if knowledge is None:
+        knowledge = meta.get('knowledge')
+    return vision, modality, knowledge
+
+
+def _text_output(meta):
+    """True when the model's declared output modality includes text.
+
+    TR-200 follow-up: the new `modalities` object made image/video-only
+    generators (grok-imagine-*) pass the old vision/ctx gate and import as
+    unpriced live lanes the router can never serve. A chat router routes
+    text out; when the payload publishes no modality info at all (pre-2026
+    payloads, test fixtures), fall open to the pre-TR-200 behavior.
+    """
+    mods = meta.get('modalities')
+    if isinstance(mods, dict) and (mods.get('input') or mods.get('output')):
+        return 'text' in (mods.get('output') or [])
+    m = meta.get('modality')
+    if m:
+        return 'text' in str(m).split('->')[-1]
+    return True
+
+
+def _relevant(meta):
+    if not _text_output(meta):
+        return False
+    if meta.get('reasoning') or meta.get('tool_call'):
         return True
     ctx = (meta.get('limit') or {}).get('context') or 0
+    vision, _modality, _kc = _modalities_fields(meta)
+    # vision arm needs a real context window: image GENERATORS (gpt-image-*)
+    # declare image input but ctx 0 — they are not chat lanes the router
+    # serves; a vision CHAT model always carries a context limit.
+    if vision and ctx:
+        return True
     return ctx >= 32000
 
 
@@ -460,13 +547,18 @@ def _apply_writes(summary, models, verbose: bool=True) -> tuple:
     (run_sync already mutated the rows in place)."""
     adds, catalog = summary['adds'], summary['catalog']
     refreshed_rows = summary.get('refreshed_rows') or []
+    cat_refreshed_rows = summary.get('catalog_refreshed_rows') or []
     wrote_cat = wrote_models = False
     n_added = 0
-    if summary['catalog_new']:
+    if summary['catalog_new'] or cat_refreshed_rows:
         _write_rows(os.path.join(DATA_DIR, 'model_catalog.jsonl'), catalog)
         wrote_cat = True
         if verbose:
             print(f'wrote model_catalog.jsonl ({len(catalog)} rows)')
+            if cat_refreshed_rows:
+                counts = summary.get('catalog_refreshed') or {}
+                print(f"backfilled catalog capability fields: "
+                      f"{ {k: counts.get(k) for k in sorted(counts)} }")
     if adds or refreshed_rows:
         for our_id, mname, meta, note in adds:
             # PROBE-DRIFT-001 sibling fix (2026-09-07): new rows MUST carry the
@@ -493,7 +585,10 @@ def _apply_writes(summary, models, verbose: bool=True) -> tuple:
                            'disabled': None, 'disabled_reason': None,
                            'context_limit': (meta.get('limit') or {}).get('context'),
                            'api_type': 'openai-chat',
-                           'vision': meta.get('vision'),
+                           # TR-200: models.dev's flat `vision` key is gone; the
+                           # modalities object is the real source (legacy key
+                           # still wins when a payload carries it).
+                           'vision': _modalities_fields(meta)[0],
                            'thinking': meta.get('reasoning'),
                            'training_model_level': False,
                            'training_provider_level': False})

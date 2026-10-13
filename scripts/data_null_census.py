@@ -143,7 +143,8 @@ STRUCTURAL = {
     "projects.jsonl": {
         "sensitivity": "project never classified (open by default)",
         "board_type": "no board detected for this project",
-        "stack": "stack not inventoried",
+        # TR-200: `stack` removed from the schema (100% empty, no reader) —
+        # reappearing here would mean a writer resurrected it.
     },
     "provider_mappings.jsonl": {
         "replacement": "pattern-map rule: strip/normalize, no replacement string",

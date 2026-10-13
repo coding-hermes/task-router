@@ -86,11 +86,14 @@ BASE_COLUMNS = {
                   ('windows', 'VARCHAR'), ('concurrency', 'INTEGER'),
                   ('tos_class', 'VARCHAR'), ('data_class', 'VARCHAR'),
                   ('trains_on_hosted', 'BOOLEAN'),
-                  ('valid_from', 'DATE'), ('archive', 'BOOLEAN'),
-                  # TR-200: providers.valid_to removed (0/29 non-null across the
-                  # table — no provider retirement was ever recorded). The two
-                  # sparse DIRECT-API columns stay: api_base_url/api_key_env are
-                  # populated for commandcode-2 and muse-code (2/29).
+                  ('valid_from', 'DATE'),
+                  # TR-200 allowlist decision: providers.valid_to STAYS — the
+                  # provider-retirement readers are live (router_modelsdev.py
+                  # skip-retired, router_release_backfill.py retire stamps,
+                  # validate_provider_quota.py live-roster filter); null =
+                  # provider not retired (census reason). No source invents a
+                  # retirement date.
+                  ('valid_to', 'DATE'), ('archive', 'BOOLEAN'),
                   ('api_base_url', 'VARCHAR'), ('api_key_env', 'VARCHAR')],
     'models': [('provider', 'VARCHAR'), ('model', 'VARCHAR'),
                ('normalized_price', 'DOUBLE'), ('price_evidence', 'VARCHAR'),
@@ -108,10 +111,13 @@ BASE_COLUMNS = {
                ('perf_e2e_vision', 'DOUBLE'), ('perf_review', 'DOUBLE'),
                ('perf_delegation', 'DOUBLE'), ('perf_guard', 'DOUBLE'),
                ('perf_mock', 'DOUBLE'), ('perf_reasoning', 'DOUBLE'),
-               # TR-200: models.available_from removed (0/1905 non-null — the
-               # announced/coming_soon state never had a single row). valid_to
-               # STAYS: retirements are live data (lifecycle overlays).
-               ('valid_from', 'DATE'), ('valid_to', 'DATE'), ('archive', 'BOOLEAN'),
+               ('valid_from', 'DATE'),
+               # TR-200 allowlist decision: available_from STAYS. Readers live
+               # (router_spawn.py coming_soon, router_server.py /v1/models,
+               # router_lifecycle.py digest); null = no availability
+               # announcement exists (the census reason). Populating would
+               # invent dates — forbidden.
+               ('available_from', 'DATE'), ('valid_to', 'DATE'), ('archive', 'BOOLEAN'),
                # release_date = when the MODEL was released by its maker. NOT
                # valid_from (that is when this row entered our registry — this
                # database is new, so nearly every row is "recent" and valid_from
@@ -140,13 +146,20 @@ BASE_COLUMNS = {
     'archetypes': [('id', 'VARCHAR'), ('bar', 'DOUBLE'), ('skill_levels', 'VARCHAR'),
                    ('notes', 'VARCHAR')],
     'projects': [('id', 'VARCHAR'), ('sensitivity', 'VARCHAR'), ('board_type', 'VARCHAR'),
-                 ('stack', 'VARCHAR'), ('profile', 'VARCHAR')],
+                 # TR-200: `stack` removed — 100% empty since creation, zero
+                 # readers; re-adding it would resurrect a dead column.
+                 ('profile', 'VARCHAR')],
     'task_profiles': [('id', 'VARCHAR'), ('title', 'VARCHAR'),
                       ('created_at', 'VARCHAR'),
-                      # TR-200: max_consecutive_per_provider / max_total_per_provider
-                      # removed (0/11 non-null — per-profile diversity caps were
-                      # never configured; the quota-state.json GLOBALS in
-                      # router_spawn._diversity_caps remain the only knob).
+                      # TR-200 allowlist decision: both diversity caps STAY.
+                      # Readers live (router_spawn._effective_caps — the
+                      # per-profile value overrides the quota-state global,
+                      # tested in test_diversity) and /listings/profile serves
+                      # them; null = profile has no per-profile cap (global
+                      # applies). Optional knobs by design, no source to
+                      # populate from without inventing policy.
+                      ('max_consecutive_per_provider', 'INTEGER'),
+                      ('max_total_per_provider', 'INTEGER'),
                       ('version', 'INTEGER'), ('tag', 'VARCHAR'),
                       ('allow_slow', 'BOOLEAN')],
     'task_profile_requirements': [('task_id', 'VARCHAR'), ('category', 'VARCHAR'),
