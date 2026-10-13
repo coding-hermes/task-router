@@ -32,6 +32,12 @@ if SCRIPTS not in sys.path:
 
 SYNC_RUNTIME = os.path.join(SCRIPTS, 'sync_runtime.sh')
 
+# TR-301 (second pass): sentinels the never-writes pin below asserts against.
+# data/tables is committed content (present in every clone/worktree);
+# registry.json is gitignored machine state whose PRESENCE is ambient.
+REAL_DATA = os.path.join(REPO, 'data', 'tables')
+REGISTRY_SENTINEL = os.path.join(REPO, 'registry.json')
+
 # Modules FIXED under TR-202 (abspath -> realpath), exec'd through a symlink.
 # 2026-10-07 re-pass: cost_backfill / dummy_scheduler / proxy_smoke swapped
 # hardcoded /home/kara data-state paths for realpath repo-relative defaults
@@ -105,9 +111,29 @@ def _module_constants_through_symlink(module_file, link_dir, repo=None):
     os.symlink(module_file, link)
     with pytest.MonkeyPatch.context() as mp:
         # Hermetic: the modules honour these env overrides; pin them so a test
-        # run never reads (or writes) operator state.
+        # run never reads (or writes) operator state. TR-301 second pass: the
+        # pins are repo-relative BY DESIGN, so a module that WRITES its
+        # default paths at import time (router_seed.py's whole seed body is
+        # module-level) still lands those writes inside the real checkout —
+        # measured live: a full-suite run created <repo>/registry.json and
+        # re-synced data/tables/ from the router_seed.py control case, the
+        # exact "silently healing every later run" mechanism behind the
+        # original order-dependence. ROUTING_NS closes the remaining escape:
+        # with it unpinned the seed's ns-mirror export resolved to
+        # ~/.local/share/task-router/scratch/ns/routing (outside the repo)
+        # and wrote six tables there. All three now pin into the probe's
+        # repo argument (scratch for the TR-301 regressions, REPO for the
+        # parametrised suite), keeping every default-path write inside the
+        # tree the case is already pinned to. ROUTING_NS pins under link_dir
+        # (the probe's per-case tmp): a nonexistent ns dir makes the seed's
+        # conditional export branch skip entirely (isdir(NS) false, and
+        # _NS_REDIRECTED cannot fire while ROUTING_NS is set), so the ns
+        # mirror export writes NOTHING — measured live, an unpinned ns
+        # resolved to ~/.local/share/task-router/scratch/ns/routing (outside
+        # the repo) and the seed wrote six tables there.
         mp.setenv('ROUTING_DATA_DIR', os.path.join(repo, 'data', 'tables'))
         mp.setenv('ROUTING_REGISTRY', os.path.join(repo, 'registry.json'))
+        mp.setenv('ROUTING_NS', os.path.join(link_dir, 'ns-mirror'))
         mp.delenv('ROUTER_STATE_DIR', raising=False)
         buf = open(os.devnull, 'w')
         saved, sys.stdout = sys.stdout, buf
@@ -140,6 +166,23 @@ def _assert_symlink_contract(module_file, repo, tmp_path):
 
 @pytest.mark.parametrize('module_file', FIXED + CONTROLS)
 def test_repo_constants_resolve_inside_real_tree_through_symlink(module_file, tmp_path):
+    if module_file == 'router_seed.py':
+        # TR-301: the seed is the one control case whose module body WRITES
+        # (registry.json, data/tables sync, ns-mirror export — all at import
+        # time). Its env pins are repo-relative BY DESIGN, so exec'ing it with
+        # repo=REPO writes gitignored machine state into the real checkout
+        # mid-suite — the healing that made the original cost_backfill failure
+        # order-dependent (measured: a single run recreated registry.json and
+        # re-synced data/tables byte-identically, so git status stayed clean).
+        # Route this one case through a scratch copy of the committed tree;
+        # the contract assertions are unchanged (repo=sandbox).
+        sandbox = tmp_path / 'seed-sandbox'
+        sandbox_scripts, _ = _write_free_scratch_repo(
+            str(sandbox), SCRIPTS, REAL_DATA)
+        assert os.path.isdir(sandbox_scripts)
+        _assert_symlink_contract(module_file, str(sandbox),
+                                 str(tmp_path / 'contract-links'))
+        return
     _assert_symlink_contract(module_file, REPO, tmp_path)
 
 
@@ -157,6 +200,23 @@ def test_repo_constants_resolve_inside_real_tree_through_symlink(module_file, tm
 # so the ambient-dependence class cannot re-enter through another module.
 # --------------------------------------------------------------------------
 
+def _write_free_scratch_repo(tmp_root, src_scripts, src_data):
+    """A minimal repo-shaped scratch tree (scripts/ + data/tables/).
+
+    Used by the TR-301 regressions to stand in for an unseeded checkout: the
+    seed side-effects below run against the SCRATCH tree, never the real
+    checkout. ``data/tables`` is committed content in every clone/worktree,
+    so copying it keeps the sandbox self-contained; the modules themselves
+    are copied so a scratch write can never touch ``SCRIPTS`` either.
+    """
+    scratch_scripts = os.path.join(tmp_root, 'scripts')
+    scratch_data = os.path.join(tmp_root, 'data', 'tables')
+    shutil.copytree(src_scripts, scratch_scripts,
+                    ignore=shutil.ignore_patterns('__pycache__'))
+    shutil.copytree(src_data, scratch_data)
+    return scratch_scripts, scratch_data
+
+
 def test_cost_backfill_case_passes_on_unseeded_checkout(tmp_path):
     """Behavioural pin for the TR-301 root cause: the exists-half of the
     contract must hold on a checkout WITHOUT gitignored machine state (fresh
@@ -171,6 +231,79 @@ def test_cost_backfill_case_passes_on_unseeded_checkout(tmp_path):
                  scratch / 'scripts' / 'cost_backfill.py')
     _assert_symlink_contract('cost_backfill.py', str(scratch),
                              str(tmp_path / 'contract-links'))
+
+
+def test_router_seed_control_case_never_writes_the_real_checkout(tmp_path):
+    """TR-301 root cause, second half: the parametrised router_seed.py control
+    case is an IMPORT-TIME writer (its whole seed body is module-level — it
+    writes <repo>/registry.json and data/tables/, and exports the ns mirror
+    tables under ROUTING_NS). Running it in-process against the real checkout
+    writes gitignored machine state INTO the working tree mid-suite, silently
+    healing every later unseeded case (the mechanism that made the original
+    TR-301 failure order-dependent), and can export ns tables outside the
+    repo. The probe's env pinning (ROUTING_REGISTRY/ROUTING_DATA_DIR) cannot
+    redirect the seed: they point at REPO-relative paths BY DESIGN.
+
+    Pinned by exec'ing the seed control case against a scratch sandbox whose
+    HOME/XDG_DATA_HOME/ROUTING_NS planes are ALL test-private, then asserting
+    the escape plane is empty, the real checkout's registry.json sentinel did
+    not appear, and the sandbox positives exist (the seed actually ran and
+    wrote where it was pointed). Attribution note (battery run 1): foreign
+    suite spawners legitimately write the SHARED planes mid-suite —
+    tests/test_contract.py's _scratch_registry helper spawns router_seed.py
+    with ROUTING_REGISTRY pinned but ROUTING_NS unset, which syncs
+    data/tables/ and re-exports the scratch-ns mirror — so this test asserts
+    only planes the probe's OWN env pins own, never mtimes on shared state
+    (a long-running foreign seed's ns-export landing inside this test's
+    window would fail it spuriously — measured live, battery run 1)."""
+    scratch_scripts, scratch_data = _write_free_scratch_repo(
+        str(tmp_path / 'sandbox'), SCRIPTS, REAL_DATA)
+    scratch = str(tmp_path / 'sandbox')
+    escapes = tmp_path / 'escapes'
+    escapes.mkdir()
+    registry_before = os.path.exists(REGISTRY_SENTINEL)
+    registry_mtime_before = (os.path.getmtime(REGISTRY_SENTINEL)
+                             if registry_before else None)
+
+    with pytest.MonkeyPatch.context() as mp:
+        # Everything the seed resolves from HOME is redirected into the test
+        # plane first: any escape (scratch data home, fallback ns, cache
+        # writes) lands under escapes/ where the assertion below sees it.
+        mp.setenv('HOME', str(escapes))
+        mp.setenv('XDG_DATA_HOME', str(escapes / 'xdg-data'))
+        # Seed redirects: all three pin into the sandbox per the suite rule.
+        mp.setenv('ROUTING_REGISTRY', os.path.join(scratch, 'registry.json'))
+        mp.setenv('ROUTING_DATA_DIR', scratch_data)
+        mp.setenv('ROUTING_NS', os.path.join(escapes, 'ns-mirror'))
+        mp.delenv('ROUTER_STATE_DIR', raising=False)
+        _assert_symlink_contract('router_seed.py', scratch,
+                                 str(tmp_path / 'contract-links'))
+
+    # 1. No escape landed in the redirected HOME plane.
+    assert not os.listdir(escapes), (
+        f'the router_seed.py control case escaped into HOME/XDG planes: '
+        f'{sorted(os.listdir(escapes))} — ROUTING_NS/scratch default not '
+        'covered by the probe pins (TR-301)')
+    # 2. The real checkout's registry.json sentinel: no suite-spawned seed
+    # writes it (every spawner pins ROUTING_REGISTRY — conftest both fixtures,
+    # capabilities/context/lifecycle/contract helpers), so its appearance or
+    # mtime change in THIS test's window is the probe's own write.
+    if registry_before:
+        assert os.path.getmtime(REGISTRY_SENTINEL) == registry_mtime_before, (
+            f'{REGISTRY_SENTINEL} was rewritten in-window — an unpinned '
+            'REGISTRY write reached the real checkout (TR-301)')
+    else:
+        assert not os.path.exists(REGISTRY_SENTINEL), (
+            f'{REGISTRY_SENTINEL} appeared in-window — an unpinned REGISTRY '
+            'write created it (TR-301)')
+    # 3. Sandbox positives: the seed actually ran (registry + synced tables
+    # inside the sandbox), so the pass is not vacuous.
+    assert os.path.exists(os.path.join(scratch, 'registry.json')), (
+        'sandbox registry.json missing — the seed case did not run; '
+        'the never-writes pin would be vacuous (TR-301)')
+    assert os.path.isdir(scratch_data) and os.listdir(scratch_data), (
+        'sandbox data/tables empty — the seed sync step did not run; '
+        'the never-writes pin would be vacuous (TR-301)')
 
 
 def _declared_env_default(name):
