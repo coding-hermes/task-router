@@ -86,7 +86,14 @@ BASE_COLUMNS = {
                   ('windows', 'VARCHAR'), ('concurrency', 'INTEGER'),
                   ('tos_class', 'VARCHAR'), ('data_class', 'VARCHAR'),
                   ('trains_on_hosted', 'BOOLEAN'),
-                  ('valid_from', 'DATE'), ('valid_to', 'DATE'), ('archive', 'BOOLEAN'),
+                  ('valid_from', 'DATE'),
+                  # TR-200 allowlist decision: providers.valid_to STAYS — the
+                  # provider-retirement readers are live (router_modelsdev.py
+                  # skip-retired, router_release_backfill.py retire stamps,
+                  # validate_provider_quota.py live-roster filter); null =
+                  # provider not retired (census reason). No source invents a
+                  # retirement date.
+                  ('valid_to', 'DATE'), ('archive', 'BOOLEAN'),
                   ('api_base_url', 'VARCHAR'), ('api_key_env', 'VARCHAR')],
     'models': [('provider', 'VARCHAR'), ('model', 'VARCHAR'),
                ('normalized_price', 'DOUBLE'), ('price_evidence', 'VARCHAR'),
@@ -104,7 +111,13 @@ BASE_COLUMNS = {
                ('perf_e2e_vision', 'DOUBLE'), ('perf_review', 'DOUBLE'),
                ('perf_delegation', 'DOUBLE'), ('perf_guard', 'DOUBLE'),
                ('perf_mock', 'DOUBLE'), ('perf_reasoning', 'DOUBLE'),
-               ('valid_from', 'DATE'), ('available_from', 'DATE'), ('valid_to', 'DATE'), ('archive', 'BOOLEAN'),
+               ('valid_from', 'DATE'),
+               # TR-200 allowlist decision: available_from STAYS. Readers live
+               # (router_spawn.py coming_soon, router_server.py /v1/models,
+               # router_lifecycle.py digest); null = no availability
+               # announcement exists (the census reason). Populating would
+               # invent dates — forbidden.
+               ('available_from', 'DATE'), ('valid_to', 'DATE'), ('archive', 'BOOLEAN'),
                # release_date = when the MODEL was released by its maker. NOT
                # valid_from (that is when this row entered our registry — this
                # database is new, so nearly every row is "recent" and valid_from
@@ -133,9 +146,18 @@ BASE_COLUMNS = {
     'archetypes': [('id', 'VARCHAR'), ('bar', 'DOUBLE'), ('skill_levels', 'VARCHAR'),
                    ('notes', 'VARCHAR')],
     'projects': [('id', 'VARCHAR'), ('sensitivity', 'VARCHAR'), ('board_type', 'VARCHAR'),
-                 ('stack', 'VARCHAR'), ('profile', 'VARCHAR')],
+                 # TR-200: `stack` removed — 100% empty since creation, zero
+                 # readers; re-adding it would resurrect a dead column.
+                 ('profile', 'VARCHAR')],
     'task_profiles': [('id', 'VARCHAR'), ('title', 'VARCHAR'),
                       ('created_at', 'VARCHAR'),
+                      # TR-200 allowlist decision: both diversity caps STAY.
+                      # Readers live (router_spawn._effective_caps — the
+                      # per-profile value overrides the quota-state global,
+                      # tested in test_diversity) and /listings/profile serves
+                      # them; null = profile has no per-profile cap (global
+                      # applies). Optional knobs by design, no source to
+                      # populate from without inventing policy.
                       ('max_consecutive_per_provider', 'INTEGER'),
                       ('max_total_per_provider', 'INTEGER'),
                       ('version', 'INTEGER'), ('tag', 'VARCHAR'),

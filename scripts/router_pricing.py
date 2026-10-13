@@ -78,7 +78,11 @@ def _write(name, rows):
     path = os.path.join(DATA_DIR, f'{name}.jsonl')
     with open(path + '.tmp', 'w') as f:
         for r in rows:
-            print(json.dumps(r), file=f)
+            # ensure_ascii=False matches every other sanctioned writer
+            # (router_modelsdev/router_clinepass): default json.dumps escapes
+            # em-dashes in disabled_reason and rewrites every row on each run
+            # (1783-line noise diff, TR-200).
+            print(json.dumps(r, ensure_ascii=False), file=f)
     os.replace(path + '.tmp', path)
 
 

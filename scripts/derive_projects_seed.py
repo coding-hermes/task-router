@@ -20,9 +20,10 @@ table wins where a brief map disagrees"):
               qa/review P9_REVIEW, releng/perf P2_AGENTIC, security
               P4_SECURITY). Unknown suffix -> refused loudly (never guessed).
   board_type  'jsonl' except -sync lanes ('' — the 75-row -sync precedent).
-  shape       the 5-column projects schema (id, sensitivity='open',
-              board_type, stack='', profile); extra fields would be dropped
-              by the seed's tail-sync on the first reseed.
+  shape       the 4-column projects schema (id, sensitivity='open',
+              board_type, profile); extra fields would be dropped
+              by the seed's tail-sync on the first reseed. TR-200 removed the
+              `stack` column (100% empty since creation, no reader).
 
 Usage (board venv python):
   python3 scripts/derive_projects_seed.py [--fleet FLEET_TOML] [--db SCHED_DB]
@@ -174,8 +175,10 @@ def main(argv=None):
     new_rows = []
     for lane in missing:
         profile, board_type = classify_lane(lane)
+        # TR-200: projects.stack removed — 100% empty since creation, no
+        # reader anywhere; the row is the 4-column schema.
         new_rows.append({'id': lane, 'sensitivity': 'open',
-                         'board_type': board_type, 'stack': '',
+                         'board_type': board_type,
                          'profile': profile})
 
     census = {}
