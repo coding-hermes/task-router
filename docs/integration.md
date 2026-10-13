@@ -44,9 +44,12 @@ identical to pre-TR-007:
     optional per-pair limits under `"models"`:
     `{"<provider>/<model>": {"concurrency_limit": N}}` (explicit pair limit
     beats the global model_concurrency_limit).
-  - Per-profile overrides: `task_profiles.max_consecutive_per_provider /
-    max_total_per_provider` columns (NULL = fall back to global). Profile beats
-    global.
+  - Per-profile overrides: REMOVED (TR-200, 2026-10-12) — the
+    `task_profiles.max_consecutive_per_provider / max_total_per_provider`
+    columns were dropped from the schema (0/11 rows ever set one; they were
+    100% null dead weight). The `quota-state.json` globals are the only knob;
+    `router_spawn._diversity_caps` still tolerates the old keys on a row dict
+    (fail-open `.get()`), so a stale registry cannot crash a resolve.
 - Semantics: applied as PRUNING — router_spawn.py walks the price-ordered
   survivor chain, drops violators, reports each drop in `exclusions` +
   `gate_reasons` (`'consecutive cap N'`, `'chain cap N'`). Price order among

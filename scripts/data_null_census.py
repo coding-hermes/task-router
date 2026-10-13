@@ -65,7 +65,7 @@ STRUCTURAL = {
     # models.jsonl lifecycle/provenance: no date = no retirement/announcement
     # exists; no perf value = no sample measured yet for that category
     "models.jsonl": {
-        "available_from": "no availability announcement exists",
+        # TR-200: available_from removed with the column (0/1905 ever set).
         "valid_from": "no import-announcement date exists",
         "valid_to": "lane not retired",
         "replaced_by": "no successor named",
@@ -99,9 +99,7 @@ STRUCTURAL = {
     # not publish the field (never guessed; the router never reads this table
     # for routing decisions)
     "model_catalog.jsonl": {
-        "vision": "not published by models.dev for this model",
-        "modality": "not published by models.dev for this model",
-        "knowledge_cutoff": "not published by models.dev for this model",
+        # TR-200: vision/modality/knowledge_cutoff removed with the columns.
         "fetched_at": "record predates timestamped syncs",
         "family": "not published by models.dev for this model",
         "cost_input": "no sticker published",
@@ -173,7 +171,8 @@ STRUCTURAL = {
         "explains_probe": "rule not tied to a probe story",
     },
     "providers.jsonl": {
-        "valid_to": "provider not retired",
+        # TR-200: valid_to removed with the column (0/29 ever set);
+        # api_base_url/api_key_env KEEP their entries (live on 2/29 rows).
         "api_base_url": "base URL private to the operator (key-based config)",
         "api_key_env": "credential handled outside the registry",
         "concurrency": "concurrency limit not published",
@@ -204,8 +203,7 @@ STRUCTURAL = {
         "success": "sample without a success verdict",
     },
     "task_profiles.jsonl": {
-        "max_consecutive_per_provider": "no per-provider streak cap configured",
-        "max_total_per_provider": "no per-provider total cap configured",
+        # TR-200: max_*_per_provider removed with the columns (0/11 ever set).
         "allow_slow": "default (not slow-allowed)",
     },
     "task_profile_requirements.jsonl": {},

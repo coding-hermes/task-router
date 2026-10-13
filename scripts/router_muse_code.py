@@ -54,12 +54,14 @@ PROVIDER = 'muse-code'
 TODAY = datetime.date.today().isoformat()
 
 #: model row schema (2026-09-19 letter) — every writer emits the full key set.
+#: TR-200: available_from removed from the schema (0/1905 rows ever set it);
+#: the seed's BASE_COLUMNS is the authoritative column list.
 MODEL_KEYS = ('provider', 'model', 'normalized_price', 'price_evidence', 'public_price',
               'public_in_per_m', 'public_out_per_m', 'public_cache_read_per_m',
               'public_cache_write_per_m', 'data_class', 'plan_tier', 'perf_agent_tick',
               'perf_long_doc', 'perf_debug', 'perf_schema', 'perf_e2e_vision', 'perf_review',
               'perf_delegation', 'perf_guard', 'perf_mock', 'perf_reasoning', 'valid_from',
-              'available_from', 'valid_to', 'archive', 'lifecycle_source',
+              'valid_to', 'archive', 'lifecycle_source',
               'lifecycle_checked_at', 'replaced_by', 'token_factor', 'disabled',
               'disabled_reason', 'context_limit', 'api_type', 'vision', 'thinking',
               'training_model_level', 'training_provider_level')

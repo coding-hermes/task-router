@@ -50,6 +50,13 @@ and testably (frozen clock).
 | `lifecycle_checked_at` | when the date was last confirmed, so a stale announcement is visible | with any date |
 | `replaced_by` | successor model id, so a retirement names its re-point target | no |
 
+TR-200 (2026-10-12) amendment: the `available_from` COLUMN was removed from the
+seeded models schema — across 1905 rows it never carried a single non-null
+value, so the `announced` state had no possible instance and the column was
+dead weight. The state machine and `router_spawn.lifecycle_state` keep
+tolerating the key (fail-open, stale registries), but no generator emits it
+and the seed's live-lane filters no longer reference it.
+
 `valid_from` keeps its current meaning. Existing rows get `available_from = NULL`
 (today's behaviour preserved on day one — no surprise chain changes).
 

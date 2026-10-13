@@ -36,10 +36,8 @@ ALLOWLIST = {
     # Probe gaps: candidate only set when gap is a candidate for filling
     "probe_gaps": {"candidate"},
     # Model catalog: sparse cols only set when API/cache applies
+    # TR-200: vision/modality/knowledge_cutoff removed with the columns.
     "model_catalog": {
-        "vision",
-        "modality",
-        "knowledge_cutoff",
         "fetched_at",
         "family",
         "cost_in",
@@ -50,18 +48,18 @@ ALLOWLIST = {
         "cache_read",
     },
     # Providers: sparse cols only set when provider has these attributes
-    "providers": {"valid_to", "api_base_url", "api_key_env", "concurrency"},
+    # TR-200: valid_to removed with the column (0/29 ever set).
+    "providers": {"api_base_url", "api_key_env", "concurrency"},
     # Task profiles: max_* only set when profile limits concurrency
+    # TR-200: the max_*_per_provider columns were removed (0/11 ever set).
     "task_profiles": {
-        "max_consecutive_per_provider",
-        "max_total_per_provider",
         "allow_slow",
     },
     # Projects: stack only set when project declares a stack
     "projects": {"stack"},
     # Models: sparse cols only set when model has these attributes
+    # TR-200: available_from removed with the column (0/1905 ever set).
     "models": {
-        "available_from",
         "disabled_reason",
         "lifecycle_checked_at",
         "lifecycle_source",

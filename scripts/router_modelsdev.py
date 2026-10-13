@@ -356,11 +356,13 @@ def run_sync(api, models, catalog, mappings, include_all=False, dry_run=False):
             if not _relevant(meta):
                 continue
             cost = meta.get('cost') or {}
+            # TR-200: catalog vision/modality/knowledge_cutoff dropped (100%
+            # null across 1187 rows — models.dev publishes neither for any
+            # relevant lane we mirror; the routing-visible capability flags
+            # live on models.jsonl via the TR-035 refresh lane).
             cat = {'provider': our_id, 'model': mname, 'family': meta.get('family'),
                    'context_window': meta.get('limit', {}).get('context'),
                    'reasoning': meta.get('reasoning'), 'tool_call': meta.get('tool_call'),
-                   'vision': meta.get('vision'), 'modality': meta.get('modality'),
-                   'knowledge_cutoff': meta.get('knowledge_cutoff'),
                    'cost_input': cost.get('input'), 'cost_output': cost.get('output'),
                    'source': 'models.dev', 'fetched_at': None}
             if (our_id, mname) not in cat_have:

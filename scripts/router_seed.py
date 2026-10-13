@@ -86,7 +86,11 @@ BASE_COLUMNS = {
                   ('windows', 'VARCHAR'), ('concurrency', 'INTEGER'),
                   ('tos_class', 'VARCHAR'), ('data_class', 'VARCHAR'),
                   ('trains_on_hosted', 'BOOLEAN'),
-                  ('valid_from', 'DATE'), ('valid_to', 'DATE'), ('archive', 'BOOLEAN'),
+                  ('valid_from', 'DATE'), ('archive', 'BOOLEAN'),
+                  # TR-200: providers.valid_to removed (0/29 non-null across the
+                  # table — no provider retirement was ever recorded). The two
+                  # sparse DIRECT-API columns stay: api_base_url/api_key_env are
+                  # populated for commandcode-2 and muse-code (2/29).
                   ('api_base_url', 'VARCHAR'), ('api_key_env', 'VARCHAR')],
     'models': [('provider', 'VARCHAR'), ('model', 'VARCHAR'),
                ('normalized_price', 'DOUBLE'), ('price_evidence', 'VARCHAR'),
@@ -104,7 +108,10 @@ BASE_COLUMNS = {
                ('perf_e2e_vision', 'DOUBLE'), ('perf_review', 'DOUBLE'),
                ('perf_delegation', 'DOUBLE'), ('perf_guard', 'DOUBLE'),
                ('perf_mock', 'DOUBLE'), ('perf_reasoning', 'DOUBLE'),
-               ('valid_from', 'DATE'), ('available_from', 'DATE'), ('valid_to', 'DATE'), ('archive', 'BOOLEAN'),
+               # TR-200: models.available_from removed (0/1905 non-null — the
+               # announced/coming_soon state never had a single row). valid_to
+               # STAYS: retirements are live data (lifecycle overlays).
+               ('valid_from', 'DATE'), ('valid_to', 'DATE'), ('archive', 'BOOLEAN'),
                # release_date = when the MODEL was released by its maker. NOT
                # valid_from (that is when this row entered our registry — this
                # database is new, so nearly every row is "recent" and valid_from
@@ -136,8 +143,10 @@ BASE_COLUMNS = {
                  ('stack', 'VARCHAR'), ('profile', 'VARCHAR')],
     'task_profiles': [('id', 'VARCHAR'), ('title', 'VARCHAR'),
                       ('created_at', 'VARCHAR'),
-                      ('max_consecutive_per_provider', 'INTEGER'),
-                      ('max_total_per_provider', 'INTEGER'),
+                      # TR-200: max_consecutive_per_provider / max_total_per_provider
+                      # removed (0/11 non-null — per-profile diversity caps were
+                      # never configured; the quota-state.json GLOBALS in
+                      # router_spawn._diversity_caps remain the only knob).
                       ('version', 'INTEGER'), ('tag', 'VARCHAR'),
                       ('allow_slow', 'BOOLEAN')],
     'task_profile_requirements': [('task_id', 'VARCHAR'), ('category', 'VARCHAR'),
@@ -473,7 +482,9 @@ FROM (
   SELECT model, replace(category, 'perf_', '') AS category, max(perf) AS perf
   FROM (UNPIVOT (SELECT model, perf_agent_tick, perf_long_doc, perf_debug, perf_schema,
                         perf_e2e_vision, perf_review, perf_delegation, perf_guard, perf_mock, perf_reasoning
-                 FROM models WHERE (valid_to IS NULL OR valid_to > CURRENT_DATE) AND (available_from IS NULL OR available_from <= CURRENT_DATE) AND archive = false
+                 -- TR-200: available_from filter dropped with the column (was
+                 -- never non-null, so the clause selected everything anyway).
+                 FROM models WHERE (valid_to IS NULL OR valid_to > CURRENT_DATE) AND archive = false
                               AND (disabled IS NULL OR NOT disabled))
         ON perf_agent_tick, perf_long_doc, perf_debug, perf_schema,
            perf_e2e_vision, perf_review, perf_delegation, perf_guard, perf_mock, perf_reasoning
@@ -1133,7 +1144,7 @@ def apply_benchmark_categories():
     """
     live = ("(SELECT DISTINCT lower(model) FROM models "
             "WHERE (valid_to IS NULL OR valid_to > CURRENT_DATE) "
-            "AND (available_from IS NULL OR available_from <= CURRENT_DATE) "
+            # TR-200: available_from filter dropped with the column.
             "AND archive = false)")
     ex = ' '.join(f"AND source NOT LIKE '%{p}%'" for p in _BRIDGE_EXCLUDE_SRC)
     ex += ' ' + ' '.join(f"AND lower(source) NOT LIKE '%{p}%'"
@@ -1189,8 +1200,8 @@ def apply_quality_estimates():
                 # tier row, so an estimate for it would be noise.
                 if con.execute("SELECT 1 FROM models WHERE model=? AND "
                                "(valid_to IS NULL OR valid_to > CURRENT_DATE) AND "
-                               "(available_from IS NULL OR available_from <= CURRENT_DATE) "
-                               "AND archive = false LIMIT 1", [name]).fetchone():
+                               # TR-200: available_from filter dropped with the column.
+                               "archive = false LIMIT 1", [name]).fetchone():
                     con.execute(
                         "INSERT INTO model_perf (model, category, perf, source, source_ref) "
                         "VALUES (?,?,?,?,?)",
@@ -1226,7 +1237,8 @@ def seed_estimates():
     # live models only — a model with no live lane (e.g. archived rows like
     # opencode-go/ox-alpha-free) must not leak into model_perf (TR-008)
     live_models = {r[0] for r in con.execute(
-        "SELECT DISTINCT model FROM models WHERE (valid_to IS NULL OR valid_to > CURRENT_DATE) AND (available_from IS NULL OR available_from <= CURRENT_DATE) AND archive = false").fetchall()}
+        # TR-200: available_from filter dropped with the column.
+        "SELECT DISTINCT model FROM models WHERE (valid_to IS NULL OR valid_to > CURRENT_DATE) AND archive = false").fetchall()}
     n = 0
     for pname, pairs in PROFILE_MODELS.items():
         tags = PROFILE_TAGS.get(pname, {})
@@ -1528,7 +1540,8 @@ GROUP BY mp.model, mp.category, mp.perf, mp.source, mp.source_ref""")
 con.execute("DROP TABLE IF EXISTS task_profiles")
 con.execute("DROP TABLE IF EXISTS task_profile_requirements")
 con.execute("CREATE TABLE task_profiles (id VARCHAR PRIMARY KEY, title VARCHAR, created_at TIMESTAMP, "
-    "max_consecutive_per_provider INTEGER, max_total_per_provider INTEGER, "
+    # TR-200: the two max_*_per_provider diversity columns are gone (0/11
+    # non-null; globals live in quota-state.json, read by router_spawn).
     "version INTEGER, tag VARCHAR, allow_slow BOOLEAN)")
 con.execute("CREATE TABLE task_profile_requirements (task_id VARCHAR, category VARCHAR, level INTEGER, PRIMARY KEY (task_id, category))")
 
@@ -1646,20 +1659,19 @@ except Exception:
 _prof_rows = _load_base_rows('task_profiles')
 _req_rows = _load_base_rows('task_profile_requirements')
 if _prof_rows and _req_rows:
-    for pid, title, ts, mcp, mtp, version, tag, allow_slow in _prof_rows:
+    for pid, title, ts, version, tag, allow_slow in _prof_rows:
         con.execute("INSERT INTO task_profiles (id, title, created_at, "
-                    "max_consecutive_per_provider, max_total_per_provider, "
                     "version, tag, allow_slow) "
-                    "VALUES (?, ?, CAST(? AS TIMESTAMP), ?, ?, ?, ?, ?)",
-                    [pid, title, ts, mcp, mtp, version, tag, allow_slow])
+                    "VALUES (?, ?, CAST(? AS TIMESTAMP), ?, ?, ?)",
+                    [pid, title, ts, version, tag, allow_slow])
     for tid, cat, lvl in _req_rows:
         con.execute("INSERT INTO task_profile_requirements VALUES (?,?,?)",
                     [tid, cat, lvl])
     _src = f'data rows ({len(_prof_rows)} profiles, {len(_req_rows)} reqs)'
 else:
     for pid, (title, reqs) in PROFILES.items():
-        # explicit column list: the two TR-007 diversity columns stay NULL for the
-        # seeded profiles (no overrides → global defaults apply; existing behavior)
+        # explicit column list (TR-200: the two TR-007 diversity columns were
+        # removed from the schema entirely — globals in quota-state.json apply)
         ts = _existing_ts.get(pid) or datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
         con.execute("INSERT INTO task_profiles (id, title, created_at, version, tag) "
                     "VALUES (?, ?, CAST(? AS TIMESTAMP), 1, ?)",

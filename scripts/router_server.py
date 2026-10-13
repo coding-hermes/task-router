@@ -335,7 +335,7 @@ def build_openapi():
                 "tos_class": string,
                 "data_class": string,
                 "valid_from": nullable_string,
-                "valid_to": nullable_string,
+                # TR-200: providers.valid_to removed with the column (0/29 set).
                 "archive": {"type": "boolean"},
             },
         ),
@@ -369,8 +369,8 @@ def build_openapi():
                 "id": string,
                 "title": string,
                 "created_at": nullable_string,
-                "max_consecutive_per_provider": {"type": ["integer", "null"]},
-                "max_total_per_provider": {"type": ["integer", "null"]},
+                # TR-200: the max_*_per_provider columns were removed (0/11 set;
+                # diversity caps live in quota-state.json globals).
             },
         ),
     )

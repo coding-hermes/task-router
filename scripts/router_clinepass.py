@@ -151,7 +151,7 @@ def sync(dry_run):
             catalog.append({'provider': 'clinepass', 'model': name, 'api_id': f'cline-pass/{name}',
                             'api_note': 'API-callable form (org/model ids are Cline-product-only)',
                             'context_window': None, 'reasoning': None, 'tool_call': None,
-                            'vision': None, 'modality': None, 'knowledge_cutoff': None,
+                            # TR-200: vision/modality/knowledge_cutoff removed from the schema
                             'cost_input': None, 'cost_output': None, 'family': None,
                             'source': 'clinepass-api', 'fetched_at': now, 'archive': False})
             have_cat.add(('clinepass', name))
