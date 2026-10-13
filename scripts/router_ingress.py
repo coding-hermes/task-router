@@ -451,9 +451,10 @@ def resolve_model(profile=None, project=None, runner=None, timeout_s=None) -> tu
     """Ask the ROUTER which pair should serve this request (never the caller).
 
     Returns (choice, reason) where choice is ``{'provider': .., 'model': ..}`` or
-    None. A failure is recorded, not raised: the hop still goes out, but the
-    reply carries the reason so a routing failure cannot look like a routing
-    decision.
+    None. A failure is recorded, not raised. What a null choice MEANS is the
+    caller's: on a model:'router' endpoint it is now a named refusal
+    (``model-unresolved``, TR-323) and the hop is never fired; on an endpoint
+    that declared model=none the hop simply goes out without a model field.
     """
     runner = runner or _run_resolver
     timeout_s = timeout_s if timeout_s else _env_float("ROUTER_INGRESS_RESOLVE_TIMEOUT_S", 30.0)
@@ -1268,6 +1269,19 @@ class Ingress:
         if timeout_s <= 0:
             return finish("refused", "timeout-not-declared: endpoint %r has no bound" % endpoint.id)
 
+        # -- TR-323: a router-model endpoint with NO resolved pair refuses here,
+        #    before the hop. The contract is that a refusal means the doomed call
+        #    is never fired: build_hop sends no model field for a null choice,
+        #    and an unpinned target answers 400 "Multiple models are loaded.
+        #    Please specify a model" — a confusing endpoint fault that hides the
+        #    real cause (the routing) and lands in the ledger as a plain
+        #    endpoint failure. An endpoint with model=none sends no model BY
+        #    DESIGN and keeps the fail-open behaviour; only the ROUTER's own
+        #    null choice stops the hop. (Distinct from TR-320: there a model
+        #    WAS chosen and was wrong or unhosted.)
+        if endpoint.model_source == "router" and not model_choice:
+            return finish("refused", "model-unresolved: %s" % model_reason)
+
         try:
             hop = build_hop(endpoint, message, model_choice, credential)
         except Refusal as refusal:
@@ -1734,8 +1748,18 @@ def cmd_translate(args) -> int:
 
 def cmd_forward(args) -> int:
     ingress = _build_ingress(args)
-    out = forward_file(ingress, args.message_file, endpoint_id=args.endpoint, json_out=args.json)
-    return 0 if out["ledger"].get("ok") else 1
+    try:
+        out = forward_file(ingress, args.message_file, endpoint_id=args.endpoint, json_out=args.json)
+    except Exception as exc:  # noqa: BLE001 — no ledger row exists, so this is a crash
+        print("forward crashed before any ledger row: %s: %s"
+              % (exc.__class__.__name__, str(exc)[:200]), file=sys.stderr)
+        return 1
+    # TR-323: the ledger IS the outcome surface. A refused / failed / timed-out
+    # forward that wrote its row exits 0 — matching every other ledgered
+    # failure in this tool and the fail-open contract — so a caller reads the
+    # row instead of parsing stderr. Nonzero means NO row was written (the CLI
+    # never reached the ledger).
+    return 0 if out.get("ledger") is not None else 1
 
 
 def cmd_poll(args) -> int:

@@ -20,6 +20,13 @@ Both doors share one `Ingress` core; only the transport differs.
 | **serve** | `router_ingress.py serve --token-file … [--require-sig]` | An authenticated inbound HTTP endpoint for a push (crier webhook/subscription). Refuses unsigned/unauthenticated callers by name, and reports the reply back to the bus itself. |
 | **forward** | `router_ingress.py forward --message-file m.json` | One message, no bus. This is what the tests and the offline debugging use. |
 
+`forward` exit codes (TR-323): **0 whenever a ledger row was written** —
+`ok`, `refused` (including `model-unresolved`), `endpoint-http-5xx`,
+`transport-error`, `timeout`, `unservable` are all outcomes the row states —
+and nonzero only when no row exists (the CLI crashed before it could reach the
+ledger). Read the ledger row for the outcome; the exit code only says whether
+the attempt was recorded.
+
 In poll mode the ingress identity is a real bus participant: it retrieves with
 its own signed request (X-Agent-ID/Ts/Sig) and delivers the reply with
 `sender=<its id>`. In push mode the same identity delivers the reply, so the two
@@ -48,7 +55,11 @@ model      "router" (default) or "none"                  (optional)
 `model` says who chooses the pair. `router` (the default) asks
 `router_spawn.py` for the head of the gated, price-ordered chain for the profile
 the *message* named, and injects it. `none` sends no model field at all. Either
-way the message can never choose a model itself.
+way the message can never choose a model itself. On a `router` endpoint, a
+resolver that returns no pair is a **named refusal** (`model-unresolved: …`)
+and the hop is never fired (TR-323) — an unpinned request to a multi-model
+target would only earn a 400 and bury the real cause. On a `none` endpoint the
+absence of a model field is the declared design, so routing cannot fail there.
 
 ### Closed sets
 
@@ -85,6 +96,8 @@ auth-unresolved: API_SERVER_KEY not set in /home/…/.hermes/.env
 endpoint-unsupported-protocol: 'grpc'
 no-prompt: payload carried none of prompt/text/task/message/body/input
 timeout-not-declared: endpoint 'x' has no bound
+model-unresolved: resolver returned no pair for the profile (…) — the hop is
+  never fired (TR-323)
 lane-busy: lane 'x' queue full (8 waiting, 2 in flight)
 endpoint-circuit-open: lane 'x' tripped after 3 consecutive failures (…); retry in 30s
 overloaded: global backstop full (max N in flight, all lanes)
