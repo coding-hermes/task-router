@@ -27,6 +27,22 @@ curated from the git log, not generated).
 
 ### Changed
 
+- **Seed/validate registry-path split closed (TR-REV-1012-1)**: every script
+  (`router_seed/spawn/validate/status/maintain`) now resolves registry.json
+  through one shared resolver, `scripts/registry_path.py`
+  (ROUTING_REGISTRY > TASK_ROUTER_HOME/registry.json > <repo>/registry.json >
+  XDG data home), and the `router` CLI no longer exports ROUTING_REGISTRY for
+  any subcommand — the export preempted operator overrides and pointed every
+  CLI-school run (`make validate`, `router status`) at a possibly-stale
+  data-home registry even inside a checkout. A fresh clone's
+  `make seed && make validate` now passes with no env vars at all;
+  TASK_ROUTER_HOME keeps relocating the registry for container/hermetic
+  installs, and an explicit ROUTING_REGISTRY still wins everywhere. The CLI
+  dispatch also puts `scripts/` on `sys.path` (runpy does not, so dispatched
+  scripts silently missed their sibling resolvers), and
+  `fresh_clone_smoke.sh` now FAILS instead of warning when the schools
+  disagree.
+
 - **Ingress admission and failure handling are now PER LANE** (SCHED-GAP-1713).
   The bus ingress (`router ingress`) no longer bounds forwards with one shared
   pool: every addressed endpoint gets its own in-flight budget, queue and circuit

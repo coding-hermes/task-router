@@ -57,8 +57,8 @@ mirror is only reached via explicit `ROUTING_ALLOW_FLEET_MIRROR=1`; set
 |---|---|---|
 | `router: dispatch failed: No module named 'duckdb'` | seed needs duckdb; pyproject declares stdlib-only runtime and README omits it | `pip install duckdb` (or make the import lazy — task for the foreman) |
 | `ROUTER-MISS: <provider/model> fails <cat>>=<n> (tier=None)` × ~1000 per resolve | per-(lane × requirement) exclusion telemetry; `tier=None` = no model_tier rows reached the resolver for that lane (alias inheritance not consulted on the spawn lookup path) | filter with `--quiet`; if head looks wrong, check `exclusions` in the JSON — the gates themselves are working correctly |
-| `router validate: [FAIL] registry.exists: missing <repo>/registry.json` despite a seeded data home | validate reads `ROUTING_REGISTRY` but the CLI never exports it | seed into the repo root (`ROUTING_REGISTRY=$PWD/registry.json router seed`) or await TR-044 fix |
-| server `/resolve` head ≠ CLI spawn head | server reads a different registry (repo-relative) than spawn (data home) | same registry for both: run both with the same explicit `ROUTING_REGISTRY`, or fix TR-044 |
+| `router validate: [FAIL] registry.exists: missing <data home>/registry.json` despite a seeded repo | (historic, TR-044-era) the CLI exported ROUTING_REGISTRY=<data home> over the scripts' repo default | FIXED TR-REV-1012-1: all schools resolve through scripts/registry_path.py (repo default; ROUTING_REGISTRY/TASK_ROUTER_HOME still honored) — if you still see this, check for a stale copy in ~/.hermes/scripts (run scripts/sync_runtime.sh) |
+| server `/resolve` head ≠ CLI spawn head | server reads a different registry than spawn | (historic, same TR-044 family) FIXED TR-REV-1012-1 — both resolve the shared registry_path order; verify with `router status` `data_home.registry`, or pin both with an explicit ROUTING_REGISTRY |
 | `WARN degraded_fallback` / `fallback_used: true` | registry.json missing/corrupt → resolver used committed `data/tables` (fresh-clone stdlib path) | run `router seed`; the fallback is deliberate design, not an error |
 
 ## How the circuit-breaker workflow is meant to be used
@@ -187,10 +187,13 @@ gates are stamped on top, and every drop carries a reason string.
 
 Second decision: **the CLI is a dispatcher, not a program.** `task_router/cli.py`
 `runpy`s `scripts/router_<name>.py` and injects env per subcommand
-(`ROUTING_REGISTRY`, `ROUTING_DATA_DIR`, `ROUTER_STATE_DIR`, `LEDGER_FILE`,
-`ROUTING_NS`, …). Everything subtle about this project lives in that table — a
-subcommand with the wrong exports reads a different registry than `spawn` does
-(the TR-044/TR-056 defect class, both now verified fixed). Two rows in the table
+(`ROUTING_DATA_DIR`, `ROUTER_STATE_DIR`, `LEDGER_FILE`,
+`ROUTING_NS`, … — ROUTING_REGISTRY deliberately NOT since TR-REV-1012-1: the
+scripts' shared resolver scripts/registry_path.py owns registry resolution and
+the export preempted operator overrides). Everything subtle about this project
+lives in that table — a subcommand with the wrong exports reads a different
+registry than `spawn` does (the TR-044/TR-056 defect class, both now verified
+fixed). Two rows in the table
 are **deliberately empty**, and both are the "wrong fix is worse" cases:
 
 - `"quota": {}` — `router_quota.py` writes the gate where the **fleet spawn path**

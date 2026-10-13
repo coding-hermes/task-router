@@ -61,7 +61,7 @@ done
 # IMPORTS it (sys.path = ~/.hermes/scripts), so a repo-only module makes every
 # hourly run die on ImportError and health.jsonl freezes — the copy list must
 # carry every module on the probe's import path, not just entry points.
-for f in provider_health_probe.py router_hop_taxonomy.py state_dir.py router-data-quality.sh fleet-cooldown-policy.py router_health.py router_validate.py sync_task_router_duckbrain.py; do
+for f in provider_health_probe.py router_hop_taxonomy.py state_dir.py registry_path.py router-data-quality.sh fleet-cooldown-policy.py router_health.py router_validate.py sync_task_router_duckbrain.py; do
   want=644; [ "${f##*.}" = "sh" ] && want=755
   if [ "${f}" = "fleet-cooldown-policy.py" ]; then
     # ── SCHED-PERF-006 deploy-hash guard ──────────────────────────────────

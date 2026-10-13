@@ -16,16 +16,26 @@ this map gets no exports and silently falls back to its own repo-relative or
 hardcoded default, so two `router` subcommands can disagree about which
 registry/state dir is live from the same invocation):
 
+TR-REV-1012-1: ROUTING_REGISTRY is deliberately NOT exported for ANY
+subcommand. Every script now resolves through scripts/registry_path.py
+(ROUTING_REGISTRY > TASK_ROUTER_HOME/registry.json > <repo>/registry.json >
+XDG data home), so the data home reaches the scripts via TASK_ROUTER_HOME
+itself and an operator-set ROUTING_REGISTRY passes through untouched — the
+export previously PREEMPTED that override (os.environ.setdefault could not
+fix this: the wrapper ran the child with the exported value already in its
+env) and pointed every CLI-school run at a possibly-stale data-home
+registry.json even inside a checkout.
+
   script                      env hooks exported from data home
   --------------------------  -----------------------------------------------
-  router_spawn.py             ROUTING_REGISTRY, ROUTING_DATA_DIR,
+  router_spawn.py             ROUTING_DATA_DIR,
                               ROUTER_STATE_DIR (dir that holds
                               circuit-state.json, health-state.json,
                               ledger.jsonl)
   router_circuit.py           ROUTER_STATE_DIR
   router_ledger.py            LEDGER_FILE
-  router_maintain.py          ROUTING_REGISTRY, ROUTING_DATA_DIR
-  router_seed.py              ROUTING_REGISTRY, ROUTING_DATA_DIR,
+  router_maintain.py          ROUTING_DATA_DIR
+  router_seed.py              ROUTING_DATA_DIR,
                               ROUTING_NS (data-home ns dir — keeps a
                               data-home seed out of the fleet duckbrain
                               mirror; TR-045)
@@ -34,24 +44,24 @@ registry/state dir is live from the same invocation):
   router_modelsdev.py         ROUTING_DATA_DIR (MODELSDEV_CACHE left as-is:
                               models.dev catalog cache, not router data)
   router_clinepass.py         ROUTING_DATA_DIR
-  router_status.py            ROUTING_REGISTRY, ROUTING_DATA_DIR,
+  router_status.py            ROUTING_DATA_DIR,
                               ROUTER_STATE_DIR (TR-056). LEDGER_FILE is
                               intentionally not exported: status resolves the
                               ledger as LEDGER_FILE or ROUTER_STATE_DIR/
                               ledger.jsonl — the same file `router ledger`
                               names explicitly.
-  router_validate.py          ROUTING_REGISTRY, ROUTING_DATA_DIR,
+  router_validate.py          ROUTING_DATA_DIR,
                               ROUTER_STATE_DIR (TR-056 — the brief listed only
                               registry+tables; the script reads
                               ROUTER_STATE_DIR for its state-file checks too)
-  router_server.py            ROUTING_REGISTRY, ROUTING_DATA_DIR,
+  router_server.py            ROUTING_DATA_DIR,
                               ROUTING_DOCS_DIR, ROUTER_STATE_DIR (TR-056)
   router_estimate.py          no hook of its own, but the data home must still
                               reach it: resolve_chain() subprocesses
                               router_spawn.py with the inherited env AND
                               estimate() imports router_spawn to load the
                               providers table in-process, so both read these
-                              three vars (TR-030/TR-056)
+                              vars (TR-030/TR-056)
   router_web.py               ROUTING_DATA_DIR only (TR-056). ROUTING_REGISTRY
                               is deliberately NOT exported: resolve_preview()
                               builds its child env itself and pins
@@ -240,12 +250,19 @@ def _home_env_exports() -> dict:
     home = paths.resolve_data_home(create=True)
     state_dir = os.path.dirname(paths.circuit_state_path())  # == home
     _bootstrap_state_dir(state_dir)
-    registry = paths.registry_path()
     data_dir = _data_dir()
     docs_dir = _docs_dir()
     return {
         "spawn": {
-            "ROUTING_REGISTRY": registry,
+            # TR-REV-1012-1: ROUTING_REGISTRY deliberately NOT exported. The
+            # scripts now share ONE resolver (scripts/registry_path.py:
+            # ROUTING_REGISTRY > TASK_ROUTER_HOME/registry.json >
+            # <repo>/registry.json > XDG data home), so the child keeps the
+            # data-home behavior by honoring TASK_ROUTER_HOME itself — and a
+            # fresh-clone `make seed && make validate` agrees with NO env at
+            # all instead of exporting an empty-data-home registry that every
+            # check then fights (measured: freshness=stale, exit 1). An
+            # operator-set ROUTING_REGISTRY reaches the child untouched.
             "ROUTING_DATA_DIR": data_dir,
             "ROUTER_STATE_DIR": state_dir,
         },
@@ -254,7 +271,6 @@ def _home_env_exports() -> dict:
         # and state dir — otherwise `router chain-run` would walk a chain from
         # a different fleet view than `router spawn` (the TR-056 defect class).
         "chain-run": {
-            "ROUTING_REGISTRY": registry,
             "ROUTING_DATA_DIR": data_dir,
             "ROUTER_STATE_DIR": state_dir,
         },
@@ -266,9 +282,10 @@ def _home_env_exports() -> dict:
         # TR-060 quota trap).
         "outcomes": {},
         # TR-069: lifecycle digest reads the SAME registry view as the resolver
-        # (REGISTRY hook) — must see what spawn sees, counts included.
+        # (registry.json, whatever the shared resolver picks) — must see what
+        # spawn sees, counts included. ROUTING_REGISTRY deliberately not
+        # exported (TR-REV-1012-1, same reason as spawn).
         "lifecycle": {
-            "ROUTING_REGISTRY": registry,
             "ROUTING_DATA_DIR": data_dir,
             "ROUTER_STATE_DIR": state_dir,
         },
@@ -298,7 +315,9 @@ def _home_env_exports() -> dict:
             "LEDGER_FILE": paths.ledger_path(),
         },
         "maintain": {
-            "ROUTING_REGISTRY": registry,
+            # ROUTING_REGISTRY deliberately not exported (TR-REV-1012-1):
+            # router_maintain.py resolves through scripts/registry_path.py,
+            # same order as every script.
             "ROUTING_DATA_DIR": data_dir,
         },
         "seed": {
@@ -308,7 +327,10 @@ def _home_env_exports() -> dict:
             # INTO the fleet mirror. Deriving it under the data home keeps
             # scratch/data-home seeds self-contained; an operator who exports
             # ROUTING_NS explicitly still wins (setdefault semantics).
-            "ROUTING_REGISTRY": registry,
+            # ROUTING_REGISTRY deliberately NOT exported (TR-REV-1012-1): the
+            # script's shared resolver already lands on <repo>/registry.json
+            # when TASK_ROUTER_HOME is set in this wrapper (the data-home
+            # artifact) — exporting the path preempts an operator override.
             "ROUTING_DATA_DIR": data_dir,
             "ROUTING_NS": os.path.join(home, "ns", "routing"),
         },
@@ -322,8 +344,12 @@ def _home_env_exports() -> dict:
         # (<repo>/registry.json, ~/.hermes/model-router) while `router spawn`
         # resolved from the data home — `router status` and `router spawn`
         # reported two different registries from the same invocation.
+        # TR-REV-1012-1: ROUTING_REGISTRY is deliberately NOT exported
+        # anywhere — the scripts' shared resolver (scripts/registry_path.py)
+        # honors TASK_ROUTER_HOME directly, so spawn/status/validate/server
+        # still all land on the SAME file with zero exports, and the make
+        # targets agree with a fresh clone's bare script runs.
         "status": {
-            "ROUTING_REGISTRY": registry,
             "ROUTING_DATA_DIR": data_dir,
             "ROUTER_STATE_DIR": state_dir,
             # LEDGER_FILE deliberately absent: router_status.py resolves
@@ -331,20 +357,20 @@ def _home_env_exports() -> dict:
             # `router ledger` exports, reached here through state_dir.
         },
         "validate": {
-            "ROUTING_REGISTRY": registry,
-            "ROUTING_DATA_DIR": data_dir,
             # The script reads ROUTER_STATE_DIR for its circuit/health/quota/
             # ledger state-file checks (router_validate.py STATE_DIR).
+            "ROUTING_DATA_DIR": data_dir,
             "ROUTER_STATE_DIR": state_dir,
         },
         "estimate": {
-            # router_estimate.py has no hook of its own but needs all three:
+            # router_estimate.py has no hook of its own but needs these:
             # resolve_chain() runs router_spawn.py as a subprocess with the
             # inherited env, and estimate() imports router_spawn to load the
-            # providers table in-process — both resolve these vars at read
-            # time. Without the export, `router estimate` priced the REPO
-            # registry while `router spawn` resolved the data home.
-            "ROUTING_REGISTRY": registry,
+            # providers table in-process — both resolve through the shared
+            # scripts/registry_path.py order at read time. Before TR-056,
+            # `router estimate` priced the REPO registry while `router spawn`
+            # resolved the data home; the shared resolver keeps them aligned
+            # without a ROUTING_REGISTRY export.
             "ROUTING_DATA_DIR": data_dir,
             "ROUTER_STATE_DIR": state_dir,
         },
@@ -355,7 +381,6 @@ def _home_env_exports() -> dict:
             "ROUTING_DOCS_DIR": docs_dir,
         },
         "server": {
-            "ROUTING_REGISTRY": registry,
             "ROUTING_DATA_DIR": data_dir,
             "ROUTING_DOCS_DIR": docs_dir,
             "ROUTER_STATE_DIR": state_dir,
@@ -385,8 +410,8 @@ def _home_env_exports() -> dict:
             # via ROUTER_INGRESS_RESOLVE) and defaults its endpoint registry to
             # <repo>/data/endpoints.jsonl, so it must resolve the same
             # registry/tables the spawn dispatch resolves; ROUTER_STATE_DIR is
-            # the ledger's default location.
-            "ROUTING_REGISTRY": registry,
+            # the ledger's default location. ROUTING_REGISTRY deliberately not
+            # exported (TR-REV-1012-1) — shared resolver on both sides.
             "ROUTING_DATA_DIR": data_dir,
             "ROUTER_STATE_DIR": state_dir,
         },
@@ -462,6 +487,14 @@ def dispatch(cmd, argv) -> None:
             file=sys.stderr)
         raise SystemExit(USAGE_ERROR)
     sys.argv = [os.path.basename(script), *argv]
+    # TR-REV-1012-1: runpy.run_path does NOT prepend the script's own
+    # directory to sys.path the way `python3 scripts/x.py` does, so a
+    # dispatched script's sibling-module imports (registry_path.py, the
+    # state_dir.py resolver) silently failed under EVERY `router` dispatch
+    # and fell back to the old inline defaults. Put scripts/ on the path so
+    # the shared resolvers actually load in the CLI school too.
+    if SCRIPTS_DIR not in sys.path:
+        sys.path.insert(0, SCRIPTS_DIR)
     runpy.run_path(script, run_name="__main__")
 
 
