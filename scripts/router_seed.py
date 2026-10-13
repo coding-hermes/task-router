@@ -1673,11 +1673,12 @@ _prof_rows = _load_base_rows('task_profiles')
 _req_rows = _load_base_rows('task_profile_requirements')
 if _prof_rows and _req_rows:
     for _prow in _prof_rows:
-        pid, title = _prow['id'], _prow['title']
-        ts, version, tag, allow_slow = (_prow.get('created_at'),
-                                        _prow.get('version'),
-                                        _prow.get('tag'),
-                                        _prow.get('allow_slow'))
+        # rows are positional tuples in BASE_COLUMNS order:
+        # (id, title, created_at, max_consecutive_per_provider,
+        #  max_total_per_provider, version, tag, allow_slow)
+        pid, title, ts, version, tag, allow_slow = (
+            _prow[0], _prow[1], _prow[2],
+            _prow[5], _prow[6], _prow[7])
         con.execute("INSERT INTO task_profiles (id, title, created_at, "
                     "version, tag, allow_slow) "
                     "VALUES (?, ?, CAST(? AS TIMESTAMP), ?, ?, ?)",

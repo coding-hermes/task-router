@@ -69,6 +69,9 @@ ALLOWLIST = {
     # coming_soon classification + router_server.py /v1/models window +
     # router_lifecycle.py digest; null = no availability announcement exists.)
     "models": {
+        # TR-200: available_from allowlisted — readers live (spawn coming_soon,
+        # server /v1/models, lifecycle digest); null = no announcement exists.
+        "available_from",
         "disabled_reason",
         "lifecycle_checked_at",
         "lifecycle_source",

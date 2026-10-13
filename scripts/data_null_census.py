@@ -65,8 +65,11 @@ STRUCTURAL = {
     # models.jsonl lifecycle/provenance: no date = no retirement/announcement
     # exists; no perf value = no sample measured yet for that category
     "models.jsonl": {
-        # TR-200: available_from removed with the column (0/1905 ever set).
         "valid_from": "no import-announcement date exists",
+        # TR-200 merge: available_from KEPT with recorded reason — readers
+        # live (spawn coming_soon / server /v1/models / lifecycle digest);
+        # no source invents an announcement date, null = none exists.
+        "available_from": "no availability announcement exists (never guessed)",
         "valid_to": "lane not retired",
         "replaced_by": "no successor named",
         "disabled": "lane not disabled",
@@ -99,8 +102,12 @@ STRUCTURAL = {
     # not publish the field (never guessed; the router never reads this table
     # for routing decisions)
     "model_catalog.jsonl": {
-        # TR-200: vision/modality/knowledge_cutoff removed with the columns.
         "fetched_at": "record predates timestamped syncs",
+        # TR-200 merge: capability trio KEPT — populated from models.dev's
+        # modalities/knowledge keys; null = source publishes no such field.
+        "vision": "not published by models.dev for this model",
+        "modality": "not published by models.dev for this model",
+        "knowledge_cutoff": "not published by models.dev for this model",
         "family": "not published by models.dev for this model",
         "cost_input": "no sticker published",
         "cost_output": "no sticker published",

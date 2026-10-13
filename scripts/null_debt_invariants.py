@@ -85,6 +85,15 @@ ALLOWED = {
 #: (table, column) pairs allowed to be 100% null (INV2) — each with a reason.
 #: Keys are table filenames + column names, matching how the gate reads them.
 NULL_OK = {
+    # TR-200 merge: models.available_from KEPT with recorded reason —
+    # readers live (router_spawn coming_soon, router_server /v1/models,
+    # router_lifecycle digest); no source invents an availability date,
+    # null = no announcement exists (census allowlist decision).
+    ("models.jsonl", "available_from"):
+        "no model availability announcement was ever recorded (0/1906); "
+        "readers live (spawn coming_soon / server /v1/models / lifecycle "
+        "digest) — null means 'no announcement', populating would invent "
+        "dates (TR-200 allowlist decision)",
     ("fallback_lanes.jsonl", "valid_to"):
         "fallback-lane mirror rows keep valid_to explicitly null until a "
         "retirement date exists (TR-197 STRUCTURAL 'lane not retired'); "
