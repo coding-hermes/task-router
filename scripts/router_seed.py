@@ -1672,7 +1672,12 @@ except Exception:
 _prof_rows = _load_base_rows('task_profiles')
 _req_rows = _load_base_rows('task_profile_requirements')
 if _prof_rows and _req_rows:
-    for pid, title, ts, version, tag, allow_slow in _prof_rows:
+    for _prow in _prof_rows:
+        pid, title = _prow['id'], _prow['title']
+        ts, version, tag, allow_slow = (_prow.get('created_at'),
+                                        _prow.get('version'),
+                                        _prow.get('tag'),
+                                        _prow.get('allow_slow'))
         con.execute("INSERT INTO task_profiles (id, title, created_at, "
                     "version, tag, allow_slow) "
                     "VALUES (?, ?, CAST(? AS TIMESTAMP), ?, ?, ?)",
