@@ -2425,6 +2425,13 @@ def resolve(project=None, profile_id=None, adhoc=None, use_health=True, limit=DE
             fb_used = lanes
             head = lanes[0]
             out_chain = lanes
+            # TR-248: WARN when the static fallback fires — this is the invisible
+            # teleport to PAYG that went unnoticed for 988 ticks. Name the lane
+            # so the coverage gap surfaces in one tick, not after hours of logs.
+            _err(f'WARNING: STATIC FALLBACK FIRED — all {len(exclusions)} eligible hops gated, '
+                 f'using always-run lane {head["provider"]}/{head["model"]} '
+                 f'(profile={pid}, project={project or "adhoc"}). '
+                 f'Requirements unmet: {[(c, lvl, have) for c, lvl, have in head.get("requirements_unmet", [])]}')
             reasons.append(
                 f'FALLBACK: all {len(exclusions)} eligible hops gated — using '
                 f'{head["provider"]}/{head["model"]} (always-run lane; '
