@@ -221,8 +221,17 @@ def test_exports_only_reference_hooks_scripts_actually_read():
     unknown = exported_vars - hooks
     assert not unknown, f"CLI exports vars no script reads: {sorted(unknown)}"
     # and the documented set must all be exercised
-    assert {"ROUTING_REGISTRY", "ROUTING_DATA_DIR", "ROUTER_STATE_DIR",
+    assert {"ROUTING_DATA_DIR", "ROUTER_STATE_DIR",
             "LEDGER_FILE"} <= exported_vars
+    # TR-REV-1012-1: ROUTING_REGISTRY is the one var with a SPLIT contract —
+    # the scripts must still READ it (per-invocation override, tests and
+    # maintenance rely on it) but the CLI must never EXPORT it (the export
+    # preempted an operator override with a data-home path and pointed every
+    # CLI-school run at a possibly-stale registry even inside a checkout).
+    assert "ROUTING_REGISTRY" in hooks, \
+        "scripts stopped reading ROUTING_REGISTRY — restore the override"
+    assert "ROUTING_REGISTRY" not in exported_vars, \
+        "CLI exports ROUTING_REGISTRY — it preempts the operator override"
 
 
 def test_apply_env_exports_setdefault_semantics(monkeypatch):
@@ -246,11 +255,33 @@ def test_apply_env_exports_ignores_unknown_commands():
 
 
 def test_spawn_exports_point_into_data_home(tmp_path, monkeypatch):
+    """TR-REV-1012-1: spawn gets NO ROUTING_REGISTRY export. The child script
+    resolves through scripts/registry_path.py, which honors TASK_ROUTER_HOME
+    itself — the data-home artifact reaches the script without the CLI
+    preempting an operator's ROUTING_REGISTRY with a derived path."""
     monkeypatch.setenv("TASK_ROUTER_HOME", str(tmp_path / "dh"))
     exports = cli._home_env_exports()["spawn"]
-    assert exports["ROUTING_REGISTRY"] == os.path.join(str(tmp_path / "dh"),
-                                                       "registry.json")
+    assert "ROUTING_REGISTRY" not in exports
     assert exports["ROUTER_STATE_DIR"] == str(tmp_path / "dh")
+
+
+def test_spawn_registry_resolution_survives_cli_dispatch(tmp_path, monkeypatch):
+    """The data-home registry still reaches the spawn script WITHOUT an
+    export: the script's shared resolver honors TASK_ROUTER_HOME directly.
+    RED-proofs the TR-REV-1012-1 removal — before the shared resolver
+    existed, dropping the export silently changed which registry.json
+    `router spawn` read."""
+    home = str(tmp_path / "dh")
+    monkeypatch.setenv("TASK_ROUTER_HOME", home)
+    env = dict(os.environ)
+    env["PYTHONPATH"] = cli.REPO + os.pathsep + env.get("PYTHONPATH", "")
+    proc = subprocess.run(
+        [sys.executable, "-c",
+         "import sys; sys.path.insert(0, %r); "
+         "import router_spawn; print(router_spawn.REGISTRY)" % cli.SCRIPTS_DIR],
+        capture_output=True, text=True, env=env, timeout=120)
+    assert proc.returncode == 0, proc.stderr
+    assert proc.stdout.strip() == os.path.join(home, "registry.json")
 
 
 # --------------------------------------------------------------------------
@@ -350,14 +381,17 @@ def test_every_command_has_an_export_entry():
 
 def test_tr056_second_wave_commands_export_the_data_home(tmp_path, monkeypatch):
     """status/validate/estimate/server must resolve the SAME registry + state
-    dir as spawn (before TR-056 they kept the script defaults)."""
+    dir as spawn. TR-REV-1012-1: the shared registry resolver
+    (scripts/registry_path.py) does that alignment in the SCRIPTS — so the
+    exports no longer carry ROUTING_REGISTRY (it preempted operator
+    overrides); each of these commands resolves <home>/registry.json on its
+    own, which the end-to-end asserts below."""
     home = str(tmp_path / "dh")
     monkeypatch.setenv("TASK_ROUTER_HOME", home)
     exports = cli._home_env_exports()
-    registry = os.path.join(home, "registry.json")
     tables = os.path.join(cli.REPO, "data", "tables")
     for cmd in ("spawn", "status", "validate", "estimate", "server"):
-        assert exports[cmd]["ROUTING_REGISTRY"] == registry, cmd
+        assert "ROUTING_REGISTRY" not in exports[cmd], cmd
         assert exports[cmd]["ROUTER_STATE_DIR"] == home, cmd
         assert exports[cmd]["ROUTING_DATA_DIR"] == tables, cmd
 
@@ -381,8 +415,10 @@ def test_tr056_per_command_granularity_matches_the_scripts():
     # the same default router_spawn.py's metric writer appends to: exporting
     # TASK_ROUTER_HOME would move the READER off the writer's file
     assert exports["metrics"] == {}
-    # router_server.py reads all four data-home hooks
-    assert set(exports["server"]) == {"ROUTING_REGISTRY", "ROUTING_DATA_DIR",
+    # router_server.py reads the data-home hooks (registry via the shared
+    # scripts/registry_path.py resolver — TR-REV-1012-1 removed the
+    # ROUTING_REGISTRY export)
+    assert set(exports["server"]) == {"ROUTING_DATA_DIR",
                                       "ROUTING_DOCS_DIR", "ROUTER_STATE_DIR"}
     # fleet-state tools keep their own (fleet) defaults by design
     for cmd in ("probefix", "probe", "plan-sweep", "learn"):
@@ -410,13 +446,14 @@ def _cli(args, home, timeout=240):
 
 def test_status_and_spawn_report_the_same_registry_without_home(tmp_path):
     """AC2 — with no TASK_ROUTER_HOME, `router status` and `router spawn` name
-    the SAME registry. Pre-TR-056 status read the repo default
-    (<repo>/registry.json) while spawn read the data home (live repro:
+    the SAME registry. TR-REV-1012-1: that shared registry is the REPO one
+    (<repo>/registry.json — what `make seed` and the bare scripts write) for
+    both commands; previously the CLI exported a data-home path that diverged
+    from the make/bare-script school (live repro of the old split:
     /home/kara/task-router/registry.json vs
     /home/kara/.local/share/task-router/registry.json)."""
     home = tmp_path / "homedir"
     home.mkdir()
-    data_home = home / ".local" / "share" / "task-router"
 
     st = _cli(["status", "--format", "json"], home)
     assert st.returncode == 0, st.stderr
@@ -425,21 +462,33 @@ def test_status_and_spawn_report_the_same_registry_without_home(tmp_path):
     assert sp.returncode == 0, sp.stderr
     spawn = json.loads(sp.stdout)
 
-    expected = str(data_home / "registry.json")
+    expected = os.path.join(cli.REPO, "registry.json")
     assert status["data_home"]["registry"] == expected
     assert spawn["data_home"]["registry"] == expected
     assert spawn["head"], "spawn did not resolve a chain — test would be vacuous"
     assert status["data_home"]["state_dir"] == spawn["data_home"]["state_dir"]
-    # never the repo-relative default status used to keep
-    assert status["data_home"]["registry"] != os.path.join(cli.REPO,
-                                                           "registry.json")
-    # and once the data-home registry exists, status READS it (not the repo one)
-    data_home.mkdir(parents=True, exist_ok=True)
-    (data_home / "registry.json").write_text(json.dumps(
+
+    # TR-REV-1012-1: with an explicit TASK_ROUTER_HOME, status READS that
+    # home's registry (the hermetic-install contract, preserved by the shared
+    # resolver's tier 2 — the data home did not stop existing, it stopped
+    # being the silent default).
+    trh = tmp_path / "explicit-home"
+    trh.mkdir()
+    (trh / "registry.json").write_text(json.dumps(
         {"tables": {"models": []},
          "generated_at": "2026-09-18T00:00:00+00:00"}))
-    st2 = json.loads(_cli(["status", "--format", "json"], home).stdout)
-    assert st2["registry"]["path"] == expected
+    stripped = ("TASK_ROUTER_HOME", "XDG_DATA_HOME", "ROUTING_REGISTRY",
+                "ROUTING_DATA_DIR", "ROUTING_DOCS_DIR", "ROUTER_STATE_DIR",
+                "LEDGER_FILE")
+    env = {k: v for k, v in os.environ.items() if k not in stripped}
+    env["HOME"] = str(home)
+    env["TASK_ROUTER_HOME"] = str(trh)
+    env["PYTHONPATH"] = cli.REPO + os.pathsep + os.environ.get("PYTHONPATH", "")
+    proc = subprocess.run(
+        [sys.executable, "-c", _ENTRY, "status", "--format", "json"],
+        capture_output=True, text=True, env=env, timeout=240)
+    st2 = json.loads(proc.stdout)
+    assert st2["registry"]["path"] == str(trh / "registry.json")
     assert st2["data_home"]["seeded"] is True
 
 

@@ -66,8 +66,28 @@ _REPO = os.path.dirname(_HERE)
 # (data-home derived) before dispatching to this script, and the env override
 # remains authoritative — bare run == repo checkout convention, CLI run ==
 # data-home convention via env, exactly like seed/spawn.
+# TR-REV-1012-1: the constant itself now comes from scripts/registry_path.py
+# (ROUTING_REGISTRY > TASK_ROUTER_HOME/registry.json > <repo>/registry.json >
+# XDG data home) so every script and the CLI resolve ONE order. On a fresh
+# clone with NO env vars the repo default wins everywhere — `make seed &&
+# make validate` agrees without exporting anything.
 
-REGISTRY = os.environ.get('ROUTING_REGISTRY', os.path.join(_REPO, 'registry.json'))
+try:
+    import registry_path as _registry_path_mod
+except ImportError:  # live byte-copy not yet synced (sync_runtime.sh) -> old default
+    _registry_path_mod = None
+
+if _registry_path_mod is not None:
+    # TR-REV-1012-1: ONE shared resolver for every script (seed/spawn/validate/
+    # status/maintain) — ROUTING_REGISTRY > TASK_ROUTER_HOME/registry.json >
+    # <repo>/registry.json > XDG data home (scripts/registry_path.py, the
+    # state_dir.py house pattern). A fresh clone's `make seed && make validate`
+    # now agrees with NO env vars at all: make validate goes through the CLI,
+    # which still exports ROUTING_REGISTRY — env wins, installed behavior
+    # byte-identical.
+    REGISTRY = _registry_path_mod.resolve_registry_path(repo_root=_REPO)
+else:
+    REGISTRY = os.environ.get('ROUTING_REGISTRY', os.path.join(_REPO, 'registry.json'))
 DATA_DIR = os.environ.get('ROUTING_DATA_DIR', os.path.join(_REPO, 'data', 'tables'))
 STATE_DIR = os.environ.get('ROUTER_STATE_DIR', os.path.expanduser('~/.hermes/model-router'))
 
@@ -81,9 +101,12 @@ def _registry_path():
     os.environ at import, so a caller that set ROUTING_REGISTRY after import
     (tests with monkeypatch.setenv, long-lived servers whose env changes) had
     the override silently ignored — /health reported gate.valid=true while the
-    configured registry was absent. Resolution order unchanged: env override
-    wins, <repo>/registry.json otherwise.
+    configured registry was absent. Resolution order: ROUTING_REGISTRY env
+    wins, then the shared scripts/registry_path.py order (TASK_ROUTER_HOME >
+    <repo>/registry.json > XDG data home).
     """
+    if _registry_path_mod is not None:
+        return _registry_path_mod.resolve_registry_path(repo_root=_REPO)
     return os.environ.get('ROUTING_REGISTRY', os.path.join(_REPO, 'registry.json'))
 
 
