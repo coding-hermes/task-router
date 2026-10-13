@@ -125,7 +125,7 @@ ALLOWLIST = {
 UNIVERSAL_MEANINGFUL = {"disabled", "archive", "valid_to", "archived_at", "retired_at"}
 
 
-def is_live(row):
+def is_live(row) -> bool:
     """A row is live if not disabled, not archived, and not past valid_to."""
     if row.get("disabled"):
         return False
@@ -137,7 +137,7 @@ def is_live(row):
     return True
 
 
-def census_table(path):
+def census_table(path) -> dict:
     rows = []
     with open(path) as f:
         for line in f:
@@ -163,7 +163,7 @@ def census_table(path):
     return {"rows": len(rows), "live": len(live_rows), "cols": col_stats}
 
 
-def main():
+def main() -> int:
     as_json = "--json" in sys.argv
     table_filter = None
     if "--table" in sys.argv:

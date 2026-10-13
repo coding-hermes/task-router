@@ -114,7 +114,7 @@ def _provider_of(base_url, stamped):
     return stamped or 'unknown'
 
 
-def _is_numericish(v):
+def _is_numericish(v) -> bool:
     """Column-drift era rows (provider/model hold numerics/epoch floats/hex
     ints) are not lanes — same guard as the Hermes driver."""
     if v is None:
@@ -158,7 +158,7 @@ def task_key_from_session(display_name=None, session_key=None, task=None):
 # The board side: what a task row says about its own acceptance
 # ---------------------------------------------------------------------------
 
-def board_row_context(board_path=None):
+def board_row_context(board_path=None) -> tuple:
     """Read-once index of the JSONL board: (by_id, by_title). Tolerant of torn
     lines (every JSONL consumer in this repo is); missing file -> empty index
     (callers reason about it, never crash)."""
@@ -196,7 +196,7 @@ def board_row_context(board_path=None):
 _FAILURE_SIGNALS = ('fail', 'rejected', 'reverted', 'regression', 'not done')
 
 
-def _criteria_verdict(trow):
+def _criteria_verdict(trow) -> tuple:
     """(verdict, source) from explicit per-criterion results, when the row
     carries them. Unmet criteria fail the task; all-met criteria pass it;
     anything unmmarked is not evidence."""
@@ -211,7 +211,7 @@ def _criteria_verdict(trow):
     return None, None
 
 
-def acceptance_verdict(trow):
+def acceptance_verdict(trow) -> tuple:
     """(success: bool|None, source: str) — the INDEPENDENT pass/fail for a
     board task row. Never reads worker self-report prose. None + reason when
     the row carries no acceptance evidence."""
@@ -278,7 +278,7 @@ def normalize_levels(obj):
 # Derivation: the gateway DB's main-lane usage -> candidate outcome rows
 # ---------------------------------------------------------------------------
 
-def derive_actual_lanes(db_path=None):
+def derive_actual_lanes(db_path=None) -> tuple:
     """One candidate row per (session x main-lane usage row) under the lane
     that ACTUALLY served it, with the session's exact meter.
 
@@ -374,7 +374,7 @@ def derive_actual_lanes(db_path=None):
     return out, problems
 
 
-def _identity_for(sid, identities, problems):
+def _identity_for(sid, identities, problems) -> tuple:
     key, display = identities.get(sid, (None, ''))
     ident = task_key_from_session(display_name=display, session_key=key)
     if ident is None:
@@ -469,7 +469,7 @@ def verified_task_outcomes(db_path=None, board_path=None):
 # CLI: collect + atomic idempotent projection into the verified store
 # ---------------------------------------------------------------------------
 
-def write_store(path, rows):
+def write_store(path, rows) -> int:
     """Replace the store with the fresh projection (tmp + os.replace, the
     outcomes_averages.write_rows pattern). Idempotent BY CONSTRUCTION: the
     same (DB, board) state yields a byte-identical file, so a re-run of the
@@ -484,7 +484,7 @@ def write_store(path, rows):
     return len(rows)
 
 
-def main(argv=None):
+def main(argv=None) -> int:
     import argparse
     ap = argparse.ArgumentParser(
         prog='verified_outcomes.py',

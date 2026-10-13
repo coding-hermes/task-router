@@ -208,7 +208,7 @@ def lane_rows():
     return out
 
 
-def main():
+def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument('--apply', action='store_true', help='append the overlay rows')
     args = ap.parse_args()

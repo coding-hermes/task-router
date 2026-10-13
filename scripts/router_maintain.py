@@ -36,6 +36,7 @@ derivable mapping are left unchanged ("skipped (no mapping)").
 Fail-open like router_spawn.py: if the spot-check fails (missing key, network
 error), reprice warns and skips — never blocks seed/export/commit.
 """
+from collections.abc import Iterator
 import argparse
 import datetime
 import json
@@ -81,7 +82,7 @@ def _load_doc():
         return None
 
 
-def _save_doc(doc):
+def _save_doc(doc) -> None:
     """Atomic write of registry.json (tmp + rename — never a torn file)."""
     fd, tmp = tempfile.mkstemp(dir=os.path.dirname(REGISTRY), suffix='.tmp')
     with os.fdopen(fd, 'w') as f:
@@ -197,7 +198,7 @@ def _plan_terms_for(provider):
     return {}
 
 
-def run_spot_check(dry_run=False):
+def run_spot_check(dry_run: bool=False) -> tuple:
     """Shell out to the OR spot-check tool. Returns ({or_id: prices}, err|None).
 
     The spot-check is a read-only GET against /v1/models — it runs even under
@@ -232,7 +233,7 @@ def find_or_id(model_name, prices):
     return _pricing_helpers.find_or_id(model_name, prices)
 
 
-def compute_price(provider, model, row_evidence, prices):
+def compute_price(provider, model, row_evidence, prices) -> tuple:
     """Compute new normalized_price per Bane's provider formulas.
 
     Returns (new_price, method) or (None, skip_reason).
@@ -369,7 +370,7 @@ def _sync_reprice_to_data(doc):
     return merged
 
 
-def report_reprice(plan, dry_run):
+def report_reprice(plan, dry_run) -> None:
     updated = [u for u in plan if u.get('changed')]
     skipped = [u for u in plan if u.get('new') is None]
     print(f"[reprice] {len(updated)} row(s) would change" if dry_run
@@ -384,7 +385,7 @@ def report_reprice(plan, dry_run):
         print(f"  ... +{len(skipped) - 10} more")
 
 
-def step_reprice(dry_run):
+def step_reprice(dry_run) -> None:
     doc = _load_doc()
     if doc is None:
         print('[reprice] WARNING: registry.json missing/unreadable — skipping reprice (fail-open)', file=sys.stderr)
@@ -451,7 +452,7 @@ def step_seed(dry_run):
     return 0
 
 
-def _table_rows(doc, table):
+def _table_rows(doc, table) -> Iterator[str]:
     """registry.json table → array-per-line JSONL (ns export format).
 
     Sorted by the first column — matches the old SQL export's ORDER BY 1 so
@@ -463,7 +464,7 @@ def _table_rows(doc, table):
         yield json.dumps([r.get(c) for c in r], default=str)
 
 
-def _data_rows(doc, table):
+def _data_rows(doc, table) -> Iterator[str]:
     """registry.json table → keyed-record JSONL (in-repo data/tables format)."""
     rows = sorted((doc.get('tables') or {}).get(table) or [],
                   key=lambda r: str(r.get(next(iter(r), '')) or ''))
@@ -471,7 +472,7 @@ def _data_rows(doc, table):
         yield json.dumps(r, ensure_ascii=False)
 
 
-def write_table(path, table):
+def write_table(path, table) -> int:
     doc = _load_doc()
     if doc is None:
         print(f'[export] WARNING: registry.json missing — cannot export {table}', file=sys.stderr)
@@ -483,7 +484,7 @@ def write_table(path, table):
     return len(lines)
 
 
-def step_export(dry_run):
+def step_export(dry_run) -> int:
     copied = []
     doc = _load_doc()
     failed = []
@@ -550,7 +551,7 @@ def step_export(dry_run):
     return 0
 
 
-def _fmt_profile_level(cat, lvl):
+def _fmt_profile_level(cat, lvl) -> str:
     sym = '+' * lvl if lvl > 0 else ('-' * -lvl if lvl < 0 else '0')
     return f'{cat}={sym}'
 
@@ -585,7 +586,7 @@ def build_snapshot_text():
     return '\n'.join(lines) + '\n'
 
 
-def step_snapshot(dry_run):
+def step_snapshot(dry_run) -> int:
     date = _today()
     ns_path = f'{TASKROUTER_NS}/chains/{date}.md'
     doc_path = f'{DOCS_DIR}/chains-{date}.md'
@@ -621,7 +622,7 @@ def _git(repo, *args):
     return subprocess.run(['git', '-C', repo, *args], capture_output=True, text=True)
 
 
-def step_commit(dry_run):
+def step_commit(dry_run) -> int:
     cmds = [
         (ROUTING_NS, ['add', 'tables/'],
          f'{ROUTING_NS}/tables/'),

@@ -37,6 +37,7 @@ Design constraints (from the board row):
   identity retained so TR-299 can ingest them. This runner does NOT update
   the live rolling averages — that is the TR-299/TR-289 integration.
 """
+from typing import NoReturn
 
 import argparse
 import hashlib
@@ -72,7 +73,7 @@ FORBIDDEN_OUTPUT = (
 )
 
 
-def attempt_id(task_id, provider, model, run_id, seq):
+def attempt_id(task_id, provider, model, run_id, seq) -> str:
     """Stable, replay-deterministic attempt identity."""
     h = hashlib.sha1(
         f'{task_id}|{provider}|{model}|{run_id}|{seq}'.encode()).hexdigest()[:16]
@@ -83,7 +84,7 @@ def attempt_id(task_id, provider, model, run_id, seq):
 # Frozen task set
 # --------------------------------------------------------------------------- #
 
-def frozen_tasks():
+def frozen_tasks() -> list:
     """The SAME task set every lane executes. Each task carries an explicit
     acceptance check (a shell command reading the artifact the attempt left
     behind) and the raw category levels that drive the band key."""
@@ -107,7 +108,7 @@ def frozen_tasks():
 # Executors
 # --------------------------------------------------------------------------- #
 
-def fake_executor(provider, model, task, scratch_dir):
+def fake_executor(provider, model, task, scratch_dir) -> dict:
     """Deterministic offline stand-in for a real model call. Serves per-lane
     metrics AND the requested/served mismatch trap: the xkiro Luna lane serves
     GLM for a Luna request, so the exclusion path is exercisable offline.
@@ -154,7 +155,7 @@ def fake_executor(provider, model, task, scratch_dir):
 FIXTURE_PASS_LANES = {'fixture/model-a', 'fixture/model-b'}
 
 
-def live_executor(provider, model, task, scratch_dir):
+def live_executor(provider, model, task, scratch_dir) -> NoReturn:
     """Real-lane executor used only under --execute. Deliberately refuses until
     a meter-reading wrapper is configured: the requested --model flag is not
     evidence — served identity and tokens must come from state.db
@@ -166,7 +167,7 @@ def live_executor(provider, model, task, scratch_dir):
         'calls happen until the foreman-approved measured run.')
 
 
-def run_acceptance_cmd(cmd_template, artifact):
+def run_acceptance_cmd(cmd_template, artifact) -> tuple:
     """The independent check. Exit code decides — the model's own words never do."""
     cmd = cmd_template.format(artifact=artifact)
     try:
@@ -183,7 +184,7 @@ def default_verifier(task, ex, attempt_row):
     return run_acceptance_cmd(task['acceptance_cmd'], ex.get('artifact') or '/nonexistent')
 
 
-def sandbox_verifier(task, ex, attempt_row):
+def sandbox_verifier(task, ex, attempt_row) -> tuple:
     """Live mode accepts only a verdict returned by the isolated test runner.
 
     Never run model-generated artifacts on the foreman's host. The configured
@@ -280,7 +281,7 @@ def attempt_cost(tokens, price):
 # --------------------------------------------------------------------------- #
 
 def run_tasks(tasks, pairs, executor, price_source, run_id, scratch_dir,
-              sample_floor=DEFAULT_SAMPLE_FLOOR, verifier=None):
+              sample_floor=DEFAULT_SAMPLE_FLOOR, verifier=None) -> tuple:
     """Execute the frozen task set on every pair. Returns (attempts, lanes).
 
     attempts = the full persisted row set; lanes = per-lane aggregates with
@@ -473,7 +474,7 @@ def write_report(path, lanes, run_id, sample_floor, mode):
     return report
 
 
-def main(argv=None):
+def main(argv=None) -> int:
     ap = argparse.ArgumentParser(
         description='TR-295 A/B harness: rank lanes by measured $ per PASSED task')
     ap.add_argument('--execute', action='store_true',

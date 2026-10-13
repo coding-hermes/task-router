@@ -83,7 +83,7 @@ def _rows(name):
     return out
 
 
-def _write(name, rows):
+def _write(name, rows) -> None:
     # TR-199 (spec R4): no anonymous dates on the write path.
     lifecycle_gate.gate_rows(name, rows)
     path = os.path.join(DATA_DIR, f'{name}.jsonl')
@@ -94,7 +94,7 @@ def _write(name, rows):
     os.replace(tmp, path)
 
 
-def _chat_ok(mid):
+def _chat_ok(mid) -> bool:
     low = mid.lower()
     return not any(s in low for s in SKIP)
 
@@ -103,7 +103,7 @@ def _bare(mid):
     return mid.split('/', 1)[1] if '/' in mid else mid
 
 
-def sync(dry_run):
+def sync(dry_run) -> int:
     api = _get('/models')
     raw = sorted(d['id'] for d in api.get('data', []))
     print(f'clinepass API: {len(raw)} models')
@@ -204,7 +204,7 @@ SYNC_FILES = ['data/tables/models.jsonl', 'data/tables/model_catalog.jsonl',
               'data/tables/plan_terms.jsonl', 'data/tables/temporary_discounts.jsonl']
 
 
-def _git(*args, check=False):
+def _git(*args, check: bool=False):
     p = subprocess.run(['git', '-C', _REPO, *args], capture_output=True, text=True)
     if check and p.returncode != 0:
         raise RuntimeError(f'git {" ".join(args)} failed: {(p.stderr or p.stdout).strip()[:400]}')
@@ -216,7 +216,7 @@ def _branch():
     return p.stdout.strip() or 'main'
 
 
-def commit_and_push(do_push):
+def commit_and_push(do_push) -> int:
     """Stage ONLY the sync-owned files, commit with repo identity + co-author,
     push when requested. Returns 0 on success, non-zero on failure."""
     try:

@@ -100,7 +100,7 @@ def resolves_path(state_dir):
     return os.path.join(state_dir, RESOLVES_FILE)
 
 
-def append_jsonl(path, row):
+def append_jsonl(path, row) -> None:
     """Append ONE row, flock-serialized, fsync'd.
 
     Same discipline as the outcome store (router_outcomes.py): the ledger is
@@ -140,7 +140,7 @@ def load_seen(path):
     return seen
 
 
-def run_resolve(spawn_cmd, board, task_id, timeout_s=RESOLVE_TIMEOUT_S):
+def run_resolve(spawn_cmd, board, task_id, timeout_s=RESOLVE_TIMEOUT_S) -> tuple:
     """Run the existing resolve for one task id as a subprocess.
 
     Returns (updates, error) where updates may carry `returncode`,
@@ -174,7 +174,7 @@ def run_resolve(spawn_cmd, board, task_id, timeout_s=RESOLVE_TIMEOUT_S):
     return updates, None
 
 
-def _chain_head_of(payload):
+def _chain_head_of(payload) -> dict | None:
     """(provider, model, usd_1m) of the resolve's head hop, or None."""
     head = payload.get('head')
     if not isinstance(head, dict) or not head.get('provider'):
@@ -188,7 +188,7 @@ class BoardIntake:
     """Tails the board JSONL and resolves every new pending task id once."""
 
     def __init__(self, board, state_dir, spawn_cmd,
-                 timeout_s=RESOLVE_TIMEOUT_S, log=None):
+                 timeout_s=RESOLVE_TIMEOUT_S, log=None) -> None:
         self.board = board
         self.state_dir = state_dir
         self.spawn_cmd = list(spawn_cmd)
@@ -206,7 +206,7 @@ class BoardIntake:
 
     # -- state helpers ------------------------------------------------------
 
-    def _reconcile_claims(self):
+    def _reconcile_claims(self) -> None:
         """A claim without a completion = the daemon died mid-resolve.
 
         Fail-open + never-quiet: emit the error record the crash prevented,
@@ -237,7 +237,7 @@ class BoardIntake:
         self.seen[str(tid)] = row
         return row['ts']
 
-    def _complete_claim(self, tid, claim_ts, resolved_at, outcome):
+    def _complete_claim(self, tid, claim_ts, resolved_at, outcome) -> None:
         row = {'id': str(tid), 'ts': claim_ts, 'resolved_at': resolved_at,
                'source': 'claim-completed', 'outcome': outcome}
         append_jsonl(self.seen_file, row)
@@ -245,7 +245,7 @@ class BoardIntake:
 
     # -- board reading ------------------------------------------------------
 
-    def _read_new_bytes(self, backlog=False):
+    def _read_new_bytes(self, backlog: bool=False):
         """Return the complete-line text since the tracked offset, and
         advance it. Bytes of a trailing line without a newline are NOT
         dropped: they are carried in `_pending` and prepended to the next
@@ -286,7 +286,7 @@ class BoardIntake:
         self._pending = data[cut + 1:]
         return data[:cut + 1].decode('utf-8', errors='replace')
 
-    def _report_board_error(self, msg):
+    def _report_board_error(self, msg) -> None:
         # Board-level failures are logged every time but recorded ONCE per
         # incident in the resolves ledger — a per-poll record would just spam
         # the ledger while the board is briefly absent (visibility, not noise).
@@ -346,7 +346,7 @@ class BoardIntake:
                              'error' if err else 'ok')
         return rec
 
-    def poll(self, backlog=False):
+    def poll(self, backlog: bool=False):
         """One pass over the board. Returns a tally dict; never raises."""
         tally = {'new': 0, 'resolved': 0, 'errors': 0, 'skipped': 0}
         text = self._read_new_bytes(backlog=backlog)
@@ -433,7 +433,7 @@ def build_spawn_cmd(override):
     return [sys.executable, DEFAULT_SPAWN_SCRIPT]
 
 
-def main(argv=None):
+def main(argv=None) -> int:
     ap = argparse.ArgumentParser(
         description='TR-298 automatic board task intake — resolve every new '
                     'pending board task through the existing --from-task path')

@@ -90,7 +90,7 @@ REGISTRY = os.environ.get('ROUTING_REGISTRY', os.path.join(_REPO, 'registry.json
 LEDGER = os.environ.get('ROUTER_OUTCOMES', os.path.join(_REPO, 'data', 'state', 'outcomes.jsonl'))
 
 
-def load_tables(path):
+def load_tables(path) -> tuple:
     """registry.json (live store) -> {tables: {...}}; {} on any error."""
     try:
         with open(path) as f:
@@ -146,7 +146,7 @@ def load_sample(path, sample, ts_max=None):
     return out
 
 
-def build(tables):
+def build(tables) -> tuple:
     tiers, folded = {}, None
     for r in tables.get('model_tier') or []:
         tiers.setdefault(r.get('model'), {})[r.get('category')] = r.get('tier')
@@ -169,7 +169,7 @@ def build(tables):
     return tiers, folded, eligible, registry
 
 
-def clears(mt, reqs):
+def clears(mt, reqs) -> bool:
     """True when the alias-aware tier dict clears EVERY requirement."""
     for cat, lvl in reqs.items():
         have = mt.get(cat)
@@ -238,7 +238,7 @@ def measure(tables, sample_rows):
     }
 
 
-def evidence_attribution(tables):
+def evidence_attribution(tables) -> tuple:
     """Per-category perf-evidence source breakdown (TR-185).
 
     Mirrors the seed's dedup exactly (router_seed.py: max perf wins per
@@ -269,12 +269,12 @@ def evidence_attribution(tables):
     return out, dict(raw_src)
 
 
-def relax_reqs(reqs, caps):
+def relax_reqs(reqs, caps) -> dict:
     """Cap the required level of every capped category (min keeps lower asks)."""
     return {c: (min(l, caps[c]) if c in caps else l) for c, l in reqs.items()}
 
 
-def simulate_relax(res, caps):
+def simulate_relax(res, caps) -> dict:
     """Re-run ELIGIBLE satisfiability over the SAME sample with capped reqs."""
     tiers, eligible, rows = res['_tiers'], res['_eligible'], res['rows']
     sat = 0
@@ -349,7 +349,7 @@ def why_thin(cat, ev, n_registry, clearing, hardest):
             + '; '.join(clauses))
 
 
-def main():
+def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.split('\n')[0])
     ap.add_argument('--sample', choices=('rated', 'rated-nohops'), default='rated-nohops')
     ap.add_argument('--ledger', default=LEDGER)

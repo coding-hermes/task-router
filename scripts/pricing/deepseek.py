@@ -7,7 +7,7 @@ by the reprice engine).
 """
 
 
-def price(row, terms, catalog, helpers, ctx):
+def price(row, terms, catalog, helpers, ctx) -> tuple:
     prices = (ctx or {}).get('spot_prices') or {}
     mdl = ((row.get('model')) or '').lower()
     ent = prices.get(helpers.find_or_id(mdl, prices))

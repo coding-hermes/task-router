@@ -235,7 +235,7 @@ def load_env():
     return env
 
 
-def load_providers():
+def load_providers() -> tuple:
     """probe_providers.jsonl -> ({id: (base_url, key_env, default_model)},
     {id: reason}).
 
@@ -289,7 +289,7 @@ def load_provider_headers():
     return out
 
 
-def load_fix_rows():
+def load_fix_rows() -> tuple:
     """probe_fixes.jsonl -> {(provider, model): fix_to}; probe_excludes.jsonl ->
     {(provider, model): reason}. Data rows override nothing here (dict keyed by
     source id) — a row is a row."""
@@ -392,7 +392,7 @@ def _fmt_http_err(r):
     return code
 
 
-def ping(base, key, model, params=None, extra_headers=None):
+def ping(base, key, model, params=None, extra_headers=None) -> dict:
     if not base:
         return {'status': 'SKIP', 'error': 'no endpoint configured'}
     r = _req(base, key, model, params, TIMEOUT_S, extra_headers)
@@ -440,7 +440,7 @@ def ping(base, key, model, params=None, extra_headers=None):
     return {'status': 'DOWN', 'error': r.get('error'), 'latency_ms': r.get('latency_ms')}
 
 
-def check_credits(prov, env):
+def check_credits(prov, env) -> dict:
     """Best-effort credit balance. Never raises; failures => source 'unknown'."""
     entry = CREDIT_ENDPOINTS.get(prov)
     if not entry:
@@ -481,7 +481,7 @@ def check_credits(prov, env):
         return {'source': 'unknown', 'note': str(e)[:100]}
 
 
-def aggregate(models):
+def aggregate(models) -> tuple:
     """models: {model: {status,...}} -> (status, stats). EXCLUDED and DISABLED
     rows don't count toward totals. Provider DOWN only when EVERY probed model
     is down — a single up/overloaded model keeps the provider OK (Bane 08-28);
@@ -561,7 +561,7 @@ def fmt_provider_block(prov, entry):
     return lines
 
 
-def main(config_path=None, only_providers=None, output_path=None, write=True):
+def main(config_path=None, only_providers=None, output_path=None, write: bool=True):
     # Backwards compatibility: old callers pass no arguments; argparse callers
     # pass the parsed values. Unset values keep the module defaults.
     # write=False (--no-write/--dry-run, TR-031): probes run and the report
@@ -714,7 +714,7 @@ def main(config_path=None, only_providers=None, output_path=None, write=True):
     n = len(results)
     out.append(f'📡 Provider health — {n} providers · {ts} UTC')
 
-    def group(statuses):
+    def group(statuses) -> list:
         return sorted([(p, r) for p, r in results.items() if r.get('status') in statuses],
                       key=lambda kv: kv[0])
 

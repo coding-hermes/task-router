@@ -78,7 +78,7 @@ def active_discounts(provider, model, discounts, today):
         yield d
 
 
-def apply_discount(price, provider, model, discounts, today):
+def apply_discount(price, provider, model, discounts, today) -> tuple:
     """Apply active discounts to a base price. Returns (effective, notes).
 
     Identical semantics to the inline router_pricing version: 'free' or a
@@ -100,7 +100,7 @@ def apply_discount(price, provider, model, discounts, today):
     return round(eff, 4), notes
 
 
-def public_from_sticker(cost_in, cost_out):
+def public_from_sticker(cost_in, cost_out) -> tuple | None:
     """Public $/M prices from a models.dev-style sticker (list price).
 
     Returns (in_per_m, out_per_m, blended) or None when no input sticker.
@@ -114,7 +114,7 @@ def public_from_sticker(cost_in, cost_out):
     return round(ci, 4), round(co, 4), round(BLENDED_IN * ci + BLENDED_OUT * co, 4)
 
 
-def fill_public_price(m, cost_in, cost_out):
+def fill_public_price(m, cost_in, cost_out) -> bool:
     """Stamp PUBLIC (sticker) prices on a model row unless already present.
 
     Bane 2026-08-27: cost reporting ("what did it cost to build feature X")
@@ -169,7 +169,7 @@ def find_or_id(model_name, prices):
     return None
 
 
-def blended_estimate(provider, model, catalog, prices=None, weights=(BLENDED_IN, BLENDED_OUT)):
+def blended_estimate(provider, model, catalog, prices=None, weights: tuple=(BLENDED_IN, BLENDED_OUT)) -> tuple:
     """Blended $/M estimate 0.96*in + 0.04*out from the best available sticker.
 
     Used by opencode-go reprice (weights over an OR spot entry) and the
@@ -193,7 +193,7 @@ def blended_estimate(provider, model, catalog, prices=None, weights=(BLENDED_IN,
     return round(win * float(ci) + wout * float(co), 6), ci, co
 
 
-def _catalog_sticker(provider, model, catalog):
+def _catalog_sticker(provider, model, catalog) -> tuple:
     """(cost_input, cost_output) from the model_catalog; falls back to any
     provider's sticker for the same model (the 'same weights, other
     provider's sticker = the standard API rate' rule)."""
@@ -206,7 +206,7 @@ def _catalog_sticker(provider, model, catalog):
     return ci, co
 
 
-def flat_subscription_price(model_row, terms, catalog, discounts=None, today=None):
+def flat_subscription_price(model_row, terms, catalog, discounts=None, today=None) -> tuple:
     """Included-lane flat-subscription math: (cost_in + cost_out) / 2 / multiplier.
 
     terms is the provider's plan_terms row; catalog the {(provider, model):

@@ -76,7 +76,7 @@ CACHE_KEYED = {
 PROBE_PROVIDERS_FILE = 'probe_providers.jsonl'
 
 
-def load_probe_providers(path=None):
+def load_probe_providers(path=None) -> tuple:
     """probe_providers.jsonl -> ({id: (base_url, key_env, extra_headers)},
     {id: reason}).
 
@@ -119,7 +119,7 @@ def load_probe_providers(path=None):
     return out, disabled
 
 
-def resolve(prov, prov_cfg, env, probe_data=None):
+def resolve(prov, prov_cfg, env, probe_data=None) -> tuple:
     """(base_url, key, extra_headers) or (None, None, reason).
 
     Lookup order: CACHE_KEYED (subscription cache files) -> config.yaml
@@ -193,7 +193,7 @@ def load_providers():
     return out
 
 
-def load(name):
+def load(name) -> list:
     with open(os.path.join(DATA_DIR, f'{name}.jsonl'), encoding='utf-8') as fh:
         return [json.loads(l) for l in fh if l.strip()]
 
@@ -320,7 +320,7 @@ EXTENDED = [
 ]
 
 
-def err_class(e):
+def err_class(e) -> str:
     """Classify a failure so it cannot be mistaken for a capability signal.
 
     A 429 says the PROVIDER throttled us; a 404/403 says the lane is not served at
@@ -528,7 +528,7 @@ EXTENDED_V3 = [
 ]
 
 
-def call_anthropic(base, url_model, key, prompt, extra, max_tokens=3000, retries=3):
+def call_anthropic(base, url_model, key, prompt, extra, max_tokens: int=3000, retries: int=3):
     """Anthropic Messages shape — some providers serve Anthropic models ONLY here.
 
     commandcode answers /chat/completions for claude-opus-5-5 with
@@ -569,7 +569,7 @@ def call_anthropic(base, url_model, key, prompt, extra, max_tokens=3000, retries
             raise
 
 
-def call(base, key, model, prompt, extra, max_tokens=3000, retries=4, provider=None):
+def call(base, key, model, prompt, extra, max_tokens: int=3000, retries: int=4, provider=None) -> tuple:
     """One chat-completions call. `model` may arrive BARE (registry form); when
     `provider` names a provider with a wire-id contract (TR-233), the REQUEST
     carries wire_model_id(provider, model) — the caller's bare id is never
@@ -623,7 +623,7 @@ def call(base, key, model, prompt, extra, max_tokens=3000, retries=4, provider=N
     return content, lat
 
 
-def main():
+def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument('--providers', required=True)
     ap.add_argument('--limit', type=int, default=0, help='max models (0 = all matching)')
@@ -701,7 +701,7 @@ def main():
     lock = __import__('threading').Lock()
     fill_only = bool(only_models) and (args.extended or args.extended2 or args.extended3)
 
-    def one(prov, model, base, key, extra):
+    def one(prov, model, base, key, extra) -> None:
         v5 = {'provider': prov, 'model': model}
         ag = {'provider': prov, 'model': model}
         ext = {'provider': prov, 'model': model}
@@ -812,7 +812,7 @@ def main():
     if args.extended3:
         out_map.append(('extended3', results_ext3))
 
-    def flush():
+    def flush() -> None:
         """Write every buffer NOW.
 
         Results used to be written once, after the pool drained — so a wave killed by

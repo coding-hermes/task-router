@@ -79,7 +79,7 @@ def _utc_now():
     return datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds")
 
 
-def _age_minutes(iso_ts):
+def _age_minutes(iso_ts) -> float | None:
     """Minutes since iso_ts, or None when unparseable."""
     if not iso_ts:
         return None
@@ -153,7 +153,7 @@ VERSION = "task-router/1.0"
 _LOADED_COMMIT = git_commit()
 
 
-def code_identity():
+def code_identity() -> dict:
     """LOADED (this process) vs LIVE (on disk / HEAD now) code identity.
 
     `stale` is the deploy-parity verdict: True means the code serving requests is
@@ -266,7 +266,7 @@ def registry_age():
     return out
 
 
-def validate_gate():
+def validate_gate() -> dict:
     """The `router validate` gate verdict, in-process (TR-REVIEW-001).
 
     In-process rather than a subprocess on purpose: /health is the endpoint a
@@ -297,7 +297,7 @@ def validate_gate():
     }
 
 
-def latest_chains_snapshot():
+def latest_chains_snapshot() -> dict:
     """Newest data/state/chains/<date>.md, as a freshness marker."""
     chains_dir = REPO / "data" / "state" / "chains"
     try:
@@ -308,7 +308,7 @@ def latest_chains_snapshot():
         return {"latest": None, "count": 0}
 
 
-def health(mode="read-only", data_dir=None):
+def health(mode: str="read-only", data_dir=None):
     """The /health payload. Fail-open: a broken block never kills the response."""
     data_dir = Path(data_dir) if data_dir else Path(
         os.environ.get("ROUTING_DATA_DIR", REPO / "data" / "tables"))
@@ -437,7 +437,7 @@ def health(mode="read-only", data_dir=None):
     return out
 
 
-def _gate_open(state):
+def _gate_open(state) -> bool:
     """A pair is 'open' (gating active) while open_until is in the future."""
     ou = state.get("open_until")
     if not ou:
@@ -462,7 +462,7 @@ def _load_json_safe(path):
         return None
 
 
-def model_status(provider=None, data_dir=None):
+def model_status(provider=None, data_dir=None) -> dict:
     """TR-087: the per-model/provider status LOOKUP.
 
     One row per registry lane: identity + pricing + probe status/latency/ts +

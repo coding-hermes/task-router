@@ -156,7 +156,7 @@ def code_from_status(status, body=None):
     return None
 
 
-def code_from_exception(exc):
+def code_from_exception(exc) -> str:
     """Taxonomy code for a transport-level exception (timeout vs dead)."""
     name = type(exc).__name__ if exc is not None else ''
     text = str(exc or '').lower()
@@ -176,16 +176,16 @@ def context_length_from_body(body):
                                    "maximum context", "too large"))
 
 
-def retry_once(code):
+def retry_once(code) -> bool:
     """True when the code's retry policy allows ONE same-hop retry."""
     return RETRY_POLICY.get(code) == "retry-same"
 
 
-def demote_pair(code):
+def demote_pair(code) -> bool:
     """True when the code demotes only the (provider, model) pair."""
     return BLAST_RADIUS.get(code) == "model"
 
 
-def demote_provider(code):
+def demote_provider(code) -> bool:
     """True when the code demotes the whole provider (hard condition)."""
     return BLAST_RADIUS.get(code) == "provider"

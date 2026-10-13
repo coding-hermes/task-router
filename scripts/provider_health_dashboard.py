@@ -69,7 +69,7 @@ def read_jsonl(path):
     return out
 
 
-def load_history(path):
+def load_history(path) -> tuple:
     """-> (snapshots, parse_errors). One snapshot per hourly run."""
     snaps, bad = [], 0
     if not os.path.exists(path):
@@ -93,7 +93,7 @@ def load_history(path):
     return snaps, bad
 
 
-def provider_status(snap_providers, name):
+def provider_status(snap_providers, name) -> tuple:
     v = snap_providers.get(name) or {}
     return (v.get('status') or 'UNPROBED'), v
 
@@ -156,13 +156,13 @@ def load_usage():
     return use
 
 
-def usd(v):
+def usd(v) -> str | None:
     if not isinstance(v, (int, float)):
         return None
     return f'${v:,.2f}' if v >= 1 else f'${v:,.4f}'
 
 
-def tok(v):
+def tok(v) -> str | None:
     if not isinstance(v, (int, float)):
         return None
     if v >= 1e9:
@@ -178,7 +178,7 @@ def esc(s):
     return html.escape(str(s), quote=True)
 
 
-def spark(vals, width=120, height=18):
+def spark(vals, width: int=120, height: int=18) -> str:
     """Inline SVG sparkline; None when no data."""
     if len(vals) < 2:
         return ''
@@ -191,7 +191,7 @@ def spark(vals, width=120, height=18):
             f'viewBox="0 0 {width} {height}"><polyline points="{pts}"/></svg>')
 
 
-def bar(pct, cls=''):
+def bar(pct, cls='') -> str:
     if pct is None:
         return '<span class="na" title="no probe samples in window">n/a</span>'
     return (f'<span class="barwrap" title="{pct}% up">'
@@ -199,7 +199,7 @@ def bar(pct, cls=''):
             f'<span class="pct">{pct}%</span>')
 
 
-def build(out_dir, quiet=False):
+def build(out_dir, quiet: bool=False):
     snaps, bad = load_history(HEALTH_JSONL)
     state = {}
     if os.path.exists(HEALTH_STATE):
@@ -454,7 +454,7 @@ def render(s, prov_rows, lane_rows, transitions):
         f'<span class="{cls(t["to"])}">{esc(t["to"])}</span></div>'
         for t in reversed(transitions)) or '<div class="meta">none in the last 24h</div>'
 
-    def prow(r):
+    def prow(r) -> str:
         w = r['w24'] or {}
         pct = w.get('pct')
         bcls = 'low' if (pct is not None and pct < 95) else ''
@@ -474,7 +474,7 @@ def render(s, prov_rows, lane_rows, transitions):
                 f'<td class="meta">{lt_s}</td>'
                 f'<td class="err">{err}</td></tr>')
 
-    def lrow(r):
+    def lrow(r) -> str:
         lat = (f'{r["latency_ms"]} ms <span class="meta">({r["latency_src"]})</span>'
                if r['latency_ms'] is not None else '<span class="na">n/a</span>')
         pr = (f'{usd(r["in_per_m"])}/{usd(r["out_per_m"])}'
@@ -535,7 +535,7 @@ probe's JSONL, this page is a view.</footer>
     return doc
 
 
-def main():
+def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument('--out', default=DEFAULT_OUT)
     ap.add_argument('--quiet', action='store_true')

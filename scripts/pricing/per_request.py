@@ -8,7 +8,7 @@ missing (budget unknown), falls back to the blended estimate
 """
 
 
-def price(row, terms, catalog, helpers, ctx):
+def price(row, terms, catalog, helpers, ctx) -> tuple:
     cost = terms.get('plan_cost')
     reqs = terms.get('requests')
     tpr = terms.get('tokens_per_request')

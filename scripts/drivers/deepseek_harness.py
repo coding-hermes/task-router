@@ -56,8 +56,8 @@ class DeepseekHarnessDriver(Driver):
               'supports_store': False}
 
     @classmethod
-    def config(cls, proxy_base='http://127.0.0.1:9092', route='router',
-               model_ids=None):
+    def config(cls, proxy_base: str='http://127.0.0.1:9092', route: str='router',
+               model_ids=None) -> dict:
         """The `llm-pi-ai` route block a user merges into settings.yaml.
 
         Shaped like the documented route form (README's `acme-gateway` example):
@@ -94,7 +94,7 @@ class DeepseekHarnessDriver(Driver):
         return import_dsh_sessions(sessions_dir or SESSIONS_DIR)
 
     @classmethod
-    def row_for(cls, **kw):
+    def row_for(cls, **kw) -> dict:
         return {'source_system': cls.id, 'session_id': kw.get('session_id'),
                 'task_label': kw.get('task_label'),
                 'complexity': kw.get('complexity'),
@@ -109,7 +109,7 @@ class DeepseekHarnessDriver(Driver):
                 'success': kw.get('success'), 'ts': kw.get('ts')}
 
 
-def import_dsh_sessions(sessions_dir='~/.dsh/sessions'):
+def import_dsh_sessions(sessions_dir: str='~/.dsh/sessions'):
     """TR-075 T surface: dsh session log -> TR-049 rows.
 
     The harness writes `<sessions>/<cwd-slug>/<session-id>/session.v<N>.jsonl`
@@ -145,7 +145,7 @@ def import_dsh_sessions(sessions_dir='~/.dsh/sessions'):
         if not cands:
             continue
 
-        def _ver(p):
+        def _ver(p) -> int:
             m = re.search(r'session\.v(\d+)\.jsonl', os.path.basename(p))
             return int(m.group(1)) if m else 0
         path = max(cands, key=_ver)

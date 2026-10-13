@@ -70,14 +70,14 @@ PAYG_IN, PAYG_OUT, PAYG_CACHE = 1.25, 4.25, 0.15   # meta-model rows, ev meta-do
 CTX = 1048576                                       # meta-model rows carry 1M ctx
 
 
-def _rows(name):
+def _rows(name) -> list:
     path = os.path.join(DATA_DIR, name + '.jsonl')
     if not os.path.exists(path):
         return []
     return [json.loads(l) for l in open(path, encoding='utf-8') if l.strip()]
 
 
-def _write(name, rows):
+def _write(name, rows) -> None:
     # TR-199 (spec R4): no anonymous dates on the write path.
     lifecycle_gate.gate_rows(name, rows)
     path = os.path.join(DATA_DIR, name + '.jsonl')
@@ -104,7 +104,7 @@ def _key():
         raise SystemExit(2)
 
 
-def live_chat_models(key):
+def live_chat_models(key) -> list:
     req = urllib.request.Request(API, headers={'Authorization': f'Bearer {key}',
                                                'Accept': 'application/json'})
     with urllib.request.urlopen(req, timeout=30) as r:
@@ -113,7 +113,7 @@ def live_chat_models(key):
     return sorted(i for i in ids if i and i.startswith('muse-spark-') and 'contributor' not in i)
 
 
-def main(argv=None):
+def main(argv=None) -> int:
     ap = argparse.ArgumentParser()
     g = ap.add_mutually_exclusive_group()
     g.add_argument('--dry-run', action='store_true')

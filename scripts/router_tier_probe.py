@@ -122,7 +122,7 @@ GAP_EVIDENCE_CLASSES = ('not_served', 'not_in_plan', 'endpoint_unsupported',
                         'wrong_shape')
 
 
-def load(name):
+def load(name) -> list:
     """data/tables/<name>.jsonl -> [row]. Missing file -> []."""
     path = os.path.join(DATA_DIR, f'{name}.jsonl')
     if not os.path.exists(path):
@@ -131,7 +131,7 @@ def load(name):
         return [json.loads(l) for l in fh if l.strip()]
 
 
-def lane_state(m):
+def lane_state(m) -> str:
     """The rank-audit lifecycle state of a models.jsonl row."""
     if m.get('archive'):
         return 'archived'
@@ -176,13 +176,13 @@ def _resolvable_providers(prov_cfg=None, env=None, probe_data=None):
     return out
 
 
-def models_provider_pairs():
+def models_provider_pairs() -> set:
     """Distinct (provider, model) pairs in models.jsonl (for provider enumeration)."""
     return {(m.get('provider'), m.get('model')) for m in load('models')}
 
 
 def select_targets(categories, only_providers=None, only_models=None,
-                   models=None, excludes=None, tiers=None, dead=None):
+                   models=None, excludes=None, tiers=None, dead=None) -> tuple:
     """Lanes that NEED measurement, with a reason for every lane that does
     not qualify. Returns (targets, excluded) where targets is a sorted list
     of (provider, model) and excluded is {reason_class: [(provider, model)]}.
@@ -212,7 +212,7 @@ def select_targets(categories, only_providers=None, only_models=None,
     only_models = set(only_models or [])
     targets, excluded = [], collections.defaultdict(list)
 
-    def exclude(reason, prov, model):
+    def exclude(reason, prov, model) -> None:
         excluded[reason].append((prov, model))
 
     seen = set()
@@ -249,7 +249,7 @@ def select_targets(categories, only_providers=None, only_models=None,
     return sorted(targets), excluded
 
 
-def category_census(categories=None, models=None, tier_rows=None):
+def category_census(categories=None, models=None, tier_rows=None) -> dict:
     """{category: n_ACTIVE_LANES tiered} — the coverage table unit."""
     models = models if models is not None else load('models')
     active_models = {m.get('model') for m in models if lane_state(m) == 'active'}
@@ -260,7 +260,7 @@ def category_census(categories=None, models=None, tier_rows=None):
     return {c: len(tiered.get(c, set()) & active_models) for c in cats}
 
 
-def estimate_costs(models_rows, targets, calls_per_lane=12, max_tokens=3000):
+def estimate_costs(models_rows, targets, calls_per_lane: int=12, max_tokens: int=3000) -> dict:
     """{provider: worst_case_usd} — calls x max_tokens at each lane's own
     published output sticker (public_out_per_m); $0 where none is published
     (:free / sticker-NULL lanes)."""
@@ -275,7 +275,7 @@ def estimate_costs(models_rows, targets, calls_per_lane=12, max_tokens=3000):
     return {p: round(v, 4) for p, v in costs.items()}
 
 
-def stamp_reasons(targets, excluded, commit=False, data_dir=None, today=None):
+def stamp_reasons(targets, excluded, commit: bool=False, data_dir=None, today=None):
     """Append data/null_reasons.jsonl rows for live lanes measurement cannot
     reach. Only ACTIVE lanes are stamped — archived/retired/disabled/unpriced
     rows are not live, so their tier null needs no reason (TR-197 scopes

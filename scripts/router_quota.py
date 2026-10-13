@@ -89,7 +89,7 @@ def load(path):
     return {'updated': None, 'providers': {}}
 
 
-def _fsync_dir(path):
+def _fsync_dir(path) -> None:
     try:
         dfd = os.open(os.path.dirname(path), os.O_RDONLY)
         try:
@@ -100,7 +100,7 @@ def _fsync_dir(path):
         pass  # some filesystems don't support dir fsync — best effort
 
 
-def save(path, doc):
+def save(path, doc) -> None:
     """Atomic crash-safe write: unique temp + fsync + os.replace + dir fsync.
 
     Never truncates the live file (a torn quota-state.json fails OPEN — the
@@ -135,7 +135,7 @@ class _Lock:
     death (no deadlock), and a lost update here would silently drop a gate.
     """
 
-    def __init__(self, path):
+    def __init__(self, path) -> None:
         self.path = path + '.lock'
         self.fh = None
 
@@ -145,7 +145,7 @@ class _Lock:
         fcntl.flock(self.fh, fcntl.LOCK_EX)
         return self
 
-    def __exit__(self, *exc):
+    def __exit__(self, *exc) -> bool:
         if self.fh is not None:
             self.fh.close()
             self.fh = None
@@ -194,7 +194,7 @@ def _validate_provider(parser, provider):
     return prov
 
 
-def _resolver_helpers():
+def _resolver_helpers() -> tuple:
     """(load_quota_gates, quota_gate_summary) from router_spawn.py, or (None, None).
 
     Reused so `router quota status` classifies EXACTLY like the resolver does
@@ -224,7 +224,7 @@ def _touch_updated(doc):
 
 
 def quota_set(provider, reason, reset_at, detected_at=None, state_file_arg=None,
-              state_dir_arg=None, as_json=False):
+              state_dir_arg=None, as_json: bool=False) -> int:
     path = state_file(state_file_arg, state_dir_arg)
     reset_iso = parse_reset(reset_at)          # ValueError -> main() exit 2
     detected = now_iso()
@@ -262,8 +262,8 @@ def quota_set(provider, reason, reset_at, detected_at=None, state_file_arg=None,
 # ----------------------------------------------------------------- clear ----
 
 
-def quota_clear(provider=None, all_=False, state_file_arg=None,
-                state_dir_arg=None, as_json=False):
+def quota_clear(provider=None, all_: bool=False, state_file_arg=None,
+                state_dir_arg=None, as_json: bool=False) -> int:
     path = state_file(state_file_arg, state_dir_arg)
     removed = []
     with _Lock(path):
@@ -308,7 +308,7 @@ def quota_clear(provider=None, all_=False, state_file_arg=None,
 
 
 def quota_status(provider=None, state_file_arg=None, state_dir_arg=None,
-                 as_json=False):
+                 as_json: bool=False) -> int:
     path = state_file(state_file_arg, state_dir_arg)
     doc = load(path)
     present = os.path.exists(path)
@@ -370,7 +370,7 @@ def quota_status(provider=None, state_file_arg=None, state_dir_arg=None,
 # ------------------------------------------------------------ accounting ----
 
 
-def _delegate(module, rest):
+def _delegate(module, rest) -> int:
     """Run another quota-layer module as __main__, propagating its exit code.
 
     One file per quota layer is the TR-206..210 layout (L2 accounting view,
@@ -436,7 +436,7 @@ def main(argv=None):
                     'A gate excludes the provider until its reset_at passes.')
     sub = parser.add_subparsers(dest='command', metavar='COMMAND', required=True)
 
-    def add_target(p):
+    def add_target(p) -> None:
         p.add_argument('--state-file', dest='state_file', default=None,
                        help=f'explicit state file (default: '
                             f'$ROUTER_STATE_DIR/{QUOTA_FILE})')

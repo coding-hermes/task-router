@@ -58,8 +58,8 @@ class OpenClawDriver(Driver):
     compat = {'supports_developer_role': True}
 
     @classmethod
-    def config(cls, proxy_base='http://127.0.0.1:9092',
-               provider_name='task-router', model_ids=None):
+    def config(cls, proxy_base: str='http://127.0.0.1:9092',
+               provider_name: str='task-router', model_ids=None) -> dict:
         """The `models.providers` block that routes OpenClaw through the proxy.
 
         Shaped for `openclaw config patch` / an additive merge: the doc's own
@@ -125,7 +125,7 @@ class OpenClawDriver(Driver):
         return ro.import_openclaw(state_dir or '~/.openclaw')
 
     @classmethod
-    def row_for(cls, **kw):
+    def row_for(cls, **kw) -> dict:
         """One outcome row in the TR-049 shape."""
         return {'source_system': cls.id, 'session_id': kw.get('session_id'),
                 'task_label': kw.get('task_label'),

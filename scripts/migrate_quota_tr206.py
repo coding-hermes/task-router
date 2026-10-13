@@ -366,7 +366,7 @@ def expected_fields(lineno, row):
     return fields
 
 
-def main():
+def main() -> None:
     with open(TABLE, encoding="utf-8", newline="") as fh:
         original_lines = fh.read().split("\n")
     if original_lines and original_lines[-1] == "":

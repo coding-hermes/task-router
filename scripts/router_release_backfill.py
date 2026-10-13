@@ -45,7 +45,7 @@ DATA_DIR = os.environ.get('ROUTING_DATA_DIR', os.path.join(REPO, 'data', 'tables
 DEFAULT_ROSTERS = os.path.expanduser('~/model_bench/rosters')
 
 
-def load(name):
+def load(name) -> list:
     with open(os.path.join(DATA_DIR, f'{name}.jsonl'), encoding='utf-8') as fh:
         return [json.loads(l) for l in fh if l.strip()]
 
@@ -87,7 +87,7 @@ def superseded_ids(text):
     return out
 
 
-def plausible(d):
+def plausible(d) -> bool:
     try:
         dt = datetime.date.fromisoformat(d)
     except (TypeError, ValueError):
@@ -95,7 +95,7 @@ def plausible(d):
     return datetime.date(2025, 1, 1) <= dt <= datetime.date.today() + datetime.timedelta(days=7)
 
 
-def _write_models(models, path=None):
+def _write_models(models, path=None) -> None:
     """Rewrite models.jsonl (path defaults to <DATA_DIR>/models.jsonl).
     TR-199 (spec R4): the write helper itself is gated, so no call site can
     bypass the provenance check."""
@@ -228,7 +228,7 @@ def main():
     proposals, blocked, regressions = [], [], []
     seen = set()
 
-    def classify(m, s):
+    def classify(m, s) -> None:
         """The per-category retirement gate. A candidate is not a verdict.
 
         Compare PER CATEGORY, not by count: counting conflates a successor that

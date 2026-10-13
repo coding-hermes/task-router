@@ -41,13 +41,13 @@ DATA_DIR = os.environ.get(
     os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), 'data', 'tables'))
 
 
-def load(name):
+def load(name) -> list:
     path = os.path.join(DATA_DIR, f'{name}.jsonl')
     with open(path, encoding='utf-8') as fh:
         return [json.loads(l) for l in fh if l.strip()]
 
 
-def state(m):
+def state(m) -> str:
     if m.get('archive'):
         return 'archived'
     if m.get('valid_to'):
@@ -101,7 +101,7 @@ def family(name):
     return re.sub(r'[-_]{2,}', '-', n).strip('-')
 
 
-def family_pairs(models, tiers):
+def family_pairs(models, tiers) -> tuple:
     """Order every (provider, family) sibling group into (old, new) pairs.
 
     ONE matcher, two consumers: this audit CLASSIFIES the pairs (inversions,
@@ -159,7 +159,7 @@ def family_pairs(models, tiers):
     return entries, unorderable
 
 
-def provenance_audit(models, perf, tiers, all_models=None):
+def provenance_audit(models, perf, tiers, all_models=None) -> tuple:
     """Find lanes whose rank rests on evidence too thin to rank them.
 
     Two live cases produced this: muse-spark-1.3 was effectively UNRANKED (1 of 24

@@ -7,7 +7,7 @@ overwrites an existing fill).
 """
 
 
-def price(row, terms, catalog, helpers, ctx):
+def price(row, terms, catalog, helpers, ctx) -> tuple:
     cat = catalog.get((row['provider'], row['model'])) or {}
     cost_in = cat.get('cost_input')
     if cost_in is None:

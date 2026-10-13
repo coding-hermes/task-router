@@ -106,7 +106,7 @@ STATE_JSON_FILES = ('circuit-state.json', 'health-state.json', 'quota-state.json
 STATE_JSONL_FILES = ('ledger.jsonl',)
 
 
-def _read_jsonl(path):
+def _read_jsonl(path) -> tuple:
     """-> (rows, error). Missing file = ([], 'missing'); unparsable line = error."""
     if not os.path.exists(path):
         return [], 'missing'
@@ -126,7 +126,7 @@ def _read_jsonl(path):
         return rows, str(e)
 
 
-def _tables_content_equal(reg_tables, data_dir):
+def _tables_content_equal(reg_tables, data_dir) -> bool:
     """True when EVERY registry table matches its data/tables/*.jsonl mirror
     row-for-row. Direction matters: data/tables also holds seed-INPUT files
     the registry never exports (probe_*, plan_terms, quality_estimates, ...);
@@ -242,7 +242,7 @@ def heal_is_armed():
     return bool(os.environ.get(HEAL_ENV)) or '--heal' in sys.argv
 
 
-def heal_registry(registry_path=None, data_dir=None):
+def heal_registry(registry_path=None, data_dir=None) -> dict:
     """Self-heal the data plane: re-seed registry.json from data/tables.
 
     Called AFTER run_checks() graded the tree and BEFORE the verdict is
@@ -274,7 +274,7 @@ def heal_registry(registry_path=None, data_dir=None):
             'seed_ran': True, 'registry_preexisting': pre_ok}
 
 
-def _heal_needed(report):
+def _heal_needed(report) -> bool:
     """True when the graded report describes a healable data-plane break.
 
     Exactly the two conditions the refresh-cron incident produced: the
@@ -306,10 +306,10 @@ def run_heal():
         return {'ok': False, 'detail': f'self-heal seed could not run: {exc}'}
 
 
-def run_checks():
+def run_checks() -> tuple:
     checks, issues = [], []
 
-    def add(name, ok, detail):
+    def add(name, ok, detail) -> None:
         checks.append({'name': name, 'ok': bool(ok), 'detail': detail})
         if not ok:
             issues.append(f'{name}: {detail}')
@@ -486,7 +486,7 @@ def run_checks():
     return checks, issues
 
 
-def run_checks_dict():
+def run_checks_dict() -> dict:
     """The check envelope as one dict: {'valid', 'checks', 'issues'}.
 
     Single source of truth for the report shape. `main()` prints this, and
@@ -499,7 +499,7 @@ def run_checks_dict():
     return {'valid': not issues, 'checks': checks, 'issues': issues}
 
 
-def main():
+def main() -> int:
     ap = argparse.ArgumentParser(
         description='router validate — registry/state/profile integrity checks (stdlib only)')
     ap.add_argument('--json', action='store_true',

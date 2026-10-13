@@ -98,7 +98,7 @@ def _git(*args):
     return subprocess.run(["git", *args], cwd=REPO, capture_output=True, text=True)
 
 
-def snapshot_state():
+def snapshot_state() -> dict:
     """Classify the working tree into resume-relevant buckets."""
     status = _git("status", "--porcelain")
     dirty, untracked = [], []
@@ -115,7 +115,7 @@ def snapshot_state():
             "registry_dirty": registry_dirty}
 
 
-def head_info():
+def head_info() -> dict:
     log = _git("log", "-1", "--format=%H %cI %s").stdout.strip()
     parts = log.split(" ", 2)
     return {"commit": parts[0][:12] if parts else None,
@@ -123,7 +123,7 @@ def head_info():
             "subject": parts[2] if len(parts) > 2 else None}
 
 
-def last_good_refresh():
+def last_good_refresh() -> dict:
     """The last commit that touched the registry tables = last good snapshot."""
     log = _git("log", "-1", "--format=%H %cI %s", "--",
                "data/tables/models.jsonl").stdout.strip()
@@ -155,7 +155,7 @@ def registry_staleness():
         return None
 
 
-def registry_freshness_blocks_tests():
+def registry_freshness_blocks_tests() -> bool:
     """True when the tree is the 2026-09-22 shape: table(s) newer than the
     registry beyond FRESHNESS_SLACK_S with no content match — the shape that
     makes the doctrine test fail. Missing registry.json also blocks (same
@@ -166,7 +166,7 @@ def registry_freshness_blocks_tests():
     return not fresh.get('ok')
 
 
-def registry_freshness_detail():
+def registry_freshness_detail() -> dict | None:
     fresh = registry_staleness()
     if fresh is None:
         return None
@@ -175,13 +175,13 @@ def registry_freshness_detail():
             'content_match': fresh.get('content_match')}
 
 
-def self_heal_command():
+def self_heal_command() -> str:
     """The one-liner the cron RESUME block runs to heal before validate."""
     return ('ROUTER_VALIDATE_HEAL=1 python3 scripts/router_validate.py --heal '
             '--json')
 
 
-def run_self_heal_seed():
+def run_self_heal_seed() -> dict:
     """Execute the heal: re-seed the repo registry from the committed tables.
 
     Used by --commit rescue mode (the operator/cron has already decided to act
@@ -205,7 +205,7 @@ def run_self_heal_seed():
                        f'{(proc.stderr or proc.stdout or "")[-300:]}')}
 
 
-def build_plan(commit_partial=False):
+def build_plan(commit_partial: bool=False):
     state = snapshot_state()
     heal_needed = registry_freshness_blocks_tests()
     plan = {
@@ -261,7 +261,7 @@ def build_plan(commit_partial=False):
     return plan
 
 
-def main(argv=None):
+def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--commit", action="store_true",
                         help="commit uncommitted registry-table changes")

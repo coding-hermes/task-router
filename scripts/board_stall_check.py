@@ -121,7 +121,7 @@ def parse_now(value):
     return parsed
 
 
-def worktree_state(path, git="git"):
+def worktree_state(path, git="git") -> str:
     """Decide worktree liveness from the path alone (pure function).
 
     Returns one of:
@@ -146,7 +146,7 @@ def worktree_state(path, git="git"):
     return "worktree_present"
 
 
-def classify_row(row, now, age_hours, age_field="created_at", git="git"):
+def classify_row(row, now, age_hours, age_field: str="created_at", git="git") -> dict | None:
     """Classify one row -> None when healthy, else an evidence dict.
 
     In-flight requires BOTH worker_status in IN_FLIGHT and a non-terminal
@@ -188,7 +188,7 @@ def classify_row(row, now, age_hours, age_field="created_at", git="git"):
     }
 
 
-def find_stalls(rows, now, age_hours, age_field="created_at", git="git"):
+def find_stalls(rows, now, age_hours, age_field: str="created_at", git="git"):
     """The full check over a board -> list of flagged evidence dicts."""
     flagged = []
     for row in rows:
@@ -198,7 +198,7 @@ def find_stalls(rows, now, age_hours, age_field="created_at", git="git"):
     return flagged
 
 
-def load_board(path):
+def load_board(path) -> tuple:
     """Read rows tolerantly (one bad line never kills the check)."""
     rows, bad = [], 0
     with open(path, encoding="utf-8", errors="replace") as fh:
@@ -259,12 +259,12 @@ def _now_utc():
     return datetime.now(timezone.utc)
 
 
-def _event_id(now):
+def _event_id(now) -> int:
     """Event id in the board's own shape: YYYYMMDDHHMMSS (events.jsonl)."""
     return int(now.strftime("%Y%m%d%H%M%S"))
 
 
-def requeue(board_path, events_path, ids, evidence_by_id, now):
+def requeue(board_path, events_path, ids, evidence_by_id, now) -> list:
     """Explicit recovery: append ONE event per row, rewrite that row only.
 
     The event detail carries status:pending AND the evidence triple — the
@@ -339,7 +339,7 @@ def _ts_utc(dt):
     return dt.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
-def main(argv=None):
+def main(argv=None) -> int:
     ap = argparse.ArgumentParser(
         description="flag in-flight board rows with no live worker and no "
                     "commit past a stated age (TR-196)")

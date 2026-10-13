@@ -112,7 +112,7 @@ def _finite_nonneg(v):
 
 # --------------------------------------------------------------- helpers ----
 
-def _remaining(block):
+def _remaining(block) -> tuple:
     """(remaining_usd | None, reason | None) from an L2 block — VERBATIM.
 
     remaining_usd is None whenever the limit was null/unusable OR spent was
@@ -125,7 +125,7 @@ def _remaining(block):
                   or 'remaining_usd missing from the L2 block')
 
 
-def window_named(block):
+def window_named(block) -> str:
     """The window identity a refusal must name (AC2, spec section 6)."""
     return (f"provider {block.get('provider')} "
             f"account {block.get('account') or 'default'} "
@@ -137,7 +137,7 @@ def parse_resets(block):
     return acc.parse_ts(block.get('resets_at')) if block.get('resets_at') else None
 
 
-def pacing_delay_s(remaining_usd, est_cost, resets_at_ts, now_ts):
+def pacing_delay_s(remaining_usd, est_cost, resets_at_ts, now_ts) -> float:
     """The smooth-spend delay for one call, in seconds (AC2 soft-spacing).
 
     spec section 5: "the pacing rate is remaining / time_to_reset (smooth
@@ -166,8 +166,8 @@ class PacingGate:
     accepted/rejected/waiting attributes.
     """
 
-    def __init__(self, counters=None, margin=DEFAULT_MARGIN, wait_s=0.0,
-                 wait_cap_s=DEFAULT_WAIT_CAP_S):
+    def __init__(self, counters=None, margin=DEFAULT_MARGIN, wait_s: float=0.0,
+                 wait_cap_s=DEFAULT_WAIT_CAP_S) -> None:
         if not 0.0 < float(margin) <= 1.0:
             raise ValueError(f'margin must be in (0, 1], got {margin!r}')
         self.counters = counters
@@ -176,7 +176,7 @@ class PacingGate:
         self.wait_cap_s = max(0.0, float(wait_cap_s))
 
     # -- the admission line -----------------------------------------------
-    def _admits(self, block, est_cost):
+    def _admits(self, block, est_cost) -> bool:
         """spent + est_cost <= limit*margin, expressed on the L2 remaining.
 
         remaining = limit - spent, so the line is:
@@ -195,7 +195,7 @@ class PacingGate:
 
     # -- unknown-limit visibility (AC4) -------------------------------------
     @staticmethod
-    def _unknown(block):
+    def _unknown(block) -> tuple:
         rem, reason = _remaining(block)
         if rem is None:
             return True, (reason or 'limit unknown')
@@ -205,7 +205,7 @@ class PacingGate:
         return False, None
 
     # -- counted outcomes (AC2/AC5) ------------------------------------------
-    def _count(self, outcome):
+    def _count(self, outcome) -> None:
         c = self.counters
         # `is None`, NOT a falsy test: an EMPTY dict is the natural caller
         # shape (`PacingGate(counters={})`) and a falsy guard silently made
@@ -230,7 +230,7 @@ class PacingGate:
         if hasattr(c, key):
             setattr(c, key, int(getattr(c, key) or 0) + 1)
 
-    def stats(self):
+    def stats(self) -> dict | None:
         """Counters snapshot (dict form) or None when the caller passed an
         object — that path's owner publishes its own stats."""
         if isinstance(self.counters, dict):
@@ -238,7 +238,7 @@ class PacingGate:
         return None
 
     # -- the one decision ------------------------------------------------------
-    def decide(self, block, est_cost=0.0, now_ts=None):
+    def decide(self, block, est_cost: float=0.0, now_ts=None):
         """Pace ONE call against ONE window block (the target account's).
 
         Returns a JSON-ready Decision dict:
@@ -257,7 +257,7 @@ class PacingGate:
             self._count(dec['outcome'])
         return dec
 
-    def _evaluate(self, block, est_cost=0.0, now_ts=None):
+    def _evaluate(self, block, est_cost: float=0.0, now_ts=None):
         """The decision itself — PURE: reads state, counts nothing."""
         est_cost = float(est_cost)
         if est_cost != est_cost or est_cost in (float('inf'), float('-inf')) \
@@ -322,8 +322,8 @@ class PacingGate:
                                  f'(margin {self.margin:.2f})'))
 
     # -- cross-account rotation (AC3) ------------------------------------------
-    def pick_account(self, provider, blocks_by_account, est_cost=0.0,
-                     preferred=None, now_ts=None):
+    def pick_account(self, provider, blocks_by_account, est_cost: float=0.0,
+                     preferred=None, now_ts=None) -> tuple:
         """Rotate ONLY to a sibling whose OWN window admits the spend (AC3).
 
         blocks_by_account: {account_key: L2 block} — distinct blocks for the
@@ -380,13 +380,13 @@ class _NullCtx:
     def __enter__(self):
         return self
 
-    def __exit__(self, *exc):
+    def __exit__(self, *exc) -> bool:
         return False
 
 
 # ------------------------------------------------------------------ CLI ----
 
-def _print_human(dec, block, ledger, limits_file, as_of, gate):
+def _print_human(dec, block, ledger, limits_file, as_of, gate) -> int:
     print(f'L3 quota pacing — gate decision over {ledger}')
     print(f'  as of {as_of} · limits: {limits_file} · margin '
           f'{gate.margin:.2f} · wait cap {gate.wait_cap_s:.1f}s')
@@ -400,7 +400,7 @@ def _print_human(dec, block, ledger, limits_file, as_of, gate):
     return 0
 
 
-def main(argv=None):
+def main(argv=None) -> int | None:
     argv = list(sys.argv[1:] if argv is None else argv)
     parser = argparse.ArgumentParser(
         prog='router_quota_pacing.py',

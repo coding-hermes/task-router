@@ -165,7 +165,7 @@ _ALIAS_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__fil
                            'data', 'classifier', 'dimension-map.jsonl')
 
 
-def load_dimension_aliases(path=None):
+def load_dimension_aliases(path=None) -> tuple:
     """{alias: [(category, weight)]} from data/classifier/dimension-map.jsonl.
 
     Data-driven on purpose: the vocabulary of natural words belongs in a file
@@ -197,7 +197,7 @@ def load_dimension_aliases(path=None):
     return table, scale
 
 
-def map_dimensions(dimensions, hardness=None, aliases=None, scale=None):
+def map_dimensions(dimensions, hardness=None, aliases=None, scale=None) -> tuple:
     """The model's zero-shot answer -> ({category: level}, meta).
 
     Never invents a level and never drops a dimension silently: anything the
@@ -254,7 +254,7 @@ def map_dimensions(dimensions, hardness=None, aliases=None, scale=None):
                     'band_version': (scale or {}).get('band_version') or BAND_VERSION}
 
 
-def band_key(levels):
+def band_key(levels) -> str | None:
     """The POOLING key for the rolling averages: coarse, readable, deterministic.
 
     Deliberately not the exact level-map (that is complexity_sig, which stays for
@@ -310,7 +310,7 @@ def row_complexity_sig(row):
     return None
 
 
-def compute_averages(rows, scales_h=DEFAULT_SCALES_H, merge_backends=False, now_s=None):
+def compute_averages(rows, scales_h=DEFAULT_SCALES_H, merge_backends: bool=False, now_s=None):
     """Bucket = (source_system, provider, model, complexity_sig) — the signature
     of the declared requirement SET (TR-065 R1/R3), not a single scalar. Rows
     that declare nothing share the None bucket, so a per-model average is still
@@ -390,7 +390,7 @@ def compute_averages(rows, scales_h=DEFAULT_SCALES_H, merge_backends=False, now_
 UNRANKED_MIN_VERIFIED = int(os.environ.get('ROUTER_SORT_MIN_SAMPLES') or 3)
 
 
-def ranking_verdict(entry, floor=None):
+def ranking_verdict(entry, floor=None) -> tuple:
     """(ranked: bool, reason: str|None) — the TR-299 unranked-with-reason gate.
 
     A bucket ranks only when it holds >= floor independently verified samples
@@ -538,7 +538,7 @@ def profile_signature(profile_id, registry_path=None):
 
 # ---------- IO ----------
 
-def _warn_skipped(where, path, lineno, line):
+def _warn_skipped(where, path, lineno, line) -> None:
     """One stderr line per malformed line (TR-244): a torn JSONL record must
     be VISIBLE but never stall the ledger. First 80 chars name the offender."""
     snippet = line.strip()[:80]
@@ -608,7 +608,7 @@ def append_rows(path, new_rows):
     return n
 
 
-def tail_rows(path, max_lines=2000, max_bytes=512 * 1024):
+def tail_rows(path, max_lines: int=2000, max_bytes=512 * 1024):
     """The last `max_lines` complete JSONL rows (bounded read).
 
     Reads at most `max_bytes` from the end of the file so the duplicate guard
@@ -675,7 +675,7 @@ def _merge_task_rows(prev, incoming):
     return out
 
 
-def accumulate_row(path, row, tail_lines=2000, tail_bytes=512 * 1024):
+def accumulate_row(path, row, tail_lines: int=2000, tail_bytes=512 * 1024) -> tuple:
     """Append-or-accumulate ONE normalized row for a TASK (cost-per-task engine).
 
     The store's unit is one row per finished task/session (docs/outcomes-schema.md)
@@ -760,7 +760,7 @@ def accumulate_row(path, row, tail_lines=2000, tail_bytes=512 * 1024):
         return 'failed', f'write failed: {exc}'
 
 
-def append_row_fast(path, row, tail_lines=2000):
+def append_row_fast(path, row, tail_lines: int=2000) -> tuple:
     """Append ONE normalized row: flock-serialized write + bounded-tail dedupe.
 
     Returns (appended: bool, reason: str). Never raises for an I/O problem the
@@ -815,7 +815,7 @@ def _required_str(body, name, problems):
     return v.strip()
 
 
-def _optional_number(body, name, problems, integer=False):
+def _optional_number(body, name, problems, integer: bool=False) -> float | None:
     v = body.get(name)
     if v is None:
         return None
@@ -965,7 +965,7 @@ def _registry_prices():
     return m
 
 
-def plan_effective_cost(provider, model, tokens_in, tokens_out):
+def plan_effective_cost(provider, model, tokens_in, tokens_out) -> tuple:
     """(cost, basis) for a lane the driver priced at ZERO.
 
     A driver's 0.0 is not a price: these providers are paid plans, and a plan lane must never
@@ -1000,7 +1000,7 @@ def plan_effective_cost(provider, model, tokens_in, tokens_out):
     return round(list_cost * ratio, 8), basis
 
 
-def import_hermes(db_path='~/.hermes/state.db'):
+def import_hermes(db_path: str='~/.hermes/state.db'):
     """Hermes driver: session_model_usage -> outcome rows.
     complexity stays NULL (no declared profile at the gateway yet — TR-050's
     classifier will supply it later; DATA > CODE, missing = NULL).
@@ -1044,7 +1044,7 @@ def import_hermes(db_path='~/.hermes/state.db'):
         # column-drift era rows (provider/model hold numerics/epoch floats/
         # hex ints) are not lanes — a provider or model must not be purely
         # numeric in any base
-        def _is_numericish(v):
+        def _is_numericish(v) -> bool:
             if v is None:
                 return True
             s = str(v).strip().lower()
@@ -1087,7 +1087,7 @@ def import_hermes(db_path='~/.hermes/state.db'):
     return out
 
 
-def import_pi(sessions_dir='~/.pi/agent/sessions'):
+def import_pi(sessions_dir: str='~/.pi/agent/sessions'):
     """pi driver (TR-074): pi session JSONL -> outcome rows.
 
     pi writes one JSONL per session under
@@ -1192,7 +1192,7 @@ def import_pi(sessions_dir='~/.pi/agent/sessions'):
     return out
 
 
-def import_opencode(db_path='~/.local/share/opencode/opencode.db'):
+def import_opencode(db_path: str='~/.local/share/opencode/opencode.db') -> list:
     """opencode driver (TR-073): opencode's SQLite store -> outcome rows.
 
     The T surface is NOT a directory of session JSON files (unlike pi): opencode
@@ -1344,7 +1344,7 @@ def import_opencode(db_path='~/.local/share/opencode/opencode.db'):
     return sorted(out, key=lambda r: (r['ts'] or 0, r['session_id']))
 
 
-def import_openclaw(state_dir='~/.openclaw'):
+def import_openclaw(state_dir: str='~/.openclaw') -> list:
     """openclaw driver (TR-072): openclaw's agent store -> outcome rows.
 
     The T surface is a per-agent SQLite DB, not JSON files and not the same schema
@@ -1495,7 +1495,7 @@ def _iso_to_epoch(v):
         return None
 
 
-def main():
+def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.split('\n')[1])
     sub = ap.add_subparsers(dest='cmd', required=True)
     sub.add_parser('import-hermes')

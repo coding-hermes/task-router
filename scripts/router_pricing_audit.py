@@ -98,7 +98,7 @@ CLASS_ORDER = (
 )
 
 
-def load_jsonl(path):
+def load_jsonl(path) -> list:
     return [json.loads(l) for l in open(path) if l.strip()]
 
 
@@ -171,7 +171,7 @@ def _stamp(ev):
     return m.group(0) if m else None
 
 
-def classify(row, plan=None):
+def classify(row, plan=None) -> tuple:
     """Classify one lane row -> (class, is_trap, detail).
 
     Single source of truth for the audit, so the work list and the tests cannot
@@ -211,7 +211,7 @@ def classify(row, plan=None):
     return 'unbased', True, 'no named source'
 
 
-def audit(md=None, lanes=None, plans=None):
+def audit(md=None, lanes=None, plans=None) -> tuple:
     """Run the classification over the live tables. Returns (classes, report)."""
     md = modelsdev() if md is None else md
     lanes = load_jsonl(MODELS) if lanes is None else lanes
@@ -247,7 +247,7 @@ def audit(md=None, lanes=None, plans=None):
     return classes, report
 
 
-def main():
+def main() -> int:
     classes, report = audit()
 
     print(f'PRICING AUDIT — {datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%MZ")}')

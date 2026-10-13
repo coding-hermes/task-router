@@ -32,7 +32,7 @@ spec.loader.exec_module(policy)
 # Under the board venv python (per the run line above) it imports cleanly.
 
 
-def sample_namespaces():
+def sample_namespaces() -> list:
     return [
         {
             "id": "coding-hermes",
@@ -59,7 +59,7 @@ def sample_namespaces():
     ]
 
 
-def sample_projects():
+def sample_projects() -> list:
     return [
         {
             "name": "helix",
@@ -92,7 +92,7 @@ def sample_projects():
 class _TomlWriter:
     """Redirect write_fleet_pins' fleet.toml write to a temp file."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         tmp = tempfile.NamedTemporaryFile("w", suffix=".toml", delete=False,
                                           encoding="utf-8")
         self.tmp_path = tmp.name
@@ -104,7 +104,7 @@ class _TomlWriter:
         real_path = os.path.expanduser("~/.hermes/fleet.toml")
         original_open = builtins.open
 
-        def spy_open(path, mode="r", *a, **k):
+        def spy_open(path, mode: str="r", *a, **k):
             if os.path.expanduser(path) == real_path and "w" in mode:
                 return original_open(self.tmp_path, mode, *a, **k)
             return original_open(path, mode, *a, **k)
@@ -119,7 +119,7 @@ class _TomlWriter:
 
 
 class NamespacePreservationTest(unittest.TestCase):
-    def test_emits_namespace_blocks(self):
+    def test_emits_namespace_blocks(self) -> None:
         """REGRESSION (2026-08-27): regen must emit [[namespaces]] blocks.
 
         Before the fix, write_fleet_pins produced zero namespaces — this
@@ -134,7 +134,7 @@ class NamespacePreservationTest(unittest.TestCase):
         self.assertEqual(got, {"coding-hermes", "duckbrain-sync"},
                          "namespaces missing from regenerated fleet.toml")
 
-    def test_namespace_fields_roundtrip(self):
+    def test_namespace_fields_roundtrip(self) -> None:
         """Every namespace-level field survives the regen (prompt, chain, cap)."""
         ns = sample_namespaces()
         text = _TomlWriter().render(sample_projects(), ns)
@@ -156,7 +156,7 @@ class NamespacePreservationTest(unittest.TestCase):
         self.assertIn("test-write", ds["default_prompt"])
         self.assertIn("Bane 2026-08-27", ds["description"])
 
-    def test_default_prompt_multiline_roundtrip(self):
+    def test_default_prompt_multiline_roundtrip(self) -> None:
         """Multi-line prompts with quotes survive triple-single-quoted emission."""
         long_prompt = ("You are a DuckBrain sync tick.\n"
                        "Protocol step 1: test-write the rotating key.\n"
@@ -171,7 +171,7 @@ class NamespacePreservationTest(unittest.TestCase):
         data = tomllib.loads(text)
         self.assertEqual(data["namespaces"][0]["default_prompt"], long_prompt)
 
-    def test_regenerated_fleet_toml_parses_with_projects(self):
+    def test_regenerated_fleet_toml_parses_with_projects(self) -> None:
         """The full regen output (namespaces + projects) is valid TOML and
         projects keep their namespace_id wiring."""
         ns = sample_namespaces()
@@ -192,7 +192,7 @@ class DynamicModelEmissionTest(unittest.TestCase):
     the task-router's dynamic resolution at spawn. The task-router decides;
     fleet.toml only carries an explicit pin when the operator set one."""
 
-    def test_unset_model_stays_unset(self):
+    def test_unset_model_stays_unset(self) -> None:
         """A project with NO model/provider must get NO model/provider lines
         — the router resolves at spawn; a hardcoded default is the bug."""
         project = {
@@ -210,7 +210,7 @@ class DynamicModelEmissionTest(unittest.TestCase):
                          "regen baked a provider default — dynamic "
                          "resolution is shadowed (Bane 2026-08-28)")
 
-    def test_explicit_pin_is_preserved(self):
+    def test_explicit_pin_is_preserved(self) -> None:
         """An EXPLICIT operator pin still round-trips (overrides are legal;
         defaults are not)."""
         project = {
@@ -235,7 +235,7 @@ class AdaptiveCooldownArmingTest(unittest.TestCase):
     Other lanes stay off: arming sync/qa/pm now would only mask upstream
     outages as slow ticks until the upstream-quiet signal ships."""
 
-    def test_foreman_lane_armed_with_explicit_ceiling(self):
+    def test_foreman_lane_armed_with_explicit_ceiling(self) -> None:
         project = {
             "name": "helix", "repo_url": "https://example.com/helix",
             "workdir": "/home/kara/helix", "weight": 10, "priority": 5,
@@ -249,7 +249,7 @@ class AdaptiveCooldownArmingTest(unittest.TestCase):
                          "ceiling must be explicit 8x cooldown (7200*8); "
                          "an absent key defaults to 604800 in the loader")
 
-    def test_non_foreman_lane_stays_disarmed(self):
+    def test_non_foreman_lane_stays_disarmed(self) -> None:
         for ns in ("duckbrain-sync", "qa", "pm", None):
             project = {
                 "name": "blog-sync", "repo_url": "local:/x",

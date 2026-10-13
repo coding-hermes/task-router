@@ -116,7 +116,7 @@ def _is_null(v):
     return v is None or v == ""
 
 
-def _lane(r):
+def _lane(r) -> str:
     return "%s/%s" % (r.get("provider"), r.get("model"))
 
 
@@ -267,7 +267,7 @@ def publish_state(path, tables_dir, v1, v2, v3):
     return doc
 
 
-def main(argv=None):
+def main(argv=None) -> int:
     ap = argparse.ArgumentParser(
         description="null-debt PREVENTION invariants (TR-201)")
     ap.add_argument("--json", action="store_true",

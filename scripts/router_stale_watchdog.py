@@ -62,7 +62,7 @@ EXIT_STALE = 1
 EXIT_UNREACHABLE = 2
 
 
-def configured_urls(flag_urls):
+def configured_urls(flag_urls) -> list:
     """Resolution order: --url flags win, then ROUTER_STALE_URLS, then defaults.
 
     Blank entries (trailing commas, stray spaces) are dropped rather than
@@ -76,7 +76,7 @@ def configured_urls(flag_urls):
     return [u for u in urls if u]
 
 
-def evaluate_code(code):
+def evaluate_code(code) -> tuple:
     """Verdict from the payload's `code` identity block.
 
     Returns (verdict, detail). The payload's own `stale` flag is primary —

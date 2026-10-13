@@ -235,7 +235,7 @@ def _docs_dir():
     return os.path.join(REPO, "docs")
 
 
-def _home_env_exports():
+def _home_env_exports() -> dict:
     """Env-var map derived from the current data home (called per dispatch)."""
     home = paths.resolve_data_home(create=True)
     state_dir = os.path.dirname(paths.circuit_state_path())  # == home
@@ -402,13 +402,13 @@ def _home_env_exports():
     }
 
 
-def _apply_env_exports(cmd, exports):
+def _apply_env_exports(cmd, exports) -> None:
     """setdefault every mapping in exports[cmd] into os.environ."""
     for var, value in exports.get(cmd, {}).items():
         os.environ.setdefault(var, value)
 
 
-def _bootstrap_state_dir(state_dir):
+def _bootstrap_state_dir(state_dir) -> None:
     """First-run bootstrap (dogfood 2026-09-01): create a starter
     quota-state.json in a EMPTY state dir with every provider from the repo's
     data table explicitly OPEN.
@@ -443,7 +443,7 @@ def _bootstrap_state_dir(state_dir):
         print(f"router: state bootstrap skipped: {e}", file=sys.stderr)
 
 
-def dispatch(cmd, argv):
+def dispatch(cmd, argv) -> None:
     """Run scripts/<script> as __main__ with argv rewritten. Never returns."""
     script = os.path.join(SCRIPTS_DIR, COMMANDS[cmd])
     if not os.path.isfile(script):
@@ -524,7 +524,7 @@ def main(argv=None):
     return rc
 
 
-def _print_help():
+def _print_help() -> None:
     """Manual help (no argparse subparsers since 2026-09-01 — see main())."""
     print("usage: router [-h] COMMAND [args...]")
     print()

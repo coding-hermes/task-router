@@ -345,7 +345,7 @@ def validate(tables_dir):
     return issues
 
 
-def main():
+def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     default_tables = os.path.join(
         os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "tables"

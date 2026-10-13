@@ -39,7 +39,7 @@ CONSTRAINED = [{"role": "user",
                            "else: banana"}]
 
 
-def post(url, body, headers):
+def post(url, body, headers) -> tuple:
     req = urllib.request.Request(
         url, data=json.dumps(body).encode(),
         headers={"Content-Type": "application/json", **headers})
@@ -58,7 +58,7 @@ def content_of(payload):
     return ((payload.get("choices") or [{}])[0].get("message") or {}).get("content") or ""
 
 
-def main():
+def main() -> int:
     if not KEY:
         print("FAIL: API key env (API_SERVER_KEY / ROUTER_VERIFY_KEY) not set")
         return 2

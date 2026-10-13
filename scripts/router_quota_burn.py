@@ -200,7 +200,7 @@ def project_window(block, now_ts, cfg=None, plan_kind=None):
     e['subscription_covered'] = {BASIS_SUBSCRIPTION: True,
                                  BASIS_METERED: False}.get(e['cost_basis'])
 
-    def _finish():
+    def _finish() -> None:
         """Marginal cash — only meaningful when there is a surplus to price."""
         if e['verdict'] != VERDICT_BURN:
             e['marginal_cash_reason'] = 'no surplus to price'
@@ -318,7 +318,7 @@ def find_surplus(blocks, now_ts, plan_kinds=None, provider_cfgs=None):
     return entries
 
 
-def summarize(entries):
+def summarize(entries) -> dict:
     """The report's headline counts: verdict census + total surplus that is
     actually burnable (burn verdicts only — an unknown window contributes
     nothing, not even to a sum)."""
@@ -354,11 +354,11 @@ def find_surplus_ledger(path=None, limits=None, now_ts=None,
 
 # ------------------------------------------------------------------ CLI ----
 
-def _fmt_usd(v):
+def _fmt_usd(v) -> str:
     return '-' if v is None else f'{v:.4f}'
 
 
-def _print_human(entries, ledger, limits_file, as_of):
+def _print_human(entries, ledger, limits_file, as_of) -> int:
     print(f'L3 quota burn-surplus — projection over {ledger}')
     print(f'  as of {as_of} · limits: {limits_file}')
     if not entries:
@@ -385,7 +385,7 @@ def _print_human(entries, ledger, limits_file, as_of):
     return 0
 
 
-def main(argv=None):
+def main(argv=None) -> int | None:
     argv = list(sys.argv[1:] if argv is None else argv)
     parser = argparse.ArgumentParser(
         prog='router_quota_burn.py',

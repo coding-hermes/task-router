@@ -80,7 +80,7 @@ def _ledger_path():
 
 # ------------------------------------------------------------- registry ----
 
-def _count_models(tables):
+def _count_models(tables) -> dict:
     models = tables.get('models') or []
     active = [m for m in models
               if not m.get('archive') and m.get('valid_to') is None
@@ -94,7 +94,7 @@ def _count_models(tables):
     }
 
 
-def registry_section():
+def registry_section() -> dict:
     """registry.json freshness + shape; data/tables fallback stays visible."""
     path = REGISTRY
     doc = _load_json(path)
@@ -158,7 +158,7 @@ def registry_section():
 
 # -------------------------------------------------------------- circuit ----
 
-def circuit_section():
+def circuit_section() -> dict:
     path = os.path.join(MR, 'circuit-state.json')
     doc = _load_json(path)
     if doc is None:
@@ -206,7 +206,7 @@ def _plan_gates(doc):
         return empty
 
 
-def quota_section():
+def quota_section() -> dict:
     path = os.path.join(MR, 'quota-state.json')
     doc = _load_json(path)
     if doc is None:
@@ -238,7 +238,7 @@ def quota_section():
 
 # --------------------------------------------------------------- health ----
 
-def health_section():
+def health_section() -> dict:
     path = os.path.join(MR, 'health-state.json')
     doc = _load_json(path)
     if doc is None:
@@ -282,7 +282,7 @@ def health_section():
 
 # ------------------------------------------------------------ in-flight ----
 
-def in_flight_section():
+def in_flight_section() -> dict:
     """Trace-walk mirroring router_ledger.cmd_status / router_spawn.ledger_in_flight."""
     path = _ledger_path()
     last, pair_of = {}, {}
@@ -341,7 +341,7 @@ def in_flight_section():
 
 # ----------------------------------------------------------------- gaps ----
 
-def gaps_section():
+def gaps_section() -> dict:
     """Gap count via router_gaps.assess (exact same dimensions/criteria)."""
     try:
         if _HERE not in sys.path:
@@ -366,7 +366,7 @@ def gaps_section():
 
 # ---------------------------------------------------------------- gates ----
 
-def gates_section(reg, quota, health, circuit, inflight, tables):
+def gates_section(reg, quota, health, circuit, inflight, tables) -> dict:
     """Per-provider roll-up: plan / quota / health / circuit / in-flight."""
     providers = {}
     for row in tables.get('providers') or []:
@@ -420,11 +420,11 @@ def gates_section(reg, quota, health, circuit, inflight, tables):
 
 # ----------------------------------------------------------------- text ----
 
-def _fmt(v, dash='-'):
+def _fmt(v, dash: str='-'):
     return dash if v is None else str(v)
 
 
-def data_home_section():
+def data_home_section() -> dict:
     """TR-044/TR-046: ONE authoritative data-home view, identical sources to
     the resolver (router_spawn REGISTRY/DATA_DIR/MR). `router status` is the
     documented place to answer 'which data home is live, and is it sample or
@@ -541,7 +541,7 @@ def render_text(doc):
     return '\n'.join(lines)
 
 
-def build():
+def build() -> dict:
     reg = registry_section()
     circuit = circuit_section()
     quota = quota_section()
@@ -578,7 +578,7 @@ def build():
             'gates': gates}
 
 
-def main(argv=None):
+def main(argv=None) -> int:
     ap = argparse.ArgumentParser(
         description='task-router one-command overview (registry/gates/in-flight/gaps)')
     ap.add_argument('--format', choices=['json', 'text'], default='json',

@@ -177,7 +177,7 @@ FAILURE_CLASS_MAP = {
 NOT_A_LANE_IDENTITIES = frozenset(('', 'none', 'unknown', 'n/a', 'null'))
 
 
-def failure_class_for(kind=None, fclass=None):
+def failure_class_for(kind=None, fclass=None) -> tuple:
     """Resolve the failure KIND to (class, cooldown_seconds) — loudly.
 
     Exactly one of `kind` (free text from the failure envelope / --kind) or
@@ -231,7 +231,7 @@ def load():
                                                    'classes': {}}}
 
 
-def _fsync_dir(path):
+def _fsync_dir(path) -> None:
     try:
         dfd = os.open(os.path.dirname(path), os.O_RDONLY)
         try:
@@ -242,7 +242,7 @@ def _fsync_dir(path):
         pass  # some filesystems don't support dir fsync — best effort
 
 
-def save(st):
+def save(st) -> None:
     """Atomic crash-safe write: unique temp + fsync + os.replace + dir fsync."""
     d = os.path.dirname(STATE)
     os.makedirs(d, exist_ok=True)
@@ -291,7 +291,7 @@ def _parse_utc(ts):
         return None
 
 
-def _is_open(entry, now_iso_str):
+def _is_open(entry, now_iso_str) -> bool:
     """True when an entry (pair or provider breaker) is still open."""
     ou = entry.get('open_until')
     if not ou:
@@ -299,7 +299,7 @@ def _is_open(entry, now_iso_str):
     return ou > now_iso_str
 
 
-def _prune_expired(st, now, keep_pair=None):
+def _prune_expired(st, now, keep_pair=None) -> None:
     """Remove cooling pairs and provider breakers whose open_until is past.
 
     keep_pair: key that must survive pruning (the pair being written — its
@@ -328,7 +328,7 @@ def _ensure_v2(st):
     return v2
 
 
-def _record_class(v2, provider, model, fclass, now):
+def _record_class(v2, provider, model, fclass, now) -> None:
     """Append a class event under v2.classes.<provider>.<model>."""
     classes = v2.setdefault('classes', {})
     prov_classes = classes.setdefault(provider, {})
@@ -356,7 +356,7 @@ def _provider_failures_in_window(v2, provider, fclass, now, window_s):
     return count
 
 
-def _open_provider_breaker(st, provider, fclass, now):
+def _open_provider_breaker(st, provider, fclass, now) -> tuple:
     """Open (or extend) the provider-level breaker for a hard class."""
     v2 = _ensure_v2(st)
     prov = v2.setdefault('provider_breakers', {})
@@ -371,8 +371,8 @@ def _open_provider_breaker(st, provider, fclass, now):
     return cd, open_until
 
 
-def record_failure(provider, model, reason='', fclass='api_down', kind=None,
-                   provider_hard=False):
+def record_failure(provider, model, reason: str='', fclass: str='api_down', kind=None,
+                   provider_hard: bool=False) -> int:
     """Record a failure for (provider, model) with class fclass.
 
     TR-190 classification seam (loud, never silent):
@@ -466,7 +466,7 @@ def record_failure(provider, model, reason='', fclass='api_down', kind=None,
     return 0
 
 
-def record_success(provider, model):
+def record_success(provider, model) -> int:
     key = f'{provider}/{model}'
     lf = _acquire_lock()
     try:
@@ -491,7 +491,7 @@ def record_success(provider, model):
     return 0
 
 
-def status(provider=None, as_json=False):
+def status(provider=None, as_json: bool=False) -> int:
     # Read-only: no lock needed (os.replace makes state visibility atomic),
     # and deliberately NO pruning — TR-024 contract: status --json lists
     # cooling pairs. Expired entries are pruned on the next write.
@@ -564,7 +564,7 @@ def _class_counts(st, provider=None):
     return counts
 
 
-def clear(provider=None, model=None, all_=False):
+def clear(provider=None, model=None, all_: bool=False) -> int:
     lf = _acquire_lock()
     try:
         st = load()

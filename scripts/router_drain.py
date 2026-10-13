@@ -13,13 +13,13 @@ from pathlib import Path
 class DrainController:
     """Tracks readiness and in-flight HTTP handlers during graceful restart."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._condition = threading.Condition()
         self._draining = False
         self._inflight = 0
 
     @property
-    def ready(self):
+    def ready(self) -> bool:
         with self._condition:
             return not self._draining
 
@@ -33,12 +33,12 @@ class DrainController:
         with self._condition:
             return self._inflight
 
-    def request_started(self):
+    def request_started(self) -> bool:
         with self._condition:
             self._inflight += 1
             return not self._draining
 
-    def request_finished(self):
+    def request_finished(self) -> None:
         with self._condition:
             if self._inflight <= 0:
                 raise RuntimeError("request_finished without a matching start")
@@ -46,13 +46,13 @@ class DrainController:
             if self._inflight == 0:
                 self._condition.notify_all()
 
-    def begin_drain(self):
+    def begin_drain(self) -> None:
         with self._condition:
             self._draining = True
             if self._inflight == 0:
                 self._condition.notify_all()
 
-    def wait_for_idle(self, timeout_s):
+    def wait_for_idle(self, timeout_s) -> bool:
         """Wait no longer than timeout_s; False means work remains in flight."""
         deadline = time.monotonic() + max(0.0, float(timeout_s))
         with self._condition:
@@ -63,13 +63,13 @@ class DrainController:
                 self._condition.wait(remaining)
             return True
 
-    def snapshot(self):
+    def snapshot(self) -> dict:
         with self._condition:
             return {"ready": not self._draining, "draining": self._draining,
                     "inflight": self._inflight}
 
 
-def runtime_identity(repo_root=None):
+def runtime_identity(repo_root=None) -> dict:
     """Identify the code loaded by a router process for deploy verification.
 
     Revision is diagnostic; source_digest fingerprints the actual on-disk Python

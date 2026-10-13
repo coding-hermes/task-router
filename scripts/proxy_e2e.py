@@ -65,7 +65,7 @@ CHECK_ORDER = [
 
 # --------------------------------------------------------------------------- parsing
 
-def parse_ledger_rows(text):
+def parse_ledger_rows(text) -> tuple:
     """The JSONL rows in a ledger dump, tolerantly: malformed lines are
     skipped (the store is append-only and a torn tail line must not take the
     battery down). Returns (rows, malformed_count)."""
@@ -83,7 +83,7 @@ def parse_ledger_rows(text):
     return rows, malformed
 
 
-def rows_for_session(rows, session_id):
+def rows_for_session(rows, session_id) -> list:
     """Every row that belongs to this session, in file order.
 
     Same match the flow drill-down uses: the row's own session_id
@@ -94,7 +94,7 @@ def rows_for_session(rows, session_id):
             if str(r.get("session_id")) == sid or str(r.get("parent_session_id")) == sid]
 
 
-def classify_cost(row):
+def classify_cost(row) -> dict:
     """The cost verdict for ONE row — the fake-zero guard, precisely.
 
     fake-zero:      cost_usd == 0.0 exactly AND no price_basis  -> FAIL
@@ -133,7 +133,7 @@ def _has_chain_evidence(row):
     return isinstance(length, (int, float)) and not isinstance(length, bool) and length > 0
 
 
-def _has_reason(row):
+def _has_reason(row) -> bool:
     """Any of the reason fields that explain why this outcome happened."""
     for k in ("failure_reason", "degrade_reason"):
         v = row.get(k)
@@ -145,7 +145,7 @@ def _has_reason(row):
     return False
 
 
-def classify_row(row):
+def classify_row(row) -> dict:
     """Is this ONE row interpretable — outcome + the evidence that explains it?
 
     interpretable shapes: served-with-chain, failed-with-reason,
@@ -182,7 +182,7 @@ def classify_row(row):
             "reason": f"route_outcome is {outcome!r} — the row does not say which door it came out of"}
 
 
-def parse_flow(flow_json):
+def parse_flow(flow_json) -> dict:
     """Normalise the /api/ui/flow answer for assertion.
 
     Returns {found, present: bool, artefacts_available, artefacts_missing,
@@ -307,7 +307,7 @@ def evaluate(response, rows, flow_json, session_id):
     return summary
 
 
-def _row_brief(row):
+def _row_brief(row) -> dict:
     """The identity slice of a row, for the per-row classification report."""
     return {"session_id": row.get("session_id"), "provider": row.get("provider"),
             "model": row.get("model"), "route_outcome": row.get("route_outcome"),
@@ -358,7 +358,7 @@ def upstream_key():
     return ""
 
 
-def send_request(base, session_id, prompt, model, timeout, key):
+def send_request(base, session_id, prompt, model, timeout, key) -> dict:
     """ONE POST /v1/chat/completions through the proxy. Returns the response
     dict {status, body, error} — body is the parsed JSON when parseable."""
     url = base.rstrip("/") + "/v1/chat/completions"
@@ -406,7 +406,7 @@ def read_flow(router_api, session_id, timeout):
         return {"found": False, "error": f"{type(e).__name__}: {e}"}
 
 
-def await_rows(ledger_path, session_id, wait_s, poll_s=0.5):
+def await_rows(ledger_path, session_id, wait_s, poll_s: float=0.5) -> tuple:
     """Poll the ledger until at least one row for the session appears (the
     record path is best-effort and may land a beat after the HTTP answer)."""
     deadline = time.time() + max(0.0, wait_s)
@@ -433,7 +433,7 @@ def ledger_default():
     return os.environ.get("ROUTING_OUTCOMES_FILE") or str(REPO / "data" / "state" / "outcomes.jsonl")
 
 
-def main(argv=None):
+def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--base", default=os.environ.get("ROUTER_PROXY_URL", "http://127.0.0.1:9391"),
                     help="proxy base URL (default http://127.0.0.1:9391)")
