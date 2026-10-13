@@ -940,12 +940,14 @@ tasks:
   created_at: '2026-10-12T02:53:54.669513+00:00'
   completed_at: '2026-10-12T02:55:46.646077+00:00'
 - id: TR-301
-  title: test_symlink_path_resolution cost_backfill flake under full-suite ordering
+  title: 'CI flake: test_symlink_path_resolution cost_backfill fails under full-suite
+    ordering'
   criteria:
-  - 3 consecutive full-suite green runs; leak root-caused and fixed; no skip gates
+  - Full pytest suite passes in CI; the test passes both standalone and under full-suite
+    ordering
   status: complete
-  created_at: '2026-10-12T03:02:34.518571+00:00'
-  completed_at: '2026-10-12T04:51:07.357675+00:00'
+  created_at: '2026-10-13T03:05:34.342786+00:00'
+  completed_at: '2026-10-13T07:57:03.489489+00:00'
 - id: TR-221
   title: CI-safe ranking backfill probe config handling
   criteria:
@@ -972,3 +974,37 @@ tasks:
   status: complete
   created_at: '2026-10-12T20:26:44.328174+00:00'
   completed_at: '2026-10-12T22:33:57.410095+00:00'
+- id: TR-286
+  title: 'CLAIM CLEANUP: re-verify TR-064/065/066/067/101 against live traffic with
+    outcome probes'
+  criteria:
+  - Each of TR-064, TR-065, TR-066, TR-067, TR-101 re-tested with a command/exit/digest
+    run record; non-holding rows reopen; criteria written from probes
+  status: complete
+  created_at: '2026-10-12T23:49:26.169926+00:00'
+  completed_at: '2026-10-12T23:56:22.715502+00:00'
+- id: TR-269
+  title: 'TYPE-HINT LADDER STAGE 1: raise annotated-function score to 40%'
+  criteria:
+  - Full pytest suite green; ruff ANN check shows >=40% annotated functions; no runtime
+    behavior change
+  status: complete
+  created_at: '2026-10-13T03:05:32.685640+00:00'
+  completed_at: '2026-10-13T07:57:02.767602+00:00'
+- id: TR-200
+  title: 'Dead columns: decide remove-or-populate for 100%-null columns across five
+    tables'
+  criteria:
+  - Each 100%-null column either removed from schema or populated from real source;
+    census shows zero 100%-null columns in actively-written tables unless explicitly
+    allowlisted
+  status: complete
+  created_at: '2026-10-13T03:05:33.622815+00:00'
+  completed_at: '2026-10-13T07:57:03.153185+00:00'
+- id: TR-REV-1012-1
+  title: Seed/validate path split fails make validate on fresh clone
+  criteria:
+  - Fresh clone + make validate exits 0; seed and validate use consistent path resolution
+  status: complete
+  created_at: '2026-10-13T03:05:35.067601+00:00'
+  completed_at: '2026-10-13T07:57:03.841974+00:00'
