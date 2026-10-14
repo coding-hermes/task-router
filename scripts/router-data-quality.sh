@@ -30,6 +30,17 @@ echo
 echo "== models.dev sync =="
 "$PY" scripts/router_modelsdev.py sync
 echo
+echo "== carrier catalog refresh (TR-167: import for EVERY preset in data/catalogs/) =="
+# Adds a lane diff per carrier preset (new lanes, price moves, catalog
+# removals). --apply FILES the priced lanes; net-new lanes the catalog cannot
+# price are HELD and reported loudly for the research phase below (never
+# appended as null debt; holds are NOT an error — they exit 0 so the
+# pipeline lives and the agent prices them). An ERRORED preset (unreachable
+# catalog etc.) exits 1 per TR-024, but this step deliberately continues to
+# the gap report: its diff and holds are agent research input, so a dead
+# carrier must not kill the run before the agent sees it.
+"$PY" scripts/router_catalog_refresh.py --apply || echo "WARN: a carrier catalog errored (continuing — see diff above; research phase handles holds)"
+echo
 echo "== normalized pricing (subscription-aware) =="
 "$PY" scripts/router_pricing.py
 echo
