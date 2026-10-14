@@ -175,3 +175,12 @@ Post-classification detector state (`router_lifecycle.py`, models.dev cache
 Remaining `absent` entries are the models.dev-lag set TR-166's reasoning already
 excludes (same lanes answer on the carriers' own live catalogs — verified for
 xkiro/opencode-go/commandcode seats in this pass).
+
+### Record provenance
+
+The classification overlays and this section first landed inside a sibling
+cleanup commit (17096cb, bare commit swept the staged paths) without naming
+this task in its message. This commit is the TR-166 traceability record: the
+content at HEAD is the verified deliverable — 16 overlays in
+data/lifecycle.jsonl, 16 updated lanes in data/tables/models.jsonl, all
+classified with 2026-10-13 live probes, full suite 2216 passed / 1 skipped.
