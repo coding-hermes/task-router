@@ -136,6 +136,17 @@ def _err(msg, force: bool = False) -> None:
 # Repo-relative defaults: the project is self-contained (clone → use).
 _HERE = os.path.dirname(os.path.realpath(__file__))
 _REPO = os.path.dirname(_HERE)
+# TR-213: the L2 headroom view (same module `router quota accounting` runs).
+# Imported AFTER _HERE is known so the scripts dir is importable when spawn is
+# run as a file (scripts/ is on sys.path only once this module sets it up).
+if _HERE not in sys.path:
+    sys.path.insert(0, _HERE)
+try:
+    import router_quota_accounting as _rqa  # noqa: E402
+except Exception as _rqa_exc:  # noqa: BLE001 — fail-open: quota never blocks a resolve
+    _rqa = None
+    _err(f'WARNING: TR-213 quota ordering unavailable — '
+         f'router_quota_accounting import failed: {_rqa_exc}')
 try:
     import registry_path as _registry_path_mod
 except ImportError:  # live byte-copy not yet synced (sync_runtime.sh) -> old default
@@ -190,6 +201,16 @@ DEFAULT_WINDOW_H = 24
 #: `ROUTER_SPAWN_SORT=price` is the explicit rollback; a caller may also pass
 #: `--sort price` for one resolve.
 DEFAULT_SORT = os.environ.get('ROUTER_SPAWN_SORT') or 'predicted_cost_per_task'
+
+# TR-213: quota headroom as a chain-ordering tie-breaker + guard (the L3
+# policy consumer #2, docs/quota-layers-spec.md §5). A lane whose window
+# headroom (remaining_usd / seconds_to_reset, the L2 accounting view) is KNOWN
+# and below this many USD/s is demoted behind otherwise-comparable lanes —
+# never across a price boundary, never across the PAYG bucket. Unknown
+# headroom is never 'low' (NULL with a reason, never 0). 0 disables the
+# demotion entirely (the pre-TR-213 ordering, exactly).
+_DEFAULT_QUOTA_ORDER_GUARD = 0.01
+QUOTA_ORDER_GUARD_ENV = 'ROUTER_QUOTA_ORDER_GUARD'
 
 
 def row_is_retired(row, today=None) -> bool:
@@ -1273,6 +1294,82 @@ def _context_sort_key(m):
     return -(ctx if isinstance(ctx, int) else 0)
 
 
+def _quota_order_guard() -> float:
+    """TR-213: the headroom guard in USD/s (remaining-usd per second to reset).
+
+    A lane whose window headroom is KNOWN and below this value is demoted
+    behind otherwise-comparable lanes (same PAYG bucket, plan tier, price).
+    Env-tunable (ROUTER_QUOTA_ORDER_GUARD); 0 disables the demotion entirely.
+    Unknown headroom is never 'low' (NULL with a reason, never 0)."""
+    try:
+        raw = os.environ.get(QUOTA_ORDER_GUARD_ENV)
+        if raw is None or not str(raw).strip():
+            return _DEFAULT_QUOTA_ORDER_GUARD
+        return max(0.0, float(raw))
+    except Exception:  # noqa: BLE001 — config noise never breaks a resolve
+        return _DEFAULT_QUOTA_ORDER_GUARD
+
+
+def _lane_headroom(quota_ctx, provider) -> float | None:
+    """The provider's L2 quota headroom (USD/s) for the chain ordering.
+
+    Pure read over the SAME view `router quota accounting` reports (TR-209):
+    limits config + outcome ledger, both fail-open. None = UNKNOWN (no limit
+    configured, window unusable, spend unpriceable, or no reset time) — never
+    a fabricated 0, so an unknown never demotes a lane.
+    """
+    try:
+        limits = quota_ctx.get('limits') or {}
+        block = _rqa.account_provider(
+            str(provider),
+            (quota_ctx.get('rows_by_provider') or {}).get(str(provider), []),
+            (limits.get('providers') or {}).get(provider) or {},
+            quota_ctx.get('now'),
+            default_window=limits.get('default_window') or _rqa.DEFAULT_WINDOW)
+        h = block.get('headroom_usd_per_s')
+        if isinstance(h, (int, float)) and not isinstance(h, bool):
+            return float(h)
+        return None
+    except Exception:  # noqa: BLE001 — fail-open: quota never blocks a resolve
+        return None
+
+
+def _quota_order_ctx() -> dict:
+    """TR-213 inputs for the chain-ordering headroom term, loaded ONCE per
+    resolve. enabled=False is the inert default with the REASON on the ctx —
+    a missing/corrupt/empty config never silently changes an ordering, and
+    never blocks one (fail-open is sacred)."""
+    ctx = {'enabled': False, 'reason': None, 'limits': None, 'limits_path': None,
+           'ledger_path': None, 'rows_by_provider': {}, 'n_limits': 0,
+           'now': time.time(), 'guard': _quota_order_guard()}
+    try:
+        path = _rqa.limits_path()
+        doc = _rqa.load_limits(path)
+        provs = (doc or {}).get('providers') or {}
+        n = sum(1 for v in provs.values() if isinstance(v, dict))
+        ctx['limits'], ctx['limits_path'], ctx['n_limits'] = doc, path, n
+        if not n:
+            ctx['reason'] = ('no providers configured in the quota limits '
+                             'config — headroom unknown for every lane')
+            return ctx
+        if ctx['guard'] <= 0.0:
+            ctx['reason'] = 'disabled: ROUTER_QUOTA_ORDER_GUARD=0'
+            return ctx
+        ledger = _rqa.router_outcomes.outcomes_path()
+        by = {}
+        for r in _rqa.router_outcomes.load_outcome_rows(ledger):
+            p = (r or {}).get('provider')
+            if p is None:
+                continue
+            by.setdefault(str(p), []).append(r)
+        ctx.update(enabled=True, ledger_path=ledger, rows_by_provider=by)
+        return ctx
+    except Exception as e:  # noqa: BLE001 — fail-open, never block a resolve
+        ctx['reason'] = (f'quota-order inputs unreadable: '
+                         f'{type(e).__name__}: {e} (fail-open)')
+        return ctx
+
+
 def _legacy_sort_key(m) -> tuple:
     """The historical chain order: (plan_tier, effective price, larger context
     first, model, provider) — unchanged since TR-015.
@@ -1283,18 +1380,32 @@ def _legacy_sort_key(m) -> tuple:
     names the billing class ('PAYG'); the set is snapshotted by the registry
     loader into tables['_payg_providers'] (no I/O in the sort path). The
     bucket key goes BEFORE plan_tier so even tier-1 plan hops rank ahead of
-    PAYG, and public prices are untouched (reporting stays official)."""
+    PAYG, and public prices are untouched (reporting stays official).
+
+    TR-213 (2026-10-13): ONE demote slot, inserted AFTER the effective-price
+    slot and BEFORE the context tie-break. A lane whose window headroom is
+    KNOWN and below the guard (ROUTER_QUOTA_ORDER_GUARD, default
+    _DEFAULT_QUOTA_ORDER_GUARD USD/s) sorts behind otherwise-comparable lanes
+    — same PAYG bucket, plan tier, priced-ness and price. It can therefore
+    never reorder lanes of DIFFERENT prices (the (bucket, tier, price)
+    composite stays non-decreasing: the existing no-silent-re-rank guard
+    passes by construction), and UNKNOWN headroom (None) demotes nothing —
+    unknown is not low. The demotion is reported on the resolve output
+    (quota_ordering.deprioritised + per-hop flags), never silent."""
     priced = 0 if m.get('normalized_price') is not None else 1
+    _h = m.get('_quota_headroom')
+    _guard = _quota_order_guard()
+    demote = 1 if (_h is not None and _guard > 0.0 and float(_h) < _guard) else 0
     if m.get('_payg'):
-        return (1, 1 << 30, priced, _effective_price(m), _context_sort_key(m),
-                m.get('model') or '', m.get('provider') or '')
+        return (1, 1 << 30, priced, _effective_price(m), demote,
+                _context_sort_key(m), m.get('model') or '', m.get('provider') or '')
     return (0,
             m.get('plan_tier') if m.get('plan_tier') is not None else 1 << 30,
             # TR-176: the 3rd slot was an unused literal 0. It now separates PRICED lanes from
             # unpriced ones, so an unknown price stops tying with a genuine $0 lane at the head
             # of the chain (the fake-cheap burn trap). Unknown sinks; it is never the cheapest.
             priced,
-            _effective_price(m), _context_sort_key(m),
+            _effective_price(m), demote, _context_sort_key(m),
             m.get('model') or '', m.get('provider') or '')
 
 
@@ -1781,7 +1892,7 @@ def make_sort_key(spec, lanes, ctx) -> tuple:
 
 
 def _build_chain(tables, reqs, limit=DEFAULT_CHAIN_LIMIT, sort_spec=None, sort_ctx=None,
-                 lifecycle_counts=None) -> list:
+                 lifecycle_counts=None, quota_ctx=None) -> list:
     """Replicates v_task_chain exactly, in pure python.
 
     reqs = [(category, level), ...] (profile requirements or ad-hoc).
@@ -1883,6 +1994,10 @@ def _build_chain(tables, reqs, limit=DEFAULT_CHAIN_LIMIT, sort_spec=None, sort_c
     # close — that is the secondary component of the LEGACY ordering key.
     # TR-049 c5: ordering goes through the SORT_KEYS dispatch (never a branch
     # inside the comparator); 'price' is the default entry.
+    # TR-213: the quota-headroom stamps MUST land BEFORE the first sort — the
+    # demote slot lives inside _legacy_sort_key, so a stamp applied after the
+    # sort would move nothing (found by the AC1 red test, never shipped).
+    _stamp_quota_headroom(eligible, quota_ctx)
     eligible.sort(key=_legacy_sort_key)
     sort_used, sort_warning = 'price', None
     if sort_spec and sort_spec != 'price':
@@ -1904,6 +2019,74 @@ def _build_chain(tables, reqs, limit=DEFAULT_CHAIN_LIMIT, sort_spec=None, sort_c
     return [(i + 1, m.get('provider'), m.get('model'),
              m.get('normalized_price'), m.get('data_class'), m)
             for i, m in enumerate(eligible[:limit])]
+
+
+def _stamp_quota_headroom(eligible, quota_ctx) -> None:
+    """TR-213: stamp each eligible lane row with its provider's L2 headroom
+    (USD/s) under '_quota_headroom' — the input the sort's demote slot reads.
+    Pure read over the TR-209 accounting view; unknown stays ABSENT (never 0),
+    and any failure leaves rows unstamped (fail-open, ordering unchanged).
+    When the inputs are disabled this is a no-op that still says why."""
+    if not isinstance(quota_ctx, dict) or not quota_ctx.get('enabled'):
+        return
+    _cache = {}
+    for m in eligible:
+        prov = str(m.get('provider'))
+        if prov not in _cache:
+            _cache[prov] = _lane_headroom(quota_ctx, prov)
+        h = _cache[prov]
+        if h is not None:
+            m['_quota_headroom'] = h
+
+
+def _deprioritised_for_low_headroom(out_chain, chain_rows, quota_ctx) -> list:
+    """TR-213: which lanes actually LOST positions to the headroom demotion.
+
+    `out_chain` is the FINAL chain (post-demote order, entries carrying
+    'headroom_usd_per_s'); `chain_rows` are the registry rows the sort ran on
+    (full key material). The base order is the SAME legacy key with the demote
+    slot stripped — a lane that kept its price rank is merely 'near its
+    ceiling' (reported as a value, not a re-rank), and one that moved lists
+    WHO passed it. Pure: never mutates the sort input."""
+    demoted = []
+    guard = _quota_order_guard()
+    if guard <= 0.0 or not out_chain or not chain_rows:
+        return demoted
+    base = sorted((dict(m, _quota_headroom=None) for _h, p, mo, _pr, _dc, m
+                   in chain_rows), key=_legacy_sort_key)
+    base_order = {(m.get('provider'), m.get('model')): i
+                  for i, m in enumerate(base)}
+    demoted_order = {(e.get('provider'), e.get('model')): i
+                     for i, e in enumerate(out_chain)}
+    for e in out_chain:
+        pair = (e.get('provider'), e.get('model'))
+        hval = e.get('headroom_usd_per_s')
+        if not isinstance(hval, (int, float)) or isinstance(hval, bool) \
+                or float(hval) >= guard:
+            continue
+        if demoted_order.get(pair, 0) <= base_order.get(pair, 0):
+            continue
+        passed_by = [f'{x.get("provider")}/{x.get("model")}'
+                     for x in out_chain
+                     if (x.get('provider'), x.get('model')) != pair
+                     and base_order.get((x.get('provider'),
+                                         x.get('model')),
+                                        demoted_order.get(
+                                            (x.get('provider'),
+                                             x.get('model')), 0))
+                     > base_order.get(pair, 0)
+                     and demoted_order.get((x.get('provider'),
+                                            x.get('model')), 0)
+                     < demoted_order.get(pair, 0)]
+        demoted.append({'provider': e.get('provider'), 'model': e.get('model'),
+                        'headroom_usd_per_s': float(hval),
+                        'passed_by': passed_by})
+    if demoted and isinstance(quota_ctx, dict):
+        quota_ctx['deprioritised'] = [
+            {'provider': d['provider'], 'model': d['model'],
+             'headroom_usd_per_s': d['headroom_usd_per_s'],
+             'passed_by': d['passed_by']} for d in demoted]
+    return demoted
 
 
 def _pub_prices(m) -> tuple:
@@ -2214,11 +2397,16 @@ def resolve(project=None, profile_id=None, adhoc=None, use_health: bool=True, li
                     'used': 'price', 'warning': None}
         if stats_meta.get('error'):
             _err(f'WARNING: outcome stats degraded — {stats_meta["error"]}')
-    # Profiles with NO requirement rows resolve to an empty chain — identical
-    # to v_task_eligible (its task list comes from DISTINCT requirements).
+    # TR-213: the quota-headroom ordering term. Inputs load ONCE (limits
+    # config + outcome ledger, both env-overridable, both fail-open) and are
+    # stamped INSIDE _build_chain BEFORE the sort — the demote slot lives in
+    # _legacy_sort_key. Disabled/absent inputs = no stamps = the historical
+    # ordering, byte-identical. (Profiles with NO requirement rows resolve to
+    # an empty chain — identical to v_task_eligible.)
+    _quota_ctx = _quota_order_ctx()
     _lc_counts = {}
     chain_rows = _build_chain(tables, reqs, limit=limit, lifecycle_counts=_lc_counts, sort_spec=sort_spec,
-                              sort_ctx=sort_ctx) if reqs else []
+                              sort_ctx=sort_ctx, quota_ctx=_quota_ctx) if reqs else []
     sort_used = (sort_ctx or {}).get('used') or 'price'
     # TR-021: keep the raw price-ordered eligible list for metrics before gates.
     chain = list(chain_rows)
@@ -2405,6 +2593,12 @@ def resolve(project=None, profile_id=None, adhoc=None, use_health: bool=True, li
                    'cache_read_per_m': mrow.get('public_cache_read_per_m'),
                    'cache_write_per_m': mrow.get('public_cache_write_per_m'),
                    'data_class': dc}
+            # TR-213: the lane's window headroom (USD/s) rides on the hop when
+            # KNOWN — the same view `router quota accounting` reports. Unknown
+            # (no limit configured / unpriceable spend) stays ABSENT, never 0.
+            _qhh = mrow.get('_quota_headroom')
+            if isinstance(_qhh, (int, float)) and not isinstance(_qhh, bool):
+                ent['headroom_usd_per_s'] = float(_qhh)
             # TR-069 wave 2: retiring lanes warn on EVERY hop (date + successor);
             # capacity is never silently cut, but callers see the deadline.
             _ls = lifecycle_state(mrow)
@@ -2434,6 +2628,26 @@ def resolve(project=None, profile_id=None, adhoc=None, use_health: bool=True, li
                      caps['max_total_per_provider'])
 
     head = out_chain[0] if out_chain else None
+
+    # --- 4.2 TR-213: name the headroom demotions ------------------------------
+    # AC4: the resolve output states which lanes were deprioritised for low
+    # headroom (per-hop flag + this summary). A demoted lane that did NOT
+    # actually lose a position (it kept its price rank) is reported as a
+    # VALUE on its hop only — never claimed as a re-rank.
+    _deprioritised = _deprioritised_for_low_headroom(out_chain, chain, _quota_ctx)
+    if _deprioritised:
+        _demoted_pairs = {(d['provider'], d['model']) for d in _deprioritised}
+        for _ent in out_chain:
+            if (_ent.get('provider'), _ent.get('model')) not in _demoted_pairs:
+                continue
+            _d = next(d for d in _deprioritised
+                      if (d['provider'], d['model'])
+                      == (_ent.get('provider'), _ent.get('model')))
+            _ent['deprioritised_for_low_headroom'] = True
+            _ent['deprioritised_reason'] = (
+                f'headroom {_d["headroom_usd_per_s"]:.2e} USD/s below the '
+                f'{_quota_order_guard():.2e} USD/s order guard — passed by '
+                f'{", ".join(_d["passed_by"])}')
 
     # --- 4.5 FALLBACK LANES (Bane 2026-08-27): crons must ALWAYS run ---------
     # When every eligible hop is gated/down, fall back to the designated
@@ -2507,6 +2721,24 @@ def resolve(project=None, profile_id=None, adhoc=None, use_health: bool=True, li
             'head': head, 'chain': out_chain, 'exclusions': exclusions,
             'gate_reasons': reasons,
             'degraded_fallback': bool(fb_used),
+            # TR-213: the quota-headroom ordering term, stated on the doc —
+            # enabled/guard/reason (why NOT when inert), the summary of lanes
+            # actually deprioritised for low headroom, and where the inputs
+            # came from. Inert-by-default: no limits configured = the
+            # historical ordering with the reason on this block.
+            'quota_ordering': {
+                'enabled': bool(_quota_ctx.get('enabled')),
+                'guard_usd_per_s': _quota_ctx.get('guard'),
+                'reason': _quota_ctx.get('reason'),
+                'deprioritised': [
+                    {'provider': d['provider'], 'model': d['model'],
+                     'headroom_usd_per_s': d['headroom_usd_per_s'],
+                     'passed_by': d['passed_by']}
+                    for d in (_quota_ctx.get('deprioritised') or [])],
+                'limits_path': _quota_ctx.get('limits_path'),
+                'ledger_path': _quota_ctx.get('ledger_path'),
+                'providers_with_limits': _quota_ctx.get('n_limits', 0),
+            },
             # TR-025 runtime visibility: WHERE the data came from + which
             # gate-state files were actually present. Additive only — gate
             # behavior and fail-open are untouched.

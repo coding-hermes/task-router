@@ -213,9 +213,12 @@ The bus→router door: `scripts/router_ingress.py`. Contract and evidence in
 |---|---|---|---|
 | `ROUTER_WEB_URL` | `proxy_acceptance.py` | Base URL for the router web UI | `http://127.0.0.1:9093` |
 | `ROUTER_SPAWN_SORT` | `router_spawn.py` | Default sort key for spawn results (can be overridden with `--sort`) | `price` |
+| `ROUTER_CATALOG_DIR` | `router_catalog_refresh.py` | TR-167: directory scanned for carrier-catalog presets (`<id>.json`) — glob discovery, adding a carrier = dropping one file | `<repo>/data/catalogs` |
+| `ROUTER_CATALOG_FETCH_DIR` | `router_catalog_refresh.py` | TR-167 test seam: read catalogs from this directory as `<preset-id>.json` instead of fetching live URLs (hermetic suite; unset on any real run) | unset (live fetch) |
 | `ROUTER_MODEL_ROUTER_DIR` | `router_health.py` | Directory containing the model router configuration | `~/.hermes/model-router` |
 | `ROUTER_QUOTA_POLL_INTERVAL_S` | `router_quota_poller.py` | TR-208: cache freshness for the usage/balance poller — a cached observation younger than this is served WITHOUT a network call (the poller never runs per-request); overridable per call with `--interval` | `900` |
-| `ROUTER_QUOTA_LIMITS_FILE` | `router_quota_accounting.py` | TR-209: path to the L2 limit config JSON (per-provider `{window, limit_usd}`), read at query time by `router quota accounting`; never stored state. `--limits` wins over this env var | `data/quota_limits.json` |
+| `ROUTER_QUOTA_LIMITS_FILE` | `router_quota_accounting.py` | TR-209: path to the L2 limit config JSON (per-provider `{window, limit_usd}`), read at query time by `router quota accounting`; never stored state. `--limits` wins over this env var. Also feeds the TR-213 chain-ordering headroom term in `router_spawn.py` | `data/quota_limits.json` |
+| `ROUTER_QUOTA_ORDER_GUARD` | `router_spawn.py` | TR-213: headroom guard for the chain ordering — a lane whose window headroom is KNOWN and below this many USD/s demotes behind otherwise-comparable lanes (same PAYG bucket, plan tier, price); unknown headroom never demotes. `0` disables the demotion (pre-TR-213 ordering) | `0.01` |
 | `ROUTER_NOHOPS_THRESHOLD` | `router_nohops.py` | Absolute no-hops-rate alert threshold (overrides the baseline-derived value; a malformed value falls through to the baseline ladder) | baseline `threshold`, else baseline `rate` + headroom, else 0.10 |
 | `ROUTER_NOHOPS_HEADROOM` | `router_nohops.py` | Margin added to the baseline rate when no explicit threshold exists | `0.05` |
 | `ROUTER_NOHOPS_MIN_N` | `router_nohops.py` | Minimum resolve sample in the window before an alarm may fire (below it the verdict names the shortfall instead of alerting) | `10` |

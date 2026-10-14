@@ -134,6 +134,17 @@ in token/credit units, while the L2 ledger query is denominated in dollars.*
 2. **Chain preference** — lane ordering gains one term: prefer lanes whose window has headroom, deprioritise
    lanes near their ceiling, and keep the existing rules intact (plan lanes before PAYG, measured cost before
    price when coverage allows). Quota is a *tie-breaker and a guard*, never a silent re-rank of the fleet.
+
+   *Implemented 2026-10-13 (TR-213): the demote slot lives inside `router_spawn._legacy_sort_key` AFTER the
+   effective-price term — a lane whose L2 headroom (`headroom_usd_per_s` from `router quota accounting`,
+   limits config `data/quota_limits.json` + outcome ledger) is KNOWN and below the guard
+   (`ROUTER_QUOTA_ORDER_GUARD`, default 0.01 USD/s) sorts behind otherwise-comparable lanes (same PAYG
+   bucket, plan tier, priced-ness, price), so the `(bucket, plan_tier, price)` composite stays
+   non-decreasing and the no-silent-re-rank invariant passes by construction. UNKNOWN headroom (no limit
+   configured, unpriceable spend, no reset) is never "low" — NULL with a reason, never 0. The resolve
+   output states the term: per-hop `headroom_usd_per_s`, `deprioritised_for_low_headroom` +
+   `deprioritised_reason` on lanes that actually lost a position, and a top-level `quota_ordering` block
+   (enabled/guard/reason/deprioritised/paths). No re-rank when the inputs are absent — inert by default.*
 3. **Burn-surplus** (your use: "find a project to burn it on") — for each window compute
    `expected_unused = remaining − (current_rate × time_to_reset)`. Positive and about to reset ⇒ surface it:
    provider, window, surplus in its unit, and what spending it would cost us in real cash (for a subscription

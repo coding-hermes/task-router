@@ -165,14 +165,19 @@ def test_price_tie_unbroken_when_all_healthy(monkeypatch, tmp_path):
 
 
 def test_unequal_prices_still_decide_not_headroom(monkeypatch, tmp_path):
-    """AC1 boundary: headroom is a tie-breaker ONLY — an expensive lane near
-    its ceiling still loses to a healthy cheaper lane (no fleet re-rank)."""
+    """AC1 boundary: headroom is a tie-breaker ONLY — a lane near its ceiling
+    (demoted) cannot jump a CHEAPER healthy lane; price still decides."""
     _wire(monkeypatch, tmp_path,
-          limits={"prov-c": {"window": "rolling_5h", "limit_usd": 1000.0},
-                  "prov-a": {"window": "rolling_5h", "limit_usd": 10.0}},
-          ledger_rows=[("prov-c", 1.0), ("prov-a", 9.999)])
+          limits={"prov-c": {"window": "rolling_5h", "limit_usd": 10.0},
+                  "prov-a": {"window": "rolling_5h", "limit_usd": 1000.0}},
+          ledger_rows=[("prov-c", 9.999), ("prov-a", 1.0)])
     r = _resolve(monkeypatch, tmp_path, None)
     assert _order(r) == ["prov-a/a-lane", "prov-b/b-lane", "prov-c/c-lane"]
+    # c is demoted AND last: it lost no position (price already sank it), so
+    # the hop carries the value but not a deprioritisation claim
+    c = _hop(r, "prov-c/c-lane")
+    assert c["headroom_usd_per_s"] is not None
+    assert "deprioritised_for_low_headroom" not in c
 
 
 # ------------------------------------------------------- AC2: no silent re-rank
@@ -256,10 +261,13 @@ def test_deprioritised_lane_is_flagged_on_hop_and_summary(monkeypatch, tmp_path)
     assert "prov-b/b-lane" in a["deprioritised_reason"]   # names who passed it
     assert "headroom" in a["deprioritised_reason"]
     assert "deprioritised_for_low_headroom" not in b
-    assert r["quota_ordering"]["deprioritised"] == ["prov-a/a-lane"]
+    dep = r["quota_ordering"]["deprioritised"]
+    assert len(dep) == 1
+    assert dep[0]["provider"] == "prov-a" and dep[0]["model"] == "a-lane"
+    assert dep[0]["passed_by"] == ["prov-b/b-lane"]
     assert r["quota_ordering"]["enabled"] is True
     assert r["quota_ordering"]["guard_usd_per_s"] > 0
-    assert r["quota_ordering"]["limits_source"].endswith("quota_limits.json")
+    assert r["quota_ordering"]["limits_path"].endswith("quota_limits.json")
     assert r["quota_ordering"]["providers_with_limits"] == 2
 
 
