@@ -316,6 +316,7 @@
 {"id": "helios-pm", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
 {"id": "helios-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
 {"id": "helios-readme", "sensitivity": "open", "board_type": "jsonl", "profile": "P3_DOCS"}
+{"id": "helios-releng", "sensitivity": "open", "board_type": "jsonl", "profile": "P2_AGENTIC"}
 {"id": "helios-sync", "sensitivity": "open", "board_type": "", "profile": "P8_SYNC"}
 {"id": "helix", "sensitivity": "open", "board_type": "jsonl", "profile": "P0_FORE"}
 {"id": "helix-docs", "sensitivity": "open", "board_type": "jsonl", "profile": "P3_DOCS"}
@@ -349,6 +350,12 @@
 {"id": "hermes-dagger-releng", "sensitivity": "open", "board_type": "jsonl", "profile": "P2_AGENTIC"}
 {"id": "hermes-dagger-review", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
 {"id": "hermes-dagger-sync", "sensitivity": "open", "board_type": "", "profile": "P8_SYNC"}
+{"id": "hermes-rs-dogfood", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
+{"id": "hermes-rs-foreman", "sensitivity": "open", "board_type": "jsonl", "profile": "P0_FORE"}
+{"id": "hermes-rs-pm", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
+{"id": "hermes-rs-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
+{"id": "hermes-rs-releng", "sensitivity": "open", "board_type": "jsonl", "profile": "P2_AGENTIC"}
+{"id": "hermes-rs-sync", "sensitivity": "open", "board_type": "", "profile": "P8_SYNC"}
 {"id": "hermes4friends-infra", "sensitivity": "proprietary", "board_type": "jsonl", "profile": "P0_FORE"}
 {"id": "hermes4friends-infra-docs", "sensitivity": "open", "board_type": "jsonl", "profile": "P3_DOCS"}
 {"id": "hermes4friends-infra-dogfood", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}

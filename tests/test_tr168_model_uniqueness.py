@@ -147,6 +147,57 @@ def test_deduped_pair_keeps_union_row_with_twin_provenance(
 #: must name its importer commit — an append that is not in this list (and not
 #: added here with its evidence) fails the pin exactly like a lost lane.
 POST_DEDUPE_ADDITIONS = {
+    # TR-254 tick 2026-10-14 (model-registry-data-quality cron): carrier-arrival
+    # lanes from the daily syncs + the HELD-lane filing wave. Every key matches a
+    # lane in the committed models.jsonl at HEAD; reasons per family below.
+    ("clinepass", "extract"): "clinepass API sync 2026-10-14 (carrier arrivals, engine-priced)",
+    ("clinepass", "gemini-4-argon"): "clinepass API sync 2026-10-14 (carrier arrivals, engine-priced)",
+    ("clinepass", "gemini-4-argon:batch"): "clinepass API sync 2026-10-14 (carrier arrivals, engine-priced)",
+    ("clinepass", "lfm-2.5-24b-a2b"): "clinepass API sync 2026-10-14 (carrier arrivals, engine-priced)",
+    ("clinepass", "pareto-26.9"): "clinepass API sync 2026-10-14 (carrier arrivals, engine-priced)",
+    ("clinepass", "pareto-latest"): "clinepass API sync 2026-10-14 (carrier arrivals, engine-priced)",
+    ("clinepass", "summarize"): "clinepass API sync 2026-10-14 (carrier arrivals, engine-priced)",
+    ("commandcode", "claude-haiku-5-5"): "TR-254 HELD-lane filing 2026-10-14 (vendor stickers from models.dev)",
+    ("commandcode", "google/gemini-4-argon"): "TR-254 HELD-lane filing 2026-10-14 (vendor stickers from models.dev)",
+    ("commandcode", "meta/muse-wonder-1.0"): "TR-254 HELD-lane filing 2026-10-14 (vendor stickers from models.dev)",
+    ("commandcode", "mistral/mistral-large-4"): "TR-254 HELD-lane filing 2026-10-14 (vendor stickers from models.dev)",
+    ("commandcode", "stealth/glyph-cluster:free"): "TR-254 HELD-lane filing 2026-10-14 (vendor stickers from models.dev)",
+    ("commandcode-2", "claude-haiku-5-5"): "TR-254 HELD-lane filing 2026-10-14 (vendor stickers from models.dev)",
+    ("opencode-go", "cat-jam-free"): "models.dev sync 2026-10-14 (carrier arrivals, priced)",
+    ("opencode-go", "gemini-4-argon-contributor"): "models.dev sync 2026-10-14 (carrier arrivals, priced)",
+    ("opencode-go-2", "claude-haiku-5-5"): "models.dev sync 2026-10-14 (carrier arrivals, priced)",
+    ("openrouter", "anthropic/claude-haiku-5.5:batch"): "models.dev sync 2026-10-14 (carrier arrivals, priced)",
+    ("openrouter", "google/gemini-4-argon"): "models.dev sync 2026-10-14 (carrier arrivals, priced)",
+    ("openrouter", "google/gemini-4-argon:batch"): "models.dev sync 2026-10-14 (carrier arrivals, priced)",
+    ("openrouter", "liquid/lfm-2.5-24b-a2b"): "models.dev sync 2026-10-14 (carrier arrivals, priced)",
+    ("openrouter", "scaledown/extract"): "models.dev sync 2026-10-14 (carrier arrivals, priced)",
+    ("openrouter", "scaledown/summarize"): "models.dev sync 2026-10-14 (carrier arrivals, priced)",
+    ("openrouter", "unbiased/pareto-26.9"): "models.dev sync 2026-10-14 (carrier arrivals, priced)",
+    ("openrouter", "~unbiased/pareto-latest"): "models.dev sync 2026-10-14 (carrier arrivals, priced)",
+    ("xkiro", "apodex/apodex-1.1-mini:free"): "xkiro carrier refresh 2026-10-14 (TR-167 import + TR-254 filing)",
+    ("xkiro", "meta/muse-spark-1.2-contributor:free"): "xkiro carrier refresh 2026-10-14 (TR-167 import + TR-254 filing)",
+    ("xkiro", "minimax/minimax-m2"): "xkiro carrier refresh 2026-10-14 (TR-167 import + TR-254 filing)",
+    ("xkiro", "minimax/minimax-m2.1"): "xkiro carrier refresh 2026-10-14 (TR-167 import + TR-254 filing)",
+    ("xkiro", "minimax/minimax-m2.1-highspeed"): "xkiro carrier refresh 2026-10-14 (TR-167 import + TR-254 filing)",
+    ("xkiro", "minimax/minimax-m2.5-highspeed"): "xkiro carrier refresh 2026-10-14 (TR-167 import + TR-254 filing)",
+    ("xkiro", "minimax/minimax-m2.7-highspeed"): "xkiro carrier refresh 2026-10-14 (TR-167 import + TR-254 filing)",
+    ("xkiro", "mistralai/mistral-large-4-0"): "xkiro carrier refresh 2026-10-14 (TR-167 import + TR-254 filing)",
+    ("xkiro", "moonshotai/kimi-k3-agent"): "xkiro carrier refresh 2026-10-14 (TR-167 import + TR-254 filing)",
+    ("xkiro", "stealth/big-pickle"): "xkiro carrier refresh 2026-10-14 (TR-167 import + TR-254 filing)",
+    ("xkiro", "tencent/hy3-preview"): "xkiro carrier refresh 2026-10-14 (TR-167 import + TR-254 filing)",
+    ("xkiro-2", "apodex/apodex-1.1-mini:free"): "xkiro carrier refresh 2026-10-14 (TR-167 import + TR-254 filing)",
+    ("xkiro-2", "meituan/longcat-2.5-preview:free"): "xkiro carrier refresh 2026-10-14 (TR-167 import + TR-254 filing)",
+    ("xkiro-2", "meta/muse-spark-1.2-contributor:free"): "xkiro carrier refresh 2026-10-14 (TR-167 import + TR-254 filing)",
+    ("xkiro-2", "minimax/minimax-m2"): "xkiro carrier refresh 2026-10-14 (TR-167 import + TR-254 filing)",
+    ("xkiro-2", "minimax/minimax-m2.1"): "xkiro carrier refresh 2026-10-14 (TR-167 import + TR-254 filing)",
+    ("xkiro-2", "minimax/minimax-m2.1-highspeed"): "xkiro carrier refresh 2026-10-14 (TR-167 import + TR-254 filing)",
+    ("xkiro-2", "minimax/minimax-m2.5-highspeed"): "xkiro carrier refresh 2026-10-14 (TR-167 import + TR-254 filing)",
+    ("xkiro-2", "minimax/minimax-m2.7-highspeed"): "xkiro carrier refresh 2026-10-14 (TR-167 import + TR-254 filing)",
+    ("xkiro-2", "mistralai/mistral-large-4-0"): "xkiro carrier refresh 2026-10-14 (TR-167 import + TR-254 filing)",
+    ("xkiro-2", "moonshotai/kimi-k3-agent"): "xkiro carrier refresh 2026-10-14 (TR-167 import + TR-254 filing)",
+    ("xkiro-2", "stealth/big-pickle"): "xkiro carrier refresh 2026-10-14 (TR-167 import + TR-254 filing)",
+    ("xkiro-2", "tencent/hy3-preview"): "xkiro carrier refresh 2026-10-14 (TR-167 import + TR-254 filing)",
+    # --- end TR-254 additions ---
     # clinepass API sync 2026-10-13 (model-registry-data-quality cron pre-run):
     # new catalog lane listed by GET /models; chat-probed 404 at all three id
     # forms; plan sweep disabled it (not in included_models, no discount).
