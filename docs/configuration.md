@@ -111,6 +111,7 @@ structured/thinking rung is recorded in classifier call metadata when available.
 | `ROUTER_PROXY_DEADLINE_HEADER_ALIASES` | `router_server.py` | Case-insensitive request-header aliases the TR-264 deadline contract reads (`X-Caller-Name`, `X-Caller-Budget-S`, `X-Caller-Deadline-Mode`, `X-Caller-Idle-Budget-S`, `X-Caller-Max-Hops`, `X-Caller-Margin-S`) | — (fixed map) |
 | `ROUTER_PROXY_HOP_ELAPSED_HEADER` | `router_server.py` | Internal bookkeeping header (`x-router-hop-elapsed-s`) carrying the seconds already charged to a declared budget before a hop leaves; stripped on forward | — (internal) |
 | `ROUTER_DRAIN_TIMEOUT_S` | `router_server.py` | Bounded graceful-drain window on SIGTERM: how long the server keeps serving in-flight requests before closing (clamped hard at 80s). See `docs/graceful-restart.md` | `60` |
+| `ROUTER_QUOTA_ORDER_GUARD` | `router_spawn.py` | TR-213 quota-ordering demote guard: a lane whose window headroom is KNOWN and below this many USD/s sorts behind otherwise-comparable lanes; `0` disables demotion. NULL headroom never demotes. See `docs/quota-layers-spec.md` §5.2 | `0.01` |
 
 ### Proxy concurrency
 
