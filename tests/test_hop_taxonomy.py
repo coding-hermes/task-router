@@ -33,9 +33,6 @@ CIRC_PATH = os.path.join(REPO, 'scripts', 'router_circuit.py')
 def _load_circuit_module():
     spec = importlib.util.spec_from_file_location(
         "router_circuit_under_test_tr288", CIRC_PATH)
-    mod = importlib.util.spec_from_file_location  # noqa: F841 (placeholder kept minimal)
-    spec = importlib.util.spec_from_file_location(
-        "router_circuit_under_test_tr288", CIRC_PATH)
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     return mod
@@ -181,7 +178,6 @@ def test_quota_code_never_retries_and_skips_to_next_hop(proxy_env, monkeypatch):
 def test_model_failure_demotes_only_the_pair(proxy_env, monkeypatch, tmp_path):
     """A 429 naming a MODEL takes out that (provider, model) hop; the
     provider's other models still resolve."""
-    monkeypatch.setattr(rsrv, '_demote_on_taxonomy', rsrv.__dict__['_demote_on_taxonomy'].__wrapped__ if hasattr(rsrv._demote_on_taxonomy, '__wrapped__') else None)  # placeholder; replaced below
     # use the REAL demotion (patched out in proxy_env)
     demoted = []
     monkeypatch.setattr(rsrv, '_demote_on_taxonomy',
