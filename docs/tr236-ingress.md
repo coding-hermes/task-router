@@ -174,6 +174,10 @@ recording that as a served model would be a fabricated billing fact).
   `ROUTER_INGRESS_CIRCUIT_OPEN_S` (30s). A half-open probe then tests recovery; a
   failed probe re-opens with a doubled (capped at 1 h) cooldown. `GET /health`
   reports every lane's `state`, `consecutive_failures` and `last_failure`.
+  Circuit state is **per-process**: the long-lived doors (`serve`, the poll
+  loop) accumulate failures across forwards and trip as described, but each
+  fresh `forward` invocation starts with a clean circuit — repeated one-shot
+  forwards against a dead endpoint never accumulate (TR-321).
 * **Idempotency**: a re-delivered `idempotency_key` is answered `duplicate` and
   never forwarded twice.
 
