@@ -1024,13 +1024,3 @@ tasks:
     derived rows stamped EST; 21 panel tests pass; no revert of TR-213 ordering
   status: in_progress
   created_at: '2026-10-14T06:58:25.200731+00:00'
-- id: TR-321
-  title: "INGRESS forward-door circuit state is per-process \u2014 document it"
-  criteria:
-  - docs/tr236-ingress.md states that circuit breaker state lives per-process (long-lived
-    serve/poll doors hold it; a fresh router_ingress.py forward invocation starts
-    with a clean circuit), verified by grep of the doc and a git commit on a clean
-    tree
-  status: complete
-  created_at: '2026-10-14T16:29:10.744586+00:00'
-  completed_at: '2026-10-14T16:29:46.373076+00:00'
