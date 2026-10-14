@@ -220,3 +220,35 @@ row the lane is excluded `policy-gate-missing-row` on every resolve.
 The fail-CLOSED policy plane coexists with the section-6 fail-open doctrine:
 spawn ERRORS still never block the scheduler (`{"error": ...}` + exit 0);
 only the presence/absence of a policy row decides routability.
+
+## 9. Carrier-catalog refresh: presets on the daily loop (TR-167)
+
+Every vendor catalog preset in `data/catalogs/<id>.json` is imported by the
+model-router-refresh cron's pre-run script
+(`scripts/router-data-quality.sh` → `scripts/router_catalog_refresh.py`),
+right after the models.dev sync. Adding a carrier = dropping one preset file;
+no prompt or script edit.
+
+Per preset the sweep reports the diff against the registry (new lanes, price
+moves, catalog removals) and, on `--apply` (what the cron runs), files the
+PRICED new lanes into `models.jsonl` via `router_provider_import`'s rules —
+plan multipliers, sticker tables, price-scale and preview-merge semantics all
+live in the preset/importer, not here. A net-new lane the catalog + preset
+cannot price is HELD: reported loudly by name, never appended (an unpriced
+lane is invisible to every price-ordered chain and counts as unexplained null
+debt, TR-201). The hold is per lane — priced siblings file normally. Once the
+lane is priced (plan terms / sticker / models.dev) the next run files it
+automatically; to leave it unpriced deliberately, record why in
+`model_notes.jsonl`.
+
+Manual run:
+
+```bash
+cd task-router && ~/.hermes/venvs/board/bin/python3 scripts/router_catalog_refresh.py            # dry-run
+cd task-router && ~/.hermes/venvs/board/bin/python3 scripts/router_catalog_refresh.py --apply    # file lanes
+```
+
+One unreachable carrier reports `[<preset>] ERROR: …` and exits 1 (TR-024);
+the pre-run script continues so the gap report and the agent's research
+context still generate. Probe rows are ensured idempotently and carry
+`key_env` only — never a key value.
