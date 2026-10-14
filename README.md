@@ -207,7 +207,13 @@ ROUTER_EDIT_API_KEY=... router server --mode edit
     search), `/api/ui/ledger` (ledger search; truncation always
     disclosed), `/api/ui/nohops` (TR-195 no-hops rate + hourly buckets +
     baseline/threshold verdict — the SAME number the alerter posts, so
-    the UI and the alert can never disagree).
+    the UI and the alert can never disagree), `/api/ui/quota` (TR-212
+    quota remaining panel: per provider/window remaining + confidence +
+    reset time + the source rung of every number — rung-2 endpoint
+    answers are OBSERVED, rung-4 ledger derivations are stamped EST
+    with basis derived-from-ledger; NULL limits render
+    `unknown (<reason>)` verbatim; burn-surplus candidates carry their
+    reset countdown).
   - **Interop** — `/v1/models` (alias `/models`): the OpenAI-compatible
     model list every client probes first.
 - Writes (edit mode + `X-API-Key` header only): `POST /circuit/record`,
@@ -220,8 +226,8 @@ ROUTER_EDIT_API_KEY=... router server --mode edit
   OpenAPI schema, so an MCP client can list and call the same operations —
   including gated mutations — under identical auth rules.
 - **UI data plane** — `GET /ui` serves the Data Command Center; its
-  `GET /api/ui/{registry,chain,flow,series,board,ledger}` searches and the
-  guarded `POST /api/ui/registry/edit` are documented in
+  `GET /api/ui/{registry,chain,flow,series,board,ledger,nohops,quota}`
+  searches and the guarded `POST /api/ui/registry/edit` are documented in
   [docs/ui/data-command-center.md](docs/ui/data-command-center.md).
 
 ### Deploy parity: `code.stale`, the watchdog, and `make restart-router` (TR-255)

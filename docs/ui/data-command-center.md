@@ -182,6 +182,47 @@ the scan window or the page cut the result short — so a search can never look
 complete when it was cut short. With `order=recent` a browser over a 325k-row
 ledger starts at the newest end instead of showing the oldest rows first.
 
+## GET /api/ui/quota
+
+The quota REMAINING panel (TR-212): one row per declared (provider, window)
+from the L0 table (`data/tables/provider_quota.jsonl`), composed over the
+existing quota layers — it implements none of them. Readback ladder
+(docs/quota-layers-spec.md §3), rung stamped on EVERY number:
+
+| rung | source | rendering |
+|---|---|---|
+| rung-2 | usage/balance endpoint (the TR-208 poller cache) | `observed: true` — the UI badges it OBSERVED |
+| rung-4 | derivation from the L2 ledger view (limit − in-window spend) | `observed: false`, `basis: "derived-from-ledger"` — the UI badges it EST |
+| rung-1 | response headers | named in `rung_vocabulary` but never emitted yet (not recorded on the proxy path) |
+
+An estimate can never render as a reading (AC1): only the `observed` flag may
+badge a number, and only a rung-2 answer sets it. Derivations are refused —
+NULL + reason, never a fake remainder — when the window is per-minute (no
+ledger resolution guarantee), when the unit has no honest ledger equivalent
+(credits, percent, energy, tokens_per_minute), or when the L0 limit is NULL.
+
+Query params:
+
+| param | notes |
+|---|---|
+| `provider` | exact provider id to filter to |
+| `scan_limit` | ledger rows to tail-scan (default 200000); reported back as `rows_scanned` |
+
+Honesty fields: a NULL limit renders `unknown (<reason>)` in the UI with the
+reason VERBATIM from the L0 table (`not-published | no-readback |
+plan-not-disclosed`) — never 0, never blank (AC2). `burn.candidates` carries
+the burn-surplus projections verbatim from `router_quota_burn` over the same
+L2 view, each with `resets_at` + `time_to_reset_s` for the countdown, every
+entry labelled estimated (AC3); windows with no `limit_usd` anywhere are
+counted in `burn.summary.unknown` and contribute nothing — silence is
+visible, not infinite capacity. `generated_from` names every input (L0 table
+stats, limits file + per-provider `limits_sources`, ledger path +
+`rows_scanned`/`scan_limit`/`scan_truncated`, rung-2 cache age/state) so the
+panel states what it actually read (AC4). Dollar limits: the operator config
+(`data/quota_limits.json`) wins; providers it does not declare take the L0
+table's own `usd` row (shortest window), and the choice is recorded per
+provider in `limits_sources`.
+
 ## POST /api/ui/registry/edit
 
 The one UI mutation (TR-155, write half). Guarded, validated, audited,
