@@ -19,12 +19,12 @@ guards:
   # mid-suite and the guard FAILED OPEN ("commit allowed to proceed"),
   # so commits landed on trees nobody graded. Keep the ladder monotone when
   # touching any of the three numbers.
-  test_timeout: 3000
+  test_timeout: 3600
   # overall hook budget must exceed test_timeout — the 300s default made the
   # first full-mode data commit fail-open at 300s (2026-09-17, f792a7b), and
   # the 700s value sat BELOW test_timeout 900 (inverted ladder) with the same
   # fail-open result once the suite passed 700s (fixed 2026-10, TR-175)
-  hook_timeout: 3600
+  hook_timeout: 4200
   test_command: ./scripts/gitreins-guard-tests.sh
   static_analysis: false
 evaluator:
