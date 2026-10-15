@@ -3305,6 +3305,21 @@
 {"model": "step-3.7-flash", "category": "test", "perf": 0.95, "source": "estimate", "source_ref": "PROFILE_TAGS:step 3"}
 {"model": "step-3.7-flash", "category": "tool_use", "perf": 0.25, "source": "bench", "source_ref": "bench:battery-T1-TOOL"}
 {"model": "step-3.7-flash", "category": "vision", "perf": 0.972051282051282, "source": "bench", "source_ref": "bench:BrowseComp multimodal"}
+{"model": "step-5-preview", "category": "agent_tick", "perf": 0.75, "source": "family", "source_ref": "alias:stepfun/step-5-preview"}
+{"model": "step-5-preview", "category": "code_gen", "perf": 0.667, "source": "family", "source_ref": "alias:stepfun/step-5-preview"}
+{"model": "step-5-preview", "category": "debug", "perf": 0.667, "source": "family", "source_ref": "alias:stepfun/step-5-preview"}
+{"model": "step-5-preview", "category": "delegation", "perf": 0.25, "source": "family", "source_ref": "alias:stepfun/step-5-preview"}
+{"model": "step-5-preview", "category": "guard", "perf": 1.0, "source": "family", "source_ref": "alias:stepfun/step-5-preview"}
+{"model": "step-5-preview", "category": "long_doc", "perf": 1.0, "source": "family", "source_ref": "alias:stepfun/step-5-preview"}
+{"model": "step-5-preview", "category": "long_horizon", "perf": 1.0, "source": "family", "source_ref": "alias:stepfun/step-5-preview"}
+{"model": "step-5-preview", "category": "mechanical", "perf": 0.833, "source": "family", "source_ref": "alias:stepfun/step-5-preview"}
+{"model": "step-5-preview", "category": "multilingual", "perf": 1.0, "source": "family", "source_ref": "alias:stepfun/step-5-preview"}
+{"model": "step-5-preview", "category": "reasoning", "perf": 1.0, "source": "family", "source_ref": "alias:stepfun/step-5-preview"}
+{"model": "step-5-preview", "category": "review", "perf": 1.0, "source": "family", "source_ref": "alias:stepfun/step-5-preview"}
+{"model": "step-5-preview", "category": "schema", "perf": 1.0, "source": "family", "source_ref": "alias:stepfun/step-5-preview"}
+{"model": "step-5-preview", "category": "spec_docs", "perf": 1.0, "source": "family", "source_ref": "alias:stepfun/step-5-preview"}
+{"model": "step-5-preview", "category": "test", "perf": 1.0, "source": "family", "source_ref": "alias:stepfun/step-5-preview"}
+{"model": "step-5-preview", "category": "tool_use", "perf": 0.667, "source": "family", "source_ref": "alias:stepfun/step-5-preview"}
 {"model": "stepfun/Step-3.5-Flash", "category": "agent_tick", "perf": 0.75, "source": "family", "source_ref": "alias:step-3.5-flash"}
 {"model": "stepfun/Step-3.5-Flash", "category": "code_gen", "perf": 0.75, "source": "family", "source_ref": "alias:step-3.5-flash"}
 {"model": "stepfun/Step-3.5-Flash", "category": "debug", "perf": 0.75, "source": "family", "source_ref": "alias:step-3.5-flash"}

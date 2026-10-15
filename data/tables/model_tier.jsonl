@@ -3246,7 +3246,7 @@
 {"model": "step-3.5-flash", "category": "refactor", "perf": 0.5, "tier": 1, "tier_source": "bench", "source_ref": "bench:battery-T2-CODE"}
 {"model": "step-3.5-flash", "category": "schema", "perf": 0.5, "tier": -2, "tier_source": "bench", "source_ref": "bench:battery-T2-CODE"}
 {"model": "step-3.5-flash", "category": "terminal", "perf": 0.95, "tier": 5, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:step 3"}
-{"model": "step-3.5-flash", "category": "test", "perf": 0.95, "tier": 0, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:step 3"}
+{"model": "step-3.5-flash", "category": "test", "perf": 0.95, "tier": -1, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:step 3"}
 {"model": "step-3.5-flash", "category": "tool_use", "perf": 0.75, "tier": 0, "tier_source": "bench", "source_ref": "bench:battery-T1-TOOL"}
 {"model": "step-3.5-flash", "category": "vision", "perf": 0.72, "tier": 3, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:step 3"}
 {"model": "step-3.7-flash", "category": "agent_tick", "perf": 0.25, "tier": -5, "tier_source": "measured", "source_ref": "models.jsonl:perf_agent_tick"}
@@ -3264,9 +3264,24 @@
 {"model": "step-3.7-flash", "category": "review", "perf": 0.68, "tier": -3, "tier_source": "measured", "source_ref": "models.jsonl:perf_review"}
 {"model": "step-3.7-flash", "category": "schema", "perf": 0.5, "tier": -2, "tier_source": "measured", "source_ref": "models.jsonl:perf_schema"}
 {"model": "step-3.7-flash", "category": "terminal", "perf": 0.5954999999999999, "tier": -4, "tier_source": "bench", "source_ref": "bench:Terminal-Bench"}
-{"model": "step-3.7-flash", "category": "test", "perf": 0.95, "tier": 0, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:step 3"}
+{"model": "step-3.7-flash", "category": "test", "perf": 0.95, "tier": -1, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:step 3"}
 {"model": "step-3.7-flash", "category": "tool_use", "perf": 0.25, "tier": -5, "tier_source": "bench", "source_ref": "bench:battery-T1-TOOL"}
 {"model": "step-3.7-flash", "category": "vision", "perf": 0.972051282051282, "tier": 4, "tier_source": "bench", "source_ref": "bench:BrowseComp multimodal"}
+{"model": "step-5-preview", "category": "agent_tick", "perf": 0.75, "tier": 2, "tier_source": "family", "source_ref": "alias:stepfun/step-5-preview"}
+{"model": "step-5-preview", "category": "code_gen", "perf": 0.667, "tier": 0, "tier_source": "family", "source_ref": "alias:stepfun/step-5-preview"}
+{"model": "step-5-preview", "category": "debug", "perf": 0.667, "tier": -1, "tier_source": "family", "source_ref": "alias:stepfun/step-5-preview"}
+{"model": "step-5-preview", "category": "delegation", "perf": 0.25, "tier": -5, "tier_source": "family", "source_ref": "alias:stepfun/step-5-preview"}
+{"model": "step-5-preview", "category": "guard", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:stepfun/step-5-preview"}
+{"model": "step-5-preview", "category": "long_doc", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:stepfun/step-5-preview"}
+{"model": "step-5-preview", "category": "long_horizon", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:stepfun/step-5-preview"}
+{"model": "step-5-preview", "category": "mechanical", "perf": 0.833, "tier": -2, "tier_source": "family", "source_ref": "alias:stepfun/step-5-preview"}
+{"model": "step-5-preview", "category": "multilingual", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:stepfun/step-5-preview"}
+{"model": "step-5-preview", "category": "reasoning", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:stepfun/step-5-preview"}
+{"model": "step-5-preview", "category": "review", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:stepfun/step-5-preview"}
+{"model": "step-5-preview", "category": "schema", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:stepfun/step-5-preview"}
+{"model": "step-5-preview", "category": "spec_docs", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:stepfun/step-5-preview"}
+{"model": "step-5-preview", "category": "test", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:stepfun/step-5-preview"}
+{"model": "step-5-preview", "category": "tool_use", "perf": 0.667, "tier": -2, "tier_source": "family", "source_ref": "alias:stepfun/step-5-preview"}
 {"model": "stepfun/Step-3.5-Flash", "category": "agent_tick", "perf": 0.75, "tier": 2, "tier_source": "family", "source_ref": "alias:step-3.5-flash"}
 {"model": "stepfun/Step-3.5-Flash", "category": "code_gen", "perf": 0.75, "tier": 1, "tier_source": "family", "source_ref": "alias:step-3.5-flash"}
 {"model": "stepfun/Step-3.5-Flash", "category": "debug", "perf": 0.75, "tier": 1, "tier_source": "family", "source_ref": "alias:step-3.5-flash"}
@@ -3278,7 +3293,7 @@
 {"model": "stepfun/Step-3.5-Flash", "category": "refactor", "perf": 0.5, "tier": 1, "tier_source": "family", "source_ref": "alias:step-3.5-flash"}
 {"model": "stepfun/Step-3.5-Flash", "category": "schema", "perf": 0.5, "tier": -2, "tier_source": "family", "source_ref": "alias:step-3.5-flash"}
 {"model": "stepfun/Step-3.5-Flash", "category": "terminal", "perf": 0.95, "tier": 5, "tier_source": "family", "source_ref": "alias:step-3.5-flash"}
-{"model": "stepfun/Step-3.5-Flash", "category": "test", "perf": 0.95, "tier": 0, "tier_source": "family", "source_ref": "alias:step-3.5-flash"}
+{"model": "stepfun/Step-3.5-Flash", "category": "test", "perf": 0.95, "tier": -1, "tier_source": "family", "source_ref": "alias:step-3.5-flash"}
 {"model": "stepfun/Step-3.5-Flash", "category": "tool_use", "perf": 0.75, "tier": 0, "tier_source": "family", "source_ref": "alias:step-3.5-flash"}
 {"model": "stepfun/Step-3.5-Flash", "category": "vision", "perf": 0.72, "tier": 3, "tier_source": "family", "source_ref": "alias:step-3.5-flash"}
 {"model": "stepfun/Step-3.7-Flash", "category": "agent_tick", "perf": 0.75, "tier": 2, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/AGENT-TICK"}

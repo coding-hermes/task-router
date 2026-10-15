@@ -227,3 +227,4 @@
 {"model": "moonshotai/kimi-k2.8-preview-agent", "inherits": "moonshotai/kimi-k2.8-preview", "note": "TR-222 2026-10-12: same K2.8 preview weights; the -agent serving form is the only one xkiro still serves (bare id chat 404 2026-10-12, xkiro live catalog lists -agent only)"}
 {"model": "meituan/longcat-2.5-preview:free", "inherits": "longcat-2.5-preview", "note": "TR-222 2026-10-12: :free promo flag on the LongCat-2.5 preview, same weights"}
 {"model": "longcat-2.5-preview", "inherits": "longcat-2.0", "note": "TR-222 2026-10-12: LongCat-2.5 preview = same family, prior gen weights (2.0); NO own benchmark evidence yet \u2014 family prior only, kept OUT of PROFILE_MODELS so the quantile pools and chain heads are untouched"}
+{"model": "step-5-preview", "inherits": "stepfun/Step-5-Preview", "note": "stepfun subscription lane inherits the live-probe evidence carried under the vendor-prefixed id (2026-10-13)"}
