@@ -185,10 +185,13 @@ ROUTER_EDIT_API_KEY=... router server --mode edit
   - **Health plane** — `/` (health + status surface with a `_links` index),
     `/health` (running commit, registry mtime age + freshness verdict,
     `router validate` gate verdict; TR-172 adds the process's admission and
-    classify-cache stats — the canary contract is
+    classify-cache stats; TR-277 adds the `data_cache` block — the runtime
+    data cache's generation, reload count, hit/miss and per-file state — the
+    canary contract is
     [docs/health-plane.md](docs/health-plane.md)), `/model_status`
     (per-model/provider status joined from registry + probe + circuit;
-    filter with `?provider=<id>`), `/status` (server mode + table counts).
+    filter with `?provider=<id>`), `/status` (server mode + table counts +
+    a `runtime_cache` TR-277 stats block).
   - **Routing reads** — `/resolve?project=X`, `/profiles`, `/providers`,
     `/circuit/status`, `/gaps`, `/pricing`, `/chains`.
   - **Proxy ops** — `/v1/capabilities` (TR-140 freshness ladder: a live
@@ -625,7 +628,7 @@ operational tools — review `--help` and use `--dry-run` where available.
 | `ROUTING_DOCS_DIR` | maintain | Output directory for chain snapshots. |
 | `MODELSDEV_CACHE` | modelsdev, probefix | Cache path for models.dev input. |
 
-**Complete reference:** The table above covers the core configuration variables. For the remaining 39 `ROUTER_*` environment variables (classifier, proxy, spawn, health, verification, Hermes integration), see [docs/configuration.md](docs/configuration.md).
+**Complete reference:** The table above covers the core configuration variables. For the remaining 44 `ROUTER_*` environment variables (classifier, proxy, spawn, cache, health, verification, Hermes integration), see [docs/configuration.md](docs/configuration.md).
 
 Credentials are never configuration for this repository's committed data.
 Supply them through your environment or a secret manager only. See

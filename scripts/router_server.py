@@ -2508,9 +2508,30 @@ def _registry_categories(registry_path=None):
     Used to build a FLOOR requirement set when the classifier reports that a prompt
     presses no category (TR-161). Returns [] when the registry cannot be read, so the
     caller can fall back to the previous behaviour instead of inventing a scale.
+
+    TR-277: the read goes through the runtime data cache when available — the
+    registry is parsed once per file identity, so a change is visible within one
+    read (change-driven) instead of up to one TTL late. The 300s TTL memo stays
+    as the secondary net for the no-cache path (and for explicit-path callers,
+    which never touch the cache).
     """
     global _CATS_CACHE_AT, _CATS_CACHE
     ttl = 300.0
+    if router_data_cache is not None and registry_path is None \
+            and os.environ.get('ROUTER_CACHE', '1') not in ('0', 'false', 'no', 'off'):
+        try:
+            tables, _meta = router_data_cache.cached_read_json(
+                os.environ.get("ROUTING_REGISTRY", str(REPO / "registry.json")))
+            if isinstance(tables, dict):
+                tables = tables.get('tables') or {}
+            cats = []
+            for r in (tables.get("task_profile_requirements") or []):
+                c = r.get("category")
+                if c and c not in cats:
+                    cats.append(c)
+            return cats
+        except Exception:  # noqa: BLE001 — fail-open to the plain read below
+            pass
     if registry_path is None and _CATS_CACHE and (time.time() - _CATS_CACHE_AT) < ttl:
         return list(_CATS_CACHE)
     path = Path(registry_path or os.environ.get("ROUTING_REGISTRY", REPO / "registry.json"))
@@ -2727,6 +2748,18 @@ def _registry_profile_ids(registry_path=None):
     """
     global _PROFILE_IDS_CACHE_AT, _PROFILE_IDS_CACHE
     ttl = 300.0
+    if router_data_cache is not None and registry_path is None \
+            and os.environ.get('ROUTER_CACHE', '1') not in ('0', 'false', 'no', 'off'):
+        try:
+            tables, _meta = router_data_cache.cached_read_json(
+                os.environ.get("ROUTING_REGISTRY", str(REPO / "registry.json")))
+            if isinstance(tables, dict):
+                tables = tables.get('tables') or {}
+            ids = {r.get("id") for r in tables.get("task_profiles") or []}
+            ids.discard(None)
+            return ids
+        except Exception:  # noqa: BLE001 — fail-open to the plain read below
+            pass
     if registry_path is None and _PROFILE_IDS_CACHE is not None \
             and (time.time() - _PROFILE_IDS_CACHE_AT) < ttl:
         return set(_PROFILE_IDS_CACHE)

@@ -225,6 +225,11 @@ The bus→router door: `scripts/router_ingress.py`. Contract and evidence in
 | `ROUTER_NOHOPS_BASELINE` | `router_nohops.py` | Path to the recorded baseline JSON | `data/nohops-baseline.json` |
 | `ROUTER_NOHOPS_EVENTS_FILE` | `router_nohops.py` | Events log a delivered alert is always appended to | `data/state/router-events.jsonl` |
 | `ROUTER_NOHOPS_WEBHOOK_URL` | `router_nohops.py` | Deliver-thread webhook the alert payload is POSTed to (unset = events log only; dry-run never contacts it) | — (unset) |
+| `ROUTER_CACHE` | `router_spawn.py`, `router_server.py` | TR-277: `0`/`false` disables the runtime data cache and restores read-per-call behaviour (hermetic tests, debugging). Any other value keeps the cache on | `1` (on) |
+| `ROUTER_CACHE_POLL_S` | `router_data_cache.py` | TR-277: stat-poll fallback interval — how often the poller re-stats watched files for changes the watcher missed. The poller is the SAFETY NET; the watcher (inotify) is the primary invalidation | `1.0` |
+| `ROUTER_CACHE_MAX_WORKERS` | `router_data_cache.py` | TR-277: ceiling on concurrent background reload workers (AC3 bounded) | `2` |
+| `ROUTER_CACHE_FIRST_LOAD_WAIT_S` | `router_data_cache.py` | TR-277: how long a caller waits on another caller's in-flight first load before falling through to its own (fail-open) parse | `10.0` |
+| `ROUTER_CACHE_COPY_MODE` | `router_spawn.py` | TR-277: `deepcopy` hands every caller a private deep copy of cached tables (defensive mode; default `share` serves one parsed object graph — consumers treat rows as read-only) | `share` |
 
 ---
 

@@ -294,6 +294,14 @@ def test_sync_runtime_copies_state_dir():
     assert "state_dir.py" in src
 
 
+def test_sync_runtime_ships_the_data_cache_module():
+    """TR-277: router_spawn.py (live install) imports router_data_cache at
+    startup; a repo-only module would flip every live spawn to the
+    no-cache ImportError arm and silently undo the cache."""
+    src = open(os.path.join(SCRIPTS, "sync_runtime.sh")).read()
+    assert "router_data_cache.py" in src
+
+
 def test_stale_copy_without_sibling_degrades_silently(tmp_path,
                                                       seed_registry_copy):
     """Fail-open: a live byte-copy of spawn WITHOUT state_dir.py next to it
