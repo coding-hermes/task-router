@@ -87,13 +87,21 @@ jobs:
           python-version: "3.11"
 
       - name: Install test deps
-        run: pip install --quiet pytest duckdb pyyaml  # seed subprocess + several tests use the duckdb engine; router_probe_run.py loads config.yaml
+        run: pip install --quiet pytest pytest-timeout duckdb pyyaml  # seed subprocess + several tests use the duckdb engine; router_probe_run.py loads config.yaml; pytest-timeout = INT-CI-20261015-01 stall naming
 
       - name: Seed registry (registry.json is gitignored — CI must generate it)
         run: python3 -m scripts.router_seed
 
       - name: Full test suite (pure JSON — no duckdb needed)
-        run: python3 -m pytest -q tests/ -p no:cacheprovider
+        # INT-CI-20261015-01: four consecutive runs (38679584222, 38709851732,
+        # 38726871621, 38744803144) stalled silent at ~76% (right as
+        # tests/test_spawn_complexity.py begins) and burned the wall clock to
+        # the 75-min job timeout -> conclusion=cancelled, log names no test.
+        # The same tree passes FULL suite locally in 44 min (2262 passed,
+        # 2026-10-15). faulthandler dumps every thread's stack the moment a
+        # test crosses timeout_s, so a stall names its test instead of dying
+        # silently; a 300s cap per test reaps the hang and fails loudly.
+        run: python3 -m pytest -q tests/ -p no:cacheprovider --timeout=300 --timeout-method=thread -p faulthandler --durations=20
 
       - name: Guard test command (gitreins parity)
         run: bash scripts/gitreins-guard-tests.sh

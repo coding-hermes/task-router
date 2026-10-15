@@ -1,0 +1,25 @@
+{
+  "audit_timestamp": "2026-10-14T05:56:47.538049+00:00Z",
+  "base_url": "http://127.0.0.1:9193",
+  "checks": {
+    "title": "task-router \u2014 data command center",
+    "quota_rows": 97,
+    "quota_note": "92 L0 row(s) \u00b7 97 panel row(s) \u00b7 ledger read \u2014 newest 384257 of the store tail-scanned (cap 200000, SCAN TRUNCATED) \u00b7 computed 2026-10-14T05:56:49 \u00b7 EST = rung-4 derivation (basis derived-from-ledger), OBSERVED = rung-2 endpoint answer",
+    "burn_rows": 2,
+    "burn_note": "burn 2 \u00b7 no-burn 1 \u00b7 unknown 36 (unknown = no limit_usd anywhere: set data/quota_limits.json or an L0 usd row \u2014 never treated as \u221e) \u00b7 every entry EST (basis derived-from-ledger) \u00b7 burning stays the owner's call",
+    "has_unknown_form": true,
+    "has_est_badge": true,
+    "has_countdown": true,
+    "badges": {
+      "est": 35,
+      "observed": 3
+    }
+  },
+  "artifacts": [
+    "2026-10-14-quota-panel.png",
+    "2026-10-14-quota-observed.png",
+    "2026-10-14-quota-burn.png",
+    "2026-10-14-command-center-quota.png"
+  ],
+  "status": "pass"
+}

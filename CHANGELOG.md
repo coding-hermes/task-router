@@ -8,6 +8,21 @@ curated from the git log, not generated).
 
 ### Added
 
+- **Quota remaining panel (TR-212)**: `/api/ui/quota` + a data-command-center
+  panel pair (`quota remaining` + `burn surplus`). One row per declared
+  (provider, window) from the L0 quota table with remaining, confidence,
+  reset time and the SOURCE RUNG of every number: rung-2 usage-endpoint
+  answers are the only OBSERVED rows; rung-4 ledger derivations are stamped
+  EST with `basis: derived-from-ledger` — an estimate can never render as a
+  reading. NULL limits render `unknown (<reason>)` verbatim from the L0
+  table, never 0 or blank; per-minute windows and unit-less ledger
+  equivalences are refused honestly instead of derived. Burn-surplus
+  candidates (delegated verbatim to the TR-211 projection over the same L2
+  view) render with their reset countdown and marginal-cash basis. The
+  ledger read is tail-bounded and reported like every UI endpoint.
+  Data plane: `scripts/router_quota_panel.py`; tests:
+  `tests/test_quota_panel.py` (20).
+
 - **Verified outcome feedback leg (TR-299)**: `scripts/verified_outcomes.py`
   projects every completed task outcome into
   `data/state/outcomes-verified.jsonl` under the lane that ACTUALLY served it

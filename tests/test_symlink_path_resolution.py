@@ -165,6 +165,13 @@ def _assert_symlink_contract(module_file, repo, tmp_path):
 
 
 @pytest.mark.parametrize('module_file', FIXED + CONTROLS)
+@pytest.mark.timeout(1200)  # INT-CI-20261015-01: the router_seed.py case execs the
+                            # full seed body (duckdb executemany over 1,959 model
+                            # rows + sync + exports). Fine locally (7s) but on CI
+                            # runners it hung past the 300s cap (run 38758188189,
+                            # stack: seed:427 executemany) — the same 76% stall that
+                            # silently killed four main runs. 1200s headroom keeps
+                            # the suite alive; a genuine hang still names itself.
 def test_repo_constants_resolve_inside_real_tree_through_symlink(module_file, tmp_path):
     if module_file == 'router_seed.py':
         # TR-301: the seed is the one control case whose module body WRITES
