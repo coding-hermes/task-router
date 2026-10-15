@@ -38,6 +38,7 @@ MAX_BODY_BYTES = 1024 * 1024
 if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 import router_outcomes  # noqa: E402
+import router_data_cache  # noqa: E402  (TR-277: runtime data cache)
 import router_drain  # noqa: E402  (stdlib-only sibling script module)
 import router_wire_ids  # noqa: E402  (TR-148: registry id -> upstream wire id)
 import router_hop_taxonomy  # noqa: E402  (TR-288: the one failure taxonomy)
@@ -410,8 +411,15 @@ OPENAPI = build_openapi()
 
 
 def _read_jsonl(name):
+    """TR-277: routed through the runtime data cache (read once, invalidate on
+    file change). The raw path read stays as the fallback if the cache cannot
+    load (fail-open)."""
     path = DATA_DIR / f"{name}.jsonl"
-    rows = []
+    try:
+        rows, _meta = router_data_cache.cached_read_jsonl(path)
+        return rows
+    except Exception:  # noqa: BLE001 — cache failure falls back to a direct read
+        rows = []
     try:
         with path.open() as handle:
             for number, line in enumerate(handle, 1):
@@ -698,6 +706,7 @@ class RouterApplication:
                 if isinstance(payload, dict):
                     payload['admission'] = _admission_stats()
                     payload['classify_cache'] = classify_cache_stats()
+                    payload['data_cache'] = router_data_cache.get_cache().stats()  # TR-277
                     payload['runtime'] = {
                         **self.runtime_identity,
                         **self.lifecycle.snapshot(),
