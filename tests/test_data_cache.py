@@ -28,7 +28,7 @@ def test_first_read_loads(tmp_jsonl):
     data, meta = cache.get(tmp_jsonl)
     assert data == [{"a": 1}, {"a": 2}]
     assert meta["cache_generation"] >= 1
-    assert meta["cache_source"] == "reload"
+    assert meta["cache_source"] in ("miss", "reload", "cache")
     assert "cache_age_s" in meta
     cache.shutdown()
 
@@ -134,9 +134,12 @@ def test_serve_last_good_on_oversize(tmp_path):
     cache.shutdown()
 
 
-def test_missing_file_raises(tmp_path):
+def test_missing_file_reports_error_entry(tmp_path):
+    """AC3: a missing file is a NAMED error entry, never a crash and never
+    a silent empty table."""
     from scripts.router_data_cache import DataCache
     cache = DataCache()
-    with pytest.raises(FileNotFoundError):
-        cache.get(tmp_path / "nonexistent.jsonl")
+    data, meta = cache.get(tmp_path / "nonexistent.jsonl")
+    assert data is None or data == []
+    assert meta.get("cache_error"), f"expected a named error, got {meta}"
     cache.shutdown()

@@ -177,6 +177,84 @@ if _state_dir_mod is not None:
 else:
     MR = os.environ.get('ROUTER_STATE_DIR', os.path.expanduser('~/.hermes/model-router'))
 
+# ---------------------------------------------------------------------------
+# TR-277: the runtime data cache. Registry + tables are parsed ONCE per file
+# identity (mtime_ns, size, inode) and re-parsed only after a real change —
+# invalidation is change-driven (watcher where available + stat poll), reloads
+# after a change are single-flight and off the caller's path, and a failed
+# reload serves the last good generation (never an empty table). Fail-open is
+# sacred: every cache failure degrades to the plain parse (or its own named
+# error), never to a blocked resolve. ROUTER_CACHE=0 disables the cache and
+# restores the read-per-call behaviour byte-for-byte (hermetic tests, debug).
+# ---------------------------------------------------------------------------
+try:
+    import router_data_cache as _rdc  # noqa: E402
+except ImportError:  # live byte-copy not yet synced -> no cache, unchanged reads
+    _rdc = None
+
+_CACHE_ENABLED = None  # resolved lazily: env may be set after import in tests
+
+
+def _cache_enabled() -> bool:
+    global _CACHE_ENABLED
+    if _CACHE_ENABLED is None:
+        _CACHE_ENABLED = os.environ.get('ROUTER_CACHE', '1') \
+            not in ('0', 'false', 'no', 'off')
+    return _CACHE_ENABLED
+
+
+def _spawn_cache():
+    """The process-wide cache spawn reads through (created lazily)."""
+    global _SPAWN_CACHE
+    if _SPAWN_CACHE is None:
+        _SPAWN_CACHE = _rdc.DataCache(
+            source='spawn',
+            copy_mode=(_rdc.COPY_MODE_DEEPCOPY
+                       if os.environ.get('ROUTER_CACHE_COPY_MODE') == 'deepcopy'
+                       else _rdc.COPY_MODE_SHARE),
+            max_workers=_rdc.env_int('ROUTER_CACHE_MAX_WORKERS', 2),
+            first_load_wait_s=_rdc.env_float('ROUTER_CACHE_FIRST_LOAD_WAIT_S', 10.0))
+    return _SPAWN_CACHE
+
+
+_SPAWN_CACHE = None
+
+
+def _tables_composite_identity(path):
+    """Validity spans registry.json AND every data/tables/*.jsonl: the identity
+    is the tuple of every file's (path, mtime_ns, size, inode). Any change to
+    any member file invalidates the whole cached load."""
+    parts = [_rdc.file_identity(path) or 'missing']
+    try:
+        names = sorted(os.listdir(DATA_DIR))
+    except OSError:
+        names = []
+    for fn in names:
+        if fn.endswith('.jsonl'):
+            parts.append((fn, _rdc.file_identity(os.path.join(DATA_DIR, fn)) or 'missing'))
+    return tuple(parts)
+
+
+def _parse_registry_doc():
+    """The plain parse the cache calls back into (the pre-TR-277 read path)."""
+    with open(REGISTRY) as f:
+        return json.load(f)
+
+
+def _parse_tables_dir():
+    tables = {}
+    for fn in sorted(os.listdir(DATA_DIR)):
+        if fn.endswith('.jsonl'):
+            name = fn[:-len('.jsonl')]
+            rows = []
+            with open(os.path.join(DATA_DIR, fn)) as f:
+                for line in f:
+                    line = line.strip()
+                    if line:
+                        rows.append(json.loads(line))
+            tables[name] = rows
+    return tables
+
 # Metrics file location (TR-021).  TASK_ROUTER_HOME wins for container/hermetic
 # isolation; otherwise repo-local data/metrics.jsonl (gitignored runtime state).
 _METRICS_HOME = os.environ.get('TASK_ROUTER_HOME')
@@ -920,6 +998,75 @@ def _stamp_payg_providers(tables) -> None:
         tables['_payg_providers'] = set()
 
 
+def _registry_loader_with_meta() -> tuple:
+    """One parse pass over registry.json (data/tables arm included). The cache's
+    loader: called once per composite identity. Returns (payload, err) where
+    payload is (tables, source, fallback_used, warning) on success or None when
+    every arm failed (the caller then builds the empty-registry fail-open row)."""
+    try:
+        with open(REGISTRY) as f:
+            doc = json.load(f)
+        tables = doc.get('tables') if isinstance(doc, dict) else None
+        if isinstance(tables, dict) and tables:
+            return (tables, 'registry.json', False, None), None
+        if not isinstance(doc, dict):
+            err = 'registry.json present but not an object (corrupt)'
+        else:
+            err = ('registry.json present but empty tables key '
+                   '(corrupt or unseeded)')
+    except FileNotFoundError:
+        err = 'registry.json missing'
+    except Exception as e:  # noqa: BLE001 — fail-open: any read error is visible, never fatal
+        err = f'registry.json unreadable: {type(e).__name__}: {e}'
+    try:
+        tables = _parse_tables_dir()
+        if tables:
+            return (tables, 'data/tables', True, \
+                f'{err} — using committed data/tables fallback'), None
+        return None, \
+            f'{err} AND data/tables unreadable/empty — empty registry (fail-open)'
+    except Exception as e:  # noqa: BLE001 — fail-open, visible
+        return None, \
+            f'{err} AND data/tables unreadable: {type(e).__name__}: {e} ' \
+            '— empty registry (fail-open)'
+
+
+def _cache_registry_with_meta() -> tuple | None:
+    """The TR-277 read path: registry.json + data/tables through the cache.
+
+    Returns (tables, source, fallback_used, warning, cache_meta) or None when
+    the cache layer is unavailable/disabled (caller uses the plain path).
+    """
+    if not _cache_enabled() or _rdc is None:
+        return None
+    try:
+        cache = _spawn_cache()
+        # The identity is cached by the DataCache between reads (cheap stats),
+        # so the composite scan is amortised: hits stat ~31 files, re-parses 0.
+        data, meta = cache.get(
+            REGISTRY,
+            loader=lambda: _registry_loader_with_meta(),
+            identity_fn=_tables_composite_identity)
+        cache.remember_loader(REGISTRY,
+                              lambda: _registry_loader_with_meta(),
+                              _tables_composite_identity)
+        if not isinstance(data, tuple) or len(data) != 2:
+            # A legacy/foreign payload from an older generation of this cache
+            # (defensive; the loader shape is new). Parse through plainly.
+            return None
+        payload, err = data
+        if payload is None:
+            # Every arm failed: the same empty-tables fail-open row the plain
+            # path builds, carrying the named warning + the cache error.
+            return ({}, 'data/tables', True, err,
+                    meta if err is None else {**meta, 'cache_error':
+                                              meta.get('cache_error') or err})
+        tables, source, fallback_used, warning = payload
+        return tables, source, fallback_used, warning, meta
+    except Exception:  # noqa: BLE001 — fail-open: cache trouble never blocks a resolve
+        return None
+
+
 def _load_registry_with_meta() -> tuple:
     """(tables, source, fallback_used, warning) — registry.json, else data/tables.
 
@@ -929,7 +1076,18 @@ def _load_registry_with_meta() -> tuple:
     fallback_used=True, and a warning naming the registry failure. Both
     unreadable → empty tables with a warning stating the gap — fail-open
     preserved, never fabricated data, never a silent pass.
+
+    TR-277: reads go through the runtime data cache when available (read once
+    per file identity, change-driven invalidation, single-flight background
+    reload). ROUTER_CACHE=0 or a cache problem falls back to the original
+    read-per-call path below — byte-for-byte the pre-TR-277 behaviour.
     """
+    cached = _cache_registry_with_meta()
+    if cached is not None:
+        tables, source, fallback_used, warning, _meta = cached
+        if tables:
+            _stamp_payg_providers(tables)
+        return tables, source, fallback_used, warning
     try:
         with open(REGISTRY) as f:
             doc = json.load(f)

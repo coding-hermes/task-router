@@ -725,6 +725,7 @@ class RouterApplication:
                     "status": "ok",
                     "mode": self.mode,
                     "data_dir": str(DATA_DIR),
+                    "runtime_cache": router_data_cache.get_cache().stats(),  # TR-277 stats surface
                     "profiles": len(_read_jsonl("task_profiles")),
                     "providers": len(_read_jsonl("providers")),
                     "models": len(_read_jsonl("models")),
