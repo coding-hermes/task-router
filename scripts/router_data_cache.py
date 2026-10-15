@@ -200,11 +200,78 @@ def make_dir_watcher(callback):
 # ---------------------------------------------------------------------------
 
 class CacheDisabledError(RuntimeError):
-    """Raised when ROUTER_CACHE=0 and a caller still asks for the singleton.
+    """ROUTER_CACHE=0: the threaded singleton is refused.
 
-    INT-CI-20261015-01: get_cache() must honour the kill switch centrally.
-    Callers already fail open (router_server falls back to direct reads).
+    Kept as a public marker for callers that want to special-case disabled
+    cache; get_cache() no longer raises it (d024cc1 broke 22 server tests:
+    health/status surfaces call get_cache().stats() unguarded).
     """
+
+
+def _plain_load(path):
+    """Thread-free jsonl/json parse for _SynchronousCache (no byte cap)."""
+    try:
+        if path.suffix == '.jsonl':
+            rows = []
+            with path.open('r', encoding='utf-8') as handle:
+                for line in handle:
+                    line = line.strip()
+                    if line:
+                        rows.append(json.loads(line))
+            return rows, None
+        if path.suffix == '.json':
+            return json.load(path.open('r', encoding='utf-8')), None
+        return None, f'unsupported suffix: {path.suffix}'
+    except (OSError, json.JSONDecodeError) as exc:
+        return None, f'load failed: {exc}'
+
+
+class _SynchronousCache:
+    """Thread-free stand-in used when ROUTER_CACHE=0.
+
+    Same .get()/.stats() surface as DataCache, but every load is inline and
+    memoized — zero daemon threads, so a later in-process seed exec cannot
+    deadlock on the import lock (INT-CI-20261015-01). Serve-last-good and
+    single-flight semantics are deliberately not replicated: a synchronous
+    reader re-parses on identity change, which is exactly the no-cache
+    contract's freshness.
+    """
+
+    def __init__(self):
+        self._entries = {}
+
+    def get(self, path, loader=None, identity_fn=None) -> tuple:
+        path = Path(path)
+        ident = (identity_fn(path) if identity_fn
+                 else self._default_identity(path))
+        entry = self._entries.get(path)
+        if entry is not None and entry[0] == ident:
+            return entry[1], {'cache_generation': entry[2], 'cache_hit': 'hit'}
+        if loader is not None:
+            data = loader()
+            error = None
+        else:
+            data, error = _plain_load(path)
+        if data is None:
+            raise FileNotFoundError(f'cache disabled and load failed: {error}')
+        gen = (self._entries.get(path) or (None, None, 0))[2] + 1
+        self._entries[path] = (ident, data, gen)
+        return data, {'cache_generation': gen, 'cache_hit': 'miss',
+                      'cache_error': error}
+
+    @staticmethod
+    def _default_identity(path):
+        st = path.stat()
+        return (st.st_mtime_ns, st.st_size)
+
+    def stats(self) -> dict:
+        return {'mode': 'synchronous (ROUTER_CACHE=0)',
+                'entries': len(self._entries),
+                'threads': 0}
+
+    def shutdown(self) -> None:
+        self._entries.clear()
+
 
 
 class CacheEntry:
@@ -656,9 +723,13 @@ def get_cache() -> DataCache:
     # every other get_cache()/cached_read_jsonl() caller bypassed it, so tests
     # still spawned the singleton's daemon threads even with ROUTER_CACHE=0.
     # Those leaked threads deadlock a later in-process seed exec on the import
-    # lock (the four silent 75-min CI kills).
+    # lock (the four silent 75-min CI kills). d024cc1 raised instead — wrong:
+    # 22 server tests call get_cache().stats() unguarded. The honest shape is
+    # a thread-free stand-in with the same surface.
     if os.environ.get('ROUTER_CACHE', '1') in ('0', 'false', 'no', 'off'):
-        raise CacheDisabledError('ROUTER_CACHE=0')
+        if _cache_instance is None or isinstance(_cache_instance, DataCache):
+            _cache_instance = _SynchronousCache()
+        return _cache_instance
     if _cache_instance is None:
         with _cache_lock:
             if _cache_instance is None:
