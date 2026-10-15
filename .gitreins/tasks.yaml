@@ -1024,3 +1024,26 @@ tasks:
     derived rows stamped EST; 21 panel tests pass; no revert of TR-213 ordering
   status: in_progress
   created_at: '2026-10-14T06:58:25.200731+00:00'
+- id: TR-127
+  title: 'SPEC: task-router OpenAPI contract muster consumes + parity check + battery'
+  criteria:
+  - docs/muster-spec.md freezes the consumer block, read/mutation boundary, auth story
+    and parity rule; tests/test_muster_spec_parity.py passes (spec==routes, operationIds,
+    absolute server url, security split); scripts/muster_battery.sh probes 1-7 against
+    live router; guard suite green
+  status: complete
+  created_at: '2026-10-14T18:43:02.189991+00:00'
+  completed_at: '2026-10-14T19:51:08.971268+00:00'
+- id: TR-277
+  title: "RUNTIME DATA CACHE: JSONL tables + registry re-read on every request \u2014\
+    \ read once, invalidate on file change, reload in background, single-flight, bounded"
+  criteria:
+  - 'AC0: cache keyed by (path,mtime_ns,size,inode)+generation; AC1: inotify+stat
+    fallback invalidation; AC2: single-flight bg reload, cache_generation+cache_age_s
+    in response; AC3: bounded (one in-flight, ceiling on threads, max bytes, serve-last-good
+    on failure); AC4: /health+stats report generation/loaded_at/reload_count/last_reload_ms/hits-misses;
+    AC5: test rewrite->next-request-serves-new + test N-concurrent->exactly-ONE-reload;
+    AC6: applies to registry.json + data/tables/*.jsonl + per-request reads'
+  status: complete
+  created_at: '2026-10-15T01:59:36.936512+00:00'
+  completed_at: '2026-10-15T04:05:08.918353+00:00'
