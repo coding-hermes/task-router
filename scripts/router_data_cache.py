@@ -199,6 +199,14 @@ def make_dir_watcher(callback):
 # The cache
 # ---------------------------------------------------------------------------
 
+class CacheDisabledError(RuntimeError):
+    """Raised when ROUTER_CACHE=0 and a caller still asks for the singleton.
+
+    INT-CI-20261015-01: get_cache() must honour the kill switch centrally.
+    Callers already fail open (router_server falls back to direct reads).
+    """
+
+
 class CacheEntry:
     """One installed generation of one path (immutable after install)."""
 
@@ -643,6 +651,14 @@ _cache_lock = threading.Lock()
 def get_cache() -> DataCache:
     """Process-wide cache singleton for server per-request reads."""
     global _cache_instance
+    # INT-CI-20261015-01: honour the kill switch HERE, not just at call sites —
+    # router_server._registry_categories checked the env before calling, but
+    # every other get_cache()/cached_read_jsonl() caller bypassed it, so tests
+    # still spawned the singleton's daemon threads even with ROUTER_CACHE=0.
+    # Those leaked threads deadlock a later in-process seed exec on the import
+    # lock (the four silent 75-min CI kills).
+    if os.environ.get('ROUTER_CACHE', '1') in ('0', 'false', 'no', 'off'):
+        raise CacheDisabledError('ROUTER_CACHE=0')
     if _cache_instance is None:
         with _cache_lock:
             if _cache_instance is None:
