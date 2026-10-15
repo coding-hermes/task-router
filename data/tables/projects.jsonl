@@ -707,5 +707,7 @@
 {"id": "wojons-mythos-pm", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
 {"id": "wojons-mythos-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
 {"id": "wojons-mythos-readme", "sensitivity": "open", "board_type": "jsonl", "profile": "P3_DOCS"}
+{"id": "wojons-mythos-releng", "sensitivity": "open", "board_type": "jsonl", "profile": "P2_AGENTIC"}
+{"id": "wojons-mythos-sync", "sensitivity": "open", "board_type": "", "profile": "P8_SYNC"}
 {"id": "zz-gap12-probe", "sensitivity": "open", "board_type": "jsonl", "profile": "P7_MOCK"}
 {"id": "zz-schedgap-011-probe", "sensitivity": "open", "board_type": "jsonl", "profile": "P7_MOCK"}

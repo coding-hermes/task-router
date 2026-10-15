@@ -25,6 +25,28 @@
   "data_class": "unknown",
   "notes": [
     "onboarded 2026-09-25: the mirror account's lane list had drifted 5 models behind its primary (gpt-6-luna, grok-4.7, mimo-v2.6-flash/pro, space-bunny-free) — a mirror that trails loses the second-account capacity exactly when the primary is throttled",
-    "catalog carries NO price/context fields: the price-preserve rule keeps the engine-priced normalized_price on refresh, and net-new lanes get priced by the per_request engine (blended sticker fallback) on the next reprice"
-  ]
+    "catalog carries NO price/context fields: the price-preserve rule keeps the engine-priced normalized_price on refresh, and net-new lanes get priced by the per_request engine (blended sticker fallback) on the next reprice",
+    "2026-10-15: sticker_prices added — 4 net-new lanes HELD 10-14/10-15 because the carrier catalog carries no pricing block; prices sourced from models.dev 'opencode-go' (same SKUs). nvidia-style unpriceable ids stay HELD loudly."
+  ],
+  "sticker_prices": {
+    "space-bunny": {
+      "in": 0.15,
+      "out": 0.6,
+      "cache_read": 0.03
+    },
+    "gemini-4-argon-contributor": {
+      "in": 4.0,
+      "out": 20.0,
+      "cache_read": 0.2
+    },
+    "cat-jam-free": {
+      "in": 0.0,
+      "out": 0.0
+    },
+    "step-5-preview-free": {
+      "in": 0.0,
+      "out": 0.0
+    }
+  },
+  "sticker_prices_source": "models.dev 'opencode-go' provider (the primary account's mirror catalog), cache 2026-10-15 05:30 + live api.json same day; og-2 serves the same Go SKUs on a 2nd account. Free SKUs 0/0 on the same catalog."
 }

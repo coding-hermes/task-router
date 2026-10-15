@@ -323,6 +323,11 @@ POST_DEDUPE_ADDITIONS = {
     # a legitimate chat-lane import, priced same run by router_pricing.py
     # (normalized:payg-sticker).
     ("openrouter", "meta/muse-wonder"): "TR-200 (2026-10-12 models.dev sync)",
+    ("commandcode", "Qwen/Qwen3.8-Max-Prime"): "2026-10-15 cron: commandcode net-new lane filed via preset sticker_prices (OpenRouter sticker 4.0/12.0)",
+    ("opencode-go-2", "cat-jam-free"): "2026-10-15 cron: og-2 HELD lane filed (models.dev opencode-go sticker 0/0)",
+    ("opencode-go-2", "gemini-4-argon-contributor"): "2026-10-15 cron: og-2 HELD lane filed (models.dev opencode-go sticker 4/20)",
+    ("opencode-go-2", "space-bunny"): "2026-10-15 cron: og-2 HELD lane filed (models.dev opencode-go sticker 0.15/0.6)",
+    ("opencode-go-2", "step-5-preview-free"): "2026-10-15 cron: og-2 HELD lane filed (models.dev opencode-go sticker 0/0)",
 }
 
 

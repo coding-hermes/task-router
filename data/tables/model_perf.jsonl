@@ -1883,6 +1883,8 @@
 {"model": "hy3", "category": "terminal", "perf": 0.544, "source": "bench", "source_ref": "bench:Terminal-Bench"}
 {"model": "hy3", "category": "tool_use", "perf": 0.5, "source": "bench", "source_ref": "bench:T1-TOOL"}
 {"model": "hy3", "category": "ui_frontend", "perf": 0.85, "source": "estimate", "source_ref": "PROFILE_TAGS:hy3"}
+{"model": "hy3-preview", "category": "reasoning", "perf": 0.904, "source": "bench", "source_ref": "bench:GPQA"}
+{"model": "hy3-preview", "category": "terminal", "perf": 0.544, "source": "bench", "source_ref": "bench:Terminal-Bench"}
 {"model": "hy4-preview", "category": "code_gen", "perf": 0.85, "source": "estimate", "source_ref": "PROFILE_TAGS:hy4-preview"}
 {"model": "hy4-preview", "category": "long_horizon", "perf": 0.85, "source": "estimate", "source_ref": "PROFILE_TAGS:hy4-preview"}
 {"model": "hy4-preview", "category": "reasoning", "perf": 0.923, "source": "bench", "source_ref": "bench:GPQA"}
@@ -2391,14 +2393,6 @@
 {"model": "minimax-m3", "category": "tool_use", "perf": 0.742, "source": "bench", "source_ref": "bench:MCP Atlas"}
 {"model": "minimax-m3", "category": "ui_frontend", "perf": 0.45, "source": "estimate", "source_ref": "PROFILE_TAGS:minimax m3"}
 {"model": "minimax-m3", "category": "vision", "perf": 0.72, "source": "estimate", "source_ref": "PROFILE_TAGS:minimax m3"}
-{"model": "minimax/minimax-m3:free", "category": "code_gen", "perf": 0.85, "source": "estimate", "source_ref": "PROFILE_TAGS:minimax m3"}
-{"model": "minimax/minimax-m3:free", "category": "long_horizon", "perf": 0.85, "source": "estimate", "source_ref": "PROFILE_TAGS:minimax m3"}
-{"model": "minimax/minimax-m3:free", "category": "refactor", "perf": 0.45, "source": "estimate", "source_ref": "PROFILE_TAGS:minimax m3"}
-{"model": "minimax/minimax-m3:free", "category": "terminal", "perf": 0.72, "source": "estimate", "source_ref": "PROFILE_TAGS:minimax m3"}
-{"model": "minimax/minimax-m3:free", "category": "test", "perf": 0.72, "source": "estimate", "source_ref": "PROFILE_TAGS:minimax m3"}
-{"model": "minimax/minimax-m3:free", "category": "tool_use", "perf": 0.72, "source": "estimate", "source_ref": "PROFILE_TAGS:minimax m3"}
-{"model": "minimax/minimax-m3:free", "category": "ui_frontend", "perf": 0.45, "source": "estimate", "source_ref": "PROFILE_TAGS:minimax m3"}
-{"model": "minimax/minimax-m3:free", "category": "vision", "perf": 0.72, "source": "estimate", "source_ref": "PROFILE_TAGS:minimax m3"}
 {"model": "mistral-large-2512", "category": "agent_tick", "perf": 1.0, "source": "family", "source_ref": "alias:mistralai/mistral-large-2512"}
 {"model": "mistral-large-2512", "category": "code_gen", "perf": 1.0, "source": "family", "source_ref": "alias:mistralai/mistral-large-2512"}
 {"model": "mistral-large-2512", "category": "debug", "perf": 1.0, "source": "family", "source_ref": "alias:mistralai/mistral-large-2512"}
@@ -2582,10 +2576,8 @@
 {"model": "moonshotai/Kimi-K3", "category": "ui_frontend", "perf": 0.72, "source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "moonshotai/Kimi-K3", "category": "vision", "perf": 0.72, "source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "moonshotai/kimi-k2-thinking", "category": "test", "perf": 0.72, "source": "family", "source_ref": "alias:kimi-k2-thinking"}
-{"model": "moonshotai/kimi-k2.8-preview", "category": "multilingual", "perf": 0.88, "source": "estimate", "source_ref": "QUALITY_ESTIMATES"}
 {"model": "moonshotai/kimi-k2.8-preview-agent", "category": "code_gen", "perf": 0.72, "source": "estimate", "source_ref": "PROFILE_TAGS:kimi k2"}
 {"model": "moonshotai/kimi-k2.8-preview-agent", "category": "long_horizon", "perf": 0.85, "source": "estimate", "source_ref": "PROFILE_TAGS:kimi k2"}
-{"model": "moonshotai/kimi-k2.8-preview-agent", "category": "multilingual", "perf": 0.88, "source": "family", "source_ref": "alias:moonshotai/kimi-k2.8-preview"}
 {"model": "moonshotai/kimi-k2.8-preview-agent", "category": "refactor", "perf": 0.72, "source": "estimate", "source_ref": "PROFILE_TAGS:kimi k2"}
 {"model": "moonshotai/kimi-k2.8-preview-agent", "category": "test", "perf": 0.72, "source": "estimate", "source_ref": "PROFILE_TAGS:kimi k2"}
 {"model": "moonshotai/kimi-k2.8-preview-agent", "category": "tool_use", "perf": 0.85, "source": "estimate", "source_ref": "PROFILE_TAGS:kimi k2"}
