@@ -15,6 +15,19 @@ import subprocess
 import sys
 import pytest
 
+# INT-CI-20261015-01: the in-process spawn cache leaves worker/poll daemon
+# threads behind; a later test execs router_seed.py via runpy in the SAME
+# process (symlink contract probe), the seed's first duckdb executemany fires
+# a lazy import, and that import deadlocks on the import lock held by one of
+# those daemon threads — CI-runners-only (2-core timing), 100% reproducible,
+# silently killed four main runs at the 75-min job timeout before
+# pytest-timeout made it visible. Nothing in the suite needs the spawn cache:
+# test_data_cache.py builds DIRECT DataCache instances (and shuts them down),
+# and spawn paths keep full coverage with the cache disabled (fail-open read
+# path is the default contract). Setting it here, at conftest import — before
+# any test module imports router_spawn — means the spawn cache never spawns.
+os.environ.setdefault('ROUTER_CACHE', '0')
+
 
 #: duckdb seed budget. 11s idle measured -> ~55x margin even at heavy load.
 SEED_TIMEOUT = 600
