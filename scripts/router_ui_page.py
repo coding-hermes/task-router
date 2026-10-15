@@ -65,6 +65,13 @@ PAGE = r"""<!doctype html>
   footer{padding:8px 12px;color:var(--dim);border-top:1px solid var(--line);display:flex;gap:14px;flex-wrap:wrap}
   kbd{border:1px solid var(--line);border-bottom-width:2px;border-radius:3px;padding:0 4px;background:var(--panel2);color:var(--fg)}
   .skel{color:var(--dim)}
+  /* TR-212: the NULL reason IS the content — it must wrap and stay readable,
+     never clip at the panel edge like the nowrap data cells do */
+  .qreason{white-space:normal;word-break:break-word;display:inline-block;max-width:280px;color:var(--dim);text-align:left}
+  /* the quota panel has 7 columns in a ~640px grid column: every cell may
+     wrap, or the right-hand columns (rung/limit/conf/resets) overflow out of
+     the panel and the rung — the whole point of this panel — is invisible */
+  #quota td,#quota th,#burn td,#burn th{white-space:normal;word-break:break-word}
 </style>
 </head>
 <body>
@@ -103,6 +110,13 @@ PAGE = r"""<!doctype html>
       <h2>gates <span class="dim">quota · health · circuit</span></h2>
       <div class="body" id="gates"><span class="skel">loading…</span></div>
       <div class="note" id="gates_note">—</div>
+    </section>
+    <section>
+      <h2>quota remaining <span class="dim" id="quota_window"></span></h2>
+      <div class="body tall" id="quota"><span class="skel">loading…</span></div>
+      <div class="note" id="quota_note">—</div>
+      <div class="body" id="burn" style="border-top:1px solid var(--line);max-height:30vh"><span class="skel">—</span></div>
+      <div class="note" id="burn_note">—</div>
     </section>
     <section>
       <h2>why this lane <span class="dim" id="chain_window"></span></h2>
@@ -442,6 +456,114 @@ async function registryPanel(){
   }catch(e){ $('#reg').innerHTML = '<span class="bad">registry unavailable</span>'; $('#reg_note').textContent = e.message; }
 }
 
+/* ---- quota remaining (TR-212) ------------------------------------------ */
+/* The honesty contract, rendered: every number names its rung, and the
+   `observed` flag (not the rung string) decides the OBSERVED/ESTIMATED badge
+   — an estimate can never dress up as a reading. A NULL limit renders
+   "unknown (<reason>)" verbatim, never 0, never blank. */
+const RUNG_SHORT = (r) => String(r||'').replace(': ', ' · ');
+const countdown = (s) => {
+  if (s === null || s === undefined) return '<span class="dim">—</span>';
+  s = Math.max(0, Math.round(Number(s)));
+  const d = Math.floor(s/86400), h = Math.floor((s%86400)/3600),
+        m = Math.floor((s%3600)/60), sec = s%60;
+  return (d ? d+'d ' : '') + (d||h ? h+'h ' : '') + (d||h||m ? m+'m ' : '') + sec+'s';
+};
+const fmtQty = (v) => {
+  if (v === null || v === undefined) return null;
+  const n = Number(v);
+  const a = Math.abs(n);
+  if (a >= 1e9) return (n/1e9).toFixed(2)+'B';
+  if (a >= 1e6) return (n/1e6).toFixed(2)+'M';
+  if (a >= 1e4) return (n/1e3).toFixed(1)+'K';
+  if (a >= 100) return n.toFixed(0);
+  if (a >= 1) return n.toFixed(2);
+  return n.toFixed(4);
+};
+async function quotaPanel(){
+  $('#quota_window').textContent = 'L0 table · rung stamped per number';
+  try{
+    const d = await j('/api/ui/quota');
+    if(d.error){
+      $('#quota').innerHTML = '<span class="bad">'+esc(d.error)+'</span>';
+      $('#quota_note').textContent = 'quota panel failed — reported, not hidden';
+      $('#quota_note').className = 'note bad';
+      return;
+    }
+    const wins = d.windows || [];
+    if(!wins.length){
+      $('#quota').innerHTML = '<span class="dim">no provider_quota rows matched — the L0 table is empty or the provider filter matched nothing</span>';
+    } else {
+      const iso = (v) => v ? esc(String(v).slice(0,19).replace('T',' ')) : '<span class="dim">—</span>';
+      $('#quota').innerHTML = '<table><thead><tr><th>provider</th><th>window</th><th class="num">remaining</th><th>rung</th>'
+        + '<th class="num">limit</th><th class="num">conf</th><th>resets</th></tr></thead><tbody>'
+        + wins.map(w => {
+            const badge = w.observed === true
+              ? '<span class="ok" title="rung-1/2 readback: the provider itself answered">OBSERVED</span>'
+              : '<span class="warn" title="'+esc(w.basis||'')+' — estimate can never render as a reading">EST</span>';
+            const remaining = (w.remaining === null || w.remaining === undefined)
+              ? '<span class="qreason" title="'+esc(w.remaining_reason || 'unknown (no reason recorded)')+'">'+esc(w.remaining_reason || 'unknown (no reason recorded)')+'</span>'
+              : '<span title="unit: '+esc(w.unit||'?')+'">'+esc(fmtQty(w.remaining))+'</span> ' + badge;
+            const limit = (w.limit === null || w.limit === undefined)
+              ? '<span class="dim">—</span>' : esc(fmtQty(w.limit));
+            const conf = w.confidence
+              ? (w.confidence === 'verified' ? '<span class="ok">verified</span>'
+                 : '<span class="warn">'+esc(w.confidence)+'</span>')
+              : '<span class="dim">—</span>';
+            const reset = w.resets_at
+              ? iso(w.resets_at) + (w.resets_estimated ? ' <span class="dim" title="rolling reset derived from the oldest in-window row — it moves with spend">est</span>' : '')
+              : '<span class="dim">—</span>';
+            const rungShort = String(w.source_rung||'').split(':')[0];
+            return '<tr title="'+esc(RUNG_SHORT(w.source_rung))+' · basis '+esc(w.basis||'')+'">'
+              + '<td>'+esc(w.provider)+'</td><td class="dim">'+esc(w.window)+'</td>'
+              + '<td class="num">'+remaining+'</td>'
+              + '<td><span class="tag" title="'+esc(RUNG_SHORT(w.source_rung))+'">'+esc(rungShort)+'</span></td>'
+              + '<td class="num dim">'+limit+'</td><td class="num">'+conf+'</td>'
+              + '<td class="dim">'+reset+'</td></tr>';
+          }).join('') + '</tbody></table>';
+    }
+    const gf = d.generated_from || {};
+    $('#quota_note').textContent =
+      (gf.quota_table && gf.quota_table.rows ? gf.quota_table.rows : 0) + ' L0 row(s) · '
+      + wins.length + ' panel row(s) · ledger ' + (gf.ledger_exists ? 'read' : 'MISSING: '+esc(String(gf.ledger||'')))
+      + ' — newest ' + (gf.rows_scanned||0) + ' of the store tail-scanned (cap ' + (gf.scan_limit||0)
+      + (gf.scan_truncated ? ', SCAN TRUNCATED' : '') + ') · computed ' + esc(String(d.as_of||'').slice(0,19))
+      + ' · EST = rung-4 derivation (basis ' + esc((wins.find(w=>w.observed!==true)||{}).basis || 'derived-from-ledger')
+      + '), OBSERVED = rung-2 endpoint answer';
+    $('#quota_note').className = 'note';
+    // -- burn surplus ------------------------------------------------------
+    const b = d.burn || {};
+    const cands = b.candidates || [];
+    if(!cands.length){
+      $('#burn').innerHTML = '<span class="dim">'+esc(b.note || 'no burn candidate right now')+'</span>';
+    } else {
+      $('#burn').innerHTML = '<table><thead><tr><th>burn candidate</th><th class="num">surplus</th>'
+        + '<th>resets in</th><th class="num">est?</th><th>cash</th></tr></thead><tbody>'
+        + cands.map(e => {
+            const cash = (e.marginal_cash_usd === null || e.marginal_cash_usd === undefined)
+              ? '<span class="dim" title="'+esc(e.marginal_cash_reason||'')+'">unknown</span>'
+              : (e.marginal_cash_usd === 0 ? '<span class="ok" title="subscription-covered: spending the surplus costs no cash">$0 marginal</span>'
+                 : '$'+esc(Number(e.marginal_cash_usd).toFixed(4)));
+            return '<tr title="'+esc(e.reason||'')+'"><td>'+esc(e.provider)+' <span class="dim">'+esc(e.window)+'</span></td>'
+              + '<td class="num">$'+esc(fmtQty(e.surplus_usd))+'</td>'
+              + '<td class="warn" title="reset '+esc(String(e.resets_at||'').slice(0,19))+'">'+countdown(e.time_to_reset_s)+'</td>'
+              + '<td class="num"><span class="warn" title="basis '+esc(e.basis||'')+' — derived from our own ledger, never a provider reading">EST</span></td>'
+              + '<td class="dim">'+cash+'</td></tr>';
+          }).join('') + '</tbody></table>';
+    }
+    const s = b.summary || {};
+    $('#burn_note').textContent =
+      'burn ' + (s.burn||0) + ' · no-burn ' + (s.no_burn||0) + ' · unknown ' + (s.unknown||0)
+      + ' (unknown = no limit_usd anywhere: set data/quota_limits.json or an L0 usd row — never treated as ∞)'
+      + ' · every entry EST (basis derived-from-ledger) · burning stays the owner\'s call';
+    $('#burn_note').className = 'note';
+  }catch(e){
+    $('#quota').innerHTML = '<span class="bad">quota unavailable</span>';
+    $('#quota_note').textContent = e.message; $('#quota_note').className = 'note bad';
+    $('#burn').innerHTML = '<span class="dim">—</span>';
+  }
+}
+
 /* ---- keyboard -------------------------------------------------------- */
 document.addEventListener('keydown', (e) => {
   if(e.key === '/' && document.activeElement !== $('#q')){ e.preventDefault(); $('#q').focus(); return; }
@@ -483,8 +605,9 @@ async function filters(){
 }
 
 function refresh(){ ledger(); board(); }
-identity(); traffic(); series(); chainPanel(); registryPanel(); gates(); filters().then(refresh); refresh();
+identity(); traffic(); series(); chainPanel(); registryPanel(); gates(); quotaPanel(); filters().then(refresh); refresh();
 setInterval(identity, 60000);
+setInterval(quotaPanel, 120000);
 </script>
 </body>
 </html>

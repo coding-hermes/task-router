@@ -137,6 +137,10 @@ def build_openapi() -> dict:
             {"name": "window_h", "in": "query", "required": False, "schema": number, "description": "How far back to read (default 24)"},
             {"name": "scan_limit", "in": "query", "required": False, "schema": integer, "description": "Store rows to tail-scan (default 200000)"},
         ]),
+        "/api/ui/quota": ("getUiQuota", "TR-212: the quota remaining panel — one row per declared (provider, window) from the L0 quota table with remaining + confidence + reset time + the SOURCE RUNG of every number (rung-2 usage endpoint = observed; rung-4 derivation from the L2 ledger = estimated, basis derived-from-ledger; an estimate can never render as a reading). NULL limits render unknown (<reason>) verbatim from the L0 table — never 0, never blank. Burn-surplus candidates carry their reset countdown (from the same L2 view, delegated to router_quota_burn). Ledger read is tail-bounded and reports rows_scanned / scan_limit / scan_truncated.", [
+            {"name": "provider", "in": "query", "required": False, "schema": string, "description": "Exact provider id to filter to"},
+            {"name": "scan_limit", "in": "query", "required": False, "schema": integer, "description": "Ledger rows to tail-scan (default 200000); reported back as rows_scanned"},
+        ]),
         "/api/ui/board": ("getUiBoard", "TR-150/156: search the board JSONL for the UI. Reports total_rows/total_matched like the ledger search.", [
             {"name": "q", "in": "query", "required": False, "schema": string, "description": "Free text over id, title, status, reasoning, notes"},
             {"name": "status", "in": "query", "required": False, "schema": string, "description": "Exact board status"},
@@ -688,6 +692,22 @@ class RouterApplication:
                             "breach_reason":
                                 result["payload"]["breach_reason"]})
                 return 200, res
+            if path == "/api/ui/quota":
+                # TR-212: the quota remaining panel (see route-table entry).
+                # Fail-open like every diagnostic: a broken quota plane is a
+                # reported error document, never a 500 that kills the page.
+                try:
+                    import router_quota_panel as quota_panel
+                    return 200, quota_panel.panel_view(
+                        query,
+                        scan_limit=int(router_ui_page._series_float(
+                            query, "scan_limit", 200000) or 200000))
+                except Exception as exc:  # noqa: BLE001
+                    return 200, {"error": f"quota panel failed: {exc}",
+                                 "windows": [], "windows_total": 0,
+                                 "burn": {"candidates": [], "summary": {},
+                                          "note": "unavailable"},
+                                 "generated_from": {"error": str(exc)[:200]}}
             if path == "/api/ui/board":
                 # TR-150/156: the board panel's search over the repo's JSONL board.
                 # TR-202: realpath — the live router_web-managed server execs this
