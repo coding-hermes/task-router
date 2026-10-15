@@ -598,6 +598,8 @@ class DataCache:
         while True:
             time.sleep(self._poll_s)
             with self._cond:
+                if self._closed:
+                    return  # INT-CI-20261015-01: close() must actually stop us
                 watched = list(self._watched)
             for path in watched:
                 with self._cond:
@@ -692,6 +694,13 @@ class DataCache:
                 self._watcher.stop()
             except Exception:  # noqa: BLE001
                 pass
+        # INT-CI-20261015-01: workers exit on _closed; the poller now checks it
+        # too. Join (bounded) so a shutdown test actually leaves zero threads —
+        # leaked poll-default threads deadlocked the later in-process seed exec
+        # on the import lock (the four silent 75-min CI kills).
+        for thread in [*self._workers, self._poller]:
+            if thread is not None and thread.is_alive():
+                thread.join(timeout=5.0)
 
     shutdown = close  # compat alias (TR-277 contract tests)
 
