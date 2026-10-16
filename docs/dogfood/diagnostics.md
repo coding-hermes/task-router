@@ -398,3 +398,34 @@ Circuit state is per-process — never proof the breaker is broken from
 repeated forward calls (TR-321). Install leg ran on bunker-mvp: fresh
 clone → venv → pip -e → seed → spawn → validate 14/14 in 39.5s; spawn
 161ms±15 warm — nothing slow enough to profile.
+
+## 2026-10-16 run 34 — cache + quota angle
+
+What the run taught about how the thing is built, in the order a user hits it:
+
+1. **One install path, two servers.** The quickstart's `pip install -e .` +
+   `router seed` covers everything; the two long-lived processes people run
+   (`router server` :9092, `router web` :9093) share the data home through
+   scripts/registry_path.py but do NOT share a route table — :9092 owns the
+   TR-150 UI data plane, :9093 embeds its own older page and dispatch. The
+   "same page, no second UI" comment in router_web.py is the drift vector;
+   the fix direction is one served page module or an explicit proxy.
+2. **The cache is invisible by design — verify it from /health.** TR-277
+   routes reads through router_data_cache.cached_read_jsonl with a direct
+   read as the fail-open fallback; a user cannot tell cache from no-cache
+   by latency at this size (both ~10ms), only by the /health data_cache
+   counters. The kill-switch equivalence (ROUTER_CACHE=0 producing an
+   identical chain) is the real contract; test_cache_spawn_equivalence.py
+   is where it lives.
+3. **Fresh-machine suite failure is a two-line fix — but it was sitting
+   uncommitted in the main tree for hours** (guarded import in
+   router_maintain.py + module skip in test_pricing.py, .gitreins task
+   in_progress). Diagnostic: simulate the fresh venv by blocking the
+   duckdb import at builtins level and importing tests/test_pricing.py —
+   the collection ERROR reproduces deterministically on unpatched HEAD.
+4. **Live-state hygiene:** the state planes (~/.hermes/model-router for the
+   fleet, ~/.local/share/task-router default) are shared across EVERY clone
+   on the box. This run stayed scratch-clean (TASK_ROUTER_HOME default to
+   the clone, no quota/circuit writes) — the working-tree mtimes at
+   15:29-15:31 belong to the fleet's :9092 server and a sibling lane's
+   guard run, verified by process census before attributing anything.

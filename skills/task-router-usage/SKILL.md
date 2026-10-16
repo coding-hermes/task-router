@@ -233,3 +233,23 @@ NOTHING: spawn answers NO_INPUT with an empty stderr and the intake ledger
 error names neither cause (TR-322). On the control host both scorers exist,
 which is why the daemon looks healthy there. Test intake on a scratch board
 file, never the live one.
+
+## Quota plane + UI doors (run 34)
+
+- The L2/L3 quota plane is CLI-complete even with an empty limit config:
+  `router quota accounting|pacing|burn --limits <json>` over a synthesized
+  outcomes ledger behaves exactly as docs/quota-layers-spec.md promises
+  (explicit refusals, NULL-with-reason, never a fake remainder). The limit
+  config is a simple `{"providers": {<id>: {"window", "limit_usd"}}}` JSON.
+- **Two UI doors are NOT the same surface.** `router server` (:9092) serves
+  `/ui` (the Data Command Center) AND all `/api/ui/*` routes including
+  `/api/ui/quota` (TR-212). `router web` (:9093) serves the settings +
+  preview page and only `/api/ui/{ledger,series,flow,board}` — its
+  `/api/ui/quota` is 404 and it has no quota panel (TR-324). For anything
+  quota-related, drive :9092, not :9093.
+- **TR-277 cache from the outside:** a table edit under a running server
+  shows up on the next read (stat-poll fallback within ~1s even without
+  inotify); `/health` `data_cache.reloads/reload_errors/served_stale` is
+  the trust signal. `ROUTER_CACHE=0` must not change resolve results —
+  if a chain differs with the kill switch set, that is a cache bug, not
+  a gate change.
