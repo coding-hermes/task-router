@@ -8,7 +8,22 @@
   + P1_CODING / P2_AGENTIC / P3_DOCS / P4_SECURITY (TR-003, 2026-08-27)
 - views: v_task_eligible, v_task_chain
 Exports tables to the routing namespace JSONL. Run: board venv python."""
-import duckdb, json, re, shutil, os, subprocess, datetime, sys, time
+import json
+import os
+import re
+import shutil
+import subprocess
+import datetime
+import sys
+import time
+
+try:
+    import duckdb  # noqa: F401  (seed needs duckdb; maintain does not)
+except ImportError:  # pragma: no cover
+    sys.exit(
+        "router_seed.py requires the duckdb package. "
+        "Install it with: pip install duckdb"
+    )
 
 # Text registry (Bane 2026-08-27): the live store is a gitignored JSON file in
 # the task-router repo — NOT a binary duckdb. The seed computes against an

@@ -1054,3 +1054,14 @@ tasks:
   status: complete
   created_at: '2026-10-15T21:59:16.370967+00:00'
   completed_at: '2026-10-15T22:02:55.935989+00:00'
+- id: QA-TR-FRESH-001
+  title: Fix module-level duckdb import in router_maintain.py causing fresh-venv test
+    collection failure
+  criteria:
+  - '1. pytest -q tests/test_pricing.py on a clean venv (no duckdb) skips or passes
+    instead of collection ERROR. 2. The import duckdb in router_maintain.py is lazy/guarded
+    (try/except ImportError or moved inside the function that needs it). 3. All existing
+    tests still pass. 4. No regression: duckdb-dependent code still works when duckdb
+    IS installed.'
+  status: in_progress
+  created_at: '2026-10-16T19:28:04.302511+00:00'

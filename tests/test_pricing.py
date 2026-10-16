@@ -30,6 +30,13 @@ sys.path.insert(0, SCRIPTS)
 import router_maintain  # noqa: E402
 from pricing import helpers as ph  # noqa: E402
 
+# TR-034 + QA-TR-FRESH-001: the maintain refactor tests exercise
+# router_seed.py as a subprocess; seed itself requires duckdb.
+# When running on a fresh venv without duckdb, skip those sub-tests
+# instead of crashing the entire suite at collection.
+if router_maintain.duckdb is None:  # pragma: no cover
+    pytest.skip("duckdb not available — skipping seed-dependent tests", allow_module_level=True)
+
 
 # ---------------------------------------------------------------- fixtures ----
 

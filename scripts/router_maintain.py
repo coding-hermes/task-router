@@ -45,7 +45,10 @@ import shutil
 import subprocess
 import sys
 
-import duckdb  # noqa: F401  (kept for the seed subprocess's in-memory engine; maintain itself is pure JSON)
+try:
+    import duckdb  # noqa: F401
+except ImportError:  # pragma: no cover
+    duckdb = None  # maintain itself is pure JSON; seed calls router_seed.py as a subprocess
 import tempfile
 
 # TR-034: pricing formulas live in scripts/pricing/ — this module dispatches
