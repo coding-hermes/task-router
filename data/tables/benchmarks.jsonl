@@ -501,6 +501,7 @@
 {"model": "glm-5.1", "category": "schema", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
 {"model": "glm-5.2", "category": "agent-tick", "score": 3.0, "max_score": 4.0, "source": "battery-T1-TOOL", "valid_from": null}
 {"model": "glm-5.2", "category": "code_gen", "score": 0.621, "max_score": 1.0, "source": "SWE-bench Pro (vendor) research-bench-2026-08-29", "valid_from": "2026-08-29"}
+{"model": "glm-5.2", "category": "code_gen", "score": 34.0, "max_score": 100.0, "source": "codersera agentic-coding index v4.3.2, October 2026 (GLM-5.2 34 vs MiMo-V2.6-Pro 46; $1.47 vs $0.13 per index task) research-bench-2026-10-16", "valid_from": "2026-10-16"}
 {"model": "glm-5.2", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T2-CODE", "valid_from": null}
 {"model": "glm-5.2", "category": "debug", "score": 2.0, "max_score": 4.0, "source": "battery-T5-DEBUG", "valid_from": null}
 {"model": "glm-5.2", "category": "debug", "score": 62.9, "max_score": 100.0, "source": "SWE-rebench v2 (pass@5 81.1)", "valid_from": "2026-09-03"}
@@ -802,6 +803,7 @@
 {"model": "grok-4.5", "category": "sentiment", "score": 0.66, "max_score": 1.0, "source": "research-bench-2026-09-14: launch-data split decision — DataCurve/apidog vs Opus 4.8: 2 wins (DeepSWE 1.0 +6.25, terminal-agent suite +4.4) 2 losses (DeepSWE 1.1 -6, SWE-bench Pro -4.5); leads SWE Marathon pass@1 29.0% but highest SWE Marathon 20-task attrition = long-horizon durability concern; prior 54%-hallucination AA measure kept in older 0.52 row", "valid_from": "2026-09-14"}
 {"model": "grok-4.5", "category": "sentiment", "score": 0.66, "max_score": 1.0, "source": "research-sent-2026-09-27: snorkel.ai hands-on professional-work eval pass@3 40.0 (up from 38.9 for the 4.6 sibling) rank 6 overall at $0.24/trial; independent 29% professional pass vs GPT-5.5 22%; but independent-harness agentic split vs open peers stays mixed — hold 0.66", "valid_from": "2026-09-27"}
 {"model": "grok-4.5", "category": "sentiment", "score": 0.72, "max_score": 1.0, "source": "research-bench-2026-08-28", "valid_from": "2026-08-28"}
+{"model": "grok-4.5", "category": "spec_docs", "score": 62.91, "max_score": 100.0, "source": "BenchLM composite 2026-10-16 snapshot (rank #40/220, 19 source-displayable rows; down from the 09-14 68.1 reading - index recalibration, not a model change) research-bench-2026-10-16", "valid_from": "2026-10-16"}
 {"model": "grok-4.5", "category": "spec_docs", "score": 68.1, "max_score": 100.0, "source": "BenchLM composite benchlm.ai 2026-09-14 (rank #27/232, 15 rows; strongest category Knowledge #14) research-bench-2026-09-14", "valid_from": "2026-09-14"}
 {"model": "grok-4.5", "category": "terminal", "score": 0.833, "max_score": 1.0, "source": "Terminal-Bench 2.1 research-bench-2026-08-28", "valid_from": "2026-08-28"}
 {"model": "grok-4.5", "category": "terminal", "score": 83.3, "max_score": 100.0, "source": "Terminal-Bench 2.1 (xAI vendor, corroborated by layer3labs + datacamp roundups; within 1pt of the two highest scores) research-bench-2026-09-14", "valid_from": "2026-09-14"}

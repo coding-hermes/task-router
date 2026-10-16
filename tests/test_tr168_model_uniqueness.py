@@ -328,6 +328,24 @@ POST_DEDUPE_ADDITIONS = {
     ("opencode-go-2", "gemini-4-argon-contributor"): "2026-10-15 cron: og-2 HELD lane filed (models.dev opencode-go sticker 4/20)",
     ("opencode-go-2", "space-bunny"): "2026-10-15 cron: og-2 HELD lane filed (models.dev opencode-go sticker 0.15/0.6)",
     ("opencode-go-2", "step-5-preview-free"): "2026-10-15 cron: og-2 HELD lane filed (models.dev opencode-go sticker 0/0)",
+    # 2026-10-16 cron (model-registry-data-quality): the models.dev sync's 8
+    # catalog additions + the clinepass API sync's nemotron :free lane + the 4
+    # clinepass catalog-mirror of the same models.dev arrivals. Engine-priced
+    # same run (sticker / blended-est / :free discount; the two :free lanes
+    # carry the F3 window-cost-pending story).
+    ("clinepass", "moondream3-preview"): "clinepass API sync 2026-10-16 (models.dev OR arrival mirror, plan-swept unpriced disabled)",
+    ("clinepass", "moondream3.1-9b-a2b"): "clinepass API sync 2026-10-16 (models.dev OR arrival mirror, plan-swept unpriced disabled)",
+    ("clinepass", "muse-spark-open"): "clinepass API sync 2026-10-16 (models.dev OR arrival mirror, plan-swept unpriced disabled)",
+    ("clinepass", "nemotron-3.5-super-vl"): "clinepass API sync 2026-10-16 (plan-swept: not in included_models, no discount)",
+    ("clinepass", "nemotron-3.5-super-vl:free"): "clinepass API sync 2026-10-16 (:free lane, temporary-discount priced + F3 window story)",
+    ("fireworks-ai", "accounts/fireworks/models/muse-spark-open"): "models.dev sync 2026-10-16 (catalog addition, payg-sticker priced)",
+    ("ollama-cloud", "muse-spark-open"): "models.dev sync 2026-10-16 (catalog addition, bucket-plan unpriced documented)",
+    ("opencode-go", "step-5-preview"): "models.dev sync 2026-10-16 (catalog addition, sub-bucket blended est)",
+    ("openrouter", "meta/muse-spark-open"): "models.dev sync 2026-10-16 (catalog addition, payg-sticker priced)",
+    ("openrouter", "moondream/moondream3-preview"): "models.dev sync 2026-10-16 (catalog addition, payg-sticker priced)",
+    ("openrouter", "moondream/moondream3.1-9b-a2b"): "models.dev sync 2026-10-16 (catalog addition, payg-sticker priced)",
+    ("openrouter", "nvidia/nemotron-3.5-super-vl"): "models.dev sync 2026-10-16 (catalog addition, payg-sticker priced)",
+    ("openrouter", "nvidia/nemotron-3.5-super-vl:free"): "models.dev sync 2026-10-16 (catalog addition, :free discount priced + F3 window story)",
 }
 
 
