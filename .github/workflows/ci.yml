@@ -149,6 +149,76 @@ jobs:
         run: python3 scripts/null_debt_invariants.py
 
       # ---------------------------------------------------------------------
+      # TR-251: mechanical completeness at the CI boundary.
+      # * commit-boundary gate — refuse a diff that flips a board row to
+      #   complete with unbound evidence (the CI twin of the pre-push hook).
+      # * REPLAY, NOT READ — re-execute the recorded command behind every
+      #   completion whose evidence run carries one; a stored digest alone
+      #   never passes. PRs diff against the PR base; pushes diff against
+      #   the previous pushed main.
+      # ---------------------------------------------------------------------
+      - name: Completion boundary gate (TR-251)
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE="${{ github.event.pull_request.base.sha }}"
+          else
+            BASE=$(git rev-parse HEAD^) || BASE=""
+          fi
+          if [ -n "$BASE" ] && git cat-file -e "$BASE:.coding-hermes/board/tasks.jsonl" 2>/dev/null; then
+            python3 scripts/board_commit_boundary_gate.py --base "$BASE" --head HEAD
+          else
+            echo "no base board to diff against (first commit or board-less base) — boundary gate skipped"
+          fi
+
+      - name: Evidence replay (TR-251)
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE="${{ github.event.pull_request.base.sha }}"
+          else
+            BASE=$(git rev-parse HEAD^) || BASE=""
+          fi
+          if [ -n "$BASE" ] && git cat-file -e "$BASE:.coding-hermes/board/tasks.jsonl" 2>/dev/null; then
+            python3 scripts/evidence_replay.py --base "$BASE" --head HEAD
+          else
+            echo "no base board to diff against — replay skipped"
+          fi
+
+      # ---------------------------------------------------------------------
+      # TR-251: mechanical completeness at the CI boundary.
+      # * commit-boundary gate — refuse a diff that flips a board row to
+      #   complete with unbound evidence (the CI twin of the pre-push hook).
+      # * REPLAY, NOT READ — re-execute the recorded command behind every
+      #   completion whose evidence run carries one; a stored digest alone
+      #   never passes. PRs diff against the PR base; pushes diff against
+      #   the previous pushed main.
+      # ---------------------------------------------------------------------
+      - name: Completion boundary gate (TR-251)
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE="${{ github.event.pull_request.base.sha }}"
+          else
+            BASE=$(git rev-parse HEAD^) || BASE=""
+          fi
+          if [ -n "$BASE" ] && git cat-file -e "$BASE:.coding-hermes/board/tasks.jsonl" 2>/dev/null; then
+            python3 scripts/board_commit_boundary_gate.py --base "$BASE" --head HEAD
+          else
+            echo "no base board to diff against (first commit or board-less base) — boundary gate skipped"
+          fi
+
+      - name: Evidence replay (TR-251)
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE="${{ github.event.pull_request.base.sha }}"
+          else
+            BASE=$(git rev-parse HEAD^) || BASE=""
+          fi
+          if [ -n "$BASE" ] && git cat-file -e "$BASE:.coding-hermes/board/tasks.jsonl" 2>/dev/null; then
+            python3 scripts/evidence_replay.py --base "$BASE" --head HEAD
+          else
+            echo "no base board to diff against — replay skipped"
+          fi
+
+      # ---------------------------------------------------------------------
       # Proxy-path harnesses (TR-186): scripts/proxy_acceptance.py,
       # scripts/proxy_smoke.py, scripts/dummy_scheduler.py.
       #

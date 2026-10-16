@@ -17,6 +17,10 @@ cd "$(dirname "$0")/.."
 GATED_BRANCH="${CI_GATE_BRANCH:-main}"
 PY="${PYTHON:-python3}"
 
+# TR-251: the push lines are consumed ONCE into a buffer — both gates (CI
+# check + completion-boundary) iterate the same stdin rows.
+push_lines=$(cat)
+
 blocked=0
 checked=0
 while read -r local_ref local_sha remote_ref remote_sha; do
@@ -28,15 +32,47 @@ while read -r local_ref local_sha remote_ref remote_sha; do
   if ! "$PY" scripts/ci_gate_check.py --branch "$GATED_BRANCH" --sha "$local_sha" 2>&1; then
     blocked=$((blocked + 1))
   fi
-done
+done <<EOF
+$push_lines
+EOF
+
+# ---------------------------------------------------------------------------
+# TR-251 mechanism (4): the commit-boundary gate. Refuse a push that flips a
+# board row to complete with unbound evidence — the diff-level twin of the
+# TR-249 write gate, because append-only JSONL has writers that never pass
+# through boardctl (hand appends, cron, foremen, git merges). Escape hatch:
+# ALLOW_UNBOUND_COMPLETION=1 (prints a warning; no gate bypasses silently).
+# ---------------------------------------------------------------------------
+while read -r local_ref local_sha remote_ref remote_sha; do
+  case "$remote_ref" in
+    "refs/heads/$GATED_BRANCH") ;;
+    *) continue ;;
+  esac
+  if [ "${ALLOW_UNBOUND_COMPLETION:-0}" = "1" ]; then
+    echo "pre-push: WARNING: ALLOW_UNBOUND_COMPLETION=1 — the TR-251 boundary gate is bypassed for this push." >&2
+    continue
+  fi
+  if [ "$remote_sha" = "0000000000000000000000000000000000000000" ]; then
+    base="$local_sha"
+  else
+    base="$remote_sha"
+  fi
+  if ! "$PY" scripts/board_commit_boundary_gate.py --base "$base" --head "$local_sha" 2>&1; then
+    blocked=$((blocked + 1))
+  fi
+  checked=$((checked + 1))
+done <<EOF
+$push_lines
+EOF
 
 if [ "$checked" -eq 0 ]; then
   exit 0
 fi
 if [ "$blocked" -gt 0 ]; then
   echo ""
-  echo "pre-push: refused ($blocked of $checked push(es) to $GATED_BRANCH had red CI)."
-  echo "pre-push: fix main's CI, or re-run with ALLOW_RED_PUSH=1 to override loudly."
+  echo "pre-push: refused ($blocked of $checked push(es) to $GATED_BRANCH had red CI or unbound completions)."
+  echo "pre-push: fix main's CI / bind evidence runs, or re-run with ALLOW_RED_PUSH=1 (CI) or"
+  echo "          ALLOW_UNBOUND_COMPLETION=1 (TR-251) to override loudly."
   exit 1
 fi
 exit 0

@@ -1,0 +1,12 @@
+{
+  "authored_at": "2026-10-16T13:52:16Z",
+  "authored_by": "coding-hermes-foreman (TR-251 coordinator)",
+  "probes": [
+    {
+      "id": "helix-P1",
+      "kind": "outcome",
+      "statement": "TODO(author): state the outcome this project's next dispatch must show"
+    }
+  ],
+  "project": "helix"
+}
