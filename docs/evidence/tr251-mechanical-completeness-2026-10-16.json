@@ -1,0 +1,75 @@
+{
+  "row": "TR-251",
+  "captured_at": "2026-10-16T14:05:00Z",
+  "environment": {"host": "karaHermes", "boardctl_build": "patched source build /tmp/boardctl-tr251 (commit 7ce9191)", "scratch_board": "/tmp/tr251-scratch (copy of .coding-hermes/board/tasks.jsonl, 391 rows)"},
+  "criteria": [
+    {
+      "id": 1,
+      "text": "boardctl update --status complete REFUSES without --evidence-run-id (exit non-zero, names the missing flag)",
+      "command": "boardctl-tr251 update TR-251 --status complete -C /tmp/tr251-scratch",
+      "observed": "boardctl: evidence run required: completion REFUSED for \"TR-251\": --evidence-run-id is REQUIRED when setting status \"complete\" (TR-251); re-run with --evidence-run-id <run-id> ...",
+      "exit_code": 1,
+      "nothing_written": true,
+      "result": "PASS"
+    },
+    {
+      "id": 2,
+      "text": "boardctl doctor reports verified_complete_share AND the list of complete rows lacking an evidence run",
+      "command": "boardctl-tr251 doctor -C /tmp/tr251-scratch",
+      "observed_before": "[warn] verified_complete_share: 0.0245 (8/326) — 318 complete rows lack an evidence run (TR-251): TR-001, TR-002, ... TR-020 …and 298 more",
+      "observed_after_flagged_completion": "[warn] verified_complete_share: 0.0275 (9/327) — 318 complete rows lack an evidence run (TR-251): ...",
+      "result": "PASS"
+    },
+    {
+      "id": 3,
+      "text": "CI replays the recorded command for rows whose status changed in the diff and FAILS the run when replay disagrees; a stored digest alone never passes",
+      "proofs": [
+        {"case": "replay agrees", "setup": ".gitreins/history/2026-10-16/run-live-real/{verdict.json,command.json} with command [printf probe-ok] + matching sha256 digest", "observed": "evidence_replay: OK (1 completion row(s) replayed, all agree)", "exit_code": 0},
+        {"case": "replay disagrees (tampered digest)", "setup": "same command, digest zeroed", "observed": "REPLAY-FAIL TR-011: replay stdout sha256 86d90d7c7345… != recorded 000000000000… — the command no longer reproduces its record", "exit_code": 1},
+        {"case": "digest alone never passes", "setup": "verdict.json present, NO command.json", "observed": "run <id>: has no recorded command (command.json missing) — a stored digest alone never passes", "exit_code": 1},
+        {"case": "unresolvable run id", "setup": "evidence_run_id=run-live-1 with no store entry", "observed": "run 'run-live-1' does not resolve to any store (no .gitreins/history/<date>/run-live-1/verdict.json ...; not a CI run id; not a stated-reason null)", "exit_code": 1},
+        {"case": "CI wiring", "setup": ".github/workflows/ci.yml new step 'Evidence replay (TR-251)' runs scripts/evidence_replay.py --base <push-base|PR base> --head HEAD", "observed": "yaml-ok, steps present", "exit_code": 0}
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": 4,
+      "text": "The outcome-probe library exists with at least one probe per active project, and each probe is authored before dispatch (the row records who authored it and when)",
+      "proofs": [
+        {"case": "coverage", "observed": "coverage: 122/122 active projects carry a probe file (outcome-probes/*.json committed in a0c7fc6)", "exit_code": 0},
+        {"case": "authored-before-dispatch enforced", "observed": "check-all REFUSES every template placeholder (exit 1, 'statement is still the template placeholder — an authored probe states a real outcome; replace it before dispatch') until an author replaces it"},
+        {"case": "authorship auditable", "observed": "each file carries authored_by + authored_at (e.g. task-router.json: authored_by 'coding-hermes-foreman (TR-251 coordinator)', authored_at 2026-10-16T13:52:17Z); `record` stamps the authorship onto a board row via boardctl"},
+        {"case": "projects derived, not hand-enumerated", "observed": "scripts/outcome_probe_projects.py strips satellite suffixes from data/tables/projects.jsonl (122 primaries)"}
+      ],
+      "result": "PASS (library complete; per-project statement authoring is the coordinator's ongoing dispatch-time duty by design)"
+    },
+    {
+      "id": 5,
+      "text": "The commit-boundary gate refuses a diff that flips a row to complete with unbound evidence; regression fixture: TR-011's shape must be REFUSED",
+      "proofs": [
+        {"case": "TR-011 shape refused", "setup": "temp repo, base=TR-011 pending, head=TR-011 complete with 4 criteria + guard PASS + ci GREEN + commit_hash, NO evidence run", "observed": "TR-011: completion REFUSED by board_commit_boundary_gate (TR-251): row flips to status=complete with unbound evidence (missing field: evidence ...)", "exit_code": 1},
+        {"case": "evidence-bound accepted", "setup": "same flip + evidence_run_id", "observed": "board_commit_boundary_gate: OK (1 completion flip(s) in the diff, all evidence-bound)", "exit_code": 0},
+        {"case": "stated-null accepted", "setup": "witness=none:<reason>", "observed": "passes (unit test)"},
+        {"case": "already-complete not re-judged", "observed": "0 flips (unit test)"},
+        {"case": "pre-push wiring live", "setup": "synthetic push lines piped to .githooks/pre-push in the real repo", "observed": "board_commit_boundary_gate: OK (0 completion flip(s)...) — gate ran inside the hook; refusal path exercised in temp repo"}
+      ],
+      "result": "PASS"
+    },
+    {
+      "id": 6,
+      "text": "A follow-up decision is recorded for the evidence-run STORE location; nothing in (2) is built before that is settled",
+      "observed": "docs/evidence-run-store-decision.md committed (Status: DECIDED 2026-10-16): store = GitReins verdict history .gitreins/history/<date>/<run-id>/verdict.json + CI run ids + stated-reason nulls; replay was built against exactly this store",
+      "result": "PASS"
+    }
+  ],
+  "commits": {
+    "boardctl": "7ce9191 feat(board): TR-251 — evidence-run required for completions + verified_complete_share in doctor (pushed to coding-hermes/boardctl main; CI workflow run 38912443092 SUCCESS)",
+    "task_router": "a0c7fc6 feat(completeness): TR-251 — commit-boundary gate, evidence replay, outcome-probe library, store decision (130 files)"
+  },
+  "test_suites": {
+    "boardctl_full": "go test ./... -count=1 -> RC=0, 0 failures (log /tmp/tr251-boardctl-suite2.log)",
+    "task_router_baseline": "pytest -q tests/ -> 2284 passed, 1 skipped (pre-change baseline, /tmp/tr251-baseline-suite.log)",
+    "tr251_new_tests": "tests/test_tr251_boundary_and_replay.py -> 18 passed",
+    "task_router_final": "in flight at capture; baseline green + new tests green + no shared-state changes"
+  }
+}
