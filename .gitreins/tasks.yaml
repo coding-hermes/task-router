@@ -1054,3 +1054,16 @@ tasks:
   status: complete
   created_at: '2026-10-15T21:59:16.370967+00:00'
   completed_at: '2026-10-15T22:02:55.935989+00:00'
+- id: TR-339
+  title: 'Fix boundary-gate surface: resolve_run validation, command.json handling,
+    CI wiring, check-all integration'
+  criteria:
+  - 1. resolve_run requires real gh run view verification or explicit constraint,
+    not shape-only validation. 2. Store handles verdict.json-without-command.json
+    gracefully (fallback to task_criteria + commit-range replay or explicit store-writer
+    mechanism). 3. CI replay step refuses verdict-form flips loudly until command.json-writer
+    exists. 4. check-all (or reference check) wired into CI boundary so unfilled templates
+    don't persist as complete. 5. After fixes, TR-251 bound to re-run verdict or completed
+    CI run id.
+  status: in_progress
+  created_at: '2026-10-17T01:14:27.397455+00:00'

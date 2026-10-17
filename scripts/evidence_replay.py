@@ -44,6 +44,7 @@ import argparse
 import hashlib
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -81,20 +82,77 @@ def _row_run_ids(row: dict) -> list[str]:
     return runs
 
 
-def resolve_run(run_id: str, repo: str) -> tuple[str, dict]:
+def _verify_ci_run(run_id: str) -> dict:
+    """TR-339-01: verify a digit-shaped CI run id for real. Shape is NOT
+    resolution — a fabricated 9-digit id passed the old shape-only check
+    without any verification (dogfood run 34, row F). The store decision
+    names the verifier: `gh run view <id>` reports existence + conclusion.
+    Returns a payload; raises ReplayFailure for every non-verifiable
+    outcome — refuse loudly, never silently pass a shape-only id."""
+    gh = shutil.which("gh") or ""
+    host = os.environ.get("GH_HOST") or ""
+    if not gh:
+        raise ReplayFailure(
+            f"run {run_id!r} looks like a GitHub Actions run id (digits only, "
+            f"{len(run_id)} chars) but `gh` is not installed — refusing "
+            f"shape-only validation (TR-339-01): a digit string alone is NOT "
+            f"evidence; install gh or bind verdict-form evidence instead")
+    check = subprocess.run(
+        ["gh", "run", "view", run_id,
+         *(["-R", host] if host else []), "--json", "status,conclusion"],
+        capture_output=True, text=True, timeout=30)
+    if check.returncode == 0:
+        try:
+            info = json.loads(check.stdout or "{}")
+        except ValueError:
+            info = {}
+        conclusion = str(info.get("conclusion") or "").lower()
+        status = str(info.get("status") or "").lower()
+        if not conclusion or conclusion in ("pending", "skipped") or status not in ("completed",):
+            raise ReplayFailure(
+                f"run {run_id!r} is a GitHub Actions run id that is NOT "
+                f"complete (status={status!r}, conclusion={conclusion!r}) — "
+                f"only a completed run resolves out-of-band (TR-339-01)")
+        return {"run_id": run_id, "verified_via": "gh run view",
+                "conclusion": conclusion}
+    return _raise_ci_unverified(run_id, check)
+
+
+def _raise_ci_unverified(run_id: str, check: subprocess.CompletedProcess) -> None:
+    """Classify the gh failure loudly (TR-339-01). A verification FAILURE is
+    still not verification: fabricate-proof gates refuse on every arm."""
+    err = (check.stderr or "").strip()
+    lower = err.lower()
+    if "not found" in lower or "no event" in lower or "could not resolve to" in lower:
+        raise ReplayFailure(
+            f"run {run_id!r} does not exist as a GitHub Actions run "
+            f"(gh run view refused it: {err[:120]}) — a shape-only digit "
+            f"string is NOT evidence (TR-339-01)")
+    raise ReplayFailure(
+        f"run {run_id!r} could not be VERIFIED as a completed CI run "
+        f"(gh run view rc={check.returncode}: {err[:120]}) — refusing "
+        f"unverifiable shape-only validation (TR-339-01); re-run with gh "
+        f"authenticated and networked, or bind verdict-form evidence")
+
+
+def resolve_run(run_id: str, repo: str, ci_mode: bool = False) -> tuple[str, dict]:
     """Resolve one run id to (kind, payload). Raises ReplayFailure when the
     id does not resolve to a REPLAYABLE store (the store decision's three
-    forms; only verdict-form carries a command)."""
+    forms; only verdict-form carries a command). ci_mode=True (the CI step
+    sets TR251_CI_MODE=1) makes a missing verdict HISTORY fail with the
+    explicit store-writer gap message instead of the generic lookup error —
+    .gitreins/history is gitignored local state CI does not carry, so a
+    verdict-form flip MUST be refused loudly there (TR-339-03)."""
     if run_id.lower().startswith("none:"):
         # A stated-reason null is honest but NOT replayable: a row whose
         # completion leans on it cannot pass a replay gate and must say so.
         raise ReplayFailure(f"run {run_id!r} is a stated-reason null — not replayable")
     if run_id.isdigit() and 8 <= len(run_id) <= 12:
-        # CI run id: resolvable out-of-band, but its "command" is the whole
-        # workflow — replay of a workflow is CI itself, so this form is
-        # accepted as resolved WITHOUT a local re-execution (the run's
-        # conclusion is the external reading doctrine rule 6 wants).
-        return "ci", {"run_id": run_id}
+        # CI run id: real verification required (TR-339-01) — see
+        # _verify_ci_run. The run's conclusion is the external reading
+        # doctrine rule 6 wants; theWanting sha of a workflow is CI itself
+        # so no local re-execution happens for this form.
+        return "ci", _verify_ci_run(run_id)
     # Verdict-form: .gitreins/history/<date>/<run-id>/
     history = os.path.join(repo, ".gitreins", "history")
     if os.path.isdir(history):
@@ -109,6 +167,14 @@ def resolve_run(run_id: str, repo: str) -> tuple[str, dict]:
                     raise ReplayFailure(
                         f"run {run_id!r}: verdict.json is unreadable: {exc}") from exc
                 return "verdict", {"dir": run_dir, "verdict": verdict}
+    if ci_mode:
+        raise ReplayFailure(
+            f"run {run_id!r} is a verdict-form run id, but CI carries no "
+            f".gitreins/history (verdict.json/command.json are gitignored "
+            f"local state) — verdict-form resolution requires a command.json "
+            f"writer (not yet implemented; TR-339-02/TR-339-03). Refusing "
+            f"LOUDLY instead of walking an empty store: bind a VERIFIED CI "
+            f"run id or a command.json-carrying verb on the row instead")
     raise ReplayFailure(
         f"run {run_id!r} does not resolve to any store "
         f"(no .gitreins/history/<date>/{run_id}/verdict.json under {repo}; "
@@ -116,16 +182,16 @@ def resolve_run(run_id: str, repo: str) -> tuple[str, dict]:
         f"docs/evidence-run-store-decision.md")
 
 
-def load_command(run_dir: str, run_id: str) -> dict:
+def load_command(run_dir: str, run_id: str) -> dict | None:
     """Load the recorded command for a verdict-form run. A verdict WITHOUT a
-    command.json is digest-only evidence: it documents that a judge ran, but
-    nothing re-executable — replay FAILS rather than trusting the record."""
+    command.json is normal on this store (TR-339-02: gitreins judges write
+    verdict.json/summary.md/commit.patch but no command.json — 223+ real
+    runs, 0 commands). Returns None when command.json is genuinely absent so
+    the caller can fall back to criteria+commit-range replay, and raises
+    ReplayFailure when it CARRIES content but that content is unusable."""
     path = os.path.join(run_dir, "command.json")
     if not os.path.exists(path):
-        raise ReplayFailure(
-            f"run {run_id!r} has no recorded command (command.json missing in "
-            f"{run_dir}) — a stored digest alone never passes; record the "
-            f"command next to the verdict")
+        return None
     try:
         with open(path, encoding="utf-8") as fh:
             cmd = json.load(fh)
@@ -134,6 +200,83 @@ def load_command(run_dir: str, run_id: str) -> dict:
     if not cmd.get("command"):
         raise ReplayFailure(f"run {run_id!r}: command.json carries no command")
     return cmd
+
+
+# ---------------------------------------------------------------- fallback #c
+# TR-339-02: the criteria + commit-range fallback for verdicts whose store
+# entry carries NO command.json. This is an EXPLICIT, NAMED mechanism —
+#
+#   * verdict.json carries `task_criteria` (what the judge graded) and
+#     `commit` (WHAT it graded) and `passed` (the grade);
+#   * the replayable surface without a command is: criteria EXIST and are
+#     non-empty, `passed` is a boolean, and the graded commit is in the
+#     lineage the gate runs on. A verdict whose graded commit is NOT an
+#     ancestor of the gated HEAD cannot bind the push and refuses loudly —
+#     that is exactly the verdict-vs-proof gap 339-04 documents (verdict
+#     fe0601db graded d0db679; the fixes landed later, so a row bound TODAY
+#     to fe0601db refuses on this fallback until a re-run at the fix sha
+#     lands, which is the honest outcome).
+#
+# The FULLY replayable form stays command.json (be479d90 proves the shape);
+# this fallback exists so real verdicts don't make the CI step a dead end,
+# not to weaken the gate: it is bounded, loud on every gap, and the missing
+# store-writer mechanism is named every time it fires.
+def verdict_fallback_replay(payload: dict, run_id: str, repo: str) -> dict:
+    """TR-339-02 fallback: replay a verdict WITHOUT command.json via
+    task_criteria + commit-range binding. Returns {"ok", "detail", "mode"}.
+    Raises ReplayFailure when NEITHER form can hold (loud gap, no silent
+    pass) and Data-error arms are re-raised as ReplayFailure too."""
+    verdict = payload["verdict"]
+    criteria = verdict.get("task_criteria") or []
+    if not isinstance(criteria, list) or not any(str(c).strip() for c in criteria):
+        raise ReplayFailure(
+            f"run {run_id!r}: verdict.json carries NO task_criteria and NO "
+            f"command.json — neither replayable form holds. This gap needs a "
+            f"command.json-store writer (not yet implemented, TR-339-02)")
+    if not isinstance(verdict.get("passed"), bool):
+        raise ReplayFailure(
+            f"run {run_id!r}: verdict.json carries no boolean `passed` — an "
+            f"ungraded verdict cannot replay via criteria+commit-range")
+    commit = str(verdict.get("commit") or "").strip()
+    if not commit:
+        raise ReplayFailure(
+            f"run {run_id!r}: verdict.json carries no commit — a verdict "
+            f"without a graded commit is digest-only evidence; record the "
+            f"command or the commit next to it (TR-339-02)")
+    state = subprocess.run(
+        ["git", "rev-parse", "HEAD"], capture_output=True, text=True, cwd=repo)
+    if state.returncode != 0:
+        raise ReplayFailure(
+            f"run {run_id!r}: this checkout has no git HEAD to compare the "
+            f"verdict's commit against ({state.stderr.strip()[:100]}) — "
+            f"verdict fallback needs a git lineage (TR-339-02)")
+    ancestry = subprocess.run(
+        ["git", "merge-base", "--is-ancestor", commit, "HEAD"],
+        capture_output=True, text=True, cwd=repo)
+    if ancestry.returncode != 0:
+        raise ReplayFailure(
+            f"run {run_id!r}: verdict's graded commit {commit[:12]} is NOT an "
+            f"ancestor of HEAD — the verdict does not evidence the pushed "
+            f"lineage (TR-339-02 verdict-vs-graded-commit gap; for the "
+            f"339-04 case this is the TR-251 row's own refusal until a "
+            f"re-run verdict at the fix sha lands)")
+    if verdict["passed"] is False:
+        # A verdict that says FAILED must not satisfy a completion gate via
+        # the fallback: the criteria were graded, graded false, and the fix
+        # commits that landed later are NOT covered by this record (no
+        # re-run exists — that is exactly 339-04). LOUD refusal.
+        raise ReplayFailure(
+            f"run {run_id!r}: verdict graded commit {commit[:12]} `passed: false` "
+            f"— a failing verdict cannot evidence a completion; no re-run "
+            f"verdict exists at the fixed sha (TR-339-04 verdict-vs-proof gap)")
+    return {
+        "ok": True,
+        "detail": (
+            f"run {run_id!r}: verdict-form fallback replay (no command.json; "
+            f"TR-339-02): criteria={len(criteria)}, graded commit "
+            f"{commit[:12]} is in the lineage, passed={verdict['passed']}"),
+        "mode": "fallback",
+    }
 
 
 # -------------------------------------------------------------------- replay #
@@ -189,8 +332,11 @@ def rows_for_diff(base: str | None, head: str | None, repo: str) -> list[dict]:
     return rows_flipped_to_complete(old, new)
 
 
-def replay_diff(base: str | None, head: str | None, repo: str) -> tuple[list[str], int]:
-    """Replay every flipped row's evidence. Returns (failure lines, replayed count)."""
+def replay_diff(base: str | None, head: str | None, repo: str,
+                ci_mode: bool = False) -> tuple[list[str], int]:
+    """Replay every flipped row's evidence. Returns (failure lines, replayed count).
+    ci_mode=True threads TR-339-03's loud verdict-form refusal (set by the CI
+    step via TR251_CI_MODE=1)."""
     failures: list[str] = []
     replayed = 0
     for row in rows_for_diff(base, head, repo):
@@ -200,28 +346,43 @@ def replay_diff(base: str | None, head: str | None, repo: str) -> tuple[list[str
             failures.append(f"{rid}: completion carries no evidence run at all")
             continue
         row_ok = False
+        row_failures = []
         for run_id in runs:
             try:
-                kind, payload = resolve_run(run_id, repo)
+                kind, payload = resolve_run(run_id, repo, ci_mode=ci_mode)
             except ReplayFailure as exc:
-                failures.append(f"{rid}: {exc}")
+                row_failures.append(f"{rid}: {exc}")
                 continue
             if kind == "ci":
-                row_ok = True  # external reading; CI itself is the replay
+                row_ok = True  # VERIFIED out-of-band by _verify_ci_run (TR-339-01)
                 continue
+            # Verdict form: try the recorded command first, then the
+            # TR-339-02 fallback; a verdict that satisfies NEITHER fails
+            # with a name of every gap, never a silent pass.
+            cmd_spec = None
             try:
                 cmd_spec = load_command(payload["dir"], run_id)
             except ReplayFailure as exc:
-                failures.append(f"{rid}: {exc}")
+                row_failures.append(f"{rid}: {exc}")
                 continue
-            result = replay_command(cmd_spec, run_id)
-            if result["ok"]:
-                row_ok = True
-            else:
-                failures.append(f"{rid}: {result['detail']}")
+            if cmd_spec is not None:
+                result = replay_command(cmd_spec, run_id)
+                if result["ok"]:
+                    row_ok = True
+                    break
+                row_failures.append(f"{rid}: {result['detail']}")
+                continue
+            # No command.json -> the 339-02 fallback. Raises on every gap.
+            try:
+                result = verdict_fallback_replay(payload, run_id, repo)
+                if result["ok"]:
+                    row_ok = True
+                    break
+            except ReplayFailure as exc:
+                row_failures.append(f"{rid}: {exc}")
         if row_ok:
             replayed += 1
-            failures = [f for f in failures if not f.startswith(f"{rid}: ")]
+        failures.extend(row_failures)
     return failures, replayed
 
 
@@ -232,10 +393,15 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--base")
     ap.add_argument("--head")
     ap.add_argument("--repo", default=REPO)
+    ap.add_argument("--ci-mode", action="store_true",
+                    help="TR-339-03: CI step mode — refuse verdict-form flips "
+                         "LOUDLY naming the missing command.json writer")
     args = ap.parse_args(argv)
     if bool(args.base) != bool(args.head):
         ap.error("--base and --head go together")
-    failures, replayed = replay_diff(args.base, args.head, args.repo)
+    failures, replayed = replay_diff(args.base, args.head, args.repo,
+                                     ci_mode=args.ci_mode or
+                                     os.environ.get("TR251_CI_MODE") == "1")
     if failures:
         for f in failures:
             print(f"REPLAY-FAIL {f}", file=sys.stderr)

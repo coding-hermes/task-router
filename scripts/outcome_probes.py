@@ -206,6 +206,60 @@ def cmd_check_all(args: argparse.Namespace) -> int:
     return cmd_check(args)
 
 
+def probes_still_templates(paths: list[str]) -> list[str]:
+    """TR-339-05: every probe file whose STATEMENTS are (all still) the
+    TODO(author) template placeholder. A coverage count of 'N files exist'
+    proves NOTHING when zero statements were ever authored — the gate the
+    CI boundary runs (probes_reference_gate) fails on these."""
+    stale = []
+    for path in paths:
+        try:
+            payload = _load_probe(path)
+        except (OSError, ValueError):
+            stale.append(path)  # unreadable = unauthored as far as the gate is concerned
+            continue
+        probes_list = payload.get("probes") or []
+        if probes_list and all(
+            isinstance(p, dict) and str(p.get("statement") or "").strip() == TEMPLATE_STATEMENT
+            for p in probes_list
+        ):
+            stale.append(os.path.basename(path))
+    return stale
+
+
+def cmd_reference_gate(args: argparse.Namespace) -> int:
+    """TR-339-05: the boundary check wired into CI — fails when ANY probe
+    file still carries ONLY the template placeholder (unfilled templates
+    silently persisting as 'covered'). Exit 0 only when the library holds
+    at least one authored statement overall, and reports the count loudly."""
+    paths = sorted(
+        os.path.join(PROBES_DIR, f) for f in os.listdir(PROBES_DIR)
+        if f.endswith(".json")
+    ) if os.path.isdir(PROBES_DIR) else []
+    if not paths:
+        print("REFERENCE-GATE FAIL: no probe files present at all — "
+              "run `ensure` then author statements (TR-339-05)", file=sys.stderr)
+        return 1
+    stale = probes_still_templates(paths)
+    authored = len(paths) - len(stale)
+    if stale and authored == 0:
+        print(
+            f"REFERENCE-GATE FAIL: all {len(paths)} probe files still carry "
+            f"the TODO(author) template placeholder — ZERO authored outcome "
+            f"statements (TR-339-05). Unfilled templates must not persist as "
+            f"complete coverage; author the statements per project in "
+            f"outcome-probes/<project>.json", file=sys.stderr)
+        return 1
+    if stale:
+        print(f"REFERENCE-GATE WARN: {len(stale)} probe file(s) still "
+              f"template-only: {', '.join(stale[:10])}"
+              f"{'…' if len(stale) > 10 else ''} ({authored}/{len(paths)} authored)")
+        return 1
+    print(f"REFERENCE-GATE OK: {authored}/{len(paths)} probe files carry "
+          f"authored statements (no template placeholders remain)")
+    return 0
+
+
 def cmd_record(args: argparse.Namespace) -> int:
     """Record the authorship on a BOARD ROW via boardctl (never hand-edit the
     JSONL): the row gains probe_id / probe_authored_by / probe_authored_at so
@@ -260,6 +314,11 @@ def main(argv: list[str] | None = None) -> int:
 
     p = sub.add_parser("check-all", help="validate every probe file in the library")
     p.set_defaults(func=cmd_check_all)
+
+    p = sub.add_parser("reference-gate",
+                       help="TR-339-05: fail while ANY probe file is still the "
+                            "TODO(author) template (CI boundary leg)")
+    p.set_defaults(func=cmd_reference_gate)
 
     p = sub.add_parser("record", help="record a probe's authorship on a board row (via boardctl)")
     p.add_argument("task_id")
