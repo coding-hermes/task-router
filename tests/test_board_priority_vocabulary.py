@@ -163,8 +163,11 @@ def test_migration_notes_agree_with_the_priority_that_landed():
             mismatches.append(
                 (lineno, row.get("id"), match.group(1), row.get("priority")))
 
-    assert checked >= 28, (
-        f"expected the 28 migrated rows to still carry their note, found {checked}")
+    assert checked >= 26, (
+        # 2026-10-17: 28->26 — QA-TASK-ROUTER-1 + TR-046b were deleted from the
+        # board by the foreman cleanup b931dbb (10-16), both complete and their
+        # notes verified agreeing before deletion.
+        f"expected the 26 migrated rows to still carry their note, found {checked}")
     assert unparseable == [], (
         f"migration note present but no 'was N' token: {unparseable}")
     assert mismatches == [], (
@@ -181,5 +184,5 @@ def test_every_off_vocabulary_row_would_have_been_recorded():
     """
     rows = read_rows(BOARD)
     noted = [r for _, r in rows if "priority migration" in str(r.get("notes") or "")]
-    assert len(noted) == 28, (
-        f"{len(noted)} rows carry a migration note; the review measured 28 to migrate")
+    assert len(noted) == 26, (
+        f"{len(noted)} rows carry a migration note; the pin is 26 after the b931dbb board cleanup (two migrated rows deleted, both complete — 2026-10-17 rebaseline)")
