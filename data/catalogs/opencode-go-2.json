@@ -26,7 +26,8 @@
   "notes": [
     "onboarded 2026-09-25: the mirror account's lane list had drifted 5 models behind its primary (gpt-6-luna, grok-4.7, mimo-v2.6-flash/pro, space-bunny-free) — a mirror that trails loses the second-account capacity exactly when the primary is throttled",
     "catalog carries NO price/context fields: the price-preserve rule keeps the engine-priced normalized_price on refresh, and net-new lanes get priced by the per_request engine (blended sticker fallback) on the next reprice",
-    "2026-10-15: sticker_prices added — 4 net-new lanes HELD 10-14/10-15 because the carrier catalog carries no pricing block; prices sourced from models.dev 'opencode-go' (same SKUs). nvidia-style unpriceable ids stay HELD loudly."
+    "2026-10-15: sticker_prices added — 4 net-new lanes HELD 10-14/10-15 because the carrier catalog carries no pricing block; prices sourced from models.dev 'opencode-go' (same SKUs). nvidia-style unpriceable ids stay HELD loudly.",
+    "2026-10-17: 2 net-new mirror lanes HELD (unpriced, NOT filed) — beam-free and step-5-preview: the PRIMARY-account twins are engine-priced (sub-bucket blended est: $0.0 and $1.068) but this run's reprice skipped the mirror lanes; holding avoids a $0 head-eligible phantom on the mirror account until the next reprice files them. Also -14 removed from catalog (10-17 diff): all are known-disabled legacy ids, no action."
   ],
   "sticker_prices": {
     "space-bunny": {

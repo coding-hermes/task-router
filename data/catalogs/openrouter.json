@@ -30,7 +30,8 @@
     "sentinel guard: openrouter/fusion reports pricing -1000000 (a router placeholder); _scaled_price keeps such values NULL rather than importing a price that would win every chain",
     "capability flags (vision/thinking) are deliberately NOT mapped: OpenRouter exposes a modality STRING, and bool('text->text') is True for text-only models — mapping it would corrupt the flags",
     "cache rates mapped from pricing.input_cache_read/write (295/458 OR models publish them); models that omit it stay NULL",
-    "2026-10-15: nvidia/switchyard stays HELD — OpenRouter lists pricing prompt/completion = -1 (router placeholder; the importer keeps it None), models.dev has no entry, NVIDIA publishes no per-token rate yet. Do not fabricate; re-check when NVIDIA lists rates."
+    "2026-10-15: nvidia/switchyard stays HELD — OpenRouter lists pricing prompt/completion = -1 (router placeholder; the importer keeps it None), models.dev has no entry, NVIDIA publishes no per-token rate yet. Do not fabricate; re-check when NVIDIA lists rates.",
+    "2026-10-17: nvidia/switchyard HELD (unpriced, NOT filed) — aggregator route id with no sticker on models.dev (cost dict empty) and no captured OR page price; per openrouter plan convention (input sticker) there is no basis to price it. Files when a sticker appears; never guess. (OR free-tier note: inclusionai/ling-3.1-flash prices $0 via a models.dev $0 sticker + free-lane discount — flag for a fresh chat probe against the 10-11 monetization-wave verdict before trusting the $0.)"
   ],
   "normalized_from": "price_in",
   "basis_note": "public_price = 0.96*in + 0.04*out (list blend); normalized_price = input price (normalized_from=price_in) — both measured against 347/347 existing openrouter lanes, so a refresh writes only REAL catalog changes.",
