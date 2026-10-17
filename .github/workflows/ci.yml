@@ -156,8 +156,14 @@ jobs:
       #   completion whose evidence run carries one; a stored digest alone
       #   never passes. PRs diff against the PR base; pushes diff against
       #   the previous pushed main.
+      # * CI_MODE enforces TR-339-03: verdict-form flips are refused LOUDLY
+      #   (CI carries no .gitreins/history; verdicts without command.json
+      #   would silently pass through fallback_replay without ci_mode).
+      # * outcome_probes check-all (TR-339-05): wired as a test gate.
       # ---------------------------------------------------------------------
-      - name: Completion boundary gate (TR-251)
+      - name: TR-251 boundary gate
+        env:
+          TR251_CI_MODE: "1"
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             BASE="${{ github.event.pull_request.base.sha }}"
@@ -170,7 +176,9 @@ jobs:
             echo "no base board to diff against (first commit or board-less base) — boundary gate skipped"
           fi
 
-      - name: Evidence replay (TR-251)
+      - name: TR-251 evidence replay
+        env:
+          TR251_CI_MODE: "1"
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             BASE="${{ github.event.pull_request.base.sha }}"
@@ -183,39 +191,12 @@ jobs:
             echo "no base board to diff against — replay skipped"
           fi
 
-      # ---------------------------------------------------------------------
-      # TR-251: mechanical completeness at the CI boundary.
-      # * commit-boundary gate — refuse a diff that flips a board row to
-      #   complete with unbound evidence (the CI twin of the pre-push hook).
-      # * REPLAY, NOT READ — re-execute the recorded command behind every
-      #   completion whose evidence run carries one; a stored digest alone
-      #   never passes. PRs diff against the PR base; pushes diff against
-      #   the previous pushed main.
-      # ---------------------------------------------------------------------
-      - name: Completion boundary gate (TR-251)
+      - name: outcome_probes check-all (TR-339-05)
         run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            BASE="${{ github.event.pull_request.base.sha }}"
+          if [ -f "scripts/outcome_probes.py" ]; then
+            python3 scripts/outcome_probes.py check-all
           else
-            BASE=$(git rev-parse HEAD^) || BASE=""
-          fi
-          if [ -n "$BASE" ] && git cat-file -e "$BASE:.coding-hermes/board/tasks.jsonl" 2>/dev/null; then
-            python3 scripts/board_commit_boundary_gate.py --base "$BASE" --head HEAD
-          else
-            echo "no base board to diff against (first commit or board-less base) — boundary gate skipped"
-          fi
-
-      - name: Evidence replay (TR-251)
-        run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            BASE="${{ github.event.pull_request.base.sha }}"
-          else
-            BASE=$(git rev-parse HEAD^) || BASE=""
-          fi
-          if [ -n "$BASE" ] && git cat-file -e "$BASE:.coding-hermes/board/tasks.jsonl" 2>/dev/null; then
-            python3 scripts/evidence_replay.py --base "$BASE" --head HEAD
-          else
-            echo "no base board to diff against — replay skipped"
+            echo "outcome_probes.py not present — check-all skipped"
           fi
 
       # ---------------------------------------------------------------------
