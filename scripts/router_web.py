@@ -329,7 +329,9 @@ class RouterWebHandler(BaseHTTPRequestHandler):
                     import router_quota_panel as quota_panel
                     self._send(200, quota_panel.panel_view(
                         q,
-                        scan_limit=int(one("scan_limit", 200000) or 200000)))
+                        scan_limit=int(one("scan_limit",
+                                           quota_panel.DEFAULT_SCAN_LIMIT)
+                                       or quota_panel.DEFAULT_SCAN_LIMIT)))
                 except Exception as exc:  # noqa: BLE001
                     self._send(200, {"error": f"quota panel failed: {exc}",
                                      "windows": [], "windows_total": 0,

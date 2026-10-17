@@ -54,9 +54,20 @@ one place, tested once. A lane with no declared price yields NULL — never a
 fabricated 0 — while the row still counts in the token sums. Tests inject
 prices via router_outcomes._PRICE_MAP (the documented module cache).
 
-PER-PROVIDER KEYING (AC5): rows are grouped by `provider` ONLY — never
+PER-PROVIDER KEYING (AC5): rows are grouped by `provider` — never
 provider+model. A provider with 498 lanes and one $10 window is ONE budget;
 the lane/model count never multiplies it (spec §4).
+
+MULTI-ACCOUNT KEYING (TR-216, AC3): when the limit config declares an
+`account` on a provider entry AND the ledger rows carry an `account` field,
+spend is grouped and reported PER (provider, account) — two $200 plans of the
+same provider (xkiro/xkiro-2) are two budgets, never merged into one window.
+Rows WITHOUT an `account` field fall in the config's `default_account` ("default");
+rows whose account is not configured get the per-account defaults resolved
+from the provider's (first) config entry — spend is always visible, remaining
+carries the no-limit reason. A config entry that declares no `account` (the
+normal single-account shape) keeps the byte-identical pre-TR-216 behavior:
+ONE block per provider, every row of the provider summed into it.
 
 WINDOW BOUNDARIES (deliberate, AC2-tested):
   rolling windows:  start < ts <= now      (a row exactly at the start edge has
@@ -266,17 +277,20 @@ def _num_or_0(v) -> int:
 
 # --------------------------------------------------------------- accounting --
 
-def account_provider(provider, rows, cfg, now_ts, default_window=DEFAULT_WINDOW):
-    """The L2 block for ONE provider over ITS rows (already provider-keyed).
+def account_provider(provider, rows, cfg, now_ts, default_window=DEFAULT_WINDOW,
+                     account=None):
+    """The L2 block for ONE provider (or provider+account) over ITS rows.
 
-    Rows are whatever the caller scoped to this provider — the grouping (by
-    `provider` ONLY) lives in account(). Every NULL carries its reason
-    (Bane's null-with-reason law); unknown is never 0.
-    """
+    Rows are whatever the caller scoped to this provider — the grouping lives
+    in account(). Every NULL carries its reason (Bane's null-with-reason law);
+    unknown is never 0. `account` labels the block when the caller resolved a
+    per-account scope (TR-216); it is reports-only here (the grouping itself
+    lives in account())."""
     now = float(now_ts)
     cfg = cfg if isinstance(cfg, dict) else {}
     block = {
         'provider': provider,
+        'account': account,
         'window': None, 'window_start': None, 'as_of': _iso(now),
         'n_rows': 0, 'n_rows_outside_window': 0,
         'tokens_in': 0, 'tokens_out': 0, 'tokens_reasoning': 0,
@@ -395,11 +409,17 @@ def account_provider(provider, rows, cfg, now_ts, default_window=DEFAULT_WINDOW)
 
 
 def account(rows, limits, now_ts) -> list:
-    """Per-provider blocks over ledger rows — the L2 VIEW (pure function).
+    """Per-provider (or per provider+account) blocks over ledger rows — the
+    L2 VIEW (pure function).
 
-    Grouping is by `provider` ONLY (spec §4: the lane count never multiplies
-    a budget). Providers from the config appear even with zero rows, so a
-    configured-but-idle budget is visible instead of missing.
+    Grouping is by `provider` (spec §4: the lane count never multiplies a
+    budget). When a provider's config entry declares an `account` key AND its
+    ledger rows carry an `account` field, the view splits per account
+    (TR-216, AC3): two plans of the same provider are two budgets. Rows
+    without an `account` field fall in the block whose account the config
+    declares (or the provider block itself when none is declared). Providers
+    from the config appear even with zero rows, so a configured-but-idle
+    budget is visible instead of missing.
     """
     now = float(now_ts)
     by_provider = {}
@@ -412,10 +432,67 @@ def account(rows, limits, now_ts) -> list:
         by_provider.setdefault(str(p), []).append(r)
     providers_cfg = limits.get('providers') or {}
     default_window = limits.get('default_window') or DEFAULT_WINDOW
-    return [account_provider(p, by_provider.get(p, []),
-                             providers_cfg.get(p) or {}, now,
-                             default_window=default_window)
-            for p in sorted(set(by_provider) | set(providers_cfg))]
+
+    # -- multi-account resolution (TR-216): per provider, declared accounts.
+    # When a `providers` config carries a top-level "alias_of" map (optional,
+    # data-driven — mirrors the L0 table's alias declarations), an alias
+    # provider's rows fold into the PARENT's block: the view reports one
+    # budget under the parent's name and the alias provider gets none. Aliases
+    # never double-count their parent's window (spec §2).
+    alias_of = limits.get('alias_of') or {}
+    if isinstance(alias_of, dict) and alias_of:
+        for alias, parent in alias_of.items():
+            for r in by_provider.get(str(alias), []):
+                r.setdefault('_alias_hop', str(alias))
+                by_provider.setdefault(str(parent), []).append(r)
+            by_provider.pop(str(alias), None)
+
+    def _blocks(provider, prow, cfg):
+        declared = (cfg or {}).get('account')
+        if not declared:
+            # single-account shape: byte-identical pre-TR-216 behavior
+            return [account_provider(provider, prow, cfg, now,
+                                     default_window=default_window)]
+        paccount_cfgs = cfg.get('accounts') or {}
+        row_acct_names = set()
+        for r in prow:
+            a = r.get('account')
+            row_acct_names.add(str(a) if a is not None else declared)
+        acct_names = sorted(row_acct_names |
+                            (set(paccount_cfgs) | {declared}
+                             if isinstance(paccount_cfgs, dict)
+                             else {declared}))
+
+        def _row_account(r):
+            a = r.get('account')
+            return str(a) if a is not None else declared
+        by_acct = {}
+        for r in prow:
+            by_acct.setdefault(_row_account(r), []).append(r)
+        out = []
+        for acct in acct_names:
+            acfg = paccount_cfgs.get(acct) if isinstance(paccount_cfgs, dict) \
+                else None
+            if acfg is None:
+                # account not individually configured: inherit the provider's
+                # own entry (window/limits), minus the account marker — spend
+                # stays visible, remaining carries the no-limit reason.
+                acfg = {k: v for k, v in (cfg or {}).items()
+                        if k not in ('account', 'accounts')}
+                if not acfg:
+                    acfg = {}
+            else:
+                acfg = dict(acfg)
+            out.append(account_provider(provider, by_acct.get(acct, []), acfg,
+                                        now, default_window=default_window,
+                                        account=acct))
+        return out
+
+    out_blocks = []
+    for p in sorted(set(by_provider) | set(providers_cfg)):
+        cfg = providers_cfg.get(p) or {}
+        out_blocks.extend(_blocks(p, by_provider.get(p, []), cfg))
+    return out_blocks
 
 
 def account_ledger(path=None, limits=None, now_ts=None):
@@ -446,7 +523,10 @@ def _print_human(blocks, ledger, limits_file, as_of) -> int:
         print('  no providers (empty ledger, empty limit config)')
         return 0
     for b in blocks:
-        print(f"  {b['provider']:<22} {str(b['window']):<13} "
+        label = b['provider']
+        if b.get('account'):
+            label = f"{label}/{b['account']}"
+        print(f"  {label:<30} {str(b['window']):<13} "
               f"spent=${_fmt_usd(b['spent_usd'])} "
               f"tokens={b['tokens_in']}/{b['tokens_out']} "
               f"limit=${_fmt_usd(b['limit_usd'])} "
