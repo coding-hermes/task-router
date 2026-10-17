@@ -191,12 +191,14 @@ jobs:
             echo "no base board to diff against — replay skipped"
           fi
 
-      - name: outcome_probes check-all (TR-339-05)
+      - name: outcome_probes check-all + reference-gate (TR-339-05)
         run: |
           if [ -f "scripts/outcome_probes.py" ]; then
-            python3 scripts/outcome_probes.py check-all
+            python3 scripts/outcome_probes.py check-all && echo "check-all OK"
+            python3 scripts/outcome_probes.py reference-gate && echo "reference-gate OK"
           else
-            echo "outcome_probes.py not present — check-all skipped"
+            echo "outcome_probes.py not present — check-all and reference-gate skipped"
+            exit 1
           fi
 
       # ---------------------------------------------------------------------
