@@ -346,6 +346,25 @@ POST_DEDUPE_ADDITIONS = {
     ("openrouter", "moondream/moondream3.1-9b-a2b"): "models.dev sync 2026-10-16 (catalog addition, payg-sticker priced)",
     ("openrouter", "nvidia/nemotron-3.5-super-vl"): "models.dev sync 2026-10-16 (catalog addition, payg-sticker priced)",
     ("openrouter", "nvidia/nemotron-3.5-super-vl:free"): "models.dev sync 2026-10-16 (catalog addition, :free discount priced + F3 window story)",
+    # 2026-10-17 tick (model-registry-data-quality cron): 10-17 carrier/sync
+    # arrivals. Every key verified present in models.jsonl at HEAD; priced
+    # per provider convention or held unpriced per the HELD-lane law
+    # (no sticker anywhere -> visible gap, tracked via data/catalogs notes).
+    ("clinepass", "beam-1.0-501b-a23b"): "clinepass API sync 2026-10-17 (carrier arrival, payg-sticker priced)",
+    ("clinepass", "deepseek-v4.1-flash-1017"): "clinepass API sync 2026-10-17 (carrier arrival, payg-sticker priced)",
+    ("clinepass", "glimpse"): "clinepass API sync 2026-10-17 (carrier arrival, payg-sticker priced)",
+    ("clinepass", "qwen3.7-plus:batch"): "clinepass API sync 2026-10-17 (carrier arrival, batch-tier priced)",
+    ("clinepass", "xing4.0-29b-a4b:free"): "clinepass API sync 2026-10-17 (:free discount + F3 window-cost-pending tag; no sticker anywhere)",
+    ("opencode-go", "beam-free"): "models.dev sync 2026-10-17 (Go catalog arrival; sub-bucket blended est, mirror held twin unpriced)",
+    ("openrouter", "deepseek/deepseek-v4.1-flash-1017"): "models.dev sync 2026-10-17 (catalog addition, payg-sticker priced)",
+    ("openrouter", "elorian/glimpse"): "models.dev sync 2026-10-17 (catalog addition, payg-sticker priced)",
+    ("openrouter", "qwen/qwen3.7-plus:batch"): "models.dev sync 2026-10-17 (batch-tier priced; api_type/data_class stamped unknown-by-design)",
+    ("openrouter", "reflection/beam-1.0-501b-a23b"): "models.dev sync 2026-10-17 (catalog addition, payg-sticker priced)",
+    ("openrouter", "xingchen-agi/xing4.0-29b-a4b:free"): "models.dev sync 2026-10-17 (:free sticker 0/0 + F3 window-cost-pending tag; no paid sibling published)",
+    ("xkiro", "anthropic/claude-haiku-5.5"): "xkiro catalog refresh 2026-10-16 (plan-covered lane; census-stamped api_type/data_class)",
+    ("xkiro", "anthropic/claude-sonnet-5.5"): "xkiro catalog refresh 2026-10-16 (plan-covered lane; census-stamped api_type/data_class)",
+    ("xkiro-2", "anthropic/claude-haiku-5.5"): "xkiro-2 catalog refresh 2026-10-16 (seat mirror; census-stamped api_type/data_class)",
+    ("xkiro-2", "anthropic/claude-sonnet-5.5"): "xkiro-2 catalog refresh 2026-10-16 (seat mirror; census-stamped api_type/data_class)",
 }
 
 
