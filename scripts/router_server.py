@@ -42,6 +42,7 @@ import router_data_cache  # noqa: E402  (TR-277: runtime data cache)
 import router_drain  # noqa: E402  (stdlib-only sibling script module)
 import router_wire_ids  # noqa: E402  (TR-148: registry id -> upstream wire id)
 import router_hop_taxonomy  # noqa: E402  (TR-288: the one failure taxonomy)
+import router_models_browser  # noqa: E402  (TR-258: models browser + rollups)
 import router_ui_page  # noqa: E402  (TR-150: the one self-contained page)
 import router_health  # noqa: E402  (TR-087 health plane)
 import lifecycle_gate  # noqa: E402  (TR-199: R4 no anonymous dates)
@@ -159,6 +160,8 @@ def build_openapi() -> dict:
             {"name": "offset", "in": "query", "required": False, "schema": integer, "description": "Matches to skip"},
             {"name": "scan_limit", "in": "query", "required": False, "schema": integer, "description": "Rows to read before stopping (default 200000); reported back as rows_scanned"},
         ]),
+        "/api/models": ("getApiModels", "TR-258: the models browser - EVERY registry lane joined with the health probe and the rolling averages: provider, model, status (up/down/unknown), latency_ms with its SOURCE LEVEL (model vs provider), sampled tokens/sample count/avg wall time in the 168h window, and the public price. Every missing value carries its reason (no sample in window / not priced / health unknown); local files only, no provider request at render.", []),
+        "/api/provider-rollups": ("getApiProviderRollups", "TR-258: per-provider rollups (lanes, up/down/unknown counts, mean latency over lanes that carry a measurement, summed 168h tokens + samples) derived from the SAME lane list as /api/models, with the totals reconciliation proven in the response (totals.reconciles).", []),
         "/profiles": ("listProfiles", "List task profiles", []),
         "/providers": ("listProviders", "List providers", []),
         "/circuit/status": ("getCircuitStatus", "List circuit breaker state", []),
@@ -720,6 +723,18 @@ class RouterApplication:
             if path == "/api/ui/ledger":
                 # TR-151: the raw-data search. Reports how much of the store it read.
                 return 200, ui_ledger(query)
+            if path == "/api/models":
+                # TR-258: every registry lane joined with the health probe and the
+                # rolling averages — provider, model, status, latency (source level
+                # tagged), sampled usage in the 168h window, sample count, price.
+                # Local files only: a render triggers zero provider requests.
+                return 200, router_models_browser.served_models_view(
+                    _read_jsonl("models"))
+            if path == "/api/provider-rollups":
+                # TR-258: per-provider rollups derived from the SAME lane list,
+                # with the totals reconciliation proven in the response.
+                return 200, router_models_browser.served_provider_rollups(
+                    _read_jsonl("models"))
             if path == "/health":
                 payload = router_health.health(mode=self.mode)
                 # TR-172: expose this process's admission and rating-cache state.

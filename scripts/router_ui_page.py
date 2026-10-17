@@ -90,6 +90,8 @@ PAGE = r"""<!doctype html>
   <select id="b_status"><option value="">any status</option><option>pending</option><option>complete</option><option>failed</option><option>done</option></select>
   <select id="b_priority"><option value="">any priority</option><option>P0</option><option>P1</option><option>P2</option></select>
   <input id="b_commit" placeholder="commit" size="10" autocomplete="off">
+  <select id="m_provider"><option value="">any provider</option></select>
+  <select id="m_status"><option value="">any health</option><option>up</option><option>down</option><option>unknown</option></select>
   <select id="series_group"><option value="total">all traffic</option><option value="band">by band</option><option value="lane">by lane</option></select>
   <select id="win"><option value="24">24h</option><option value="72">72h</option><option value="168">7d</option></select>
 </header>
@@ -145,6 +147,16 @@ PAGE = r"""<!doctype html>
       <h2>request flow <span class="dim">rating → requirements → chain → hops → served lane → cost</span></h2>
       <div class="body tall" id="flow"><span class="skel">select a ledger row</span></div>
       <div class="note" id="flow_note">—</div>
+    </section>
+    <section>
+      <h2>providers (TR-258) <span class="dim" id="models_window"></span></h2>
+      <div class="body" id="provider_rollups"><span class="skel">loading…</span></div>
+      <div class="note" id="provider_note">—</div>
+    </section>
+    <section>
+      <h2>models <span class="dim" id="models_note_head"></span></h2>
+      <div class="body tall" id="models"><span class="skel">loading…</span></div>
+      <div class="note" id="models_note">—</div>
     </section>
   </div>
 </main>
@@ -564,6 +576,123 @@ async function quotaPanel(){
   }
 }
 
+/* ---- models browser + provider rollups (TR-258) ------------------------ */
+/* The null-with-reason contract, rendered: a missing cell carries its reason
+   in words, and a latency cell names the LEVEL that measured it ("(provider)"
+   vs "(model)") so a provider-level number can never pose as a per-model one.
+   Every column header is a sort toggle; provider + status filter client-side
+   over the payload the endpoint already returned (no refetch on filter). */
+let MODELS = {lanes: [], sort_key: 'tokens_168h', sort_dir: -1};
+const M_MISSING = (reason) => '<span class="qreason" title="'+esc(reason||'missing')+'">'+esc(reason||'—')+'</span>';
+const M_STALE = (ts) => {
+  if (!ts) return '';
+  const age = (Date.now() - Date.parse(String(ts).replace(' ','T')) ) / 60000;
+  if (!isFinite(age) || age < 120) return '';
+  return ' <span class="warn" title="probe ts '+esc(String(ts).slice(0,19))+'">'+Math.round(age/60)+'h old</span>';
+};
+const M_SORT_KEYS = ['provider','model','status','latency_ms','tokens_168h','sample_count','avg_wall_ms','public_price_usd_1m','context_limit'];
+function modelsSortVal(r, k){
+  if (k === 'status') return (r.status||'')+' '+(r.raw_status||'');
+  if (k === 'provider') return r.provider||'';
+  if (k === 'model') return r.model||'';
+  const v = r[k];
+  return (v === null || v === undefined) ? -Infinity : v;   /* missing sorts LAST, as it should */
+}
+function modelsHeader(){
+  const labels = {provider:'provider', model:'model', status:'status', latency_ms:'latency ms',
+    tokens_168h:'tokens 168h', sample_count:'n samples', avg_wall_ms:'avg wall ms',
+    public_price_usd_1m:'list $/M', context_limit:'ctx'};
+  return '<tr>' + M_SORT_KEYS.map(k => {
+    const on = MODELS.sort_key === k;
+    return '<th data-mk="'+k+'" class="'+(k==='provider'||k==='model'||k==='status'?'':'num')
+      +'" style="cursor:pointer" title="click to sort">'
+      + esc(labels[k]) + (on ? (MODELS.sort_dir < 0 ? ' ▼' : ' ▲') : '') + '</th>';
+  }).join('') + '</tr>';
+}
+async function modelsPanel(){
+  $('#models_note_head').textContent = 'every lane · click a header to sort';
+  try{
+    const d = await j('/api/models');
+    MODELS.lanes = d.lanes || [];
+    $('#models_window').textContent = (d.counts ? (d.counts.up+' up · '+d.counts.down+' down · '+d.counts.unknown+' unknown · '+d.counts.lanes+' lanes') : '');
+    paintModels();
+    const src = d.sources || {};
+    const h = src.health || {};
+    $('#models_note').textContent =
+      (h.updated ? 'probe updated '+String(h.updated).slice(0,19).replace('T',' ')
+                 : 'probe state missing: every status reads health unknown')
+      + ' · sources: registry ' + (d.counts ? d.counts.lanes : 0) + ' lane(s)'
+      + ' · health-state provider rows ' + (h.provider_rows||0)
+      + ' · averages rows ' + ((src.averages||{}).rows||0)
+      + ' · local files only — a render triggers no provider request'
+      + ' · NULL cells carry their reason, never a 0';
+  }catch(e){ $('#models').innerHTML = '<span class="bad">models unavailable</span>'; $('#models_note').textContent = e.message; }
+}
+function paintModels(){
+  const prov = ($('#m_provider')||{}).value || '';
+  const st   = ($('#m_status')||{}).value || '';
+  let lanes = MODELS.lanes.filter(r =>
+    (!prov || r.provider === prov) && (!st || r.status === st));
+  const k = MODELS.sort_key, dir = MODELS.sort_dir;
+  lanes = lanes.slice().sort((a,b) => {
+    const va = modelsSortVal(a,k), vb = modelsSortVal(b,k);
+    if (typeof va === 'string' || typeof vb === 'string')
+      return String(va).localeCompare(String(vb)) * dir;
+    return (va < vb ? -1 : va > vb ? 1 : 0) * dir;
+  });
+  if(!lanes.length){ $('#models').innerHTML = '<span class="dim">no lane matched the filters</span>'; return; }
+  const latCell = (r) => r.latency_ms === null || r.latency_ms === undefined
+    ? M_MISSING(r.latency_reason||'no sample in window')
+    : esc(Math.round(r.latency_ms)) + ' <span class="dim">(' + esc(r.latency_level||'?') + ')</span>' + M_STALE(r.latency_ts);
+  const body = lanes.map(r =>
+    '<tr><td>'+esc(r.provider)+'</td><td>'+esc(r.model)+'</td>'
+    + '<td>'+(r.status==='up' ? '<span class="ok">up</span>'
+              : r.status==='down' ? '<span class="bad">down'+(r.raw_status?' · '+esc(r.raw_status):'')+'</span>'
+              : '<span class="qreason">'+esc(r.status_reason||'health unknown')+'</span>')
+      + (r.disabled ? ' <span class="warn">disabled</span>' : '')+'</td>'
+    + '<td class="num">'+latCell(r)+'</td>'
+    + '<td class="num">'+((r.tokens_168h===null||r.tokens_168h===undefined) ? M_MISSING(r.tokens_reason) : esc(fmtQty(r.tokens_168h)))+'</td>'
+    + '<td class="num">'+((r.sample_count===null||r.sample_count===undefined) ? M_MISSING(r.samples_reason) : esc(r.sample_count))+'</td>'
+    + '<td class="num">'+((r.avg_wall_ms===null||r.avg_wall_ms===undefined) ? M_MISSING(r.wall_reason) : esc(fmtQty(r.avg_wall_ms)+'ms'))+'</td>'
+    + '<td class="num">'+((r.public_price_usd_1m===null||r.public_price_usd_1m===undefined) ? M_MISSING(r.price_reason) : esc(Number(r.public_price_usd_1m).toFixed(4)))+'</td>'
+    + '<td class="num dim">'+(r.context_limit===null||r.context_limit===undefined ? M_MISSING('context_limit not declared in the registry') : esc(fmtQty(r.context_limit)))+'</td></tr>'
+  ).join('');
+  $('#models').innerHTML = '<table><thead>'+modelsHeader()+'</thead><tbody>'+body+'</tbody></table>';
+  document.querySelectorAll('#models th[data-mk]').forEach(th => th.addEventListener('click', () => {
+    const mk = th.dataset.mk;
+    if (MODELS.sort_key === mk) MODELS.sort_dir = -MODELS.sort_dir;
+    else { MODELS.sort_key = mk; MODELS.sort_dir = (mk==='provider'||mk==='model') ? 1 : -1; }
+    paintModels();
+  }));
+}
+async function providerPanel(){
+  try{
+    const d = await j('/api/provider-rollups');
+    const list = d.providers || [];
+    const t = d.totals || {};
+    if(!list.length){ $('#provider_rollups').innerHTML = '<span class="dim">no provider to roll up</span>'; }
+    else {
+      $('#provider_rollups').innerHTML = '<table><thead><tr><th>provider</th><th class="num">lanes</th>'
+        + '<th class="num">up</th><th class="num">down</th><th class="num">unknown</th><th class="num">avg lat ms</th>'
+        + '<th class="num">tokens 168h</th><th class="num">n samples</th></tr></thead><tbody>'
+        + list.map(p => '<tr><td>'+esc(p.provider)+'</td>'
+          + '<td class="num">'+esc(p.lanes_count)+'</td>'
+          + '<td class="num '+(p.up_count?'ok':'dim')+'">'+esc(p.up_count)+'</td>'
+          + '<td class="num '+(p.down_count?'bad':'dim')+'">'+esc(p.down_count)+'</td>'
+          + '<td class="num '+(p.unknown_count?'warn':'dim')+'">'+esc(p.unknown_count)+'</td>'
+          + '<td class="num">'+((p.avg_latency_ms===null||p.avg_latency_ms===undefined)
+              ? M_MISSING('no lane measured latency (latency_lanes='+esc(p.latency_lanes||0)+')')
+              : esc(Math.round(p.avg_latency_ms))+' <span class="dim">('+esc(p.latency_lanes||0)+' lanes)</span>')+'</td>'
+          + '<td class="num">'+(p.tokens_168h ? esc(fmtQty(p.tokens_168h)) : '<span class="dim">0</span>')+'</td>'
+          + '<td class="num">'+esc(p.sample_count)+'</td></tr>').join('')
+        + '</tbody></table>';
+    }
+    $('#provider_note').innerHTML = 'totals: lanes '+esc(t.lanes)+' · up '+esc(t.up)+' · down '+esc(t.down)+' · unknown '+esc(t.unknown)
+      + ' · tokens '+esc(fmtQty(t.tokens_168h||0))+' · samples '+esc(t.sample_count)
+      + ' — sum(providers) vs sum(lanes): ' + (t.reconciles ? '<span class="ok">reconciles</span>' : '<span class="bad">BROKEN</span>');
+  }catch(e){ $('#provider_rollups').innerHTML = '<span class="bad">rollups unavailable</span>'; $('#provider_note').textContent = e.message; }
+}
+
 /* ---- keyboard -------------------------------------------------------- */
 document.addEventListener('keydown', (e) => {
   if(e.key === '/' && document.activeElement !== $('#q')){ e.preventDefault(); $('#q').focus(); return; }
@@ -604,10 +733,30 @@ async function filters(){
   }catch(e){}
 }
 
+/* TR-258: the models panel's own filters, filled from the payload /api/models
+   already returned (client-side, no refetch; fallback to /providers when the
+   payload has not landed yet). */
+async function modelsFilters(){
+  const sel = $('#m_provider');
+  if (!sel) return;
+  let list = MODELS.lanes.map(r => r.provider).filter(Boolean);
+  if(!list.length){
+    try{
+      const p = await j('/providers');
+      list = (p.providers || []).map(x => x.id || x.provider || x).filter(Boolean);
+    }catch(e){}
+  }
+  [...new Set(list)].sort().forEach(x => sel.insertAdjacentHTML('beforeend', '<option>'+esc(x)+'</option>'));
+}
+
 function refresh(){ ledger(); board(); }
 identity(); traffic(); series(); chainPanel(); registryPanel(); gates(); quotaPanel(); filters().then(refresh); refresh();
+modelsPanel(); providerPanel(); modelsFilters();
+$('#m_provider').addEventListener('change', paintModels);
+$('#m_status').addEventListener('change', paintModels);
 setInterval(identity, 60000);
 setInterval(quotaPanel, 120000);
+setInterval(modelsPanel, 300000);
 </script>
 </body>
 </html>
