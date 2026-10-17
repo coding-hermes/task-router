@@ -1,11 +1,11 @@
 {
-  "authored_at": "2026-10-16T13:52:16Z",
-  "authored_by": "coding-hermes-foreman (TR-251 coordinator)",
+  "authored_at": "2026-10-17T08:15:10Z",
+  "authored_by": "foreman-direct (TR-251 AC4)",
   "probes": [
     {
       "id": "kobayashi-maru-P1",
       "kind": "outcome",
-      "statement": "TODO(author): state the outcome this project's next dispatch must show"
+      "statement": "Kobayashi Maru benchmark: no-win scenarios evaluated, scores generated across models"
     }
   ],
   "project": "kobayashi-maru"

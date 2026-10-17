@@ -167,12 +167,31 @@ def test_replay_disagreement_fails(tmp_path):
 
 
 def test_digest_alone_never_passes(tmp_path):
-    """A verdict with NO command.json is digest-only evidence: FAIL."""
-    _make_verdict_run(tmp_path, "run-digest")  # verdict only, no command
+    """A verdict with NO command.json and NO task_criteria → FAIL.
+
+    The replay system has two paths: (1) command.json → replay the command,
+    (2) verdict.json with task_criteria + commit → fallback replay.
+    A verdict lacking BOTH is genuinely unbound evidence and must fail."""
+    # verdict without task_criteria and without command.json
+    run_dir = tmp_path / ".gitreins/history/2026-10-16/run-digest"
+    run_dir.mkdir(parents=True)
+    (run_dir / "verdict.json").write_text(json.dumps({
+        "passed": True,
+        "summary": "all criteria met",
+        "commit": "abc1234"
+        # NO task_criteria, NO command.json
+    }))
+    # resolve_run finds the verdict, returns it
+    kind, payload = replay.resolve_run("run-digest", str(tmp_path))
+    assert kind == "verdict"
+    # load_command returns None (intentional: fallback path)
+    cmd = replay.load_command(run_dir, "run-digest")
+    assert cmd is None
+    # BUT verdict_fallback_replay must FAIL because there are no criteria
     with pytest.raises(replay.ReplayFailure) as exc:
-        replay.load_command(
-            tmp_path / ".gitreins/history/2026-10-16/run-digest", "run-digest")
-    assert "digest alone never passes" in str(exc.value) or "no recorded command" in str(exc.value)
+        replay.verdict_fallback_replay(payload, "run-digest", str(tmp_path))
+    msg = str(exc.value)
+    assert "no task_criteria" in msg or "neither replayable form holds" in msg
 
 
 def test_unresolvable_run_fails_naming_store(tmp_path):

@@ -1,11 +1,11 @@
 {
-  "authored_at": "2026-10-16T13:52:17Z",
-  "authored_by": "coding-hermes-foreman (TR-251 coordinator)",
+  "authored_at": "2026-10-17T08:15:10Z",
+  "authored_by": "foreman-direct (TR-251 AC4)",
   "probes": [
     {
       "id": "trouble-P1",
       "kind": "outcome",
-      "statement": "TODO(author): state the outcome this project's next dispatch must show"
+      "statement": "trouble project: board task lifecycle complete, gitreins judge runs, verdict recorded, row closed"
     }
   ],
   "project": "trouble"
