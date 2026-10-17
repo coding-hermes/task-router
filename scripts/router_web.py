@@ -321,12 +321,28 @@ class RouterWebHandler(BaseHTTPRequestHandler):
                 code = int(res.pop("status", 200)) if isinstance(res.get("status"), int) else 200
                 self._send(code, res)
                 return
+            if path == "/api/ui/quota":
+                # TR-212: the quota remaining panel (see route-table entry).
+                # Fail-open like every diagnostic: a broken quota plane is a
+                # reported error document, never a 500 that kills the page.
+                try:
+                    import router_quota_panel as quota_panel
+                    self._send(200, quota_panel.panel_view(
+                        q,
+                        scan_limit=int(one("scan_limit", 200000) or 200000)))
+                except Exception as exc:  # noqa: BLE001
+                    self._send(200, {"error": f"quota panel failed: {exc}",
+                                     "windows": [], "windows_total": 0,
+                                     "burn": {"candidates": [], "summary": {},
+                                              "note": "unavailable"},
+                                     "generated_from": {"error": str(exc)[:200]}})
+                return
             if path == "/api/ui/board":
                 self._send(200, ui_data.board(
                     search=one("q"), status=one("status"), priority=one("priority"),
                     owner=one("owner"), limit=one("limit", 100), offset=one("offset", 0)))
                 return
-        except Exception as exc:  # noqa: BLE001 — a bad query must not kill the UI
+        except Exception as exc:  # noqa: BLE001
             self._send(500, {"error": "data query failed", "reason": str(exc)[:200]})
             return
         self._send(404, {"error": "not found"})
