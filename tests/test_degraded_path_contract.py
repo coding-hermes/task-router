@@ -59,7 +59,7 @@ UNSAT_REQS = sorted(UNSAT_MATRIX.items())
 SAT_PROFILE = 'P1_CODING'
 #: The always-run lane that serves an unsatisfiable rating degraded
 #: (fallback_lanes order 1).
-DEGRADED_HEAD = ('xkiro', 'z-ai/glm-5.3-flash')
+DEGRADED_HEAD = ('xkiro', 'openai/gpt-5.6-terra')
 
 
 def _committed_tables():
