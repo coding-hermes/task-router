@@ -1067,3 +1067,29 @@ tasks:
     CI run id.
   status: in_progress
   created_at: '2026-10-17T01:14:27.397455+00:00'
+- id: TR-281
+  title: 'Quality artifact: single verb, one path, one authority'
+  criteria:
+  - scripts/quality_artifact.py produces data/state/quality-artifact.json with schema_version=1,
+    measured_at ISO-8601 UTC, metrics list with type_hint_pct measured and coverage_pct/wiring_pct
+    unmeasurable with reasons; tests/test_quality_artifact.py pins schema and fail-loud
+    contract; 11 tests pass
+  status: complete
+  created_at: '2026-10-18T03:37:05.509923+00:00'
+  completed_at: '2026-10-18T03:37:38.465920+00:00'
+- id: TR-274
+  title: "ASYNC SERVING CORE: thread-per-request with blocking upstream I/O \u2192\
+    \ bounded async path"
+  criteria:
+  - "A serving path exists that does not hold one thread per in-flight proxied request\
+    \ (async upstream I/O or bounded worker pool, selectable by mode/flag). Legacy\
+    \ ThreadingHTTPServer stays selectable and is DEFAULT until new path passes acceptance\
+    \ battery; running mode named on /health. Wire compatibility: chat-completions\
+    \ and responses/SSE shapes unchanged \u2014 existing proxy contract tests stay\
+    \ green. Measured at fleet real concurrency: p50/p99 + peak in-flight + RSS for\
+    \ N concurrent streaming requests through new path vs current; both sets recorded.\
+    \ No request refused/dropped at admitted concurrency; admission ceiling observable\
+    \ on /health. Failure honesty preserved (idle-timeout vs hop-wall-timeout vs transport\
+    \ failure distinguishable on ledger row)."
+  status: in_progress
+  created_at: '2026-10-18T06:49:47.439510+00:00'
