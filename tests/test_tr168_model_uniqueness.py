@@ -365,6 +365,13 @@ POST_DEDUPE_ADDITIONS = {
     ("xkiro", "anthropic/claude-sonnet-5.5"): "xkiro catalog refresh 2026-10-16 (plan-covered lane; census-stamped api_type/data_class)",
     ("xkiro-2", "anthropic/claude-haiku-5.5"): "xkiro-2 catalog refresh 2026-10-16 (seat mirror; census-stamped api_type/data_class)",
     ("xkiro-2", "anthropic/claude-sonnet-5.5"): "xkiro-2 catalog refresh 2026-10-16 (seat mirror; census-stamped api_type/data_class)",
+    # 2026-10-18 tick (model-router-refresh cron): carrier/sync arrivals.
+    # clinepass pareto-26.10 plan-sweep-disabled on import (PAYG outside the
+    # flat plan); ollama-cloud SKU is catalog-only unpriced (bucket plan,
+    # null_reasons-stamped); openrouter lane engine-priced payg-sticker 0.8.
+    ("clinepass", "pareto-26.10"): "clinepass API sync 2026-10-18 (carrier arrival, plan-sweep disabled)",
+    ("ollama-cloud", "deepseek-v4.1-flash:1017"): "models.dev sync 2026-10-18 (new 10-17 SKU, catalog-only, bucket-plan unpriced + stamped)",
+    ("openrouter", "unbiased/pareto-26.10"): "models.dev sync 2026-10-18 (carrier arrival, payg-sticker priced)",
 }
 
 

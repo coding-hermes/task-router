@@ -1042,6 +1042,7 @@
 {"model": "deepseek-v4.1-flash-flex", "category": "schema", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/SCHEMA"}
 {"model": "deepseek-v4.1-flash-flex", "category": "test", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/TEST"}
 {"model": "deepseek-v4.1-flash-flex", "category": "tool_use", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T1-TOOL"}
+{"model": "deepseek-v4.1-flash:1017", "category": "agent_tick", "perf": 0.605, "tier": -3, "tier_source": "bench", "source_ref": "bench:research-bench-2026-10-18: Automation-Bench 54.8 -> 60.5 (VENDOR-REPORTED, direct category — agentic automation benchmark; vendor also reports shorter outputs/faster agentic completion)"}
 {"model": "deepseek.r1-v1:0", "category": "test", "perf": 0.72, "tier": -1, "tier_source": "estimate", "source_ref": "CATEGORY_ESTIMATES"}
 {"model": "deepseek.v3-v1:0", "category": "test", "perf": 0.72, "tier": -1, "tier_source": "estimate", "source_ref": "CATEGORY_ESTIMATES"}
 {"model": "deepseek.v3.2", "category": "test", "perf": 0.72, "tier": -1, "tier_source": "estimate", "source_ref": "CATEGORY_ESTIMATES"}
@@ -1624,6 +1625,7 @@
 {"model": "gpt-6-sol", "category": "review", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:openai/gpt-6-sol"}
 {"model": "gpt-6-sol", "category": "schema", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:openai/gpt-6-sol"}
 {"model": "gpt-6-sol", "category": "spec_docs", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:openai/gpt-6-sol"}
+{"model": "gpt-6-sol", "category": "terminal", "perf": 0.43, "tier": -5, "tier_source": "bench", "source_ref": "bench:Terminal-Bench"}
 {"model": "gpt-6-sol", "category": "test", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:openai/gpt-6-sol"}
 {"model": "gpt-6-sol", "category": "tool_use", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:openai/gpt-6-sol"}
 {"model": "gpt-6.1-sol", "category": "agent_tick", "perf": 0.75, "tier": 2, "tier_source": "family", "source_ref": "alias:openai/gpt-6.1-sol"}
@@ -3255,7 +3257,7 @@
 {"model": "step-3.7-flash", "category": "refactor", "perf": 0.5, "tier": 1, "tier_source": "bench", "source_ref": "bench:battery-T2-CODE"}
 {"model": "step-3.7-flash", "category": "review", "perf": 0.68, "tier": -3, "tier_source": "measured", "source_ref": "models.jsonl:perf_review"}
 {"model": "step-3.7-flash", "category": "schema", "perf": 0.5, "tier": -2, "tier_source": "measured", "source_ref": "models.jsonl:perf_schema"}
-{"model": "step-3.7-flash", "category": "terminal", "perf": 0.5954999999999999, "tier": -4, "tier_source": "bench", "source_ref": "bench:Terminal-Bench"}
+{"model": "step-3.7-flash", "category": "terminal", "perf": 0.5954999999999999, "tier": -3, "tier_source": "bench", "source_ref": "bench:Terminal-Bench"}
 {"model": "step-3.7-flash", "category": "test", "perf": 0.95, "tier": -1, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:step 3"}
 {"model": "step-3.7-flash", "category": "tool_use", "perf": 0.25, "tier": -5, "tier_source": "bench", "source_ref": "bench:battery-T1-TOOL"}
 {"model": "step-3.7-flash", "category": "vision", "perf": 0.972051282051282, "tier": 4, "tier_source": "bench", "source_ref": "bench:BrowseComp multimodal"}
@@ -3304,7 +3306,7 @@
 {"model": "stepfun/Step-3.7-Flash", "category": "review", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:REVIEW"}
 {"model": "stepfun/Step-3.7-Flash", "category": "schema", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/SCHEMA"}
 {"model": "stepfun/Step-3.7-Flash", "category": "spec_docs", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:SPEC-DOCS"}
-{"model": "stepfun/Step-3.7-Flash", "category": "terminal", "perf": 0.5954999999999999, "tier": -4, "tier_source": "family", "source_ref": "alias:step-3.7-flash"}
+{"model": "stepfun/Step-3.7-Flash", "category": "terminal", "perf": 0.5954999999999999, "tier": -3, "tier_source": "family", "source_ref": "alias:step-3.7-flash"}
 {"model": "stepfun/Step-3.7-Flash", "category": "test", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/TEST"}
 {"model": "stepfun/Step-3.7-Flash", "category": "tool_use", "perf": 0.667, "tier": -2, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T1-TOOL"}
 {"model": "stepfun/Step-3.7-Flash", "category": "vision", "perf": 0.972051282051282, "tier": 4, "tier_source": "family", "source_ref": "alias:step-3.7-flash"}

@@ -299,7 +299,14 @@ def test_chain_invariants_per_profile(monkeypatch, tmp_path, pid):
     # 4/4 — unlike glm-5.3-flash (0/4, 09-27). With review and guard tiers
     # measured on the 5.3 family, P4_SECURITY resolves TWO distinct models
     # and the cheapest lane (xkiro z-ai/glm-5.3 $0.0507/M) becomes the head.
-    ("P4_SECURITY", "xkiro/z-ai/glm-5.3")
+    # 2026-10-18 (model-router-refresh cron): the xkiro catalog's 2nd sweep
+    # removed the whole z-ai family (live chat 404 'does not exist' on both
+    # seats, controls 200; overlays in data/lifecycle.jsonl) — the $0.0507
+    # xkiro lane died and the next-cheapest 5.3 lane, openrouter
+    # z-ai/glm-5.3 at $1.52/M PAYG, takes the head (hermetic resolve
+    # verified 2026-10-18). Killing a lane means updating the golden heads
+    # deliberately — never re-enable the dead lane to silence the assert.
+    ("P4_SECURITY", "openrouter/z-ai/glm-5.3")
 ])
 def test_golden_fixed_point_heads(monkeypatch, tmp_path, pid, head):
     """Known heads as of 2026-08-27 (intentional reprice/new-model changes must
