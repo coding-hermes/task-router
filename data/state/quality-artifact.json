@@ -1,0 +1,732 @@
+{
+  "measured_at": "2026-10-18T03:32:45+00:00",
+  "metrics": [
+    {
+      "blocking": false,
+      "breakdown": [
+        {
+          "module": "scripts/board-merge-driver.py",
+          "n": 20,
+          "value": 65.0
+        },
+        {
+          "module": "scripts/board_commit_boundary_gate.py",
+          "n": 8,
+          "value": 100.0
+        },
+        {
+          "module": "scripts/board_complete_gate.py",
+          "n": 15,
+          "value": 100.0
+        },
+        {
+          "module": "scripts/board_priority_census.py",
+          "n": 9,
+          "value": 77.7778
+        },
+        {
+          "module": "scripts/board_row_levels.py",
+          "n": 7,
+          "value": 28.5714
+        },
+        {
+          "module": "scripts/board_stall_check.py",
+          "n": 12,
+          "value": 50.0
+        },
+        {
+          "module": "scripts/board_task_intake.py",
+          "n": 20,
+          "value": 40.0
+        },
+        {
+          "module": "scripts/ci_gate_check.py",
+          "n": 5,
+          "value": 100.0
+        },
+        {
+          "module": "scripts/cost_backfill.py",
+          "n": 2,
+          "value": 50.0
+        },
+        {
+          "module": "scripts/data_null_census.py",
+          "n": 6,
+          "value": 33.3333
+        },
+        {
+          "module": "scripts/derive_projects_seed.py",
+          "n": 6,
+          "value": 100.0
+        },
+        {
+          "module": "scripts/drivers/__init__.py",
+          "n": 0,
+          "value": 100.0
+        },
+        {
+          "module": "scripts/drivers/base.py",
+          "n": 7,
+          "value": 57.1429
+        },
+        {
+          "module": "scripts/drivers/deepseek_harness.py",
+          "n": 7,
+          "value": 42.8571
+        },
+        {
+          "module": "scripts/drivers/hermes.py",
+          "n": 3,
+          "value": 66.6667
+        },
+        {
+          "module": "scripts/drivers/openclaw.py",
+          "n": 3,
+          "value": 66.6667
+        },
+        {
+          "module": "scripts/drivers/opencode.py",
+          "n": 3,
+          "value": 66.6667
+        },
+        {
+          "module": "scripts/drivers/pi.py",
+          "n": 4,
+          "value": 75.0
+        },
+        {
+          "module": "scripts/dummy_scheduler.py",
+          "n": 4,
+          "value": 50.0
+        },
+        {
+          "module": "scripts/evidence_replay.py",
+          "n": 11,
+          "value": 100.0
+        },
+        {
+          "module": "scripts/fill_null_reasons_tr197.py",
+          "n": 10,
+          "value": 20.0
+        },
+        {
+          "module": "scripts/fix_dead_columns_tr200.py",
+          "n": 1,
+          "value": 0.0
+        },
+        {
+          "module": "scripts/fix_overlay_wipes_tr198.py",
+          "n": 4,
+          "value": 25.0
+        },
+        {
+          "module": "scripts/fix_plan_costs_20260926.py",
+          "n": 0,
+          "value": 100.0
+        },
+        {
+          "module": "scripts/fix_plan_costs_20261015.py",
+          "n": 0,
+          "value": 100.0
+        },
+        {
+          "module": "scripts/fleet-cooldown-policy.py",
+          "n": 23,
+          "value": 43.4783
+        },
+        {
+          "module": "scripts/gen_modelsdev_silence_rules.py",
+          "n": 0,
+          "value": 100.0
+        },
+        {
+          "module": "scripts/hold_dash_preview.py",
+          "n": 0,
+          "value": 100.0
+        },
+        {
+          "module": "scripts/lifecycle_gate.py",
+          "n": 8,
+          "value": 37.5
+        },
+        {
+          "module": "scripts/migrate_quota_tr206.py",
+          "n": 2,
+          "value": 50.0
+        },
+        {
+          "module": "scripts/mutate_quota_red.py",
+          "n": 0,
+          "value": 100.0
+        },
+        {
+          "module": "scripts/null_debt_invariants.py",
+          "n": 10,
+          "value": 20.0
+        },
+        {
+          "module": "scripts/outcome_probe_projects.py",
+          "n": 2,
+          "value": 100.0
+        },
+        {
+          "module": "scripts/outcome_probes.py",
+          "n": 15,
+          "value": 100.0
+        },
+        {
+          "module": "scripts/outcomes_averages.py",
+          "n": 6,
+          "value": 50.0
+        },
+        {
+          "module": "scripts/plan_effective_backfill.py",
+          "n": 2,
+          "value": 100.0
+        },
+        {
+          "module": "scripts/policy_gate_audit.py",
+          "n": 2,
+          "value": 50.0
+        },
+        {
+          "module": "scripts/pricing/__init__.py",
+          "n": 0,
+          "value": 100.0
+        },
+        {
+          "module": "scripts/pricing/deepseek.py",
+          "n": 1,
+          "value": 100.0
+        },
+        {
+          "module": "scripts/pricing/estimate.py",
+          "n": 1,
+          "value": 100.0
+        },
+        {
+          "module": "scripts/pricing/flat_subscription.py",
+          "n": 1,
+          "value": 100.0
+        },
+        {
+          "module": "scripts/pricing/helpers.py",
+          "n": 9,
+          "value": 66.6667
+        },
+        {
+          "module": "scripts/pricing/official_points.py",
+          "n": 1,
+          "value": 100.0
+        },
+        {
+          "module": "scripts/pricing/opencode_go.py",
+          "n": 1,
+          "value": 100.0
+        },
+        {
+          "module": "scripts/pricing/per_minute.py",
+          "n": 1,
+          "value": 100.0
+        },
+        {
+          "module": "scripts/pricing/per_request.py",
+          "n": 1,
+          "value": 100.0
+        },
+        {
+          "module": "scripts/pricing/per_token.py",
+          "n": 1,
+          "value": 100.0
+        },
+        {
+          "module": "scripts/pricing/subscription.py",
+          "n": 1,
+          "value": 100.0
+        },
+        {
+          "module": "scripts/project_attribution.py",
+          "n": 19,
+          "value": 100.0
+        },
+        {
+          "module": "scripts/provider_health_dashboard.py",
+          "n": 20,
+          "value": 45.0
+        },
+        {
+          "module": "scripts/provider_health_probe.py",
+          "n": 14,
+          "value": 42.8571
+        },
+        {
+          "module": "scripts/provider_health_summary.py",
+          "n": 2,
+          "value": 100.0
+        },
+        {
+          "module": "scripts/proxy_acceptance.py",
+          "n": 18,
+          "value": 83.3333
+        },
+        {
+          "module": "scripts/proxy_e2e.py",
+          "n": 18,
+          "value": 55.5556
+        },
+        {
+          "module": "scripts/proxy_smoke.py",
+          "n": 4,
+          "value": 25.0
+        },
+        {
+          "module": "scripts/quality_artifact.py",
+          "n": 5,
+          "value": 100.0
+        },
+        {
+          "module": "scripts/quality_score.py",
+          "n": 9,
+          "value": 44.4444
+        },
+        {
+          "module": "scripts/registry_path.py",
+          "n": 2,
+          "value": 0.0
+        },
+        {
+          "module": "scripts/router_ab.py",
+          "n": 17,
+          "value": 47.0588
+        },
+        {
+          "module": "scripts/router_audit.py",
+          "n": 7,
+          "value": 57.1429
+        },
+        {
+          "module": "scripts/router_catalog_refresh.py",
+          "n": 8,
+          "value": 12.5
+        },
+        {
+          "module": "scripts/router_chain_run.py",
+          "n": 3,
+          "value": 66.6667
+        },
+        {
+          "module": "scripts/router_circuit.py",
+          "n": 19,
+          "value": 57.8947
+        },
+        {
+          "module": "scripts/router_classify.py",
+          "n": 21,
+          "value": 23.8095
+        },
+        {
+          "module": "scripts/router_clinepass.py",
+          "n": 11,
+          "value": 36.3636
+        },
+        {
+          "module": "scripts/router_data_cache.py",
+          "n": 50,
+          "value": 46.0
+        },
+        {
+          "module": "scripts/router_degraded_path_falsifier.py",
+          "n": 7,
+          "value": 71.4286
+        },
+        {
+          "module": "scripts/router_deploy.py",
+          "n": 9,
+          "value": 44.4444
+        },
+        {
+          "module": "scripts/router_diff.py",
+          "n": 7,
+          "value": 42.8571
+        },
+        {
+          "module": "scripts/router_drain.py",
+          "n": 10,
+          "value": 80.0
+        },
+        {
+          "module": "scripts/router_estimate.py",
+          "n": 7,
+          "value": 71.4286
+        },
+        {
+          "module": "scripts/router_gaps.py",
+          "n": 5,
+          "value": 20.0
+        },
+        {
+          "module": "scripts/router_health.py",
+          "n": 17,
+          "value": 35.2941
+        },
+        {
+          "module": "scripts/router_health_probe.py",
+          "n": 3,
+          "value": 66.6667
+        },
+        {
+          "module": "scripts/router_hop_taxonomy.py",
+          "n": 6,
+          "value": 66.6667
+        },
+        {
+          "module": "scripts/router_ingress.py",
+          "n": 91,
+          "value": 57.1429
+        },
+        {
+          "module": "scripts/router_jev.py",
+          "n": 10,
+          "value": 40.0
+        },
+        {
+          "module": "scripts/router_learn.py",
+          "n": 10,
+          "value": 70.0
+        },
+        {
+          "module": "scripts/router_ledger.py",
+          "n": 10,
+          "value": 60.0
+        },
+        {
+          "module": "scripts/router_lifecycle.py",
+          "n": 16,
+          "value": 18.75
+        },
+        {
+          "module": "scripts/router_maintain.py",
+          "n": 26,
+          "value": 46.1538
+        },
+        {
+          "module": "scripts/router_metrics.py",
+          "n": 10,
+          "value": 40.0
+        },
+        {
+          "module": "scripts/router_mirror_account.py",
+          "n": 1,
+          "value": 100.0
+        },
+        {
+          "module": "scripts/router_models_browser.py",
+          "n": 13,
+          "value": 0.0
+        },
+        {
+          "module": "scripts/router_modelsdev.py",
+          "n": 24,
+          "value": 45.8333
+        },
+        {
+          "module": "scripts/router_muse_code.py",
+          "n": 5,
+          "value": 80.0
+        },
+        {
+          "module": "scripts/router_nohops.py",
+          "n": 21,
+          "value": 80.9524
+        },
+        {
+          "module": "scripts/router_null_census.py",
+          "n": 3,
+          "value": 100.0
+        },
+        {
+          "module": "scripts/router_outcomes.py",
+          "n": 40,
+          "value": 32.5
+        },
+        {
+          "module": "scripts/router_outcomes_freshness.py",
+          "n": 9,
+          "value": 77.7778
+        },
+        {
+          "module": "scripts/router_plan_sweep.py",
+          "n": 6,
+          "value": 66.6667
+        },
+        {
+          "module": "scripts/router_pricing.py",
+          "n": 4,
+          "value": 75.0
+        },
+        {
+          "module": "scripts/router_pricing_audit.py",
+          "n": 8,
+          "value": 50.0
+        },
+        {
+          "module": "scripts/router_probe_ingest.py",
+          "n": 3,
+          "value": 33.3333
+        },
+        {
+          "module": "scripts/router_probe_run.py",
+          "n": 13,
+          "value": 61.5385
+        },
+        {
+          "module": "scripts/router_probefix.py",
+          "n": 16,
+          "value": 43.75
+        },
+        {
+          "module": "scripts/router_provider_import.py",
+          "n": 10,
+          "value": 40.0
+        },
+        {
+          "module": "scripts/router_proxy_stats.py",
+          "n": 14,
+          "value": 28.5714
+        },
+        {
+          "module": "scripts/router_quota.py",
+          "n": 21,
+          "value": 47.619
+        },
+        {
+          "module": "scripts/router_quota_accounting.py",
+          "n": 16,
+          "value": 50.0
+        },
+        {
+          "module": "scripts/router_quota_burn.py",
+          "n": 11,
+          "value": 45.4545
+        },
+        {
+          "module": "scripts/router_quota_pacing.py",
+          "n": 18,
+          "value": 66.6667
+        },
+        {
+          "module": "scripts/router_quota_panel.py",
+          "n": 12,
+          "value": 8.3333
+        },
+        {
+          "module": "scripts/router_quota_poller.py",
+          "n": 29,
+          "value": 41.3793
+        },
+        {
+          "module": "scripts/router_quota_readback.py",
+          "n": 13,
+          "value": 38.4615
+        },
+        {
+          "module": "scripts/router_rank_audit.py",
+          "n": 11,
+          "value": 45.4545
+        },
+        {
+          "module": "scripts/router_refresh_resume.py",
+          "n": 12,
+          "value": 75.0
+        },
+        {
+          "module": "scripts/router_release_backfill.py",
+          "n": 9,
+          "value": 44.4444
+        },
+        {
+          "module": "scripts/router_seed.py",
+          "n": 21,
+          "value": 33.3333
+        },
+        {
+          "module": "scripts/router_server.py",
+          "n": 136,
+          "value": 47.0588
+        },
+        {
+          "module": "scripts/router_spawn.py",
+          "n": 85,
+          "value": 48.2353
+        },
+        {
+          "module": "scripts/router_stale_watchdog.py",
+          "n": 4,
+          "value": 50.0
+        },
+        {
+          "module": "scripts/router_status.py",
+          "n": 18,
+          "value": 61.1111
+        },
+        {
+          "module": "scripts/router_tier_coverage.py",
+          "n": 13,
+          "value": 53.8462
+        },
+        {
+          "module": "scripts/router_tier_probe.py",
+          "n": 12,
+          "value": 58.3333
+        },
+        {
+          "module": "scripts/router_trapfix.py",
+          "n": 2,
+          "value": 50.0
+        },
+        {
+          "module": "scripts/router_ui_data.py",
+          "n": 12,
+          "value": 91.6667
+        },
+        {
+          "module": "scripts/router_ui_page.py",
+          "n": 20,
+          "value": 15.0
+        },
+        {
+          "module": "scripts/router_validate.py",
+          "n": 12,
+          "value": 66.6667
+        },
+        {
+          "module": "scripts/router_web.py",
+          "n": 28,
+          "value": 53.5714
+        },
+        {
+          "module": "scripts/router_wire_ids.py",
+          "n": 4,
+          "value": 25.0
+        },
+        {
+          "module": "scripts/state_dir.py",
+          "n": 4,
+          "value": 25.0
+        },
+        {
+          "module": "scripts/sync_task_router_duckbrain.py",
+          "n": 30,
+          "value": 53.3333
+        },
+        {
+          "module": "scripts/test_fleet_cooldown_policy.py",
+          "n": 13,
+          "value": 84.6154
+        },
+        {
+          "module": "scripts/test_fleet_cooldown_policy_deploy_hash.py",
+          "n": 8,
+          "value": 100.0
+        },
+        {
+          "module": "scripts/tr258_verify_note.py",
+          "n": 0,
+          "value": 100.0
+        },
+        {
+          "module": "scripts/tr300_e2e_goal_gate.py",
+          "n": 25,
+          "value": 48.0
+        },
+        {
+          "module": "scripts/tr339_probe.py",
+          "n": 0,
+          "value": 100.0
+        },
+        {
+          "module": "scripts/trace_context.py",
+          "n": 5,
+          "value": 40.0
+        },
+        {
+          "module": "scripts/type_hint_score.py",
+          "n": 12,
+          "value": 100.0
+        },
+        {
+          "module": "scripts/ui_audit_quota.py",
+          "n": 3,
+          "value": 33.3333
+        },
+        {
+          "module": "scripts/validate_provider_quota.py",
+          "n": 4,
+          "value": 25.0
+        },
+        {
+          "module": "scripts/verified_outcomes.py",
+          "n": 15,
+          "value": 53.3333
+        },
+        {
+          "module": "scripts/verify_proxy_deployment.py",
+          "n": 3,
+          "value": 66.6667
+        },
+        {
+          "module": "scripts/xray_scan.py",
+          "n": 3,
+          "value": 33.3333
+        },
+        {
+          "module": "task_router/__init__.py",
+          "n": 0,
+          "value": 100.0
+        },
+        {
+          "module": "task_router/cli.py",
+          "n": 10,
+          "value": 50.0
+        },
+        {
+          "module": "task_router/paths.py",
+          "n": 6,
+          "value": 0.0
+        }
+      ],
+      "definition_cmd": "python3 scripts/quality_score.py --json --metric type_hint_pct",
+      "metric": "type_hint_pct",
+      "priority": "P1",
+      "stage": 1,
+      "target": 40.0,
+      "unit": "percent",
+      "value": 52.2556
+    },
+    {
+      "blocking": false,
+      "breakdown": [],
+      "definition_cmd": "python3 scripts/quality_score.py --json --metric coverage_pct",
+      "metric": "coverage_pct",
+      "priority": "P0",
+      "reason": "no coverage runner instrumented yet (TR-187 pending)",
+      "stage": 0,
+      "target": 0.0,
+      "unit": "percent",
+      "value": null
+    },
+    {
+      "blocking": false,
+      "breakdown": [],
+      "definition_cmd": "python3 scripts/quality_score.py --json --metric wiring_pct",
+      "metric": "wiring_pct",
+      "priority": "P1",
+      "reason": "no wiring metric exists yet (TR-282 pending)",
+      "stage": 0,
+      "target": 0.0,
+      "unit": "percent",
+      "value": null
+    }
+  ],
+  "schema_version": 1
+}
