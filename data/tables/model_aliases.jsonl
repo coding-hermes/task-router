@@ -228,3 +228,4 @@
 {"model": "meituan/longcat-2.5-preview:free", "inherits": "longcat-2.5-preview", "note": "TR-222 2026-10-12: :free promo flag on the LongCat-2.5 preview, same weights"}
 {"model": "longcat-2.5-preview", "inherits": "longcat-2.0", "note": "TR-222 2026-10-12: LongCat-2.5 preview = same family, prior gen weights (2.0); NO own benchmark evidence yet \u2014 family prior only, kept OUT of PROFILE_MODELS so the quantile pools and chain heads are untouched"}
 {"model": "step-5-preview", "inherits": "stepfun/Step-5-Preview", "note": "stepfun subscription lane inherits the live-probe evidence carried under the vendor-prefixed id (2026-10-13)"}
+{"model": "accounts/fireworks/models/deepseek-v4p1-flash-1017", "inherits": "deepseek-v4.1-flash", "note": "fireworks dated-snapshot spelling (v4p1-flash-1017) -> canonical V4.1-Flash weights; sticker 0.30/1.20 vs family 0.15/0.60 — same SKU family at fireworks dated premium; TR-039 pair with the quality_estimates test fill"}

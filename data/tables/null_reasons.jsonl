@@ -550,3 +550,4 @@
 {"provider": "zai-glm", "model": "glm-4.6v-flash", "field": "model_tier", "reason": "no-sample-yet", "ts": "2026-10-12", "source": "router_tier_probe TR-221 backfill wave"}
 {"provider": "zai-glm", "model": "glm-5.3", "field": "model_tier", "reason": "no-sample-yet", "ts": "2026-10-12", "source": "router_tier_probe TR-221 backfill wave"}
 {"provider": "zai-glm", "model": "glm-5.3-flash", "field": "model_tier", "reason": "no-sample-yet", "ts": "2026-10-12", "source": "router_tier_probe TR-221 backfill wave"}
+{"provider": "minimax", "model": "MiniMax-M3.1-Flash", "field": "normalized_price", "reason": "not-published-by-provider", "ts": "2026-10-19", "source": "models.dev 2026-10-19: aggregator cost empty; not on minimax Token Plan included list"}

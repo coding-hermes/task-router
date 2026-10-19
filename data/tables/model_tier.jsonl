@@ -195,6 +195,26 @@
 {"model": "accounts/fireworks/models/deepseek-v4p1-flash", "category": "test", "perf": 0.72, "tier": -1, "tier_source": "estimate", "source_ref": "CATEGORY_ESTIMATES"}
 {"model": "accounts/fireworks/models/deepseek-v4p1-flash", "category": "tool_use", "perf": 0.667, "tier": -2, "tier_source": "family", "source_ref": "alias:deepseek-v4.1-flash"}
 {"model": "accounts/fireworks/models/deepseek-v4p1-flash", "category": "vision", "perf": 0.45, "tier": -1, "tier_source": "family", "source_ref": "alias:deepseek-flash"}
+{"model": "accounts/fireworks/models/deepseek-v4p1-flash-1017", "category": "agent_tick", "perf": 0.75, "tier": 2, "tier_source": "family", "source_ref": "alias:deepseek-v4.1-flash"}
+{"model": "accounts/fireworks/models/deepseek-v4p1-flash-1017", "category": "code_gen", "perf": 0.75, "tier": 1, "tier_source": "family", "source_ref": "alias:deepseek-v4.1-flash"}
+{"model": "accounts/fireworks/models/deepseek-v4p1-flash-1017", "category": "debug", "perf": 0.667, "tier": -1, "tier_source": "family", "source_ref": "alias:deepseek-v4.1-flash"}
+{"model": "accounts/fireworks/models/deepseek-v4p1-flash-1017", "category": "delegation", "perf": 0.75, "tier": 1, "tier_source": "family", "source_ref": "alias:deepseek-v4.1-flash"}
+{"model": "accounts/fireworks/models/deepseek-v4p1-flash-1017", "category": "e2e_vision", "perf": 0.55, "tier": 1, "tier_source": "family", "source_ref": "alias:deepseek-v4.1-flash"}
+{"model": "accounts/fireworks/models/deepseek-v4p1-flash-1017", "category": "guard", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:deepseek-v4.1-flash"}
+{"model": "accounts/fireworks/models/deepseek-v4p1-flash-1017", "category": "long_doc", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:deepseek-v4.1-flash"}
+{"model": "accounts/fireworks/models/deepseek-v4p1-flash-1017", "category": "long_horizon", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:deepseek-v4.1-flash"}
+{"model": "accounts/fireworks/models/deepseek-v4p1-flash-1017", "category": "mechanical", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:deepseek-v4.1-flash"}
+{"model": "accounts/fireworks/models/deepseek-v4p1-flash-1017", "category": "mock", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:deepseek-v4.1-flash"}
+{"model": "accounts/fireworks/models/deepseek-v4p1-flash-1017", "category": "multilingual", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:deepseek-v4.1-flash"}
+{"model": "accounts/fireworks/models/deepseek-v4p1-flash-1017", "category": "reasoning", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:deepseek-v4.1-flash"}
+{"model": "accounts/fireworks/models/deepseek-v4p1-flash-1017", "category": "refactor", "perf": 0.5, "tier": 1, "tier_source": "family", "source_ref": "alias:deepseek-v4.1-flash"}
+{"model": "accounts/fireworks/models/deepseek-v4p1-flash-1017", "category": "review", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:deepseek-v4.1-flash"}
+{"model": "accounts/fireworks/models/deepseek-v4p1-flash-1017", "category": "schema", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:deepseek-v4.1-flash"}
+{"model": "accounts/fireworks/models/deepseek-v4p1-flash-1017", "category": "spec_docs", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:deepseek-v4.1-flash"}
+{"model": "accounts/fireworks/models/deepseek-v4p1-flash-1017", "category": "terminal", "perf": 0.827, "tier": 0, "tier_source": "family", "source_ref": "alias:deepseek-v4.1-flash"}
+{"model": "accounts/fireworks/models/deepseek-v4p1-flash-1017", "category": "test", "perf": 0.72, "tier": -1, "tier_source": "estimate", "source_ref": "CATEGORY_ESTIMATES"}
+{"model": "accounts/fireworks/models/deepseek-v4p1-flash-1017", "category": "tool_use", "perf": 0.667, "tier": -2, "tier_source": "family", "source_ref": "alias:deepseek-v4.1-flash"}
+{"model": "accounts/fireworks/models/deepseek-v4p1-flash-1017", "category": "vision", "perf": 0.45, "tier": -1, "tier_source": "family", "source_ref": "alias:deepseek-v4.1-flash"}
 {"model": "accounts/fireworks/models/glm-5p2", "category": "agent_tick", "perf": 0.75, "tier": 2, "tier_source": "family", "source_ref": "alias:glm-5.2"}
 {"model": "accounts/fireworks/models/glm-5p2", "category": "code_gen", "perf": 0.629, "tier": -2, "tier_source": "family", "source_ref": "alias:glm-5.2"}
 {"model": "accounts/fireworks/models/glm-5p2", "category": "creative", "perf": 0.45, "tier": 1, "tier_source": "family", "source_ref": "alias:glm-5.2"}
@@ -334,7 +354,7 @@
 {"model": "accounts/fireworks/models/minimax-m3", "category": "refactor", "perf": 0.75, "tier": 4, "tier_source": "family", "source_ref": "alias:minimax-m3"}
 {"model": "accounts/fireworks/models/minimax-m3", "category": "review", "perf": 0.72, "tier": -3, "tier_source": "family", "source_ref": "alias:minimax-m3"}
 {"model": "accounts/fireworks/models/minimax-m3", "category": "schema", "perf": 0.75, "tier": -2, "tier_source": "family", "source_ref": "alias:minimax-m3"}
-{"model": "accounts/fireworks/models/minimax-m3", "category": "spec_docs", "perf": 0.6817, "tier": -3, "tier_source": "family", "source_ref": "alias:minimax-m3"}
+{"model": "accounts/fireworks/models/minimax-m3", "category": "spec_docs", "perf": 0.75, "tier": -2, "tier_source": "family", "source_ref": "alias:minimax-m3"}
 {"model": "accounts/fireworks/models/minimax-m3", "category": "terminal", "perf": 0.66, "tier": -3, "tier_source": "family", "source_ref": "alias:minimax-m3"}
 {"model": "accounts/fireworks/models/minimax-m3", "category": "test", "perf": 0.72, "tier": -1, "tier_source": "family", "source_ref": "alias:minimax-m3"}
 {"model": "accounts/fireworks/models/minimax-m3", "category": "tool_use", "perf": 0.742, "tier": -2, "tier_source": "family", "source_ref": "alias:minimax-m3"}
@@ -604,7 +624,7 @@
 {"model": "accounts/fireworks/routers/minimax-latest", "category": "refactor", "perf": 0.75, "tier": 4, "tier_source": "family", "source_ref": "alias:minimax-m3"}
 {"model": "accounts/fireworks/routers/minimax-latest", "category": "review", "perf": 0.72, "tier": -3, "tier_source": "family", "source_ref": "alias:minimax-m3"}
 {"model": "accounts/fireworks/routers/minimax-latest", "category": "schema", "perf": 0.75, "tier": -2, "tier_source": "family", "source_ref": "alias:minimax-m3"}
-{"model": "accounts/fireworks/routers/minimax-latest", "category": "spec_docs", "perf": 0.6817, "tier": -3, "tier_source": "family", "source_ref": "alias:minimax-m3"}
+{"model": "accounts/fireworks/routers/minimax-latest", "category": "spec_docs", "perf": 0.75, "tier": -2, "tier_source": "family", "source_ref": "alias:minimax-m3"}
 {"model": "accounts/fireworks/routers/minimax-latest", "category": "terminal", "perf": 0.66, "tier": -3, "tier_source": "family", "source_ref": "alias:minimax-m3"}
 {"model": "accounts/fireworks/routers/minimax-latest", "category": "test", "perf": 0.72, "tier": -1, "tier_source": "estimate", "source_ref": "CATEGORY_ESTIMATES"}
 {"model": "accounts/fireworks/routers/minimax-latest", "category": "tool_use", "perf": 0.742, "tier": -2, "tier_source": "family", "source_ref": "alias:minimax-m3"}
@@ -2362,7 +2382,7 @@
 {"model": "minimax-m3", "category": "refactor", "perf": 0.75, "tier": 4, "tier_source": "bench", "source_ref": "bench:battery-T2-CODE"}
 {"model": "minimax-m3", "category": "review", "perf": 0.72, "tier": -3, "tier_source": "measured", "source_ref": "models.jsonl:perf_review"}
 {"model": "minimax-m3", "category": "schema", "perf": 0.75, "tier": -2, "tier_source": "measured", "source_ref": "models.jsonl:perf_schema"}
-{"model": "minimax-m3", "category": "spec_docs", "perf": 0.6817, "tier": -3, "tier_source": "bench", "source_ref": "bench:BenchLM"}
+{"model": "minimax-m3", "category": "spec_docs", "perf": 0.75, "tier": -2, "tier_source": "bench", "source_ref": "bench:BenchLM"}
 {"model": "minimax-m3", "category": "terminal", "perf": 0.66, "tier": -3, "tier_source": "bench", "source_ref": "bench:Terminal-Bench"}
 {"model": "minimax-m3", "category": "test", "perf": 0.72, "tier": -1, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:minimax m3"}
 {"model": "minimax-m3", "category": "tool_use", "perf": 0.742, "tier": -2, "tier_source": "bench", "source_ref": "bench:MCP Atlas"}

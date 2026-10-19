@@ -198,6 +198,14 @@ POST_DEDUPE_ADDITIONS = {
     ("xkiro-2", "stealth/big-pickle"): "xkiro carrier refresh 2026-10-14 (TR-167 import + TR-254 filing)",
     ("xkiro-2", "tencent/hy3-preview"): "xkiro carrier refresh 2026-10-14 (TR-167 import + TR-254 filing)",
     # --- end TR-254 additions ---
+    # models.dev sync 2026-10-19 (model-registry-data-quality cron pre-run):
+    # two catalog arrivals. fireworks deepseek-v4p1-flash-1017 = dated
+    # V4.1-Flash snapshot (alias row -> canonical weights + TR-039 test fill);
+    # minimax MiniMax-M3.1-Flash = catalog-only, no sticker anywhere, NOT on
+    # the Token Plan included list -> price NULL + model_note + null_reasons
+    # stamp "not-published-by-provider" (census AC4 green same tick).
+    ("fireworks-ai", "accounts/fireworks/models/deepseek-v4p1-flash-1017"): "models.dev sync 2026-10-19 (catalog arrival; TR-039 alias+test-fill pair)",
+    ("minimax", "MiniMax-M3.1-Flash"): "models.dev sync 2026-10-19 (catalog arrival; unpriced, stamped not-published-by-provider)",
     # clinepass API sync 2026-10-13 (model-registry-data-quality cron pre-run):
     # new catalog lane listed by GET /models; chat-probed 404 at all three id
     # forms; plan sweep disabled it (not in included_models, no discount).
