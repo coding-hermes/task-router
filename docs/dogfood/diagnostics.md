@@ -429,3 +429,58 @@ What the run taught about how the thing is built, in the order a user hits it:
    the clone, no quota/circuit writes) — the working-tree mtimes at
    15:29-15:31 belong to the fleet's :9092 server and a sibling lane's
    guard run, verified by process census before attributing anything.
+
+
+## 2026-10-19 run 36 — the quality artifact: one producer, no consumers, two numbers
+
+**What the surface is.** `scripts/quality_artifact.py` (TR-281, landed `6a5d82e`) is the single
+writer of `data/state/quality-artifact.json` — schema_version 1, `measured_at`, and one entry per
+metric (`type_hint_pct`, `coverage_pct`, `wiring_pct`) carrying value/unit/stage/target/priority/
+blocking/definition_cmd/breakdown, with `value=null` + a `reason` string whenever a metric cannot
+be measured. It writes atomically (mkstemp + os.replace) and exits non-zero only when the artifact
+cannot be produced. Its docstring states the intent: *"so gitreins, the board and the UI read the
+same numbers ... every consumer reads data/state/quality-artifact.json and never recomputes a
+metric."*
+
+**How it is built (the honest parts).** `measure_type_hint_pct()` shells out to
+`scripts/type_hint_score.py --json` and takes `overall.fn_score` (functions carrying a return
+annotation / all functions). `coverage_pct` and `wiring_pct` are hard-coded unmeasurable with
+reasons that name the pending rows (TR-187, TR-282) — a NULL with a reason, never a fake 0.
+Running it twice on the same tree produces byte-identical output apart from `measured_at`, so the
+committed artifact is reproducible, not stale-in-value.
+
+**Why the numbers disagree (the trap).** The same metric name is produced by two verbs with two
+scopes:
+
+* artifact → `type_hint_score.py` → `scripts/` **plus every top-level package dir** (its overall
+  row: 1596 functions, 834 return-annotated) → `52.2556`
+* the quality ladder's own `definition_cmd`
+  (`python3 scripts/quality_score.py --json --metric type_hint_pct`) → walks **only
+  `--scripts-dir`** (default `<repo>/scripts`) and returns `return_pct` → `52.47`
+
+Both are right for their own scope; the danger is that the ladder's stage/next_target (stage 1,
+next 60.0) is computed from the second number while the artifact publishes the first. Whoever
+wires the first consumer gets a value that disagrees with the ladder it is meant to grade.
+
+**How to re-prove both, in two commands** (from a clean clone; no duckdb needed):
+
+```bash
+python3 scripts/quality_artifact.py --output /tmp/a.json && jq '.metrics[]|{metric,value,reason}' /tmp/a.json
+python3 scripts/quality_score.py --json --metric type_hint_pct
+```
+
+**The gap that made this a finding.** Acceptance criterion 3 of TR-281 names its consumers
+(gitreins GR-142/143, the board, the UI). A tracked-file grep finds none:
+`git grep -c quality-artifact` = the script (3), its test (3), `.gitreins/tasks.yaml` (1: the AC
+text), the artifact itself (1: its own writer module name). `.gitreins/config.yaml` carries no
+quality guard; the CI workflow has no quality step; the Makefile has no quality target; the UI
+server's only "quality" hits are the unrelated `quality_estimates` registry table. Rows:
+`TR-1000976681059241` (P1 consumers), `TR-1000976681059242` (P2 two numbers),
+`TR-1000976681059243` (P3 undiscoverable).
+
+**Install/environment notes on the fresh box** (ephemeral `bunker-mvp` agent `df-tr-1019b`,
+destroyed, 0 residue): clone `42e4e60` 2s; verbatim `pip install -e .` rc=1 with the PEP 668
+`externally-managed-environment` message; venv rescue 10s; `pip install duckdb` 2s;
+`router seed` 31s (writes registry.json, 1992 rows / 838 active / 29 providers); `router spawn`
+resolves; the artifact verb rc=0 in 1s cold with the same 52.2556. The island between README line
+69 (`pip install -e .`) and PEP 668 is real but one line of README (the venv) already rescues it.

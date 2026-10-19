@@ -253,3 +253,27 @@ file, never the live one.
   the trust signal. `ROUTER_CACHE=0` must not change resolve results —
   if a chain differs with the kill switch set, that is a cache bug, not
   a gate change.
+
+
+## Quality numbers (run 36) — two verbs, two scopes, one artifact
+
+The project publishes quality in a machine-readable artifact; know which number you are reading.
+
+- **The artifact (TR-281, single writer):** `python3 scripts/quality_artifact.py [--output PATH]`
+  → `data/state/quality-artifact.json`, `schema_version 1`, one entry per metric with
+  value/unit/stage/target/priority/blocking/definition_cmd/breakdown. An unmeasurable metric is
+  `value: null` **plus a reason string** — never 0. Exits non-zero only when the artifact cannot
+  be produced (e.g. unwritable output path); a low value never blocks.
+- **The ladder verb (TR-267):** `python3 scripts/quality_score.py --json [--metric M]` — the
+  ladder's own `definition_cmd`, from `data/tables/quality_ladder.jsonl`; prints stage +
+  next_target, exits 3 with `METRIC-UNMEASURABLE` for a metric with no runner.
+- **They disagree today, by design of their scopes.** `type_hint_pct` is 52.2556 in the artifact
+  (`type_hint_score.py`: `scripts/` + every top-level package dir, 1596 functions) and 52.47 from
+  the ladder verb (returns only, `scripts/` only). Neither is wrong; read the ladder verb when you
+  care about a stage/target, quote the artifact when you care about the published file — and
+  before wiring any new consumer, check `TR-1000976681059242`.
+- **There are no consumers yet.** A tracked-file grep finds no gitreins guard, board script, UI
+  route, CI step or Makefile target that reads the artifact (`TR-1000976681059241`). If you are
+  the agent asked to "make the numbers visible", that row is the wiring job; nothing regenerates
+  the artifact on a schedule either, so state what refreshes it.
+- Cost: ~0.5s warm (full AST scan), ~1s cold on a fresh box. Needs no duckdb; it is stdlib-only.
