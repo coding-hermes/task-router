@@ -380,6 +380,19 @@ POST_DEDUPE_ADDITIONS = {
     ("clinepass", "pareto-26.10"): "clinepass API sync 2026-10-18 (carrier arrival, plan-sweep disabled)",
     ("ollama-cloud", "deepseek-v4.1-flash:1017"): "models.dev sync 2026-10-18 (new 10-17 SKU, catalog-only, bucket-plan unpriced + stamped)",
     ("openrouter", "unbiased/pareto-26.10"): "models.dev sync 2026-10-18 (carrier arrival, payg-sticker priced)",
+    # 2026-10-20 tick (model-router-refresh cron): the minimax-m3.1-flash
+    # generation + inception/mercury-3 arrived across 4 carriers + the
+    # clinepass mirror. Engine-priced same run (sticker / blended-est /
+    # :free discount); the two out-of-plan lanes were plan-sweep disabled.
+    ("minimax", "MiniMax-M3.1-Flash"): "models.dev sync 2026-10-19 (catalog addition, plan-sweep disabled 2026-10-20: PAYG outside minimax flat plan)",
+    ("clinepass", "mercury-3"): "clinepass API sync 2026-10-20 (carrier arrival, plan-sweep disabled: PAYG outside clinepass flat plan)",
+    ("clinepass", "minimax-m3.1-flash:free"): "clinepass API sync 2026-10-20 (:free lane, temporary-discount priced + F3 tag)",
+    ("ollama-cloud", "minimax-m3.1-flash"): "models.dev sync 2026-10-20 (catalog addition, bucket-plan unpriced + stamped)",
+    ("opencode-go", "minimax-m3.1-flash-free"): "models.dev sync 2026-10-20 (Go catalog arrival; sub-bucket blended est)",
+    ("openrouter", "inception/mercury-3"): "models.dev sync 2026-10-20 (catalog addition, payg-sticker priced)",
+    ("openrouter", "minimax/minimax-m3.1-flash:free"): "models.dev sync 2026-10-20 (catalog addition, :free sticker 0/0 + F3 tag)",
+    ("xkiro", "minimax/minimax-m3.1-flash"): "xkiro carrier refresh 2026-10-20 (plan-covered lane, internal /30)",
+    ("xkiro-2", "minimax/minimax-m3.1-flash"): "xkiro-2 carrier refresh 2026-10-20 (seat mirror, internal /30)",
 }
 
 

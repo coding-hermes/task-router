@@ -2415,6 +2415,14 @@
 {"model": "minimax-m3", "category": "tool_use", "perf": 0.742, "source": "bench", "source_ref": "bench:MCP Atlas"}
 {"model": "minimax-m3", "category": "ui_frontend", "perf": 0.45, "source": "estimate", "source_ref": "PROFILE_TAGS:minimax m3"}
 {"model": "minimax-m3", "category": "vision", "perf": 0.72, "source": "estimate", "source_ref": "PROFILE_TAGS:minimax m3"}
+{"model": "minimax-m3.1-flash", "category": "agent_tick", "perf": 0.622, "source": "bench", "source_ref": "bench:research-bench-2026-10-20: Automation-Bench v1.0.6 62.2 (MiniMax launch table, VENDOR-REPORTED) vs deepseek-v4.1-flash:1017 60.5"}
+{"model": "minimax-m3.1-flash", "category": "long_horizon", "perf": 0.737, "source": "bench", "source_ref": "bench:research-bench-2026-10-20: DeepSWE v1.1 73.7 (MiniMax launch table, VENDOR-REPORTED) vs deepseek-v4.1-flash:1017 77.0"}
+{"model": "minimax-m3.1-flash", "category": "reasoning", "perf": 0.42, "source": "bench", "source_ref": "bench:research-bench-2026-10-20: Artificial Analysis Intelligence Index 42 (agentic-reasoning composite, AA scale 0-100)"}
+{"model": "minimax-m3.1-flash", "category": "terminal", "perf": 0.381, "source": "bench", "source_ref": "bench:research-bench-2026-10-20: Terminal Bench 4.0 38.1 (MiniMax launch table, VENDOR-REPORTED) vs deepseek-v4.1-flash:1017 42.3"}
+{"model": "minimax/minimax-m3.1-flash", "category": "agent_tick", "perf": 0.622, "source": "family", "source_ref": "alias:minimax-m3.1-flash"}
+{"model": "minimax/minimax-m3.1-flash", "category": "long_horizon", "perf": 0.737, "source": "family", "source_ref": "alias:minimax-m3.1-flash"}
+{"model": "minimax/minimax-m3.1-flash", "category": "reasoning", "perf": 0.42, "source": "family", "source_ref": "alias:minimax-m3.1-flash"}
+{"model": "minimax/minimax-m3.1-flash", "category": "terminal", "perf": 0.381, "source": "family", "source_ref": "alias:minimax-m3.1-flash"}
 {"model": "mistral-large-2512", "category": "agent_tick", "perf": 1.0, "source": "family", "source_ref": "alias:mistralai/mistral-large-2512"}
 {"model": "mistral-large-2512", "category": "code_gen", "perf": 1.0, "source": "family", "source_ref": "alias:mistralai/mistral-large-2512"}
 {"model": "mistral-large-2512", "category": "debug", "perf": 1.0, "source": "family", "source_ref": "alias:mistralai/mistral-large-2512"}
