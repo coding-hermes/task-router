@@ -94,3 +94,21 @@ test_symlink_path_resolution.py:141) executes the target module with `runpy.run_
 module-level `apply_overlay()` and its duckdb query during an import-scan — replace the execution with a static
 parse (AST) of the constants the test actually asserts, which removes both the hang surface and the duckdb
 dependency the step label claims not to have.
+
+
+### Run 38 addendum (same tick, same angle) — the in-flight runs concluded: recurrence #6 lands on a board-only head
+
+The run-38 entry above deliberately did not claim the outcome of the two in-flight runs. Both have now been
+read, and one is decisive:
+
+* **39345056644 (head 387f0e8 = this lane's run 36 commit; diff = 3 board/docs files, ZERO code) -> FAILURE,
+  the same INT-CI-5 hang.** Job 118375540483: seed step finished at 00:01:18Z (`model_perf rows: 3944`), then
+  `+++ Timeout +++` at 00:24:17Z (≈23m) with frames `test_symlink_path_resolution.py:286 -> :155 -> :141
+  runpy.run_path(link)` -> `router_seed.py apply_overlay()` -> `con.execute("UPDATE model_perf SET perf=?,
+  source='bench', source_ref=? ...")` -> `importlib._bootstrap_external._path_stat`.
+* New detail: this instance hangs at `apply_overlay():1352` (an **UPDATE**) while 39325031921 hung at `:1339`
+  (a **SELECT**) — the pathological loop is the overlay loop's duckdb calls in general, not one statement.
+* Why it matters: the head carries no code, so the red cannot be a regression from a landing. The hang is
+  environmental and reproducible, and it fails the repo's pre-push CI gate for **every** lane trying to land a
+  board row. `INT-CI-5` therefore has six instances, one of them on a docs-only head — the cleanest possible
+  "not our code" datum for whoever fixes it (reported as event `20261019235708`).
