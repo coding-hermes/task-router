@@ -1796,6 +1796,15 @@ def _classify_hop_failure(exc=None, status=None, unservable: bool=False, body=No
         body_text = err if isinstance(err, str) else json.dumps(body)[:300]
     elif isinstance(body, str):
         body_text = body[:300]
+    # TR-340 preflight: before classifying a status code, reject router-generated
+    # bodies (the router's own 503 'no open hop' / 'unservable-rating' / etc.)
+    # so they never feed taxonomy classes like '5xx-overloaded' or 'api_down'
+    # that demote real pairs/providers. This mirrors the guard at the _proxy_record
+    # and _is_router_generated caller — if the body is router-generated, return a
+    # soft, pair-scoped class that never demotes.
+    if _is_router_generated(body_text):
+        return ("none-generated",
+                f"upstream HTTP {code} (router-generated refusal)")
     tax = router_hop_taxonomy.code_from_status(code, body_text)
     if tax is not None:
         return tax, f"upstream HTTP {code}: {body_text[:160]}" if body_text \
