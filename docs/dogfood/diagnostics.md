@@ -484,3 +484,40 @@ destroyed, 0 residue): clone `42e4e60` 2s; verbatim `pip install -e .` rc=1 with
 `router seed` 31s (writes registry.json, 1992 rows / 838 active / 29 providers); `router spawn`
 resolves; the artifact verb rc=0 in 1s cold with the same 52.2556. The island between README line
 69 (`pip install -e .`) and PEP 668 is real but one line of README (the venv) already rescues it.
+
+
+## 2026-10-19b run 37 — how the circuit breaker decides its blast radius (and why one substring default is load-bearing)
+
+`router_circuit.py` stores state for `(provider, model)` pairs and opens breakers with a flat per-class
+cooldown (`CLASS_COOLDOWN_S`): `overload` 120s, `quota_window` 300s, `api_down` 1800s, `out_of_credit` 14400s.
+Two blast radii follow from the class:
+
+* **SOFT** (`overload`, `quota_window`) → the pair alone is gated for its short cooldown.
+* **HARD** (`api_down`, `out_of_credit`) → the pair is gated for 30m/4h, and **three** HARD failures of the same
+  class across any model of that provider open a PROVIDER-WIDE breaker that excludes every lane of it.
+
+So the class is not bookkeeping — it is the difference between "one model rests for two minutes" and "a whole
+provider leaves the fleet for half an hour". `_circuit_class(reason)` in `router_server.py:3372-3390` decides it
+by substring: `timeout|timed out|idle|deadline|too slow` → `overload`; `429|quota|rate limit|rate-limit|
+rate_limit` → `quota_window`; **everything else → `api_down`**. The proxy's failed-hop path
+(`router_server.py:4222-4224`) passes the upstream payload's own `error` text (first 200 chars) as the reason.
+
+Consequence, measured (14 shapes): 10 land HARD, including router-generated text — `no open hop for this
+request`, `503 no open hop for this request`, `502 bad gateway`, `no-hops`, `unservable-rating`,
+`registry-missing`, and the empty string. Only rate-limit-shaped and timeout-shaped text earns the soft class.
+
+Two guards already exist and must not be mistaken for the whole fix: `route_outcome in ('rejected','no-hops')`
+and a `provider == 'none'`/`_NOT_A_LANE` identity filter (`router_server.py:3592-3606`) keep the router from
+opening a breaker **under a fake identity** — verified live (`record-failure none none …` →
+`SKIPPED none/none …`, state file unchanged). They do nothing about the same text landing on a REAL pair, which
+is exactly what probe 3 shows.
+
+**Re-prove in three commands** (all read-only against a scratch state dir; never point these at the live
+`~/.hermes/model-router`):
+
+```bash
+export ROUTER_STATE_DIR=$(mktemp -d)
+python3 scripts/router_circuit.py record-failure none none "no open hop for this request"   # SKIPPED
+python3 scripts/router_circuit.py record-failure <provider> <model> "no open hop for this request"  # OPEN, api_down
+python3 scripts/router_circuit.py status --json                                            # read the class back
+```

@@ -25,3 +25,47 @@
 | date | verdict | promise | top findings | install_seconds | time-to-first-success | notes |
 |---|---|---|---|---|---|---|
 | 2026-10-19 (run 36) | PROMISING-BUT-ROUGH (surface-scoped) | "one machine-readable quality artifact, one verb, one authority — gitreins, the board and the UI read the same numbers" (TR-281 AC3) | 1) TR-1000976681059241 P1: the row is closed but its CONSUMER half does not exist — zero non-test readers of data/state/quality-artifact.json (no gitreins GR-142/143 guard, no board script, no UI route, no CI step, no Makefile target); the producer works and is honest (null+reason for coverage/wiring), it is simply read by nobody. 2) TR-1000976681059242 P2: two producers of one metric name — artifact type_hint_pct 52.2556 (type_hint_score.py: scripts/ + top-level packages, 1596 fns) vs the ladder's own definition_cmd quality_score.py = 52.47 (returns only, scripts/ only), same tree 42e4e60, reproduced on the control host AND a fresh bunker box. 3) TR-1000976681059243 P3: the verb is undiscoverable — no README/docs/Makefile mention. Recurrence event 20261019235704: lane prompt still the warpfs brief verbatim (4th confirmation), target resolved by lane NAME. | documented path: clone 2s + venv install 10s + duckdb 2s (verbatim `pip install -e .` rc=1, PEP 668) | ~45s fresh box (clone->seed->first spawn); artifact verb 0.50s warm / 1s cold; spawn 0.14-0.15s warm | bunker=bunker-mvp agent=df-tr-1019b destroyed + 0 residue after 90s; perf 504.3ms±26.8 (n=20) artifact verb, 460.3ms±32.1 ladder verb, spawn 150ms — nothing user-noticeable, NO PERF row; no code/existing-row/scheduler mutation; docs/dogfood/2026-10-19-run36-quality-artifact-consumers.md + diagnostics.md run-36 section + skills/task-router-usage patch; foreman NOT woken (read-only lane) |
+
+
+## 2026-10-19b (run 37, same tick 2026-10-19-23-43-04, second angle) — TR-340 circuit-class re-proof — 🟡 PROMISING-BUT-ROUGH
+
+Run 36 (same tick, committed 387f0e8) drove the TR-281 quality-artifact surface. This second angle drives a
+DIFFERENT surface: the load-bearing one under the fleet's worst open P0 — `TR-340`, "router-proxy records
+gateway 503 NO-OPEN-HOP as an api_down failure on the attempted pair — self-poisoning breaker cascade"
+(filed 2026-10-19T21:06Z, still pending). No code, no row and no scheduler state was touched; TR-340's row is
+byte-untouched and the evidence is an event.
+
+| date | verdict | promise | top findings | install_seconds | time-to-first-success | notes |
+|---|---|---|---|---|---|---|
+| 2026-10-19b (run 37) | PROMISING-BUT-ROUGH (re-proof + bisect) | "A gateway/router-generated failure must not become a provider outage" (TR-340's own contract, TR-182's comment: "A timeout is not a provider outage, so it must not be recorded as one") | 1) CLOSED HALF: the fake identity is genuinely closed — `record-failure none none "no open hop for this request"` now prints `SKIPPED none/none — not a lane (no-hop ledger row); no circuit event recorded`, rc=0, state file stays empty (server guards router_server.py:3592-3606 + `_NOT_A_LANE`). 2) LIVE HALF, sharper than the row states: `_circuit_class()` (router_server.py:3372-3390) is a SUBSTRING test whose fall-through is HARD `api_down` (30m pair open, provider-wide at 3), and the failed-hop call site (router_server.py:4222-4224) feeds it the upstream payload's own error text — so **10 of 14** realistic failure shapes land HARD, including the router's own text (`no open hop for this request`, `503 no open hop for this request`, `502 bad gateway`, `no-hops`, `unservable-rating`, `registry-missing`, empty string). Only 429-shaped → quota_window and timeout-shaped → overload get the soft pair-only cooldown. 3) Fix direction sharpened: the identity filter cannot stop the cascade; the router-generated shapes must classify as NON-PROVIDER (record nothing / soft class), else 22 pairs across 12 providers is reachable again through REAL pairs. | n/a — install premise inherited (below) | probe setup < 2 min; classification probe is instant | evidence event `20261019235706` on TR-340; installer leg explicitly inherited, see below; nothing slow enough for a PERF row (the probe is a pure-function call) |
+
+**Discriminating probes (exact commands).**
+
+```bash
+# 1. the fake identity (the half the row names first)
+ROUTER_STATE_DIR=/tmp/df-tr36b-home python3 scripts/router_circuit.py \
+  record-failure none none "no open hop for this request"
+#  -> SKIPPED none/none — not a lane (no-hop ledger row); no circuit event recorded   rc=0
+
+# 2. the class table the blast radius actually hangs on (pure function, no writes)
+ROUTER_STATE_DIR=/tmp/df-tr36b-home python3 /tmp/tr-leg-1019/class_probe.py
+#  -> 10 of 14 realistic reasons -> api_down (HARD); only '429 …' -> quota_window, '… timed out …' -> overload
+
+# 3. the classification, live, through the CLI on a REAL pair
+ROUTER_STATE_DIR=/tmp/df-tr36b-home python3 scripts/router_circuit.py \
+  record-failure deepseek deepseek-v4-flash "no open hop for this request"
+#  -> OPEN deepseek/deepseek-v4-flash class=api_down — 1 consecutive failures, cooldown 1800s
+```
+
+Probe 3 is the one to read twice: the reason recorded on a real pair is the ROUTER's own 503 text, stored with
+the HARD class. That is TR-340's cascade with the fake identity removed — it needs no `none` pair at all.
+
+**Why no new row.** The finding is the same defect the pending P0 already owns; per the dogfood skill the
+bisect goes onto the board's EVENTS file as evidence for that row id, never as a sibling row. TR-340's row was
+left byte-untouched (`git diff --stat -- .coding-hermes/board/tasks.jsonl` = empty).
+
+**Install leg: EXPLICIT INHERIT, not a silent pass.** `git log -1` = 387f0e8 and the only delta since run 36's
+leg is that commit (board + docs, no code). Run 36's leg already cloned and installed EXACTLY this commit
+inside ephemeral bunker-mvp agent `df-tr-1019b`: documented clone 2s, verbatim `pip install -e .` rc=1 (PEP
+668), venv rescue 10s, duckdb 2s, `router seed` 31s, `router spawn P1_CODING` resolves — PASS, agent destroyed,
+0 residue. Re-spawning for an unchanged premise adds nothing, so this angle inherits that proof and says so.
