@@ -179,6 +179,9 @@ jobs:
       - name: TR-251 evidence replay
         env:
           TR251_CI_MODE: "1"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        permissions:
+          actions: read
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             BASE="${{ github.event.pull_request.base.sha }}"
