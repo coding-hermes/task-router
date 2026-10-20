@@ -69,3 +69,28 @@ leg is that commit (board + docs, no code). Run 36's leg already cloned and inst
 inside ephemeral bunker-mvp agent `df-tr-1019b`: documented clone 2s, verbatim `pip install -e .` rc=1 (PEP
 668), venv rescue 10s, duckdb 2s, `router seed` 31s, `router spawn P1_CODING` resolves — PASS, agent destroyed,
 0 residue. Re-spawning for an unchanged premise adds nothing, so this angle inherits that proof and says so.
+
+
+## 2026-10-19c (run 38, same tick 2026-10-19-23-43-04, third angle) — CI red re-proof (INT-CI-5) with a local control — 🟡 PROMISING-BUT-ROUGH
+
+Third angle of this tick: run 36 drove the TR-281 quality-artifact surface, run 37 re-proved TR-340's circuit
+blast radius, and this angle drives the repo's CI gate itself — the one surface every other lane's landing
+depends on, because a red main makes the pre-push gate refuse landings fleet-wide.
+
+**Verdict:** the pending P1 `INT-CI-5` is RE-PROVED, now with a same-head local control, and it is not fixed.
+
+| date | verdict | promise | top findings | install_seconds | time-to-first-success | notes |
+|---|---|---|---|---|---|---|
+| 2026-10-19c (run 38) | PROMISING-BUT-ROUGH (re-proof + control) | "A green local suite on the same tree means a green CI run" — the repo's own pre-push gate reads main's CI state | 1) FIFTH INSTANCE of the INT-CI-5 hang: run 39325031921 (head 42e4e60, job 118308514821, 21:07:49Z -> 21:31:15Z ≈ 23m26s) dies at step 7 'Full test suite (pure JSON — no duckdb needed)'; the frame chain is byte-for-byte the one the row cites (test_symlink_path_resolution.py:286 -> :155 -> :141 `runpy.run_path(<scratch>/contract-links/router_seed.py)` -> `router_seed.py:1386 <module> apply_overlay()` -> `:1339 con.execute("SELECT perf, source, source_ref FROM model_perf ...")` -> importlib `find_spec`/`_path_stat` -> `+++ Timeout +++`). 2) LOCAL CONTROL ON THE SAME HEAD: the identical test passes locally in **12.08s** (board venv, `--timeout=300 --timeout-method=thread`) — 12.08s vs >300s-capped on ubuntu-latest, so the class is CI-environment-specific. 3) The step's LABEL ('pure JSON — no duckdb needed') disagrees with what the probe executes (the seed's module-level duckdb `apply_overlay()` query) — sub-evidence of the same row. | n/a — install premise inherited from run 36 (same commit, unchanged code) | ~3 min (CI log fetch + one bounded local test run) | evidence event `20261019235707` on INT-CI-5; the pytest-timeout/faulthandler mitigation (INT-CI-20261015-01) is WORKING — the hang is reaped at 300s and NAMED, not silent; the row's cited red runs (39138425455/39180457070/39180634131/39195671258) now have a fifth sibling |
+
+**Why this matters beyond the row.** Main's tip (42e4e60) is red, and the repo's own pre-push gate reads
+exactly that: run 36's push was refused with `CI GATE: RED — coding-hermes/task-router@42e4e60f2 ... run
+39325031921` and needed the documented `ALLOW_RED_PUSH=1` override (disclosed in that commit). Every lane that
+lands board rows on this repo pays that toll until the hang is fixed. Two further runs sat in flight when this
+was written — 39345056644 (387f0e8) and 39347124128 (f185b06) — and their outcome is NOT claimed here.
+
+**Fix direction (unchanged, now better supported).** `_module_constants_through_symlink` (tests/
+test_symlink_path_resolution.py:141) executes the target module with `runpy.run_path`, which runs the seed's
+module-level `apply_overlay()` and its duckdb query during an import-scan — replace the execution with a static
+parse (AST) of the constants the test actually asserts, which removes both the hang surface and the duckdb
+dependency the step label claims not to have.

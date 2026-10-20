@@ -521,3 +521,36 @@ python3 scripts/router_circuit.py record-failure none none "no open hop for this
 python3 scripts/router_circuit.py record-failure <provider> <model> "no open hop for this request"  # OPEN, api_down
 python3 scripts/router_circuit.py status --json                                            # read the class back
 ```
+
+
+## 2026-10-19c run 38 — reading this repo's CI red: the gate, the mitigation, and the local control
+
+Three commands answer "why is main red and what does it cost?" — all read-only:
+
+```bash
+# 1. the repo's OWN gate (what the pre-push hook runs) — on the tip or a specific sha
+python3 scripts/ci_gate_check.py --branch main --sha <sha>
+
+# 2. the run list, newest first
+gh run list --repo coding-hermes/task-router --branch main --limit 10 \
+  --json databaseId,headSha,status,conclusion,workflowName,createdAt
+
+# 3. WHICH step failed and the verbatim frames (the useful part; --log-failed can come back empty,
+#    while the job-log API does not)
+gh run view <run-id> --repo coding-hermes/task-router --json jobs \
+  | jq -r '.jobs[].steps[] | select(.conclusion=="failure") | .name'
+job=$(gh run view <run-id> --repo coding-hermes/task-router --json jobs | jq -r '.jobs[0].databaseId')
+gh api "/repos/coding-hermes/task-router/actions/jobs/$job/logs" | tail -40
+```
+
+What the 2026-10-19 red is: the job dies at step 7, "Full test suite (pure JSON — no duckdb needed)" — a
+mislabelled step, because the test that hangs (`test_symlink_path_resolution.py:286` ->
+`_module_constants_through_symlink:141`) executes the seed module through `runpy.run_path`, running its
+module-level `apply_overlay()` duckdb query. The pytest-timeout 300s cap + faulthandler reaps the hang and
+prints `+++ Timeout +++` with the frames, so the failure is loud and attributed — the mitigation works; the
+red is the hang itself, not a silent stall.
+
+The control that separates "our change broke it" from "the CI environment": run the SAME test on the SAME head
+on this box. `12.08s passed` locally vs `>300s capped` on ubuntu-latest, same commit — an environment-specific
+hang (import scan / `_path_stat` through runpy), not a data or logic regression. Any fix should therefore
+remove the runpy EXECUTION (static-parse the constants) rather than chase the duckdb query.
