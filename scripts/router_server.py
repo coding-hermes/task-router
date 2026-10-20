@@ -3370,6 +3370,80 @@ def _hermes_session_stats(gateway_session_id, timeout_s: float=3.0):
 
 _NOT_A_LANE = frozenset(('', 'none', 'unknown', 'n/a', 'null'))
 
+#: TR-340: the router's OWN gate vocabulary. Text this router generated to
+#: refuse a request (a no-hop resolve, an unsatisfiable rating, a missing
+#: registry) is a ROUTING/POLICY outcome, not an upstream provider event, and it
+#: must never reach the pair failure recorder.
+#:
+#: Measured live 2026-10-19 20:47-21:05Z: a gateway restart window produced
+#: genuine 'connection refused' records AND every docs/readme resolve returned
+#: this router's own 503 {"error": "no open hop for this request"} with
+#: chain_length 0. The proxy recorded THAT text as an api_down failure on
+#: whichever pair the ladder had been trying -- 22 pairs across 12 UNRELATED
+#: providers and 5 provider-level breakers inside 17 minutes, while the hourly
+#: probe simultaneously reported 22/28 providers OK and deepseek held a $453.98
+#: balance. The router was gating traffic on its own failure response. TR-172's
+#: identity guard could not stop this: the pairs it opened were REAL pairs, not
+#: the `none` placeholder, so its `provider == 'none'` early return never fired.
+_ROUTER_GENERATED_MARKERS = ('no open hop', 'no-hops', 'no hops',
+                             'unservable-rating', 'registry-missing',
+                             'no eligible model')
+
+
+def _is_router_generated(reason) -> bool:
+    """True when the failure TEXT was produced by this router's own gate (TR-340).
+
+    A 'no open hop' / no-hops / unservable-rating / registry-missing reason is
+    the router declining to ROUTE -- evidence about the rating and the gates,
+    never about the (provider, model) pair the ladder happened to be trying. Such
+    a reason must not open a pair or a provider breaker, whatever identity the
+    caller named.
+
+    Fail-open and never raises: a classification predicate must not be able to
+    fail a served request (see the module's fail-open contract).
+    """
+    try:
+        if not reason:
+            return False
+        r = reason if isinstance(reason, str) else str(reason)
+    except Exception:  # noqa: BLE001 -- a predicate must never raise
+        return False
+    r = r.lower()
+    return any(m in r for m in _ROUTER_GENERATED_MARKERS)
+
+
+#: Cache for the shared kind -> circuit-class table (router_circuit's
+#: FAILURE_CLASS_MAP). A list-box (rebound in place, never reassigned) so the
+#: hot path reads it without taking a module lock -- the same pattern the
+#: fallback-session counter below uses.
+_KIND_CLASS_CACHE = [None]
+
+
+def _kind_circuit_class(kind: str) -> str:
+    """The shared FAILURE_CLASS_MAP's class for a hop-failure KIND, else ''.
+
+    TR-288/TR-190: ONE table decides a kind's blast radius. The kind vocabulary
+    ('5xx-overloaded', '429-capacity', '402-no-credit', ...) is what the probe,
+    the ladder and the circuit all speak, so a kind must never be re-classified
+    by the prose branches below -- before TR-340 a '5xx-overloaded' kind (a
+    transient capacity failure, SOFT in the shared table) fell through them to
+    the HARD api_down.
+
+    Lazy + cached + fail-open: an unavailable sibling module must stay
+    indistinguishable from an unknown kind (both return '') so the caller falls
+    through to the prose branches instead of failing a served request.
+    """
+    if _KIND_CLASS_CACHE[0] is None:
+        table = {}
+        try:
+            import router_circuit as _rc
+            table = {str(k).strip().lower(): v[0]
+                     for k, v in _rc.FAILURE_CLASS_MAP.items()}
+        except Exception:  # noqa: BLE001 -- never fail a request over this
+            table = {}
+        _KIND_CLASS_CACHE[0] = table
+    return _KIND_CLASS_CACHE[0].get(kind) or ''
+
 
 def _circuit_class(reason) -> str:
     """Decide the failure CLASS, because the class decides the blast radius (TR-182).
@@ -3383,8 +3457,24 @@ def _circuit_class(reason) -> str:
     minutes. That is the mechanism measured in the 2026-09-25 lockup -- 65 failed rows
     became provider-wide breakers, then every chain was gated, then every request died as
     "no open hop". A timeout is not a provider outage, so it must not be recorded as one.
+
+    TR-340: the SAME rule now covers the router's own gate text. 'no open hop for this
+    request' -- the router declining to route -- took the api_down default too and opened
+    provider-wide breakers across 12 unrelated providers (see _is_router_generated). A
+    non-provider event may only ever buy the SOFT pair-scoped class, and _proxy_record
+    refuses to record it at all. HARD stays reserved for a POSITIVE provider signal:
+    'connection refused', a transport death, an upstream 4xx. TR-182's own pins in
+    tests/test_proxy_circuit_hygiene.py ('', 'upstream down' -> api_down) are preserved.
     """
     r = (reason or '').lower()
+    # TR-288/TR-190: when the reason IS one of the shared hop-failure kinds, the ONE
+    # table decides (probe, ladder and circuit share this vocabulary).
+    kind_class = _kind_circuit_class(r.strip())
+    if kind_class:
+        return kind_class
+    # TR-340: the router's own gate text is not a provider event.
+    if _is_router_generated(r):
+        return 'overload'
     if any(t in r for t in ('timeout', 'timed out', 'idle', 'deadline', 'too slow')):
         return 'overload'
     if any(t in r for t in ('429', 'quota', 'rate limit', 'rate-limit', 'rate_limit')):
@@ -3591,6 +3681,18 @@ def _proxy_record(provider, model, ok, requirements, reason: str='', latency_s=N
         if route_outcome in ('rejected', 'no-hops') or (source == 'router-proxy' and provider == 'none'):
             # TR-172: router-generated refusals and no-hop outcomes must never open
             # a provider-wide breaker from the router's own failure response.
+            return
+        if _is_router_generated(reason):
+            # TR-340: the gate's own VERDICT TEXT is not an upstream event, and the
+            # TR-172 guard above only covers the placeholder `none` identity. When a
+            # REAL pair carried router text -- the live 2026-10-19 arm, where the
+            # failed hop's payload echoed this router's 503 'no open hop for this
+            # request' -- the pair was opened for 30m and, at 3 in the class window,
+            # took its whole provider with it: 22 pairs / 12 providers / 5 provider
+            # breakers in 17 minutes while the probe reported 22/28 providers OK. A
+            # routing/policy outcome says nothing about the provider, so it opens
+            # nothing. The ledger row (above) is still written -- only the circuit
+            # is left alone.
             return
         if _p.lower() in _NOT_A_LANE or _m.lower() in _NOT_A_LANE:
             # TR-182: a router-internal outcome is NOT a provider event. The no-hops row
