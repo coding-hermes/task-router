@@ -103,3 +103,24 @@ if [ -f scripts/ci_gate_check.py ]; then
     exit 1
   }
 fi
+
+# ---------------------------------------------------------------------------
+# TR-1000976681059241: Quality guard — regression floor for the artifact.
+# Reads data/state/quality-artifact.json and checks type_hint_pct against
+# the stored floor. Runs in <1s; fast-fail if the artifact cannot be
+# produced (missing file, bad JSON). Skip only when the artifact verb
+# has never been run on this tree (no artifact + no floor = pass).
+# ---------------------------------------------------------------------------
+if [ -f scripts/quality_guard.py ]; then
+  "$PY" scripts/quality_guard.py --check-only || {
+    # --check-only makes it print the result without blocking — but if
+    # the artifact is invalid (no file, bad JSON), the guard MUST block.
+    # So we re-run without --check-only and let the exit code decide.
+    "$PY" scripts/quality_guard.py || {
+      echo "ERROR: quality guard FAILED — see output above."
+      echo "       The quality-artifact has regressed below its floor or is invalid."
+      echo "       Fix it before landing."
+      exit 1
+    }
+  }
+fi
