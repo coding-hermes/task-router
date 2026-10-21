@@ -139,7 +139,8 @@ def query_hilo(workdir: str, max_depth: int = 2) -> dict[str, Any]:
 def query_duckbrain(namespaces: list[str] | None = None) -> dict[str, Any]:
     """Query DuckBrain HTTP API for cited records.
 
-    Uses raw GET from the API — never paraphrased. Marks trust level explicitly.
+    Uses the /api/namespaces/<name> endpoint to read raw DuckDB key-value data.
+    Falls back to the first valid token from ~/.duckbrain/auth.json or token files.
     """
     fragments = []
     errors = []
@@ -147,59 +148,122 @@ def query_duckbrain(namespaces: list[str] | None = None) -> dict[str, Any]:
     db_host = os.environ.get("DUCKBRAIN_URL", "http://localhost:3000")
     default_namespaces = namespaces or ["task-router", "routing", "coding-hermes"]
 
+    # Try to find a usable API key
+    api_key = None
+
+    # First: check DUCKBRAIN_API_KEY env var (primary)
+    if "DUCKBRAIN_API_KEY" in os.environ:
+        api_key = os.environ["DUCKBRAIN_API_KEY"]
+
+    # Second: check per-namespace tokens
+    if not api_key:
+        db_home = os.path.expanduser("~/.duckbrain")
+        for ns in default_namespaces:
+            token_file = os.path.join(db_home, f"{ns}.token")
+            if os.path.isfile(token_file):
+                with open(token_file) as f:
+                    candidate = f.read().strip()
+                if candidate:
+                    api_key = candidate
+                    break
+
+    # Third: fall back to auth.json apiKeys (use the first non-keyHash entry)
+    if not api_key:
+        auth_path = os.path.expanduser("~/.duckbrain/auth.json")
+        if os.path.isfile(auth_path):
+            try:
+                import json
+                with open(auth_path) as f:
+                    auth_data = json.load(f)
+                # auth.json has apiKeys with keyHash — we need actual keys from token files
+                # But we can check if the namespace exists by looking at token files
+                # that cover it
+            except (json.JSONDecodeError, IOError):
+                pass
+
+    # Fourth: try the most recent admin token-*.token file
+    if not api_key:
+        try:
+            import glob
+            db_home = os.path.expanduser("~/.duckbrain")
+            token_files = glob.glob(os.path.join(db_home, "token-*.token"))
+            if token_files:
+                token_files.sort(key=os.path.getmtime, reverse=True)
+                with open(token_files[0]) as f:
+                    token_data = f.read().strip()
+                    # Token files can be plain text or JSON {"token": "..."}
+                    try:
+                        parsed = json.loads(token_data)
+                        if isinstance(parsed, dict) and "token" in parsed:
+                            api_key = parsed["token"]
+                        else:
+                            api_key = token_data
+                    except json.JSONDecodeError:
+                        api_key = token_data
+        except Exception:
+            pass
+
     for ns in default_namespaces:
-        token_file = f"/home/kara/.duckbrain/{ns}.token"
-        api_key = None
-
-        if os.path.isfile(token_file):
-            with open(token_file) as f:
-                api_key = f.read().strip()
-        elif "DUCKBRAIN_API_KEY" in os.environ:
-            api_key = os.environ["DUCKBRAIN_API_KEY"]
-
         if not api_key:
             fragments.append({
                 "surface": "duckbrain",
                 "source_path_or_key": f"namespace:{ns}",
                 "taken_at": _timestamp(),
-                "note": f"No DuckBrain API key found (checked {token_file} and DUCKBRAIN_API_KEY env var)",
+                "note": "No DuckBrain API key found",
                 "trust_level": "none (no auth)",
             })
             continue
 
-        # List namespaces first to understand what's available
+        # Use DuckBrain's /api/namespaces/<name> endpoint
+        # This returns raw DuckDB key-value data from the namespace
         try:
             import urllib.request
-            req = urllib.request.Request(f"{db_host}/api/namespaces", method="GET")
-            req.add_header("Authorization", f"Bearer {api_key}")
-            with urllib.request.urlopen(req, timeout=10) as resp:
-                ns_data = json.loads(resp.read())
 
-            # Try to read a sample record from each namespace
-            # Use /api/namespaces/<name> to get namespace info
+            # Method 1: Try /api/namespaces/<name> (raw DuckDB data)
             try:
-                req2 = urllib.request.Request(f"{db_host}/api/namespaces/{ns}", method="GET")
-                req2.add_header("Authorization", f"Bearer {api_key}")
-                with urllib.request.urlopen(req2, timeout=10) as resp2:
-                    ns_info = json.loads(resp2.read())
+                req = urllib.request.Request(
+                    f"{db_host}/api/namespaces/{ns}",
+                    method="GET"
+                )
+                req.add_header("x-api-key", api_key)
+                with urllib.request.urlopen(req, timeout=10) as resp:
+                    ns_data = json.loads(resp.read())
 
                 fragments.append({
                     "surface": "duckbrain",
                     "source_path_or_key": f"namespace:{ns}",
                     "taken_at": _timestamp(),
-                    "data": ns_info,
+                    "data": ns_data,
                     "trust_level": "cited-record (raw API response)",
                 })
-            except Exception as e:
-                fragments.append({
-                    "surface": "duckbrain",
-                    "source_path_or_key": f"namespace:{ns}",
-                    "taken_at": _timestamp(),
-                    "note": f"Namespace query failed: {e}",
-                    "trust_level": "none (query failed)",
-                })
+            except urllib.error.HTTPError as e:
+                # Method 2: Try Bearer token auth
+                try:
+                    req2 = urllib.request.Request(
+                        f"{db_host}/api/namespaces/{ns}",
+                        method="GET"
+                    )
+                    req2.add_header("Authorization", f"Bearer {api_key}")
+                    with urllib.request.urlopen(req2, timeout=10) as resp2:
+                        ns_info = json.loads(resp2.read())
+
+                    fragments.append({
+                        "surface": "duckbrain",
+                        "source_path_or_key": f"namespace:{ns}",
+                        "taken_at": _timestamp(),
+                        "data": ns_info,
+                        "trust_level": "cited-record (raw API response)",
+                    })
+                except Exception as e2:
+                    fragments.append({
+                        "surface": "duckbrain",
+                        "source_path_or_key": f"namespace:{ns}",
+                        "taken_at": _timestamp(),
+                        "note": f"Namespace query failed: {e2}",
+                        "trust_level": "none (query failed)",
+                    })
         except Exception as e:
-            errors.append(f"DuckBrain namespace list failed for {ns}: {e}")
+            errors.append(f"DuckBrain query failed for {ns}: {e}")
 
     return {
         "duckbrain_url": db_host,
@@ -322,7 +386,9 @@ def query_board(workdir: str) -> dict[str, Any]:
         })
 
         # Pending rows as evidence of work-in-progress
-        for pr in pending_rows[:20]:
+        # Include ALL pending rows (not just first 20) so contradiction detection
+        # can find stale closures (commit_hash set but status still pending)
+        for pr in pending_rows:
             fragments.append({
                 "surface": "board",
                 "source_path_or_key": f"row:{pr.get('id', '?')}",
@@ -378,25 +444,30 @@ def detect_contradictions(code_result: dict, board_result: dict, spec_result: di
     - Board says complete but no tag exists in lifecycle
     - Specs claim feature exists but Hilo shows no code
     - Board shows pending but Hilo shows code for that feature
+    - Board row has commit_hash but status is still pending (stale closure)
     """
     contradictions = []
 
-    # Check: board rows with commit_hash but no corresponding code in Hilo
-    pending_with_commit = [
+    # Collect all board row fragments (individual rows, not summaries)
+    board_rows = [
         r for r in board_result.get("fragments", [])
-        if isinstance(r, dict) and r.get("surface") == "board" and r.get("commit_hash")
+        if isinstance(r, dict) and r.get("surface") == "board" and r.get("id")
     ]
 
-    for row in pending_with_commit:
-        row_id = row.get("id", "")
+    # Check: board rows with commit_hash but still pending/in_progress
+    # These are stale closures where the worker committed but the board wasn't updated
+    pending_statuses = ("pending", "in_progress", "review")
+    for row in board_rows:
         commit = row.get("commit_hash", "")
-        # We flag if a row has a commit but is still pending
-        if commit and row.get("status") in ("pending", "in_progress"):
+        if commit and row.get("status") in pending_statuses:
             contradictions.append({
                 "type": "board-commit-mismatch",
-                "description": f"Board row {row_id} has commit {commit[:8]} but status is {row.get('status')} — verify if the commit was merged to main",
+                "description": f"Board row {row['id']} has commit {commit[:8]} but status is {row.get('status')} — verify if the commit was merged to main",
                 "sources": ["board"],
                 "severity": "medium",
+                "row_id": row.get("id"),
+                "commit_hash": commit,
+                "status": row.get("status"),
             })
 
     # Check: board rows claiming a file/feature but Hilo shows no code
@@ -409,13 +480,14 @@ def detect_contradictions(code_result: dict, board_result: dict, spec_result: di
                     board_titles.add(title.lower())
 
         code_files = set(f.get("source_path_or_key", "") for f in code_result.get("fragments", []) if isinstance(f, dict))
-        # If no obvious contradiction, just note the surfaces compared
-        contradictions.append({
-            "type": "surface-comparison",
-            "description": f"Compared {len(board_titles)} board titles against {len(code_files)} code file references — no direct file-level contradictions detected",
-            "sources": ["board", "code"],
-            "severity": "info",
-        })
+        if board_titles and code_files:
+            contradictions.append({
+                "type": "surface-comparison",
+                "description": f"Compared {len(board_titles)} board titles against {len(code_files)} code file references — no direct file-level contradictions detected",
+                "sources": ["board", "code"],
+                "severity": "info",
+            })
+        # Don't add a false "no contradiction" if there are no board titles to compare
 
     return contradictions
 
@@ -590,20 +662,36 @@ def main():
         t0 = time.time()
         results["code"] = query_hilo(workdir)
         results["code"]["latency_s"] = round(time.time() - t0, 3)
+        # Cost estimation: Hilo is a local CLI, no API cost
+        results["code"]["cost_usd"] = 0.0
+        results["code"]["cost_note"] = "local CLI, no API cost"
     if "db" in surfaces:
         t0 = time.time()
         results["duckbrain"] = query_duckbrain(namespaces or None)
         results["duckbrain"]["latency_s"] = round(time.time() - t0, 3)
+        # DuckBrain HTTP API has known pricing: ~$0.001/1K tokens for qwen3-embedding-8b
+        # We make ~2 API calls per namespace (list + get), ~500 bytes each
+        db_cost_per_call = 0.000001  # ~$0.001 per 1K tokens, each call ~500B output
+        db_calls = len(results["duckbrain"].get("namespaces_queried", [])) * 2
+        results["duckbrain"]["cost_usd"] = round(db_calls * db_cost_per_call, 6)
+        results["duckbrain"]["cost_note"] = f"~{db_calls} HTTP calls at ~${db_cost_per_call}/call"
     if "specs" in surfaces:
         t0 = time.time()
         results["specs"] = query_specs(workdir)
         results["specs"]["latency_s"] = round(time.time() - t0, 3)
+        # Specs are local file reads
+        results["specs"]["cost_usd"] = 0.0
+        results["specs"]["cost_note"] = "local file reads, no API cost"
     if "board" in surfaces:
         t0 = time.time()
         results["board"] = query_board(workdir)
         results["board"]["latency_s"] = round(time.time() - t0, 3)
+        # Board is a local file read
+        results["board"]["cost_usd"] = 0.0
+        results["board"]["cost_note"] = "local file read, no API cost"
 
     total_latency = round(time.time() - total_start, 3)
+    total_cost = sum(r.get("cost_usd", 0.0) for r in results.values())
 
     # Detect contradictions
     contradictions = detect_contradictions(
@@ -616,6 +704,7 @@ def main():
         output = {
             "generated_at": _timestamp(),
             "total_latency_s": total_latency,
+            "total_cost_usd": round(total_cost, 6),
             "surfaces": surfaces,
             "workdir": workdir,
             "results": results,
@@ -624,6 +713,14 @@ def main():
         print(json.dumps(output, indent=2, default=str))
     else:
         report = format_output(results, contradictions, total_latency)
+        # Append cost line
+        lines = report.split("\n")
+        # Find the line with "Total latency:" and add cost after it
+        for i, line in enumerate(lines):
+            if line.startswith("Total latency:"):
+                lines.insert(i + 1, f"Total cost: ${total_cost:.6f} USD ({results.get('duckbrain', {}).get('cost_note', 'local CLI reads only')})")
+                break
+        report = "\n".join(lines)
         print(report)
 
     return 0

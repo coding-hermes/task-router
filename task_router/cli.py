@@ -416,6 +416,12 @@ def _home_env_exports() -> dict:
             "ROUTING_DATA_DIR": data_dir,
             "ROUTER_STATE_DIR": state_dir,
         },
+        "context-call": {
+            # TR-254: router context-call is a read-only CLI that resolves
+            # scripts/registry_path.py (shared resolver), reads the board from
+            # <repo>/.coding-hermes/board/tasks.jsonl, and queries Hilo
+            # (hilo CLI) / DuckBrain (HTTP). No data-home hooks required.
+        },
         # probefix / probe / plan-sweep / learn: no export by design. probefix
         # and provider_health_probe.py DO read ROUTING_*/ROUTER_STATE_DIR
         # (TR-056 audit corrected the old "hardcodes only" note in the module
