@@ -188,7 +188,9 @@ ROUTER_EDIT_API_KEY=... router server --mode edit
     classify-cache stats; TR-277 adds the `data_cache` block — the runtime
     data cache's generation, reload count, hit/miss and per-file state — the
     canary contract is
-    [docs/health-plane.md](docs/health-plane.md)), `/model_status`
+    [docs/health-plane.md](docs/health-plane.md); TR-274 adds the `serving`
+    block, naming the active serving path (`thread` legacy default or the
+    bounded `async` pool) with its enforced pool bounds), `/model_status`
     (per-model/provider status joined from registry + probe + circuit;
     filter with `?provider=<id>`), `/status` (server mode + table counts +
     a `runtime_cache` TR-277 stats block).

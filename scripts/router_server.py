@@ -10,12 +10,13 @@ import argparse
 import datetime
 import fcntl
 import hmac
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from http.server import BaseHTTPRequestHandler, HTTPServer, ThreadingHTTPServer
 import json
 import os
 from pathlib import Path
 import re
 import signal
+import struct
 import subprocess
 import sys
 import threading
@@ -24,6 +25,7 @@ import urllib.error
 import urllib.request
 from urllib.parse import parse_qs, urlparse
 import uuid
+from concurrent.futures import ThreadPoolExecutor
 
 REPO = Path(__file__).resolve().parents[1]
 SCRIPTS = REPO / "scripts"
@@ -740,6 +742,12 @@ class RouterApplication:
                 # TR-172: expose this process's admission and rating-cache state.
                 if isinstance(payload, dict):
                     payload['admission'] = _admission_stats()
+                    # TR-274: WHICH serving path this process is running. The
+                    # field names the path ('thread' | 'async') and the pool's
+                    # explicit bounds when the bounded path is active, so an
+                    # operator can see the serving mode and its ceiling from
+                    # the same place the admission ceiling is visible.
+                    payload['serving'] = serving_stats()
                     payload['classify_cache'] = classify_cache_stats()
                     payload['data_cache'] = router_data_cache.get_cache().stats()  # TR-277
                     payload['runtime'] = {
@@ -2698,6 +2706,227 @@ class _admission(object):
                 if _ADMISSION['inflight'] > 0:
                     _ADMISSION['inflight'] -= 1
         return False
+
+
+# ---------------------------------------------------------------------------
+# TR-274: the serving path — HOW accepted connections get CPU time.
+#
+# Legacy (default, kept): ThreadingHTTPServer spins one handler thread per
+# accepted connection; the proxy's admission semaphore (above) bounds the
+# upstream-blocking work to ROUTER_PROXY_MAX_INFLIGHT, so the thread count is
+# bounded INDIRECTLY by admission. It stays the default and selectable until
+# the bounded path below is proven.
+#
+# Bounded ("async"): plain single-threaded HTTPServer + an explicitly sized
+# ThreadPoolExecutor. The LISTEN loop is never the bottleneck (one accept +
+# dispatch to the pool), so a saturating client cannot grow the process by one
+# thread per connection. Admitted work is never silently dropped: each queued
+# connection runs to completion or names its failure. The pool's queue bound
+# is ENFORCED at accept — a connection that cannot be queued is CLOSED there,
+# before it is admitted to work, so the bound is a refusal (a full socket the
+# caller sees immediately), never a silent loss of accepted work.
+# ---------------------------------------------------------------------------
+
+_SERVING_MODES = ("async", "thread")
+#: Default is the LEGACY path: it is today's proven serving surface; flip only
+#: when the bounded path has soaked (this decision is a config datum, not a
+#: code default drift).
+DEFAULT_SERVING_MODE = "thread"
+_SERVING_MODE = {"name": None}
+#: The live async server (set by main()); /health reads its bounds + gauges.
+_SERVING_STATE = {"server": None, "busy": 0}
+
+
+def serving_mode_name() -> str:
+    """The ACTIVE serving path ('thread' | 'async'), as /health reports it."""
+    return _SERVING_MODE["name"] or DEFAULT_SERVING_MODE
+
+
+def serving_stats() -> dict:
+    """/health 'serving' block: the named path plus the explicit bounds.
+
+    `mode` names the ACTIVE path; `pool` is null on the legacy path (there is
+    no pool — the thread count follows admission) and the pool's own shape on
+    the bounded path. `busy_workers` is the live gauge of pool threads
+    currently inside a handler.
+    """
+    mode = serving_mode_name()
+    if mode != "async":
+        return {"mode": "thread", "pool": None, "busy_workers": None}
+    server = _SERVING_STATE["server"]
+    limits = getattr(server, "_pool_limits", None) if server is not None else None
+    return {
+        "mode": "async",
+        "pool": {
+            "max_workers": limits[0] if limits else None,
+            "queue_bound": limits[1] if limits else None,
+        },
+        "busy_workers": _SERVING_STATE["busy"],
+    }
+
+
+def _serving_mode_from_cli_or_env(cli_value=None) -> str:
+    """--serving wins over ROUTER_SERVING_MODE wins over the legacy default.
+
+    An unknown env value fails CLOSED to the documented default with the
+    problem printed (never a guessed mode silently served).
+    """
+    if cli_value is not None:
+        return cli_value
+    raw = (os.environ.get("ROUTER_SERVING_MODE") or "").strip().lower()
+    if not raw:
+        return DEFAULT_SERVING_MODE
+    if raw in _SERVING_MODES:
+        return raw
+    print(
+        f"router_server: ROUTER_SERVING_MODE={raw!r} is not one of "
+        f"{'|'.join(_SERVING_MODES)} — using the default "
+        f"'{DEFAULT_SERVING_MODE}'",
+        file=sys.stderr,
+    )
+    return DEFAULT_SERVING_MODE
+
+
+def _server_pool_limits(mode):
+    """(pool_size, queue_bound) for the async serving path.
+
+    The pool is deliberately SMALL and explicit: it bounds the threads the
+    process grows for proxied work, which is the whole point of the path. The
+    proxy admission ceiling (ROUTER_PROXY_MAX_INFLIGHT) stays the work bound;
+    the pool is the concurrency bound of the LISTENER's execution, sized above
+    the admission ceiling so admission is what saturates first (a pool at or
+    below the admission ceiling would queue accepted work behind pool slots
+    and turn refusals into latency). queue_bound is ENFORCED (a slot
+    semaphore around submit): a connection that cannot be queued is closed at
+    accept — the honest full-socket refusal, never a silent queue-forever.
+    """
+    try:
+        size = int(os.environ.get("ROUTER_POOL_SIZE") or 0)
+    except (TypeError, ValueError):
+        size = 0
+    if size < 1:
+        cap, _qmax, _w = _admission_limits()
+        size = cap + 4
+    try:
+        qbound = int(os.environ.get("ROUTER_POOL_QUEUE_MAX")
+                     or (size + size // 2))
+    except (TypeError, ValueError):
+        qbound = size + size // 2
+    return size, max(1, qbound)
+
+
+class RouterHTTPServerAsync(HTTPServer):
+    """Bounded serving path: one accept loop, an explicitly sized pool.
+
+    Same RouterHandler, same lifecycle accounting, same proxy contract — only
+    WHO runs the handler changes. `request_started`/`request_finished` stay on
+    the serving worker so the drain window and /readyz mean exactly what they
+    mean on the legacy path.
+    """
+
+    allow_reuse_address = True
+    #: The kernel accept queue must be deep enough that a burst wider than
+    #: the pool queues in OUR bounded slot semaphore instead of tripping the
+    #: kernel's default backlog of 5 (measured: 40 simultaneous connects
+    #: reset by Linux at backlog 5 — the bound must be ours, not the
+    #: kernel's residual default). Still a bound; still explicit.
+    request_queue_size = 128
+
+    def __init__(self, address, app, pool_size=None, queue_bound=None) -> None:
+        self.app = app
+        size, qbound = _server_pool_limits("async")
+        if pool_size is not None:
+            size = pool_size
+        if queue_bound is not None:
+            qbound = queue_bound
+        self._pool_limits = (size, qbound)
+        self.pool_queue_bound = qbound
+        # ENFORCED queue bound: one slot per queued-or-running connection.
+        # When every slot is taken the accept loop closes the socket instead
+        # of queueing — the bound on /health is a real bound, not a label.
+        self._pool_slots = threading.BoundedSemaphore(size + qbound)
+        self._busy_lock = threading.Lock()
+        self._busy = 0
+        _SERVING_STATE["server"] = self
+        _SERVING_STATE["busy"] = 0
+        self._pool = ThreadPoolExecutor(
+            max_workers=size, thread_name_prefix="router-serve")
+        super().__init__(address, RouterHandler)
+
+    def process_request(self, request, client_address):
+        """Queue the connection instead of growing a thread for it.
+
+        Admission (proxy work) and the pool's own queue bound are checked
+        HERE, on the accept loop, so an overloaded server refuses against a
+        FULL socket and the client's connect fails fast rather than after a
+        queued wait. `request_finished` on either reject path balances the
+        `request_started` the handler would have taken.
+        """
+        admitted = self.app.lifecycle.request_started()
+        if not admitted:
+            try:
+                request.close()
+            finally:
+                self.app.lifecycle.request_finished()
+            return
+        # acquire(blocking=False) RETURNS False when full (ValueError is only
+        # a release-side signal on a BoundedSemaphore) — check the result.
+        if not self._pool_slots.acquire(blocking=False):
+            # Queue bound hit: close at accept (fail-fast refusal; the
+            # caller's connect/read errors immediately). This is the pool's
+            # honest overload answer — never a silent queue-forever.
+            try:
+                try:
+                    # A blocked reader with an already-sent request needs a
+                    # RESET to learn the answer right now: a FIN alone leaves
+                    # it waiting on a read that will never complete.
+                    request.setsockopt(socket.SOL_SOCKET, socket.SO_LINGER,
+                                       struct.pack("ii", 1, 0))
+                except OSError:
+                    pass  # already gone — the close below is still correct
+            finally:
+                try:
+                    request.close()
+                finally:
+                    self.app.lifecycle.request_finished()
+            return
+        try:
+            self._pool.submit(self._serve_connection, request, client_address)
+        except RuntimeError:
+            # Pool already shut down (drain race): close without starting work.
+            try:
+                request.close()
+            finally:
+                self.app.lifecycle.request_finished()
+
+    def _serve_connection(self, request, client_address) -> None:
+        with self._busy_lock:
+            self._busy += 1
+            _SERVING_STATE["busy"] = self._busy
+        try:
+            # Same shape as ThreadingHTTPServer.process_request_thread: serve,
+            # name the error, always retire the socket.
+            try:
+                self.finish_request(request, client_address)
+            except Exception:
+                self.handle_error(request, client_address)
+            finally:
+                self.shutdown_request(request)
+        finally:
+            with self._busy_lock:
+                self._busy -= 1
+                _SERVING_STATE["busy"] = self._busy
+            self._pool_slots.release()
+            self.app.lifecycle.request_finished()
+
+    def server_close(self) -> None:
+        # Wait for queued connections, then stop the workers. bounded shutdown
+        # of the in-flight streams happens in main()'s drain, which runs BEFORE
+        # server_close on both paths.
+        try:
+            self._pool.shutdown(wait=True)
+        finally:
+            super().server_close()
 
 
 # ---------------------------------------------------------------------------
@@ -4867,9 +5096,17 @@ def openai_models_payload(data_dir=None, max_age_s: int=300):
 def main(argv=None):
     parser = argparse.ArgumentParser(description="Task Router OpenAPI + MCP server")
     parser.add_argument("--mode", choices=("read-only", "edit"), default="read-only")
+    parser.add_argument(
+        "--serving", choices=_SERVING_MODES, default=None,
+        help="serving path for accepted connections: 'thread' = one handler "
+             "thread per connection (legacy, default), 'async' = a bounded "
+             "ThreadPoolExecutor sized by ROUTER_POOL_SIZE (default: proxy "
+             "admission ceiling + 4). Default preserves the legacy path.")
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=9092)
     args = parser.parse_args(argv)
+    serving_mode = _serving_mode_from_cli_or_env(args.serving)
+    _SERVING_MODE["name"] = serving_mode
 
     edit_key = os.environ.get("ROUTER_EDIT_API_KEY", "")
     if args.mode == "edit" and not edit_key:
@@ -4987,7 +5224,10 @@ def main(argv=None):
     if not _check_classifier():
         sys.exit(1)
 
-    server = RouterHTTPServer((args.host, args.port), app)
+    if serving_mode == "async":
+        server = RouterHTTPServerAsync((args.host, args.port), app)
+    else:
+        server = RouterHTTPServer((args.host, args.port), app)
     actual_host, actual_port = server.server_address[:2]
     print(
         json.dumps(
@@ -4996,6 +5236,7 @@ def main(argv=None):
                 "host": actual_host,
                 "port": actual_port,
                 "mode": args.mode,
+                "serving": serving_mode,
             }
         ),
         flush=True,

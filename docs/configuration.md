@@ -120,6 +120,9 @@ structured/thinking rung is recorded in classifier call metadata when available.
 | `ROUTER_PROXY_MAX_INFLIGHT` | `router_server.py` | Maximum number of concurrently executing proxy requests | `8` |
 | `ROUTER_PROXY_QUEUE_MAX` | `router_server.py` | Maximum number of requests allowed to wait in the queue | `32` |
 | `ROUTER_PROXY_QUEUE_WAIT_S` | `router_server.py` | Maximum time in seconds a request may wait in the queue before refusal | `20` |
+| `ROUTER_SERVING_MODE` | `router_server.py` | TR-274 serving path for accepted connections: `thread` (legacy, one handler thread per connection) or `async` (bounded pool). The `--serving` CLI flag (same choices) wins over this env var; an unknown value fails closed to `thread` with the problem printed | `thread` |
+| `ROUTER_POOL_SIZE` | `router_server.py` | TR-274 `async` serving path: explicit worker count of the bounded pool | proxy admission ceiling + 4 |
+| `ROUTER_POOL_QUEUE_MAX` | `router_server.py` | TR-274 `async` serving path: enforced queue bound — a connection beyond pool+queue is closed at accept, never queued forever | pool + 50% |
 
 ### Proxy stats
 

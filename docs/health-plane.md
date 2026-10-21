@@ -53,8 +53,33 @@ condition it exists to report is worse than useless.
   "gate":          { /* the `router validate` verdict, in-process */ },
   "probe":         { /* hourly provider_health_probe state */ },
   "circuit":       { /* circuit-breaker / policy-gate pairs */ },
-  "chains_snapshot": { /* newest data/state/chains/<date>.md */ }
+  "chains_snapshot": { /* newest data/state/chains/<date>.md */ },
+  "admission":     { /* TR-172: proxy admission counters + the ceiling */ },
+  "serving":       { /* TR-274: which serving path is active (see below) */ }
 }
+```
+
+### `serving` — which serving path the process runs (TR-274)
+
+The server boots one of two serving paths for accepted connections; `/health`
+names the active one so a deployment can PROVE which is running:
+
+| Field | Meaning |
+|-------|---------|
+| `mode` | `"thread"` (legacy default: one handler thread per connection) or `"async"` (bounded pool) |
+| `pool` | `null` on the legacy path; the bounded path's explicit bounds (`max_workers`, `queue_bound` — both enforced) |
+| `busy_workers` | live gauge of pool threads inside a handler (`null` on the legacy path) |
+
+Select the path with `--serving {async\|thread}` (default `thread`) or the
+`ROUTER_SERVING_MODE` env var (a CLI flag wins; an unknown env value fails
+closed to the default, loudly). The bounded path sizes its pool from
+`ROUTER_POOL_SIZE` (default: proxy admission ceiling + 4) and enforces its
+queue bound (`ROUTER_POOL_QUEUE_MAX`, default pool + 50%) at accept — a
+connection that cannot be queued is closed immediately, never queued forever.
+
+```bash
+curl -s localhost:9092/health | jq '.serving'
+# -> {"mode": "async", "pool": {"max_workers": 12, "queue_bound": 18}, "busy_workers": 1}
 ```
 
 ### `registry_age` — registry freshness by mtime
