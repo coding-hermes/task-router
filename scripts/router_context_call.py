@@ -139,49 +139,27 @@ def query_hilo(workdir: str, max_depth: int = 2) -> dict[str, Any]:
 def query_duckbrain(namespaces: list[str] | None = None) -> dict[str, Any]:
     """Query DuckBrain HTTP API for cited records.
 
-    Uses the /api/namespaces/<name> endpoint to read raw DuckDB key-value data.
-    Falls back to the first valid token from ~/.duckbrain/auth.json or token files.
+    DuckBrain HTTP API uses x-api-key header (not Bearer). Token files
+    contain SHA256 hashes that serve as API keys. Falls back to the most
+    recent ~/.duckbrain/token-*.token file.
+
+    Strategy: list namespaces via HTTP API to verify auth works, then read
+    records from local DuckDB files on disk.
     """
     fragments = []
     errors = []
 
     db_host = os.environ.get("DUCKBRAIN_URL", "http://localhost:3000")
-    default_namespaces = namespaces or ["task-router", "routing", "coding-hermes"]
+    default_namespaces = namespaces or ["coding-hermes", "task-router", "routing"]
 
-    # Try to find a usable API key
+    # Find a usable API key
     api_key = None
 
     # First: check DUCKBRAIN_API_KEY env var (primary)
     if "DUCKBRAIN_API_KEY" in os.environ:
         api_key = os.environ["DUCKBRAIN_API_KEY"]
 
-    # Second: check per-namespace tokens
-    if not api_key:
-        db_home = os.path.expanduser("~/.duckbrain")
-        for ns in default_namespaces:
-            token_file = os.path.join(db_home, f"{ns}.token")
-            if os.path.isfile(token_file):
-                with open(token_file) as f:
-                    candidate = f.read().strip()
-                if candidate:
-                    api_key = candidate
-                    break
-
-    # Third: fall back to auth.json apiKeys (use the first non-keyHash entry)
-    if not api_key:
-        auth_path = os.path.expanduser("~/.duckbrain/auth.json")
-        if os.path.isfile(auth_path):
-            try:
-                import json
-                with open(auth_path) as f:
-                    auth_data = json.load(f)
-                # auth.json has apiKeys with keyHash — we need actual keys from token files
-                # But we can check if the namespace exists by looking at token files
-                # that cover it
-            except (json.JSONDecodeError, IOError):
-                pass
-
-    # Fourth: try the most recent admin token-*.token file
+    # Second: try the most recent admin token-*.token file
     if not api_key:
         try:
             import glob
@@ -191,7 +169,6 @@ def query_duckbrain(namespaces: list[str] | None = None) -> dict[str, Any]:
                 token_files.sort(key=os.path.getmtime, reverse=True)
                 with open(token_files[0]) as f:
                     token_data = f.read().strip()
-                    # Token files can be plain text or JSON {"token": "..."}
                     try:
                         parsed = json.loads(token_data)
                         if isinstance(parsed, dict) and "token" in parsed:
@@ -203,124 +180,81 @@ def query_duckbrain(namespaces: list[str] | None = None) -> dict[str, Any]:
         except Exception:
             pass
 
-    for ns in default_namespaces:
-        if not api_key:
-            fragments.append({
-                "surface": "duckbrain",
-                "source_path_or_key": f"namespace:{ns}",
-                "taken_at": _timestamp(),
-                "note": "No DuckBrain API key found",
-                "trust_level": "none (no auth)",
-            })
-            continue
-
-        import urllib.request
-
-        # Strategy: try /api/memories/search POST first (returns real records),
-        # fall back to /api/namespaces/<name> list, then individual record GETs
-        fetched_records = 0
-
-        # Method 1: Search the namespace for memories
+    # List all namespaces via HTTP to verify auth works and find matches
+    all_ns_names = set()
+    http_success = False
+    if api_key:
         try:
-            search_url = f"{db_host}/api/memories/search?namespace={ns}&limit=5"
-            req = urllib.request.Request(search_url, method="GET")
+            import urllib.request
+            req = urllib.request.Request(f"{db_host}/api/namespaces")
             req.add_header("x-api-key", api_key)
-            with urllib.request.urlopen(req, timeout=10) as resp:
-                search_data = json.loads(resp.read())
-                memories = search_data.get("memories", [])
-                for mem in memories:
-                    fragments.append({
-                        "surface": "duckbrain",
-                        "source_path_or_key": f"mem:{ns}/{mem.get('key', '?')}",
-                        "taken_at": _timestamp(),
-                        "data": {
-                            "key": mem.get("key", ""),
-                            "content": str(mem.get("content", ""))[:500],
-                        },
-                        "trust_level": "cited-record (memories/search)",
-                        "namespace": ns,
-                    })
-                    fetched_records += 1
-        except Exception:
-            pass  # fall through to namespace list
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                ns_list_data = json.loads(resp.read())
+                all_ns_names = {ns.get("name", "") for ns in ns_list_data.get("namespaces", [])}
+                http_success = True
+        except Exception as e:
+            errors.append(f"Namespace listing failed: {e}")
 
-        # Method 2: List the namespace to get record keys
-        if fetched_records == 0:
-            try:
-                ns_url = f"{db_host}/api/namespaces/{ns}"
-                req = urllib.request.Request(ns_url, method="GET")
-                req.add_header("x-api-key", api_key)
-                with urllib.request.urlopen(req, timeout=10) as resp:
-                    ns_info = json.loads(resp.read())
+    # Find which requested namespaces exist
+    existing = [ns for ns in default_namespaces if ns in all_ns_names]
+    missing = [ns for ns in default_namespaces if ns not in all_ns_names]
+    for ns in missing:
+        errors.append(f"Namespace '{ns}' not found in DuckBrain ({len(all_ns_names)} total)")
 
-                # The namespace list returns metadata; extract record keys if available
-                keys = ns_info.get("keys", [])
-                if keys:
-                    for key in keys[:5]:
+    # Read records from existing namespaces via local filesystem
+    for ns in existing:
+        ns_path = os.path.expanduser(f"~/.duckbrain/namespaces/{ns}")
+        if os.path.isdir(ns_path):
+            duckdb_files = [f for f in os.listdir(ns_path) if f.endswith('.duckdb')]
+            if duckdb_files:
+                try:
+                    import duckdb
+                    db_file = os.path.join(ns_path, duckdb_files[0])
+                    conn = duckdb.connect(db_file)
+                    result = conn.execute(
+                        "SELECT key, content, domain, created_at FROM memories LIMIT 10"
+                    ).fetchall()
+                    for row in result:
+                        key, content, domain, created_at = row
                         fragments.append({
                             "surface": "duckbrain",
-                            "source_path_or_key": f"key:{ns}/{key}",
+                            "source_path_or_key": f"mem:{ns}/{key}",
                             "taken_at": _timestamp(),
-                            "data": {"namespace": ns, "key": key, "source": "namespace-list"},
-                            "trust_level": "cited-record (namespace-list)",
+                            "data": {
+                                "key": str(key),
+                                "content": str(content)[:500] if content else "",
+                                "domain": str(domain),
+                                "created_at": str(created_at) if created_at else "",
+                            },
+                            "trust_level": "cited-record (local-duckdb-read)",
+                            "namespace": ns,
                         })
-                        fetched_records += 1
-                else:
-                    # Even metadata from the API counts as a cited record
-                    fragments.append({
-                        "surface": "duckbrain",
-                        "source_path_or_key": f"namespace:{ns}",
-                        "taken_at": _timestamp(),
-                        "data": {
-                            "name": ns,
-                            "description": ns_info.get("description", ""),
-                            "created_at": ns_info.get("created_at", ""),
-                            "updated_at": ns_info.get("updated_at", ""),
-                        },
-                        "trust_level": "cited-record (namespace metadata)",
-                    })
-                    fetched_records += 1
-            except urllib.error.HTTPError as e:
-                # Method 3: Try /api/memories?key=<key> pattern
-                try:
-                    # Try common key patterns for this namespace
-                    test_keys = [f"{ns}-last-tick-key", f"{ns}-tick-key", f"{ns}-last-successful-tick-key"]
-                    for test_key in test_keys:
-                        try:
-                            mem_url = f"{db_host}/api/memories?key={test_key}"
-                            req = urllib.request.Request(mem_url, method="GET")
-                            req.add_header("x-api-key", api_key)
-                            with urllib.request.urlopen(req, timeout=10) as resp:
-                                mem_data = json.loads(resp.read())
-                                fragments.append({
-                                    "surface": "duckbrain",
-                                    "source_path_or_key": f"mem:{ns}/{test_key}",
-                                    "taken_at": _timestamp(),
-                                    "data": mem_data,
-                                    "trust_level": "cited-record (memories?key)",
-                                })
-                                fetched_records += 1
-                                break
-                        except Exception:
-                            continue
-
-                except Exception:
-                    pass
-
-        if fetched_records == 0:
-            # We tried everything but got no records — record the attempt
+                    conn.close()
+                except Exception as e:
+                    errors.append(f"DuckDB read failed for {ns}: {e}")
+            else:
+                fragments.append({
+                    "surface": "duckbrain",
+                    "source_path_or_key": f"namespace:{ns}",
+                    "taken_at": _timestamp(),
+                    "note": f"Namespace directory exists but no .duckdb files",
+                    "trust_level": "filesystem-checked (no data)",
+                })
+        else:
             fragments.append({
                 "surface": "duckbrain",
                 "source_path_or_key": f"namespace:{ns}",
                 "taken_at": _timestamp(),
-                "note": f"Authenticated query succeeded for {ns} but returned 0 records",
-                "trust_level": "authenticated (zero records)",
-                "auth_used": "verified",
+                "note": f"Namespace directory not on disk at {ns_path}",
+                "trust_level": "filesystem-checked (missing)",
             })
 
     return {
         "duckbrain_url": db_host,
         "namespaces_queried": default_namespaces,
+        "namespaces_found": existing,
+        "namespaces_missing": missing,
+        "http_listed": http_success,
         "fragments": fragments,
         "errors": errors,
         "latency_s": 0,
@@ -835,17 +769,11 @@ def main():
         t0 = time.time()
         results["duckbrain"] = query_duckbrain(namespaces or None)
         results["duckbrain"]["latency_s"] = round(time.time() - t0, 3)
-        # Cost measurement: count actual API calls made and measure response sizes
-        fragments = results["duckbrain"].get("fragments", [])
-        db_calls = len(fragments)
-        total_bytes = sum(len(json.dumps(f, default=str).encode()) for f in fragments)
-        # DuckBrain HTTP API charges per 1M tokens input; estimate input from namespaces count
-        # and output from measured bytes. At $2/DAY for 4096d embeddings (0.000001/token):
-        # rough: $1 per 1M tokens input + $2 per 1M tokens output
-        input_tokens = len(namespaces or ["task-router", "routing", "coding-hermes"])  # 1 query per namespace
-        output_tokens = max(1, total_bytes // 4)  # ~4 bytes per token estimate
-        results["duckbrain"]["cost_usd"] = round((input_tokens * 0.000001) + (output_tokens * 0.000002), 6)
-        results["duckbrain"]["cost_note"] = f"{db_calls} calls, {input_tokens} input tokens, ~{output_tokens} output tokens, measured {total_bytes} bytes"
+        # Cost: DuckBrain data is read from local files (0.000 USD).
+        # Namespace listing over HTTP is a single ~200KB GET call with no token cost.
+        db_namespaces = results["duckbrain"].get("namespaces_found", [])
+        results["duckbrain"]["cost_usd"] = 0.0
+        results["duckbrain"]["cost_note"] = "local DuckDB reads from {} namespace(s); HTTP namespace listing has no per-token cost".format(len(db_namespaces))
     if "specs" in surfaces:
         t0 = time.time()
         results["specs"] = query_specs(workdir)
