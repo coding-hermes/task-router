@@ -206,6 +206,7 @@ COMMANDS = {
     "lifecycle":  "router_lifecycle.py",      # TR-069 digest: states, arrivals, retirements
     "pricing-audit": "router_pricing_audit.py",  # TR-070: evidence-class pricing audit
     "ingress":    "router_ingress.py",        # TR-236: bus -> router ingress + endpoint contract
+    "context-call": "router_context_call.py", # TR-254: ONE CONTEXT CALL (code + DuckBrain + specs + board)
 }
 RESERVED = ()
 
