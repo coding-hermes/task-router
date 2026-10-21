@@ -56,7 +56,7 @@ classified by its **failing step**:
 **Zero recurrences of the hang class.** Only one run after the fix failed at the
 `Full test suite` step, and it is a different failure (a missing `ROUTER_*` doc key,
 `tests/test_doc_parity.py::test_all_router_env_keys_documented`), already owned and
-closed as INT-CI-7 by commit `e8acd7a`. The five `TR-251 evidence replay` reds are
+closed as INT-CI-7 by commit `e8acd7a`. The four `TR-251 evidence replay` reds are
 the board gate refusing every evidence form (owned by TR-343, fix `14b763c4`); the
 four zero-job reds are Class B below.
 
@@ -127,7 +127,25 @@ recurs:
 - **Tier 2 (the evaluator verdict) is recorded on the board row separately** from
   these CI observations, and is not implied by them.
 
+## Independent verification (GitReins Tier 2)
+
+The GitReins task `INT-CI-3` was created and started before this record was written
+and completed against the pushed closeout commit. Verdict: **passed = true**, Tier 2
+COMPLETE, graded commit `e398db2b0608` (history dir
+`.gitreins/history/2026-10-21/71ceb259/`, verdict printed as `dd3a9c3b` — the id and
+the directory name differ; the directory is authoritative).
+
+The evaluator re-derived the evidence independently (ancestry, the per-run failing
+step for all nine reds, the job census, run 39554779492 at `e398db2` and run
+39378454973 at `2d1b017`, the focused test, and both gates) and raised one factual
+correction, applied above: the prose said **five** `TR-251 evidence replay` reds while
+the table lists **four** (39378676311, 39382221804, 39510427292, 39531615321). The
+totals reconcile either way — nine red runs: 4 evidence-replay + 4 zero-job +
+1 doc-parity. The correction is recorded here and in the board's `task_verified` event.
+
 ## Tick
 
 `task-router-foreman-2026-10-21-06-04-00`. Evidence gathered with `gh` run/job APIs
 and local pytest only; no board row was edited before its evidence was read back.
+CI at the final head (run 39554779492 on `e398db2`, 18/18 steps) is **success**,
+including the `TR-251 evidence replay` step the repair above unblocks.
