@@ -8,6 +8,16 @@ on:
   # commit, but tag pushes are not push-events on branches — dispatch it.
   workflow_dispatch:
 
+# TR-343: the evidence replay step (TR-251) verifies a row's bound GitHub
+# Actions run id via `gh run view`. The default GITHUB_TOKEN carries no
+# Actions read on private repos, so `gh run view` fails with "could not
+# resolve to a Run" and a genuinely completed, successful run id is refused.
+# This is the job's only token surface; everything in it is read-only
+# (pytest, guard script, gate scripts, gh run view), so the minimal
+# read-only grant is safe at top level.
+permissions:
+  actions: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -179,7 +189,12 @@ jobs:
       - name: TR-251 evidence replay
         env:
           TR251_CI_MODE: "1"
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # TR-343: `gh run view` authenticates from GH_TOKEN (not
+          # GITHUB_TOKEN) when both auth paths exist; the job-level
+          # permissions block grants this token actions:read so a row bound
+          # to a completed, successful run id VERIFIES here instead of being
+          # refused for unverifiability.
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             BASE="${{ github.event.pull_request.base.sha }}"
