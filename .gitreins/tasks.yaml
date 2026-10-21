@@ -1077,3 +1077,21 @@ tasks:
   status: complete
   created_at: '2026-10-18T03:37:05.509923+00:00'
   completed_at: '2026-10-18T03:37:38.465920+00:00'
+- id: TR-274
+  title: 'Async serving core: bounded proxy serving path'
+  criteria:
+  - Implement an explicit async or bounded serving path without one thread per in-flight
+    proxied request; preserve thread default, wire health mode, compatibility, admission
+    visibility, and failure-class honesty with tests.
+  status: in_progress
+  created_at: '2026-10-21T13:25:37.623394+00:00'
+- id: TR-282
+  title: Wiring score consumer and artifact integration
+  criteria:
+  - 'Verify committed TR-282 implementation in current main: acceptance includes wiring
+    report with surfaces, inbound/outbound counts, baseline deltas, untested surfaces,
+    classifications; formula and source in artifact; anti-vacuity fixture tests; first
+    measurement; human+JSON output; GAP-113 disclosure; trace marker. Commit db69f4eb3d1bddaf3baa2a21f2b1940faae9d9b5.'
+  status: complete
+  created_at: '2026-10-21T22:12:37.833800+00:00'
+  completed_at: '2026-10-21T22:12:38.436198+00:00'

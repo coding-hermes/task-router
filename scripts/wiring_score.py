@@ -357,16 +357,20 @@ def measure(root=REPO_ROOT, graph_path=None, scope=None,
     ]
 
     if not graph_path.exists():
-        return {
-            "error": UNMEASURABLE,
-            "reason": (f"wiring graph not found at {graph_path} — run "
-                       "`hilo init` (if needed) then `hilo graph warm`, or "
-                       "pass --graph PATH; no connection counts are "
-                       "fabricated without a real graph"),
-            "formula": FORMULA,
-            "source": SOURCE,
-            "limitations": limitations,
-        }
+        fallback = root / ".vfs" / "graph" / "edges.jsonl"
+        if fallback.exists():
+            graph_path = fallback
+        else:
+            return {
+                "error": UNMEASURABLE,
+                "reason": (f"wiring graph not found at {graph_path} — run "
+                           "`hilo init` (if needed) then `hilo graph warm`, or "
+                           "pass --graph PATH; no connection counts are "
+                           "fabricated without a real graph"),
+                "formula": FORMULA,
+                "source": SOURCE,
+                "limitations": limitations,
+            }
 
     edges, skipped = load_edges(graph_path)
     repo_files = walk_repo_py_files(root)
