@@ -69,7 +69,9 @@ class TestStructure:
         fragments = result.get("fragments", [])
         # Should have at least one fragment from code surface
         code_fragments = [f for f in fragments if isinstance(f, dict) and f.get("surface") == "code"]
-        assert len(code_fragments) >= 0, "code surface may return 0 if no Python/Go files"
+        # Hilo may be installed or not — if installed, we should get fragments
+        if result.get("hilo_version") and result.get("hilo_version") != "unknown":
+            assert len(code_fragments) >= 1, f"Expected code fragments with Hilo {result.get('hilo_version')}, got {len(code_fragments)}"
         for frag in code_fragments:
             assert "surface" in frag
             assert "source_path_or_key" in frag
