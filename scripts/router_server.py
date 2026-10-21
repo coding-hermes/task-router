@@ -2851,6 +2851,40 @@ def _stamp_unrated(problems, entry):
     return problems
 
 
+def _infer_reference_profile():
+    """The profile plane an INFERRED matrix is clamped against.
+
+    `ROUTER_INFER_PROFILE` (default P0_FORE — the documented default profile,
+    and the one whose declarations define what a foreman tick actually needs).
+    Empty string disables the clamp. Read per call, fail-open to the default.
+    """
+    try:
+        return (os.environ.get('ROUTER_INFER_PROFILE', 'P0_FORE') or '').strip()
+    except Exception:  # noqa: BLE001
+        return 'P0_FORE'
+
+
+def _clamp_inferred(matrix, problems):
+    """Clamp a SCORER-produced matrix (never an explicit --profile-req) to the
+    rungs the ladder can express and the categories the reference profile
+    declares. Every adjustment is appended to `problems` — a clamped rating is
+    visible, never silent. Fail-open: any error returns the matrix unchanged.
+    """
+    ref = _infer_reference_profile()
+    if not ref or not matrix:
+        return matrix
+    try:
+        import router_outcomes as ro
+        levels, notes = ro.clamp_inferred_levels(matrix, profile_id=ref)
+    except Exception:  # noqa: BLE001 — advisory, never fatal
+        return matrix
+    if not notes:
+        return levels or matrix
+    for cat in sorted(notes):
+        problems.append(f'inferred-matrix clamp ({ref}): {notes[cat]}')
+    return levels
+
+
 def _proxy_requirements(body, headers, path) -> tuple:
     """Decide the complexity for this request. Returns (source, payload) where
     source ∈ declared | classifier | default, payload carries the matrix,
@@ -2906,10 +2940,22 @@ def _proxy_requirements(body, headers, path) -> tuple:
                                    jres.get('problems') or [],
                                    'unrated -> fail-cheap floor requirements (TR-139)') +
                                    _ovr_warn}
-        return 'jev', {'matrix': jres['matrix'], 'complexity_sig': jres.get('complexity_sig'),
+        _probs = list(jres.get('problems') or [])
+        _m = _clamp_inferred(jres['matrix'], _probs)
+        _sig = jres.get('complexity_sig')
+        if _m != jres['matrix']:
+            # the requirement set changed, so the band key must follow it —
+            # the inferred matrix stays visible for evidence.
+            try:
+                import router_outcomes as _ro_sig
+                _sig = _ro_sig.complexity_sig(_m)
+            except Exception:  # noqa: BLE001
+                pass
+        return 'jev', {'matrix': _m, 'matrix_inferred': jres['matrix'],
+                       'complexity_sig': _sig,
                        'confidence': jres.get('confidence'), 'scorer': 'jev',
                        'score': jres.get('score'), 'band': jres.get('band'),
-                       'model': jres.get('model'), 'problems': jres.get('problems') or []}
+                       'model': jres.get('model'), 'problems': _probs}
     try:
         import router_classify
         # TR-171: an identical prompt is rated ONCE, not once per attempt.
@@ -2938,10 +2984,20 @@ def _proxy_requirements(body, headers, path) -> tuple:
                                res.get('problems') or [],
                                'unrated -> fail-cheap floor requirements (TR-139)') +
                                _ovr_warn}
-    return 'classifier', {'matrix': res['matrix'], 'complexity_sig': res.get('complexity_sig'),
+    _probs = list(res.get('problems') or [])
+    _m = _clamp_inferred(res['matrix'], _probs)
+    _sig = res.get('complexity_sig')
+    if _m != res['matrix']:
+        try:
+            import router_outcomes as _ro_sig
+            _sig = _ro_sig.complexity_sig(_m)
+        except Exception:  # noqa: BLE001
+            pass
+    return 'classifier', {'matrix': _m, 'matrix_inferred': res['matrix'],
+                          'complexity_sig': _sig,
                           'confidence': res.get('confidence'),
                           'prompt_version': res.get('prompt_version'),
-                          'model': res.get('model'), 'problems': res.get('problems') or []}
+                          'model': res.get('model'), 'problems': _probs}
 
 
 def _proxy_chain(requirements, sort_spec=None, window_h=None):

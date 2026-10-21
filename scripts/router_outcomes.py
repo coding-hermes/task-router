@@ -525,6 +525,111 @@ def _normalize_levels(matrix):
     return out
 
 
+_RUNGS_CACHE = {}
+
+
+def populated_rungs(registry_path=None):
+    """{category: frozenset(levels)} — the rungs the LADDER can actually express.
+
+    The registry's tier data is a cliff for some categories (measured
+    2026-10-20: `tool_use` has lanes at -5,-4,-3,-2,0,5 and NOTHING at 1..4),
+    so a requirement of `tool_use >= 2` is not "needs a good tool user" — it is
+    "the top cluster or nothing". Any caller that turns a RATING into a hard
+    requirement must know which levels a lane can actually hold.
+
+    Archived / retired / disabled lanes are excluded: they cannot serve the
+    request, so their levels are not rungs. Cached by (path, mtime, size) so a
+    re-seed invalidates it and per-request cost stays a dict lookup.
+    """
+    path = registry_path or os.environ.get('ROUTING_REGISTRY') or os.path.join(REPO, 'registry.json')
+    if not path and os.path.exists(os.path.join(REPO, 'data', 'registry.json')):
+        path = os.path.join(REPO, 'data', 'registry.json')
+    try:
+        st = os.stat(path)
+        key = (path, st.st_mtime_ns, st.st_size)
+    except OSError:
+        return {}
+    if key in _RUNGS_CACHE:
+        return _RUNGS_CACHE[key]
+    try:
+        tables = (json.load(open(path)) or {}).get('tables', {})
+    except (ValueError, OSError):
+        return {}
+    dead = set()
+    for m in tables.get('models') or []:
+        if m.get('archive') or m.get('disabled'):
+            dead.add((m.get('provider'), m.get('model')))
+    rungs = {}
+    for r in tables.get('model_tier') or []:
+        cat, lvl = r.get('category'), r.get('tier')
+        if cat is None or isinstance(lvl, bool):
+            continue
+        try:
+            lvl = int(lvl)
+        except (TypeError, ValueError):
+            continue
+        rungs.setdefault(str(cat), set()).add(lvl)
+    out = {c: frozenset(v) for c, v in rungs.items()}
+    _RUNGS_CACHE[key] = out
+    if len(_RUNGS_CACHE) > 8:      # bounded: one entry per registry revision
+        _RUNGS_CACHE.pop(next(iter(_RUNGS_CACHE)))
+    return out
+
+
+def clamp_inferred_levels(matrix, profile_id=None, registry_path=None):
+    """Clamp an INFERRED (scorer-produced) matrix so it never demands a level
+    the ladder cannot honestly express — or a category the resolved profile
+    never declared.
+
+    The bug (measured live 2026-10-20): the auto-classifier rated a tick
+    `tool_use >= 2`. `tool_use` is a cliff (no lane at 1..4), and the foreman
+    profile plane deliberately does NOT declare it (router_seed.py: "tool_use
+    ratings are a cliff artifact, not knowledge — keep tool_use OUT of
+    P0_FORE"). So the fabricated requirement excluded EVERY lane in the 0
+    cluster — all nine deepseek/PAYG lanes among them — leaving a chain that
+    collapsed to zero hops and 503'd the gateway.
+
+    ONE rule, applied only to SCORER output (a caller's explicit
+    `--profile-req` stays honoured verbatim):
+
+    - UNDECLARED + UNEXPRESSIBLE -> dropped. A category the resolved profile
+      never declares, carrying a level no live lane holds (an empty band of the
+      ladder), is fabricated pressure rather than knowledge.
+
+    Everything else is passed through UNCHANGED — a DECLARED category keeps its
+    inferred level even when that level is a cliff (asking the top cluster for
+    `reasoning` on a hard prompt is intent, not a rating artifact, and silently
+    lowering it would weaken a requirement the profile really makes).
+
+    Returns (levels, notes) where notes = {category: reason}. An unknown
+    reference profile disables the rule (we refuse to guess what it declares);
+    a missing registry returns the matrix unchanged.
+    """
+    levels = _normalize_levels(matrix)
+    if not levels:
+        return levels, {}
+    rungs = populated_rungs(registry_path)
+    if not rungs:
+        return levels, {}
+    declared = None
+    if profile_id:
+        sig = required_levels(profile_id=profile_id, registry_path=registry_path)
+        if sig is not None:
+            declared = set(sig)
+    if declared is None:
+        return levels, {}
+    out, notes = {}, {}
+    for cat, lvl in levels.items():
+        have = rungs.get(cat)
+        if have and cat not in declared and lvl not in have:
+            notes[cat] = (f'dropped: profile {profile_id} never declares '
+                          f'{cat}, and no lane holds {cat}={lvl} '
+                          f'(rungs {sorted(have)})')
+            continue
+        out[cat] = lvl
+    return out, notes
+
+
 def profile_signature(profile_id, registry_path=None):
     """The complexity reference: a task profile IS its declared per-category
     levels (Bane: "complexity part is the categories of the task so that it
