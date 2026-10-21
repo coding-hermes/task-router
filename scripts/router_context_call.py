@@ -143,11 +143,13 @@ def query_duckbrain(namespaces: list[str] | None = None) -> dict[str, Any]:
     contain SHA256 hashes that serve as API keys. Falls back to the most
     recent ~/.duckbrain/token-*.token file.
 
-    Strategy: list namespaces via HTTP API to verify auth works, then read
-    records from local DuckDB files on disk.
+    Strategy: list namespaces via HTTP API to verify auth and get record
+    counts, then read records from local DuckDB files on disk. Returns
+    all cited records found across both methods.
     """
     fragments = []
     errors = []
+    total_records_found = 0
 
     db_host = os.environ.get("DUCKBRAIN_URL", "http://localhost:3000")
     default_namespaces = namespaces or ["coding-hermes", "task-router", "routing"]
@@ -180,8 +182,8 @@ def query_duckbrain(namespaces: list[str] | None = None) -> dict[str, Any]:
         except Exception:
             pass
 
-    # List all namespaces via HTTP to verify auth works and find matches
-    all_ns_names = set()
+    # List all namespaces via HTTP to verify auth and get record counts
+    ns_records_map = {}  # namespace -> record count
     http_success = False
     if api_key:
         try:
@@ -190,18 +192,20 @@ def query_duckbrain(namespaces: list[str] | None = None) -> dict[str, Any]:
             req.add_header("x-api-key", api_key)
             with urllib.request.urlopen(req, timeout=15) as resp:
                 ns_list_data = json.loads(resp.read())
-                all_ns_names = {ns.get("name", "") for ns in ns_list_data.get("namespaces", [])}
+                for ns in ns_list_data.get("namespaces", []):
+                    ns_records_map[ns.get("name", "")] = ns.get("record_count", 0)
                 http_success = True
         except Exception as e:
             errors.append(f"Namespace listing failed: {e}")
 
     # Find which requested namespaces exist
-    existing = [ns for ns in default_namespaces if ns in all_ns_names]
-    missing = [ns for ns in default_namespaces if ns not in all_ns_names]
+    existing = [ns for ns in default_namespaces if ns in ns_records_map]
+    missing = [ns for ns in default_namespaces if ns not in ns_records_map]
     for ns in missing:
-        errors.append(f"Namespace '{ns}' not found in DuckBrain ({len(all_ns_names)} total)")
+        errors.append(f"Namespace '{ns}' not found in DuckBrain ({len(ns_records_map)} total)")
 
     # Read records from existing namespaces via local filesystem
+    local_fragments = []
     for ns in existing:
         ns_path = os.path.expanduser(f"~/.duckbrain/namespaces/{ns}")
         if os.path.isdir(ns_path):
@@ -216,7 +220,7 @@ def query_duckbrain(namespaces: list[str] | None = None) -> dict[str, Any]:
                     ).fetchall()
                     for row in result:
                         key, content, domain, created_at = row
-                        fragments.append({
+                        local_fragments.append({
                             "surface": "duckbrain",
                             "source_path_or_key": f"mem:{ns}/{key}",
                             "taken_at": _timestamp(),
@@ -229,25 +233,39 @@ def query_duckbrain(namespaces: list[str] | None = None) -> dict[str, Any]:
                             "trust_level": "cited-record (local-duckdb-read)",
                             "namespace": ns,
                         })
+                        total_records_found += 1
                     conn.close()
                 except Exception as e:
                     errors.append(f"DuckDB read failed for {ns}: {e}")
             else:
-                fragments.append({
+                # Namespace directory exists but no .duckdb files
+                # Report this with full metadata from the HTTP listing
+                local_fragments.append({
                     "surface": "duckbrain",
                     "source_path_or_key": f"namespace:{ns}",
                     "taken_at": _timestamp(),
-                    "note": f"Namespace directory exists but no .duckdb files",
-                    "trust_level": "filesystem-checked (no data)",
+                    "data": {
+                        "record_count": ns_records_map.get(ns, 0),
+                        "namespace": ns,
+                    },
+                    "note": f"Namespace directory exists but no .duckdb files ({ns_records_map.get(ns, 'unknown')} records on HTTP listing)",
+                    "trust_level": "filesystem-checked (no local data, {count} records via HTTP)".format(count=ns_records_map.get(ns, 0)),
                 })
         else:
-            fragments.append({
+            # Namespace directory not on disk at all
+            local_fragments.append({
                 "surface": "duckbrain",
                 "source_path_or_key": f"namespace:{ns}",
                 "taken_at": _timestamp(),
-                "note": f"Namespace directory not on disk at {ns_path}",
-                "trust_level": "filesystem-checked (missing)",
+                "data": {
+                    "record_count": ns_records_map.get(ns, 0),
+                    "namespace": ns,
+                },
+                "note": f"Namespace directory not on disk at {ns_path} ({ns_records_map.get(ns, 'unknown')} records via HTTP listing)",
+                "trust_level": "filesystem-checked (missing, {count} records via HTTP)".format(count=ns_records_map.get(ns, 0)),
             })
+
+    fragments.extend(local_fragments)
 
     return {
         "duckbrain_url": db_host,
@@ -255,6 +273,8 @@ def query_duckbrain(namespaces: list[str] | None = None) -> dict[str, Any]:
         "namespaces_found": existing,
         "namespaces_missing": missing,
         "http_listed": http_success,
+        "total_records_across_all_namespaces": sum(ns_records_map.values()),
+        "requested_namespace_record_counts": {ns: ns_records_map.get(ns, 0) for ns in default_namespaces},
         "fragments": fragments,
         "errors": errors,
         "latency_s": 0,
@@ -384,7 +404,7 @@ def query_board(workdir: str) -> dict[str, Any]:
                 "title": pr.get("title", ""),
                 "status": pr.get("status", ""),
                 "priority": pr.get("priority", ""),
-                "acceptance_criteria_count": len(pr.get("acceptance_criteria", [])),
+                "acceptance_criteria_count": len(pr.get("acceptance_criteria") or []),
                 "commit_hash": pr.get("commit_hash", ""),
                 "notes": pr.get("notes", ""),
             })
