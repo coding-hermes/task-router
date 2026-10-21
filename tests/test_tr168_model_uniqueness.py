@@ -393,6 +393,8 @@ POST_DEDUPE_ADDITIONS = {
     ("openrouter", "minimax/minimax-m3.1-flash:free"): "models.dev sync 2026-10-20 (catalog addition, :free sticker 0/0 + F3 tag)",
     ("xkiro", "minimax/minimax-m3.1-flash"): "xkiro carrier refresh 2026-10-20 (plan-covered lane, internal /30)",
     ("xkiro-2", "minimax/minimax-m3.1-flash"): "xkiro-2 carrier refresh 2026-10-20 (seat mirror, internal /30)",
+    ("ollama-cloud", "beam"): "models.dev sync 2026-10-21 (catalog addition, bucket-plan unpriced + stamped)",
+    ("synthetic", "hf:deepseek-ai/DeepSeek-V4.1-Flash-1017"): "models.dev sync 2026-10-21 (catalog addition, payg-sticker priced)",
 }
 
 
