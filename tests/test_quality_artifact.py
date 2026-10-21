@@ -168,12 +168,22 @@ def test_coverage_pct_is_unmeasurable():
     assert "TR-187" in coverage["reason"]
 
 
-def test_wiring_pct_is_unmeasurable():
-    """wiring_pct is not yet instrumented (TR-282 pending)."""
+def test_wiring_pct_carries_definition_even_when_unmeasurable():
+    """wiring_pct is the TR-282 instrument: measured when the Hilo graph
+    exists; when it cannot be measured the null carries a concrete reason
+    AND the formula/source stay pinned so the metric's definition never
+    depends on today's ability to measure it."""
     rc, stdout, _ = run_artifact("--json")
     assert rc == 0
     artifact = json.loads(stdout)
     wiring = next(m for m in artifact["metrics"] if m["metric"] == "wiring_pct")
-    assert wiring["value"] is None
-    assert "reason" in wiring
-    assert "TR-282" in wiring["reason"]
+    if wiring["value"] is None:
+        assert "reason" in wiring
+        assert isinstance(wiring["reason"], str) and wiring["reason"]
+    else:
+        assert 0.0 <= wiring["value"] <= 100.0
+    # definition is carried in BOTH arms
+    assert "scripts/wiring_score.py" in wiring["definition_cmd"]
+    assert wiring.get("formula"), "wiring formula must be carried"
+    assert "0.5*called_share" in wiring["formula"]
+    assert wiring.get("source") and "edges.jsonl" in wiring["source"]

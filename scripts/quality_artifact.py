@@ -58,6 +58,70 @@ SCHEMA_VERSION = 1
 # The three metrics the ladder tracks (TR-267).
 METRICS = ("type_hint_pct", "coverage_pct", "wiring_pct")
 
+# TR-282: wiring_pct's mechanical formula, carried here so the artifact
+# states the score's meaning next to its value. This string is the
+# instrument's FORMULA verbatim (single authority: scripts/wiring_score.py;
+# equality is pinned by tests/test_wiring_score.py::test_formulas_are_in_lockstep).
+WIRING_FORMULA = (
+    "score = 100 * (0.5*called_share + 0.5*tested_share); "
+    "called = >=1 inbound repo import edge; tested = >=1 test edge "
+    "(test file <-> surface, either direction); surfaces = non-test repo "
+    ".py files in scope (on-disk walk); wired_share (both) reported, not scored"
+)
+
+
+def measure_wiring_pct() -> dict:
+    """Run the TR-282 wiring instrument and parse its JSON output.
+
+    Returns {value, breakdown, formula, source} on success. Raises
+    RuntimeError when the measurement cannot be produced — including the
+    instrument's own honest unmeasurable exit (no graph), whose reason is
+    carried through verbatim so the artifact's null stays concrete.
+    """
+    script = REPO_ROOT / "scripts" / "wiring_score.py"
+    if not script.exists():
+        raise RuntimeError(f"wiring_score.py not found at {script}")
+
+    result = subprocess.run(
+        [sys.executable, str(script), "--json"],
+        capture_output=True,
+        text=True,
+        cwd=REPO_ROOT,
+    )
+
+    try:
+        data = json.loads(result.stdout)
+    except json.JSONDecodeError as exc:
+        raise RuntimeError(
+            f"wiring_score.py output not JSON (exit {result.returncode}): {exc}"
+        ) from exc
+
+    if data.get("error") == "WIRING-UNMEASURABLE":
+        raise RuntimeError(str(data.get("reason", "no reason given")))
+    if result.returncode != 0:
+        raise RuntimeError(
+            f"wiring_score.py exited {result.returncode}: "
+            f"{result.stderr.strip()[:300]}"
+        )
+
+    value = data.get("score")
+    if value is None:
+        raise RuntimeError("wiring_score.py output missing 'score'")
+
+    breakdown = [
+        {"module": s["module"], "value": 1 if s["test_edge"] else 0,
+         "n": s["inbound"]}
+        for s in data.get("surfaces", [])
+    ]
+
+    return {
+        "value": float(value),
+        "breakdown": breakdown,
+        "formula": data.get("formula"),
+        "source": data.get("source"),
+        "graph_valid": data.get("graph", {}).get("graph_valid"),
+    }
+
 
 def measure_type_hint_pct() -> dict:
     """Run the stage-0 instrument and parse its JSON output.
@@ -139,10 +203,30 @@ def build_metric(name: str) -> dict:
         base["stage"] = 0
         base["target"] = 0.0
     elif name == "wiring_pct":
-        base["reason"] = "no wiring metric exists yet (TR-282 pending)"
-        base["priority"] = "P1"
-        base["stage"] = 0
-        base["target"] = 0.0
+        # TR-282: measured when the Hilo graph is available; otherwise an
+        # honest null with the instrument's concrete reason. The formula is
+        # carried even on the null arm — the definition of the metric does
+        # not depend on today's ability to measure it.
+        base["definition_cmd"] = "python3 scripts/wiring_score.py --json"
+        try:
+            measurement = measure_wiring_pct()
+            base["value"] = measurement["value"]
+            base["breakdown"] = measurement["breakdown"]
+            base["priority"] = "P1"
+            base["stage"] = 0
+            base["target"] = 0.0
+            base["formula"] = WIRING_FORMULA
+            base["source"] = measurement["source"]
+            base["graph_valid"] = measurement["graph_valid"]
+        except RuntimeError as exc:
+            base["reason"] = str(exc)
+            base["formula"] = WIRING_FORMULA
+            base["source"] = (
+                ".vfs/graph/edges.jsonl as written by `hilo graph warm` "
+                "(Hilo file-level import graph)")
+            base["priority"] = "P1"
+            base["stage"] = 0
+            base["target"] = 0.0
     else:
         base["reason"] = f"unknown metric {name!r}"
 
