@@ -144,6 +144,7 @@ structured/thinking rung is recorded in classifier call metadata when available.
 | `ROUTER_SORT_COMPLETION_FLOOR` | `router_spawn.py` | TR-174 floor for the completion divisor: measured cost is divided by `max(success_rate, floor)` so cheap-but-failing lanes lose value | `0.1` |
 | `ROUTER_SORT_EXPLORE_SHARE` | `router_spawn.py` | TR-174 exploration share of resolves that probe the stalest low-traffic lane (deterministic crc32 gate on the task key; `0` disables — the fleet default) | `0.0` |
 | `ROUTER_SORT_EXPLORE_MIN_AGE_H` | `router_spawn.py` | TR-174 aging window: a lane whose last outcome is older than this may be selected for exploration | `24` |
+| `ROUTER_INFER_PROFILE` | `router_server.py` | Profile plane an INFERRED (scorer-produced) complexity matrix is clamped against. A category the resolved profile never declares **and** no live lane can express is dropped from the rating (with a note in the request's `problems` list); a DECLARED category keeps its inferred level even when that level is a ladder cliff, because asking the top cluster for a hard category is intent, not a rating artifact. An unknown profile disables the rule; an empty string disables the clamp entirely. A caller's explicit `--profile-req` is always honoured verbatim. See `docs/complexity-model.md` | `P0_FORE` |
 
 ---
 
