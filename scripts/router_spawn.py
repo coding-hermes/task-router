@@ -2291,7 +2291,16 @@ def _resolve_fallback(tables, qs, hs, cs, reqs, limit=DEFAULT_CHAIN_LIMIT, profi
     - `profiles` field (optional) restricts a lane to specific profiles (e.g.
       the vision-exp lane serves only P5_VISION_E2E so a text model never
       handles vision E2E); absent = generic lane for all profiles.
-    - profile-specific matching lanes resolve BEFORE generic lanes."""
+    - profile-specific matching lanes resolve BEFORE generic lanes.
+    - LAST-RESORT TIER (2026-10-20): a lane curated for a DIFFERENT profile is
+      a poor-but-serviceable last resort — a 503 is not serviceable at all.
+      Measured: a tick whose primary chain emptied had exactly one healthy
+      fallback lane (deepseek-duckbrain-sync, profiles ['P8_SYNC']) and the
+      ladder returned ZERO hops because the profile never matched. Such lanes
+      are considered ONLY when the matching + generic tiers produced nothing,
+      so the tier is unreachable while ANY curated or generic lane is healthy
+      — it can never outrank a sub lane or change price ordering. Each hop
+      says why: `last_resort` + `profile_scope`."""
     lanes = sorted(tables.get('fallback_lanes') or [],
                    key=lambda r: (r.get('order') or 1 << 30))
     by_lane = {}
@@ -2301,67 +2310,86 @@ def _resolve_fallback(tables, qs, hs, cs, reqs, limit=DEFAULT_CHAIN_LIMIT, profi
     for r in tables.get('model_tier') or []:
         tiers.setdefault(r.get('model'), {})[r.get('category')] = r.get('tier')
     tiers_folded = _fold_tier_names(tiers)  # TR-043: alias-aware lane tiers
-    generic, specific = [], []
+    generic, specific, unmatched = [], [], []
     for f in lanes:
         profs = f.get('profiles') or []
         if profs:
             if profile_id and profile_id in profs:
                 specific.append(f)  # curated for THIS profile
+            else:
+                unmatched.append(f)  # curated for ANOTHER profile: last resort
         else:
             generic.append(f)  # default lane, all profiles
-    ordered = specific + generic  # curated-for-this-profile first, then default
     out = []
-    for f in ordered:
-        key = (f.get('provider'), f.get('model'))
-        m = by_lane.get(key)
-        if m is None:
-            continue  # lane doesn't exist in registry — gap, not a fabrication
-        if m.get('archive') or row_is_retired(m) or m.get('disabled'):
-            continue
-        if m.get('normalized_price') is None:
-            continue
-        # ---- gates, same as the primary chain ----
-        # TR-203: same policy plane as the primary chain — FAIL-CLOSED on
-        # absence. A fallback lane whose provider has no quota-state.json row
-        # is skipped (policy-gate-missing-row in the primary path's
-        # exclusion vocabulary); only a PRESENT non-open row is quota GATED.
-        q = qs.get(f.get('provider')) or {}
-        if f.get('provider') not in qs:
-            continue  # policy-gate-missing-row: provider not listed in quota-state.json
-        elif q.get('status') != 'open':
-            continue  # quota GATED
-        qg = (qgates or {}).get(f.get('provider')) or {}
-        if qg.get('active'):
-            continue  # TR-060: plan window exhausted — not a fallback either
-        h = hs.get(f.get('provider')) or {}
-        if h.get('status') in ('DOWN', 'SLOW', 'DISABLED'):
-            # TR-247: DISABLED = provider row disabled in the probe registry
-            # (vendor shutdown, dead key) — a deliberate off, never route onto it
-            continue
-        mm = (h.get('models') or {}).get(f.get('model')) or {}
-        if mm.get('status') in ('DOWN', 'SLOW'):
-            continue
-        if (cs.get((f.get('provider'), f.get('model'))) or
-                cs.get(f'{f.get("provider")}/{f.get("model")}')):
-            continue  # circuit OPEN for this exact pair
-        mt = _alias_tiers(tiers, tiers_folded, f.get('model'))
-        unmet = [(c, lvl, mt.get(c) if mt.get(c) is not None else -1)
-                 for c, lvl in reqs
-                 if (mt.get(c) if mt.get(c) is not None else -1) < lvl]
-        out.append({'hop': len(out) + 1, 'provider': f.get('provider'),
-                    'model': f.get('model'),
-                    'usd_1m': round(float(_pub_prices(m)[0]), 4),
-                    'in_per_m': _pub_prices(m)[1], 'out_per_m': _pub_prices(m)[2],
-                    # TR-291: the lane's own declared prices ride on the hop too —
-                    # a genuine $0.0 promo must read as free, never as unknown.
-                    'price': m.get('normalized_price'),
-                    'effective_price': _effective_price(m) if m.get('normalized_price') is not None else None,
-                    'price_basis': _lane_price_basis(m),
-                    'data_class': m.get('data_class'),
-                    'fallback': True, 'key_env': f.get('key_env'),
-                    'requirements_unmet': unmet})
-        if len(out) >= limit:
-            break
+
+    def _walk(group, last_resort=False):
+        for f in group:
+            key = (f.get('provider'), f.get('model'))
+            m = by_lane.get(key)
+            if m is None:
+                continue  # lane doesn't exist in registry — gap, not a fabrication
+            if m.get('archive') or row_is_retired(m) or m.get('disabled'):
+                continue
+            if m.get('normalized_price') is None:
+                continue
+            # ---- gates, same as the primary chain ----
+            # TR-203: same policy plane as the primary chain — FAIL-CLOSED on
+            # absence. A fallback lane whose provider has no quota-state.json row
+            # is skipped (policy-gate-missing-row in the primary path's
+            # exclusion vocabulary); only a PRESENT non-open row is quota GATED.
+            q = qs.get(f.get('provider')) or {}
+            if f.get('provider') not in qs:
+                continue  # policy-gate-missing-row: provider not listed in quota-state.json
+            elif q.get('status') != 'open':
+                continue  # quota GATED
+            qg = (qgates or {}).get(f.get('provider')) or {}
+            if qg.get('active'):
+                continue  # TR-060: plan window exhausted — not a fallback either
+            h = hs.get(f.get('provider')) or {}
+            if h.get('status') in ('DOWN', 'SLOW', 'DISABLED'):
+                # TR-247: DISABLED = provider row disabled in the probe registry
+                # (vendor shutdown, dead key) — a deliberate off, never route onto it
+                continue
+            mm = (h.get('models') or {}).get(f.get('model')) or {}
+            if mm.get('status') in ('DOWN', 'SLOW'):
+                continue
+            if (cs.get((f.get('provider'), f.get('model'))) or
+                    cs.get(f'{f.get("provider")}/{f.get("model")}')):
+                continue  # circuit OPEN for this exact pair
+            mt = _alias_tiers(tiers, tiers_folded, f.get('model'))
+            unmet = [(c, lvl, mt.get(c) if mt.get(c) is not None else -1)
+                     for c, lvl in reqs
+                     if (mt.get(c) if mt.get(c) is not None else -1) < lvl]
+            ent = {'hop': len(out) + 1, 'provider': f.get('provider'),
+                   'model': f.get('model'),
+                   'usd_1m': round(float(_pub_prices(m)[0]), 4),
+                   'in_per_m': _pub_prices(m)[1], 'out_per_m': _pub_prices(m)[2],
+                   # TR-291: the lane's own declared prices ride on the hop too —
+                   # a genuine $0.0 promo must read as free, never as unknown.
+                   'price': m.get('normalized_price'),
+                   'effective_price': _effective_price(m) if m.get('normalized_price') is not None else None,
+                   'price_basis': _lane_price_basis(m),
+                   'data_class': m.get('data_class'),
+                   'fallback': True, 'key_env': f.get('key_env'),
+                   'requirements_unmet': unmet}
+            if last_resort:
+                # name WHY this hop is a poor fit — never a silent profile swap
+                ent['last_resort'] = True
+                ent['profile_scope'] = list(f.get('profiles') or [])
+                ent['last_resort_reason'] = (
+                    f'curated for profiles {list(f.get("profiles") or [])}; '
+                    f'resolved profile {profile_id or "(none)"} has no curated '
+                    'or generic fallback lane left')
+            out.append(ent)
+            if len(out) >= limit:
+                return
+
+    # Tier 1 = curated-for-this-profile, then generic (historical ordering).
+    _walk(specific + generic)
+    if not out and unmatched:
+        # Tier 2 = LAST RESORT. Strictly subordinate: reached only when tier 1
+        # produced ZERO hops, so a healthy curated/generic lane always wins.
+        _walk(unmatched, last_resort=True)
     return out
 
 
@@ -2830,7 +2858,9 @@ def resolve(project=None, profile_id=None, adhoc=None, use_health: bool=True, li
             _err(f'WARNING: STATIC FALLBACK FIRED — all {len(exclusions)} eligible hops gated, '
                  f'using always-run lane {head["provider"]}/{head["model"]} '
                  f'(profile={pid}, project={project or "adhoc"}). '
-                 f'Requirements unmet: {[(c, lvl, have) for c, lvl, have in head.get("requirements_unmet", [])]}')
+                 f'Requirements unmet: {[(c, lvl, have) for c, lvl, have in head.get("requirements_unmet", [])]}'
+                 + (f'. LAST-RESORT lane: {head.get("last_resort_reason")}'
+                    if head.get('last_resort') else ''))
             reasons.append(
                 f'FALLBACK: all {len(exclusions)} eligible hops gated — using '
                 f'{head["provider"]}/{head["model"]} (always-run lane; '
