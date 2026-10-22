@@ -1095,3 +1095,32 @@ tasks:
   status: complete
   created_at: '2026-10-21T22:12:37.833800+00:00'
   completed_at: '2026-10-21T22:12:38.436198+00:00'
+- id: TR-320
+  title: INGRESS openai-compatible door unusable against multi-model endpoints
+  criteria:
+  - 'PASS: python3 -m pytest -q tests/test_ingress.py -k model_choice exits 0; PASS:
+    git grep shows both multi-model ingress cases'
+  status: in_progress
+  created_at: '2026-10-22T00:43:23.386921+00:00'
+- id: TR-270
+  title: 'TYPE-HINT LADDER STAGE 2 (target 60%): raise the annotated-function score
+    to 60%'
+  criteria:
+  - Overall score >= 60% as reported by type_hint_score.py; regression floor raised
+    to 60 and proven by induced drop; data/seed + pricing modules touched; suite green;
+    annotations only
+  status: complete
+  created_at: '2026-10-22T03:05:34.640789+00:00'
+  completed_at: '2026-10-22T05:34:42.177873+00:00'
+- id: INT-CI-8
+  title: 'TR-270 stage-2 annotations broke tests/test_lifecycle_overlay_merge.py on
+    eager-annotation Pythons (CI py3.11): exec''ed overlay_update slice lacks typing.Any
+    in namespace'
+  criteria:
+  - 'NameError gone: the 4 overlay tests pass on python3.11 AND 3.14 with the exec
+    namespace seeded; suite-level proof: the failed CI module tests/test_lifecycle_overlay_merge.py
+    is green; documented in the test with the INT-CI-8 rationale (PEP 649 deferral
+    hid it locally)'
+  status: complete
+  created_at: '2026-10-22T06:37:52.488953+00:00'
+  completed_at: '2026-10-22T06:59:58.254720+00:00'
