@@ -20,6 +20,7 @@ skipped. --apply writes; default is a dry-run report.
 Usage:
   python3 router_plan_sweep.py [--apply] [--json]
 """
+from __future__ import annotations
 import argparse
 import datetime
 import json
@@ -30,6 +31,7 @@ _SCRIPTS_DIR = os.path.dirname(os.path.realpath(__file__))
 if _SCRIPTS_DIR not in sys.path:
     sys.path.insert(0, _SCRIPTS_DIR)
 import lifecycle_gate  # noqa: E402  (TR-199: R4 no anonymous dates)
+from typing import Any
 
 # TR-202: realpath — symlinked live install; abspath resolved DATA_DIR to
 # ~/.hermes/data/tables, which does not exist, so every _rows() read came up empty.
@@ -38,7 +40,7 @@ _REPO = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 DATA_DIR = os.environ.get('ROUTING_DATA_DIR', os.path.join(_REPO, 'data', 'tables'))
 
 
-def _rows(name):
+def _rows(name: Any):
     path = os.path.join(DATA_DIR, f'{name}.jsonl')
     out = []
     if os.path.exists(path):
@@ -49,7 +51,7 @@ def _rows(name):
     return out
 
 
-def _write(name, rows) -> None:
+def _write(name: Any, rows: Any) -> None:
     # TR-199 (spec R4): no anonymous dates — a row carrying a lifecycle date
     # without lifecycle_source must never reach the file. Fails LOUD (raise)
     # so the cron pipeline's `set -e` aborts instead of silently persisting it.
@@ -61,12 +63,12 @@ def _write(name, rows) -> None:
     os.replace(path + '.tmp', path)
 
 
-def _msg(*parts) -> None:
+def _msg(*parts: Any) -> None:
     """Human-facing prose → stderr, keeping stdout pure for --json."""
     print(*parts, file=sys.stderr)
 
 
-def sweep(apply: bool=False, quiet: bool=False):
+def sweep(apply: bool=False, quiet: bool=False) -> bool | tuple[Any, ...]:
     today = datetime.date.today().isoformat()
     models = _rows('models')
     terms = _rows('plan_terms')
@@ -79,7 +81,7 @@ def sweep(apply: bool=False, quiet: bool=False):
         return [], 0
 
     # active discount coverage: model-level rows valid today (valid_to null = open)
-    def _active(d) -> bool:
+    def _active(d: Any) -> bool:
         if d.get('valid_from') and d['valid_from'] > today:
             return False
         if d.get('valid_to') and d['valid_to'] < today:
@@ -143,7 +145,7 @@ def sweep(apply: bool=False, quiet: bool=False):
     return to_disable, len(to_disable)
 
 
-def main(argv=None) -> int:
+def main(argv: Any=None) -> int:
     ap = argparse.ArgumentParser(description='disable lanes outside flat plans (dry-run default)')
     ap.add_argument('--apply', action='store_true', help='write the disables (default: report only)')
     ap.add_argument('--json', action='store_true')

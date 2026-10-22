@@ -55,6 +55,7 @@ Stdlib only (like every script in this repo — it must run in the bare board
 venv). Exit code is always 0 in daemon form; `--once` also exits 0 and reports
 its tally on stderr — the ledger is the record, not the exit code.
 """
+from __future__ import annotations
 import argparse
 import fcntl
 import json
@@ -64,6 +65,7 @@ import subprocess
 import sys
 import time
 from datetime import datetime, timezone
+from typing import Any
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DEFAULT_BOARD = os.path.join(REPO, '.coding-hermes', 'board', 'tasks.jsonl')
@@ -92,15 +94,15 @@ def now_iso():
     return datetime.now(timezone.utc).isoformat(timespec='seconds')
 
 
-def seen_path(state_dir):
+def seen_path(state_dir: Any):
     return os.path.join(state_dir, SEEN_FILE)
 
 
-def resolves_path(state_dir):
+def resolves_path(state_dir: Any):
     return os.path.join(state_dir, RESOLVES_FILE)
 
 
-def append_jsonl(path, row) -> None:
+def append_jsonl(path: Any, row: Any) -> None:
     """Append ONE row, flock-serialized, fsync'd.
 
     Same discipline as the outcome store (router_outcomes.py): the ledger is
@@ -120,7 +122,7 @@ def append_jsonl(path, row) -> None:
             fcntl.flock(f, fcntl.LOCK_UN)
 
 
-def load_seen(path):
+def load_seen(path: Any):
     """id -> last seen row. Malformed lines are skipped (tolerant, like the
     outcomes tail reader); the last row per id wins so claims complete."""
     seen = {}
@@ -140,7 +142,7 @@ def load_seen(path):
     return seen
 
 
-def run_resolve(spawn_cmd, board, task_id, timeout_s=RESOLVE_TIMEOUT_S) -> tuple:
+def run_resolve(spawn_cmd: Any, board: Any, task_id: Any, timeout_s: Any=RESOLVE_TIMEOUT_S) -> tuple:
     """Run the existing resolve for one task id as a subprocess.
 
     Returns (updates, error) where updates may carry `returncode`,
@@ -174,7 +176,7 @@ def run_resolve(spawn_cmd, board, task_id, timeout_s=RESOLVE_TIMEOUT_S) -> tuple
     return updates, None
 
 
-def _chain_head_of(payload) -> dict | None:
+def _chain_head_of(payload: Any) -> dict | None:
     """(provider, model, usd_1m) of the resolve's head hop, or None."""
     head = payload.get('head')
     if not isinstance(head, dict) or not head.get('provider'):
@@ -187,8 +189,8 @@ def _chain_head_of(payload) -> dict | None:
 class BoardIntake:
     """Tails the board JSONL and resolves every new pending task id once."""
 
-    def __init__(self, board, state_dir, spawn_cmd,
-                 timeout_s=RESOLVE_TIMEOUT_S, log=None) -> None:
+    def __init__(self, board: Any, state_dir: Any, spawn_cmd: Any,
+                 timeout_s: Any=RESOLVE_TIMEOUT_S, log: Any=None) -> None:
         self.board = board
         self.state_dir = state_dir
         self.spawn_cmd = list(spawn_cmd)
@@ -228,7 +230,7 @@ class BoardIntake:
             self.seen[tid] = done
             self.log(f'recovered dangling claim for {tid} (error recorded)')
 
-    def _claim(self, tid):
+    def _claim(self, tid: Any):
         """Mark an id claimed BEFORE spawning, so a crash can never cause a
         second resolve of the same task (at-most-once intake)."""
         row = {'id': str(tid), 'ts': now_iso(),
@@ -237,7 +239,7 @@ class BoardIntake:
         self.seen[str(tid)] = row
         return row['ts']
 
-    def _complete_claim(self, tid, claim_ts, resolved_at, outcome) -> None:
+    def _complete_claim(self, tid: Any, claim_ts: Any, resolved_at: Any, outcome: Any) -> None:
         row = {'id': str(tid), 'ts': claim_ts, 'resolved_at': resolved_at,
                'source': 'claim-completed', 'outcome': outcome}
         append_jsonl(self.seen_file, row)
@@ -286,7 +288,7 @@ class BoardIntake:
         self._pending = data[cut + 1:]
         return data[:cut + 1].decode('utf-8', errors='replace')
 
-    def _report_board_error(self, msg) -> None:
+    def _report_board_error(self, msg: Any) -> None:
         # Board-level failures are logged every time but recorded ONCE per
         # incident in the resolves ledger — a per-poll record would just spam
         # the ledger while the board is briefly absent (visibility, not noise).
@@ -299,7 +301,7 @@ class BoardIntake:
                 'complexity_source': None, 'error': msg,
             })
 
-    def _iter_rows(self, text):
+    def _iter_rows(self, text: Any):
         """Tolerant JSONL parse: blank/malformed lines are skipped, never
         fatal (the board is written by appenders; a torn line must not take
         the intake down)."""
@@ -321,7 +323,7 @@ class BoardIntake:
 
     # -- the intake step ----------------------------------------------------
 
-    def _resolve_one(self, tid, claim_ts):
+    def _resolve_one(self, tid: Any, claim_ts: Any):
         updates, err = run_resolve(self.spawn_cmd, self.board, tid,
                                    timeout_s=self.timeout_s)
         resolved_at = now_iso()
@@ -426,7 +428,7 @@ class BoardIntake:
         return count
 
 
-def _env_float(name, default):
+def _env_float(name: Any, default: Any):
     raw = os.environ.get(name, '').strip()
     if not raw:
         return default
@@ -438,7 +440,7 @@ def _env_float(name, default):
         return default
 
 
-def build_spawn_cmd(override):
+def build_spawn_cmd(override: Any):
     """Base argv for the resolve subprocess. Default: THIS interpreter on the
     repo's router_spawn.py — under the documented unit the interpreter IS the
     board venv python, reproducing the manual command exactly."""
@@ -448,7 +450,7 @@ def build_spawn_cmd(override):
     return [sys.executable, DEFAULT_SPAWN_SCRIPT]
 
 
-def main(argv=None) -> int:
+def main(argv: Any=None) -> int:
     ap = argparse.ArgumentParser(
         description='TR-298 automatic board task intake — resolve every new '
                     'pending board task through the existing --from-task path')

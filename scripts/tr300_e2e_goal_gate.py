@@ -52,6 +52,7 @@ Usage:
   python3 scripts/tr300_e2e_goal_gate.py --out DIR  # artifact dir (default data/state/tr300)
   python3 scripts/tr300_e2e_goal_gate.py --skip-proxy  # AC2/AC3/AC4/AC6 only
 """
+from __future__ import annotations
 import argparse
 import datetime
 import hashlib
@@ -163,6 +164,7 @@ STAR_PAIR = (STAR_PROVIDER, STAR_MODEL)
 #: (TR-183 coverage bar) — derived from the resolver's own constant, with
 #: headroom, capped by the paid-pool size.
 import router_spawn as _rs  # noqa: E402
+from typing import Any
 _COVERAGE_BAR = float(os.environ.get('ROUTER_SORT_MIN_COVERAGE')
                       or _rs.MEASURED_MIN_COVERAGE)
 K_INJECTED = min(len(_PAID) - 1,
@@ -210,7 +212,7 @@ def _iso_now():
     return datetime.datetime.now(datetime.timezone.utc).isoformat(timespec='seconds')
 
 
-def http_json(method, url, body=None, headers=None, timeout: float=120.0) -> tuple:
+def http_json(method: Any, url: Any, body: Any=None, headers: Any=None, timeout: float=120.0) -> tuple:
     """One HTTP request -> (status:int, payload:dict). Raises on transport error."""
     data = json.dumps(body).encode() if body is not None else None
     req = urllib.request.Request(url, data=data, method=method,
@@ -246,12 +248,12 @@ def _api_key():
     return None
 
 
-def load_all_rows(path):
+def load_all_rows(path: Any):
     """The whole live outcome store (tolerant scan; malformed lines warn)."""
     return ro.load_outcome_rows(path)
 
 
-def band_sig(levels):
+def band_sig(levels: Any):
     """complexity_sig of the injected band's requirement set — the store and
     the resolver both key stats rows on the canonical sha1."""
     return ro.complexity_sig(levels)
@@ -268,7 +270,7 @@ def rebuild_averages() -> int:
     return len(avgs)
 
 
-def resolve_chain(requirements, label: str='resolve'):
+def resolve_chain(requirements: Any, label: str='resolve'):
     """Run the LIVE resolver on the harness state (isolated state dir +
     averages file, exported at import time), scoped to the synthetic backend
     and the default measured sort (explicit, so ambient env cannot skew the
@@ -282,7 +284,7 @@ def resolve_chain(requirements, label: str='resolve'):
     return resolved
 
 
-def candidate_entries(resolved):
+def candidate_entries(resolved: Any):
     """The resolver's eligible-only candidate list with each entry's ordering
     basis, from the resolve document's own per-hop outcome notes. The note's
     stats_fallback encodes HOW the lane's stats row was matched (TR-066 R5):
@@ -314,14 +316,14 @@ def candidate_entries(resolved):
     return entries
 
 
-def head_mode(resolved):
+def head_mode(resolved: Any):
     """The resolve document's own head-mode claim (sort_stats.sufficiency):
     'measured' when the ordering actually applied measurement, 'price' when
     it degraded to price with a reason."""
     return ((resolved.get('sort_stats') or {}).get('sufficiency') or {}).get('effective')
 
 
-def submit_to_proxy(prompt, nonce, key) -> tuple:
+def submit_to_proxy(prompt: Any, nonce: Any, key: Any) -> tuple:
     """One full loop leg: POST the task through the live proxy, capture the
     envelope, wait for the proxy's own outcome row in the live ledger."""
     status, payload = http_json(
@@ -358,7 +360,7 @@ def submit_to_proxy(prompt, nonce, key) -> tuple:
     return status, payload, router, sid, row
 
 
-def verify_pass(payload, router, row) -> tuple:
+def verify_pass(payload: Any, router: Any, row: Any) -> tuple:
     """AC5: the INDEPENDENT verifier. Pass = the task's acceptance keyword
     appears in the answer OR the answer arrived within the wall budget.
     Never reads the proxy's HTTP status or its recorded success flag."""
@@ -378,8 +380,8 @@ def verify_pass(payload, router, row) -> tuple:
                                                  'neither keyword nor wall budget'))}
 
 
-def inject_synthetic(provider, model, success, cost_usd, session_id,
-                     required_levels, sig, wall_time_s: float=2.5,
+def inject_synthetic(provider: Any, model: Any, success: Any, cost_usd: Any, session_id: Any,
+                     required_levels: Any, sig: Any, wall_time_s: float=2.5,
                      tokens_in: int=1500, tokens_out: int=300):
     """Append one synthetic outcome row with the documented schema + the
     tr300 marker. source_system stays exactly SYN_SOURCE."""
@@ -448,7 +450,7 @@ def snapshot_circuit():
         return None
 
 
-def restore_circuit(snapshot, harness_pairs, harness_providers) -> None:
+def restore_circuit(snapshot: Any, harness_pairs: Any, harness_providers: Any) -> None:
     """Restore the harness circuit file to the snapshot content, minus any
     entries the harness phases created (belt to the suspenders: the snapshot
     predates them, so this is normally a no-op)."""
@@ -478,7 +480,7 @@ def restore_circuit(snapshot, harness_pairs, harness_providers) -> None:
 # ------------------------------------------------------------------ phases --
 
 
-def run_loop(label, prompt, nonce, key):
+def run_loop(label: Any, prompt: Any, nonce: Any, key: Any):
     """One AC1 leg: submit through the live proxy, capture the full trace.
 
     The candidate list (eligible-only, resolver order, each entry's ordering
@@ -527,7 +529,7 @@ def run_loop(label, prompt, nonce, key):
     return trace
 
 
-def phase_ac2_baseline(resolved) -> dict:
+def phase_ac2_baseline(resolved: Any) -> dict:
     """AC2 first leg: no synthetic samples -> every candidate price-fallback
     and the resolve's own sufficiency block says effective='price'."""
     cands = candidate_entries(resolved)
@@ -545,7 +547,7 @@ def phase_ac2_baseline(resolved) -> dict:
             'resolved_at': resolved.get('resolved_at')}
 
 
-def phase_ac2_measured(resolved, star) -> dict:
+def phase_ac2_measured(resolved: Any, star: Any) -> dict:
     """AC2 second leg: >= floor verified samples across >= coverage bar lanes
     -> the star lane reads ordering_basis='measured' and the head mode
     flips."""
@@ -567,7 +569,7 @@ def phase_ac2_measured(resolved, star) -> dict:
             'star_lane': band, 'resolved_at': resolved.get('resolved_at')}
 
 
-def run_ac3(prov_a, model_a, prov_b, model_b, requirements):
+def run_ac3(prov_a: Any, model_a: Any, prov_b: Any, model_b: Any, requirements: Any) -> dict[str, Any] | set[Any]:
     """AC3: a SOFT pair-local failure demotes ONLY (prov_a, model_a).
 
     Uses router_circuit.record_failure with the same class the proxy writes
@@ -583,7 +585,7 @@ def run_ac3(prov_a, model_a, prov_b, model_b, requirements):
     assert rc == 0, f'AC3: record_failure returned {rc}'
     after = resolve_chain(requirements, 'ac3-after')
 
-    def lanes(res, provider) -> set:
+    def lanes(res: Any, provider: Any) -> set:
         return {h.get('model') for h in (res.get('chain') or [])
                 if h.get('provider') == provider}
 
@@ -615,7 +617,7 @@ def run_ac3(prov_a, model_a, prov_b, model_b, requirements):
             'chain_length_after': len(after.get('chain') or [])}
 
 
-def run_ac4(provider, requirements):
+def run_ac4(provider: Any, requirements: Any) -> dict[str, Any] | set[Any]:
     """AC4: a HARD provider-wide failure (--provider-hard out_of_credit, the
     same record the proxy writes for a live 402) removes ALL lanes of that
     provider; the resolve continues on the next provider."""
@@ -627,7 +629,7 @@ def run_ac4(provider, requirements):
     assert rc == 0, f'AC4: record_failure returned {rc}'
     after = resolve_chain(requirements, 'ac4-after')
 
-    def provs(res) -> set:
+    def provs(res: Any) -> set:
         return {h.get('provider') for h in (res.get('chain') or [])}
 
     before_p, after_p = provs(before), provs(after)
@@ -654,7 +656,7 @@ def run_ac4(provider, requirements):
                 {'provider': p, 'model': m, 'why': w[:2]} for p, m, w in excl[:10]]}
 
 
-def build_artifacts(outdir, doc) -> None:
+def build_artifacts(outdir: Any, doc: Any) -> None:
     os.makedirs(outdir, exist_ok=True)
     for name, blob in doc.items():
         path = os.path.join(outdir, f'tr300-{name}.json')
@@ -663,7 +665,7 @@ def build_artifacts(outdir, doc) -> None:
         print(f'artifact: {path}')
 
 
-def main(argv=None) -> int:
+def main(argv: Any=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split('\n')[1])
     ap.add_argument('--out', default=DEFAULT_ARTIFACT_DIR,
                     help='artifact directory (default data/state/tr300)')

@@ -35,11 +35,13 @@ CLI:
                   flag exists for contract symmetry with the other tools)
 Exit: 0 always (estimate tool, fail-open), 2 on usage error (argparse).
 """
+from __future__ import annotations
 import argparse
 import json
 import os
 import subprocess
 import sys
+from typing import Any
 
 _HERE = os.path.dirname(os.path.realpath(__file__))
 _SPAWN = os.path.join(_HERE, 'router_spawn.py')
@@ -48,7 +50,7 @@ PY = sys.executable or 'python3'
 DEFAULT_TOKENS = 100000
 
 
-def resolve_chain(project):
+def resolve_chain(project: Any):
     """router_spawn.py <project> --format json → parsed doc (or error doc)."""
     try:
         proc = subprocess.run(
@@ -70,7 +72,7 @@ def resolve_chain(project):
     return doc
 
 
-def _plan_of(prov_row) -> tuple:
+def _plan_of(prov_row: Any) -> tuple:
     """(billing, plan_name) — providers.plan == 'PAYG' → metered per-token."""
     plan = prov_row.get('plan')
     if plan == 'PAYG':
@@ -78,7 +80,7 @@ def _plan_of(prov_row) -> tuple:
     return 'subscription', plan
 
 
-def _hop_cost(m, tin, tout) -> tuple:
+def _hop_cost(m: Any, tin: Any, tout: Any) -> tuple:
     """(cost_usd, basis, in_cost, out_cost) from a registry models row.
 
     Public in/out split is authoritative when known (matches the actual
@@ -99,7 +101,7 @@ def _hop_cost(m, tin, tout) -> tuple:
     return None, 'unpriced', None, None
 
 
-def estimate(project, tin, tout) -> dict:
+def estimate(project: Any, tin: Any, tout: Any) -> dict:
     doc = resolve_chain(project)
     if doc.get('error'):
         return {'project': project, 'tokens_in': tin, 'tokens_out': tout,
@@ -179,7 +181,7 @@ def estimate(project, tin, tout) -> dict:
     }
 
 
-def render_text(e):
+def render_text(e: Any):
     lines = []
     if e.get('error'):
         return f"ERROR: {e['error']}"
@@ -190,7 +192,7 @@ def render_text(e):
     if e.get('degraded_fallback'):
         lines.append('  (DEGRADED fallback chain)')
 
-    def line(p, tag) -> str:
+    def line(p: Any, tag: Any) -> str:
         if p is None:
             return '  (no hops)'
         cost = f"${p['cost_usd']:.4f}" if p['cost_usd'] is not None else 'UNPRICED'
@@ -215,7 +217,7 @@ def render_text(e):
     return '\n'.join(lines)
 
 
-def main(argv=None) -> int:
+def main(argv: Any=None) -> int:
     ap = argparse.ArgumentParser(
         description='Per-hop cost preview for a project chain (public prices)')
     # TR-059: the project can be given POSITIONALLY (`router estimate X`) or

@@ -38,19 +38,21 @@ Usage:
 
 Env for hermetic tests: ROUTER_HEALTH_URL overrides the default URL.
 """
+from __future__ import annotations
 import argparse
 import json
 import os
 import sys
 import urllib.error
 import urllib.request
+from typing import Any
 
 DEFAULT_URL = os.environ.get("ROUTER_HEALTH_URL", "http://127.0.0.1:9092")
 
 PASS, FAIL, CANNOT_RUN = 0, 1, 2
 
 
-def fetch_health(url, timeout) -> tuple:
+def fetch_health(url: Any, timeout: Any) -> tuple:
     """-> (payload, None) or (None, reason). Never raises."""
     target = url.rstrip("/") + "/health"
     try:
@@ -74,7 +76,7 @@ def fetch_health(url, timeout) -> tuple:
     return payload, None
 
 
-def judge(payload, max_age_h=None) -> tuple:
+def judge(payload: Any, max_age_h: Any=None) -> tuple:
     """-> (failures, observations). Pure function; the whole verdict lives here."""
     failures = []
     obs = {}
@@ -130,7 +132,7 @@ def judge(payload, max_age_h=None) -> tuple:
     return failures, obs
 
 
-def main(argv=None):
+def main(argv: Any=None):
     ap = argparse.ArgumentParser(
         description="Probe a task-router /health surface and exit non-zero "
                     "when the control plane is unhealthy")

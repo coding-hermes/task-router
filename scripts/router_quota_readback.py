@@ -42,6 +42,7 @@ Usage (manual verification CLI; the module itself is a library):
 
 No network calls anywhere: stdlib only (argparse/datetime/json/os/re/sys).
 """
+from __future__ import annotations
 
 import argparse
 import datetime
@@ -49,6 +50,7 @@ import json
 import os
 import re
 import sys
+from typing import Any
 
 DEFAULT_QUOTA_TABLE = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
@@ -155,7 +157,7 @@ HEADER_FALL_THROUGH = {
 _PROSE_HEADER_RE = re.compile(r"[A-Za-z][A-Za-z0-9]*(?:-[A-Za-z0-9]+)+")
 
 
-def _ci_headers(headers):
+def _ci_headers(headers: Any):
     """Case-insensitive view: {lower_name: (original_name, stripped_value)}."""
     view = {}
     for name, value in (headers or {}).items():
@@ -165,7 +167,7 @@ def _ci_headers(headers):
     return view
 
 
-def _num(raw):
+def _num(raw: Any) -> None | float | int:
     """Parse a header value as int-or-float; None when absent/unparseable."""
     if raw is None:
         return None
@@ -182,7 +184,7 @@ def _num(raw):
         return None
 
 
-def _flag(raw) -> bool | None:
+def _flag(raw: Any) -> bool | None:
     """Parse a true/false header value; None otherwise."""
     if raw is None:
         return None
@@ -195,17 +197,17 @@ def _flag(raw) -> bool | None:
 
 
 def _observation(
-    provider_id,
-    account,
-    window_kind,
-    remaining,
-    limit,
-    unit,
-    confidence,
-    mechanism,
-    seen_headers,
-    detail,
-    observed_at,
+    provider_id: Any,
+    account: Any,
+    window_kind: Any,
+    remaining: Any,
+    limit: Any,
+    unit: Any,
+    confidence: Any,
+    mechanism: Any,
+    seen_headers: Any,
+    detail: Any,
+    observed_at: Any,
 ) -> dict:
     """Build one spec §3 observation. Keys are exactly SPEC_OBSERVATION_KEYS."""
     source_detail = {"mechanism": mechanism, "headers": list(seen_headers)}
@@ -224,7 +226,7 @@ def _observation(
     }
 
 
-def read_anthropic_unified(headers, provider_id: str="unknown", account: str="default", observed_at=None):
+def read_anthropic_unified(headers: Any, provider_id: str="unknown", account: str="default", observed_at: Any=None):
     """anthropic-ratelimit-unified-* adapter (spec §3 rung 1).
 
     The -utilization headers carry a fraction of the window USED, not a
@@ -273,7 +275,7 @@ def read_anthropic_unified(headers, provider_id: str="unknown", account: str="de
     return observations
 
 
-def read_x_ratelimit(headers, provider_id: str="unknown", account: str="default", observed_at=None):
+def read_x_ratelimit(headers: Any, provider_id: str="unknown", account: str="default", observed_at: Any=None):
     """x-ratelimit-* family adapter (OpenAI/Groq/Fireworks-style).
 
     Emits one observation per window the present headers describe:
@@ -290,7 +292,7 @@ def read_x_ratelimit(headers, provider_id: str="unknown", account: str="default"
     ci = _ci_headers(headers)
     observations = []
 
-    def window(specs, window_kind, unit, extra_detail=None):
+    def window(specs: Any, window_kind: Any, unit: Any, extra_detail: Any=None) -> None | dict:
         """One observation from the present subset of a named header set.
 
         specs: (header_name, detail_label, kind) with kind "num" (parsed
@@ -450,7 +452,7 @@ def read_x_ratelimit(headers, provider_id: str="unknown", account: str="default"
     return observations
 
 
-def read_x_codex(headers, provider_id: str="unknown", account: str="default", observed_at=None):
+def read_x_codex(headers: Any, provider_id: str="unknown", account: str="default", observed_at: Any=None):
     """x-codex-* percent-style adapter (recorded live mechanism, openai-codex rows).
 
     Each positional window (primary, secondary) carries a used-percent on a
@@ -547,7 +549,7 @@ def read_x_codex(headers, provider_id: str="unknown", account: str="default", ob
     return observations
 
 
-def read_retry_after(headers, provider_id: str="unknown", account: str="default", observed_at=None) -> list:
+def read_retry_after(headers: Any, provider_id: str="unknown", account: str="default", observed_at: Any=None) -> list:
     """retry-after adapter — the single throttle header (spec §3 rung 1).
 
     An observation may carry ONLY retry-after with a reset hint: the 429 does
@@ -592,7 +594,7 @@ MECHANISM_ADAPTERS = (
 )
 
 
-def load_known_header_names(quota_table=DEFAULT_QUOTA_TABLE):
+def load_known_header_names(quota_table: Any=DEFAULT_QUOTA_TABLE) -> frozenset[Any]:
     """Header names recognized as quota signals, from the L0 table.
 
     Reads every readback_kind == "header" row of provider_quota.jsonl and
@@ -643,7 +645,7 @@ def load_known_header_names(quota_table=DEFAULT_QUOTA_TABLE):
 _KNOWN_NAMES_CACHE = {}
 
 
-def known_header_names(quota_table=DEFAULT_QUOTA_TABLE):
+def known_header_names(quota_table: Any=DEFAULT_QUOTA_TABLE):
     """Mechanism vocabularies (spec/table) UNION table-declared names, cached."""
     key = os.path.realpath(quota_table or "")
     if key not in _KNOWN_NAMES_CACHE:
@@ -656,12 +658,12 @@ def known_header_names(quota_table=DEFAULT_QUOTA_TABLE):
 
 
 def read_observation(
-    provider_id,
-    headers,
+    provider_id: Any,
+    headers: Any,
     account: str="default",
-    known_names=None,
-    now=None,
-    quota_table=DEFAULT_QUOTA_TABLE,
+    known_names: Any=None,
+    now: Any=None,
+    quota_table: Any=DEFAULT_QUOTA_TABLE,
 ) -> tuple:
     """Ladder rung 1: try every header mechanism against this response.
 
@@ -703,7 +705,7 @@ def read_observation(
     return [], fall_through
 
 
-def _main(argv=None) -> int:
+def _main(argv: Any=None) -> int:
     parser = argparse.ArgumentParser(
         description="Quota L1 rung-1 header readback: observations from recorded response headers."
     )

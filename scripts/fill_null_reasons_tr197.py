@@ -40,12 +40,14 @@ data/null_reasons.jsonl (for stamps) are skipped, so a re-run writes nothing
 new. R4 (no anonymous dates): every overlay row carries lifecycle_source +
 lifecycle_checked_at.
 """
+from __future__ import annotations
 
 import argparse
 import collections
 import json
 import os
 import sys
+from typing import Any
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TABLES = os.path.join(REPO, "data", "tables")
@@ -54,7 +56,7 @@ STAMP_PATH = os.path.join(REPO, "data", "null_reasons.jsonl")
 TODAY = "2026-10-01"
 
 
-def load(name):
+def load(name: Any):
     out = []
     with open(os.path.join(TABLES, name), errors="replace") as f:
         for line in f:
@@ -63,7 +65,7 @@ def load(name):
     return out
 
 
-def is_live(r):
+def is_live(r: Any) -> bool:
     return not r.get("archive") and not r.get("disabled") and not r.get("valid_to")
 
 
@@ -77,7 +79,7 @@ LIVE = {k: r for k, r in BY_LANE.items() if is_live(r)}
 _ctx_fills = {}
 
 
-def _ctx_twin(model, value, note) -> None:
+def _ctx_twin(model: Any, value: Any, note: Any) -> None:
     _ctx_fills[("clinepass", model)] = (
         value,
         "sibling-lane consensus: %s carries context_limit=%s on the twin "
@@ -258,7 +260,7 @@ _arch_targets = [k for k, r in LIVE.items() if r.get("archive") is None]
 STAMPS = collections.OrderedDict()
 
 
-def _stamp(prov, model, fields, reason, evidence) -> None:
+def _stamp(prov: Any, model: Any, fields: Any, reason: Any, evidence: Any) -> None:
     for f in fields:
         STAMPS[(prov, model, f)] = (reason, evidence)
 
@@ -470,7 +472,7 @@ def stamp_rows():
     return rows
 
 
-def existing(path, keyf):
+def existing(path: Any, keyf: Any):
     out = set()
     if os.path.exists(path):
         for line in open(path, errors="replace"):
@@ -511,7 +513,7 @@ def main():
         STAMP_PATH, lambda r: (r.get("provider"), r.get("model"), r.get("field"))
     )
 
-    def _undone(row):
+    def _undone(row: Any):
         key = (row["provider"], row["model"])
         have = done_fields.get(key, set())
         return any(

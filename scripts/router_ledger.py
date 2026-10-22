@@ -34,12 +34,14 @@ Failure mode: appends are open(...,'a') + single write; any append error exits
 non-zero on ITS stderr but the CALLER (scheduler) must treat ledger failures as
 non-fatal — it still spawns. Missing file/dir is fine for status/read paths.
 """
+from __future__ import annotations
 import argparse
 import datetime
 import json
 import os
 import sys
 import uuid
+from typing import Any
 
 SCHEMA_V2_FIELDS = (
     "ts", "project", "profile", "archetype", "provider", "model",
@@ -72,7 +74,7 @@ def _now_iso():
     )
 
 
-def _parse_utc(ts):
+def _parse_utc(ts: Any):
     try:
         dt = datetime.datetime.fromisoformat(str(ts))
         if dt.tzinfo is None:
@@ -82,7 +84,7 @@ def _parse_utc(ts):
         return None
 
 
-def _append(row) -> None:
+def _append(row: Any) -> None:
     """Atomic-enough single-line append (open+write+\n). Creates dirs/file."""
     path = _ledger_path()
     d = os.path.dirname(path)
@@ -92,7 +94,7 @@ def _append(row) -> None:
         f.write(json.dumps(row) + "\n")
 
 
-def _read_rows(path):
+def _read_rows(path: Any):
     try:
         with open(path) as f:
             for line in f:
@@ -112,13 +114,13 @@ def _read_rows(path):
               file=sys.stderr)
 
 
-def _subset(fields) -> dict:
+def _subset(fields: Any) -> dict:
     # also treat "" as unset — a CLI flag given as an empty string means
     # "not provided", never fabricate a field for it
     return {k: v for k, v in fields.items() if v is not None and v != ""}
 
 
-def cmd_start(args) -> int:
+def cmd_start(args: Any) -> int:
     tid = args.trace_id or ("tr-" + uuid.uuid4().hex[:8])
     served_pair = f"{args.provider}/{args.model}"
     row = _subset({
@@ -140,7 +142,7 @@ def cmd_start(args) -> int:
     return 0
 
 
-def cmd_end(args) -> int:
+def cmd_end(args: Any) -> int:
     if args.outcome not in OUTCOMES:
         print(f"router_ledger: invalid --outcome {args.outcome!r} "
               f"(must be one of {'|'.join(OUTCOMES)})", file=sys.stderr)
@@ -170,7 +172,7 @@ def cmd_end(args) -> int:
     return 0
 
 
-def cmd_status(args) -> int:
+def cmd_status(args: Any) -> int:
     # Traces are reconstructed by trace_id across ALL rows (terminal rows carry
     # no provider/model): last outcome decides flight state, pair comes from
     # whichever row carries one. Mirrors router_spawn.ledger_in_flight exactly.
@@ -254,7 +256,7 @@ def cmd_status(args) -> int:
     return 0
 
 
-def main(argv=None) -> None:
+def main(argv: Any=None) -> None:
     ap = argparse.ArgumentParser(
         description="task-router spawn ledger — start/end/status (TR-007)"
     )

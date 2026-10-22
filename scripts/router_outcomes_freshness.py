@@ -22,11 +22,13 @@ Output:
   BREACH: N of M present sources ...      (then one `  - <source>: ...` line each)
 Exit: 0 healthy, 1 breach, 2 the store/probe itself could not be read.
 """
+from __future__ import annotations
 import json
 import os
 import sqlite3
 import sys
 import time
+from typing import Any
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -39,7 +41,7 @@ OPENCODE_DB = '~/.local/share/opencode/opencode.db'
 OPENCLAW_DIR = '~/.openclaw'
 
 
-def _epoch(v):
+def _epoch(v: Any):
     """Normalize a source timestamp to seconds (opencode stores milliseconds)."""
     if v is None:
         return None
@@ -128,7 +130,7 @@ SOURCES = {
 }
 
 
-def store_newest_by_source(store_path):
+def store_newest_by_source(store_path: Any):
     """Newest `ts` per source_system in the store. Never crashes on a bad line."""
     newest = {}
     with open(store_path, encoding='utf-8', errors='replace') as fh:
@@ -149,7 +151,7 @@ def store_newest_by_source(store_path):
     return newest
 
 
-def check(store_path=None, budget_h=None, now_s=None, sources=None) -> dict:
+def check(store_path: Any=None, budget_h: Any=None, now_s: Any=None, sources: Any=None) -> dict:
     """Returns a dict: verdict, present, absent, breaches, per-source detail."""
     import router_outcomes as ro
     store_path = store_path or ro.outcomes_path()
@@ -189,12 +191,12 @@ def check(store_path=None, budget_h=None, now_s=None, sources=None) -> dict:
             'store': store_path}
 
 
-def _ago(ts, now_s) -> str:
+def _ago(ts: Any, now_s: Any) -> str:
     h = (now_s - ts) / 3600.0
     return f'{h:.2f}h ago'
 
 
-def main(argv=None) -> int:
+def main(argv: Any=None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
     budget = os.environ.get('OUTCOMES_FRESHNESS_MAX_AGE_H')
     try:

@@ -7,6 +7,7 @@ Usage: python3 mutate_quota_red.py <tables-dir> [arm]
   arm 3: grok-build pool row back to plain account scope [pool-vs-account]
   arm 4: strip source from row 47 (openai-codex window)  [source rejection]
 """
+from __future__ import annotations
 
 import json
 import sys

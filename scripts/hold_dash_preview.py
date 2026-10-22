@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Can the dashboard Bane describes be built from data we already have?
 Join: registry (models/prices/context) x health-state (up-down/latency) x averages (tokens/cost/wall)."""
+from __future__ import annotations
 import json, os, collections
 
 TR = os.path.dirname(os.path.abspath(__file__)) + '/..'

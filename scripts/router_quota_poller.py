@@ -55,6 +55,7 @@ Integration: run `poll --all` from cron/tick on the quota cadence; the spawn
 path stays untouched (fail-open is sacred — this module is diagnostic and never
 gates anything by itself).
 """
+from __future__ import annotations
 from typing import NoReturn
 import argparse
 import datetime
@@ -64,6 +65,7 @@ import sys
 import tempfile
 import urllib.error
 import urllib.request
+from typing import Any
 
 _HERE = os.path.dirname(os.path.realpath(__file__))
 _REPO = os.path.dirname(_HERE)
@@ -100,7 +102,7 @@ def state_dir():
                           os.path.expanduser("~/.hermes/model-router"))
 
 
-def cache_path(state_dir_arg=None):
+def cache_path(state_dir_arg: Any=None):
     d = state_dir_arg or state_dir()
     return os.path.join(d, CACHE_FILE)
 
@@ -124,17 +126,17 @@ def endpoints_table_path():
 # Data table (AC2) — method+URL+fields come from here, validated loudly
 # ---------------------------------------------------------------------------
 
-def _fail(msg) -> NoReturn:
+def _fail(msg: Any) -> NoReturn:
     print(f"router_quota_poller: {msg}", file=sys.stderr)
     raise SystemExit(2)
 
 
-def _iso_date(v):
+def _iso_date(v: Any):
     datetime.date.fromisoformat(v)  # raises on malformed
     return v
 
 
-def load_endpoints(path=None):
+def load_endpoints(path: Any=None):
     """Parse + validate the table. A malformed row is a DATA bug: refuse
     loudly (exit 2) rather than silently skipping — this is config, not the
     spawn path, so strictness beats fail-open here."""
@@ -159,21 +161,21 @@ def load_endpoints(path=None):
     return rows
 
 
-def _require(r, key, where):
+def _require(r: Any, key: Any, where: Any):
     v = r.get(key)
     if not isinstance(v, str) or not v.strip():
         _fail(f"{where}: field {key!r} must be a non-empty string")
     return v
 
 
-def _absent(r, key, where) -> None:
+def _absent(r: Any, key: Any, where: Any) -> None:
     if key in r and r[key] not in (None, ""):
         _fail(f"{where}: field {key!r} must be ABSENT on a "
               f"status={r.get('status')!r} row (present-but-null fields are "
               f"junk; omit the key instead)")
 
 
-def _validate_row(r, where) -> None:
+def _validate_row(r: Any, where: Any) -> None:
     if not isinstance(r, dict):
         _fail(f"{where}: row must be a JSON object")
     _require(r, "provider_id", where)
@@ -215,7 +217,7 @@ def _validate_row(r, where) -> None:
             _absent(r, k, where)
 
 
-def rows_for(rows, provider) -> list:
+def rows_for(rows: Any, provider: Any) -> list:
     return [r for r in rows if r["provider_id"] == provider]
 
 
@@ -224,7 +226,7 @@ def rows_for(rows, provider) -> list:
 # (the field is omitted), never None, never a guess.
 # ---------------------------------------------------------------------------
 
-def _parse_path(p):
+def _parse_path(p: Any):
     segs = []
     for part in p.split("."):
         name, idx = part, None
@@ -235,7 +237,7 @@ def _parse_path(p):
     return segs
 
 
-def extract(doc, path) -> tuple:
+def extract(doc: Any, path: Any) -> tuple:
     """-> (True, value) | (False, None). Never raises on a shape mismatch."""
     cur = doc
     for name, idx in _parse_path(path):
@@ -249,7 +251,7 @@ def extract(doc, path) -> tuple:
     return True, cur
 
 
-def extract_fields(doc, mapping) -> tuple:
+def extract_fields(doc: Any, mapping: Any) -> tuple:
     out, found = {}, 0
     for name, path in mapping.items():
         ok, v = extract(doc, path)
@@ -264,32 +266,32 @@ def extract_fields(doc, mapping) -> tuple:
 # ---------------------------------------------------------------------------
 
 class PollError(Exception):
-    def __init__(self, basis, detail: str="", http_status=None) -> None:
+    def __init__(self, basis: Any, detail: str="", http_status: Any=None) -> None:
         super().__init__(detail or basis)
         self.basis = basis
         self.detail = detail
         self.http_status = http_status
 
 
-def _open(req, timeout):  # seam for tests (monkeypatch this)
+def _open(req: Any, timeout: Any):  # seam for tests (monkeypatch this)
     return urllib.request.urlopen(req, timeout=timeout)
 
 
-def _scrub(text, key):
+def _scrub(text: Any, key: Any):
     """AC3: an echoed provider error must never carry the key value."""
     if key and text:
         return text.replace(key, "<redacted>")
     return text
 
 
-def _read_bounded(fp):
+def _read_bounded(fp: Any):
     body = fp.read(MAX_BODY + 1)
     if len(body) > MAX_BODY:
         raise PollError("body-too-large", f"response body exceeds {MAX_BODY}B")
     return body
 
 
-def fetch_json(url, method, key, timeout_s=TIMEOUT_S):
+def fetch_json(url: Any, method: Any, key: Any, timeout_s: Any=TIMEOUT_S):
     """One bounded request. Returns parsed JSON. Raises PollError with a basis
     from the finite vocabulary. The key is used ONLY in the Authorization
     header; it never reaches an exception message, log line, or the cache."""
@@ -323,7 +325,7 @@ def fetch_json(url, method, key, timeout_s=TIMEOUT_S):
 # Cache (explicit path under the shared state dir; atomic replace)
 # ---------------------------------------------------------------------------
 
-def load_cache(path):
+def load_cache(path: Any):
     try:
         with open(path) as f:
             doc = json.load(f)
@@ -334,7 +336,7 @@ def load_cache(path):
     return {"version": CACHE_VERSION, "updated": None, "providers": {}}
 
 
-def save_cache(path, doc) -> None:
+def save_cache(path: Any, doc: Any) -> None:
     doc["updated"] = _now_iso()
     d = os.path.dirname(path)
     if d:
@@ -357,7 +359,7 @@ def _now_iso():
         timespec="seconds")
 
 
-def _parse_utc(ts):
+def _parse_utc(ts: Any):
     try:
         dt = datetime.datetime.fromisoformat(str(ts))
         if dt.tzinfo is None:
@@ -367,7 +369,7 @@ def _parse_utc(ts):
         return None
 
 
-def _age_s(row):
+def _age_s(row: Any):
     ts = _parse_utc(row.get("fetched_at"))
     if ts is None:
         return None
@@ -378,7 +380,7 @@ def _age_s(row):
 # Poll
 # ---------------------------------------------------------------------------
 
-def poll_row(row, cache, interval_s, force) -> tuple:
+def poll_row(row: Any, cache: Any, interval_s: Any, force: Any) -> tuple:
     """-> (output_row, cache_dirty). Never raises; never fabricates a number."""
     provider = row["provider_id"]
     eid = row["endpoint_id"]
@@ -451,7 +453,7 @@ def poll_row(row, cache, interval_s, force) -> tuple:
     return out, True
 
 
-def run_poll(providers_arg, interval_s, force, as_json, state_dir_arg=None) -> int:
+def run_poll(providers_arg: Any, interval_s: Any, force: Any, as_json: Any, state_dir_arg: Any=None) -> int:
     rows = load_endpoints()
     if providers_arg:
         wanted = []
@@ -501,7 +503,7 @@ def run_poll(providers_arg, interval_s, force, as_json, state_dir_arg=None) -> i
     return 0
 
 
-def run_show(provider, as_json, state_dir_arg=None) -> int:
+def run_show(provider: Any, as_json: Any, state_dir_arg: Any=None) -> int:
     cache = load_cache(cache_path(state_dir_arg))
     provs = cache["providers"]
     if provider:
@@ -530,7 +532,7 @@ def run_show(provider, as_json, state_dir_arg=None) -> int:
 # CLI
 # ---------------------------------------------------------------------------
 
-def _interval(argv_val):
+def _interval(argv_val: Any):
     if argv_val is not None:
         return argv_val
     try:
@@ -539,7 +541,7 @@ def _interval(argv_val):
         return DEFAULT_INTERVAL_S
 
 
-def main(argv=None) -> None:
+def main(argv: Any=None) -> None:
     ap = argparse.ArgumentParser(
         description="usage/balance endpoint poller — bounded, cached (TR-208)"
     )

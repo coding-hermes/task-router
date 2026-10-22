@@ -16,6 +16,7 @@ Scope, and why it is safe to re-run:
 Default is a DRY RUN. `--apply` writes the file atomically after taking a timestamped backup, and
 refuses to run while the store's mtime changes under it (a live proxy append would be clobbered).
 """
+from __future__ import annotations
 import argparse
 import json
 import os

@@ -39,6 +39,7 @@ This script never edits the probe script.
 Exit codes: 0 always (pipeline step; findings are data, not failures). Use
 --dry-run to see what WOULD be written without writing.
 """
+from __future__ import annotations
 import argparse
 import json
 import os
@@ -46,6 +47,7 @@ import re
 import sys
 import urllib.request
 import urllib.error
+from typing import Any
 
 MR = os.environ.get('ROUTER_STATE_DIR', os.path.expanduser('~/.hermes/model-router'))
 HEALTH_JSONL = f'{MR}/health.jsonl'
@@ -103,7 +105,7 @@ def load_providers() -> tuple:
     return provs, disabled
 
 
-def load_rows(fname):
+def load_rows(fname: Any):
     rows = []
     path = os.path.join(DATA_DIR, fname)
     if os.path.exists(path):
@@ -164,7 +166,7 @@ def load_probe_explanations():
     return out
 
 
-def explain(prov, model, error, explanations) -> tuple | None:
+def explain(prov: Any, model: Any, error: Any, explanations: Any) -> tuple | None:
     """-> (rule, detail) when a provider_rules contract explains this failure."""
     for rx, rule, detail in explanations.get(prov, []):
         if rx.search(error or ''):
@@ -172,13 +174,13 @@ def explain(prov, model, error, explanations) -> tuple | None:
     return None
 
 
-def append_row(fname, row) -> None:
+def append_row(fname: Any, row: Any) -> None:
     path = os.path.join(DATA_DIR, fname)
     with open(path, 'a') as f:
         f.write(json.dumps(row) + '\n')
 
 
-def scan_health(runs):
+def scan_health(runs: Any):
     """health.jsonl -> {(provider, model): {'error':..., 'ts':...}} for DOWN
     rows whose error matches the invalid-model-id pattern (latest wins)."""
     fails = {}
@@ -200,7 +202,7 @@ def scan_health(runs):
     return fails
 
 
-def normalize(s):
+def normalize(s: Any):
     """Lowercase, strip hf:/provider prefixes, keep alnum + slash + dot + colon."""
     s = (s or '').strip().lower()
     s = re.sub(r'^hf:', '', s)
@@ -209,7 +211,7 @@ def normalize(s):
     return re.sub(r'[^a-z0-9/._-]', '', s)
 
 
-def fetch_live_catalog(prov, row, env) -> list | None:
+def fetch_live_catalog(prov: Any, row: Any, env: Any) -> list | None:
     """GET {base}/models with the provider key. Returns list of ids or None."""
     base, key_env = row.get('base_url'), row.get('key_env')
     if not base or not key_env:
@@ -235,7 +237,7 @@ def fetch_live_catalog(prov, row, env) -> list | None:
         return None
 
 
-def fetch_modelsdev_ids(prov):
+def fetch_modelsdev_ids(prov: Any):
     try:
         cache = json.load(open(MODELSDEV_CACHE))
     except Exception:
@@ -249,13 +251,13 @@ def fetch_modelsdev_ids(prov):
     return out or None
 
 
-def version_family(a, b):
+def version_family(a: Any, b: Any) -> bool:
     """True when a and b share a stem and differ only in version digits
     (qwen3.6-27b vs qwen3.8-27b)."""
     return re.sub(r'\d+', '#', a) == re.sub(r'\d+', '#', b) and a != b
 
 
-def live_serves(live, model) -> bool:
+def live_serves(live: Any, model: Any) -> bool:
     """Exact id or normalized-equal id present in the provider's live catalog."""
     if not live:
         return False
@@ -268,7 +270,7 @@ def live_serves(live, model) -> bool:
     return False
 
 
-def resolve(prov, model, error, providers, env) -> tuple:
+def resolve(prov: Any, model: Any, error: Any, providers: Any, env: Any) -> tuple:
     """-> ('skip', reason, None) | ('fix', fix_to, via) | ('stuck', None, None)
     | ('gap', candidate, None) | ('unexplained', None, None)."""
     fixes = {(r['provider'], r['model']) for r in load_rows('probe_fixes.jsonl')}
@@ -335,7 +337,7 @@ def resolve(prov, model, error, providers, env) -> tuple:
     return ('unexplained', None, None)
 
 
-def sync_providers(env, dry_run):
+def sync_providers(env: Any, dry_run: Any):
     """config.yaml custom_providers + fallback_providers -> probe_providers.jsonl
     additions (never removes/edits existing rows). Regex parse — stdlib only."""
     try:
@@ -376,7 +378,7 @@ def sync_providers(env, dry_run):
     return added
 
 
-def main(argv=None) -> int:
+def main(argv: Any=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument('--runs', type=int, default=48, help='health.jsonl runs to scan (default 48)')
     ap.add_argument('--dry-run', action='store_true', help='print findings, write nothing')

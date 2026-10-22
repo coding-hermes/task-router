@@ -75,6 +75,7 @@ CLI
                           [--ts-max EPOCH] [--relax cat:level ...|off]
 Exit 0 always (reporting tool).
 """
+from __future__ import annotations
 import argparse
 import collections
 import json
@@ -312,7 +313,7 @@ def _src(ev, name):
     return (ev or {}).get('sources', {}).get(name, 0)
 
 
-def why_thin(cat, ev, n_registry, clearing, hardest):
+def why_thin(cat, ev, n_registry, clearing, hardest) -> str:
     """Measured (never guessed) statement of WHY a category's coverage is thin.
 
     Every clause is a count from tables.model_perf / the coverage table —

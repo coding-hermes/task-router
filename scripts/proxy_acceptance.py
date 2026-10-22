@@ -31,6 +31,7 @@ import time
 import urllib.error
 import urllib.request
 from pathlib import Path
+from typing import Any
 
 REPO = Path(__file__).resolve().parents[1]
 PROXY = os.environ.get("ROUTER_PROXY_URL", "http://127.0.0.1:9391")
@@ -42,7 +43,7 @@ PROOF_LONG_RUN = Path("/tmp/idle_proof.json")
 RESULTS: list[dict] = []
 
 
-def record(gate, ok, detail, measurement=None, skipped=None) -> None:
+def record(gate: Any, ok: Any, detail: Any, measurement: Any=None, skipped: Any=None) -> None:
     RESULTS.append({"gate": gate, "status": "SKIP" if skipped else ("PASS" if ok else "FAIL"),
                     "detail": detail, "measurement": measurement})
     tag = "SKIP" if skipped else ("PASS" if ok else "FAIL")
@@ -61,7 +62,7 @@ def gateway_key():
     return ""
 
 
-def post(path, body, headers=None, timeout: int=240) -> tuple:
+def post(path: Any, body: Any, headers: Any=None, timeout: int=240) -> tuple:
     req = urllib.request.Request(PROXY + path, data=json.dumps(body).encode(),
                                  headers={"content-type": "application/json", **(headers or {})},
                                  method="POST")
@@ -72,7 +73,7 @@ def post(path, body, headers=None, timeout: int=240) -> tuple:
         return e.code, e.read(), dict(e.headers)
 
 
-def get(url, timeout: int=60) -> tuple:
+def get(url: Any, timeout: int=60) -> tuple:
     try:
         with urllib.request.urlopen(url, timeout=timeout) as r:
             return r.status, r.read(), dict(r.headers)
@@ -80,7 +81,7 @@ def get(url, timeout: int=60) -> tuple:
         return e.code, e.read(), dict(e.headers)
 
 
-def ledger_rows_since(ts, proxy_only: bool=False):
+def ledger_rows_since(ts: Any, proxy_only: bool=False):
     out = []
     if not LEDGER.exists():
         return out
@@ -245,7 +246,7 @@ def gate_health_truth() -> None:
            {"loaded": loaded, "head": head, "stale": h.get("stale")})
 
 
-def gate_stats_live(before_ts, expect_increase: bool=True) -> None:
+def gate_stats_live(before_ts: Any, expect_increase: bool=True) -> None:
     status, raw, _ = get(PROXY + "/proxy/stats")
     try:
         s = json.loads(raw)
@@ -261,7 +262,7 @@ def gate_stats_live(before_ts, expect_increase: bool=True) -> None:
            {"matched": matched, "groups": len(w.get("groups") or {}), "scanned": w.get("rows_scanned")})
 
 
-def gate_custody(session_from_shape) -> None:
+def gate_custody(session_from_shape: Any) -> None:
     """envelope session ids must match the ledger row, and Hermes must have the session."""
     if not session_from_shape:
         record("custody_chain", False, "no session id captured from the shape gate")
@@ -314,7 +315,7 @@ def gate_pointer_alignment() -> None:
            {"idle_budget_s": idle, "wall_ceiling_s": wall, "caller_tolerance_s": sched_tolerance})
 
 
-def gate_long_run(with_long_run) -> None:
+def gate_long_run(with_long_run: Any) -> None:
     """The shape that died at 305s: a turn whose tool runs quietly."""
     global PROOF_LONG_RUN
     if not with_long_run:
@@ -352,7 +353,7 @@ def gate_long_run(with_long_run) -> None:
            {"status": status, "wall_s": round(wall, 1), "fresh_run": True})
 
 
-def post_web(path, body, timeout: int=60) -> tuple:
+def post_web(path: Any, body: Any, timeout: int=60) -> tuple:
     req = urllib.request.Request(WEB + path, data=json.dumps(body).encode(),
                                  headers={"content-type": "application/json"}, method="POST")
     try:

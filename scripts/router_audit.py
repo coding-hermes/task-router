@@ -16,11 +16,13 @@ Usage:
 Exit: 0 = every active priced lane has coverage and provenance;
       2 = uncovered lanes and/or tier rows missing provenance (--no-fail: 0).
 """
+from __future__ import annotations
 import argparse
 import json
 import os
 import sys
 from collections import Counter, defaultdict
+from typing import Any
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PROVENANCE = ('measured', 'bench', 'family', 'estimate')
@@ -30,12 +32,12 @@ def registry_path():
     return os.environ.get('ROUTING_REGISTRY') or os.path.join(REPO, 'registry.json')
 
 
-def load_tables(path=None):
+def load_tables(path: Any=None):
     with open(path or registry_path()) as f:
         return json.load(f).get('tables', {})
 
 
-def active_lanes(tables):
+def active_lanes(tables: Any):
     """Lanes the router could select: live, not archived, not disabled, priced."""
     out = []
     for m in tables.get('models') or []:
@@ -48,7 +50,7 @@ def active_lanes(tables):
     return out
 
 
-def category_universe(tables) -> list:
+def category_universe(tables: Any) -> list:
     """Categories any profile can require — the vocabulary that decides
     eligibility. Data-driven: never a hardcoded category list."""
     cats = {r.get('category') for r in tables.get('task_profile_requirements') or []
@@ -56,7 +58,7 @@ def category_universe(tables) -> list:
     return sorted(cats)
 
 
-def lane_report(tables, lane, universe, tiers_by_model, profile_reqs) -> dict:
+def lane_report(tables: Any, lane: Any, universe: Any, tiers_by_model: Any, profile_reqs: Any) -> dict:
     model = lane.get('model')
     rows = tiers_by_model.get(model, [])
     covered = {r['category'] for r in rows}
@@ -86,7 +88,7 @@ def lane_report(tables, lane, universe, tiers_by_model, profile_reqs) -> dict:
     }
 
 
-def audit_tiers(tables, provider=None) -> dict:
+def audit_tiers(tables: Any, provider: Any=None) -> dict:
     universe = category_universe(tables)
     tiers_by_model = defaultdict(list)
     unprovenanced = 0

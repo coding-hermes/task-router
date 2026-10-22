@@ -25,12 +25,14 @@ Design constraints (matching the repo's rules):
 Scale: `criteria` fixes the scale for JEV, so the same request shape can be
 run as 0..2 (default, 1 = middle) or 0..4 etc. by editing BAND data + criteria.
 """
+from __future__ import annotations
 import json
 import os
 import re
 import sys
 import urllib.error
 import urllib.request
+from typing import Any
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BANDS_PATH = os.path.join(REPO, 'data', 'classifier', 'jev-bands.jsonl')
@@ -45,7 +47,7 @@ HARDNESS_CRITERIA = ['0 = trivial, one obvious edit',
 
 # ------------------------------------------------------------------ keys ---
 
-def _env_file_keys(names):
+def _env_file_keys(names: Any):
     """Read the NAMED keys from ~/.hermes/.env. Never returns, logs or prints
     anything else from that file."""
     out = []
@@ -85,7 +87,7 @@ def key_candidates():
 
 # ----------------------------------------------------------------- bands ---
 
-def load_bands(path=None):
+def load_bands(path: Any=None):
     """[{band, score_min, score_max, title, levels, note}] from DATA."""
     rows = []
     with open(path or BANDS_PATH) as fh:
@@ -97,7 +99,7 @@ def load_bands(path=None):
     return rows
 
 
-def band_for(score, bands=None):
+def band_for(score: Any, bands: Any=None):
     """The band whose [score_min, score_max) contains score; the LAST band
     closes its range so a clamped top score still lands."""
     bands = bands if bands is not None else load_bands()
@@ -110,7 +112,7 @@ def band_for(score, bands=None):
     return bands[-1] if score > bands[-1]['score_max'] else bands[0]
 
 
-def data_categories(path=None) -> list:
+def data_categories(path: Any=None) -> list:
     """Category vocabulary from the LEVEL DATA file (data/tables/category_levels.jsonl).
 
     Fallback used when the registry-derived vocabulary is unavailable (e.g. a
@@ -133,7 +135,7 @@ def data_categories(path=None) -> list:
     return sorted(cats)
 
 
-def score_to_matrix(score, bands=None, categories=None) -> tuple:
+def score_to_matrix(score: Any, bands: Any=None, categories: Any=None) -> tuple:
     """(matrix, band, problems) — the SAME matrix shape the classifier returns
     (category -> signed level, -5..+5). Validated through router_classify's own
     validator so both scorers cannot drift apart.
@@ -180,7 +182,7 @@ def score_to_matrix(score, bands=None, categories=None) -> tuple:
 
 # ------------------------------------------------------------------- JEV ---
 
-def _http(url, payload, headers, timeout) -> tuple:
+def _http(url: Any, payload: Any, headers: Any, timeout: Any) -> tuple:
     req = urllib.request.Request(url, data=json.dumps(payload).encode(),
                                  headers=headers, method='POST')
     try:
@@ -192,7 +194,7 @@ def _http(url, payload, headers, timeout) -> tuple:
         return 0, str(exc)[:200]
 
 
-def ask_hardness(state, http=None, timeout: int=90, criteria=None, model=None):
+def ask_hardness(state: Any, http: Any=None, timeout: int=90, criteria: Any=None, model: Any=None):
     """One JEV request → dict(score, confidence, probabilities, legend, cost,
     model, problems). Fail-closed: keys are tried in order, every failure is
     reported, and a malformed answer is a problem — never a default score."""
@@ -226,7 +228,7 @@ def ask_hardness(state, http=None, timeout: int=90, criteria=None, model=None):
     return out
 
 
-def classify(text, http=None, bands=None, timeout: int=90, categories=None):
+def classify(text: Any, http: Any=None, bands: Any=None, timeout: int=90, categories: Any=None):
     """Drop-in peer of router_classify.classify: same result keys so the proxy
     can swap scorers without branching downstream."""
     out = {'scorer': 'jev', 'model': JEV_MODEL, 'matrix': None, 'complexity_sig': None,
@@ -261,7 +263,7 @@ def classify(text, http=None, bands=None, timeout: int=90, categories=None):
     return out
 
 
-def main(argv=None) -> int:
+def main(argv: Any=None) -> int:
     import argparse
     ap = argparse.ArgumentParser(description=__doc__.split('\n')[1])
     ap.add_argument('--text')

@@ -24,6 +24,7 @@ import json
 import os
 import time
 from pathlib import Path
+from typing import Any
 
 REPO = Path(__file__).resolve().parents[1]
 LEDGER = REPO / "data" / "state" / "outcomes.jsonl"
@@ -97,9 +98,9 @@ def _match(d: dict, q: str | None, flt: dict) -> bool:
     return True
 
 
-def ledger_search(q=None, outcome=None, source=None, provider=None, model=None,
-                  band=None, since=None, until=None, sort: str="ts", desc: bool=True,
-                  limit=DEFAULT_LIMIT, offset: int=0, path: Path = LEDGER) -> dict:
+def ledger_search(q: Any=None, outcome: Any=None, source: Any=None, provider: Any=None, model: Any=None,
+                  band: Any=None, since: Any=None, until: Any=None, sort: str="ts", desc: bool=True,
+                  limit: Any=DEFAULT_LIMIT, offset: int=0, path: Path = LEDGER) -> dict:
     """Search the outcome ledger. Honest about the window it read."""
     try:
         limit = max(1, min(int(limit), PAGE_CEILING))
@@ -130,7 +131,7 @@ def ledger_search(q=None, outcome=None, source=None, provider=None, model=None,
         rows.append(d)
 
     if sort:
-        def key(d) -> tuple:
+        def key(d: Any) -> tuple:
             v = d.get(sort)
             if v is None:
                 # None sorts last regardless of direction, so a missing value can
@@ -174,7 +175,7 @@ def _cost_stats(rows: list[dict]) -> dict:
     return out
 
 
-def series(hours: int=24, bucket: str="hour", path: Path = LEDGER, now=None) -> dict:
+def series(hours: int=24, bucket: str="hour", path: Path = LEDGER, now: Any=None) -> dict:
     """Bucketed traffic: requests, unique lanes, tokens, cost, success rate, hops.
 
     Buckets with no traffic are omitted (never a fabricated zero line), and each
@@ -257,7 +258,7 @@ def _scan_proxy_rows(path: Path, since: float | None = None, until: float | None
             "proxy_rows_matched": len(rows)}
 
 
-def flow(key, path: Path = LEDGER) -> dict:
+def flow(key: Any, path: Path = LEDGER) -> dict:
     """The whole story of ONE request: rating -> chain -> hops -> served lane -> cost.
 
     Accepts a session_id (`router-proxy-…`) or a gateway session uuid. Unknown key
@@ -368,7 +369,7 @@ def hermes_session(gateway_session_id: str, db: Path | None = None) -> dict:
     return {"found": True, "session_id": r[0], "source": r[1], "model": r[2]}
 
 
-def board(search=None, status=None, priority=None, owner=None, limit: int=100, offset: int=0,
+def board(search: Any=None, status: Any=None, priority: Any=None, owner: Any=None, limit: int=100, offset: int=0,
           path: Path = BOARD) -> dict:
     """The router board: find tasks, their times, their rows. Read-only."""
     try:

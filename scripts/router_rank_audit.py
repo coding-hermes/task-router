@@ -29,12 +29,14 @@ Read-only. Exit 0 always (fail-open, like the rest of the router).
 Usage:
   ~/.hermes/venvs/board/bin/python3 scripts/router_rank_audit.py [--json]
 """
+from __future__ import annotations
 import argparse
 import collections
 import json
 import os
 import re
 import sys
+from typing import Any
 
 REPO = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 DATA_DIR = os.environ.get(
@@ -54,13 +56,13 @@ CREDENTIAL_BLOCKED = {
 
 
 
-def load(name) -> list:
+def load(name: Any) -> list:
     path = os.path.join(DATA_DIR, f'{name}.jsonl')
     with open(path, encoding='utf-8') as fh:
         return [json.loads(l) for l in fh if l.strip()]
 
 
-def state(m) -> str:
+def state(m: Any) -> str:
     if m.get('archive'):
         return 'archived'
     if m.get('valid_to'):
@@ -72,14 +74,14 @@ def state(m) -> str:
     return 'active'
 
 
-def norm_model(name):
+def norm_model(name: Any):
     n = str(name).lower().strip().lstrip('~')
     n = re.sub(r'^accounts/fireworks/(models|routers)/', '', n)
     n = re.sub(r'^[a-z0-9_.\-]+/', '', n)
     return re.sub(r':(free|batch|latest)$', '', n)
 
 
-def version(name):
+def version(name: Any) -> None | tuple[Any, ...]:
     """Order key from a version-ish token; snapshot dates fold in so 0731 < 0902.
     None when the id carries no version at all."""
     n = str(name).lower()
@@ -105,7 +107,7 @@ def version(name):
     return tuple(nums) if nums else None
 
 
-def family(name):
+def family(name: Any):
     n = norm_model(name)
     n = re.sub(r'[-_]?(20\d{2}[-_]?\d{2}[-_]?\d{2})', '', n)
     n = re.sub(r'[-_]?(0[1-9]|1[0-2])\d{2}\b', '', n)
@@ -114,7 +116,7 @@ def family(name):
     return re.sub(r'[-_]{2,}', '-', n).strip('-')
 
 
-def family_pairs(models, tiers) -> tuple:
+def family_pairs(models: Any, tiers: Any) -> tuple:
     """Order every (provider, family) sibling group into (old, new) pairs.
 
     ONE matcher, two consumers: this audit CLASSIFIES the pairs (inversions,
@@ -172,7 +174,7 @@ def family_pairs(models, tiers) -> tuple:
     return entries, unorderable
 
 
-def provenance_audit(models, perf, tiers, all_models=None) -> tuple:
+def provenance_audit(models: Any, perf: Any, tiers: Any, all_models: Any=None) -> tuple:
     """Find lanes whose rank rests on evidence too thin to rank them.
 
     Two live cases produced this: muse-spark-1.3 was effectively UNRANKED (1 of 24
@@ -227,7 +229,7 @@ def credential_block_reason(provider: str) -> str | None:
     return CREDENTIAL_BLOCKED.get(provider)
 
 
-def next_wave(models, tiers, perf, active):
+def next_wave(models: Any, tiers: Any, perf: Any, active: Any):
     """The actionable probe targets, so the loop is repeatable without hand-listing.
 
     Reachable lanes that need MEASUREMENT, in priority order:
@@ -328,7 +330,7 @@ def main():
             if mm:
                 gap_class[(g.get('provider'), g.get('model'))] = mm.group(1)
 
-        def annotate(entries):
+        def annotate(entries: Any):
             out = []
             for e in entries:
                 row = dict(e)

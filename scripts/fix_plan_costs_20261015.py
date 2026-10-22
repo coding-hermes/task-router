@@ -13,6 +13,7 @@ $15->$60 per qcode 2026-10-15 table).
 Writes data/tables/{plan_terms,providers}.jsonl with a timestamped backup, in the
 repo's canonical JSON spacing. Registry rebuild + suite = separate steps.
 """
+from __future__ import annotations
 import json
 import pathlib
 import shutil

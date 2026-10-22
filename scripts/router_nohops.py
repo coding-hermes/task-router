@@ -64,6 +64,7 @@ Exit codes (mirrors router_outcomes_freshness / router_stale_watchdog):
 
 Stdlib only, like every runtime tool in this repo.
 """
+from __future__ import annotations
 import argparse
 import collections
 import datetime
@@ -80,6 +81,7 @@ REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 #: One store resolution for the whole repo: the same path /api/ui/series reads.
 import router_outcomes  # noqa: E402
+from typing import Any
 
 BASELINE_PATH = os.environ.get(
     "ROUTER_NOHOPS_BASELINE",
@@ -99,29 +101,29 @@ DEFAULT_MIN_N = 10
 DEFAULT_THRESHOLD = 0.10
 
 
-def _one(v):
+def _one(v: Any):
     """First element of a list-valued query param, else the value itself."""
     if isinstance(v, list):
         v = v[0] if v else None
     return v
 
 
-def _epoch(ts) -> float | None:
+def _epoch(ts: Any) -> float | None:
     """Rows carry epoch seconds (float); anything else is untimestampable."""
     if isinstance(ts, bool) or not isinstance(ts, (int, float)):
         return None
     return float(ts)
 
 
-def is_resolve(row) -> bool:
+def is_resolve(row: Any) -> bool:
     return row.get("route_outcome") in RESOLVE_OUTCOMES
 
 
-def is_nohop(row) -> bool:
+def is_nohop(row: Any) -> bool:
     return row.get("route_outcome") == NO_HOPS
 
 
-def top_blocking_category(rows) -> tuple:
+def top_blocking_category(rows: Any) -> tuple:
     """TR-185 tie-in: the category most often required by no-hops rows.
 
     The demand side, straight off the same rows the rate came from: count the
@@ -147,7 +149,7 @@ def top_blocking_category(rows) -> tuple:
     return cat, n
 
 
-def hourly_nohops_rate(rows, window_h: float=24.0, now_s=None) -> dict:
+def hourly_nohops_rate(rows: Any, window_h: float=24.0, now_s: Any=None) -> dict:
     """THE one computation. `rows` = parsed store dicts (already a window from
     a caller that scanned the store; every row outside it is unknowable here
     and the response says how many rows it was given).
@@ -244,7 +246,7 @@ def hourly_nohops_rate(rows, window_h: float=24.0, now_s=None) -> dict:
     }
 
 
-def load_store_rows(store_path, scan_limit: int=200000) -> tuple:
+def load_store_rows(store_path: Any, scan_limit: int=200000) -> tuple:
     """Tolerant TAIL-scan of the outcome store (same file + same newest-N
     semantics the UI series uses — a store bigger than the scan limit must
     yield its NEWEST rows, never its oldest).
@@ -281,7 +283,7 @@ def load_store_rows(store_path, scan_limit: int=200000) -> tuple:
                   "store": store_path}
 
 
-def load_baseline(path=None) -> tuple:
+def load_baseline(path: Any=None) -> tuple:
     """The in-repo baseline. Returns (dict, source-note); missing file is a
     reported state, not an exception."""
     path = path or BASELINE_PATH
@@ -297,7 +299,7 @@ def load_baseline(path=None) -> tuple:
         return None, f"baseline file {path} unreadable: {e}"
 
 
-def resolve_threshold(baseline=None) -> tuple:
+def resolve_threshold(baseline: Any=None) -> tuple:
     """Env override > baseline.threshold > baseline.rate + headroom > default.
 
     Returns (threshold, source) — the source rides in every payload so a
@@ -336,7 +338,7 @@ def min_n():
     return DEFAULT_MIN_N
 
 
-def evaluate(rows, window_h: float=24.0, now_s=None, baseline=None) -> dict:
+def evaluate(rows: Any, window_h: float=24.0, now_s: Any=None, baseline: Any=None) -> dict:
     """rate + threshold -> the verdict and the exact alert payload."""
     series = hourly_nohops_rate(rows, window_h=window_h, now_s=now_s)
     baseline_doc, baseline_source = (baseline, "given") if baseline is not None \
@@ -376,7 +378,7 @@ def evaluate(rows, window_h: float=24.0, now_s=None, baseline=None) -> dict:
             baseline_source}
 
 
-def alert_text(payload) -> str:
+def alert_text(payload: Any) -> str:
     """The human line a deliver thread sees."""
     cat = payload.get("top_blocking_category")
     cat_bit = (f"; top blocking category (TR-185): {cat}"
@@ -389,7 +391,7 @@ def alert_text(payload) -> str:
             f"{cat_bit})")
 
 
-def _append_event(path, row) -> None:
+def _append_event(path: Any, row: Any) -> None:
     d = os.path.dirname(path)
     if d:
         os.makedirs(d, exist_ok=True)
@@ -397,7 +399,7 @@ def _append_event(path, row) -> None:
         fh.write(json.dumps(row, ensure_ascii=False) + "\n")
 
 
-def _post_webhook(url, payload, timeout: int=8):
+def _post_webhook(url: Any, payload: Any, timeout: int=8):
     """Real POST. Only ever called with a configured URL in real mode."""
     req = urllib.request.Request(
         url, data=json.dumps(payload).encode("utf-8"),
@@ -407,7 +409,7 @@ def _post_webhook(url, payload, timeout: int=8):
         return resp.status
 
 
-def stub_post(url, payload) -> int:
+def stub_post(url: Any, payload: Any) -> int:
     """The dry-run poster: no socket, same signature as _post_webhook."""
     target = url or "(no ROUTER_NOHOPS_WEBHOOK_URL configured)"
     print(f"[dry-run] STUB POST {target}")
@@ -416,7 +418,7 @@ def stub_post(url, payload) -> int:
     return 200
 
 
-def deliver(result, dry_run: bool=False, now_s=None, post_fn=None, events_path=None) -> dict:
+def deliver(result: Any, dry_run: bool=False, now_s: Any=None, post_fn: Any=None, events_path: Any=None) -> dict:
     """Real: events log always + webhook when configured. Dry-run: stub only.
 
     Returns the delivery record appended to the log / printed.
@@ -446,7 +448,7 @@ def deliver(result, dry_run: bool=False, now_s=None, post_fn=None, events_path=N
             ["nothing (no breach)"]}
 
 
-def cmd_check(args) -> int:
+def cmd_check(args: Any) -> int:
     store = router_outcomes.outcomes_path()
     rows, meta = load_store_rows(store, scan_limit=args.scan_limit)
     if meta.get("error"):
@@ -476,7 +478,7 @@ def cmd_check(args) -> int:
     return 0
 
 
-def cmd_status(args) -> int:
+def cmd_status(args: Any) -> int:
     store = router_outcomes.outcomes_path()
     rows, meta = load_store_rows(store, scan_limit=args.scan_limit)
     if meta.get("error"):
@@ -510,7 +512,7 @@ def cmd_status(args) -> int:
     return 0
 
 
-def cmd_baseline(args) -> int:
+def cmd_baseline(args: Any) -> int:
     """Measure the live store and print (or --write, record) the baseline."""
     store = router_outcomes.outcomes_path()
     rows, meta = load_store_rows(store, scan_limit=args.scan_limit)
@@ -554,12 +556,12 @@ def cmd_baseline(args) -> int:
     return 0
 
 
-def main(argv=None):
+def main(argv: Any=None) -> int:
     ap = argparse.ArgumentParser(
         description="TR-195 no-hops-rate baseline, threshold and alert")
     sub = ap.add_subparsers(dest="cmd", required=True)
 
-    def common(p) -> None:
+    def common(p: Any) -> None:
         p.add_argument("--window-h", type=float, default=24.0)
         p.add_argument("--scan-limit", type=int, default=200000)
 

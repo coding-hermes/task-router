@@ -37,6 +37,7 @@ Exit codes: 0 ok (fail-open — a missing/empty store prints a JSON summary with
 0 buckets and still exits 0), 2 on a malformed CLI value, 1 only if a write to
 --output fails.
 """
+from __future__ import annotations
 import argparse
 import json
 import os
@@ -47,9 +48,10 @@ _HERE = os.path.dirname(os.path.realpath(__file__))
 if _HERE not in sys.path:
     sys.path.insert(0, _HERE)
 import router_outcomes as ro  # noqa: E402  (single source of truth for the math)
+from typing import Any
 
 
-def parse_windows(spec) -> list:
+def parse_windows(spec: Any) -> list:
     """'24,72,168' | '1d,3d,7d' | '12h,1d' -> sorted unique hour list."""
     if spec is None or str(spec).strip() == '':
         return list(ro.DEFAULT_SCALES_H)
@@ -74,7 +76,7 @@ def parse_windows(spec) -> list:
     return sorted(set(hours))
 
 
-def read_rows(path):
+def read_rows(path: Any):
     """Store rows in file order; unparseable lines are skipped (never fatal —
     a torn tail must not take the averages down)."""
     if not os.path.exists(path):
@@ -92,7 +94,7 @@ def read_rows(path):
     return rows
 
 
-def build(rows, windows, merge_backends: bool=False, now_s=None, extra_rows=None):
+def build(rows: Any, windows: Any, merge_backends: bool=False, now_s: Any=None, extra_rows: Any=None):
     """Averages for the given rows. `merge_backends` = one bucket per
     (provider, model, complexity), otherwise one per backend.
     `extra_rows` (TR-299): verified-outcome rows folded into the SAME
@@ -117,7 +119,7 @@ def build(rows, windows, merge_backends: bool=False, now_s=None, extra_rows=None
                                merge_backends=merge_backends, now_s=now_s)
 
 
-def write_rows(path, averages):
+def write_rows(path: Any, averages: Any):
     os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
     tmp = f'{path}.tmp'
     with open(tmp, 'w') as f:
@@ -127,8 +129,8 @@ def write_rows(path, averages):
     return path
 
 
-def summary(rows, averages, windows, merge_backends, input_path, output_path,
-            dry_run, extra_paths=None, extra_rows: int=0) -> dict:
+def summary(rows: Any, averages: Any, windows: Any, merge_backends: Any, input_path: Any, output_path: Any,
+            dry_run: Any, extra_paths: Any=None, extra_rows: int=0) -> dict:
     return {
         'input': input_path,
         'extra_inputs': list(extra_paths or []),
@@ -144,7 +146,7 @@ def summary(rows, averages, windows, merge_backends, input_path, output_path,
     }
 
 
-def main(argv=None) -> int:
+def main(argv: Any=None) -> int:
     ap = argparse.ArgumentParser(
         prog='outcomes_averages.py',
         description='Rolling (exponential-decay) cost-per-task averages from '

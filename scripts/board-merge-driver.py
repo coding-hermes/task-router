@@ -85,10 +85,12 @@ INSTALL (per clone; git config is not cloned):
 USAGE (git calls this itself):
   board-merge-driver.py %O %A %B      # base, ours (result written here), theirs
 """
+from __future__ import annotations
 import hashlib
 import json
 import re
 import sys
+from typing import Any
 
 TIMESTAMP_KEYS = ('updated_at', 'timestamp', 'ts', 'created_at', 'last_updated')
 
@@ -116,7 +118,7 @@ DERIVED_ID_BASE = 10 ** 15
 DERIVED_ID_SPAN = 10 ** 12
 
 
-def is_derived(rid):
+def is_derived(rid: Any) -> bool:
     """True when this id was invented by the driver, not allocated by a writer:
     a number in the reserved band, possibly behind an id prefix (`TR-<band>`)."""
     if isinstance(rid, bool) or rid is None:
@@ -125,7 +127,7 @@ def is_derived(rid):
     return bool(m) and int(m.group('num')) >= DERIVED_ID_BASE
 
 
-def derived_id(payload_hash, taken):
+def derived_id(payload_hash: Any, taken: Any):
     """The id a renumbered row gets: a pure function of its content.
 
     Why content, and not `max(id)+1`. The renumbering must be identical in every
@@ -158,13 +160,13 @@ def derived_id(payload_hash, taken):
         salt += 1
 
 
-def canonical(value) -> str:
+def canonical(value: Any) -> str:
     """Stable text form of a row — hashing, comparing and ordering all use it."""
     return json.dumps(value, sort_keys=True, ensure_ascii=False,
                       separators=(',', ':'))
 
 
-def scalar_id(rid):
+def scalar_id(rid: Any):
     """Hashable form of an id. Boards use ints and strings; anything else is
     still handled so a malformed row cannot crash the driver mid-merge."""
     if rid is None or isinstance(rid, (int, str, float, bool)):
@@ -172,14 +174,14 @@ def scalar_id(rid):
     return canonical(rid)
 
 
-def row_key(row) -> tuple:
+def row_key(row: Any) -> tuple:
     """Which row is this? Its `id` when it has one, else its content."""
     if isinstance(row, dict) and row.get('id') is not None:
         return ('id', str(row['id']))
     return ('hash', hashlib.sha256(canonical(row).encode()).hexdigest()[:16])
 
 
-def payload_key(row):
+def payload_key(row: Any) -> str:
     """The row WITHOUT its allocated id: the content that identifies the logical
     row across trees that numbered it differently."""
     if not isinstance(row, dict):
@@ -187,7 +189,7 @@ def payload_key(row):
     return canonical({k: v for k, v in row.items() if k != 'id'})
 
 
-def cluster_ids(cluster):
+def cluster_ids(cluster: Any):
     """Every id a clustered row has carried: the one from the merge base, the
     one it carries now, and any other it was seen under."""
     row = cluster['row']
@@ -202,7 +204,7 @@ def cluster_ids(cluster):
     return out
 
 
-def same_row(a, b) -> bool:
+def same_row(a: Any, b: Any) -> bool:
     """Could these two rows be two versions of the SAME row (an edit), or are
     they colliding rows that merely share an id?"""
     if row_key(a) != row_key(b):
@@ -215,7 +217,7 @@ def same_row(a, b) -> bool:
     return True
 
 
-def stamp(row) -> str:
+def stamp(row: Any) -> str:
     for k in TIMESTAMP_KEYS:
         v = row.get(k) if isinstance(row, dict) else None
         if v:
@@ -223,7 +225,7 @@ def stamp(row) -> str:
     return ''
 
 
-def merge_pair(a, b):
+def merge_pair(a: Any, b: Any):
     """Field-union two versions of one row; the newer timestamp wins per field.
     Equal timestamps are broken by content, never by which side was `ours`, so
     the result cannot depend on the direction of the merge."""
@@ -237,14 +239,14 @@ def merge_pair(a, b):
     return row
 
 
-def order_key(row) -> tuple:
+def order_key(row: Any) -> tuple:
     """Order of a NEW row: timestamp, then content. Deliberately NOT the id —
     the id is what this merge allocates, and ordering by it would move a
     renumbered row to a different place on the next run (invariant 2)."""
     return (stamp(row), payload_key(row))
 
 
-def id_sort_key(rid) -> tuple:
+def id_sort_key(rid: Any) -> tuple:
     """Candidate-id preference: a writer's id before one this driver derived (a
     row's own number beats an invented one), ints (event ids) before strings
     (task ids)."""
@@ -264,18 +266,18 @@ class IdAllocator:
     without the tail depending on the other rows; any other string id gets a
     content suffix."""
 
-    def __init__(self, rows) -> None:
+    def __init__(self, rows: Any) -> None:
         self.taken = set()
         for row in rows:
             rid = row.get('id') if isinstance(row, dict) else None
             if rid is not None:
                 self.taken.add(scalar_id(rid))
 
-    def claim(self, rid) -> None:
+    def claim(self, rid: Any) -> None:
         """Reserve an id chosen for the output."""
         self.taken.add(scalar_id(rid))
 
-    def fresh(self, like, hint: str=''):
+    def fresh(self, like: Any, hint: str=''):
         """A free id for a renumbered row: `like` is the id it arrived with,
         `hint` its content hash (the input to a derived id)."""
         if like is None or isinstance(like, (int, float)) and \
@@ -295,7 +297,7 @@ class IdAllocator:
         return cand
 
 
-def parse(text, path: str='<stdin>') -> tuple:
+def parse(text: Any, path: str='<stdin>') -> tuple:
     """Rows from a JSONL text. Handles a conflicted file by treating the two
     sides of the markers as rows (a repair path for abandoned merges)."""
     rows, errors = [], []
@@ -329,7 +331,7 @@ def parse(text, path: str='<stdin>') -> tuple:
     return rows, errors
 
 
-def merge_rows(base, ours, theirs) -> tuple:
+def merge_rows(base: Any, ours: Any, theirs: Any) -> tuple:
     """Union three JSONL row lists. Returns (rows, notes).
 
     Pure: the result depends on the three row sets only, never on which side is
@@ -339,7 +341,7 @@ def merge_rows(base, ours, theirs) -> tuple:
     clusters = []          # one entry per row: {'row', 'base_pos', 'base_id', 'ids'}
     index = {}             # row_key -> [cluster indices]
 
-    def absorb(rows, is_base) -> None:
+    def absorb(rows: Any, is_base: Any) -> None:
         for pos, row in enumerate(rows):
             key = row_key(row)
             hit = None
@@ -460,7 +462,7 @@ def merge_rows(base, ours, theirs) -> tuple:
     return rows, notes
 
 
-def _label(row) -> str:
+def _label(row: Any) -> str:
     if not isinstance(row, dict):
         return 'row'
     for key in ('event_type', 'title', 'task_id', 'event', 'name', 'id'):
@@ -469,7 +471,7 @@ def _label(row) -> str:
     return 'row'
 
 
-def main(argv) -> int:
+def main(argv: Any) -> int:
     if len(argv) != 4:
         print('usage: board-merge-driver.py <base> <ours> <theirs>', file=sys.stderr)
         return 2

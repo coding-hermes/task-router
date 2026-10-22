@@ -40,12 +40,14 @@ Usage:
 Exit 0 when every scanned board carries one vocabulary, 1 when any board does
 not. `--json` writes pure machine-parseable JSON on stdout.
 """
+from __future__ import annotations
 import argparse
 import collections
 import hashlib
 import json
 import os
 import sys
+from typing import Any
 
 #: The closed priority vocabulary. A literal, not an import: the Go
 #: implementation lives in a sibling repo (coding-hermes-boardctl), and the
@@ -61,7 +63,7 @@ _SKIP_DIRS = {".git", "node_modules", "venv", ".venv", "site-packages",
 _DEFAULT_ROOTS = ("~",)
 
 
-def _skip(path):
+def _skip(path: Any) -> bool:
     """True when a path is not a board at all.
 
     `/snapshots/` copies are archive material: a snapshot of last week's board
@@ -84,7 +86,7 @@ _TIER_WORKTREE = "/worktrees/"
 _TIER_ARCHIVE = ("/relocated-from-tmp/", "/.hermes/release-engineer/")
 
 
-def classify_path(path) -> str:
+def classify_path(path: Any) -> str:
     """Return "primary", "worktree" or "archive" for a board path."""
     if any(marker in path for marker in _TIER_ARCHIVE):
         return "archive"
@@ -93,7 +95,7 @@ def classify_path(path) -> str:
     return "primary"
 
 
-def find_boards(roots, max_depth: int=6) -> list:
+def find_boards(roots: Any, max_depth: int=6) -> list:
     """Return every `tasks.jsonl` under the roots, deepest-first pruning.
 
     Symlinked directories ARE followed (`followlinks=True`) with a visited-realpath
@@ -139,7 +141,7 @@ def find_boards(roots, max_depth: int=6) -> list:
     return sorted(found)
 
 
-def parse_board(path) -> tuple:
+def parse_board(path: Any) -> tuple:
     """Parse one board: -> (rows, unparseable_line_count).
 
     Tolerant by design — DF-BOARDCTL-9 proved that a single spec-invalid line
@@ -162,7 +164,7 @@ def parse_board(path) -> tuple:
     return rows, bad
 
 
-def classify(value) -> str:
+def classify(value: Any) -> str:
     """Classify one stored priority value.
 
     Returns one of: "canonical", "absent", "corrupt-fragment", "off-vocabulary".
@@ -181,7 +183,7 @@ def classify(value) -> str:
     return "off-vocabulary"
 
 
-def census_board(rows) -> dict:
+def census_board(rows: Any) -> dict:
     """Summarise one board's priorities.
 
     `histogram` counts EVERY stored value — canonical, off-vocabulary, corrupt
@@ -210,7 +212,7 @@ def census_board(rows) -> dict:
     }
 
 
-def run(roots=None, max_depth: int=6) -> dict:
+def run(roots: Any=None, max_depth: int=6) -> dict:
     """Census the fleet.
 
     Returns the report dict. Boards are deduped by realpath (symlinked satellite
@@ -291,7 +293,7 @@ def run(roots=None, max_depth: int=6) -> dict:
     }
 
 
-def render(report):
+def render(report: Any):
     """Human-readable census."""
     out = []
     tiers = report["boards_by_tier"]
@@ -344,7 +346,7 @@ def render(report):
     return "\n".join(out) + "\n"
 
 
-def main(argv=None) -> int:
+def main(argv: Any=None) -> int:
     ap = argparse.ArgumentParser(
         description="fleet-wide priority-vocabulary census (REVIEW-TR-002)")
     ap.add_argument("--root", action="append", dest="roots", default=None,

@@ -31,6 +31,7 @@ Usage:
   ~/.hermes/venvs/board/bin/python3 scripts/router_probe_run.py \
       --providers neuralwatt,commandcode,zai-glm,synthetic [--limit N] [--dry-run]
 """
+from __future__ import annotations
 import argparse
 import collections
 import concurrent.futures as cf
@@ -42,6 +43,7 @@ import sys
 import time
 import urllib.error
 import urllib.request
+from typing import Any
 
 REPO = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 DATA_DIR = os.environ.get('ROUTING_DATA_DIR', os.path.join(REPO, 'data', 'tables'))
@@ -76,7 +78,7 @@ CACHE_KEYED = {
 PROBE_PROVIDERS_FILE = 'probe_providers.jsonl'
 
 
-def load_probe_providers(path=None) -> tuple:
+def load_probe_providers(path: Any=None) -> tuple:
     """probe_providers.jsonl -> ({id: (base_url, key_env, extra_headers)},
     {id: reason}).
 
@@ -119,7 +121,7 @@ def load_probe_providers(path=None) -> tuple:
     return out, disabled
 
 
-def resolve(prov, prov_cfg, env, probe_data=None) -> tuple:
+def resolve(prov: Any, prov_cfg: Any, env: Any, probe_data: Any=None) -> tuple:
     """(base_url, key, extra_headers) or (None, None, reason).
 
     Lookup order: CACHE_KEYED (subscription cache files) -> config.yaml
@@ -193,7 +195,7 @@ def load_providers():
     return out
 
 
-def load(name) -> list:
+def load(name: Any) -> list:
     with open(os.path.join(DATA_DIR, f'{name}.jsonl'), encoding='utf-8') as fh:
         return [json.loads(l) for l in fh if l.strip()]
 
@@ -260,7 +262,7 @@ AGENTIC = [
 ]
 
 
-def _j(o):
+def _j(o: Any):
     m = re.search(r'\{.*\}', o, re.S)
     if not m:
         return None
@@ -320,7 +322,7 @@ EXTENDED = [
 ]
 
 
-def err_class(e) -> str:
+def err_class(e: Any) -> str:
     """Classify a failure so it cannot be mistaken for a capability signal.
 
     A 429 says the PROVIDER throttled us; a 404/403 says the lane is not served at
@@ -441,7 +443,7 @@ WIRE_ID_PREFIX = {
 }
 
 
-def wire_model_id(provider, model):
+def wire_model_id(provider: Any, model: Any):
     """Registry id -> the id the provider's API actually serves.
 
     clinepass wants 'modelType/model' ('cline-pass/<bare>'); every other
@@ -528,7 +530,7 @@ EXTENDED_V3 = [
 ]
 
 
-def call_anthropic(base, url_model, key, prompt, extra, max_tokens: int=3000, retries: int=3):
+def call_anthropic(base: Any, url_model: Any, key: Any, prompt: Any, extra: Any, max_tokens: int=3000, retries: int=3):
     """Anthropic Messages shape — some providers serve Anthropic models ONLY here.
 
     commandcode answers /chat/completions for claude-opus-5-5 with
@@ -569,7 +571,7 @@ def call_anthropic(base, url_model, key, prompt, extra, max_tokens: int=3000, re
             raise
 
 
-def call(base, key, model, prompt, extra, max_tokens: int=3000, retries: int=4, provider=None) -> tuple:
+def call(base: Any, key: Any, model: Any, prompt: Any, extra: Any, max_tokens: int=3000, retries: int=4, provider: Any=None) -> tuple:
     """One chat-completions call. `model` may arrive BARE (registry form); when
     `provider` names a provider with a wire-id contract (TR-233), the REQUEST
     carries wire_model_id(provider, model) — the caller's bare id is never
@@ -701,7 +703,7 @@ def main() -> int:
     lock = __import__('threading').Lock()
     fill_only = bool(only_models) and (args.extended or args.extended2 or args.extended3)
 
-    def one(prov, model, base, key, extra) -> None:
+    def one(prov: Any, model: Any, base: Any, key: Any, extra: Any) -> None:
         v5 = {'provider': prov, 'model': model}
         ag = {'provider': prov, 'model': model}
         ext = {'provider': prov, 'model': model}

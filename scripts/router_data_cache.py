@@ -49,12 +49,14 @@ parse, zero copies). Consumers must treat returned rows as read-only.
 private deep copy instead — the defensive mode the equivalence test runs to
 prove no current caller mutates (if that test goes red, someone mutated).
 """
+from __future__ import annotations
 import datetime
 import json
 import os
 import threading
 import time
 from pathlib import Path
+from typing import Any
 
 __all__ = ['DataCache', 'CacheEntry', 'file_identity', 'make_dir_watcher',
            'env_float', 'env_int', 'COPY_MODE_SHARE', 'COPY_MODE_DEEPCOPY']
@@ -67,7 +69,7 @@ COPY_MODE_DEEPCOPY = 'deepcopy'
 DEFAULT_MAX_BYTES_PER_FILE = 64 * 1024 * 1024
 
 
-def env_float(name, default):
+def env_float(name: Any, default: Any):
     raw = os.environ.get(name)
     if raw is None:
         return float(default)
@@ -78,7 +80,7 @@ def env_float(name, default):
     return val if val >= 0 else float(default)
 
 
-def env_int(name, default):
+def env_int(name: Any, default: Any) -> int:
     try:
         return int(os.environ.get(name, default))
     except (TypeError, ValueError):
@@ -89,7 +91,7 @@ def _utc_now_iso():
     return datetime.datetime.now(datetime.timezone.utc).isoformat(timespec='seconds')
 
 
-def file_identity(path) -> tuple | None:
+def file_identity(path: Any) -> tuple | None:
     """The AC0 identity triple, or None when the path does not stat."""
     try:
         st = os.stat(path)
@@ -104,12 +106,12 @@ def file_identity(path) -> tuple | None:
 # exists — the cache then runs on the stat-poll fallback alone.
 # ---------------------------------------------------------------------------
 
-def _make_watchdog_watcher(callback):
+def _make_watchdog_watcher(callback: Any) -> _Watcher | None:
     from watchdog.observers import Observer  # noqa: PLC0415 (optional backend)
     from watchdog.events import FileSystemEventHandler  # noqa: PLC0415
 
     class _Handler(FileSystemEventHandler):
-        def on_any_event(self, event):
+        def on_any_event(self, event: Any) -> None:
             if getattr(event, 'is_directory', False):
                 return
             for attr in ('dest_path', 'src_path'):
@@ -120,25 +122,25 @@ def _make_watchdog_watcher(callback):
     observer = Observer(timeout=0.2)
 
     class _Watcher:
-        def __init__(self):
+        def __init__(self) -> None:
             self._dirs = set()
 
-        def watch_file(self, path):
+        def watch_file(self, path: Any) -> None:
             directory = str(Path(path).parent)
             if directory not in self._dirs:
                 self._dirs.add(directory)
                 observer.schedule(_Handler(), directory, recursive=False)
 
-        def start(self):
+        def start(self) -> None:
             observer.start()
 
-        def stop(self):
+        def stop(self) -> None:
             observer.stop()
 
     return _Watcher()
 
 
-def _make_inotify_simple_watcher(callback):
+def _make_inotify_simple_watcher(callback: Any) -> _Watcher | None:
     import select  # noqa: PLC0415 (stdlib, backend-local)
     import inotify_simple  # noqa: PLC0415 (optional backend)
     from inotify_simple import flags  # noqa: PLC0415
@@ -146,19 +148,19 @@ def _make_inotify_simple_watcher(callback):
     mask = flags.CLOSE_WRITE | flags.MOVED_TO | flags.CREATE | flags.DELETE
 
     class _Watcher:
-        def __init__(self):
+        def __init__(self) -> None:
             self._inotify = inotify_simple.INotify()
             self._dirs = {}
             self._thread = None
             self._stop = threading.Event()
 
-        def watch_file(self, path):
+        def watch_file(self, path: Any) -> None:
             directory = str(Path(path).parent)
             if directory not in self._dirs:
                 wd = self._inotify.add_watch(directory, mask)
                 self._dirs[wd] = directory
 
-        def _loop(self):
+        def _loop(self) -> None:
             while not self._stop.is_set():
                 try:
                     readable, _, _ = select.select([self._inotify.fd], [], [], 0.5)
@@ -175,18 +177,18 @@ def _make_inotify_simple_watcher(callback):
                     if directory and event.name:
                         callback(os.path.join(directory, event.name))
 
-        def start(self):
+        def start(self) -> None:
             self._thread = threading.Thread(
                 target=self._loop, daemon=True, name='router-data-cache-inotify')
             self._thread.start()
 
-        def stop(self):
+        def stop(self) -> None:
             self._stop.set()
 
     return _Watcher()
 
 
-def make_dir_watcher(callback):
+def make_dir_watcher(callback: Any) -> None | _Watcher:
     """Best-effort directory watcher: watchdog, then inotify_simple, else raise."""
     try:
         return _make_watchdog_watcher(callback)
@@ -208,7 +210,7 @@ class CacheDisabledError(RuntimeError):
     """
 
 
-def _plain_load(path):
+def _plain_load(path: Any) -> tuple[Any, ...]:
     """Thread-free jsonl/json parse for _SynchronousCache (no byte cap)."""
     try:
         if path.suffix == '.jsonl':
@@ -237,10 +239,10 @@ class _SynchronousCache:
     contract's freshness.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._entries = {}
 
-    def get(self, path, loader=None, identity_fn=None) -> tuple:
+    def get(self, path: Any, loader: Any=None, identity_fn: Any=None) -> tuple:
         path = Path(path)
         ident = (identity_fn(path) if identity_fn
                  else self._default_identity(path))
@@ -260,7 +262,7 @@ class _SynchronousCache:
                       'cache_error': error}
 
     @staticmethod
-    def _default_identity(path):
+    def _default_identity(path: Any) -> tuple[Any, ...]:
         st = path.stat()
         return (st.st_mtime_ns, st.st_size)
 
@@ -280,7 +282,7 @@ class CacheEntry:
     __slots__ = ('path', 'data', 'generation', 'identity', 'loaded_at',
                  'loaded_at_iso', 'bytes', 'error')
 
-    def __init__(self, path, data, generation, identity, loaded_at, nbytes, error=None):
+    def __init__(self, path: Any, data: Any, generation: Any, identity: Any, loaded_at: Any, nbytes: Any, error: Any=None) -> None:
         self.path = path
         self.data = data
         self.generation = generation
@@ -297,14 +299,14 @@ class CacheEntry:
 class DataCache:
     """See module docstring for the AC contract. One instance per consumer."""
 
-    def __init__(self, source='default',
+    def __init__(self, source: str='default',
                  max_bytes_per_file: int = DEFAULT_MAX_BYTES_PER_FILE,
                  stat_poll_interval_s: float | None = None,
                  copy_mode: str = COPY_MODE_SHARE,
                  max_workers: int = 2,
                  enable_watcher: bool = True,
                  enable_poller: bool = True,
-                 first_load_wait_s: float = 10.0):
+                 first_load_wait_s: float = 10.0) -> None:
         self.source = source
         self._max_bytes = int(max_bytes_per_file)
         self._copy_mode = copy_mode if copy_mode in (COPY_MODE_SHARE, COPY_MODE_DEEPCOPY) \
@@ -365,7 +367,7 @@ class DataCache:
 
     # ------------------------------------------------------------------ get
 
-    def get(self, path, loader=None, identity_fn=None) -> tuple:
+    def get(self, path: Any, loader: Any=None, identity_fn: Any=None) -> tuple:
         """Return (data, meta) for path. Never raises for an I/O problem.
 
         loader: () -> data  — parses the file (spawn's two-arm registry loader).
@@ -429,14 +431,14 @@ class DataCache:
 
     # --------------------------------------------------------------- serving
 
-    def _serve(self, entry):
+    def _serve(self, entry: Any):
         """AC0/mutation contract: shared by default, private copy in deepcopy mode."""
         if self._copy_mode == COPY_MODE_DEEPCOPY:
             import copy  # noqa: PLC0415 (defensive mode only)
             return copy.deepcopy(entry.data)
         return entry.data
 
-    def _meta(self, entry, hit: str) -> dict:
+    def _meta(self, entry: Any, hit: str) -> dict:
         meta = {'cache_generation': entry.generation,
                 'cache_age_s': round(entry.age_s(), 3),
                 'cache_hit': hit,
@@ -447,7 +449,7 @@ class DataCache:
             meta['cache_error'] = entry.error
         return meta
 
-    def _identity(self, path, identity_fn):
+    def _identity(self, path: Any, identity_fn: Any):
         try:
             return identity_fn(path) if identity_fn else file_identity(path)
         except Exception:  # noqa: BLE001 — identity failure must not break a read
@@ -481,7 +483,7 @@ class DataCache:
         except Exception as exc:  # noqa: BLE001 — parse failures are a named error, not a crash
             return None, None, f'load failed: {type(exc).__name__}: {exc}', st.st_size
 
-    def _load_install(self, path: Path, loader, identity_fn, background: bool) -> tuple:
+    def _load_install(self, path: Path, loader: Any, identity_fn: Any, background: bool) -> tuple:
         t0 = time.time()
         error = None
         nbytes = 0
@@ -531,7 +533,7 @@ class DataCache:
 
     # ------------------------------------------------------- scheduling machinery
 
-    def _schedule_locked(self, path, loader, identity_fn) -> bool:
+    def _schedule_locked(self, path: Any, loader: Any, identity_fn: Any) -> bool:
         """Single-flight dedup: True only when THIS call scheduled a reload."""
         if path in self._inflight or path in self._pending:
             return False
@@ -539,15 +541,15 @@ class DataCache:
         self._cond.notify()
         return True
 
-    def schedule_reload(self, path, loader=None, identity_fn=None) -> bool:
+    def schedule_reload(self, path: Any, loader: Any=None, identity_fn: Any=None) -> bool:
         with self._cond:
             return self._schedule_locked(Path(path), loader, identity_fn)
 
-    def invalidate(self, path) -> bool:
+    def invalidate(self, path: Any) -> bool:
         """Schedule a reload of path (change-driven; deduped single-flight)."""
         return self.schedule_reload(path)
 
-    def _worker_loop(self):
+    def _worker_loop(self) -> None:
         while True:
             with self._cond:
                 while not self._pending and not self._closed:
@@ -569,7 +571,7 @@ class DataCache:
 
     # ------------------------------------------------------------- AC1 machinery
 
-    def _note_file_event(self, path_str) -> None:
+    def _note_file_event(self, path_str: Any) -> None:
         """Watcher/poller hook: schedule a reload when we track this path."""
         try:
             path = Path(path_str)
@@ -594,7 +596,7 @@ class DataCache:
         except Exception:  # noqa: BLE001 — watch registration is best-effort
             pass
 
-    def _poll_loop(self):
+    def _poll_loop(self) -> None:
         while True:
             time.sleep(self._poll_s)
             with self._cond:
@@ -619,13 +621,13 @@ class DataCache:
 
     # Loader bookkeeping accessors — the generic watcher/poller re-arms the
     # loader recorded at get() time so a reload re-parses the RIGHT way.
-    def remember_loader(self, path, loader, identity_fn=None) -> None:
+    def remember_loader(self, path: Any, loader: Any, identity_fn: Any=None) -> None:
         self._loaders[str(path)] = (loader, identity_fn)
 
-    def _loader_for(self, path):
+    def _loader_for(self, path: Any):
         return self._loaders.get(str(path), (None, None))[0]
 
-    def _identity_fn_for(self, path):
+    def _identity_fn_for(self, path: Any):
         return self._loaders.get(str(path), (None, None))[1]
 
     # ------------------------------------------------------------------ stats
@@ -681,7 +683,7 @@ class DataCache:
             self._pending.clear()
             self._loaders.clear()
 
-    def entry(self, path) -> CacheEntry | None:
+    def entry(self, path: Any) -> CacheEntry | None:
         with self._cond:
             return self._entries.get(Path(path))
 
@@ -705,7 +707,7 @@ class DataCache:
     shutdown = close  # compat alias (TR-277 contract tests)
 
 
-def _approx_bytes(data) -> int:
+def _approx_bytes(data: Any) -> int:
     """Cheap size estimate for the stats surface."""
     if isinstance(data, str):
         return len(data.encode('utf-8', errors='replace'))
@@ -746,7 +748,7 @@ def get_cache() -> DataCache:
     return _cache_instance
 
 
-def cached_read_jsonl(path) -> tuple:
+def cached_read_jsonl(path: Any) -> tuple:
     """Read a JSONL file through the cache. Returns (rows, metadata)."""
     cache = get_cache()
     data, meta = cache.get(path)
@@ -755,6 +757,6 @@ def cached_read_jsonl(path) -> tuple:
     return data, meta
 
 
-def cached_read_json(path) -> tuple:
+def cached_read_json(path: Any) -> tuple:
     """Read a JSON file through the cache. Returns (data, metadata)."""
     return cached_read_jsonl(path)

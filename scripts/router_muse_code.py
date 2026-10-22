@@ -34,6 +34,7 @@ Usage
 Key: ~/.hermes/muse-code-sub.json (written by the plugin's login) or
 MUSE_CODE_SUB_TOKEN in the environment. Never printed.
 """
+from __future__ import annotations
 import argparse
 import datetime
 import json
@@ -48,6 +49,7 @@ _SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
 if _SCRIPTS_DIR not in sys.path:
     sys.path.insert(0, _SCRIPTS_DIR)
 import lifecycle_gate  # noqa: E402  (TR-199: R4 no anonymous dates)
+from typing import Any
 CACHE = os.environ.get('MUSE_CODE_SUB_CREDENTIALS') or os.path.expanduser('~/.hermes/muse-code-sub.json')
 API = 'https://api.meta.ai/v1/models'
 PROVIDER = 'muse-code'
@@ -70,14 +72,14 @@ PAYG_IN, PAYG_OUT, PAYG_CACHE = 1.25, 4.25, 0.15   # meta-model rows, ev meta-do
 CTX = 1048576                                       # meta-model rows carry 1M ctx
 
 
-def _rows(name) -> list:
+def _rows(name: Any) -> list:
     path = os.path.join(DATA_DIR, name + '.jsonl')
     if not os.path.exists(path):
         return []
     return [json.loads(l) for l in open(path, encoding='utf-8') if l.strip()]
 
 
-def _write(name, rows) -> None:
+def _write(name: Any, rows: Any) -> None:
     # TR-199 (spec R4): no anonymous dates on the write path.
     lifecycle_gate.gate_rows(name, rows)
     path = os.path.join(DATA_DIR, name + '.jsonl')
@@ -104,7 +106,7 @@ def _key():
         raise SystemExit(2)
 
 
-def live_chat_models(key) -> list:
+def live_chat_models(key: Any) -> list:
     req = urllib.request.Request(API, headers={'Authorization': f'Bearer {key}',
                                                'Accept': 'application/json'})
     with urllib.request.urlopen(req, timeout=30) as r:
@@ -113,7 +115,7 @@ def live_chat_models(key) -> list:
     return sorted(i for i in ids if i and i.startswith('muse-spark-') and 'contributor' not in i)
 
 
-def main(argv=None) -> int:
+def main(argv: Any=None) -> int:
     ap = argparse.ArgumentParser()
     g = ap.add_mutually_exclusive_group()
     g.add_argument('--dry-run', action='store_true')

@@ -19,12 +19,14 @@ read from env and never printed. Exit 0 only if every check passes.
 Example:
     API_SERVER_KEY=... python3 scripts/verify_proxy_deployment.py
 """
+from __future__ import annotations
 
 import json
 import os
 import sys
 import urllib.error
 import urllib.request
+from typing import Any
 
 PROXY = os.environ.get("ROUTER_VERIFY_PROXY", "http://127.0.0.1:9391")
 GATEWAY = os.environ.get("ROUTER_VERIFY_GATEWAY", "http://127.0.0.1:8642")
@@ -39,7 +41,7 @@ CONSTRAINED = [{"role": "user",
                            "else: banana"}]
 
 
-def post(url, body, headers) -> tuple:
+def post(url: Any, body: Any, headers: Any) -> tuple:
     req = urllib.request.Request(
         url, data=json.dumps(body).encode(),
         headers={"Content-Type": "application/json", **headers})
@@ -54,7 +56,7 @@ def post(url, body, headers) -> tuple:
             return exc.code, {"raw": raw[:300]}
 
 
-def content_of(payload):
+def content_of(payload: Any):
     return ((payload.get("choices") or [{}])[0].get("message") or {}).get("content") or ""
 
 

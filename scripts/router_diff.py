@@ -23,11 +23,13 @@ Exit: 0 on success, 2 on missing/unparseable snapshot file (clean error on
 stderr, nothing on stdout — a missing file is a usage-level failure, unlike
 the fail-open status tools: a diff over absent data would be a fabrication).
 """
+from __future__ import annotations
 import argparse
 import json
 import os
 import re
 import sys
+from typing import Any
 
 _HERE = os.path.dirname(os.path.realpath(__file__))
 _REPO = os.path.dirname(_HERE)
@@ -39,11 +41,11 @@ _HOP_RE = re.compile(
     r'^\s+(\d+)\.\s+\$\s*([0-9]+(?:\.[0-9]+)?)\s*/M\s+(\S+?)/(\S+?)(?:\s+ctx=\S+)?\s*$')
 
 
-def snapshot_path(date):
+def snapshot_path(date: Any):
     return os.path.join(DOCS_DIR, f'chains-{date}.md')
 
 
-def parse_snapshot(path, date):
+def parse_snapshot(path: Any, date: Any):
     """chains-<date>.md → {profile: [(price, provider, model), ...] (hop order).
 
     Raises ValueError on unreadable file or zero parsed hops (a snapshot with
@@ -75,11 +77,11 @@ def parse_snapshot(path, date):
     return profiles
 
 
-def _pair(price, provider, model) -> str:
+def _pair(price: Any, provider: Any, model: Any) -> str:
     return f'{provider}/{model}'
 
 
-def diff(old, new, d_old, d_new) -> dict:
+def diff(old: Any, new: Any, d_old: Any, d_new: Any) -> dict:
     profiles = sorted(set(old) | set(new))
     per_profile = []
     totals = {'profiles_compared': 0, 'head_moves': 0,
@@ -138,7 +140,7 @@ def diff(old, new, d_old, d_new) -> dict:
     return {'from': d_old, 'to': d_new, 'profiles': per_profile, 'totals': totals}
 
 
-def build(d_old, d_new):
+def build(d_old: Any, d_new: Any):
     old = parse_snapshot(snapshot_path(d_old), d_old)
     new = parse_snapshot(snapshot_path(d_new), d_new)
     doc = diff(old, new, d_old, d_new)
@@ -146,7 +148,7 @@ def build(d_old, d_new):
     return doc
 
 
-def render_text(doc):
+def render_text(doc: Any):
     lines = [f"chains diff {doc['from']} → {doc['to']}"]
     t = doc['totals']
     lines.append(f"profiles {t['profiles_compared']} compared · "
@@ -172,7 +174,7 @@ def render_text(doc):
     return '\n'.join(lines)
 
 
-def main(argv=None) -> int:
+def main(argv: Any=None) -> int:
     ap = argparse.ArgumentParser(
         description='Diff two docs/chains-<date>.md snapshots (head moves, '
                     'lane changes, price deltas)')

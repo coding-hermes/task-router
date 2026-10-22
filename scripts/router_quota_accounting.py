@@ -93,6 +93,7 @@ token sums, limit_usd, remaining_usd (NULL + reason when unknown), resets_at,
 headroom_usd_per_s. `--now` accepts ISO-8601 or epoch so operators and tests
 can freeze the clock.
 """
+from __future__ import annotations
 import argparse
 import datetime
 import json
@@ -106,6 +107,7 @@ if _HERE not in sys.path:
     sys.path.insert(0, _HERE)
 
 import router_outcomes  # noqa: E402  (the ledger engine — the ONLY data source)
+from typing import Any
 
 REPO = os.path.dirname(_HERE)
 DEFAULT_LIMITS_FILE = os.path.join(REPO, 'data', 'quota_limits.json')
@@ -117,7 +119,7 @@ WINDOW_KINDS = ('rolling_5h', 'rolling_daily', 'daily', 'rolling', 'weekly',
 
 # ------------------------------------------------------------------ config ---
 
-def limits_path(explicit=None):
+def limits_path(explicit: Any=None):
     """Resolved limit-config path: --limits flag > env > repo default."""
     if explicit:
         return os.path.abspath(os.path.expanduser(explicit))
@@ -127,7 +129,7 @@ def limits_path(explicit=None):
     return DEFAULT_LIMITS_FILE
 
 
-def load_limits(path):
+def load_limits(path: Any):
     """The limit config, read at QUERY time (never cached, never stored).
 
     Missing file -> default document (nothing configured — honest, silent).
@@ -157,7 +159,7 @@ def load_limits(path):
 
 # ------------------------------------------------------------------- time ----
 
-def parse_ts(value):
+def parse_ts(value: Any):
     """Ledger `ts` -> epoch seconds (float) or None (never guess).
 
     Accepts the epoch numbers normalize_row writes and ISO-8601 strings
@@ -187,14 +189,14 @@ def parse_ts(value):
     return None
 
 
-def _iso(epoch):
+def _iso(epoch: Any):
     if epoch is None:
         return None
     return datetime.datetime.fromtimestamp(epoch, datetime.timezone.utc) \
         .isoformat(timespec='seconds')
 
 
-def window_bounds(kind, now_ts, window_hours=None) -> tuple | None:
+def window_bounds(kind: Any, now_ts: Any, window_hours: Any=None) -> tuple | None:
     """(start_ts, resets_at_ts|None, seconds) for a window kind, or None when
     the kind is unusable. resets_at None = rolling: derived per provider from
     the OLDEST in-window row (spec §4), not from the window arithmetic."""
@@ -231,7 +233,7 @@ def window_bounds(kind, now_ts, window_hours=None) -> tuple | None:
     return now - seconds, None, seconds
 
 
-def _in_window(ts, bounds, now_ts) -> bool:
+def _in_window(ts: Any, bounds: Any, now_ts: Any) -> bool:
     """Window membership — boundary semantics pinned by tests (AC2):
     rolling (resets None): start < ts <= now; calendar: start <= ts < resets."""
     start, resets, _seconds = bounds
@@ -244,7 +246,7 @@ def _in_window(ts, bounds, now_ts) -> bool:
 
 # --------------------------------------------------------------- conversion --
 
-def _convert_usd(row) -> tuple:
+def _convert_usd(row: Any) -> tuple:
     """(usd|None, klass, detail) for one ledger row.
 
     The row's own measured cost_usd wins. Otherwise the router's price-table
@@ -269,7 +271,7 @@ def _convert_usd(row) -> tuple:
     return float(cost), 'price-table', basis
 
 
-def _num_or_0(v) -> int:
+def _num_or_0(v: Any) -> int:
     if isinstance(v, bool) or not isinstance(v, (int, float)):
         return 0
     return int(v) if math.isfinite(v) else 0
@@ -277,8 +279,8 @@ def _num_or_0(v) -> int:
 
 # --------------------------------------------------------------- accounting --
 
-def account_provider(provider, rows, cfg, now_ts, default_window=DEFAULT_WINDOW,
-                     account=None):
+def account_provider(provider: Any, rows: Any, cfg: Any, now_ts: Any, default_window: Any=DEFAULT_WINDOW,
+                     account: Any=None):
     """The L2 block for ONE provider (or provider+account) over ITS rows.
 
     Rows are whatever the caller scoped to this provider — the grouping lives
@@ -408,7 +410,7 @@ def account_provider(provider, rows, cfg, now_ts, default_window=DEFAULT_WINDOW,
     return block
 
 
-def account(rows, limits, now_ts) -> list:
+def account(rows: Any, limits: Any, now_ts: Any) -> list:
     """Per-provider (or per provider+account) blocks over ledger rows — the
     L2 VIEW (pure function).
 
@@ -447,7 +449,7 @@ def account(rows, limits, now_ts) -> list:
                 by_provider.setdefault(str(parent), []).append(r)
             by_provider.pop(str(alias), None)
 
-    def _blocks(provider, prow, cfg):
+    def _blocks(provider: Any, prow: Any, cfg: Any):
         declared = (cfg or {}).get('account')
         if not declared:
             # single-account shape: byte-identical pre-TR-216 behavior
@@ -463,7 +465,7 @@ def account(rows, limits, now_ts) -> list:
                              if isinstance(paccount_cfgs, dict)
                              else {declared}))
 
-        def _row_account(r):
+        def _row_account(r: Any):
             a = r.get('account')
             return str(a) if a is not None else declared
         by_acct = {}
@@ -495,7 +497,7 @@ def account(rows, limits, now_ts) -> list:
     return out_blocks
 
 
-def account_ledger(path=None, limits=None, now_ts=None):
+def account_ledger(path: Any=None, limits: Any=None, now_ts: Any=None) -> list:
     """The view over the ledger FILE — the only I/O path (read-only).
 
     `limits` may be a loaded config dict or a PATH to a config file (loaded
@@ -512,11 +514,11 @@ def account_ledger(path=None, limits=None, now_ts=None):
 
 # -------------------------------------------------------------------- CLI ----
 
-def _fmt_usd(v) -> str:
+def _fmt_usd(v: Any) -> str:
     return '-' if v is None else f'{v:.4f}'
 
 
-def _print_human(blocks, ledger, limits_file, as_of) -> int:
+def _print_human(blocks: Any, ledger: Any, limits_file: Any, as_of: Any) -> int:
     print(f'L2 quota accounting — view over {ledger}')
     print(f'  as of {as_of} · limits: {limits_file}')
     if not blocks:
@@ -539,7 +541,7 @@ def _print_human(blocks, ledger, limits_file, as_of) -> int:
     return 0
 
 
-def main(argv=None) -> int | None:
+def main(argv: Any=None) -> int | None:
     argv = list(sys.argv[1:] if argv is None else argv)
     parser = argparse.ArgumentParser(
         prog='router_quota_accounting.py',

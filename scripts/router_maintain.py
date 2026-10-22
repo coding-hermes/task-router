@@ -36,6 +36,7 @@ derivable mapping are left unchanged ("skipped (no mapping)").
 Fail-open like router_spawn.py: if the spot-check fails (missing key, network
 error), reprice warns and skips — never blocks seed/export/commit.
 """
+from __future__ import annotations
 from collections.abc import Iterator
 import argparse
 import datetime
@@ -62,6 +63,7 @@ from pricing import BY_PROVIDER  # noqa: E402
 from pricing import estimate as _pricing_estimate  # noqa: E402
 from pricing import helpers as _pricing_helpers  # noqa: E402
 import lifecycle_gate  # noqa: E402  (TR-199: R4 no anonymous dates)
+from typing import Any
 
 
 # Text registry (Bane 2026-08-27): live store = gitignored JSON in the repo,
@@ -95,7 +97,7 @@ def _load_doc():
         return None
 
 
-def _save_doc(doc) -> None:
+def _save_doc(doc: Any) -> None:
     """Atomic write of registry.json (tmp + rename — never a torn file)."""
     fd, tmp = tempfile.mkstemp(dir=os.path.dirname(REGISTRY), suffix='.tmp')
     with os.fdopen(fd, 'w') as f:
@@ -160,7 +162,7 @@ def _today():
     return datetime.date.today().strftime('%Y-%m-%d')
 
 
-def _parse_spot_output(text):
+def _parse_spot_output(text: Any):
     """Parse or-family-spot-check.py output lines.
 
     Line format (see that script):
@@ -187,7 +189,7 @@ def _parse_spot_output(text):
     return out
 
 
-def _plan_terms_for(provider):
+def _plan_terms_for(provider: Any):
     """plan_terms row for a provider ({} when absent) — read-only.
 
     TR-036: per-provider reprice modules (opencode_go today) may consume the
@@ -233,7 +235,7 @@ def run_spot_check(dry_run: bool=False) -> tuple:
     return prices, None
 
 
-def find_or_id(model_name, prices):
+def find_or_id(model_name: Any, prices: Any):
     """Map a registry model name to an OpenRouter id from the spot-check output.
 
     TR-034: the implementation lives in pricing.helpers (shared with the
@@ -246,7 +248,7 @@ def find_or_id(model_name, prices):
     return _pricing_helpers.find_or_id(model_name, prices)
 
 
-def compute_price(provider, model, row_evidence, prices) -> tuple:
+def compute_price(provider: Any, model: Any, row_evidence: Any, prices: Any) -> tuple:
     """Compute new normalized_price per Bane's provider formulas.
 
     Returns (new_price, method) or (None, skip_reason).
@@ -282,7 +284,7 @@ def compute_price(provider, model, row_evidence, prices) -> tuple:
     return None, 'skipped (no mapping): provider %s is sub-plan/non-OR' % provider
 
 
-def load_live_rows(doc):
+def load_live_rows(doc: Any):
     """models rows from registry.json: [(provider, model, price, evidence)]. """
     out = []
     for m in (doc.get('tables') or {}).get('models') or []:
@@ -293,7 +295,7 @@ def load_live_rows(doc):
     return out
 
 
-def collect_reprice_plan(prices, doc):
+def collect_reprice_plan(prices: Any, doc: Any):
     """Diff spot-check against live rows. Returns list of update dicts."""
     plan = []
     for prov, mdl, cur, ev in load_live_rows(doc):
@@ -309,7 +311,7 @@ def collect_reprice_plan(prices, doc):
     return plan
 
 
-def apply_reprice(plan, today, doc):
+def apply_reprice(plan: Any, today: Any, doc: Any):
     """Update registry.json models rows in place; returns count applied.
 
     TR-036: rows whose method is NOT an OR spot read (the opencode-go
@@ -332,7 +334,7 @@ def apply_reprice(plan, today, doc):
     return n
 
 
-def _sync_reprice_to_data(doc):
+def _sync_reprice_to_data(doc: Any):
     """Mirror repriced models rows into data/tables/models.jsonl.
 
     TR-028 (reprice-survival): router_seed.py consumes the COMMITTED
@@ -383,7 +385,7 @@ def _sync_reprice_to_data(doc):
     return merged
 
 
-def report_reprice(plan, dry_run) -> None:
+def report_reprice(plan: Any, dry_run: Any) -> None:
     updated = [u for u in plan if u.get('changed')]
     skipped = [u for u in plan if u.get('new') is None]
     print(f"[reprice] {len(updated)} row(s) would change" if dry_run
@@ -398,7 +400,7 @@ def report_reprice(plan, dry_run) -> None:
         print(f"  ... +{len(skipped) - 10} more")
 
 
-def step_reprice(dry_run) -> None:
+def step_reprice(dry_run: Any) -> None:
     doc = _load_doc()
     if doc is None:
         print('[reprice] WARNING: registry.json missing/unreadable — skipping reprice (fail-open)', file=sys.stderr)
@@ -434,7 +436,7 @@ def step_reprice(dry_run) -> None:
     print(f"[reprice] applied {n} UPDATE(s) to registry.json")
 
 
-def step_seed(dry_run):
+def step_seed(dry_run: Any):
     env = dict(os.environ)
     # TR-028 (env isolation): ALWAYS hand the resolved REGISTRY to the child.
     # The old REGISTRY_DEFAULT trap made REGISTRY == REGISTRY_DEFAULT whenever
@@ -465,7 +467,7 @@ def step_seed(dry_run):
     return 0
 
 
-def _table_rows(doc, table) -> Iterator[str]:
+def _table_rows(doc: Any, table: Any) -> Iterator[str]:
     """registry.json table → array-per-line JSONL (ns export format).
 
     Sorted by the first column — matches the old SQL export's ORDER BY 1 so
@@ -477,7 +479,7 @@ def _table_rows(doc, table) -> Iterator[str]:
         yield json.dumps([r.get(c) for c in r], default=str)
 
 
-def _data_rows(doc, table) -> Iterator[str]:
+def _data_rows(doc: Any, table: Any) -> Iterator[str]:
     """registry.json table → keyed-record JSONL (in-repo data/tables format)."""
     rows = sorted((doc.get('tables') or {}).get(table) or [],
                   key=lambda r: str(r.get(next(iter(r), '')) or ''))
@@ -485,7 +487,7 @@ def _data_rows(doc, table) -> Iterator[str]:
         yield json.dumps(r, ensure_ascii=False)
 
 
-def write_table(path, table) -> int:
+def write_table(path: Any, table: Any) -> int:
     doc = _load_doc()
     if doc is None:
         print(f'[export] WARNING: registry.json missing — cannot export {table}', file=sys.stderr)
@@ -497,7 +499,7 @@ def write_table(path, table) -> int:
     return len(lines)
 
 
-def step_export(dry_run) -> int:
+def step_export(dry_run: Any) -> int:
     copied = []
     doc = _load_doc()
     failed = []
@@ -564,7 +566,7 @@ def step_export(dry_run) -> int:
     return 0
 
 
-def _fmt_profile_level(cat, lvl) -> str:
+def _fmt_profile_level(cat: Any, lvl: Any) -> str:
     sym = '+' * lvl if lvl > 0 else ('-' * -lvl if lvl < 0 else '0')
     return f'{cat}={sym}'
 
@@ -599,7 +601,7 @@ def build_snapshot_text():
     return '\n'.join(lines) + '\n'
 
 
-def step_snapshot(dry_run) -> int:
+def step_snapshot(dry_run: Any) -> int:
     date = _today()
     ns_path = f'{TASKROUTER_NS}/chains/{date}.md'
     doc_path = f'{DOCS_DIR}/chains-{date}.md'
@@ -631,11 +633,11 @@ def step_snapshot(dry_run) -> int:
     return 0
 
 
-def _git(repo, *args):
+def _git(repo: Any, *args: Any):
     return subprocess.run(['git', '-C', repo, *args], capture_output=True, text=True)
 
 
-def step_commit(dry_run) -> int:
+def step_commit(dry_run: Any) -> int:
     cmds = [
         (ROUTING_NS, ['add', 'tables/'],
          f'{ROUTING_NS}/tables/'),
@@ -688,7 +690,7 @@ def step_commit(dry_run) -> int:
 STEPS = ['reprice', 'seed', 'export', 'snapshot', 'commit']
 
 
-def main(argv=None):
+def main(argv: Any=None):
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument('--dry-run', action='store_true',
                     help='print what would change; write nothing')

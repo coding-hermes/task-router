@@ -52,6 +52,7 @@ CLI:
 Exit codes: 0 ok, 2 usage/validation error (operator error — never masked),
 1 unexpected failure (clean stderr message, no traceback).
 """
+from __future__ import annotations
 import argparse
 import datetime
 import fcntl
@@ -59,6 +60,7 @@ import json
 import os
 import sys
 import tempfile
+from typing import Any
 
 _HERE = os.path.dirname(os.path.realpath(__file__))
 # Identical resolution to router_spawn.py: the state dir the SPAWN path reads.
@@ -68,7 +70,7 @@ QUOTA_FILE = 'quota-state.json'
 GATED_STATUS = 'gated'
 
 
-def state_file(state_file_arg=None, state_dir_arg=None):
+def state_file(state_file_arg: Any=None, state_dir_arg: Any=None):
     """Resolved path of the quota state file (explicit args win, in order)."""
     if state_file_arg:
         return os.path.abspath(os.path.expanduser(state_file_arg))
@@ -78,7 +80,7 @@ def state_file(state_file_arg=None, state_dir_arg=None):
     return os.path.join(STATE_DIR, QUOTA_FILE)
 
 
-def load(path):
+def load(path: Any):
     """Read the state file. Tolerant: missing/corrupt -> minimal document."""
     try:
         doc = json.load(open(path))
@@ -89,7 +91,7 @@ def load(path):
     return {'updated': None, 'providers': {}}
 
 
-def _fsync_dir(path) -> None:
+def _fsync_dir(path: Any) -> None:
     try:
         dfd = os.open(os.path.dirname(path), os.O_RDONLY)
         try:
@@ -100,7 +102,7 @@ def _fsync_dir(path) -> None:
         pass  # some filesystems don't support dir fsync — best effort
 
 
-def save(path, doc) -> None:
+def save(path: Any, doc: Any) -> None:
     """Atomic crash-safe write: unique temp + fsync + os.replace + dir fsync.
 
     Never truncates the live file (a torn quota-state.json fails OPEN — the
@@ -135,7 +137,7 @@ class _Lock:
     death (no deadlock), and a lost update here would silently drop a gate.
     """
 
-    def __init__(self, path) -> None:
+    def __init__(self, path: Any) -> None:
         self.path = path + '.lock'
         self.fh = None
 
@@ -145,7 +147,7 @@ class _Lock:
         fcntl.flock(self.fh, fcntl.LOCK_EX)
         return self
 
-    def __exit__(self, *exc) -> bool:
+    def __exit__(self, *exc: Any) -> bool:
         if self.fh is not None:
             self.fh.close()
             self.fh = None
@@ -156,7 +158,7 @@ def now_iso():
     return datetime.datetime.now(datetime.timezone.utc).isoformat(timespec='seconds')
 
 
-def parse_reset(value):
+def parse_reset(value: Any):
     """ISO-8601 (naive -> UTC) or an integer epoch (seconds) -> ISO string.
 
     Raises ValueError with an operator-readable message. The epoch form is
@@ -184,7 +186,7 @@ def parse_reset(value):
     return dt.astimezone(datetime.timezone.utc).isoformat(timespec='seconds')
 
 
-def _validate_provider(parser, provider):
+def _validate_provider(parser: Any, provider: Any):
     if not provider or not str(provider).strip():
         parser.error('provider is empty')
     prov = str(provider).strip()
@@ -210,7 +212,7 @@ def _resolver_helpers() -> tuple:
         return None, None
 
 
-def _touch_updated(doc):
+def _touch_updated(doc: Any):
     """Stamp the document's `updated` date; retire a stale bootstrap note."""
     today = datetime.datetime.now(datetime.timezone.utc).date().isoformat()
     if doc.get('updated') == 'bootstrap':
@@ -223,8 +225,8 @@ def _touch_updated(doc):
 # ------------------------------------------------------------------- set ----
 
 
-def quota_set(provider, reason, reset_at, detected_at=None, state_file_arg=None,
-              state_dir_arg=None, as_json: bool=False) -> int:
+def quota_set(provider: Any, reason: Any, reset_at: Any, detected_at: Any=None, state_file_arg: Any=None,
+              state_dir_arg: Any=None, as_json: bool=False) -> int:
     path = state_file(state_file_arg, state_dir_arg)
     reset_iso = parse_reset(reset_at)          # ValueError -> main() exit 2
     detected = now_iso()
@@ -262,8 +264,8 @@ def quota_set(provider, reason, reset_at, detected_at=None, state_file_arg=None,
 # ----------------------------------------------------------------- clear ----
 
 
-def quota_clear(provider=None, all_: bool=False, state_file_arg=None,
-                state_dir_arg=None, as_json: bool=False) -> int:
+def quota_clear(provider: Any=None, all_: bool=False, state_file_arg: Any=None,
+                state_dir_arg: Any=None, as_json: bool=False) -> int:
     path = state_file(state_file_arg, state_dir_arg)
     removed = []
     with _Lock(path):
@@ -307,7 +309,7 @@ def quota_clear(provider=None, all_: bool=False, state_file_arg=None,
 # ---------------------------------------------------------------- status ----
 
 
-def quota_status(provider=None, state_file_arg=None, state_dir_arg=None,
+def quota_status(provider: Any=None, state_file_arg: Any=None, state_dir_arg: Any=None,
                  as_json: bool=False) -> int:
     path = state_file(state_file_arg, state_dir_arg)
     doc = load(path)
@@ -370,7 +372,7 @@ def quota_status(provider=None, state_file_arg=None, state_dir_arg=None,
 # ------------------------------------------------------------ accounting ----
 
 
-def _delegate(module, rest) -> int:
+def _delegate(module: Any, rest: Any) -> int:
     """Run another quota-layer module as __main__, propagating its exit code.
 
     One file per quota layer is the TR-206..210 layout (L2 accounting view,
@@ -394,12 +396,12 @@ def _delegate(module, rest) -> int:
     return 0
 
 
-def _accounting(rest):
+def _accounting(rest: Any) -> int:
     """Delegate `accounting ...` to router_quota_accounting.py (TR-209)."""
     return _delegate('router_quota_accounting.py', rest)
 
 
-def _pacing(rest):
+def _pacing(rest: Any) -> int:
     """Delegate `pacing ...` to router_quota_pacing.py (TR-210, the L3 gate).
 
     The L3 module names its one verb explicitly (`pacing --provider ...`), so
@@ -412,7 +414,7 @@ def _pacing(rest):
     return _delegate('router_quota_pacing.py', args)
 
 
-def _burn(rest):
+def _burn(rest: Any) -> int:
     """Delegate `burn ...` to router_quota_burn.py (TR-211, the L3 finder).
 
     Mirrors _pacing exactly: the L3 module names its one verb explicitly
@@ -428,7 +430,7 @@ def _burn(rest):
 # ------------------------------------------------------------------ main ----
 
 
-def main(argv=None):
+def main(argv: Any=None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
     parser = argparse.ArgumentParser(
         prog='router_quota.py',
@@ -436,7 +438,7 @@ def main(argv=None):
                     'A gate excludes the provider until its reset_at passes.')
     sub = parser.add_subparsers(dest='command', metavar='COMMAND', required=True)
 
-    def add_target(p) -> None:
+    def add_target(p: Any) -> None:
         p.add_argument('--state-file', dest='state_file', default=None,
                        help=f'explicit state file (default: '
                             f'$ROUTER_STATE_DIR/{QUOTA_FILE})')

@@ -83,6 +83,7 @@ inline observation dict). Unbound rows keep exact TR-249 behavior.
 
 ch:trace row=TR-252 spec=TR-252 (THE SCALE) test=tests/test_board_complete_gate.py evidence=docs/envelopes/task-router.jsonl
 """
+from __future__ import annotations
 import argparse
 from collections.abc import Iterator
 from dataclasses import dataclass, field
@@ -96,6 +97,7 @@ import sys
 import urllib.error
 import urllib.request
 from datetime import datetime, timezone
+from typing import Any
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DEFAULT_BOARD = os.path.join(REPO, '.coding-hermes', 'board', 'tasks.jsonl')
@@ -360,7 +362,7 @@ def load_observations(project: str, envelopes_dir: str | None = None) -> list:
 
 
 def record_observation(project: str, item_id: str, observer: str,
-                       locator: str, observed: str, envelopes_dir=None,
+                       locator: str, observed: str, envelopes_dir: Any=None,
                        observed_at: str | None = None, note: str = '') -> dict:
     """Append ONE observation (flock-serialized, fsync'd). The observer is an
     out-of-band actor: a human, cron, or CI — never the row's author. The

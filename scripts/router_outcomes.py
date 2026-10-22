@@ -18,6 +18,7 @@ Subcommands:
   averages        recompute outcomes-averages.jsonl from the outcome store
   query           print the average for a lane (optionally merged)
 """
+from __future__ import annotations
 import argparse
 import datetime
 import fcntl
@@ -28,6 +29,7 @@ import os
 import sqlite3
 import sys
 import time
+from typing import Any
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _DEFAULT_OUTCOMES = os.path.join(REPO, 'data', 'state', 'outcomes.jsonl')
@@ -60,12 +62,12 @@ DEFAULT_SCALES_H = [24, 72, 168]  # 1d / 3d / 7d
 
 # ---------- core (unit-tested) ----------
 
-def decay_weight(age_s, scale_h):
+def decay_weight(age_s: Any, scale_h: Any) -> float:
     """Half-life decay: a sample exactly scale_h old weighs 0.5."""
     return 0.5 ** (age_s / (scale_h * 3600.0))
 
 
-def bucket_weighted(rows, field, scale_h, now_s=None):
+def bucket_weighted(rows: Any, field: Any, scale_h: Any, now_s: Any=None) -> None | float:
     """Decay-weighted mean of `field` over rows that carry it.
 
     Returns None when no row carries the field — never fabricate (a missing
@@ -84,13 +86,13 @@ def bucket_weighted(rows, field, scale_h, now_s=None):
     return None if wsum == 0 else xsum / wsum
 
 
-def bucket_avg(rows, scale_h, now_s=None):
+def bucket_avg(rows: Any, scale_h: Any, now_s: Any=None) -> None | float:
     """Weighted mean of cost_usd over rows with a cost, by decay weight.
     Returns None when no row carries a cost (never fabricate)."""
     return bucket_weighted(rows, 'cost_usd', scale_h, now_s=now_s)
 
 
-def canonical_complexity(obj):
+def canonical_complexity(obj: Any):
     """Normalize a complexity declaration to a canonical {category: int} dict.
 
     Accepts: {cat: level} | [{"category": c, "level": l}, ...] | {"c=3","d=-2"}.
@@ -122,7 +124,7 @@ def canonical_complexity(obj):
     return None
 
 
-def complexity_sig(requirements):
+def complexity_sig(requirements: Any):
     """The complexity REFERENCE (TR-065 R1): sha1 over the canonical JSON of
     {category: min_level}. Dict-order independent; level-sensitive — a task
     requiring code_gen>=2 is a different bucket from code_gen>=3 on the same
@@ -165,7 +167,7 @@ _ALIAS_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__fil
                            'data', 'classifier', 'dimension-map.jsonl')
 
 
-def load_dimension_aliases(path=None) -> tuple:
+def load_dimension_aliases(path: Any=None) -> tuple:
     """{alias: [(category, weight)]} from data/classifier/dimension-map.jsonl.
 
     Data-driven on purpose: the vocabulary of natural words belongs in a file
@@ -197,7 +199,7 @@ def load_dimension_aliases(path=None) -> tuple:
     return table, scale
 
 
-def map_dimensions(dimensions, hardness=None, aliases=None, scale=None) -> tuple:
+def map_dimensions(dimensions: Any, hardness: Any=None, aliases: Any=None, scale: Any=None) -> tuple:
     """The model's zero-shot answer -> ({category: level}, meta).
 
     Never invents a level and never drops a dimension silently: anything the
@@ -254,7 +256,7 @@ def map_dimensions(dimensions, hardness=None, aliases=None, scale=None) -> tuple
                     'band_version': (scale or {}).get('band_version') or BAND_VERSION}
 
 
-def band_key(levels) -> str | None:
+def band_key(levels: Any) -> str | None:
     """The POOLING key for the rolling averages: coarse, readable, deterministic.
 
     Deliberately not the exact level-map (that is complexity_sig, which stays for
@@ -289,7 +291,7 @@ def band_key(levels) -> str | None:
         top, tier = cheapest, 'easy'
     return '%s:%s:%s' % (BAND_VERSION, tier, '+'.join(top))
 
-def row_complexity_sig(row):
+def row_complexity_sig(row: Any):
     """The bucket key for an outcome row: an explicit complexity_sig wins, then
     a canonical dict (complexity / required_categories), then a profile id
     (keyed by name when the registry is unavailable) — else None (honest:
@@ -310,7 +312,7 @@ def row_complexity_sig(row):
     return None
 
 
-def compute_averages(rows, scales_h=DEFAULT_SCALES_H, merge_backends: bool=False, now_s=None):
+def compute_averages(rows: Any, scales_h: Any=DEFAULT_SCALES_H, merge_backends: bool=False, now_s: Any=None):
     """Bucket = (source_system, provider, model, complexity_sig) — the signature
     of the declared requirement SET (TR-065 R1/R3), not a single scalar. Rows
     that declare nothing share the None bucket, so a per-model average is still
@@ -390,7 +392,7 @@ def compute_averages(rows, scales_h=DEFAULT_SCALES_H, merge_backends: bool=False
 UNRANKED_MIN_VERIFIED = int(os.environ.get('ROUTER_SORT_MIN_SAMPLES') or 3)
 
 
-def ranking_verdict(entry, floor=None) -> tuple:
+def ranking_verdict(entry: Any, floor: Any=None) -> tuple:
     """(ranked: bool, reason: str|None) — the TR-299 unranked-with-reason gate.
 
     A bucket ranks only when it holds >= floor independently verified samples
@@ -408,7 +410,7 @@ def ranking_verdict(entry, floor=None) -> tuple:
     return True, None
 
 
-def merge_average_rows(rows):
+def merge_average_rows(rows: Any):
     """Collapse per-backend average rows into one row per (provider, model,
     complexity) — sample-count weighted, so a 100k-sample backend outweighs a
     2-sample one instead of being averaged as an equal.
@@ -450,7 +452,7 @@ def merge_average_rows(rows):
     return out
 
 
-def required_levels(profile_id=None, matrix=None, registry_path=None):
+def required_levels(profile_id: Any=None, matrix: Any=None, registry_path: Any=None):
     """THE authority for "what levels must a lane clear for this task" (TR-142).
 
     Until now this derivation existed in several places — profile_signature here,
@@ -493,7 +495,7 @@ def required_levels(profile_id=None, matrix=None, registry_path=None):
     return levels or None
 
 
-def _normalize_levels(matrix):
+def _normalize_levels(matrix: Any):
     """Accept the shapes the fleet actually emits: {cat: level},
     [{category, level}], or {'cat=3', 'other=-2'}."""
     out = {}
@@ -528,7 +530,7 @@ def _normalize_levels(matrix):
 _RUNGS_CACHE = {}
 
 
-def populated_rungs(registry_path=None):
+def populated_rungs(registry_path: Any=None):
     """{category: frozenset(levels)} — the rungs the LADDER can actually express.
 
     The registry's tier data is a cliff for some categories (measured
@@ -576,7 +578,7 @@ def populated_rungs(registry_path=None):
     return out
 
 
-def clamp_inferred_levels(matrix, profile_id=None, registry_path=None):
+def clamp_inferred_levels(matrix: Any, profile_id: Any=None, registry_path: Any=None) -> tuple[Any, ...]:
     """Clamp an INFERRED (scorer-produced) matrix so it never demands a level
     the ladder cannot honestly express — or a category the resolved profile
     never declared.
@@ -630,7 +632,7 @@ def clamp_inferred_levels(matrix, profile_id=None, registry_path=None):
     return out, notes
 
 
-def profile_signature(profile_id, registry_path=None):
+def profile_signature(profile_id: Any, registry_path: Any=None):
     """The complexity reference: a task profile IS its declared per-category
     levels (Bane: "complexity part is the categories of the task so that it
     has a reference"). Returns {category: required_level} from the seeded
@@ -643,7 +645,7 @@ def profile_signature(profile_id, registry_path=None):
 
 # ---------- IO ----------
 
-def _warn_skipped(where, path, lineno, line) -> None:
+def _warn_skipped(where: Any, path: Any, lineno: Any, line: Any) -> None:
     """One stderr line per malformed line (TR-244): a torn JSONL record must
     be VISIBLE but never stall the ledger. First 80 chars name the offender."""
     snippet = line.strip()[:80]
@@ -651,7 +653,7 @@ def _warn_skipped(where, path, lineno, line) -> None:
           file=sys.stderr)
 
 
-def load_outcome_rows(path):
+def load_outcome_rows(path: Any):
     """Tolerant whole-store scan (TR-244): returns the dict rows; malformed
     lines are skipped with a warning instead of raising JSONDecodeError."""
     rows = []
@@ -673,7 +675,7 @@ def load_outcome_rows(path):
     return rows
 
 
-def append_rows(path, new_rows):
+def append_rows(path: Any, new_rows: Any):
     """Idempotent append: skip rows whose (source_system, session_id, model)
     is already present. Returns appended count.
 
@@ -713,7 +715,7 @@ def append_rows(path, new_rows):
     return n
 
 
-def tail_rows(path, max_lines: int=2000, max_bytes=512 * 1024):
+def tail_rows(path: Any, max_lines: int=2000, max_bytes: Any=512 * 1024):
     """The last `max_lines` complete JSONL rows (bounded read).
 
     Reads at most `max_bytes` from the end of the file so the duplicate guard
@@ -739,7 +741,7 @@ def tail_rows(path, max_lines: int=2000, max_bytes=512 * 1024):
     return rows
 
 
-def _merge_task_rows(prev, incoming):
+def _merge_task_rows(prev: Any, incoming: Any):
     """Merge one step of a task into its accumulated task row.
 
     Sums what a task spends (tokens, cost, wall time), counts `turns` as the
@@ -780,7 +782,7 @@ def _merge_task_rows(prev, incoming):
     return out
 
 
-def accumulate_row(path, row, tail_lines: int=2000, tail_bytes=512 * 1024) -> tuple:
+def accumulate_row(path: Any, row: Any, tail_lines: int=2000, tail_bytes: Any=512 * 1024) -> tuple:
     """Append-or-accumulate ONE normalized row for a TASK (cost-per-task engine).
 
     The store's unit is one row per finished task/session (docs/outcomes-schema.md)
@@ -865,7 +867,7 @@ def accumulate_row(path, row, tail_lines: int=2000, tail_bytes=512 * 1024) -> tu
         return 'failed', f'write failed: {exc}'
 
 
-def append_row_fast(path, row, tail_lines: int=2000) -> tuple:
+def append_row_fast(path: Any, row: Any, tail_lines: int=2000) -> tuple:
     """Append ONE normalized row: flock-serialized write + bounded-tail dedupe.
 
     Returns (appended: bool, reason: str). Never raises for an I/O problem the
@@ -912,7 +914,7 @@ STORE_FIELDS = ('source_system', 'session_id', 'task_label', 'complexity',
                 'cost_usd', 'wall_time_s', 'success', 'ts')
 
 
-def _required_str(body, name, problems):
+def _required_str(body: Any, name: Any, problems: Any):
     v = body.get(name)
     if not isinstance(v, str) or not v.strip():
         problems.append(f'{name} must be a non-empty string')
@@ -920,7 +922,7 @@ def _required_str(body, name, problems):
     return v.strip()
 
 
-def _optional_number(body, name, problems, integer: bool=False) -> float | None:
+def _optional_number(body: Any, name: Any, problems: Any, integer: bool=False) -> float | None:
     v = body.get(name)
     if v is None:
         return None
@@ -933,7 +935,7 @@ def _optional_number(body, name, problems, integer: bool=False) -> float | None:
     return int(v) if integer else float(v)
 
 
-def normalize_row(body, now_s=None):
+def normalize_row(body: Any, now_s: Any=None):
     """Validate + normalize an ingest payload into a store row.
 
     Accepts the wire names from the TR-049 contract (cost, wall_time) plus the
@@ -1012,7 +1014,7 @@ def normalize_row(body, now_s=None):
     return row
 
 
-def ingest(payload, path=None, now_s=None):
+def ingest(payload: Any, path: Any=None, now_s: Any=None):
     """End-to-end ingest for one payload: normalize → locked append.
 
     Fail-open by contract (TR-049): validation problems raise ValueError (the
@@ -1070,7 +1072,7 @@ def _registry_prices():
     return m
 
 
-def plan_effective_cost(provider, model, tokens_in, tokens_out) -> tuple:
+def plan_effective_cost(provider: Any, model: Any, tokens_in: Any, tokens_out: Any) -> tuple:
     """(cost, basis) for a lane the driver priced at ZERO.
 
     A driver's 0.0 is not a price: these providers are paid plans, and a plan lane must never
@@ -1120,7 +1122,7 @@ def import_hermes(db_path: str='~/.hermes/state.db'):
         WHERE billing_base_url IS NOT NULL
     """).fetchall()
 
-    def _txt(v):
+    def _txt(v: Any):
         if isinstance(v, bytes):
             return v.decode('utf-8', errors='replace')
         return v
@@ -1137,7 +1139,7 @@ def import_hermes(db_path: str='~/.hermes/state.db'):
         'api.fireworks.ai': 'fireworks-ai', 'ollama.com': 'ollama-cloud',
     }
 
-    def provider_of(base_url, stamped):
+    def provider_of(base_url: Any, stamped: Any):
         for host, name in HOST2PROVIDER.items():
             if host in (base_url or ''):
                 return name
@@ -1149,7 +1151,7 @@ def import_hermes(db_path: str='~/.hermes/state.db'):
         # column-drift era rows (provider/model hold numerics/epoch floats/
         # hex ints) are not lanes — a provider or model must not be purely
         # numeric in any base
-        def _is_numericish(v) -> bool:
+        def _is_numericish(v: Any) -> bool:
             if v is None:
                 return True
             s = str(v).strip().lower()
@@ -1492,7 +1494,7 @@ _OPENCLAW_FAILURE_REASONS = frozenset(
     {'error', 'aborted', 'abort', 'timeout', 'timedOut', 'refusal'})
 
 
-def _openclaw_db_rows(path):
+def _openclaw_db_rows(path: Any):
     """Rows from one openclaw agent DB. Malformed/unreadable -> no rows."""
     conn = None
     for uri in (f'file:{path}?mode=ro', f'file:{path}?mode=ro&immutable=1'):
@@ -1589,7 +1591,7 @@ def _openclaw_db_rows(path):
     return rows
 
 
-def _iso_to_epoch(v):
+def _iso_to_epoch(v: Any):
     """ISO-8601 (with trailing Z) -> epoch seconds. None when unparseable."""
     if not isinstance(v, str) or not v:
         return None

@@ -11,7 +11,9 @@ text report — and prints at most a few lines for cron delivery:
 
 Exit 0 always (a delivery line is more useful than a cron error).
 """
+from __future__ import annotations
 import collections, datetime as dt, json, os, sys
+from typing import Any
 
 # TR-REV-20261005-3: shared state-dir resolve (see scripts/state_dir.py):
 # env wins silently; canonical live-install invocations stay silent; anything
@@ -31,7 +33,7 @@ URL = os.environ.get('PROVIDER_HEALTH_URL',
                      'http://karahermes-mde-7840hs-2.tail448ac.ts.net:9095/')
 
 
-def load_last_two(path) -> tuple:
+def load_last_two(path: Any) -> tuple:
     prev = cur = None
     if not os.path.exists(path):
         return None, None

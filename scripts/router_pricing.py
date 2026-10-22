@@ -38,6 +38,7 @@ formula lives in scripts/pricing/ (TR-034).
 
 CLI: router_pricing.py [--dry-run] [--json]
 """
+from __future__ import annotations
 import argparse
 import datetime
 import json
@@ -54,6 +55,7 @@ if _HERE not in sys.path:
 from pricing import BY_BILLING_MODEL, MANUAL_FORMULA_MODELS  # noqa: E402
 from pricing import helpers as pricing_helpers  # noqa: E402
 import lifecycle_gate  # noqa: E402  (TR-199: R4 no anonymous dates)
+from typing import Any
 
 # TR-202: realpath — symlinked live install; abspath put _REPO on ~/.hermes
 # while _HERE (sys.path seeding, above) already resolved the real tree.
@@ -61,7 +63,7 @@ _REPO = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 DATA_DIR = os.environ.get('ROUTING_DATA_DIR', os.path.join(_REPO, 'data', 'tables'))
 
 
-def _rows(name):
+def _rows(name: Any):
     path = os.path.join(DATA_DIR, f'{name}.jsonl')
     out = []
     if os.path.exists(path):
@@ -72,7 +74,7 @@ def _rows(name):
     return out
 
 
-def _write(name, rows) -> None:
+def _write(name: Any, rows: Any) -> None:
     # TR-199 (spec R4): no anonymous dates on the write path.
     lifecycle_gate.gate_rows(name, rows)
     path = os.path.join(DATA_DIR, f'{name}.jsonl')
@@ -86,7 +88,7 @@ def _write(name, rows) -> None:
     os.replace(path + '.tmp', path)
 
 
-def normalize(dry_run, quiet: bool=False) -> dict:
+def normalize(dry_run: Any, quiet: bool=False) -> dict:
     models = _rows('models')
     terms = {t['provider']: t for t in _rows('plan_terms')}
     catalog = {(c['provider'], c['model']): c for c in _rows('model_catalog')}
@@ -207,7 +209,7 @@ def normalize(dry_run, quiet: bool=False) -> dict:
             'filled_public': filled_public}
 
 
-def main(argv=None) -> int:
+def main(argv: Any=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument('--dry-run', action='store_true')
     ap.add_argument('--json', action='store_true')

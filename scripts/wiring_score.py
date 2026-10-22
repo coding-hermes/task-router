@@ -61,6 +61,7 @@ import os
 import subprocess
 import sys
 from pathlib import Path, PurePosixPath
+from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_GRAPH = REPO_ROOT / ".vfs" / "graph" / "edges.jsonl"
@@ -96,7 +97,7 @@ def is_test_path(path: str) -> bool:
             or p.name.endswith("_test.py"))
 
 
-def load_edges(graph_path) -> tuple[list[dict], int]:
+def load_edges(graph_path: Any) -> tuple[list[dict], int]:
     """Parse an edges.jsonl -> (edge dicts, torn/blank lines skipped).
 
     Each valid line is a JSON object with at least `from` and `to`.
@@ -343,8 +344,8 @@ def baseline_deltas(stats: dict, baseline_edges: list[dict],
     return deltas
 
 
-def measure(root=REPO_ROOT, graph_path=None, scope=None,
-            baseline_path=None, probe_hilo=False) -> dict:
+def measure(root: Any=REPO_ROOT, graph_path: Any=None, scope: Any=None,
+            baseline_path: Any=None, probe_hilo: bool=False) -> dict:
     """Full wiring report dict (also the --json payload)."""
     root = Path(root).resolve()
     graph_path = Path(graph_path) if graph_path else root / ".vfs/graph/edges.jsonl"
@@ -506,7 +507,7 @@ def render(report: dict) -> str:
     return "\n".join(out) + "\n"
 
 
-def main(argv=None) -> int:
+def main(argv: Any=None) -> int:
     ap = argparse.ArgumentParser(
         description="TR-282 wiring score: Hilo graph -> wiring report + 0..100 score")
     ap.add_argument("--json", action="store_true",

@@ -5,6 +5,7 @@ The server is intentionally stdlib-only. Read-only mode is the default. Edit
 mode fails closed unless ROUTER_EDIT_API_KEY is configured; mutating HTTP and
 MCP tool calls then require the same value in X-API-Key.
 """
+from __future__ import annotations
 
 import argparse
 import datetime
@@ -48,6 +49,7 @@ import router_models_browser  # noqa: E402  (TR-258: models browser + rollups)
 import router_ui_page  # noqa: E402  (TR-150: the one self-contained page)
 import router_health  # noqa: E402  (TR-087 health plane)
 import lifecycle_gate  # noqa: E402  (TR-199: R4 no anonymous dates)
+from typing import Any
 
 JSON_RESPONSE = {
     "description": "JSON response",
@@ -64,7 +66,7 @@ ERROR_RESPONSES = {
 }
 
 
-def _body_schema(properties, required) -> dict:
+def _body_schema(properties: Any, required: Any) -> dict:
     return {
         "required": True,
         "content": {
@@ -80,7 +82,7 @@ def _body_schema(properties, required) -> dict:
     }
 
 
-def _post_operation(operation_id, summary, properties, required) -> dict:
+def _post_operation(operation_id: Any, summary: Any, properties: Any, required: Any) -> dict:
     return {
         "operationId": operation_id,
         "summary": summary,
@@ -419,7 +421,7 @@ def build_openapi() -> dict:
 OPENAPI = build_openapi()
 
 
-def _read_jsonl(name):
+def _read_jsonl(name: Any):
     """TR-277: routed through the runtime data cache (read once, invalidate on
     file change). The raw path read stays as the fallback if the cache cannot
     load (fail-open)."""
@@ -446,7 +448,7 @@ def _read_jsonl(name):
         return []
 
 
-def _ui_registry_edit(body, headers, edit_key) -> tuple:
+def _ui_registry_edit(body: Any, headers: Any, edit_key: Any) -> tuple:
     """TR-155: guarded edit - see router_ui_page.registry_edit for the guarantees."""
     status, payload, _check = router_ui_page.registry_edit(
         body,
@@ -466,7 +468,7 @@ def _ui_registry_edit(body, headers, edit_key) -> tuple:
     return status, payload
 
 
-def _subprocess_json(script, args, timeout: int=60):
+def _subprocess_json(script: Any, args: Any, timeout: int=60):
     proc = subprocess.run(
         [sys.executable, str(SCRIPTS / script), *[str(arg) for arg in args]],
         cwd=REPO,
@@ -486,7 +488,7 @@ def _subprocess_json(script, args, timeout: int=60):
         ) from exc
 
 
-def _subprocess_text(script, args, timeout: int=60):
+def _subprocess_text(script: Any, args: Any, timeout: int=60):
     proc = subprocess.run(
         [sys.executable, str(SCRIPTS / script), *[str(arg) for arg in args]],
         cwd=REPO,
@@ -501,19 +503,19 @@ def _subprocess_text(script, args, timeout: int=60):
     return proc.stdout.strip()
 
 
-def _require_object(body):
+def _require_object(body: Any):
     if not isinstance(body, dict):
         raise ValueError("JSON body must be an object")
     return body
 
 
-def _required_strings(body, *names) -> None:
+def _required_strings(body: Any, *names: Any) -> None:
     for name in names:
         if not isinstance(body.get(name), str) or not body[name].strip():
             raise ValueError(f"{name} must be a non-empty string")
 
 
-def _listing_spec(kind):
+def _listing_spec(kind: Any):
     return {
         "provider": ("providers", ("id",)),
         "model": ("models", ("provider", "model")),
@@ -521,7 +523,7 @@ def _listing_spec(kind):
     }[kind]
 
 
-def _append_listing(kind, body) -> dict:
+def _append_listing(kind: Any, body: Any) -> dict:
     """Validate against the table shape and append one crash-visible JSONL row."""
     table, required = _listing_spec(kind)
     body = dict(_require_object(body))
@@ -569,7 +571,7 @@ def _latest_chains() -> dict:
 
 
 class RouterApplication:
-    def __init__(self, mode, edit_key) -> None:
+    def __init__(self, mode: Any, edit_key: Any) -> None:
         self.mode = mode
         self.edit_key = edit_key
         self.lifecycle = router_drain.DrainController()
@@ -588,7 +590,7 @@ class RouterApplication:
                     result[operation["operationId"]] = (method.upper(), path, operation)
         return result
 
-    def _authorize(self, headers) -> tuple | None:
+    def _authorize(self, headers: Any) -> tuple | None:
         if self.mode == "read-only":
             return 403, {"error": "read-only mode"}
         supplied = headers.get("x-api-key", "")
@@ -596,7 +598,7 @@ class RouterApplication:
             return 401, {"error": "unauthorized"}
         return None
 
-    def dispatch(self, method, path, query=None, body=None, headers=None):
+    def dispatch(self, method: Any, path: Any, query: Any=None, body: Any=None, headers: Any=None):
         query = query or {}
         headers = headers or {}
         if method == "GET":
@@ -1026,7 +1028,7 @@ class RouterApplication:
             )
         return tools
 
-    def call_tool(self, name, arguments, headers):
+    def call_tool(self, name: Any, arguments: Any, headers: Any):
         if name not in self.operations:
             raise ValueError(f"unknown tool: {name}")
         if not isinstance(arguments, dict):
@@ -1048,7 +1050,7 @@ class RouterApplication:
             }
         return self.dispatch(method, path, query=query, body=body, headers=headers)
 
-    def mcp(self, request, headers):
+    def mcp(self, request: Any, headers: Any) -> dict | dict[str, Any]:
         if not isinstance(request, dict) or request.get("jsonrpc") != "2.0":
             return self._rpc_error(
                 request.get("id") if isinstance(request, dict) else None,
@@ -1090,7 +1092,7 @@ class RouterApplication:
             return self._rpc_error(rpc_id, -32603, str(exc))
 
     @staticmethod
-    def _rpc_error(rpc_id, code, message) -> dict:
+    def _rpc_error(rpc_id: Any, code: Any, message: Any) -> dict:
         return {
             "jsonrpc": "2.0",
             "id": rpc_id,
@@ -1122,7 +1124,7 @@ def known_post_paths() -> list:
     return sorted(paths)
 
 
-def _is_known_post_path(path):
+def _is_known_post_path(path: Any):
     if path in PROXY_PATHS:
         return True
     try:
@@ -1163,7 +1165,7 @@ class _HermesIdleWatch:
     hanging until the socket does. _clock is injectable for tests.
     """
 
-    def __init__(self, timeout_s, _clock=time.monotonic) -> None:
+    def __init__(self, timeout_s: Any, _clock: Any=time.monotonic) -> None:
         self._timeout_s = float(timeout_s)
         self._clock = _clock
         self._deadline = _clock() + self._timeout_s
@@ -1189,7 +1191,7 @@ def _hermes_idle_timeout_s():
     return val if val > 0 else _HERMES_IDLE_TIMEOUT_S
 
 
-def _sse_lines(reader, watch=None):
+def _sse_lines(reader: Any, watch: Any=None):
     """Yield raw SSE lines from `reader`, enforcing the idle watch.
 
     The deadline check sits BEFORE the blocking readline: a stream that keeps
@@ -1205,7 +1207,7 @@ def _sse_lines(reader, watch=None):
         yield line
 
 
-def _read_hermes_sse(lines, on_event=None, watch=None):
+def _read_hermes_sse(lines: Any, on_event: Any=None, watch: Any=None):
     """Consume a Hermes gateway /v1/responses SSE stream to its terminal event.
 
     SOURCE A parser semantics: `event:` sets the event name, `data:` lines
@@ -1268,7 +1270,7 @@ def _read_hermes_sse(lines, on_event=None, watch=None):
     raise ValueError('upstream SSE stream ended without a terminal event')
 
 
-def _hermes_session_key_error(session_key) -> str | None:
+def _hermes_session_key_error(session_key: Any) -> str | None:
     """Validate a caller-declared X-Hermes-Session-Key (SOURCE B rules).
 
     Returns None when usable (possibly the stripped value), or the 400 error
@@ -1287,7 +1289,7 @@ def _hermes_session_key_error(session_key) -> str | None:
     return None
 
 
-def _caller_session_key(headers) -> tuple:
+def _caller_session_key(headers: Any) -> tuple:
     """The caller's X-Hermes-Session-Key for the LEDGER (TR-173).
 
     Returns (key_or_None, error_or_None). The key is the caller's own join id —
@@ -1319,21 +1321,21 @@ _UI_LEDGER_MAX_LIMIT = 500
 _UI_LEDGER_SCAN_LIMIT = 200000
 
 
-def _ui_one(query, name, default=None):
+def _ui_one(query: Any, name: Any, default: Any=None):
     v = (query or {}).get(name)
     if isinstance(v, list):
         v = v[0] if v else None
     return v if v not in (None, '') else default
 
 
-def _ui_int(query, name, default):
+def _ui_int(query: Any, name: Any, default: Any):
     try:
         return int(str(_ui_one(query, name, default)).strip())
     except (TypeError, ValueError, AttributeError):
         return default
 
 
-def _ui_float(query, name) -> float | None:
+def _ui_float(query: Any, name: Any) -> float | None:
     v = _ui_one(query, name)
     if v is None:
         return None
@@ -1343,7 +1345,7 @@ def _ui_float(query, name) -> float | None:
         return None
 
 
-def ui_ledger(query) -> dict:
+def ui_ledger(query: Any) -> dict:
     """TR-151: search the outcome ledger and say how much of it was actually read.
 
     The ledger is the raw data every other stats surface summarises, so a browser over it must not
@@ -1485,7 +1487,7 @@ def _hermes_gateway_credential():
     return ''
 
 
-def _hermes_capabilities_metadata(base, _opener=None):
+def _hermes_capabilities_metadata(base: Any, _opener: Any=None):
     """Read session metadata from the upstream's /v1/capabilities at startup.
 
     TR-146: the probe authenticates like the rest of the fleet — the gateway
@@ -1534,7 +1536,7 @@ def _hermes_upstream_base():
     return os.environ.get('ROUTER_PROXY_UPSTREAM', _HERMES_DEFAULT_UPSTREAM)
 
 
-def _hermes_responses_call(path, body, headers, _opener=None) -> tuple:
+def _hermes_responses_call(path: Any, body: Any, headers: Any, _opener: Any=None) -> tuple:
     """One hop to the REAL Hermes gateway on /v1/responses (SOURCE A/B wire).
 
     Returns (status, payload_dict, session_id). A streamed answer is consumed
@@ -1635,7 +1637,7 @@ class _BareResponse:
     """Adapt a bare (non-context-manager) response object to the interface
     _hermes_responses_call expects (headers/status/read/close)."""
 
-    def __init__(self, resp) -> None:
+    def __init__(self, resp: Any) -> None:
         self._resp = resp
 
     @property
@@ -1660,14 +1662,14 @@ class _BareResponse:
 
 
 class _HeadersLike:
-    def get(self, name, default=None):
+    def get(self, name: Any, default: Any=None):
         return default
 
     def close(self) -> None:
         pass
 
 
-def _hermes_proxy_chat(body, headers, upstream=None) -> tuple:
+def _hermes_proxy_chat(body: Any, headers: Any, upstream: Any=None) -> tuple:
     """TR-129 Path H: /v1/responses through a REAL Hermes gateway upstream.
 
     Reuses the ladder (chain, metering, outcome rows, fail-open) from
@@ -1686,7 +1688,7 @@ def _hermes_proxy_chat(body, headers, upstream=None) -> tuple:
         return 400, {'error': key_error}
     t0 = time.time()
 
-    def _hop(path, hop_body, hop_headers) -> tuple:
+    def _hop(path: Any, hop_body: Any, hop_headers: Any) -> tuple:
         merged = {**(headers if isinstance(headers, dict) else {})}
         if hermes_session_key:
             merged['x-hermes-session-key'] = hermes_session_key
@@ -1756,7 +1758,7 @@ HOP_FAILURE_REASONS = (
 )
 
 
-def _classify_hop_failure(exc=None, status=None, unservable: bool=False, body=None) -> tuple:
+def _classify_hop_failure(exc: Any=None, status: Any=None, unservable: bool=False, body: Any=None) -> tuple:
     """(reason_code, detail) for one failed hop attempt (TR-288).
 
     Timeouts are matched by exception type AND by message, because the two
@@ -1824,8 +1826,8 @@ def _classify_hop_failure(exc=None, status=None, unservable: bool=False, body=No
     return "transport-error", f"unclassified status {code}"
 
 
-def _failure_envelope(meta, session_id, source_system, parent_session_id, ladder_t0,
-                      terminal, tried, error_reason, registry_missing=None):
+def _failure_envelope(meta: Any, session_id: Any, source_system: Any, parent_session_id: Any, ladder_t0: Any,
+                      terminal: Any, tried: Any, error_reason: Any, registry_missing: Any=None):
     """The _router block for ANY path that served nothing (TR-136).
 
     Measured 2026-09-24: a real proxied 502 returned served_by/usage/cost/
@@ -1921,7 +1923,7 @@ def _proxy_hop_timeout_s():
 _INTERNAL_BODY_KEYS = ('_router_hermes_session_id', '_router_stream')
 
 
-def _client_body(payload):
+def _client_body(payload: Any):
     """The client-visible body: the answer plus `_router`, minus internal markers."""
     if not isinstance(payload, dict):
         return payload
@@ -1979,7 +1981,7 @@ def _proxy_wall_ceiling_s():
     return val if val > 0 else 3600.0
 
 
-def _hop_budget_s(want_stream):
+def _hop_budget_s(want_stream: Any):
     """THE TIMEOUT LADDER (TR-241): one helper decides every hop's budget.
 
     The invariant: the router must answer the caller BEFORE the caller gives
@@ -2028,7 +2030,7 @@ ROUTER_PROXY_DEADLINE_HEADER_ALIASES = {
 ROUTER_PROXY_HOP_ELAPSED_HEADER = 'x-router-hop-elapsed-s'
 
 
-def _parse_caller_deadline(headers):
+def _parse_caller_deadline(headers: Any):
     """TR-264 READ half: the caller's declared deadline from the request headers.
 
     Header names are case-insensitive (the ladder lowercases once at entry, but
@@ -2048,7 +2050,7 @@ def _parse_caller_deadline(headers):
     except Exception as exc:  # noqa: BLE001 — fail-open: a live request cannot die here
         return {}, [f'deadline headers unreadable: {type(exc).__name__}: {str(exc)[:80]}']
 
-    def _num(header):
+    def _num(header: Any):
         raw = norm.get(header)
         if raw is None or raw == '':
             return None
@@ -2084,7 +2086,7 @@ def _parse_caller_deadline(headers):
     return declared, problems
 
 
-def _deadline_wire_headers(block):
+def _deadline_wire_headers(block: Any):
     """TR-264: the response ECHO as wire headers, from a deadline block.
 
     One vocabulary for every surface (buffered `_send` extra, the SSE
@@ -2113,7 +2115,7 @@ def _deadline_wire_headers(block):
         return {}
 
 
-def _deadline_declared(declared) -> bool:
+def _deadline_declared(declared: Any) -> bool:
     """TR-264: does this request carry a caller-declared deadline at all?
 
     Any one of the budget shapes declares; a bare X-Caller-Name does not (a
@@ -2123,7 +2125,7 @@ def _deadline_declared(declared) -> bool:
                 or declared.get('mode'))
 
 
-def _no_deadline(reason) -> dict:
+def _no_deadline(reason: Any) -> dict:
     """TR-264: the explicit undeclared deadline block. A null never stands
     alone — every null field carries its reason."""
     return {'declared': False, 'declared_s': None,
@@ -2135,7 +2137,7 @@ def _no_deadline(reason) -> dict:
             'caller_name': None}
 
 
-def _derive_deadline_budget(declared, want_stream, elapsed_s: float=0.0) -> dict:
+def _derive_deadline_budget(declared: Any, want_stream: Any, elapsed_s: float=0.0) -> dict:
     """TR-264 DERIVE half: this layer's budgets as a function of the declared values.
 
     mode=wall: the declared total minus this hop's already-elapsed time minus
@@ -2191,7 +2193,7 @@ def _derive_deadline_budget(declared, want_stream, elapsed_s: float=0.0) -> dict
             'elapsed_s': elapsed, 'margin_s': margin}
 
 
-def _collect_openai_stream(lines, path: str='/v1/chat/completions', on_event=None, watch=None):
+def _collect_openai_stream(lines: Any, path: str='/v1/chat/completions', on_event: Any=None, watch: Any=None):
     """Assemble an SSE stream into the buffered payload a non-streaming client expects.
 
     Mirror semantics are preserved deliberately: the client asked for a buffered
@@ -2205,7 +2207,7 @@ def _collect_openai_stream(lines, path: str='/v1/chat/completions', on_event=Non
     usage, model, finish = None, None, None
     events = 0
 
-    def handle(event_name, data) -> None:
+    def handle(event_name: Any, data: Any) -> None:
         nonlocal events, usage, model, finish
         events += 1
         # TR-138: a real frame is activity, so it resets the idle watch. Without
@@ -2284,7 +2286,7 @@ def _collect_openai_stream(lines, path: str='/v1/chat/completions', on_event=Non
     return payload
 
 
-def _proxy_upstream_default(path, body, headers, _opener=None) -> tuple:
+def _proxy_upstream_default(path: Any, body: Any, headers: Any, _opener: Any=None) -> tuple:
     """POST the request to the upstream gateway (default: the Hermes gateway
     on localhost). Returns (status, payload-dict). Transport failure raises —
     the ladder treats it exactly like a 5xx. `_opener` is the test seam for
@@ -2402,7 +2404,7 @@ def _proxy_upstream_default(path, body, headers, _opener=None) -> tuple:
 _VERSION_SEGMENTS = ('v1', 'v2', 'v3', 'v4', 'v1beta', 'v1alpha')
 
 
-def _join_upstream_url(base, path):
+def _join_upstream_url(base: Any, path: Any):
     """Join a provider base_url with a route WITHOUT doubling the version segment.
 
     Naive concatenation (``base.rstrip('/') + path``) is wrong for every provider
@@ -2426,7 +2428,7 @@ def _join_upstream_url(base, path):
     return base + '/' + '/'.join(segs)
 
 
-def _hop_uses_provider_last_mile(path, upstream_supplied) -> bool:
+def _hop_uses_provider_last_mile(path: Any, upstream_supplied: Any) -> bool:
     """Does a hop on this request ride the provider's OWN last-mile upstream?
 
     Only the OpenAI CHAT shape may. Two cases must fall back to the default
@@ -2444,7 +2446,7 @@ def _hop_uses_provider_last_mile(path, upstream_supplied) -> bool:
     return not str(path or '').rstrip('/').endswith('/responses')
 
 
-def _provider_upstream_factory(provider_id, providers_map):
+def _provider_upstream_factory(provider_id: Any, providers_map: Any):
     """Return a hop-specific upstream call function for a provider, or None.
 
     If the provider row carries api_base_url, the returned function POSTs
@@ -2458,7 +2460,7 @@ def _provider_upstream_factory(provider_id, providers_map):
     key_env = info.get('api_key_env', '')
     api_key = os.environ.get(key_env, '') if key_env else ''
 
-    def _call(path, body, headers) -> tuple:
+    def _call(path: Any, body: Any, headers: Any) -> tuple:
         req = urllib.request.Request(
             _join_upstream_url(base, path),
             data=json.dumps(body).encode(),
@@ -2507,7 +2509,7 @@ def _load_provider_routing():
     return result
 
 
-def _normalize_developer_role(body, headers) -> tuple:
+def _normalize_developer_role(body: Any, headers: Any) -> tuple:
     """Rewrite `role:developer` -> `role:system` (TR-074/TR-075, spec §6.4).
 
     The spec's §3 wire table predicted this failure: pi and deepseek-harness
@@ -2554,7 +2556,7 @@ _PROFILE_IDS_CACHE: set = None
 _PROFILE_IDS_CACHE_AT = 0.0
 
 
-def _registry_categories(registry_path=None):
+def _registry_categories(registry_path: Any=None):
     """The registry's category list — data-driven: whatever the profiles declare.
 
     Used to build a FLOOR requirement set when the classifier reports that a prompt
@@ -2635,7 +2637,7 @@ _ADMISSION_SEM = None
 
 
 def _admission_limits():
-    def _num(name, default, low: int=1):
+    def _num(name: Any, default: Any, low: int=1):
         try:
             v = int(os.environ.get(name) or default)
         except (TypeError, ValueError):
@@ -2646,7 +2648,7 @@ def _admission_limits():
             float(_num('ROUTER_PROXY_QUEUE_WAIT_S', 20)))
 
 
-def _admission_semaphore():
+def _admission_semaphore() -> None:
     global _ADMISSION_SEM
     if _ADMISSION_SEM is None:
         _ADMISSION_SEM = threading.BoundedSemaphore(_admission_limits()[0])
@@ -2698,7 +2700,7 @@ class _admission(object):
                 _ADMISSION['peak_inflight'] = _ADMISSION['inflight']
         return self
 
-    def __exit__(self, *exc) -> bool:
+    def __exit__(self, *exc: Any) -> bool:
         try:
             _admission_semaphore().release()
         finally:
@@ -2765,7 +2767,7 @@ def serving_stats() -> dict:
     }
 
 
-def _serving_mode_from_cli_or_env(cli_value=None) -> str:
+def _serving_mode_from_cli_or_env(cli_value: Any=None) -> str:
     """--serving wins over ROUTER_SERVING_MODE wins over the legacy default.
 
     An unknown env value fails CLOSED to the documented default with the
@@ -2787,7 +2789,7 @@ def _serving_mode_from_cli_or_env(cli_value=None) -> str:
     return DEFAULT_SERVING_MODE
 
 
-def _server_pool_limits(mode):
+def _server_pool_limits(mode: Any) -> tuple[Any, ...]:
     """(pool_size, queue_bound) for the async serving path.
 
     The pool is deliberately SMALL and explicit: it bounds the threads the
@@ -2832,7 +2834,7 @@ class RouterHTTPServerAsync(HTTPServer):
     #: kernel's residual default). Still a bound; still explicit.
     request_queue_size = 128
 
-    def __init__(self, address, app, pool_size=None, queue_bound=None) -> None:
+    def __init__(self, address: Any, app: Any, pool_size: Any=None, queue_bound: Any=None) -> None:
         self.app = app
         size, qbound = _server_pool_limits("async")
         if pool_size is not None:
@@ -2853,7 +2855,7 @@ class RouterHTTPServerAsync(HTTPServer):
             max_workers=size, thread_name_prefix="router-serve")
         super().__init__(address, RouterHandler)
 
-    def process_request(self, request, client_address):
+    def process_request(self, request: Any, client_address: Any) -> None:
         """Queue the connection instead of growing a thread for it.
 
         Admission (proxy work) and the pool's own queue bound are checked
@@ -2899,7 +2901,7 @@ class RouterHTTPServerAsync(HTTPServer):
             finally:
                 self.app.lifecycle.request_finished()
 
-    def _serve_connection(self, request, client_address) -> None:
+    def _serve_connection(self, request: Any, client_address: Any) -> None:
         with self._busy_lock:
             self._busy += 1
             _SERVING_STATE["busy"] = self._busy
@@ -2948,7 +2950,7 @@ _CLASSIFY_LOCK = threading.Lock()
 
 
 def _classify_cache_limits():
-    def _num(name, default, low: int=1):
+    def _num(name: Any, default: Any, low: int=1):
         try:
             v = int(os.environ.get(name) or default)
         except (TypeError, ValueError):
@@ -2957,12 +2959,12 @@ def _classify_cache_limits():
     return _num('ROUTER_CLASSIFY_CACHE_MAX', 512), float(_num('ROUTER_CLASSIFY_CACHE_TTL_S', 900))
 
 
-def _classify_cache_key(text):
+def _classify_cache_key(text: Any):
     import hashlib as _hl
     return _hl.sha256((text or '').encode('utf-8', 'replace')).hexdigest()
 
 
-def classify_cache_get(text) -> tuple:
+def classify_cache_get(text: Any) -> tuple:
     """(hit: bool, value). Expired entries are dropped on read, never served."""
     key = _classify_cache_key(text)
     maxn, ttl = _classify_cache_limits()
@@ -2982,7 +2984,7 @@ def classify_cache_get(text) -> tuple:
         return True, val
 
 
-def classify_cache_put(text, value) -> bool:
+def classify_cache_put(text: Any, value: Any) -> bool:
     """Cache a SUCCESSFUL rating only (see the block comment above)."""
     if not isinstance(value, dict) or value.get('matrix') is None:
         return False
@@ -3012,7 +3014,7 @@ def classify_cache_stats():
     return d
 
 
-def _registry_profile_ids(registry_path=None):
+def _registry_profile_ids(registry_path: Any=None):
     """TR-139: the registry's task_profiles ids, for override validation.
 
     Same data-driven discipline as _registry_categories: read what the registry
@@ -3048,7 +3050,7 @@ def _registry_profile_ids(registry_path=None):
     return ids
 
 
-def _empty_matrix_profile(registry_path=None) -> tuple:
+def _empty_matrix_profile(registry_path: Any=None) -> tuple:
     """TR-139: what an UNRATED prompt (a rating failure) may degrade to.
 
     Returns (profile_id, problems). ROUTER_EMPTY_MATRIX_PROFILE, when set to a
@@ -3067,7 +3069,7 @@ def _empty_matrix_profile(registry_path=None) -> tuple:
                   'task_profile: override ignored, fail-cheap floor applies (TR-139)']
 
 
-def _stamp_unrated(problems, entry):
+def _stamp_unrated(problems: Any, entry: Any):
     """TR-139: make the fail-cheap degrade the FIRST problem, keeping the rating
     cause right behind it. problems[0] is the string degrade_reason carries (see
     proxy_chat / _proxy_record), so this is what makes the unrated rate greppable
@@ -3093,7 +3095,7 @@ def _infer_reference_profile():
         return 'P0_FORE'
 
 
-def _clamp_inferred(matrix, problems):
+def _clamp_inferred(matrix: Any, problems: Any):
     """Clamp a SCORER-produced matrix (never an explicit --profile-req) to the
     rungs the ladder can express and the categories the reference profile
     declares. Every adjustment is appended to `problems` — a clamped rating is
@@ -3114,7 +3116,7 @@ def _clamp_inferred(matrix, problems):
     return levels
 
 
-def _proxy_requirements(body, headers, path) -> tuple:
+def _proxy_requirements(body: Any, headers: Any, path: Any) -> tuple:
     """Decide the complexity for this request. Returns (source, payload) where
     source ∈ declared | classifier | default, payload carries the matrix,
     complexity_sig and (for the classifier) prompt version/model/problems.
@@ -3229,7 +3231,7 @@ def _proxy_requirements(body, headers, path) -> tuple:
                           'model': res.get('model'), 'problems': _probs}
 
 
-def _proxy_chain(requirements, sort_spec=None, window_h=None):
+def _proxy_chain(requirements: Any, sort_spec: Any=None, window_h: Any=None):
     """Ask the router for the chain (subprocess: the CLI stays the single
     source of truth for resolve semantics)."""
     args = ['--format', 'json']
@@ -3249,7 +3251,7 @@ def _proxy_chain(requirements, sort_spec=None, window_h=None):
     return out if isinstance(out, dict) else {}
 
 
-def _proxy_usage(payload):
+def _proxy_usage(payload: Any) -> None | int | tuple[Any, ...]:
     """(tokens_in, tokens_out) from an OpenAI-compatible usage block.
 
     Both wire shapes are accepted because both are proxied: /v1/chat/completions
@@ -3263,7 +3265,7 @@ def _proxy_usage(payload):
     usage = payload.get('usage')
     if not isinstance(usage, dict):
         return None, None
-    def num(*names) -> int | None:
+    def num(*names: Any) -> int | None:
         for n in names:
             v = usage.get(n)
             if isinstance(v, bool) or not isinstance(v, (int, float)):
@@ -3273,7 +3275,7 @@ def _proxy_usage(payload):
     return num('prompt_tokens', 'input_tokens'), num('completion_tokens', 'output_tokens')
 
 
-def _proxy_usage_full(payload):
+def _proxy_usage_full(payload: Any):
     """Every meter the wire reports, each None when unreported (TR-143).
 
     The row was blind to cache traffic: 291 lanes now carry a published
@@ -3293,7 +3295,7 @@ def _proxy_usage_full(payload):
         return out
     usage = payload['usage']
 
-    def deep(*path):
+    def deep(*path: Any):
         cur = usage
         for key in path:
             if not isinstance(cur, dict):
@@ -3314,7 +3316,7 @@ def _proxy_usage_full(payload):
     return out
 
 
-def _proxy_cost(hop, tokens_in, tokens_out) -> tuple:
+def _proxy_cost(hop: Any, tokens_in: Any, tokens_out: Any) -> tuple:
     """(cost_usd, basis) for one attempt, from the HOP's own prices.
 
     Reporting uses the PUBLIC list price (Bane 2026-08-27). The hop already
@@ -3347,7 +3349,7 @@ _PROXY_CHAIN_ROW_CAP = 20
 _PROXY_EXCLUSION_ROW_CAP = 30
 
 
-def _prompt_evidence(body) -> tuple:
+def _prompt_evidence(body: Any) -> tuple:
     """(chars, sha256-hex) of the caller's prompt text — never the text itself.
 
     Rows are queried by GROUPING: a fleet tick's prompt recurs almost verbatim across
@@ -3380,7 +3382,7 @@ def _prompt_evidence(body) -> tuple:
         return None, None
 
 
-def _classifier_evidence(requirements, source) -> dict:
+def _classifier_evidence(requirements: Any, source: Any) -> dict:
     """Why the rating is what it is, from the row alone.
 
     `parse` is the single word a reader needs: ok (the classifier produced a usable
@@ -3406,7 +3408,7 @@ def _classifier_evidence(requirements, source) -> dict:
             'problems': problems}
 
 
-def _resolve_registry_missing(resolved):
+def _resolve_registry_missing(resolved: Any) -> bool:
     """TR-235: does THIS resolver payload say the registry.json is missing?
 
     The resolver (router_spawn.py) is the single source of truth for resolve
@@ -3453,7 +3455,7 @@ def _resolve_registry_missing(resolved):
     return not isinstance(fallback, bool) and not isinstance(dh, dict)
 
 
-def _resolver_had_no_eligible_hop(resolved) -> bool:
+def _resolver_had_no_eligible_hop(resolved: Any) -> bool:
     """TR-194: did THIS resolver payload say nothing was ever ELIGIBLE?
 
     The 2026-09-26 incident proximate trigger: a rating no model in the registry
@@ -3482,7 +3484,7 @@ def _resolver_had_no_eligible_hop(resolved) -> bool:
     return 'no chain' in str(resolved.get('error'))
 
 
-def _chain_evidence(resolved, chain):
+def _chain_evidence(resolved: Any, chain: Any):
     """The OPTION CHAIN as resolvable evidence: what the resolver offered, in order.
 
     Shipped after the 2026-09-26 incident: a row read 'route_outcome no-hops,
@@ -3490,7 +3492,7 @@ def _chain_evidence(resolved, chain):
     been computed and handed to the envelope, then dropped on the floor before the row
     was written. The ledger is the artefact that survives; it has to explain itself.
     """
-    def _hops(items, cap):
+    def _hops(items: Any, cap: Any):
         out = []
         # TR-184: this is the row's fail-open boundary, so it must survive ANY payload shape.
         # `(items or [])[:cap]` raised TypeError on an int payload - a malformed resolver response
@@ -3588,7 +3590,7 @@ _SESSION_FIELDS = ('message_count', 'tool_call_count', 'input_tokens', 'output_t
                    'actual_cost_usd', 'cost_status', 'cost_source')
 
 
-def _hermes_session_stats(gateway_session_id, timeout_s: float=3.0):
+def _hermes_session_stats(gateway_session_id: Any, timeout_s: float=3.0):
     """The session's own accounting, straight from the gateway's state.db.
 
     Returns None when there is no id to look up, the session is not there yet, or the
@@ -3610,7 +3612,7 @@ def _hermes_session_stats(gateway_session_id, timeout_s: float=3.0):
             return None
         stats = dict(zip(_SESSION_FIELDS, row))
 
-        def _num(v):
+        def _num(v: Any):
             """state.db may store these as TEXT; a tokens field that is a string breaks
             every downstream sum silently, so coerce, and leave an unparseable value
             alone rather than inventing one."""
@@ -3684,7 +3686,7 @@ _ROUTER_GENERATED_MARKERS = ('no open hop', 'no-hops', 'no hops',
                              'no eligible model')
 
 
-def _is_router_generated(reason) -> bool:
+def _is_router_generated(reason: Any) -> bool:
     """True when the failure TEXT was produced by this router's own gate (TR-340).
 
     A 'no open hop' / no-hops / unservable-rating / registry-missing reason is
@@ -3739,7 +3741,7 @@ def _kind_circuit_class(kind: str) -> str:
     return _KIND_CLASS_CACHE[0].get(kind) or ''
 
 
-def _circuit_class(reason) -> str:
+def _circuit_class(reason: Any) -> str:
     """Decide the failure CLASS, because the class decides the blast radius (TR-182).
 
     HARD (api_down 1800s / out_of_credit 14400s) opens a PROVIDER-WIDE breaker once >=3 of
@@ -3776,7 +3778,7 @@ def _circuit_class(reason) -> str:
     return 'api_down'
 
 
-def _demote_on_taxonomy(provider, model, code, detail: str='') -> None:
+def _demote_on_taxonomy(provider: Any, model: Any, code: Any, detail: str='') -> None:
     """TR-288: in-flight demotion from a taxonomy code, fail-open.
 
     The hourly probe learns a provider is out of credit or at its ceiling up
@@ -3825,18 +3827,18 @@ def _demote_on_taxonomy(provider, model, code, detail: str='') -> None:
         pass
 
 
-def _proxy_record(provider, model, ok, requirements, reason: str='', latency_s=None,
-                  source: str='router-proxy', session_id=None,
-                  tokens_in=None, tokens_out=None, cost_usd=None,
-                  parent_session_id=None, price_basis=None,
-                  cache_read_tokens=None, cache_write_tokens=None,
-                  tokens_reasoning=None, gateway_session_id=None,
-                  route_outcome=None, failure_reason=None, hops_attempted=None,
-                  served_by_hop=None, max_hops=None, complexity_source=None,
-                  degrade_reason=None, steps=None, chain_evidence=None,
-                  classifier_evidence=None, attempts=None,
-                  prompt_chars=None, prompt_sha=None, session_stats=None,
-                  caller_session_key=None, deadline=None) -> None:
+def _proxy_record(provider: Any, model: Any, ok: Any, requirements: Any, reason: str='', latency_s: Any=None,
+                  source: str='router-proxy', session_id: Any=None,
+                  tokens_in: Any=None, tokens_out: Any=None, cost_usd: Any=None,
+                  parent_session_id: Any=None, price_basis: Any=None,
+                  cache_read_tokens: Any=None, cache_write_tokens: Any=None,
+                  tokens_reasoning: Any=None, gateway_session_id: Any=None,
+                  route_outcome: Any=None, failure_reason: Any=None, hops_attempted: Any=None,
+                  served_by_hop: Any=None, max_hops: Any=None, complexity_source: Any=None,
+                  degrade_reason: Any=None, steps: Any=None, chain_evidence: Any=None,
+                  classifier_evidence: Any=None, attempts: Any=None,
+                  prompt_chars: Any=None, prompt_sha: Any=None, session_stats: Any=None,
+                  caller_session_key: Any=None, deadline: Any=None) -> None:
     """One outcome row per attempt + breaker evidence (best effort, fail-open).
 
     TR-071: `source` is the DRIVER identity when the caller declared one
@@ -4015,8 +4017,8 @@ _FALLBACK_SESSION_SEQ = [0]
 _FALLBACK_SESSION_LOCK = threading.Lock()
 
 
-def _fallback_proxy_session_id(source_system, _clock=None, _uuid4=None,
-                               _lock=None) -> str:
+def _fallback_proxy_session_id(source_system: Any, _clock: Any=None, _uuid4: Any=None,
+                               _lock: Any=None) -> str:
     """Identity for a request whose caller declared NO session.
 
     Was ``f'{source_system}-{int(time.time() * 1000)}'``: two requests inside
@@ -4044,7 +4046,7 @@ def _fallback_proxy_session_id(source_system, _clock=None, _uuid4=None,
     return f'{source_system}-{int(_clock() * 1000)}-{n:04d}-{_uuid4().hex[:8]}'
 
 
-def proxy_chat(path, body, headers, max_hops=None, upstream=None):
+def proxy_chat(path: Any, body: Any, headers: Any, max_hops: Any=None, upstream: Any=None):
     """TR-172 admission-bounded entry point for every proxied request.
 
     Bounds in-flight work and queue depth, and REFUSES with 429 when both are full —
@@ -4119,7 +4121,7 @@ def proxy_chat(path, body, headers, max_hops=None, upstream=None):
             }}
 
 
-def _proxy_chat_inner(path, body, headers, max_hops=None, upstream=None):
+def _proxy_chat_inner(path: Any, body: Any, headers: Any, max_hops: Any=None, upstream: Any=None):
     """TR-067 Path B implementation. Never raises: any internal failure returns a
     shaped error with the ladder trail (fail-open, the caller is a live client)."""
     headers = {k.lower(): v for k, v in (headers or {}).items()}
@@ -4292,7 +4294,7 @@ def _proxy_chat_inner(path, body, headers, max_hops=None, upstream=None):
     # request, not when the first hop leaves.
     dl_t0 = time.time()
 
-    def _dl_deadline(elapsed_s, dl, problems=None):
+    def _dl_deadline(elapsed_s: Any, dl: Any, problems: Any=None):
         """TR-264: the ledger deadline block for one exit.
 
         Undeclared: every null names its reason (declared_reason /
@@ -4332,7 +4334,7 @@ def _proxy_chat_inner(path, body, headers, max_hops=None, upstream=None):
                 'caller_name': dl_declared.get('name'),
                 **({'problems': problems} if problems else {})}
 
-    def _dl_echo(dl, elapsed_s, problems=None):
+    def _dl_echo(dl: Any, elapsed_s: Any, problems: Any=None):
         """TR-264: the response ECHO — the client-facing reply stamps what
         this layer actually applied (criterion E), never what it guessed."""
         h = {'X-Applied-Layer': 'router-proxy', 'X-Applied-Declared':
@@ -4456,7 +4458,7 @@ def _proxy_chat_inner(path, body, headers, max_hops=None, upstream=None):
     # Hermes gateway, and a caller-supplied upstream is authoritative.
     _last_mile_ok = _hop_uses_provider_last_mile(path, upstream is not None)
 
-    def _hop_call(prov_id):
+    def _hop_call(prov_id: Any):
         if not _last_mile_ok:
             return _default_upstream
         return _provider_upstream_factory(prov_id, provider_routing) or _default_upstream
@@ -4755,7 +4757,7 @@ class RouterHandler(BaseHTTPRequestHandler):
         except (UnicodeDecodeError, json.JSONDecodeError) as exc:
             raise ValueError(f"invalid JSON body: {exc}") from exc
 
-    def _send(self, status, payload, extra_headers=None) -> None:
+    def _send(self, status: Any, payload: Any, extra_headers: Any=None) -> None:
         encoded = json.dumps(payload).encode()
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
@@ -4775,7 +4777,7 @@ class RouterHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(encoded)
 
-    def _send_html(self, status, html) -> None:
+    def _send_html(self, status: Any, html: Any) -> None:
         encoded = html.encode('utf-8')
         self.send_response(status)
         self.send_header("Content-Type", "text/html; charset=utf-8")
@@ -4864,7 +4866,7 @@ class RouterHandler(BaseHTTPRequestHandler):
         except Exception as exc:
             self._send(500, {"error": str(exc)})
 
-    def _send_sse_chat(self, payload) -> None:
+    def _send_sse_chat(self, payload: Any) -> None:
         """Buffered completion -> OpenAI chat-completions SSE frames.
 
         The upstream answer is already complete; emit it as one delta chunk
@@ -4882,7 +4884,7 @@ class RouterHandler(BaseHTTPRequestHandler):
             for _k, _v in _deadline_wire_headers(_meta["deadline"]).items():
                 self.send_header(_k, _v)
         self.end_headers()
-        def _frame(obj) -> None:
+        def _frame(obj: Any) -> None:
             self.wfile.write(b"data: " + json.dumps(obj).encode() + b"\n\n")
         if isinstance(payload, dict) and payload.get("choices"):
             choice0 = payload["choices"][0] or {}
@@ -4906,7 +4908,7 @@ class RouterHandler(BaseHTTPRequestHandler):
             _frame(payload if isinstance(payload, dict) else {"error": str(payload)})
         self.wfile.write(b"data: [DONE]\n\n")
 
-    def _send_sse_responses(self, payload) -> None:
+    def _send_sse_responses(self, payload: Any) -> None:
         """Buffered /v1/responses envelope -> Responses-API SSE frames (TR-129).
 
         The gateway's own event set is response.created -> (deltas/items) ->
@@ -4933,7 +4935,7 @@ class RouterHandler(BaseHTTPRequestHandler):
             self.send_header("X-Hermes-Session-Id", session_id)
         self.end_headers()
 
-        def _frame(event, obj) -> None:
+        def _frame(event: Any, obj: Any) -> None:
             self.wfile.write(f"event: {event}\n".encode()
                              + b"data: " + json.dumps(obj).encode() + b"\n\n")
 
@@ -4954,7 +4956,7 @@ class RouterHandler(BaseHTTPRequestHandler):
             ).encode() + b"\n\n")
         self.wfile.write(b"data: [DONE]\n\n")
 
-    def log_message(self, format_, *args) -> None:
+    def log_message(self, format_: Any, *args: Any) -> None:
         print(
             f"router_server: {self.address_string()} {format_ % args}", file=sys.stderr
         )
@@ -4965,11 +4967,11 @@ class RouterHTTPServer(ThreadingHTTPServer):
     allow_reuse_address = True
     block_on_close = False
 
-    def __init__(self, address, app) -> None:
+    def __init__(self, address: Any, app: Any) -> None:
         self.app = app
         super().__init__(address, RouterHandler)
 
-    def process_request_thread(self, request, client_address) -> None:
+    def process_request_thread(self, request: Any, client_address: Any) -> None:
         admitted = self.app.lifecycle.request_started()
         if not admitted:
             # shutdown() may race one already-accepted socket after readiness
@@ -4985,7 +4987,7 @@ class RouterHTTPServer(ThreadingHTTPServer):
             self.app.lifecycle.request_finished()
 
 
-def _drain_timeout_s(value=None):
+def _drain_timeout_s(value: Any=None):
     """Graceful-drain budget, bounded below systemd's default stop timeout."""
     raw = value if value is not None else os.environ.get("ROUTER_DRAIN_TIMEOUT_S", "60")
     try:
@@ -4994,7 +4996,7 @@ def _drain_timeout_s(value=None):
         return 60.0
 
 
-def _install_graceful_signals(server) -> tuple:
+def _install_graceful_signals(server: Any) -> tuple:
     """SIGTERM/SIGINT stop admission, stop accept, then drain active handlers.
 
     ThreadingHTTPServer.shutdown() must run on a thread other than the one in
@@ -5004,7 +5006,7 @@ def _install_graceful_signals(server) -> tuple:
     """
     serving = threading.Event()
 
-    def request_shutdown(signum, _frame) -> None:
+    def request_shutdown(signum: Any, _frame: Any) -> None:
         server.app.lifecycle.begin_drain()
         print(json.dumps({"event": "drain_started", "signal": signum,
                           **server.app.lifecycle.snapshot()}), flush=True)
@@ -5022,7 +5024,7 @@ def _install_graceful_signals(server) -> tuple:
     return serving, previous
 
 
-def _classifier_failure_is_fatal(problem_text):
+def _classifier_failure_is_fatal(problem_text: Any) -> bool:
     """Is a classifier failure a DEPLOYMENT error or a transient blip?
 
     Fatal (refuse to serve): credential/permission failures — a 401/403 means
@@ -5046,7 +5048,7 @@ def _classifier_failure_is_fatal(problem_text):
 _OPENAI_MODELS_CACHE = {"at": 0.0, "payload": None}
 
 
-def openai_models_payload(data_dir=None, max_age_s: int=300):
+def openai_models_payload(data_dir: Any=None, max_age_s: int=300):
     """GET /v1/models — the OpenAI-compatible model list for this router.
 
     Clients probe this before sending traffic (the OpenAI SDK, Hermes itself and
@@ -5093,7 +5095,7 @@ def openai_models_payload(data_dir=None, max_age_s: int=300):
     return payload
 
 
-def main(argv=None):
+def main(argv: Any=None) -> bool | int:
     parser = argparse.ArgumentParser(description="Task Router OpenAPI + MCP server")
     parser.add_argument("--mode", choices=("read-only", "edit"), default="read-only")
     parser.add_argument(

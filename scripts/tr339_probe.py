@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Ad-hoc 339 probe: tmp git repo, fake CI id refusal, verdict fallback arms."""
+from __future__ import annotations
 import json, os, subprocess, sys, tempfile
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "scripts"))
 import evidence_replay as r

@@ -31,9 +31,11 @@ Provider rollups are derived FROM the same lane list, so the sums reconcile by
 construction — and the endpoint still PROVES it (totals.reconciles + both
 sums) instead of asserting it.
 """
+from __future__ import annotations
 import datetime
 import json
 import os
+from typing import Any
 
 #: Probe statuses that read as "the lane is up". Known-bad (DOWN/SLOW/DISABLED)
 #: reads as "down"; unseen or EXCLUDED reads as "unknown" with its reason —
@@ -58,7 +60,7 @@ def mr_dir():
         or os.path.join(os.path.expanduser("~"), ".hermes", "model-router")
 
 
-def load_health_state(mr_dir=None):
+def load_health_state(mr_dir: Any=None):
     """health-state.json as {} or the parsed dict. A missing/unreadable probe
     file degrades to {} -> every lane renders "health unknown", which is the
     honest answer, not an error page."""
@@ -72,7 +74,7 @@ def load_health_state(mr_dir=None):
     return d if isinstance(d, dict) else {}
 
 
-def load_averages(path=None):
+def load_averages(path: Any=None):
     """outcomes-averages.jsonl rows; a torn line is skipped (read-only tool)."""
     if path is None:
         import router_outcomes
@@ -95,7 +97,7 @@ def load_averages(path=None):
     return rows
 
 
-def _weighted(pairs):
+def _weighted(pairs: Any) -> None | float:
     """Sample-count-weighted mean over [(value, weight)]; None when no value.
 
     Buckets with a NULL metric contribute their samples to sample_count but no
@@ -111,7 +113,7 @@ def _weighted(pairs):
     return None if wsum == 0 else xsum / wsum
 
 
-def _lane_stats(averages):
+def _lane_stats(averages: Any):
     """(provider, model) -> aggregated stats over ALL of the lane's buckets."""
     agg = {}
     for a in averages:
@@ -134,7 +136,7 @@ def _lane_stats(averages):
     return agg
 
 
-def _slot_summary(slot):
+def _slot_summary(slot: Any) -> dict[str, Any]:
     """The per-lane sample/weighted-mean summary over one lane's buckets."""
     n = sum(slot["weights"])
     return {
@@ -144,7 +146,7 @@ def _slot_summary(slot):
     }
 
 
-def _lane_health(health, provider, model):
+def _lane_health(health: Any, provider: Any, model: Any) -> tuple[Any, ...]:
     """(status_raw, latency_ms, latency_level, ts) for one lane.
 
     The per-model probe result wins; the provider's own row is the fallback and
@@ -164,7 +166,7 @@ def _lane_health(health, provider, model):
     return (None, None, None, None)
 
 
-def _build_lane(r, health_st, stats_entry):
+def _build_lane(r: Any, health_st: Any, stats_entry: Any) -> dict[str, Any]:
     """One registry lane joined with its health and averaged usage."""
     p, m = r.get("provider"), r.get("model")
     raw, lat, level, lat_ts = _lane_health(health_st, p, m)
@@ -212,7 +214,7 @@ def _build_lane(r, health_st, stats_entry):
 EPOCH_HEIGHT = None
 
 
-def models_view(registry_rows, health, averages, now_s=None):
+def models_view(registry_rows: Any, health: Any, averages: Any, now_s: Any=None) -> dict[str, Any]:
     """Every registry lane joined with health + averaged sampled usage.
 
     Response shape:
@@ -255,7 +257,7 @@ def models_view(registry_rows, health, averages, now_s=None):
     }
 
 
-def provider_rollups(lanes):
+def provider_rollups(lanes: Any) -> dict[str, Any]:
     """Per-provider rollups derived FROM the lane list, with the reconciliation
     proven, not asserted:
 
@@ -329,14 +331,14 @@ def provider_rollups(lanes):
 
 # --------------------------------------------------------------------- served
 
-def served_models_view(models_rows, mr_dir_override=None):
+def served_models_view(models_rows: Any, mr_dir_override: Any=None) -> dict[str, Any]:
     """The /api/models surface: live loads + the pure join."""
     mr = str(mr_dir_override) if mr_dir_override is not None else mr_dir()
     return models_view(models_rows or [], load_health_state(mr),
                        load_averages())
 
 
-def served_provider_rollups(models_rows, mr_dir_override=None):
+def served_provider_rollups(models_rows: Any, mr_dir_override: Any=None):
     """The /api/provider-rollups surface (same loads; rollups of the SAME lanes)."""
     view = served_models_view(models_rows, mr_dir_override=mr_dir_override)
     out = provider_rollups(view["lanes"])

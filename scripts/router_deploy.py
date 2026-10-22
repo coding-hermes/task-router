@@ -21,6 +21,7 @@ import urllib.request
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import router_drain  # noqa: E402
+from typing import Any
 
 SERVICES = {
     "task-router-server": {"unit": "task-router-server.service", "port": 9092},
@@ -28,7 +29,7 @@ SERVICES = {
 }
 
 
-def parse_args(argv=None):
+def parse_args(argv: Any=None):
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--apply", action="store_true",
                     help="actually restart the selected service(s); without this, only print the plan")
@@ -45,8 +46,8 @@ def parse_args(argv=None):
     return args
 
 
-def verify_deployment(ready_status, ready_body, health_status, health_body,
-                      *, old_pid, expected_digest) -> dict:
+def verify_deployment(ready_status: Any, ready_body: Any, health_status: Any, health_body: Any,
+                      *, old_pid: Any, expected_digest: Any) -> dict:
     """Pure post-restart verdict; require readiness, a new PID, and exact source."""
     checks = []
     if ready_status != 200 or not isinstance(ready_body, dict) or ready_body.get("ready") is not True:
@@ -65,7 +66,7 @@ def verify_deployment(ready_status, ready_body, health_status, health_body,
     return {"ok": not checks, "checks": checks, "runtime": runtime}
 
 
-def _http_json(url, timeout: float=2.0) -> tuple:
+def _http_json(url: Any, timeout: float=2.0) -> tuple:
     req = urllib.request.Request(url, headers={"Accept": "application/json"})
     try:
         with urllib.request.urlopen(req, timeout=timeout) as response:
@@ -78,12 +79,12 @@ def _http_json(url, timeout: float=2.0) -> tuple:
         return exc.code, body
 
 
-def _systemctl(*args, timeout: int=100):
+def _systemctl(*args: Any, timeout: int=100):
     return subprocess.run(["systemctl", "--user", *args], cwd=REPO,
                           capture_output=True, text=True, timeout=timeout)
 
 
-def _old_pid(unit) -> int:
+def _old_pid(unit: Any) -> int:
     result = _systemctl("show", unit, "-p", "MainPID", "--value")
     if result.returncode != 0:
         raise RuntimeError("systemctl show failed: %s" % (result.stderr.strip() or result.stdout.strip()))
@@ -93,7 +94,7 @@ def _old_pid(unit) -> int:
         raise RuntimeError("invalid MainPID from systemd: %r" % result.stdout.strip()) from exc
 
 
-def _wait_ready(port, old_pid, expected_digest, timeout_s):
+def _wait_ready(port: Any, old_pid: Any, expected_digest: Any, timeout_s: Any):
     deadline = time.monotonic() + max(0.0, timeout_s)
     last = (0, {}, 0, {})
     while time.monotonic() < deadline:
@@ -115,15 +116,15 @@ def _wait_ready(port, old_pid, expected_digest, timeout_s):
     return verdict
 
 
-def _preflight(repo):
+def _preflight(repo: Any):
     return subprocess.run(
         [sys.executable, "-m", "py_compile", *map(str, sorted((repo / "scripts").glob("*.py")))],
         cwd=repo, capture_output=True, text=True,
     )
 
 
-def deploy(services=None, *, apply: bool=False, allow_dirty: bool=False, timeout_s: float=90.0,
-           repo=REPO, systemctl=_systemctl) -> tuple:
+def deploy(services: Any=None, *, apply: bool=False, allow_dirty: bool=False, timeout_s: float=90.0,
+           repo: Any=REPO, systemctl: Any=_systemctl) -> tuple:
     """Execute or plan a sequential deploy. Service manager injectable for tests."""
     names = services or ["task-router-server", "task-router-proxy"]
     unknown = sorted(set(names) - set(SERVICES))
@@ -164,7 +165,7 @@ def deploy(services=None, *, apply: bool=False, allow_dirty: bool=False, timeout
                "source": identity}
 
 
-def main(argv=None):
+def main(argv: Any=None):
     args = parse_args(argv)
     code, report = deploy(args.services, apply=args.apply,
                           allow_dirty=args.allow_dirty, timeout_s=args.timeout)

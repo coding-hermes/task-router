@@ -24,6 +24,7 @@ Usage:
       --cmd 'my-agent --model {model} --provider {provider}' [--max-hops 3] [--dry-run]
   python3 scripts/router_chain_run.py --profile-req 'code_gen=2 test=1' --sort predicted_cost_per_task ...
 """
+from __future__ import annotations
 import argparse
 import json
 import os
@@ -37,11 +38,12 @@ sys.path.insert(0, os.path.join(REPO, 'scripts'))
 import router_outcomes as ro  # noqa: E402
 import router_spawn as rs     # noqa: E402
 import router_wire_ids as rwi  # noqa: E402  (TR-148: registry id -> wire id)
+from typing import Any
 
 SOURCE = 'chain-run'
 
 
-def _breaker(provider, model, ok, reason: str='') -> None:
+def _breaker(provider: Any, model: Any, ok: Any, reason: str='') -> None:
     """Forward evidence to the router's breaker store (subprocess: the CLI form
     is the documented interface and honours ROUTER_STATE_DIR)."""
     script = os.path.join(REPO, 'scripts', 'router_circuit.py')
@@ -55,9 +57,9 @@ def _breaker(provider, model, ok, reason: str='') -> None:
         pass
 
 
-def run_chain(chain, cmd_template, max_hops: int=3, session_id=None, profile_id=None,
-              requirements=None, dry_run: bool=False, timeout_s: int=1800, env_extra=None,
-              store=None, source=SOURCE):
+def run_chain(chain: Any, cmd_template: Any, max_hops: int=3, session_id: Any=None, profile_id: Any=None,
+              requirements: Any=None, dry_run: bool=False, timeout_s: int=1800, env_extra: Any=None,
+              store: Any=None, source: Any=SOURCE):
     """Walk the resolved chain. Returns the summary dict (also printed by main)."""
     attempts = []
     result = {'attempts': attempts, 'final': None, 'success': False,

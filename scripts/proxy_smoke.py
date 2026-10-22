@@ -15,8 +15,10 @@ delta proving whether a proxied row was written for each request.
   proxy_smoke.py --n 6 --concurrency 3      # concurrency probe
   proxy_smoke.py --n 2 --base http://127.0.0.1:8642   # control: straight to the gateway
 """
+from __future__ import annotations
 import argparse, json, os, statistics, threading, time, urllib.error, urllib.request
 from pathlib import Path
+from typing import Any
 
 # TR-202 re-pass (2026-10-07): were /home/kara/task-router/... — repo-relative
 # now (realpath, symlink-safe); ledger honours ROUTING_OUTCOMES_FILE.
@@ -30,7 +32,7 @@ PROMPT = "Reply with exactly: SMOKE-OK"
 _lock = threading.Lock()
 
 
-def secret(name):
+def secret(name: Any):
     """Read a credential from ~/.hermes/.env BY NAME; the value is never printed."""
     p = Path.home() / '.hermes' / '.env'
     if not p.exists():
@@ -52,7 +54,7 @@ def ledger_rows():
     return n
 
 
-def one(idx, args, key, out):
+def one(idx: Any, args: Any, key: Any, out: Any):
     tick = f"proxy-smoke-{args.label}-{int(time.time())}-{idx}"
     if args.shape == 'chat':
         url = args.base.rstrip('/') + '/v1/chat/completions'

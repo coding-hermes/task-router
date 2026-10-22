@@ -24,10 +24,12 @@ Rules of this migration:
 - run once; a second run is a no-op by construction (this script rewrites
   from the ORIGINAL committed bytes and git shows no further diff).
 """
+from __future__ import annotations
 
 import json
 import os
 import sys
+from typing import Any
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TABLE = os.path.join(REPO, "data", "tables", "provider_quota.jsonl")
@@ -350,7 +352,7 @@ KEY_ORDER = [
 ]
 
 
-def expected_fields(lineno, row):
+def expected_fields(lineno: Any, row: Any):
     pool, reason, kind, url = D[lineno]
     fields = {}
     if lineno in ALIAS_OF:

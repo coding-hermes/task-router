@@ -8,6 +8,7 @@ never hand-enumerated.
 
 Run standalone it prints the sorted primary ids, one per line.
 """
+from __future__ import annotations
 import json
 import os
 import sys

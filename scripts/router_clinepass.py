@@ -26,6 +26,7 @@ What it does (idempotent):
 
 Stdlib only. Repo-relative paths. Key: CLINEPASS_API_KEY in ~/.hermes/.env.
 """
+from __future__ import annotations
 import argparse
 import datetime
 import json
@@ -39,6 +40,7 @@ _SCRIPTS_DIR = os.path.dirname(os.path.realpath(__file__))
 if _SCRIPTS_DIR not in sys.path:
     sys.path.insert(0, _SCRIPTS_DIR)
 import lifecycle_gate  # noqa: E402  (TR-199: R4 no anonymous dates)
+from typing import Any
 
 # TR-202: realpath, not abspath — the live install at ~/.hermes/scripts/ is a
 # SYMLINK into the repo, so __file__ is the link path and abspath(_REPO) landed
@@ -64,7 +66,7 @@ def _key():
     return None
 
 
-def _get(path):
+def _get(path: Any):
     key = _key()
     assert key, 'CLINEPASS_API_KEY not found in ~/.hermes/.env'
     req = urllib.request.Request(BASE + path, headers={'Authorization': f'Bearer {key}', **UA})
@@ -72,7 +74,7 @@ def _get(path):
         return json.loads(resp.read().decode())
 
 
-def _rows(name):
+def _rows(name: Any):
     path = os.path.join(DATA_DIR, f'{name}.jsonl')
     out = []
     if os.path.exists(path):
@@ -83,7 +85,7 @@ def _rows(name):
     return out
 
 
-def _write(name, rows) -> None:
+def _write(name: Any, rows: Any) -> None:
     # TR-199 (spec R4): no anonymous dates on the write path.
     lifecycle_gate.gate_rows(name, rows)
     path = os.path.join(DATA_DIR, f'{name}.jsonl')
@@ -94,16 +96,16 @@ def _write(name, rows) -> None:
     os.replace(tmp, path)
 
 
-def _chat_ok(mid) -> bool:
+def _chat_ok(mid: Any) -> bool:
     low = mid.lower()
     return not any(s in low for s in SKIP)
 
 
-def _bare(mid):
+def _bare(mid: Any):
     return mid.split('/', 1)[1] if '/' in mid else mid
 
 
-def sync(dry_run) -> int:
+def sync(dry_run: Any) -> int:
     api = _get('/models')
     raw = sorted(d['id'] for d in api.get('data', []))
     print(f'clinepass API: {len(raw)} models')
@@ -204,7 +206,7 @@ SYNC_FILES = ['data/tables/models.jsonl', 'data/tables/model_catalog.jsonl',
               'data/tables/plan_terms.jsonl', 'data/tables/temporary_discounts.jsonl']
 
 
-def _git(*args, check: bool=False):
+def _git(*args: Any, check: bool=False):
     p = subprocess.run(['git', '-C', _REPO, *args], capture_output=True, text=True)
     if check and p.returncode != 0:
         raise RuntimeError(f'git {" ".join(args)} failed: {(p.stderr or p.stdout).strip()[:400]}')
@@ -216,7 +218,7 @@ def _branch():
     return p.stdout.strip() or 'main'
 
 
-def commit_and_push(do_push) -> int:
+def commit_and_push(do_push: Any) -> int:
     """Stage ONLY the sync-owned files, commit with repo identity + co-author,
     push when requested. Returns 0 on success, non-zero on failure."""
     try:
@@ -251,7 +253,7 @@ def commit_and_push(do_push) -> int:
         return 1
 
 
-def main(argv=None):
+def main(argv: Any=None):
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument('action', choices=['sync'])
     ap.add_argument('--dry-run', action='store_true')

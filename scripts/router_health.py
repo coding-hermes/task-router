@@ -18,6 +18,7 @@ Data sources (all read-only, all already on disk):
   ~/.hermes/model-router/circuit-state.json — router_circuit gates
   data/state/chains/ — latest chain snapshot via router_maintain export
 """
+from __future__ import annotations
 import datetime
 import hashlib
 import json
@@ -31,6 +32,7 @@ if str(SERVER_SCRIPTS) not in __import__("sys").path:
     __import__("sys").path.insert(0, str(SERVER_SCRIPTS))
 import router_circuit  # noqa: E402
 import router_validate  # noqa: E402  (TR-REVIEW-001: gate verdict + registry mtime)
+from typing import Any
 
 MR_DIR = Path(os.environ.get("ROUTER_MODEL_ROUTER_DIR",
                              str(Path.home() / ".hermes" / "model-router")))
@@ -55,7 +57,7 @@ MR_DIR = Path(os.environ.get("ROUTER_MODEL_ROUTER_DIR",
 IDENTITY_FILES = ("router_server.py", "router_health.py")
 
 
-def _file_sha(path):
+def _file_sha(path: Any):
     """Short sha of one file, or None when it cannot be read (fail-open)."""
     try:
         return hashlib.sha256(path.read_bytes()).hexdigest()[:16]
@@ -79,7 +81,7 @@ def _utc_now():
     return datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds")
 
 
-def _age_minutes(iso_ts) -> float | None:
+def _age_minutes(iso_ts: Any) -> float | None:
     """Minutes since iso_ts, or None when unparseable."""
     if not iso_ts:
         return None
@@ -92,7 +94,7 @@ def _age_minutes(iso_ts) -> float | None:
         return None
 
 
-def _load_json(path):
+def _load_json(path: Any):
     try:
         with open(path) as fh:
             return json.load(fh)
@@ -100,7 +102,7 @@ def _load_json(path):
         return {}
 
 
-def _read_jsonl(path):
+def _read_jsonl(path: Any):
     rows = []
     try:
         with open(path) as fh:
@@ -318,7 +320,7 @@ def latest_chains_snapshot() -> dict:
         return {"latest": None, "count": 0}
 
 
-def health(mode: str="read-only", data_dir=None):
+def health(mode: str="read-only", data_dir: Any=None):
     """The /health payload. Fail-open: a broken block never kills the response."""
     data_dir = Path(data_dir) if data_dir else Path(
         os.environ.get("ROUTING_DATA_DIR", REPO / "data" / "tables"))
@@ -447,7 +449,7 @@ def health(mode: str="read-only", data_dir=None):
     return out
 
 
-def _gate_open(state) -> bool:
+def _gate_open(state: Any) -> bool:
     """A pair is 'open' (gating active) while open_until is in the future."""
     ou = state.get("open_until")
     if not ou:
@@ -464,7 +466,7 @@ def _load_health_state():
     return hs if hs else None
 
 
-def _load_json_safe(path):
+def _load_json_safe(path: Any):
     try:
         with open(path) as fh:
             return json.load(fh)
@@ -472,7 +474,7 @@ def _load_json_safe(path):
         return None
 
 
-def model_status(provider=None, data_dir=None) -> dict:
+def model_status(provider: Any=None, data_dir: Any=None) -> dict:
     """TR-087: the per-model/provider status LOOKUP.
 
     One row per registry lane: identity + pricing + probe status/latency/ts +

@@ -20,6 +20,7 @@ Design invariants (do not violate):
   the catalog are REPORTED, never silently deleted (use --mark-removed to disable).
 - Keys are never touched: probe row carries key_env only.
 """
+from __future__ import annotations
 import argparse
 import datetime
 import json
@@ -34,11 +35,12 @@ _SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
 if _SCRIPTS_DIR not in sys.path:
     sys.path.insert(0, _SCRIPTS_DIR)
 import lifecycle_gate  # noqa: E402  (TR-199: R4 no anonymous dates)
+from typing import Any
 
 
 # ---------- pure functions (unit-tested) ----------
 
-def dig(d, dotted):
+def dig(d: Any, dotted: Any):
     cur = d
     for part in dotted.split('.'):
         if not isinstance(cur, dict) or part not in cur:
@@ -53,7 +55,7 @@ def dig(d, dotted):
 MAX_LANE_PRICE_PER_M = 10000.0
 
 
-def _scaled_price(value, scale) -> float | None:
+def _scaled_price(value: Any, scale: Any) -> float | None:
     """Catalog price -> per-1M lane price, or None when it is not a real price.
 
     NEVER a fabricated number: OpenRouter's `openrouter/fusion` pseudo-model
@@ -77,7 +79,7 @@ def _scaled_price(value, scale) -> float | None:
     return round(v, 6)
 
 
-def normalize(catalog, preset):
+def normalize(catalog: Any, preset: Any):
     """catalog dict -> {model_id: lane dict} using the preset field map."""
     fmt = preset.get('catalog_format', 'openai_models_list')
     if fmt == 'openai_models_list':
@@ -172,7 +174,7 @@ def normalize(catalog, preset):
     return out
 
 
-def diff(existing, new) -> dict:
+def diff(existing: Any, new: Any) -> dict:
     """existing: {(provider,model): row}; new: {model_id: lane} ->
     {added:[...], changed:[(model, fields)], unchanged:[...], removed:[...]}"""
     added, changed, unchanged, removed = [], [], [], []
@@ -196,8 +198,8 @@ def diff(existing, new) -> dict:
     return {'added': added, 'changed': changed, 'unchanged': unchanged, 'removed': removed}
 
 
-def apply_lanes(path, provider, new_lanes, plan_tier, price_evidence, drift=None,
-                variant_notes=None, usage_multiplier=None):
+def apply_lanes(path: Any, provider: Any, new_lanes: Any, plan_tier: Any, price_evidence: Any, drift: Any=None,
+                variant_notes: Any=None, usage_multiplier: Any=None):
     """Update models.jsonl in place: update matching rows, append net-new.
     Returns (updated, appended). Row order of existing file is preserved.
     Evidence discipline: existing rows KEEP their price_evidence (a no-drift
@@ -218,7 +220,7 @@ def apply_lanes(path, provider, new_lanes, plan_tier, price_evidence, drift=None
     out = []
     mult = float(usage_multiplier or 1.0)
 
-    def plan_effective(lane, priced_from_catalog: bool=True):
+    def plan_effective(lane: Any, priced_from_catalog: bool=True):
         """Apply the plan multiplier to a lane whose price came from the
         catalog in THIS pass. A lane whose price was preserved (catalog had no
         price) or kept for its window-cost story must NOT be divided again."""
@@ -339,7 +341,7 @@ def apply_lanes(path, provider, new_lanes, plan_tier, price_evidence, drift=None
     return updated, appended
 
 
-def ensure_probe_row(path, preset) -> bool:
+def ensure_probe_row(path: Any, preset: Any) -> bool:
     """Idempotently ensure probe_providers.jsonl carries this provider (key_env only)."""
     rows = [json.loads(l) for l in open(path) if l.strip()]
     if any(r.get('id') == preset['id'] for r in rows):
@@ -359,14 +361,14 @@ def ensure_probe_row(path, preset) -> bool:
 
 # ---------- IO ----------
 
-def fetch_catalog(url, user_agent):
+def fetch_catalog(url: Any, user_agent: Any):
     req = urllib.request.Request(url, headers={'User-Agent': user_agent,
                                                'Accept': 'application/json'})
     with urllib.request.urlopen(req, timeout=60) as resp:
         return json.loads(resp.read())
 
 
-def load_preset(name):
+def load_preset(name: Any):
     path = os.path.join(PRESETS, f'{name}.json')
     return json.load(open(path))
 

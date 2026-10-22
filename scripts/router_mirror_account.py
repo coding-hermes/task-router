@@ -17,6 +17,7 @@ fleet hammers lane 1. That was the state of commandcode seat 2 on 2026-09-26.
 Writes models.jsonl in the repo's canonical JSON spacing (compact separators
 reformat every other row — see the 2026-09-26 muse-code churn incident).
 """
+from __future__ import annotations
 import argparse
 import json
 import pathlib

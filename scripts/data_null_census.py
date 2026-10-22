@@ -30,12 +30,14 @@ Usage:
   python3 scripts/data_null_census.py --json     # machine census
   python3 scripts/data_null_census.py --fail-on-unexplained   # gate mode
 """
+from __future__ import annotations
 
 import argparse
 import collections
 import json
 import os
 import sys
+from typing import Any
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _REPO = os.path.dirname(_HERE)
@@ -222,7 +224,7 @@ STRUCTURAL = {
 }
 
 
-def load(name, d=None):
+def load(name: Any, d: Any=None):
     d = d or T
     out = []
     p = os.path.join(d, name)
@@ -259,12 +261,12 @@ def load_stamps():
     return out
 
 
-def is_live(r):
+def is_live(r: Any) -> bool:
     """live = enabled, not archived, not retired (the TR-197 metric surface)."""
     return not r.get("archive") and not r.get("disabled") and not r.get("valid_to")
 
 
-def lane_state_reason(r) -> str | None:
+def lane_state_reason(r: Any) -> str | None:
     if r.get("archive"):
         return "archived"
     if r.get("disabled"):
@@ -274,7 +276,7 @@ def lane_state_reason(r) -> str | None:
     return None
 
 
-def classify(fn, rows, stamps):
+def classify(fn: Any, rows: Any, stamps: Any):
     """-> list of dicts, one per null:
     {table, provider, model, field, live, class, reason}
 
@@ -320,7 +322,7 @@ def classify(fn, rows, stamps):
     return out
 
 
-def main(argv=None) -> int:
+def main(argv: Any=None) -> int:
     ap = argparse.ArgumentParser(description="the NULL census (TR-197)")
     ap.add_argument("--json", action="store_true", help="machine census on stdout")
     ap.add_argument(

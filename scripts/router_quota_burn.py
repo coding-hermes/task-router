@@ -67,6 +67,7 @@ CLI (operators; programmatic callers import find_surplus / project_window):
   message, no traceback). A --json output is a REPORT DOCUMENT printed to
   stdout — the module writes no file anywhere.
 """
+from __future__ import annotations
 import argparse
 import json
 import os
@@ -78,6 +79,7 @@ if _HERE not in sys.path:
     sys.path.insert(0, _HERE)
 
 import router_quota_accounting as acc  # noqa: E402  (the L2 view — the only data source)
+from typing import Any
 
 REPO = os.path.dirname(_HERE)
 
@@ -100,7 +102,7 @@ _METERED_KINDS = frozenset({
 
 # ------------------------------------------------------------- plan kind ----
 
-def classify_plan(kind):
+def classify_plan(kind: Any) -> None | str:
     """A declared plan_kind -> cost basis ('subscription-covered' | 'metered'
     | 'unknown'); undeclared (None/'') -> None so the caller can tell
     'not declared' from 'declared but unrecognized'."""
@@ -116,7 +118,7 @@ def classify_plan(kind):
     return BASIS_UNKNOWN
 
 
-def parse_plan_kinds(spec):
+def parse_plan_kinds(spec: Any):
     """`--plan-kind P=K[,P=K...]` -> {provider: kind}. Malformed entries are
     operator errors (the CLI turns them into exit 2, never masked)."""
     kinds = {}
@@ -139,14 +141,14 @@ def parse_plan_kinds(spec):
     return kinds
 
 
-def _finite_num(v):
+def _finite_num(v: Any):
     return (not isinstance(v, bool) and isinstance(v, (int, float))
             and v == v and v not in (float('inf'), float('-inf')))
 
 
 # -------------------------------------------------------------- the probe ----
 
-def project_window(block, now_ts, cfg=None, plan_kind=None):
+def project_window(block: Any, now_ts: Any, cfg: Any=None, plan_kind: Any=None):
     """The burn projection for ONE L2 block — a pure function.
 
     block: an L2 block verbatim from router_quota_accounting (its
@@ -294,7 +296,7 @@ def project_window(block, now_ts, cfg=None, plan_kind=None):
     return e
 
 
-def find_surplus(blocks, now_ts, plan_kinds=None, provider_cfgs=None):
+def find_surplus(blocks: Any, now_ts: Any, plan_kinds: Any=None, provider_cfgs: Any=None):
     """Per-window projections over the L2 view — the pure finder.
 
     blocks: L2 blocks (account() output). plan_kinds: {provider: kind}
@@ -318,7 +320,7 @@ def find_surplus(blocks, now_ts, plan_kinds=None, provider_cfgs=None):
     return entries
 
 
-def summarize(entries) -> dict:
+def summarize(entries: Any) -> dict:
     """The report's headline counts: verdict census + total surplus that is
     actually burnable (burn verdicts only — an unknown window contributes
     nothing, not even to a sum)."""
@@ -333,8 +335,8 @@ def summarize(entries) -> dict:
     }
 
 
-def find_surplus_ledger(path=None, limits=None, now_ts=None,
-                        plan_kinds=None):
+def find_surplus_ledger(path: Any=None, limits: Any=None, now_ts: Any=None,
+                        plan_kinds: Any=None):
     """The view over the ledger FILE — the only I/O path (read-only).
 
     Same conventions as account_ledger: `limits` may be a loaded config dict
@@ -354,11 +356,11 @@ def find_surplus_ledger(path=None, limits=None, now_ts=None,
 
 # ------------------------------------------------------------------ CLI ----
 
-def _fmt_usd(v) -> str:
+def _fmt_usd(v: Any) -> str:
     return '-' if v is None else f'{v:.4f}'
 
 
-def _print_human(entries, ledger, limits_file, as_of) -> int:
+def _print_human(entries: Any, ledger: Any, limits_file: Any, as_of: Any) -> int:
     print(f'L3 quota burn-surplus — projection over {ledger}')
     print(f'  as of {as_of} · limits: {limits_file}')
     if not entries:
@@ -385,7 +387,7 @@ def _print_human(entries, ledger, limits_file, as_of) -> int:
     return 0
 
 
-def main(argv=None) -> int | None:
+def main(argv: Any=None) -> int | None:
     argv = list(sys.argv[1:] if argv is None else argv)
     parser = argparse.ArgumentParser(
         prog='router_quota_burn.py',

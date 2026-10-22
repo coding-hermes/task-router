@@ -57,7 +57,9 @@ Usage (inside a router script):
         REGISTRY = os.environ.get('ROUTING_REGISTRY',
                                   os.path.join(_REPO, 'registry.json'))
 """
+from __future__ import annotations
 import os
+from typing import Any
 
 __all__ = ["resolve_registry_path"]
 
@@ -75,7 +77,7 @@ def _data_home():
                         'task-router')
 
 
-def resolve_registry_path(repo_root):
+def resolve_registry_path(repo_root: Any):
     """Registry.json path: ROUTING_REGISTRY > TASK_ROUTER_HOME > <repo> > XDG.
 
     repo_root is the caller's <repo> (its scripts/ dir's parent). Never

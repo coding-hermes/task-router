@@ -49,6 +49,7 @@ Fail-open everywhere: an unreadable DB or board produces reasoned rows or an
 empty result, never a crash — nothing here may block a resolve (the store is
 consumed by outcomes_averages, which the sort path reads).
 """
+from __future__ import annotations
 import json
 import os
 import re
@@ -62,6 +63,7 @@ if HERE not in sys.path:
     sys.path.insert(0, HERE)
 
 import router_outcomes as ro  # noqa: E402  (the store + banding source of truth)
+from typing import Any
 
 DEFAULT_DB = os.environ.get('HERMES_STATE_DB', '~/.hermes/state.db')
 DEFAULT_BOARD = os.path.join(REPO, '.coding-hermes', 'board', 'tasks.jsonl')
@@ -98,13 +100,13 @@ HOST2PROVIDER = {
 _FOREMAN_KEY_RE = re.compile(r'^task-router-foreman-\d{4}-\d{2}-\d{2}-\d{2}-\d{2}-\d{2}$')
 
 
-def _txt(v):
+def _txt(v: Any):
     if isinstance(v, bytes):
         return v.decode('utf-8', errors='replace')
     return v
 
 
-def _provider_of(base_url, stamped):
+def _provider_of(base_url: Any, stamped: Any):
     """Provider id from the IMMUTABLE billing_base_url host; the re-stamped
     column only names hosts the table has never seen (LAW, memory 09-16)."""
     for host, name in HOST2PROVIDER.items():
@@ -114,7 +116,7 @@ def _provider_of(base_url, stamped):
     return stamped or 'unknown'
 
 
-def _is_numericish(v) -> bool:
+def _is_numericish(v: Any) -> bool:
     """Column-drift era rows (provider/model hold numerics/epoch floats/hex
     ints) are not lanes — same guard as the Hermes driver."""
     if v is None:
@@ -132,7 +134,7 @@ def _is_numericish(v) -> bool:
         return False
 
 
-def task_key_from_session(display_name=None, session_key=None, task=None):
+def task_key_from_session(display_name: Any=None, session_key: Any=None, task: Any=None):
     """The stable task id a session belongs to (the board-row join key).
 
     Precedence: the usage row's own task label (fine-grained, when the
@@ -158,7 +160,7 @@ def task_key_from_session(display_name=None, session_key=None, task=None):
 # The board side: what a task row says about its own acceptance
 # ---------------------------------------------------------------------------
 
-def board_row_context(board_path=None) -> tuple:
+def board_row_context(board_path: Any=None) -> tuple:
     """Read-once index of the JSONL board: (by_id, by_title). Tolerant of torn
     lines (every JSONL consumer in this repo is); missing file -> empty index
     (callers reason about it, never crash)."""
@@ -196,7 +198,7 @@ def board_row_context(board_path=None) -> tuple:
 _FAILURE_SIGNALS = ('fail', 'rejected', 'reverted', 'regression', 'not done')
 
 
-def _criteria_verdict(trow) -> tuple:
+def _criteria_verdict(trow: Any) -> tuple:
     """(verdict, source) from explicit per-criterion results, when the row
     carries them. Unmet criteria fail the task; all-met criteria pass it;
     anything unmmarked is not evidence."""
@@ -211,7 +213,7 @@ def _criteria_verdict(trow) -> tuple:
     return None, None
 
 
-def acceptance_verdict(trow) -> tuple:
+def acceptance_verdict(trow: Any) -> tuple:
     """(success: bool|None, source: str) — the INDEPENDENT pass/fail for a
     board task row. Never reads worker self-report prose. None + reason when
     the row carries no acceptance evidence."""
@@ -243,7 +245,7 @@ def acceptance_verdict(trow) -> tuple:
                   'result, no evidence)')
 
 
-def normalize_levels(obj):
+def normalize_levels(obj: Any):
     """{category: level} from the shapes board rows carry ({cat: lvl} dict,
     [{'category','level'},...], ['cat=lvl',...]). None when nothing usable —
     never invented (the banding input stays honest)."""
@@ -278,7 +280,7 @@ def normalize_levels(obj):
 # Derivation: the gateway DB's main-lane usage -> candidate outcome rows
 # ---------------------------------------------------------------------------
 
-def derive_actual_lanes(db_path=None) -> tuple:
+def derive_actual_lanes(db_path: Any=None) -> tuple:
     """One candidate row per (session x main-lane usage row) under the lane
     that ACTUALLY served it, with the session's exact meter.
 
@@ -374,7 +376,7 @@ def derive_actual_lanes(db_path=None) -> tuple:
     return out, problems
 
 
-def _identity_for(sid, identities, problems) -> tuple:
+def _identity_for(sid: Any, identities: Any, problems: Any) -> tuple:
     key, display = identities.get(sid, (None, ''))
     ident = task_key_from_session(display_name=display, session_key=key)
     if ident is None:
@@ -387,7 +389,7 @@ def _identity_for(sid, identities, problems) -> tuple:
 # The joined outcome: actual lane + exact cost + independent verdict + band
 # ---------------------------------------------------------------------------
 
-def verified_task_outcomes(db_path=None, board_path=None):
+def verified_task_outcomes(db_path: Any=None, board_path: Any=None):
     """The TR-299 feedback rows: one per (session x actual main-lane).
 
     Every row carries: the ACTUAL provider/model (derived, never the label),
@@ -469,7 +471,7 @@ def verified_task_outcomes(db_path=None, board_path=None):
 # CLI: collect + atomic idempotent projection into the verified store
 # ---------------------------------------------------------------------------
 
-def write_store(path, rows) -> int:
+def write_store(path: Any, rows: Any) -> int:
     """Replace the store with the fresh projection (tmp + os.replace, the
     outcomes_averages.write_rows pattern). Idempotent BY CONSTRUCTION: the
     same (DB, board) state yields a byte-identical file, so a re-run of the
@@ -484,7 +486,7 @@ def write_store(path, rows) -> int:
     return len(rows)
 
 
-def main(argv=None) -> int:
+def main(argv: Any=None) -> int:
     import argparse
     ap = argparse.ArgumentParser(
         prog='verified_outcomes.py',

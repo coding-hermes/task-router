@@ -8,6 +8,7 @@ import subprocess
 import threading
 import time
 from pathlib import Path
+from typing import Any
 
 
 class DrainController:
@@ -52,7 +53,7 @@ class DrainController:
             if self._inflight == 0:
                 self._condition.notify_all()
 
-    def wait_for_idle(self, timeout_s) -> bool:
+    def wait_for_idle(self, timeout_s: Any) -> bool:
         """Wait no longer than timeout_s; False means work remains in flight."""
         deadline = time.monotonic() + max(0.0, float(timeout_s))
         with self._condition:
@@ -69,7 +70,7 @@ class DrainController:
                     "inflight": self._inflight}
 
 
-def runtime_identity(repo_root=None) -> dict:
+def runtime_identity(repo_root: Any=None) -> dict:
     """Identify the code loaded by a router process for deploy verification.
 
     Revision is diagnostic; source_digest fingerprints the actual on-disk Python

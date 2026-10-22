@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """X-RAY v2: corrected findings + HTML film. The image is ground; the analysis is a claim."""
+from __future__ import annotations
 import json, os, re, subprocess, datetime, collections
+from typing import Any
 
 REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 BOARD = REPO + '/.coding-hermes/board/tasks.jsonl'
@@ -26,7 +28,7 @@ def _rel_count() -> int | None:
 
 # ch:trace row=TR-252 spec=docs/traceability-doctrine.md#hard-rules test=tests/test_doc_parity.py doc=docs/traceability-doctrine.md evidence=reports/xray/ witness=tag:v0.2.0@origin memory=/project/task-router/xray-first-film-2026-10-01
 
-def sh(cmd, t: int=90):
+def sh(cmd: Any, t: int=90):
     try:
         p = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=t, cwd=REPO)
         return (p.stdout or '').strip()
@@ -131,7 +133,7 @@ film = {'taken': STAMP, 'project': 'task-router', 'origin': origin, 'live': live
 open(os.path.join(OUTDIR, 'task-router-latest.json'), 'w', encoding='utf-8').write(json.dumps(film, indent=2))
 
 # ---- RENDER ----
-def esc(s):
+def esc(s: Any):
     return str(s).replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
 
 ledger_rows = ''.join(

@@ -67,6 +67,7 @@ What it does:
 
 Stdlib only. Repo-relative paths (env overrides: ROUTING_DATA_DIR).
 """
+from __future__ import annotations
 import argparse
 import datetime
 import json
@@ -80,6 +81,7 @@ _SCRIPTS_DIR = os.path.dirname(os.path.realpath(__file__))
 if _SCRIPTS_DIR not in sys.path:
     sys.path.insert(0, _SCRIPTS_DIR)
 import lifecycle_gate  # noqa: E402  (TR-199: R4 no anonymous dates)
+from typing import Any
 
 # TR-202: realpath — symlinked live install; abspath put _REPO on ~/.hermes,
 # wrong for DATA_DIR, the board tasks.jsonl (:611) and git operations (:784+).
@@ -113,7 +115,7 @@ MAPPINGS_TABLE = 'provider_mappings.jsonl'
 
 
 # ---------------------------------------------------------------- mappings ----
-def _rule_matches(rule, name):
+def _rule_matches(rule: Any, name: Any):
     """True if `name` matches `rule`. match: prefix|regex|literal."""
     m = (rule.get('match') or 'prefix').lower()
     pat = rule.get('pattern') or ''
@@ -129,7 +131,7 @@ def _rule_matches(rule, name):
     return False
 
 
-def _rule_apply(rule, name):
+def _rule_apply(rule: Any, name: Any):
     """Apply `rule` to `name` -> mapped name."""
     m = (rule.get('match') or 'prefix').lower()
     pat = rule.get('pattern') or ''
@@ -150,7 +152,7 @@ def _rule_apply(rule, name):
         return name
 
 
-def load_mappings(data_dir=None):
+def load_mappings(data_dir: Any=None):
     """Mapping rules from data/tables/provider_mappings.jsonl, in file order
     (first match wins). Missing file / missing row = no rule — a visible gap,
     never a code fallback (same data policy as quality_estimates)."""
@@ -165,7 +167,7 @@ def load_mappings(data_dir=None):
     return rules
 
 
-def map_provider_name(name, mappings) -> tuple:
+def map_provider_name(name: Any, mappings: Any) -> tuple:
     """Map an external name through the rules (FILE ORDER, FIRST MATCH WINS).
     Returns (mapped_name, rule_or_None). No match -> (name, None).
     Rules with direction 'modelsdev-silence' (TR-045) are SKIPPED here —
@@ -180,7 +182,7 @@ def map_provider_name(name, mappings) -> tuple:
     return name, None
 
 
-def is_silenced_external(name, mappings) -> bool:
+def is_silenced_external(name: Any, mappings: Any) -> bool:
     """TR-045: True when a provider_mappings.jsonl rule with direction
     'modelsdev-silence' matches the external id — a known-unmapped models.dev
     provider (data-driven silence, never silent code)."""
@@ -190,7 +192,7 @@ def is_silenced_external(name, mappings) -> bool:
     return False
 
 
-def resolve_external_provider(external_id, mappings, provider_ids) -> tuple:
+def resolve_external_provider(external_id: Any, mappings: Any, provider_ids: Any) -> tuple:
     """External (models.dev) name -> our registry provider id.
     Order: mapping rule (first match wins) -> canonical id / exact table hit
     / case-insensitive table hit -> None (unmapped, a visible gap)."""
@@ -238,7 +240,7 @@ def load_providers():
     return rows
 
 
-def enabled_providers(providers, models) -> tuple:
+def enabled_providers(providers: Any, models: Any) -> tuple:
     """ENABLED = providers.jsonl row with archive=false AND >=1 models.jsonl
     row referencing the id (routable). Returns (enabled_ids, disabled map
     id -> reason). See module docstring for the definition."""
@@ -257,7 +259,7 @@ def enabled_providers(providers, models) -> tuple:
     return enabled, disabled
 
 
-def fetch_api(dry_run):
+def fetch_api(dry_run: Any):
     if dry_run and os.path.exists(CACHE):
         return json.load(open(CACHE))
     req = urllib.request.Request(MODELSDEV_URL, headers=UA)
@@ -270,7 +272,7 @@ def fetch_api(dry_run):
 
 
 # -------------------------------------------------------------------- sync ----
-def run_sync(api, models, catalog, mappings, include_all: bool=False, dry_run: bool=False) -> dict:
+def run_sync(api: Any, models: Any, catalog: Any, mappings: Any, include_all: bool=False, dry_run: bool=False) -> dict:
     """TR-019 sync core: enabled providers only (unless include_all), mapping
     rules applied to external models.dev ids BEFORE table matching. Returns a
     summary dict — the --json payload / the human report source. Network-free
@@ -462,7 +464,7 @@ def run_sync(api, models, catalog, mappings, include_all: bool=False, dry_run: b
 
 # catalog-only filter: skip niche/audio/tiny models the fleet will never route
 # (whisper, prompt-guard, orpheus...). Keep chat-capable or big-context ones.
-def _modalities_fields(meta):
+def _modalities_fields(meta: Any) -> tuple[Any, ...]:
     """(vision, modality, knowledge_cutoff) from one models.dev model entry.
 
     TR-200: the models.dev payload schema drifted — the flat `vision` boolean,
@@ -491,7 +493,7 @@ def _modalities_fields(meta):
     return vision, modality, knowledge
 
 
-def _text_output(meta):
+def _text_output(meta: Any) -> bool:
     """True when the model's declared output modality includes text.
 
     TR-200 follow-up: the new `modalities` object made image/video-only
@@ -509,7 +511,7 @@ def _text_output(meta):
     return True
 
 
-def _relevant(meta):
+def _relevant(meta: Any) -> bool:
     if not _text_output(meta):
         return False
     if meta.get('reasoning') or meta.get('tool_call'):
@@ -524,7 +526,7 @@ def _relevant(meta):
     return ctx >= 32000
 
 
-def _write_rows(path, rows) -> None:
+def _write_rows(path: Any, rows: Any) -> None:
     # TR-199 (spec R4): no anonymous dates — gate the models table by path;
     # model_catalog.jsonl carries no lifecycle dates and is not gated.
     if os.path.basename(path) == 'models.jsonl':
@@ -539,7 +541,7 @@ def _write_rows(path, rows) -> None:
     os.replace(path + '.tmp', path)
 
 
-def _apply_writes(summary, models, verbose: bool=True) -> tuple:
+def _apply_writes(summary: Any, models: Any, verbose: bool=True) -> tuple:
     """Write model_catalog.jsonl / models.jsonl from a run_sync summary.
     Atomic-ish tmp+rename, per repo convention. Returns (wrote_catalog,
     wrote_models, n_added). TR-035: models.jsonl is written when there are
@@ -604,7 +606,7 @@ def _apply_writes(summary, models, verbose: bool=True) -> tuple:
     return wrote_cat, wrote_models, n_added
 
 
-def _is_dynamic_route(provider, model):
+def _is_dynamic_route(provider: Any, model: Any):
     """True for provider-side routing/meta endpoints (TR-076 BY_DESIGN rule).
 
     Imported lazily from router_lifecycle so the two modules cannot drift on
@@ -617,7 +619,7 @@ def _is_dynamic_route(provider, model):
         return False
 
 
-def _documented_null(provider, model, notes=None) -> bool:
+def _documented_null(provider: Any, model: Any, notes: Any=None) -> bool:
     """True when model_notes.jsonl already explains this lane's NULL price.
 
     TR-043 refinement (found by auditing my own filed rows): a NULL price is not
@@ -665,7 +667,7 @@ def _load_model_notes():
     return out
 
 
-def _pricing_gaps(models):
+def _pricing_gaps(models: Any):
     """TR-043: lanes whose only price source is the aggregator are invisible.
 
     Forensics 2026-09-13: ollama deepseek-v4.1-flash WAS detected by tick 34 but
@@ -707,7 +709,7 @@ def _pricing_gaps(models):
     return gaps
 
 
-def _file_gap_rows(gaps, dry_run: bool=False) -> int:
+def _file_gap_rows(gaps: Any, dry_run: bool=False) -> int:
     """Append one board row per unpriced lane (TR-043).
 
     A board row is the mechanism Bane asked for: instead of the gap sitting
@@ -775,7 +777,7 @@ def _file_gap_rows(gaps, dry_run: bool=False) -> int:
     return len(pending)
 
 
-def _print_human(summary) -> None:
+def _print_human(summary: Any) -> None:
     print(f"== models.dev sync ({summary['providers_on_modelsdev']} providers on catalog) ==")
     for t in summary['touched_providers']:
         print(f"  -> {t['provider']}  via {t['via']}  (models.dev: {t['modelsdev']})")
@@ -800,7 +802,7 @@ def _print_human(summary) -> None:
     print('(subscription-aware) — models.dev stickers are catalog reference only.')
 
 
-def main(argv=None) -> int:
+def main(argv: Any=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = ap.add_subparsers(dest='action')
     p_sync = sub.add_parser('sync', help='catalog sync (enabled providers only; --all includes disabled)')

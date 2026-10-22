@@ -45,11 +45,13 @@ This tool is the WRITE side, so the field cannot drift by hand again:
 Fail-open/quiet by contract: `validate` is the guard; `normalize` never writes
 without --apply (dry run is the default).
 """
+from __future__ import annotations
 import argparse
 import json
 import os
 import subprocess
 import sys
+from typing import Any
 
 #: legacy scalar word -> ordering int (R6.2). Absent word = no mapping; the
 #: row is reported, never guessed.
@@ -60,7 +62,7 @@ BOARD_APPEND = os.path.join(os.path.expanduser('~'),
                             '.hermes', 'scripts', 'board_append.py')
 
 
-def iter_rows(path):
+def iter_rows(path: Any):
     with open(path) as fh:
         for n, line in enumerate(fh, 1):
             line = line.strip()
@@ -74,7 +76,7 @@ def iter_rows(path):
                 yield n, row
 
 
-def latest_by_id(path):
+def latest_by_id(path: Any):
     """id -> (line_no, row) for the LAST occurrence of each id."""
     latest = {}
     for n, row in iter_rows(path):
@@ -84,7 +86,7 @@ def latest_by_id(path):
     return latest
 
 
-def complexity_drift(row) -> tuple | None:
+def complexity_drift(row: Any) -> tuple | None:
     """The normalised complexity for a row, or None when it needs none.
     Returns (new_value, was) — was is the offending scalar string."""
     v = row.get('complexity')
@@ -95,7 +97,7 @@ def complexity_drift(row) -> tuple | None:
     return None
 
 
-def level_drift(row):
+def level_drift(row: Any):
     """Bad required_categories entries: [(category, value)] non-int/out-of-range."""
     raw = row.get('required_categories')
     if raw is None:
@@ -110,7 +112,7 @@ def level_drift(row):
     return bad
 
 
-def cmd_normalize(args):
+def cmd_normalize(args: Any):
     latest = latest_by_id(args.board)
     superseding = []
     for rid, (n, row) in sorted(latest.items(), key=lambda kv: kv[1][0]):
@@ -169,7 +171,7 @@ def cmd_normalize(args):
     return 0
 
 
-def cmd_validate(args) -> int:
+def cmd_validate(args: Any) -> int:
     problems = []
     seen_latest = latest_by_id(args.board)
     for rid, (n, row) in sorted(seen_latest.items(), key=lambda kv: kv[1][0]):

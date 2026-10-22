@@ -23,7 +23,9 @@ already carries tables/ + docs/; these keys are the LIVE LEARNING layer:
   /providers/<name>          domain=concept   (billing/quirks/data sources)
   /lessons/<YYYY-MM-DD>-<slug> domain=event   (append-only lesson log)
 """
+from __future__ import annotations
 import argparse, hashlib, json, os, subprocess, sys, datetime
+from typing import Any
 
 NS = "task-router"
 DB = os.path.expanduser("~/duckbrain")
@@ -31,14 +33,14 @@ CLI = ["node", "bin/duckbrain.js"]
 TODAY = datetime.date.today().strftime("%Y-%m-%d")
 
 
-def _cli(*args) -> tuple:
+def _cli(*args: Any) -> tuple:
     """Run duckbrain CLI; return (rc, stdout)."""
     p = subprocess.run(CLI + list(args), cwd=DB, capture_output=True, text=True,
                        timeout=120)
     return p.returncode, (p.stdout + p.stderr).strip()
 
 
-def _verify(key, text):
+def _verify(key: Any, text: Any):
     """Post-write verification: grep the just-written uuid in the ns partition."""
     rc, out = _cli("recall", "--namespace=" + NS, "--key=" + key)
     if "Found 1 memories" not in out and "Found" not in out:
@@ -46,7 +48,7 @@ def _verify(key, text):
     return rc
 
 
-def _write(key, domain, text, attrs) -> int:
+def _write(key: Any, domain: Any, text: Any, attrs: Any) -> int:
     attr = json.dumps(attrs)
     rc, out = _cli("remember", key, "--namespace=" + NS, "--domain=" + domain,
                    "--attr=" + attr, "--wait", "--content=" + text)
@@ -91,7 +93,7 @@ def dump() -> None:
     print("\n" + "=" * 60)
 
 
-def _scan_keys(prefix):
+def _scan_keys(prefix: Any):
     """Scan the ns JSONL partitions for keys under prefix (CLI list-keys is
     paginated/unreliable for prefix filters)."""
     found = set()
@@ -120,7 +122,7 @@ def _scan_keys(prefix):
     return found
 
 
-def _extract_content(recall_out):
+def _extract_content(recall_out: Any):
     """Pull the embedding_text/content out of CLI recall output (best-effort)."""
     for marker in ("content: ", "embedding_text: ", '"content": "', '"embedding_text": "'):
         idx = recall_out.rfind(marker)
@@ -129,12 +131,12 @@ def _extract_content(recall_out):
     return ""
 
 
-def lesson(slug, text) -> None:
+def lesson(slug: Any, text: Any) -> None:
     key = f"/lessons/{TODAY}-{slug}"
     _write(key, "event", text, {"date": TODAY, "kind": "lesson"})
 
 
-def doctrine(key, text) -> int | None:
+def doctrine(key: Any, text: Any) -> int | None:
     k = f"/doctrine/{key}"
     # idempotent: same text sha -> skip (avoid duplicate rows)
     sha = hashlib.sha256(text.encode()).hexdigest()[:12]
@@ -147,7 +149,7 @@ def doctrine(key, text) -> int | None:
     _write(k, "concept", text, {"date": TODAY, "sha": sha})
 
 
-def provider(name, text) -> int | None:
+def provider(name: Any, text: Any) -> int | None:
     k = f"/providers/{name}"
     sha = hashlib.sha256(text.encode()).hexdigest()[:12]
     existing = _scan_keys("/providers/")
@@ -159,7 +161,7 @@ def provider(name, text) -> int | None:
     _write(k, "concept", text, {"date": TODAY, "sha": sha})
 
 
-def main(argv=None) -> int:
+def main(argv: Any=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = ap.add_subparsers(dest="cmd")
     sub.add_parser("dump")

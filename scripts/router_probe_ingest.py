@@ -26,6 +26,7 @@ Usage:
       --results ~/model_bench/results_muse_agentic.json --battery agentic \
       [--date 2026-09-27] [--dry-run|--commit]
 """
+from __future__ import annotations
 import argparse
 import collections
 import datetime
@@ -34,6 +35,7 @@ import os
 import shutil
 import sys
 import time
+from typing import Any
 
 REPO = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 DATA_DIR = os.environ.get('ROUTING_DATA_DIR', os.path.join(REPO, 'data', 'tables'))
@@ -94,7 +96,7 @@ BATTERIES = {
 }
 
 
-def load(name) -> list:
+def load(name: Any) -> list:
     with open(os.path.join(DATA_DIR, f'{name}.jsonl'), encoding='utf-8') as fh:
         return [json.loads(l) for l in fh if l.strip()]
 
@@ -113,7 +115,7 @@ def main():
     bench_path = os.path.join(DATA_DIR, 'benchmarks.jsonl')
     existing = load('benchmarks')
 
-    def key_of(src):
+    def key_of(src: Any):
         """Semantic identity of a benchmark row: the source KEY before the colon.
         The descriptive tail after ':' is provenance prose and must not defeat
         idempotency — deduping on the full string let a reworded suffix re-stamp

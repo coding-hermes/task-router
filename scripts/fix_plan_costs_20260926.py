@@ -8,6 +8,7 @@
 Writes data/tables/{plan_terms,providers}.jsonl with a timestamped backup, in the
 repo's canonical JSON spacing. Registry rebuild is a separate step (router_maintain).
 """
+from __future__ import annotations
 import json
 import pathlib
 import shutil

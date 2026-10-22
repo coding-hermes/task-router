@@ -17,6 +17,7 @@ profile or the default profile).
 The LLM call is INJECTABLE (`llm=callable(prompt, text) -> str`) so tests and
 offline runs never touch the network.
 """
+from __future__ import annotations
 import json
 import os
 import re
@@ -24,6 +25,7 @@ import sys
 import time
 import urllib.error
 import urllib.request
+from typing import Any
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PROMPT_DIR = os.path.join(REPO, 'data', 'classifier')
@@ -41,16 +43,16 @@ LEVEL_MIN, LEVEL_MAX = -5, 5
 DEFAULT_PROMPT_VERSION = os.environ.get('ROUTER_CLASSIFY_PROMPT_VERSION') or 'v3'
 
 
-def prompt_path(version=DEFAULT_PROMPT_VERSION):
+def prompt_path(version: Any=DEFAULT_PROMPT_VERSION):
     return os.path.join(PROMPT_DIR, f'prompt-{version}.md')
 
 
-def load_prompt(version=DEFAULT_PROMPT_VERSION):
+def load_prompt(version: Any=DEFAULT_PROMPT_VERSION):
     with open(prompt_path(version)) as f:
         return f.read()
 
 
-def registry_categories(registry_path=None):
+def registry_categories(registry_path: Any=None):
     """The category vocabulary — DATA-DRIVEN from the registry (union of
     task_profile_requirements), never a hardcoded list."""
     # DATA > CODE: the vocabulary is the registry's, never a list in this file.
@@ -81,19 +83,19 @@ def registry_categories(registry_path=None):
 
 
 
-def map_dimensions(*a, **k):
+def map_dimensions(*a: Any, **k: Any):
     """Router-side adapter (see router_outcomes.map_dimensions)."""
     import router_outcomes as ro
     return ro.map_dimensions(*a, **k)
 
 
-def band_key(*a, **k):
+def band_key(*a: Any, **k: Any):
     """Router-side adapter (see router_outcomes.band_key)."""
     import router_outcomes as ro
     return ro.band_key(*a, **k)
 
 
-def _extract_json(raw):
+def _extract_json(raw: Any):
     """Pull the first JSON object out of a model answer (tolerates fences and
     surrounding prose). Returns None when there is none."""
     if not isinstance(raw, str):
@@ -124,7 +126,7 @@ def _extract_json(raw):
     return obj if isinstance(obj, dict) else None
 
 
-def validate_matrix(obj, categories) -> tuple:
+def validate_matrix(obj: Any, categories: Any) -> tuple:
     """obj -> (matrix, confidence, problems). Unknown categories are REJECTED
     (reported), levels clamped, empty matrix allowed (a task may require
     nothing special)."""
@@ -225,7 +227,7 @@ def _structured_mode():
     return os.environ.get('ROUTER_CLASSIFY_STRUCTURED_MODE') or 'json_schema'
 
 
-def _matrix_schema(categories=None) -> dict:
+def _matrix_schema(categories: Any=None) -> dict:
     """The complexity matrix as a JSON Schema: {category: signed level}.
 
     Keys are restricted to the registry's own categories when they are known
@@ -295,7 +297,7 @@ def _classifier_lanes() -> list:
     return [lane for lane in lanes if lane['base']]
 
 
-def _env_float(name, default):
+def _env_float(name: Any, default: Any):
     try:
         return float(os.environ.get(name, '') or default)
     except ValueError:
@@ -312,13 +314,13 @@ def _retry_budget():
         return 0
 
 
-def _backoff_delay(attempt):
+def _backoff_delay(attempt: Any):
     """Seconds to sleep before retry `attempt` (1-based): 1s, 2s, 4s… capped at
     8s. A classifier retry must not hold the proxied request hostage."""
     return min(2 ** (attempt - 1), 8)
 
 
-def default_llm(prompt, text, timeout: int=60, timeout_s=None, categories=None):
+def default_llm(prompt: Any, text: Any, timeout: int=60, timeout_s: Any=None, categories: Any=None):
     """OpenAI-shaped classifier call over the configured lanes.
 
     Primary lane first, with bounded retry + backoff on 429/5xx
@@ -497,13 +499,13 @@ class Raw(str):
     contract into a fixed-profile router: the router cannot band what it cannot
     read, and nothing said why. The meta rides the string so a parse failure can
     name its own cause instead of reporting 'no JSON'. """
-    def __new__(cls, value, **meta):
+    def __new__(cls, value: Any, **meta: Any):
         o = super().__new__(cls, value or '')
         o.meta = meta
         return o
 
 
-def _is_rejection(exc):
+def _is_rejection(exc: Any) -> bool:
     """True when the endpoint refused the PARAM (4xx), not when the lane failed.
 
     A rejected parameter is a formatting problem to step down from; a 5xx or a
@@ -513,7 +515,7 @@ def _is_rejection(exc):
     return '400' in s or 'bad request' in s.lower() or 'unrecognized' in s.lower() \
         or 'unsupported' in s.lower()
 
-def _call_lane(lane, body):
+def _call_lane(lane: Any, body: Any) -> Raw:
     """One POST to one classifier lane. `body` is the lane-agnostic request
     skeleton (messages/params); the model is per-lane data.
 
@@ -554,7 +556,7 @@ def _call_lane(lane, body):
     return Raw('', empty=True, truncated=(finish == 'length'), **meta)
 
 
-def classify(text, llm=None, version=DEFAULT_PROMPT_VERSION, categories=None, timeout_s=None):
+def classify(text: Any, llm: Any=None, version: Any=DEFAULT_PROMPT_VERSION, categories: Any=None, timeout_s: Any=None):
     """text -> result dict. Never raises for classifier problems: the result
     carries matrix=None + reasons and the caller degrades (R10).
 

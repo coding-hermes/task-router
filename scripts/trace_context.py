@@ -13,11 +13,13 @@ Usage:
 Exit: 0 clean, 2 when a marker is invalid (a reference-closure, a missing row, an
 unbound verdict), so it can be used as a gate.
 """
+from __future__ import annotations
 import argparse
 import os
 import re
 import sys
 import json
+from typing import Any
 
 # ch:trace row=TR-254 spec=docs/traceability-doctrine.md#one-call-four-surfaces doc=docs/traceability-doctrine.md evidence=reports/xray/task-router-xray.html witness=ledger:router-proxy/rows>0
 
@@ -31,7 +33,7 @@ REQUIRED = ('row',)
 BOUND = ('verdict', 'commit')
 
 
-def walk(roots, max_bytes: int=2_000_000):
+def walk(roots: Any, max_bytes: int=2_000_000):
     for root in roots:
         root = os.path.abspath(os.path.expanduser(root))
         if os.path.isfile(root):
@@ -51,7 +53,7 @@ def walk(roots, max_bytes: int=2_000_000):
                 yield p
 
 
-def parse_line(line) -> dict | None:
+def parse_line(line: Any) -> dict | None:
     m = MARKER.search(line)
     if not m:
         return None
@@ -61,14 +63,14 @@ def parse_line(line) -> dict | None:
 PLACEHOLDER = re.compile(r'^<.*>$')
 
 
-def is_template(marker):
+def is_template(marker: Any) -> bool:
     """A template/example line (row=<ID>) is documentation, not a marker.
     Without this, the validator flags our own docs, and a validator with a known
     false positive is noise."""
     return bool(marker.get('row')) and bool(PLACEHOLDER.match(str(marker.get('row'))))
 
 
-def validate(marker, where):
+def validate(marker: Any, where: Any):
     """Return a list of problems. The rules come from docs/traceability-doctrine.md."""
     problems = []
     if is_template(marker):

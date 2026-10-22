@@ -12,6 +12,7 @@ TR-254 acceptance criteria:
   AC5: Read-only against every surface — no file content modified.
   AC6: Cost and latency measured and stated.
 """
+from __future__ import annotations
 
 import argparse
 import json
@@ -784,7 +785,7 @@ def format_output(results: dict[str, Any], contradictions: list[dict], total_lat
 # Main
 # ---------------------------------------------------------------------------
 
-def main():
+def main() -> int:
     parser = argparse.ArgumentParser(
         prog="router context-call",
         description="ONE CONTEXT CALL: code graph + DuckBrain + specs + boards",

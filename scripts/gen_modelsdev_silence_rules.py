@@ -5,6 +5,7 @@ unmapped models.dev providers. Data-driven from the live cache:
   - raw vendor / hub catalogs the registry deliberately does not import
 Everything NOT matched here keeps printing UNMAPPED (the real signal).
 """
+from __future__ import annotations
 import json, os, sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'scripts'))

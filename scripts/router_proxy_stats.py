@@ -23,9 +23,11 @@ The shared ledger is ~115 MB / 320k rows, so a full scan per request is not free
 callers go through `get_rollup()` which caches with a DISCLOSED age, and the scan
 itself uses a substring prefilter before parsing a line.
 """
+from __future__ import annotations
 import json
 import os
 import time
+from typing import Any
 
 #: Bands are derived from the required levels, so the key is readable in a report
 #: and stable across runs: max level => band.
@@ -34,7 +36,7 @@ BAND_STEPS = ((0, 'trivial'), (2, 'light'), (3, 'medium'), (4, 'heavy'), (5, 'fr
 DEFAULT_WINDOWS_H = (24, 168)
 
 
-def _env_float(name, default):
+def _env_float(name: Any, default: Any):
     try:
         v = os.environ.get(name)
         return float(v) if v not in (None, '') else default
@@ -42,7 +44,7 @@ def _env_float(name, default):
         return default
 
 
-def windows_from_env():
+def windows_from_env() -> tuple[Any, ...]:
     raw = os.environ.get('ROUTER_STATS_WINDOWS') or ''
     hours = []
     for part in raw.split(','):
@@ -58,7 +60,7 @@ def windows_from_env():
     return tuple(hours) or DEFAULT_WINDOWS_H
 
 
-def band_for(row) -> tuple:
+def band_for(row: Any) -> tuple:
     """(band, source) for one outcome row — None band when the row says nothing.
 
     An unknown complexity is left unknown: importing a band from a proxy id or
@@ -84,7 +86,7 @@ def band_for(row) -> tuple:
     return 'frontier', 'matrix'
 
 
-def is_proxy_row(row):
+def is_proxy_row(row: Any):
     """Proxy rows only. TR-143 stamps `route_outcome`; older rows are recognised by
     their source_system so the history is not thrown away."""
     if row.get('route_outcome'):
@@ -92,7 +94,7 @@ def is_proxy_row(row):
     return str(row.get('source_system') or '').startswith('router-proxy')
 
 
-def collect(path, window_h, now=None) -> tuple:
+def collect(path: Any, window_h: Any, now: Any=None) -> tuple:
     """Rows for the proxy, inside the window. Prefiltered, then parsed.
 
     Returns (kept, scanned, matched) so a report can disclose how much of the
@@ -125,12 +127,12 @@ def collect(path, window_h, now=None) -> tuple:
     return kept, scanned, matched
 
 
-def _mean(values):
+def _mean(values: Any) -> None | float:
     vals = [v for v in values if isinstance(v, (int, float)) and not isinstance(v, bool)]
     return (sum(vals) / len(vals)) if vals else None
 
 
-def rollup(rows, grouping: str='model_band'):
+def rollup(rows: Any, grouping: str='model_band'):
     """Aggregate rows into {key: metrics}.
 
     grouping 'model_band' keys by (provider, model, band); 'model' collapses the
@@ -200,7 +202,7 @@ def rollup(rows, grouping: str='model_band'):
     return out
 
 
-def get_rollup(path, windows=None, now=None, grouping: str='model_band'):
+def get_rollup(path: Any, windows: Any=None, now: Any=None, grouping: str='model_band'):
     """{window_label: {'hours','rows_scanned','proxy_rows_matched','groups'}}.
 
     Every window states its own scan counts, so "nothing ran" and "I did not look"
@@ -218,13 +220,13 @@ def get_rollup(path, windows=None, now=None, grouping: str='model_band'):
     return out
 
 
-def snapshot(path, rollup_data, generated_at) -> str:
+def snapshot(path: Any, rollup_data: Any, generated_at: Any) -> str:
     """The JSONL snapshot line for one rollup (deterministic given generated_at)."""
     return json.dumps({'generated_at': generated_at, 'kind': 'proxy-rolling-averages',
                        'windows': rollup_data}, sort_keys=True)
 
 
-def append_snapshot(path, rollup_data, generated_at=None):
+def append_snapshot(path: Any, rollup_data: Any, generated_at: Any=None):
     """Append one snapshot, creating the file if needed. Returns the line."""
     line = snapshot(path, rollup_data, generated_at or time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()))
     os.makedirs(os.path.dirname(path) or '.', exist_ok=True)
@@ -233,7 +235,7 @@ def append_snapshot(path, rollup_data, generated_at=None):
     return line
 
 
-def rebuild(path, rollup_data, generated_at):
+def rebuild(path: Any, rollup_data: Any, generated_at: Any):
     """Rewrite the snapshot file so identical input yields identical bytes.
 
     The delete-and-rebuild proof: run it twice on the same rollup and the file
@@ -254,7 +256,7 @@ def cache_ttl_s():
     return _env_float('ROUTER_PROXY_STATS_TTL_S', 60.0)
 
 
-def get_rollup_cached(path, windows=None, grouping: str='model_band') -> dict:
+def get_rollup_cached(path: Any, windows: Any=None, grouping: str='model_band') -> dict:
     """Cached rollup with a DISCLOSED age. The ledger is ~115 MB, so a per-request
     scan is not free; the age is always reported so a stale number is visible as
     a stale number."""
@@ -272,7 +274,7 @@ def get_rollup_cached(path, windows=None, grouping: str='model_band') -> dict:
             'ttl_s': ttl}
 
 
-def rolling_for(provider, model, band, path=None, grouping: str='model_band'):
+def rolling_for(provider: Any, model: Any, band: Any, path: Any=None, grouping: str='model_band'):
     """The served lane's own rolling block, for the proxy envelope.
 
     Fail-open and None-honest: an unknown lane returns None rather than zeros, so

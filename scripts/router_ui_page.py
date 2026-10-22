@@ -16,8 +16,10 @@ House rules this page follows, all of them from the row that asked for it:
     Enter opens the row );
   * read-only by construction: v1 exposes no write path at all.
 """
+from __future__ import annotations
 import json
 import os
+from typing import Any
 
 #: The one page. Plain string; no templating, no build step, no external asset.
 PAGE = r"""<!doctype html>
@@ -763,12 +765,12 @@ setInterval(modelsPanel, 300000);
 """
 
 
-def page_html():
+def page_html() -> str:
     """The whole page. One string, no build step, nothing fetched from the network."""
     return PAGE
 
 
-def board_search(query, path, repo_root=None, check_paths: int=200):
+def board_search(query: Any, path: Any, repo_root: Any=None, check_paths: int=200):
     """Search the board JSONL for the page's board panel (TR-156).
 
     Same honesty contract as the ledger search - it reports how much it read - plus the two things
@@ -780,13 +782,13 @@ def board_search(query, path, repo_root=None, check_paths: int=200):
     commit_hash, files_changed, notes...). Rather than invent one, `filters_available` names what is
     real and `filters_absent` names what is not.
     """
-    def one(name, default=None):
+    def one(name: Any, default: Any=None):
         v = (query or {}).get(name)
         if isinstance(v, list):
             v = v[0] if v else None
         return v if v not in (None, '') else default
 
-    def as_int(name, default):
+    def as_int(name: Any, default: Any):
         try:
             return int(str(one(name, default)).strip())
         except (TypeError, ValueError):
@@ -842,7 +844,7 @@ def board_search(query, path, repo_root=None, check_paths: int=200):
 
     dupes = [{'id': k, 'count': v} for k, v in sorted(duplicates.items()) if v > 1]
 
-    def _idnum(s) -> int:
+    def _idnum(s: Any) -> int:
         try:
             return int(str(s).split('-')[1])
         except (IndexError, ValueError):
@@ -907,7 +909,7 @@ def board_search(query, path, repo_root=None, check_paths: int=200):
 
 
 
-def _series_float(query, name, default=None):
+def _series_float(query: Any, name: Any, default: Any=None):
     v = (query or {}).get(name)
     if isinstance(v, list):
         v = v[0] if v else None
@@ -917,7 +919,7 @@ def _series_float(query, name, default=None):
         return default
 
 
-def series(query, store_path, now_s=None):
+def series(query: Any, store_path: Any, now_s: Any=None):
     """TR-152: traffic and cost over time, bucketed, by lane / by band / total.
 
     Every bucket carries its own sample count AND how many of its samples were priced, because a cost
@@ -925,7 +927,7 @@ def series(query, store_path, now_s=None):
     rather than omitted, so a quiet hour is visible as a quiet hour instead of a gap in the axis.
     The response names the window it read and how many rows it scanned.
     """
-    def one(name, default=None):
+    def one(name: Any, default: Any=None):
         v = (query or {}).get(name)
         if isinstance(v, list):
             v = v[0] if v else None
@@ -1037,7 +1039,7 @@ def series(query, store_path, now_s=None):
 
 # ------------------------------------------------------------------- TR-153 flow
 
-def _gateway_session(session_id, base, key) -> tuple:
+def _gateway_session(session_id: Any, base: Any, key: Any) -> tuple:
     """Read one session from the Hermes gateway. Returns (payload, error)."""
     import urllib.request
     import urllib.error
@@ -1055,7 +1057,7 @@ def _gateway_session(session_id, base, key) -> tuple:
         return None, f'{type(e).__name__}: {e}'
 
 
-def flow(query, store_path, now_s=None, session_fetch=None):
+def flow(query: Any, store_path: Any, now_s: Any=None, session_fetch: Any=None):
     """TR-153: the whole story of ONE request — envelope, ledger row, gateway session.
 
     Answers, for a session id: how was it rated, what chain was considered, which hops were tried,
@@ -1063,7 +1065,7 @@ def flow(query, store_path, now_s=None, session_fetch=None):
     The three artefacts are reconciled when they are all reachable and the response NAMES which ones
     it could read — a drill-down that silently shows two of three is how a debug session goes wrong.
     """
-    def one(name, default=None):
+    def one(name: Any, default: Any=None):
         v = (query or {}).get(name)
         if isinstance(v, list):
             v = v[0] if v else None
@@ -1198,7 +1200,7 @@ def flow(query, store_path, now_s=None, session_fetch=None):
 
 # ------------------------------------------------------------------- TR-154 chain
 
-def chain_view(query, resolved, price_map=None, detail_limit: int=60):
+def chain_view(query: Any, resolved: Any, price_map: Any=None, detail_limit: int=60):
     """TR-154: the eligible chain in effective-price order, and EVERY exclusion with its code.
 
     The resolver already emits both halves; what this view adds is the answer to "why this lane and
@@ -1206,7 +1208,7 @@ def chain_view(query, resolved, price_map=None, detail_limit: int=60):
     lane's price basis (list vs the plan-effective figure it is actually ordered on), and a hard
     statement of how much of the exclusion list is being shown rather than silently truncating it.
     """
-    def one(name, default=None):
+    def one(name: Any, default: Any=None):
         v = (query or {}).get(name)
         if isinstance(v, list):
             v = v[0] if v else None
@@ -1266,11 +1268,11 @@ def chain_view(query, resolved, price_map=None, detail_limit: int=60):
 # ------------------------------------------------------------------ TR-155 registry
 
 #: The categories the ladder knows. A level outside the ladder is refused, never clamped.
-def _known_categories(category_levels) -> set:
+def _known_categories(category_levels: Any) -> set:
     return {r.get('category') for r in (category_levels or []) if r.get('category')}
 
 
-def _level_range(category_levels):
+def _level_range(category_levels: Any):
     out = {}
     for r in (category_levels or []):
         c = r.get('category')
@@ -1283,7 +1285,7 @@ def _level_range(category_levels):
     return out
 
 
-def registry_browse(query, tables, level_limit=None):
+def registry_browse(query: Any, tables: Any, level_limit: Any=None):
     """TR-155 (read half): browse the registry, with a lane detail that is a JOIN, not a guess.
 
     A lane's row in `models.jsonl` carries its prices and lifecycle; its per-category LEVELS live in
@@ -1291,7 +1293,7 @@ def registry_browse(query, tables, level_limit=None):
     in `providers.jsonl`. The detail view joins exactly those and states which file each part came
     from, so a number on screen can always be traced back to a table.
     """
-    def one(name, default=None):
+    def one(name: Any, default: Any=None):
         v = (query or {}).get(name)
         if isinstance(v, list):
             v = v[0] if v else None
@@ -1328,7 +1330,7 @@ def registry_browse(query, tables, level_limit=None):
     except (TypeError, ValueError):
         min_level = None
 
-    def _level_of(row):
+    def _level_of(row: Any):
         if f_category is None:
             return None
         for tr in by_model.get(row.get('model'), []):
@@ -1395,8 +1397,8 @@ def registry_browse(query, tables, level_limit=None):
                     + (' (showing the first %d)' % len(lanes) if len(matched) > len(lanes) else '')}
 
 
-def registry_edit(body, provided_key, expected_key, tables, overlay_path, audit_path,
-                  actor: str='ui', now_s=None):
+def registry_edit(body: Any, provided_key: Any, expected_key: Any, tables: Any, overlay_path: Any, audit_path: Any,
+                  actor: str='ui', now_s: Any=None):
     """TR-155 (write half): a guarded, validated, audited, revertible edit.
 
     Guarantees this returns, all of them testable:
@@ -1415,7 +1417,7 @@ def registry_edit(body, provided_key, expected_key, tables, overlay_path, audit_
     import time as _time
     now = float(now_s) if now_s is not None else _time.time()
 
-    def _audit(entry):
+    def _audit(entry: Any):
         entry = dict(entry, ts=now, actor=actor)
         try:
             with open(audit_path, 'a', encoding='utf-8') as fh:

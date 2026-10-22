@@ -58,6 +58,7 @@ Exit codes: 0 = success (or PARTIAL with named skips) and marker written;
 1 = at least one failed write/verification -> NO marker; 2 = environment/preflight
 abort (no marker); 3 = write-test failed (no marker); 4 = usage.
 """
+from __future__ import annotations
 
 import argparse
 import hashlib
@@ -71,6 +72,7 @@ import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
 
 DEFAULT_BASE = os.environ.get("DUCKBRAIN_URL", "http://localhost:3000")
 DEFAULT_NS_DIR = os.environ.get(
@@ -122,8 +124,8 @@ MARKER_PLACEHOLDER_RE = re.compile(r"\.\.\.|\{[a-zA-Z_]+\}|%[sdf]|<[a-zA-Z_][a-z
 # Transport — every call returns (status, body_text) and never raises, so a
 # rejection can never be lost to an exception path or a stream-split.
 # ---------------------------------------------------------------------------
-def http_request(method, url, token, data=None, content_type: str="application/json",
-                 extra_headers=None, timeout: int=90) -> tuple:
+def http_request(method: Any, url: Any, token: Any, data: Any=None, content_type: str="application/json",
+                 extra_headers: Any=None, timeout: int=90) -> tuple:
     headers = {"Accept": "application/json"}
     if token:
         headers["X-API-Key"] = token
@@ -143,7 +145,7 @@ def http_request(method, url, token, data=None, content_type: str="application/j
         return 0, "NETWORK-ERROR " + str(exc), {}
 
 
-def jload(text):
+def jload(text: Any):
     try:
         return json.loads(text)
     except Exception:  # noqa: BLE001 — body may be HTML/plain text; caller handles None
@@ -154,14 +156,14 @@ def utcnow():
     return datetime.now(timezone.utc)
 
 
-def run_ts(dt=None):
+def run_ts(dt: Any=None):
     return (dt or utcnow()).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 # ---------------------------------------------------------------------------
 # Marker guard (AC 2b)
 # ---------------------------------------------------------------------------
-def marker_content_is_substituted(content) -> bool:
+def marker_content_is_substituted(content: Any) -> bool:
     """True when the marker content carries no unsubstituted template token."""
     return MARKER_PLACEHOLDER_RE.search(content) is None
 
@@ -169,7 +171,7 @@ def marker_content_is_substituted(content) -> bool:
 # ---------------------------------------------------------------------------
 # Facts (POST /api/memories) with size preflight and full failure capture
 # ---------------------------------------------------------------------------
-def post_memory(base, ns, token, key, domain, content, attributes=None) -> tuple:
+def post_memory(base: Any, ns: Any, token: Any, key: Any, domain: Any, content: Any, attributes: Any=None) -> tuple:
     body = {"key": key, "domain": domain, "content": content}
     body["attributes"] = attributes or {"source_type": "sync_cron",
                                         "certainty": "confirmed"}
@@ -179,14 +181,14 @@ def post_memory(base, ns, token, key, domain, content, attributes=None) -> tuple
     return status, text, len(payload)
 
 
-def _parse_ts(value):
+def _parse_ts(value: Any):
     try:
         return datetime.fromisoformat(str(value).replace("Z", "+00:00"))
     except ValueError:
         return None
 
 
-def verify_memory(base, ns, token, key, uid, since_floor, limit: int=5) -> tuple:
+def verify_memory(base: Any, ns: Any, token: Any, key: Any, uid: Any, since_floor: Any, limit: int=5) -> tuple:
     """Prefix-GET with widen-once; a write is proven when any returned entry
     carries the key, this run's uuid, and a timestamp at/after the floor."""
     floor = _parse_ts(since_floor)
@@ -215,8 +217,8 @@ def verify_memory(base, ns, token, key, uid, since_floor, limit: int=5) -> tuple
     return False, status, None
 
 
-def run_facts(base, ns, token, facts, since_floor, between_posts, report,
-              dry_run: bool=False, fail_pattern=None) -> tuple:
+def run_facts(base: Any, ns: Any, token: Any, facts: Any, since_floor: Any, between_posts: Any, report: Any,
+              dry_run: bool=False, fail_pattern: Any=None) -> tuple:
     """Returns (written, failures, skips). Over-cap facts are named skips —
     never silent, never sent. Failed posts are named failures with status+body.
     A key matching fail_pattern fails WITHOUT any HTTP call (simulated)."""
@@ -274,7 +276,7 @@ def run_facts(base, ns, token, facts, since_floor, between_posts, report,
     return written, failures, skips
 
 
-def plan_fact_sizes(facts) -> tuple:
+def plan_fact_sizes(facts: Any) -> tuple:
     """Serialize every fact payload and return (ok, skipped) — AC 4: nothing
     over the body cap is silently dropped; the caller names each skip."""
     ok, skipped = [], []
@@ -295,11 +297,11 @@ def plan_fact_sizes(facts) -> tuple:
 # ---------------------------------------------------------------------------
 # Snapshot tables (over-cap path, DECISION b): declared NDJSON tables
 # ---------------------------------------------------------------------------
-def declaration_path(ns_dir, table):
+def declaration_path(ns_dir: Any, table: Any) -> float:
     return Path(ns_dir) / NAMESPACE / "tables" / f"snapshot_{table}.table.json"
 
 
-def declaration_doc(table) -> dict:
+def declaration_doc(table: Any) -> dict:
     return {
         "name": f"snapshot_{table}",
         "format": "jsonl-objects",
@@ -308,7 +310,7 @@ def declaration_doc(table) -> dict:
     }
 
 
-def ensure_declarations(ns_dir, report, dry_run: bool=False):
+def ensure_declarations(ns_dir: Any, report: Any, dry_run: bool=False):
     """Idempotently write the .table.json declarations. Legacy declarations are
     picked up by the server's mtime/size staleness check with no restart."""
     written = 0
@@ -327,11 +329,11 @@ def ensure_declarations(ns_dir, report, dry_run: bool=False):
     return written
 
 
-def table_source_path(ns_dir, table):
+def table_source_path(ns_dir: Any, table: Any) -> float:
     return Path(ns_dir) / NAMESPACE / "tables" / f"{table}.jsonl"
 
 
-def build_chunks(table, lines, snap_ts, sha8):
+def build_chunks(table: Any, lines: Any, snap_ts: Any, sha8: Any):
     """ NDJSON row chunks: {"snap_ts","sha8","row"} per source line, each chunk
     <= CHUNK_BODY_BYTES and <= CHUNK_ROWS, and always < NDJSON_MOUNT_CAP."""
     chunks, cur, cur_bytes = [], [], 0
@@ -354,11 +356,11 @@ def build_chunks(table, lines, snap_ts, sha8):
     return chunks
 
 
-def tables_url(base, table) -> str:
+def tables_url(base: Any, table: Any) -> str:
     return (f"{base}/api/ns/{NAMESPACE}/tables/snapshot_{table}")
 
 
-def _norm_json(value):
+def _norm_json(value: Any):
     """Canonical comparable HASHABLE form: sorted keys, integral floats
     normalized (1.0 == 1 — DuckDB JSON round-trips can rewrite integral
     floats), lists as tuples so rows can live in a set."""
@@ -376,7 +378,7 @@ def _norm_json(value):
     return str(value)
 
 
-def readback_count(base, token, table, filters) -> tuple:
+def readback_count(base: Any, token: Any, table: Any, filters: Any) -> tuple:
     # count=exact rides BOTH the query and the Prefer header: the server's
     # wantsExactCount accepts either, and an explicit query param keeps the
     # count independent of header-stripping proxies.
@@ -388,7 +390,7 @@ def readback_count(base, token, table, filters) -> tuple:
     return status, text, (int(total) if total and total.isdigit() else None)
 
 
-def snapshot_table(base, token, ns_dir, table, snap_ts, between_posts, report,
+def snapshot_table(base: Any, token: Any, ns_dir: Any, table: Any, snap_ts: Any, between_posts: Any, report: Any,
                    dry_run: bool=False, simulate_fail: bool=False) -> dict:
     """Snapshot one registry table through the NDJSON tables mount.
     Returns a result dict; 'verified' False + note means a failed write."""
@@ -488,13 +490,13 @@ class Reporter:
     def __init__(self) -> None:
         self.lines = []
 
-    def __call__(self, line) -> None:
+    def __call__(self, line: Any) -> None:
         self.lines.append(line)
         print(line, flush=True)
 
 
-def build_marker_content(outcome, window_start, window_end, written, n_facts,
-                         table_results, skipped, extra=None):
+def build_marker_content(outcome: Any, window_start: Any, window_end: Any, written: Any, n_facts: Any,
+                         table_results: Any, skipped: Any, extra: Any=None):
     posted = [r for r in table_results if r.get("status") == "posted"]
     unchanged = [r for r in table_results if r.get("status") == "unchanged"]
     parts = [f"task-router-sync {outcome} {window_end}",
@@ -516,7 +518,7 @@ def build_marker_content(outcome, window_start, window_end, written, n_facts,
     return " — ".join(parts[:4]) + ". " + "; ".join(parts[4:])
 
 
-def post_marker(base, ns, token, content, since_floor, report) -> dict | None:
+def post_marker(base: Any, ns: Any, token: Any, content: Any, since_floor: Any, report: Any) -> dict | None:
     status, text, _ = post_memory(base, ns, token, MARKER_KEY, "config", content)
     if status != 201:
         report(f"MARKER: WRITE FAILED HTTP {status} {text[:200]}")
@@ -530,7 +532,7 @@ def post_marker(base, ns, token, content, since_floor, report) -> dict | None:
     return {"written": True, "id": uid, "ts": ts}
 
 
-def newest_marker_timestamp(base, token):
+def newest_marker_timestamp(base: Any, token: Any):
     """Newest row under the marker key, for before/after assertions."""
     q = urllib.parse.urlencode({"namespace": NAMESPACE,
                                 "prefix": MARKER_KEY, "limit": "5"})
@@ -544,7 +546,7 @@ def newest_marker_timestamp(base, token):
 # ---------------------------------------------------------------------------
 # Commands
 # ---------------------------------------------------------------------------
-def load_token(explicit):
+def load_token(explicit: Any):
     if explicit:
         return Path(explicit).read_text().strip()
     env = os.environ.get("DUCKBRAIN_TOKEN_FILE")
@@ -556,14 +558,14 @@ def load_token(explicit):
     return cands[0].read_text().strip()
 
 
-def preflight(base, report):
+def preflight(base: Any, report: Any):
     status, text, _ = http_request("GET", f"{base}/health", token=None)
     ok = status == 200 and "healthy" in text
     report(f"preflight /health: HTTP {status} {'OK' if ok else text[:120]}")
     return ok
 
 
-def cmd_run(args) -> int:
+def cmd_run(args: Any) -> int:
     report = Reporter()
     base, ns_dir = args.base_url, args.ns_dir
     token = load_token(args.token_file)
@@ -706,7 +708,7 @@ def cmd_run(args) -> int:
     return 0
 
 
-def write_report(out, args, snap_ts, report) -> None:
+def write_report(out: Any, args: Any, snap_ts: Any, report: Any) -> None:
     if args.no_report:
         return
     wd = Path(args.workdir)
@@ -716,7 +718,7 @@ def write_report(out, args, snap_ts, report) -> None:
     report(f"REPORT: {path}")
 
 
-def cmd_probe_overcap(args) -> int:
+def cmd_probe_overcap(args: Any) -> int:
     """AC1 proof: force an over-cap POST /api/memories write and require the
     failure line to name the HTTP status + body. Verifies nothing landed."""
     report = Reporter()
@@ -748,7 +750,7 @@ def cmd_probe_overcap(args) -> int:
     return 0
 
 
-def main(argv=None):
+def main(argv: Any=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("command", choices=["run", "probe-overcap"])
     ap.add_argument("--base-url", default=DEFAULT_BASE)

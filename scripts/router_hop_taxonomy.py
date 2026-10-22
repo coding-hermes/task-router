@@ -30,8 +30,10 @@ and its RETRY POLICY on the hop ladder:
   shrink-or-skip— context-length: shrinking the payload may rescue the hop;
                   otherwise skip.
 """
+from __future__ import annotations
 import json
 import re
+from typing import Any
 
 #: The hop failure codes. THE vocabulary — probe, ladder and ledger row all
 #: speak exactly these.
@@ -120,7 +122,7 @@ _BODY_MARKERS = (
 )
 
 
-def code_from_status(status, body=None):
+def code_from_status(status: Any, body: Any=None):
     """Taxonomy code for an HTTP status, refined by the response body.
 
     Status wins for the unambiguous codes (402/404/405/408); 429 and 5xx are
@@ -156,7 +158,7 @@ def code_from_status(status, body=None):
     return None
 
 
-def code_from_exception(exc) -> str:
+def code_from_exception(exc: Any) -> str:
     """Taxonomy code for a transport-level exception (timeout vs dead)."""
     name = type(exc).__name__ if exc is not None else ''
     text = str(exc or '').lower()
@@ -169,23 +171,23 @@ def code_from_exception(exc) -> str:
     return "transport-error"
 
 
-def context_length_from_body(body):
+def context_length_from_body(body: Any):
     """True when the body says the payload exceeded the model's context."""
     text = (body or '').lower()
     return any(m in text for m in ("context length", "context_length",
                                    "maximum context", "too large"))
 
 
-def retry_once(code) -> bool:
+def retry_once(code: Any) -> bool:
     """True when the code's retry policy allows ONE same-hop retry."""
     return RETRY_POLICY.get(code) == "retry-same"
 
 
-def demote_pair(code) -> bool:
+def demote_pair(code: Any) -> bool:
     """True when the code demotes only the (provider, model) pair."""
     return BLAST_RADIUS.get(code) == "model"
 
 
-def demote_provider(code) -> bool:
+def demote_provider(code: Any) -> bool:
     """True when the code demotes the whole provider (hard condition)."""
     return BLAST_RADIUS.get(code) == "provider"

@@ -39,6 +39,7 @@ diffs — aborting the pipeline for them would kill the gap report and the agent
 context that prices them next). 1 = any preset errored (TR-024: a required
 step that failed must abort, not silently skip) or the registry is missing.
 """
+from __future__ import annotations
 import argparse
 import datetime
 import json
@@ -56,6 +57,7 @@ _SCRIPTS_DIR = os.path.dirname(os.path.realpath(__file__))
 if _SCRIPTS_DIR not in sys.path:
     sys.path.insert(0, _SCRIPTS_DIR)
 import router_provider_import as rpi  # noqa: E402  (the ONE import implementation)
+from typing import Any
 
 REPO = os.path.dirname(_SCRIPTS_DIR)
 
@@ -66,7 +68,7 @@ REPO = os.path.dirname(_SCRIPTS_DIR)
 #: production always fetches live (read at call time; tests monkeypatch env).
 
 
-def _fetch(preset):
+def _fetch(preset: Any):
     if os.environ.get('ROUTER_CATALOG_FETCH_DIR'):
         path = os.path.join(os.environ['ROUTER_CATALOG_FETCH_DIR'],
                             preset['id'] + '.json')
@@ -76,7 +78,7 @@ def _fetch(preset):
                              preset.get('user_agent', 'task-router-import'))
 
 
-def discover_presets(catalogs_dir=None):
+def discover_presets(catalogs_dir: Any=None) -> list[Any]:
     """Every preset file in the catalogs dir, sorted (stable report order).
 
     Glob-discovery is the AC: adding a carrier means dropping one preset file.
@@ -93,7 +95,7 @@ def discover_presets(catalogs_dir=None):
             if n.endswith('.json')]
 
 
-def refresh_preset(preset, existing, *, apply=False, fetch=None):
+def refresh_preset(preset: Any, existing: Any, *, apply: bool=False, fetch: Any=None):
     """One preset end-to-end against the registry rows of ITS provider only.
 
     existing: {(provider, model): row} — the caller filters to preset['id'].
@@ -194,7 +196,7 @@ def _probe_path():
     return os.path.join(_tables_dir(), 'probe_providers.jsonl')
 
 
-def _report(results, t0, apply):
+def _report(results: Any, t0: Any, apply: Any) -> tuple[Any, ...]:
     """(prose_text, json_dict) for a sweep. Prose names EVERY preset, the diff
     shapes the AC asks for (new lanes / price moves / catalog removals) and the
     loud held-block that tells the next phase exactly what to price."""

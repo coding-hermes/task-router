@@ -49,8 +49,10 @@ Usage (inside a router script):
         MR = os.environ.get('ROUTER_STATE_DIR',
                             os.path.expanduser('~/.hermes/model-router'))
 """
+from __future__ import annotations
 import os
 import sys
+from typing import Any
 
 ENV_VAR = 'ROUTER_STATE_DIR'
 WARN_ENV_VAR = 'ROUTER_STATE_DIR_WARN'
@@ -60,7 +62,7 @@ LIVE_INSTALL_DIR = os.path.realpath(os.path.expanduser('~/.hermes/scripts'))
 _WARNED = set()
 
 
-def _default_warn(message) -> None:
+def _default_warn(message: Any) -> None:
     """Sink used when the caller passes none: one line on stderr, guarded."""
     try:
         print(message, file=sys.stderr)
@@ -75,7 +77,7 @@ def _warn_mode():
         return ''
 
 
-def _is_canonical_invocation(argv0):
+def _is_canonical_invocation(argv0: Any):
     """True when the process was started from the live install dir."""
     if not argv0:
         return False
@@ -88,8 +90,8 @@ def _is_canonical_invocation(argv0):
         return True  # cannot tell -> stay silent (fail-open)
 
 
-def resolve_state_dir(script_file=None, argv0=None, warn=None,
-                      force_non_canonical=None):
+def resolve_state_dir(script_file: Any=None, argv0: Any=None, warn: Any=None,
+                      force_non_canonical: Any=None):
     """Resolve the router state dir. Never raises; never touches stdout.
 
     script_file:  the CALLER's __file__ (used only for the warn dedup key).

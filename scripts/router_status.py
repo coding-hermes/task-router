@@ -30,11 +30,13 @@ CLI:
     --format text  compact aligned human table.
 Exit: 0 always.
 """
+from __future__ import annotations
 import argparse
 import datetime
 import json
 import os
 import sys
+from typing import Any
 
 _HERE = os.path.dirname(os.path.realpath(__file__))
 _REPO = os.path.dirname(_HERE)
@@ -61,7 +63,7 @@ def _now_iso():
     return datetime.datetime.now(datetime.timezone.utc).isoformat(timespec='seconds')
 
 
-def _parse_utc(ts):
+def _parse_utc(ts: Any):
     try:
         dt = datetime.datetime.fromisoformat(str(ts))
         if dt.tzinfo is None:
@@ -71,7 +73,7 @@ def _parse_utc(ts):
         return None
 
 
-def _load_json(path):
+def _load_json(path: Any):
     """json.load or None on any error (caller decides what 'absent' means)."""
     try:
         with open(path) as f:
@@ -90,7 +92,7 @@ def _ledger_path():
 
 # ------------------------------------------------------------- registry ----
 
-def _count_models(tables) -> dict:
+def _count_models(tables: Any) -> dict:
     models = tables.get('models') or []
     active = [m for m in models
               if not m.get('archive') and m.get('valid_to') is None
@@ -197,7 +199,7 @@ def circuit_section() -> dict:
 
 # ---------------------------------------------------------------- quota ----
 
-def _plan_gates(doc):
+def _plan_gates(doc: Any):
     """TR-060: plan-window gates from the resolver's own classifier.
 
     Returns {'gated': [...], 'expired': [...]} using
@@ -376,7 +378,7 @@ def gaps_section() -> dict:
 
 # ---------------------------------------------------------------- gates ----
 
-def gates_section(reg, quota, health, circuit, inflight, tables) -> dict:
+def gates_section(reg: Any, quota: Any, health: Any, circuit: Any, inflight: Any, tables: Any) -> dict:
     """Per-provider roll-up: plan / quota / health / circuit / in-flight."""
     providers = {}
     for row in tables.get('providers') or []:
@@ -430,7 +432,7 @@ def gates_section(reg, quota, health, circuit, inflight, tables) -> dict:
 
 # ----------------------------------------------------------------- text ----
 
-def _fmt(v, dash: str='-'):
+def _fmt(v: Any, dash: str='-'):
     return dash if v is None else str(v)
 
 
@@ -465,7 +467,7 @@ def data_home_section() -> dict:
             'seeded': seeded, 'bootstrap': bootstrap, 'note': note}
 
 
-def render_text(doc):
+def render_text(doc: Any):
     lines = []
     r = doc['registry']
     lines.append(f"task-router status — {doc['generated_at']}")
@@ -588,7 +590,7 @@ def build() -> dict:
             'gates': gates}
 
 
-def main(argv=None) -> int:
+def main(argv: Any=None) -> int:
     ap = argparse.ArgumentParser(
         description='task-router one-command overview (registry/gates/in-flight/gaps)')
     ap.add_argument('--format', choices=['json', 'text'], default='json',

@@ -25,6 +25,7 @@ Usage:
   ~/.hermes/venvs/board/bin/python3 scripts/router_release_backfill.py \
       [--rosters DIR] [--dry-run|--commit] [--force] [--report PATH]
 """
+from __future__ import annotations
 import argparse
 import collections
 import datetime
@@ -39,25 +40,26 @@ _SCRIPTS_DIR = os.path.dirname(os.path.realpath(__file__))
 if _SCRIPTS_DIR not in sys.path:
     sys.path.insert(0, _SCRIPTS_DIR)
 import lifecycle_gate  # noqa: E402  (TR-199: R4 no anonymous dates)
+from typing import Any
 
 REPO = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 DATA_DIR = os.environ.get('ROUTING_DATA_DIR', os.path.join(REPO, 'data', 'tables'))
 DEFAULT_ROSTERS = os.path.expanduser('~/model_bench/rosters')
 
 
-def load(name) -> list:
+def load(name: Any) -> list:
     with open(os.path.join(DATA_DIR, f'{name}.jsonl'), encoding='utf-8') as fh:
         return [json.loads(l) for l in fh if l.strip()]
 
 
-def norm(name):
+def norm(name: Any):
     n = str(name).lower().strip().lstrip('~')
     n = re.sub(r'^accounts/fireworks/(models|routers)/', '', n)
     n = re.sub(r'^[a-z0-9_.\-]+/', '', n)
     return re.sub(r':(free|batch|latest)$', '', n)
 
 
-def superseded_ids(text):
+def superseded_ids(text: Any):
     """Model ids out of a free-text `supersedes` field.
 
     Rosters write this field in prose — "deepseek-v4-flash-0731 and
@@ -87,7 +89,7 @@ def superseded_ids(text):
     return out
 
 
-def plausible(d) -> bool:
+def plausible(d: Any) -> bool:
     try:
         dt = datetime.date.fromisoformat(d)
     except (TypeError, ValueError):
@@ -95,7 +97,7 @@ def plausible(d) -> bool:
     return datetime.date(2025, 1, 1) <= dt <= datetime.date.today() + datetime.timedelta(days=7)
 
 
-def _write_models(models, path=None) -> None:
+def _write_models(models: Any, path: Any=None) -> None:
     """Rewrite models.jsonl (path defaults to <DATA_DIR>/models.jsonl).
     TR-199 (spec R4): the write helper itself is gated, so no call site can
     bypass the provenance check."""
@@ -180,10 +182,10 @@ def main():
     for r in load('model_perf'):
         perf_src[(r['model'], r['category'])] = (r.get('source_ref') or '')
 
-    def measured(model, category):
+    def measured(model: Any, category: Any):
         return perf_src.get((model, category), '').startswith('bench:')
 
-    def active(m):
+    def active(m: Any) -> bool:
         return not (m.get('archive') or m.get('valid_to') or m.get('disabled')) and m.get('normalized_price') is not None
 
     stamped, conflicts, missing = 0, [], collections.Counter()
@@ -228,7 +230,7 @@ def main():
     proposals, blocked, regressions = [], [], []
     seen = set()
 
-    def classify(m, s) -> None:
+    def classify(m: Any, s: Any) -> None:
         """The per-category retirement gate. A candidate is not a verdict.
 
         Compare PER CATEGORY, not by count: counting conflates a successor that

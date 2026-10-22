@@ -37,6 +37,7 @@ Design constraints (from the board row):
   identity retained so TR-299 can ingest them. This runner does NOT update
   the live rolling averages — that is the TR-299/TR-289 integration.
 """
+from __future__ import annotations
 from typing import NoReturn
 
 import argparse
@@ -179,7 +180,7 @@ def run_acceptance_cmd(cmd_template, artifact) -> tuple:
         return False, 'acceptance cmd timeout 60s'
 
 
-def default_verifier(task, ex, attempt_row):
+def default_verifier(task, ex, attempt_row) -> tuple:
     """Runs the task's acceptance command against the attempt's artifact."""
     return run_acceptance_cmd(task['acceptance_cmd'], ex.get('artifact') or '/nonexistent')
 

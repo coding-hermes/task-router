@@ -19,4 +19,5 @@ Known-red quality pins (PRE-EXISTING at HEAD b931dbb, none produced by TR-258):
     priority:"high", an off-vocabulary value; also removed one migration note)
   * main had 3 consecutive red CI runs before TR-258 (filed as INT-CI-1 rows).
 """
+from __future__ import annotations
 print(__doc__)

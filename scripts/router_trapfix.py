@@ -24,6 +24,7 @@ so they are an open decision, not a mechanical fix.
 
 Usage:  router_trapfix.py [--apply]     (dry-run by default)
 """
+from __future__ import annotations
 import json
 import os
 import shutil
@@ -34,6 +35,7 @@ REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(REPO, 'scripts'))
 
 import lifecycle_gate  # noqa: E402  (TR-199: R4 no anonymous dates)
+from typing import Any
 
 MODELS = os.path.join(REPO, 'data', 'tables', 'models.jsonl')
 
@@ -52,7 +54,7 @@ VENDOR_PROVIDER = {
 }
 
 
-def find_paid_sibling(md, model):
+def find_paid_sibling(md: Any, model: Any) -> None | dict[str, Any]:
     """Paid-sibling list blend for a free SKU -> dict, or None when unmatched.
 
     STRICT exact-leaf matching only: a prefix match is a DIFFERENT model, so

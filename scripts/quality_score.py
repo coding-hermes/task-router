@@ -34,11 +34,13 @@ Usage:
 Exit 0 normally; 1 on a --check-floor violation; 3 when an explicitly
 requested metric is unmeasurable.
 """
+from __future__ import annotations
 import argparse
 import ast
 import json
 import os
 import sys
+from typing import Any
 
 #: Metrics the ladder tracks, in report order.
 METRICS = ("type_hint_pct", "coverage_pct", "wiring_pct")
@@ -65,7 +67,7 @@ class MetricUnmeasurable(Exception):
 # The ladder table.
 # ---------------------------------------------------------------------------
 
-def load_ladder(path):
+def load_ladder(path: Any):
     """Parse the ladder JSONL -> list of row dicts (blank lines skipped)."""
     rows = []
     with open(path, encoding="utf-8") as fh:
@@ -77,7 +79,7 @@ def load_ladder(path):
     return rows
 
 
-def stage_targets(ladder, metric) -> dict:
+def stage_targets(ladder: Any, metric: Any) -> dict:
     """stage -> target for one metric, sorted by stage (floor rows excluded).
 
     The `floor` row kind carries stage=null and is not a rung; it is handled
@@ -90,7 +92,7 @@ def stage_targets(ladder, metric) -> dict:
     return dict(sorted(table.items()))
 
 
-def stage_for(value, targets) -> tuple:
+def stage_for(value: Any, targets: Any) -> tuple:
     """(highest achieved stage, next target above the value) for one metric.
 
     achieved is None while the value sits below the stage-0 target; next is
@@ -108,7 +110,7 @@ def stage_for(value, targets) -> tuple:
     return achieved, next_target
 
 
-def metric_floor(ladder, metric, baseline):
+def metric_floor(ladder: Any, metric: Any, baseline: Any):
     """The metric's regression floor for a recorded baseline.
 
     `baseline` is the metric's LAST RECORDED value (caller-supplied via
@@ -128,7 +130,7 @@ def metric_floor(ladder, metric, baseline):
 # type_hint_pct — the AST scan (the one instrumented metric).
 # ---------------------------------------------------------------------------
 
-def scan_type_hints(scripts_dir) -> dict:
+def scan_type_hints(scripts_dir: Any) -> dict:
     """AST scan over scripts/ -> measurement dict.
 
     Counts every FunctionDef and AsyncFunctionDef reachable in the tree
@@ -185,7 +187,7 @@ def scan_type_hints(scripts_dir) -> dict:
     }
 
 
-def measure(metric, scripts_dir):
+def measure(metric: Any, scripts_dir: Any):
     """Current value for one metric, or MetricUnmeasurable. NEVER silent 0."""
     if metric == "type_hint_pct":
         return scan_type_hints(scripts_dir)["return_pct"]
@@ -199,7 +201,7 @@ def measure(metric, scripts_dir):
 # Reporting.
 # ---------------------------------------------------------------------------
 
-def build_report(ladder, scripts_dir, only=None):
+def build_report(ladder: Any, scripts_dir: Any, only: Any=None):
     """Report rows for the requested metrics (default: all of METRICS).
 
     Each row carries value, stage, next_target and the measurement method.
@@ -225,7 +227,7 @@ def build_report(ladder, scripts_dir, only=None):
     return rows
 
 
-def render(report, scripts_dir):
+def render(report: Any, scripts_dir: Any):
     """Human-readable score sheet."""
     out = ["== quality ladder score (TR-267) =="]
     for row in report:
@@ -256,7 +258,7 @@ def render(report, scripts_dir):
     return "\n".join(out) + "\n"
 
 
-def main(argv=None) -> int:
+def main(argv: Any=None) -> int:
     ap = argparse.ArgumentParser(
         description="quality-ladder score verb: current value, stage, next "
                     "target per metric (TR-267)")

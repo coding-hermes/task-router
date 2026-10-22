@@ -66,6 +66,7 @@ if _HERE not in sys.path:
 
 import router_quota_accounting as acc  # noqa: E402 (L2 view + window math)
 import router_quota_burn as burn  # noqa: E402 (surplus projection)
+from typing import Any
 
 REPO = os.path.dirname(_HERE)  # the repo root (same convention as the siblings)
 DEFAULT_QUOTA_TABLE = os.path.join(REPO, "data", "tables", "provider_quota.jsonl")
@@ -104,12 +105,12 @@ def state_dir():
                               os.path.expanduser("~/.hermes/model-router"))
 
 
-def readback_cache_path(state_dir_arg=None):
+def readback_cache_path(state_dir_arg: Any=None):
     return os.path.join(state_dir_arg or state_dir(),
                         "usage-cache.json")
 
 
-def load_quota_table(path=None):
+def load_quota_table(path: Any=None) -> tuple[Any, ...]:
     """Tolerant scan of the L0 table: returns (rows, stats). A torn trailing
     line is skipped and counted, never raised (live-append rule)."""
     path = Path(path or DEFAULT_QUOTA_TABLE)
@@ -133,7 +134,7 @@ def load_quota_table(path=None):
                   "malformed": malformed}
 
 
-def load_readback_cache(path=None):
+def load_readback_cache(path: Any=None) -> tuple[Any, ...]:
     """The rung-2 poller cache, read verbatim. Missing/corrupt/old-version
     cache = absent, not empty-on-purpose — the caller reports which."""
     path = path or readback_cache_path()
@@ -156,7 +157,7 @@ def load_readback_cache(path=None):
                    "providers": len(provs), "error": None}
 
 
-def _scan_ledger_tail(path, scan_limit):
+def _scan_ledger_tail(path: Any, scan_limit: Any) -> tuple[Any, ...]:
     """Tolerant TAIL scan (newest-N semantics, same as the nohops loader):
     a store bigger than the cap yields its NEWEST rows, never its oldest."""
     tail = deque(maxlen=max(1, int(scan_limit)))
@@ -185,7 +186,7 @@ def _scan_ledger_tail(path, scan_limit):
                   "scan_truncated": scanned > len(tail), "error": None}
 
 
-def _parse_reset_field(v):
+def _parse_reset_field(v: Any):
     """A rung-2 reset field (ISO string or epoch) -> epoch float | None."""
     if v is None:
         return None
@@ -209,7 +210,7 @@ def _parse_reset_field(v):
 
 # -------------------------------------------------------------- derivation ---
 
-def derive_window_row(row, provider_rows, now):
+def derive_window_row(row: Any, provider_rows: Any, now: Any):
     """One panel row for ONE L0 declaration, composed over the L2 view.
 
     row: the L0 dict. provider_rows: the provider's ledger rows (already
@@ -317,7 +318,7 @@ def derive_window_row(row, provider_rows, now):
     return out
 
 
-def readback_window_rows(cache_providers, quota_table, now):
+def readback_window_rows(cache_providers: Any, quota_table: Any, now: Any):
     """Panel rows from the rung-2 poller cache — the only observed=True rows.
 
     One row per provider present in the cache. A cache row with status 'ok'
@@ -379,7 +380,7 @@ def readback_window_rows(cache_providers, quota_table, now):
             # L0 row's own field names: usage_remaining, limit_remaining,
             # balance, credits, ...). Probe by NAME for a remaining-like
             # numeric value; anything else is shown verbatim, never rewritten.
-            def _num(v):
+            def _num(v: Any) -> None | float:
                 if isinstance(v, str):
                     try:
                         v = float(v.replace(",", ""))
@@ -429,7 +430,7 @@ _WINDOW_PRIORITY = ("rolling_5h", "rolling_daily", "daily", "rolling",
                     "weekly", "monthly")
 
 
-def limits_doc_for_view(operator_limits, quota_rows):
+def limits_doc_for_view(operator_limits: Any, quota_rows: Any):
     """The limits doc the L2/burn view runs over: the operator config wins,
     the L0 table fills the rest.
 
@@ -472,8 +473,8 @@ def limits_doc_for_view(operator_limits, quota_rows):
     return doc
 
 
-def panel_view(query=None, ledger_path=None, now=None, quota_table_path=None,
-               limits_path=None, readback_cache=None, scan_limit=None):
+def panel_view(query: Any=None, ledger_path: Any=None, now: Any=None, quota_table_path: Any=None,
+               limits_path: Any=None, readback_cache: Any=None, scan_limit: Any=None) -> dict[str, Any]:
     """The /api/ui/quota document. Pure over its inputs; injectable paths +
     clock keep it testable. WRITES NOTHING."""
     query = query or {}
@@ -589,7 +590,7 @@ def panel_view(query=None, ledger_path=None, now=None, quota_table_path=None,
     }
 
 
-def _main(argv=None) -> int:  # pragma: no cover — CLI convenience only
+def _main(argv: Any=None) -> int:  # pragma: no cover — CLI convenience only
     import argparse
     ap = argparse.ArgumentParser(
         description="TR-212: the quota remaining panel document (stdout only).")

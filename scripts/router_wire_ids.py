@@ -31,8 +31,10 @@ tables (TR-233) and may adopt this module later.
 
 Stdlib only.
 """
+from __future__ import annotations
 import json
 import os
+from typing import Any
 
 # Provider default: the table-verified callable form for lanes with no
 # verified probe_fixes row of their own (model_catalog.api_id since 08-27;
@@ -100,7 +102,7 @@ def reset_cache() -> None:
     _FIXES_CACHE = None
 
 
-def wire_model_id(provider, model):
+def wire_model_id(provider: Any, model: Any):
     """Registry id -> the id to send upstream for this hop.
 
     WIRE-ONLY: the bare registry id remains the vocabulary of attempts,

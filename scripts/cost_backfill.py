@@ -15,6 +15,7 @@ Rules (no fabrication):
 
 Default is a DRY RUN. --apply writes, after backing the ledger up.
 """
+from __future__ import annotations
 import argparse, collections, json, os, shutil, sys, time
 from datetime import datetime, timezone
 

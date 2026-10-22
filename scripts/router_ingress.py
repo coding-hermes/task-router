@@ -60,6 +60,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from pathlib import Path
+from typing import Any
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parent
@@ -148,7 +149,7 @@ class Endpoint:
     the forwarding path can never meet a half-declared endpoint and improvise.
     """
 
-    def __init__(self, raw, source: str = "") -> None:
+    def __init__(self, raw: Any, source: str = "") -> None:
         self.raw = dict(raw or {})
         self.source = source
         self.problems = []
@@ -257,7 +258,7 @@ class Endpoint:
         return out
 
 
-def load_endpoints(path=None) -> tuple:
+def load_endpoints(path: Any=None) -> tuple:
     """Read the endpoint registry. Returns (endpoints, problems).
 
     A damaged line is a problem, not a crash: the rest of the registry still
@@ -296,7 +297,7 @@ def load_endpoints(path=None) -> tuple:
 # ---------------------------------------------------------------------------
 
 
-def resolve_auth(ref, env=None) -> tuple:
+def resolve_auth(ref: Any, env: Any=None) -> tuple:
     """Resolve an endpoint's auth reference. Returns (value_or_None, reason).
 
     References:
@@ -367,12 +368,12 @@ _PROMPT_KEYS = ("prompt", "text", "task", "message", "body", "input")
 class Refusal(Exception):
     """A named, bus-visible refusal. Never carries a secret."""
 
-    def __init__(self, reason) -> None:
+    def __init__(self, reason: Any) -> None:
         super().__init__(reason)
         self.reason = reason
 
 
-def normalize_message(payload, envelope=None):
+def normalize_message(payload: Any, envelope: Any=None):
     """Flatten a bus payload + its envelope into the ingress's message shape.
 
     Accepted shapes deliberately overlap with what the fleet already emits:
@@ -394,7 +395,7 @@ def normalize_message(payload, envelope=None):
     system = payload.get("system")
     system = system if isinstance(system, str) and system.strip() else None
 
-    def _first_str(*keys):
+    def _first_str(*keys: Any):
         for key in keys:
             value = payload.get(key)
             if isinstance(value, str) and value.strip():
@@ -447,7 +448,7 @@ def normalize_message(payload, envelope=None):
     }
 
 
-def resolve_model(profile=None, project=None, runner=None, timeout_s=None) -> tuple:
+def resolve_model(profile: Any=None, project: Any=None, runner: Any=None, timeout_s: Any=None) -> tuple:
     """Ask the ROUTER which pair should serve this request (never the caller).
 
     Returns (choice, reason) where choice is ``{'provider': .., 'model': ..}`` or
@@ -484,7 +485,7 @@ def resolve_model(profile=None, project=None, runner=None, timeout_s=None) -> tu
     return None, "resolver returned no head pair"
 
 
-def _run_resolver(args, timeout_s):
+def _run_resolver(args: Any, timeout_s: Any):
     import subprocess
     resolver = os.environ.get("ROUTER_INGRESS_RESOLVE") or str(DEFAULT_RESOLVER)
     env = dict(os.environ)
@@ -496,7 +497,7 @@ def _run_resolver(args, timeout_s):
     return proc.stdout or ""
 
 
-def _dotted_get(obj, path):
+def _dotted_get(obj: Any, path: Any):
     cur = obj
     for part in str(path).split("."):
         if isinstance(cur, dict):
@@ -511,7 +512,7 @@ def _dotted_get(obj, path):
     return cur
 
 
-def _hermes_response_text(payload) -> tuple:
+def _hermes_response_text(payload: Any) -> tuple:
     """Extract the assistant text from a Hermes /v1/responses envelope."""
     if not isinstance(payload, dict):
         return None, None
@@ -543,7 +544,7 @@ def _hermes_response_text(payload) -> tuple:
     return None, None
 
 
-def _served_model(value):
+def _served_model(value: Any):
     """The model an endpoint claims it ran, or None when it claims nothing real.
 
     The Hermes gateway answers `model: "Hermes Agent"` (a product name, not a
@@ -557,7 +558,7 @@ def _served_model(value):
     return value.strip()
 
 
-def _usage(payload) -> tuple:
+def _usage(payload: Any) -> tuple:
     """(tokens_in, tokens_out) from whichever usage shape the endpoint used."""
     usage = payload.get("usage") if isinstance(payload, dict) else None
     if not isinstance(usage, dict):
@@ -575,7 +576,7 @@ def _usage(payload) -> tuple:
     return tin, tout
 
 
-def parse_sse_events(lines) -> Iterator[dict]:
+def parse_sse_events(lines: Any) -> Iterator[dict]:
     """Consume an SSE byte/line stream; yield decoded JSON events in order.
 
     Mirrors the proxy's reader (TR-129) on the points that matter: `:` comments
@@ -610,7 +611,7 @@ def parse_sse_events(lines) -> Iterator[dict]:
             data_lines.append(line[len("data:"):].strip())
 
 
-def extract_reply(reply_rule, status, body_text, headers=None) -> tuple:
+def extract_reply(reply_rule: Any, status: Any, body_text: Any, headers: Any=None) -> tuple:
     """Apply an endpoint's declared extraction rule to a response.
 
     Returns (reply_text, reason, served_model, tokens_in, tokens_out, terminal).
@@ -656,7 +657,7 @@ def extract_reply(reply_rule, status, body_text, headers=None) -> tuple:
     return None, "unknown reply rule %r" % (reply_rule,), None, None, None, True
 
 
-def build_hop(endpoint, message, model_choice, credential) -> dict:
+def build_hop(endpoint: Any, message: Any, model_choice: Any, credential: Any) -> dict:
     """Translate one message for one endpoint into a concrete HTTP request.
 
     Returns a dict: url, headers, body (dict), transform (a stable id for the
@@ -737,7 +738,7 @@ def build_hop(endpoint, message, model_choice, credential) -> dict:
 # ---------------------------------------------------------------------------
 
 
-def lane_failure(outcome, reason=None, http_status=None) -> bool:
+def lane_failure(outcome: Any, reason: Any=None, http_status: Any=None) -> bool:
     """Is this attempt evidence that the LANE (endpoint) is unhealthy?
 
     A 4xx is a request problem, not an endpoint outage: tripping a lane on it
@@ -762,7 +763,7 @@ def lane_failure(outcome, reason=None, http_status=None) -> bool:
 class LaneLease:
     """The slot a lane handed out. The Ingress reports the outcome back here."""
 
-    def __init__(self, guard, lane) -> None:
+    def __init__(self, guard: Any, lane: Any) -> None:
         self.guard = guard
         self.lane = lane
         self.outcome = None
@@ -771,7 +772,7 @@ class LaneLease:
         self.ok = False
         self.settled = False
 
-    def settle(self, outcome=None, reason=None, http_status=None, ok: bool=False):
+    def settle(self, outcome: Any=None, reason: Any=None, http_status: Any=None, ok: bool=False):
         """Record what the hop did and give the slot back. Idempotent."""
         if self.settled:
             return None
@@ -784,7 +785,7 @@ class LaneLease:
 class _LaneState:
     """One lane's budget and circuit. All mutation happens under ``lock``."""
 
-    def __init__(self, name, max_inflight, queue_max, wait_s, failure_threshold, open_s) -> None:
+    def __init__(self, name: Any, max_inflight: Any, queue_max: Any, wait_s: Any, failure_threshold: Any, open_s: Any) -> None:
         self.name = name
         self.max_inflight = max(1, int(max_inflight))
         self.queue_max = int(queue_max)
@@ -808,7 +809,7 @@ class _LaneState:
         self.probe_inflight = False
         self.last_state_change = None
 
-    def state(self, now=None) -> str:
+    def state(self, now: Any=None) -> str:
         now = time.time() if now is None else now
         if self.open_until and now < self.open_until:
             return "open"
@@ -868,7 +869,7 @@ class _LaneState:
                 self.inflight = max(0, self.inflight - 1)
                 self.probe_inflight = False
 
-    def record_failure(self, reason) -> str | None:
+    def record_failure(self, reason: Any) -> str | None:
         """Returns 'opened'/'reopened' when the circuit changed, else None."""
         now = time.time()
         with self.lock:
@@ -902,7 +903,7 @@ class _LaneState:
                 self.last_state_change = "closed"
             return was_open
 
-    def stats(self, now=None) -> dict:
+    def stats(self, now: Any=None) -> dict:
         with self.lock:
             return {
                 "state": self.state(now),
@@ -936,8 +937,8 @@ class LaneGuard:
     that separation is the whole point (SCHED-GAP-1713b).
     """
 
-    def __init__(self, max_inflight=None, queue_max=None, wait_s=None,
-                 failures=None, open_s=None, global_max=None, logger=None) -> None:
+    def __init__(self, max_inflight: Any=None, queue_max: Any=None, wait_s: Any=None,
+                 failures: Any=None, open_s: Any=None, global_max: Any=None, logger: Any=None) -> None:
         self.per_lane_inflight = int(max_inflight if max_inflight is not None
                                      else _env_int("ROUTER_INGRESS_LANE_MAX_INFLIGHT", 2))
         self.per_lane_queue = int(queue_max if queue_max is not None
@@ -958,10 +959,10 @@ class LaneGuard:
         self.recoveries = 0
         self.log = logger or (lambda *_a, **_k: None)
 
-    def set_logger(self, logger) -> None:
+    def set_logger(self, logger: Any) -> None:
         self.log = logger or (lambda *_a, **_k: None)
 
-    def lane(self, name):
+    def lane(self, name: Any):
         name = (name or "").strip() or "<unaddressed>"
         with self._lock:
             state = self._lanes.get(name)
@@ -971,7 +972,7 @@ class LaneGuard:
                 self._lanes[name] = state
             return state
 
-    def hold(self, lane_name):
+    def hold(self, lane_name: Any) -> LaneLease:
         """Enter the lane. Raises Refusal (lane-scoped) instead of queueing forever."""
         state = self.lane(lane_name)
         if self._global is not None and not self._global.acquire(blocking=False):
@@ -985,7 +986,7 @@ class LaneGuard:
             raise
         return LaneLease(self, state.name)
 
-    def release(self, lease):
+    def release(self, lease: Any):
         """Give the slot back and settle the circuit. Returns the event or None."""
         state = self._lanes.get(lease.lane)
         if state is None:
@@ -1038,7 +1039,7 @@ class Admission:
     path never branches on which governor it was handed.
     """
 
-    def __init__(self, max_inflight=None, queue_max=None, wait_s=None) -> None:
+    def __init__(self, max_inflight: Any=None, queue_max: Any=None, wait_s: Any=None) -> None:
         self.max_inflight = int(max_inflight if max_inflight is not None
                                 else _env_int("ROUTER_INGRESS_MAX_INFLIGHT", 4))
         self.queue_max = int(queue_max if queue_max is not None
@@ -1054,15 +1055,15 @@ class Admission:
         self.rejected = 0
         self.log = lambda *_a, **_k: None
 
-    def set_logger(self, logger) -> None:
+    def set_logger(self, logger: Any) -> None:
         self.log = logger or (lambda *_a, **_k: None)
 
-    def hold(self, lane=None):
+    def hold(self, lane: Any=None) -> LaneLease:
         self.__enter__()
         name = (lane or "").strip() or "<shared>"
         return LaneLease(self, name)
 
-    def release(self, lease) -> None:
+    def release(self, lease: Any) -> None:
         self.__exit__(None, None, None)
         return None
 
@@ -1091,7 +1092,7 @@ class Admission:
             self.peak = max(self.peak, self.inflight)
         return self
 
-    def __exit__(self, *exc) -> bool:
+    def __exit__(self, *exc: Any) -> bool:
         try:
             self._sem.release()
         finally:
@@ -1114,8 +1115,8 @@ class Admission:
 class Ingress:
     """Translate + forward + reply + ledger. Bus-agnostic (the transport injects)."""
 
-    def __init__(self, endpoints, ledger=None, resolver=None, opener=None,
-                 admission=None, logger=None) -> None:
+    def __init__(self, endpoints: Any, ledger: Any=None, resolver: Any=None, opener: Any=None,
+                 admission: Any=None, logger: Any=None) -> None:
         self.endpoints = {e.id: e for e in endpoints if e.id}
         self.endpoint_problems = [e.refusal_reason() for e in endpoints if not e.usable]
         self.ledger = Path(ledger or ledger_path())
@@ -1147,7 +1148,7 @@ class Ingress:
             pass
         return keys
 
-    def append_ledger(self, row):
+    def append_ledger(self, row: Any):
         self.ledger.parent.mkdir(parents=True, exist_ok=True)
         line = json.dumps(row, sort_keys=True)
         with open(self.ledger, "a", encoding="utf-8") as fh:
@@ -1155,7 +1156,7 @@ class Ingress:
         return row
 
     # -- one message -------------------------------------------------------
-    def process(self, envelope, payload=None):
+    def process(self, envelope: Any, payload: Any=None) -> dict | dict[str, Any]:
         """Run one bus envelope end to end. Returns a result dict.
 
         Keys: reply (the reply envelope to deliver, or None), ledger (the row),
@@ -1191,7 +1192,7 @@ class Ingress:
             "null_reasons": {},
         }
 
-        def finish(outcome, reason, ok: bool=False, reply_text=None, ack: bool=True, extra=None) -> dict:
+        def finish(outcome: Any, reason: Any, ok: bool=False, reply_text: Any=None, ack: bool=True, extra: Any=None) -> dict:
             row["outcome"] = outcome
             row["reason"] = reason
             row["ok"] = ok
@@ -1223,7 +1224,7 @@ class Ingress:
             lease.settle(outcome=row.get("outcome"), reason=row.get("reason"),
                          http_status=row.get("http_status"), ok=bool(row.get("ok")))
 
-    def _process_locked(self, message, row, finish, started):
+    def _process_locked(self, message: Any, row: Any, finish: Any, started: Any) -> dict:
         if not message["prompt"]:
             return finish("refused", "no-prompt: payload carried none of "
                                      "prompt/text/task/message/body/input")
@@ -1326,7 +1327,7 @@ class Ingress:
         return finish("ok", why, ok=True, reply_text=reply_text)
 
     # -- reply envelope ----------------------------------------------------
-    def build_reply(self, message, row, reply_text) -> dict:
+    def build_reply(self, message: Any, row: Any, reply_text: Any) -> dict:
         return {
             "in_reply_to": message.get("inbound_id") or "",
             "sender_idempotency_key": message.get("idempotency_key"),
@@ -1348,7 +1349,7 @@ class Ingress:
             "reply": reply_text if reply_text is not None else "",
         }
 
-    def reply_target(self, message):
+    def reply_target(self, message: Any):
         return message.get("reply_to") or DEFAULT_REPLY_TO
 
 
@@ -1361,7 +1362,7 @@ def _iso_now():
 # ---------------------------------------------------------------------------
 
 
-def load_crier_client(path=None):
+def load_crier_client(path: Any=None):
     """Import the fleet's crier client (never a vendored fork of it)."""
     path = Path(path or os.environ.get("CRIER_CLIENT_PATH") or DEFAULT_CRIER_CLIENT_PATH)
     path = Path(os.path.expanduser(str(path)))
@@ -1373,7 +1374,7 @@ def load_crier_client(path=None):
     return crier_client
 
 
-def _bus_url(explicit=None):
+def _bus_url(explicit: Any=None):
     """The bus base URL, resolved once (explicit > env > default)."""
     return (explicit or os.environ.get("ROUTER_INGRESS_BUS_URL") or os.environ.get("CRIER_URL")
             or DEFAULT_BUS_URL)
@@ -1382,8 +1383,8 @@ def _bus_url(explicit=None):
 class BusTransport:
     """Crier inboxes: retrieve (leased) -> process -> reply -> ack."""
 
-    def __init__(self, base=None, token=None, ids=None, key_dir=None, client_path=None,
-                 ingress=None, logger=None) -> None:
+    def __init__(self, base: Any=None, token: Any=None, ids: Any=None, key_dir: Any=None, client_path: Any=None,
+                 ingress: Any=None, logger: Any=None) -> None:
         self.base = _bus_url(base)
         self.token = token if token is not None else _bus_token()
         ids = ids or [i.strip() for i in
@@ -1453,7 +1454,7 @@ def _bus_token():
         return None
 
 
-def forward_file(ingress, path, endpoint_id=None, json_out: bool=False):
+def forward_file(ingress: Any, path: Any, endpoint_id: Any=None, json_out: bool=False):
     """Load one envelope from a file and run it (the offline path tests use)."""
     doc = json.loads(Path(path).read_text(encoding="utf-8"))
     if isinstance(doc, dict) and "payload" in doc and "id" in doc:
@@ -1484,13 +1485,13 @@ def forward_file(ingress, path, endpoint_id=None, json_out: bool=False):
 # -- inbound HTTP (push mode) ------------------------------------------------
 
 
-def _make_handler(ingress, token, verify_sig, logger, bus_sink=None):
+def _make_handler(ingress: Any, token: Any, verify_sig: Any, logger: Any, bus_sink: Any=None):
     from http.server import BaseHTTPRequestHandler
 
     class IngressHandler(BaseHTTPRequestHandler):
         server_version = "task-router-ingress/1.0"
 
-        def _json(self, status, doc) -> None:
+        def _json(self, status: Any, doc: Any) -> None:
             body = json.dumps(doc).encode()
             self.send_response(status)
             self.send_header("Content-Type", "application/json")
@@ -1498,10 +1499,10 @@ def _make_handler(ingress, token, verify_sig, logger, bus_sink=None):
             self.end_headers()
             self.wfile.write(body)
 
-        def log_message(self, fmt, *args) -> None:  # keep the server quiet; the ledger is the record
+        def log_message(self, fmt: Any, *args: Any) -> None:  # keep the server quiet; the ledger is the record
             logger("http %s" % (fmt % args))
 
-        def _refuse(self, status, reason) -> None:
+        def _refuse(self, status: Any, reason: Any) -> None:
             row = ingress.append_ledger({
                 "ts": _iso_now(), "ingress": "task-router", "inbound_id": None,
                 "endpoint_requested": None, "endpoint_served": None, "protocol": None,
@@ -1511,7 +1512,7 @@ def _make_handler(ingress, token, verify_sig, logger, bus_sink=None):
             self._json(status, {"ok": False, "outcome": "refused", "reason": reason,
                                 "ledger_ts": row["ts"]})
 
-        def do_GET(self):  # noqa: N802
+        def do_GET(self) -> None:  # noqa: N802
             if urllib.parse.urlsplit(self.path).path == "/health":
                 # admission.stats() carries per-lane state: that is the operator's
                 # view of WHICH lane is down (state/consecutive_failures/last_failure).
@@ -1520,7 +1521,7 @@ def _make_handler(ingress, token, verify_sig, logger, bus_sink=None):
                                         "endpoints": sorted(ingress.endpoints)})
             return self._json(404, {"error": "not found"})
 
-        def do_POST(self):  # noqa: N802
+        def do_POST(self) -> None:  # noqa: N802
             path = urllib.parse.urlsplit(self.path).path
             if path != "/ingress/v1/messages":
                 return self._json(404, {"error": "not found", "known": ["/ingress/v1/messages"]})
@@ -1572,7 +1573,7 @@ def _make_handler(ingress, token, verify_sig, logger, bus_sink=None):
     return IngressHandler
 
 
-def serve(ingress, host, port, token, verify_sig=None, logger=None, bus_sink=None) -> None:
+def serve(ingress: Any, host: Any, port: Any, token: Any, verify_sig: Any=None, logger: Any=None, bus_sink: Any=None) -> None:
     from http.server import ThreadingHTTPServer
     handler = _make_handler(ingress, token, verify_sig, logger or (lambda *_a: None),
                             bus_sink=bus_sink)
@@ -1591,7 +1592,7 @@ class BusSink:
     the bus; this is what makes the two doors symmetric (both report back).
     """
 
-    def __init__(self, ident=None, base=None, key_dir=None, token=None, client_path=None) -> None:
+    def __init__(self, ident: Any=None, base: Any=None, key_dir: Any=None, token: Any=None, client_path: Any=None) -> None:
         self.ident = ident or (os.environ.get("ROUTER_INGRESS_BUS_IDS") or "task-router").split(",")[0].strip()
         base = _bus_url(base)
         key_dir = Path(os.path.expanduser(str(key_dir or os.environ.get("ROUTER_INGRESS_KEY_DIR")
@@ -1603,7 +1604,7 @@ class BusSink:
         self.client = crier.Crier(base, agent_id=self.ident, key_path=str(key_path),
                                   token=token if token is not None else _bus_token(), timeout=30.0)
 
-    def __call__(self, payload, target) -> str:
+    def __call__(self, payload: Any, target: Any) -> str:
         """Returns a stated delivery outcome — never a bare None (fail loud)."""
         try:
             self.client.deliver(target, payload, sender=self.ident)
@@ -1612,7 +1613,7 @@ class BusSink:
             return "failed:%s (%s)" % (exc.__class__.__name__, str(exc)[:200])
 
 
-def make_signature_verifier(agent_keys, client_path=None, window_s: int=30):
+def make_signature_verifier(agent_keys: Any, client_path: Any=None, window_s: int=30):
     """Build a verifier for the bus's own scheme: X-Agent-ID/Ts/Sig.
 
     The signature is the crier signing string ("METHOD\\npath\\nts", hex ed25519)
@@ -1622,7 +1623,7 @@ def make_signature_verifier(agent_keys, client_path=None, window_s: int=30):
     """
     crier = load_crier_client(client_path)
 
-    def verify(headers, method, path) -> str | None:
+    def verify(headers: Any, method: Any, path: Any) -> str | None:
         ident = (headers.get("X-Agent-ID") or "").strip()
         ts = (headers.get("X-Agent-Ts") or "").strip()
         sig = (headers.get("X-Agent-Sig") or "").strip()
@@ -1651,7 +1652,7 @@ def make_signature_verifier(agent_keys, client_path=None, window_s: int=30):
     return verify
 
 
-def fetch_agent_keys(base, token=None, opener=None):
+def fetch_agent_keys(base: Any, token: Any=None, opener: Any=None):
     """Snapshot the bus registry's public keys (for signed-ingress verification).
 
     Returns {agent_id: public_key_hex}. An unreachable registry is an empty map,
@@ -1682,7 +1683,7 @@ def fetch_agent_keys(base, token=None, opener=None):
 # ---------------------------------------------------------------------------
 
 
-def _build_ingress(args):
+def _build_ingress(args: Any) -> Ingress:
     endpoints, problems = load_endpoints(args.endpoints)
     for problem in problems:
         print("endpoint registry problem: %s" % problem, file=sys.stderr)
@@ -1693,7 +1694,7 @@ def _build_ingress(args):
     return Ingress(endpoints, ledger=args.ledger, logger=lambda m: print(m, file=sys.stderr))
 
 
-def cmd_endpoints(args) -> int:
+def cmd_endpoints(args: Any) -> int:
     endpoints, problems = load_endpoints(args.endpoints)
     if args.json:
         print(json.dumps({"endpoints": [e.public() for e in endpoints], "problems": problems},
@@ -1711,7 +1712,7 @@ def cmd_endpoints(args) -> int:
     return 0 if not any(not e.usable for e in endpoints) and not problems else 1
 
 
-def cmd_translate(args) -> int:
+def cmd_translate(args: Any) -> int:
     ingress = _build_ingress(args)
     doc = json.loads(Path(args.message_file).read_text(encoding="utf-8"))
     envelope = doc if isinstance(doc, dict) and "payload" in doc else {"id": "translate", "payload": doc}
@@ -1746,7 +1747,7 @@ def cmd_translate(args) -> int:
     return 0
 
 
-def cmd_forward(args) -> int:
+def cmd_forward(args: Any) -> int:
     ingress = _build_ingress(args)
     try:
         out = forward_file(ingress, args.message_file, endpoint_id=args.endpoint, json_out=args.json)
@@ -1762,7 +1763,7 @@ def cmd_forward(args) -> int:
     return 0 if out.get("ledger") is not None else 1
 
 
-def cmd_poll(args) -> int:
+def cmd_poll(args: Any) -> int:
     ingress = _build_ingress(args)
     transport = BusTransport(ingress=ingress, base=args.bus_url, ids=args.bus_ids,
                              key_dir=args.key_dir, logger=lambda m: print(m, file=sys.stderr))
@@ -1776,7 +1777,7 @@ def cmd_poll(args) -> int:
             time.sleep(args.poll_s)
 
 
-def cmd_serve(args) -> int:
+def cmd_serve(args: Any) -> int:
     ingress = _build_ingress(args)
     token = None
     if args.token_file:
@@ -1860,7 +1861,7 @@ def build_parser():
     return parser
 
 
-def main(argv=None):
+def main(argv: Any=None):
     args = build_parser().parse_args(argv)
     args.endpoints = args.endpoints or str(endpoints_path())
     args.ledger = args.ledger or str(ledger_path())

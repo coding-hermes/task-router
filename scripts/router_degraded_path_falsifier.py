@@ -51,6 +51,7 @@ CLI
                                     [--json] [--ledger PATH] [--registry PATH]
                                     [--state-dir PATH]
 """
+from __future__ import annotations
 import argparse
 import collections
 import json
@@ -65,6 +66,7 @@ from router_spawn import (_alias_tiers, _fold_tier_names,  # noqa: E402
                           _build_chain, _resolve_fallback)
 # TR-185's measurement plane — the sample loader and eligibility census.
 from router_tier_coverage import load_tables, load_sample, build, clears  # noqa: E402
+from typing import Any
 
 LEDGER = os.environ.get('ROUTER_OUTCOMES', os.path.join(_REPO, 'data', 'state', 'outcomes.jsonl'))
 REGISTRY = os.environ.get('ROUTING_REGISTRY', os.path.join(_REPO, 'registry.json'))
@@ -75,8 +77,8 @@ FAIL_CLOSED = 'FAIL-CLOSED'
 BARE_NO_HOPS = 'BARE-NO-HOPS'          # the incident shape — always a VIOLATION
 
 
-def _resolver_replay(tables, reqs_items, qs=None, hs=None, cs=None, qgates=None,
-                     profile_id=None, limit: int=1024) -> dict:
+def _resolver_replay(tables: Any, reqs_items: Any, qs: Any=None, hs: Any=None, cs: Any=None, qgates: Any=None,
+                     profile_id: Any=None, limit: int=1024) -> dict:
     """The two stages `resolve` runs for a rating, in order (c49b18a shape).
 
     Returns the outcome OBJECT the resolver would hand the proxy:
@@ -98,14 +100,14 @@ def _resolver_replay(tables, reqs_items, qs=None, hs=None, cs=None, qgates=None,
             'reasons': [], 'exclusions': []}
 
 
-def _open_quota_plane(tables) -> dict:
+def _open_quota_plane(tables: Any) -> dict:
     """Every provider PRESENT and OPEN (the falsifier's gate plane — see docstring)."""
     provs = {r.get('id') for r in (tables.get('providers') or []) if r.get('id')}
     provs |= {m.get('provider') for m in (tables.get('models') or []) if m.get('provider')}
     return {p: {'status': 'open'} for p in provs}
 
 
-def _unmet_named(fallback_head, tiers, folded, reqs_items) -> list:
+def _unmet_named(fallback_head: Any, tiers: Any, folded: Any, reqs_items: Any) -> list:
     """The unmet requirement named, straight off the fallback hop (or re-derived
     from the lane's alias tiers when the hop carries no list)."""
     unmet = fallback_head.get('requirements_unmet')
@@ -118,7 +120,7 @@ def _unmet_named(fallback_head, tiers, folded, reqs_items) -> list:
             if (mt.get(c) if mt.get(c) is not None else -1) < lvl]
 
 
-def classify_outcome(outcome) -> tuple:
+def classify_outcome(outcome: Any) -> tuple:
     """Outcome object -> (verdict, detail). The classifier the tests pin.
 
     BARE-NO-HOPS is decided on SHAPE (no chain, no fallback, no structured
@@ -145,7 +147,7 @@ def classify_outcome(outcome) -> tuple:
     return BARE_NO_HOPS, {'why': 'no chain, no fallback, no error structure'}
 
 
-def falsify(tables, sample_rows, qs=None, hs=None, cs=None, qgates=None) -> dict:
+def falsify(tables: Any, sample_rows: Any, qs: Any=None, hs: Any=None, cs: Any=None, qgates: Any=None) -> dict:
     """Per-rating verdicts + the before/after census, over a frozen sample.
 
     `before` models the incident semantics (the pre-c49b18a early return):
@@ -236,7 +238,7 @@ def main():
     qs, hs, cs, qgates = None, None, None, None
     if args.state_dir:
         # Real-gate replay: the same three files resolve() reads, same shapes.
-        def _load(name):
+        def _load(name: Any):
             try:
                 with open(os.path.join(args.state_dir, name)) as f:
                     return json.load(f)

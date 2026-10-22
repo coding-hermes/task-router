@@ -72,6 +72,7 @@ Exit 0 on success; exit 2 on usage errors. Never edits data/tables/*.jsonl
 directly — only router_probe_ingest.py (benchmarks/probe_gaps appends) and
 the null_reasons sidecar are written, both sanctioned channels.
 """
+from __future__ import annotations
 import argparse
 import collections
 import datetime
@@ -85,6 +86,7 @@ SCRIPTS = os.path.join(REPO, 'scripts')
 DATA_DIR = os.environ.get('ROUTING_DATA_DIR', os.path.join(REPO, 'data', 'tables'))
 sys.path.insert(0, SCRIPTS)
 import router_probe_run as _run                     # noqa: E402  (battery + skip classes)
+from typing import Any
 
 #: the 12 wave categories the default batteries measure — the blocking set
 #: from the TR-221 row (mechanical, guard, agent_tick) plus the rest of the
@@ -122,7 +124,7 @@ GAP_EVIDENCE_CLASSES = ('not_served', 'not_in_plan', 'endpoint_unsupported',
                         'wrong_shape')
 
 
-def load(name) -> list:
+def load(name: Any) -> list:
     """data/tables/<name>.jsonl -> [row]. Missing file -> []."""
     path = os.path.join(DATA_DIR, f'{name}.jsonl')
     if not os.path.exists(path):
@@ -131,7 +133,7 @@ def load(name) -> list:
         return [json.loads(l) for l in fh if l.strip()]
 
 
-def lane_state(m) -> str:
+def lane_state(m: Any) -> str:
     """The rank-audit lifecycle state of a models.jsonl row."""
     if m.get('archive'):
         return 'archived'
@@ -144,7 +146,7 @@ def lane_state(m) -> str:
     return 'active'
 
 
-def gap_dead_ids(gaps=None):
+def gap_dead_ids(gaps: Any=None):
     """{(provider, model)} with a typed EVIDENCE gap: probed and PROVEN
     unmeasurable."""
     evidence = set(GAP_EVIDENCE_CLASSES)
@@ -157,7 +159,7 @@ def gap_dead_ids(gaps=None):
     return out
 
 
-def _resolvable_providers(prov_cfg=None, env=None, probe_data=None):
+def _resolvable_providers(prov_cfg: Any=None, env: Any=None, probe_data: Any=None):
     """{provider: True} when a credential resolves (the battery's own
     resolve() order: cache-keyed subs -> config.yaml -> probe_providers).
     A provider that resolves to no base_url cannot be probed, so its lanes
@@ -181,8 +183,8 @@ def models_provider_pairs() -> set:
     return {(m.get('provider'), m.get('model')) for m in load('models')}
 
 
-def select_targets(categories, only_providers=None, only_models=None,
-                   models=None, excludes=None, tiers=None, dead=None) -> tuple:
+def select_targets(categories: Any, only_providers: Any=None, only_models: Any=None,
+                   models: Any=None, excludes: Any=None, tiers: Any=None, dead: Any=None) -> tuple:
     """Lanes that NEED measurement, with a reason for every lane that does
     not qualify. Returns (targets, excluded) where targets is a sorted list
     of (provider, model) and excluded is {reason_class: [(provider, model)]}.
@@ -212,7 +214,7 @@ def select_targets(categories, only_providers=None, only_models=None,
     only_models = set(only_models or [])
     targets, excluded = [], collections.defaultdict(list)
 
-    def exclude(reason, prov, model) -> None:
+    def exclude(reason: Any, prov: Any, model: Any) -> None:
         excluded[reason].append((prov, model))
 
     seen = set()
@@ -249,7 +251,7 @@ def select_targets(categories, only_providers=None, only_models=None,
     return sorted(targets), excluded
 
 
-def category_census(categories=None, models=None, tier_rows=None) -> dict:
+def category_census(categories: Any=None, models: Any=None, tier_rows: Any=None) -> dict:
     """{category: n_ACTIVE_LANES tiered} — the coverage table unit."""
     models = models if models is not None else load('models')
     active_models = {m.get('model') for m in models if lane_state(m) == 'active'}
@@ -260,7 +262,7 @@ def category_census(categories=None, models=None, tier_rows=None) -> dict:
     return {c: len(tiered.get(c, set()) & active_models) for c in cats}
 
 
-def estimate_costs(models_rows, targets, calls_per_lane: int=12, max_tokens: int=3000) -> dict:
+def estimate_costs(models_rows: Any, targets: Any, calls_per_lane: int=12, max_tokens: int=3000) -> dict:
     """{provider: worst_case_usd} — calls x max_tokens at each lane's own
     published output sticker (public_out_per_m); $0 where none is published
     (:free / sticker-NULL lanes)."""
@@ -275,7 +277,7 @@ def estimate_costs(models_rows, targets, calls_per_lane: int=12, max_tokens: int
     return {p: round(v, 4) for p, v in costs.items()}
 
 
-def stamp_reasons(targets, excluded, commit: bool=False, data_dir=None, today=None):
+def stamp_reasons(targets: Any, excluded: Any, commit: bool=False, data_dir: Any=None, today: Any=None):
     """Append data/null_reasons.jsonl rows for live lanes measurement cannot
     reach. Only ACTIVE lanes are stamped — archived/retired/disabled/unpriced
     rows are not live, so their tier null needs no reason (TR-197 scopes
@@ -321,7 +323,7 @@ def stamp_reasons(targets, excluded, commit: bool=False, data_dir=None, today=No
     return rows
 
 
-def run_batteries(args, targets):
+def run_batteries(args: Any, targets: Any):
     """Shell the existing battery (router_probe_run.py) for the selection,
     then ingest each results file through the single-category ingest path.
     Never reseeds — that is scripts/router_seed.py, run separately."""
@@ -377,7 +379,7 @@ def run_batteries(args, targets):
     return 0
 
 
-def main(argv=None):
+def main(argv: Any=None):
     ap = argparse.ArgumentParser(description='TR-221 ranking backfill probe harness')
     mode = ap.add_mutually_exclusive_group()
     mode.add_argument('--dry-run', action='store_true',

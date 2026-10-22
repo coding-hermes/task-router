@@ -4,10 +4,12 @@
 Usage: python3 scripts/router_null_census.py [--json] [--table <name>]
 Exit 0 = census complete with 0 unexplained; exit 1 = unexplained nulls found.
 """
+from __future__ import annotations
 
 import json
 import sys
 from pathlib import Path
+from typing import Any
 
 TABLES_DIR = Path(__file__).resolve().parent.parent / "data" / "tables"
 
@@ -137,7 +139,7 @@ ALLOWLIST = {
 UNIVERSAL_MEANINGFUL = {"disabled", "archive", "valid_to", "archived_at", "retired_at"}
 
 
-def is_live(row) -> bool:
+def is_live(row: Any) -> bool:
     """A row is live if not disabled, not archived, and not past valid_to."""
     if row.get("disabled"):
         return False
@@ -149,7 +151,7 @@ def is_live(row) -> bool:
     return True
 
 
-def census_table(path) -> dict:
+def census_table(path: Any) -> dict:
     rows = []
     with open(path) as f:
         for line in f:

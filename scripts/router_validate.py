@@ -36,12 +36,14 @@ explicit `heal` check records what ran. Default OFF — without the flag the
 run is read-only (the health plane runs these checks in-process and must not
 spawn seed subprocesses).
 """
+from __future__ import annotations
 import argparse
 import glob
 import json
 import os
 import subprocess
 import sys
+from typing import Any
 
 _HERE = os.path.dirname(os.path.realpath(__file__))
 _REPO = os.path.dirname(_HERE)
@@ -129,7 +131,7 @@ STATE_JSON_FILES = ('circuit-state.json', 'health-state.json', 'quota-state.json
 STATE_JSONL_FILES = ('ledger.jsonl',)
 
 
-def _read_jsonl(path) -> tuple:
+def _read_jsonl(path: Any) -> tuple:
     """-> (rows, error). Missing file = ([], 'missing'); unparsable line = error."""
     if not os.path.exists(path):
         return [], 'missing'
@@ -149,7 +151,7 @@ def _read_jsonl(path) -> tuple:
         return rows, str(e)
 
 
-def _tables_content_equal(reg_tables, data_dir) -> bool:
+def _tables_content_equal(reg_tables: Any, data_dir: Any) -> bool:
     """True when EVERY registry table matches its data/tables/*.jsonl mirror
     row-for-row. Direction matters: data/tables also holds seed-INPUT files
     the registry never exports (probe_*, plan_terms, quality_estimates, ...);
@@ -178,7 +180,7 @@ def _tables_content_equal(reg_tables, data_dir) -> bool:
     return True
 
 
-def freshness_check(registry_path=None, data_dir=None):
+def freshness_check(registry_path: Any=None, data_dir: Any=None):
     """The freshness verdict + the numbers behind it (one source of truth).
 
     Returns a dict; `ok` is the gate verdict and `detail` is the exact string
@@ -260,12 +262,12 @@ HEAL_SCRIPT = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                            'router_seed.py')
 
 
-def heal_is_armed():
+def heal_is_armed() -> bool:
     """The heal runs only when the operator (or the cron RESUME block) asks."""
     return bool(os.environ.get(HEAL_ENV)) or '--heal' in sys.argv
 
 
-def heal_registry(registry_path=None, data_dir=None) -> dict:
+def heal_registry(registry_path: Any=None, data_dir: Any=None) -> dict:
     """Self-heal the data plane: re-seed registry.json from data/tables.
 
     Called AFTER run_checks() graded the tree and BEFORE the verdict is
@@ -297,7 +299,7 @@ def heal_registry(registry_path=None, data_dir=None) -> dict:
             'seed_ran': True, 'registry_preexisting': pre_ok}
 
 
-def _heal_needed(report) -> bool:
+def _heal_needed(report: Any) -> bool:
     """True when the graded report describes a healable data-plane break.
 
     Exactly the two conditions the refresh-cron incident produced: the
@@ -313,7 +315,7 @@ def _heal_needed(report) -> bool:
     return bool(fresh and not fresh.get('ok'))
 
 
-def run_heal():
+def run_heal() -> dict | dict[str, Any]:
     """heal_registry() with every failure mode folded into the result dict.
 
     Fail-open: a timeout, a missing seed script, duckdb unavailable on a bare
@@ -332,7 +334,7 @@ def run_heal():
 def run_checks() -> tuple:
     checks, issues = [], []
 
-    def add(name, ok, detail) -> None:
+    def add(name: Any, ok: Any, detail: Any) -> None:
         checks.append({'name': name, 'ok': bool(ok), 'detail': detail})
         if not ok:
             issues.append(f'{name}: {detail}')

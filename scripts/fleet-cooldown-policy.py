@@ -41,6 +41,7 @@ Usage: python3 fleet-cooldown-policy.py [--apply] [--dry-run] [--verify]
                  DB row); exit 1 with `MISMATCH <project> <field>: db=<v>
                  toml=<v>` lines = drift. Read-only, no evaluation loop.
 """
+from __future__ import annotations
 import hashlib
 import json
 import os
@@ -48,6 +49,7 @@ import re
 import subprocess
 import sys
 import urllib.request
+from typing import Any
 
 API = 'http://127.0.0.1:9090'
 
@@ -131,7 +133,7 @@ CONVENTION_ROLE_SUFFIXES = (
     '-sync', '-pm', '-qa',
 )
 
-def _is_convention_lane(name, pin, fleet_pins):
+def _is_convention_lane(name: Any, pin: Any, fleet_pins: Any):
     """True when a lane above TARGET_IDLE is on a convention cadence.
 
     Derived rule (SCHED-GAP-1671 acceptance 1): the guard must come from the
@@ -180,7 +182,7 @@ FAMILY_CANONICAL = {
 FAMILY_ALSO_ALLOWED = {'-releng': {259200}}
 
 
-def family_canonical(name) -> tuple:
+def family_canonical(name: Any) -> tuple:
     """The canonical cadence for a satellite family, or None for a primary."""
     for sfx, val in FAMILY_CANONICAL.items():
         if name.endswith(sfx):
@@ -224,7 +226,7 @@ OPERATOR_7200 = {}
 
 LEDGER_PATH = os.path.expanduser('~/.hermes/stand-in/ledger.json')
 
-def open_ledger_gaps(name):
+def open_ledger_gaps(name: Any):
     """Count stand-in ledger items still open for a project (suffix-tolerant).
 
     Scheduler names carry a '-foreman' suffix while ledger uses the bare repo
@@ -242,7 +244,7 @@ def open_ledger_gaps(name):
         return 0
 
 # Board source: tasks.md (legacy) or board/tasks.parquet (migrated)
-def parse_pending_from_md(md_path):
+def parse_pending_from_md(md_path: Any):
     """Count real pending tasks in a tasks.md board (section-aware).
 
     NOTE (2026-09-03): the old shared parser import
@@ -269,7 +271,7 @@ def parse_pending_from_md(md_path):
         n = 0
     return n
 
-def parse_pending_from_jsonl(jsonl_path):
+def parse_pending_from_jsonl(jsonl_path: Any):
     """Count real pending tasks from the canonical tasks.jsonl store."""
     n = 0
     try:
@@ -289,7 +291,7 @@ def parse_pending_from_jsonl(jsonl_path):
     except Exception:
         return None
 
-def board_pending(workdir):
+def board_pending(workdir: Any):
     """Return real-pending count for a project workdir, or None if unreadable.
 
     2026-09-03: tasks.jsonl is the canonical store (board.db/parquet caches
@@ -311,7 +313,7 @@ def board_pending(workdir):
             return n
     return None
 
-def api_get(path):
+def api_get(path: Any):
     req = urllib.request.Request(API + path, headers=_operator_headers())
     with urllib.request.urlopen(req, timeout=HTTP_TIMEOUT) as r:
         return json.loads(r.read())
@@ -342,7 +344,7 @@ def api_get_all_projects():
         offset += len(rows)
     return out
 
-def api_put(path, body):
+def api_put(path: Any, body: Any):
     # Every cooldown PUT re-snapshots the adaptive floor to the new pin.
     # The adaptive progress path resets cooldown_s to cooldown_floor_s on
     # any committing tick, and the loader only re-snapshots the floor on a
@@ -432,7 +434,7 @@ STATUS_OK = 'OK'
 STATUS_MISMATCH = 'MISMATCH'
 
 
-def _sha256_file(path):
+def _sha256_file(path: Any):
     """Return the hex sha256 of a file."""
     h = hashlib.sha256()
     with open(path, 'rb') as f:
@@ -466,7 +468,7 @@ def verify_deploy_hash() -> tuple:
     return False, STATUS_MISMATCH, canonical_hash
 
 
-def write_canonical_hash(deployed_hash=None) -> None:
+def write_canonical_hash(deployed_hash: Any=None) -> None:
     """Write the canonical sidecar for the currently deployed script.
 
     If deployed_hash is None it is read from the deployed script.
@@ -503,7 +505,7 @@ def _retired_apply_guard() -> None:
         sys.exit(3)
 
 
-def main():
+def main() -> bool:
     _retired_apply_guard()
     # ── Deploy-integrity guard (SCHED-PERF-003 / SCHED-PERF-006) ─────────
     # Run AFTER argument parsing but BEFORE the pin evaluation on --apply /
@@ -587,7 +589,7 @@ def main():
                 elif _base in _names:
                     _owns.add(_base)
 
-    def _is_satellite(n, parent):
+    def _is_satellite(n: Any, parent: Any) -> bool:
         """Satellite under the admission law: a role-suffixed lane, or a parented lane
         that owns no satellites of its own. A lane that OWNS satellites is a foreman
         even when it carries a parent for org nesting (logsey/pulse/lore/digest under
@@ -807,7 +809,7 @@ def fleet_toml_path() -> str:
     """Single loader path for fleet.toml — every read/write must use this."""
     return os.path.expanduser('~/.hermes/fleet.toml')
 
-def read_fleet_pins(path=None):
+def read_fleet_pins(path: Any=None):
     """Read {name: cooldown_s} from fleet.toml (operator-set pins).
 
     Returns {} only for a genuinely EMPTY file; a missing/unreadable file is
@@ -829,7 +831,7 @@ def read_fleet_pins(path=None):
             pins[n.group(1)] = int(c.group(1)) if c else None
     return pins
 
-def write_fleet_pins(projects, namespaces=None) -> int:
+def write_fleet_pins(projects: Any, namespaces: Any=None) -> int:
     """Write [[projects]] pins for EVERY project from API state, enabled or not.
 
     Disabled/paused lanes are emitted with `enabled = false` so the file
@@ -940,7 +942,7 @@ def write_fleet_pins(projects, namespaces=None) -> int:
         f.write('\n'.join(out))
     return len(all_projects)
 
-def count_fleet_toml_project_blocks(path=None) -> int:
+def count_fleet_toml_project_blocks(path: Any=None) -> int:
     """Count [[projects]] blocks in fleet.toml (parity tripwire)."""
     path = path or fleet_toml_path()
     import re as _re
@@ -950,7 +952,7 @@ def count_fleet_toml_project_blocks(path=None) -> int:
         return 0
     return len(_re.findall(r'^\s*\[\[projects\]\]\s*$', txt, _re.M))
 
-def check_db_file_parity(projects, path=None) -> tuple:
+def check_db_file_parity(projects: Any, path: Any=None) -> tuple:
     """Fail loudly when the live DB project count != fleet.toml blocks.
 
     SCHED-GAP-1662: the file must describe the WHOLE fleet. Returns

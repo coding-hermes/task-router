@@ -19,7 +19,9 @@ Never fabricates: absent inputs reduce the page, they do not invent numbers.
 
 Usage: provider_health_dashboard.py [--out DIR] [--quiet]
 """
+from __future__ import annotations
 import argparse, csv, datetime as dt, json, os, statistics, sys, html
+from typing import Any
 
 HOME = os.path.expanduser('~')
 # TR-REV-20261005-3: shared state-dir resolve (see scripts/state_dir.py):
@@ -44,7 +46,7 @@ DEFAULT_OUT = f'{HOME}/.hermes/dashboards/provider-health'
 WINDOWS = (24, 72, 168)
 
 
-def parse_ts(s):
+def parse_ts(s: Any):
     if not s:
         return None
     try:
@@ -53,7 +55,7 @@ def parse_ts(s):
         return None
 
 
-def read_jsonl(path):
+def read_jsonl(path: Any):
     out = []
     if not os.path.exists(path):
         return out
@@ -69,7 +71,7 @@ def read_jsonl(path):
     return out
 
 
-def load_history(path) -> tuple:
+def load_history(path: Any) -> tuple:
     """-> (snapshots, parse_errors). One snapshot per hourly run."""
     snaps, bad = [], 0
     if not os.path.exists(path):
@@ -93,12 +95,12 @@ def load_history(path) -> tuple:
     return snaps, bad
 
 
-def provider_status(snap_providers, name) -> tuple:
+def provider_status(snap_providers: Any, name: Any) -> tuple:
     v = snap_providers.get(name) or {}
     return (v.get('status') or 'UNPROBED'), v
 
 
-def history_rollup(snaps, names):
+def history_rollup(snaps: Any, names: Any):
     """Per provider: uptime over windows, last transitions, latency series."""
     now = snaps[-1]['ts'] if snaps else None
     roll = {}
@@ -156,13 +158,13 @@ def load_usage():
     return use
 
 
-def usd(v) -> str | None:
+def usd(v: Any) -> str | None:
     if not isinstance(v, (int, float)):
         return None
     return f'${v:,.2f}' if v >= 1 else f'${v:,.4f}'
 
 
-def tok(v) -> str | None:
+def tok(v: Any) -> str | None:
     if not isinstance(v, (int, float)):
         return None
     if v >= 1e9:
@@ -174,11 +176,11 @@ def tok(v) -> str | None:
     return f'{v:,.0f}'
 
 
-def esc(s):
+def esc(s: Any):
     return html.escape(str(s), quote=True)
 
 
-def spark(vals, width: int=120, height: int=18) -> str:
+def spark(vals: Any, width: int=120, height: int=18) -> str:
     """Inline SVG sparkline; None when no data."""
     if len(vals) < 2:
         return ''
@@ -191,7 +193,7 @@ def spark(vals, width: int=120, height: int=18) -> str:
             f'viewBox="0 0 {width} {height}"><polyline points="{pts}"/></svg>')
 
 
-def bar(pct, cls='') -> str:
+def bar(pct: Any, cls='') -> str:
     if pct is None:
         return '<span class="na" title="no probe samples in window">n/a</span>'
     return (f'<span class="barwrap" title="{pct}% up">'
@@ -199,7 +201,7 @@ def bar(pct, cls='') -> str:
             f'<span class="pct">{pct}%</span>')
 
 
-def build(out_dir, quiet: bool=False):
+def build(out_dir: Any, quiet: bool=False):
     snaps, bad = load_history(HEALTH_JSONL)
     state = {}
     if os.path.exists(HEALTH_STATE):
@@ -287,7 +289,7 @@ def build(out_dir, quiet: bool=False):
         })
 
     # ---- summary
-    def count_status(rows, st):
+    def count_status(rows: Any, st: Any):
         return sum(1 for r in rows if r['status'] == st)
 
     transitions_24h = []
@@ -325,7 +327,7 @@ def build(out_dir, quiet: bool=False):
 
     os.makedirs(out_dir, exist_ok=True)
 
-    def _j(o):
+    def _j(o: Any):
         return o.isoformat(timespec='seconds') if isinstance(o, dt.datetime) else str(o)
 
     with open(os.path.join(out_dir, 'latest.json'), 'w') as fh:
@@ -413,13 +415,13 @@ function tgl(){flt('lanes','lq');}
 """
 
 
-def render(s, prov_rows, lane_rows, transitions):
+def render(s: Any, prov_rows: Any, lane_rows: Any, transitions: Any):
     sev = {'DOWN': 0, 'SLOW': 2, 'THINKING': 2, 'OK': 1, 'DISABLED': 3, 'UNPROBED': 4}
     prov_sorted = sorted(prov_rows, key=lambda r: (sev.get(r['status'], 5), r['provider']))
     lane_sorted = sorted(lane_rows, key=lambda r: (sev.get(r['status'], 5),
                                                    not r['disabled'], r['provider'], r['model']))
 
-    def cls(st):
+    def cls(st: Any):
         return {'OK': 'ok', 'DOWN': 'down', 'SLOW': 'warn', 'THINKING': 'warn',
                 'DISABLED': 'off', 'UNPROBED': 'off', 'EXCLUDED': 'off'}.get(st, '')
 
@@ -454,7 +456,7 @@ def render(s, prov_rows, lane_rows, transitions):
         f'<span class="{cls(t["to"])}">{esc(t["to"])}</span></div>'
         for t in reversed(transitions)) or '<div class="meta">none in the last 24h</div>'
 
-    def prow(r) -> str:
+    def prow(r: Any) -> str:
         w = r['w24'] or {}
         pct = w.get('pct')
         bcls = 'low' if (pct is not None and pct < 95) else ''
@@ -474,7 +476,7 @@ def render(s, prov_rows, lane_rows, transitions):
                 f'<td class="meta">{lt_s}</td>'
                 f'<td class="err">{err}</td></tr>')
 
-    def lrow(r) -> str:
+    def lrow(r: Any) -> str:
         lat = (f'{r["latency_ms"]} ms <span class="meta">({r["latency_src"]})</span>'
                if r['latency_ms'] is not None else '<span class="na">n/a</span>')
         pr = (f'{usd(r["in_per_m"])}/{usd(r["out_per_m"])}'

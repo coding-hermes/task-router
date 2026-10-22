@@ -10,6 +10,7 @@ Usage:
   python3 scripts/ui_audit_quota.py --base-url http://127.0.0.1:9193 \
       [--output-dir docs/ui] [--json]
 """
+from __future__ import annotations
 import argparse
 import asyncio
 import datetime
@@ -134,7 +135,7 @@ async def audit(base_url: str, out_dir: Path) -> dict:
     return manifest
 
 
-def main():
+def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--base-url", default="http://127.0.0.1:9193")
     ap.add_argument("--output-dir", default=str(REPO / "docs" / "ui"))

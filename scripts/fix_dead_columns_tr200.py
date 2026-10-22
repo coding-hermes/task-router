@@ -15,6 +15,7 @@ Dead keys (verified 0/1187 non-null on 2026-10-12, the TR-200 census):
 Idempotent: a second run rewrites nothing. NEVER hand-edit the JSONL — this
 script is the mechanical repair; the writers above keep the schema gone.
 """
+from __future__ import annotations
 import json
 import os
 import sys
@@ -26,7 +27,7 @@ T = os.environ.get("ROUTING_DATA_DIR", os.path.join(_REPO, "data", "tables"))
 DEAD_KEYS = ("vision", "modality", "knowledge_cutoff")
 
 
-def main():
+def main() -> None:
     path = os.path.join(T, "model_catalog.jsonl")
     rows = []
     with open(path) as f:

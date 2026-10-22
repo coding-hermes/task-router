@@ -50,6 +50,7 @@ Usage:
   python3 scripts/null_debt_invariants.py --json          # machine report
   python3 scripts/null_debt_invariants.py --publish data/state/null-census-latest.json
 """
+from __future__ import annotations
 
 import argparse
 import collections
@@ -66,6 +67,7 @@ T = os.environ.get("ROUTING_DATA_DIR", os.path.join(_REPO, "data", "tables"))
 sys.path.insert(0, _HERE)
 import data_null_census as census  # noqa: E402  (is_live + STRUCTURAL vocabulary)
 import lifecycle_gate  # noqa: E402  (INV3 delegates to the R4 predicate)
+from typing import Any
 
 #: INV1 default: a live lane may not be >=50% null across the measured
 #: (non-structural) columns of its table. Per-table relaxations live in
@@ -108,7 +110,7 @@ NULL_OK = {
 }
 
 
-def load(tables_dir):
+def load(tables_dir: Any):
     """{filename: [rows]} for every *.jsonl table (tolerant, like the census)."""
     out = {}
     if not os.path.isdir(tables_dir):
@@ -128,15 +130,15 @@ def load(tables_dir):
     return out
 
 
-def _is_null(v):
+def _is_null(v: Any) -> bool:
     return v is None or v == ""
 
 
-def _lane(r) -> str:
+def _lane(r: Any) -> str:
     return "%s/%s" % (r.get("provider"), r.get("model"))
 
 
-def check_inv1(tables, allowed=None):
+def check_inv1(tables: Any, allowed: Any=None):
     """INV1 violations: live lanes >= threshold null over measured columns.
 
     Measured columns = the union of keys carried by the table's LIVE rows,
@@ -176,7 +178,7 @@ def check_inv1(tables, allowed=None):
     return out
 
 
-def check_inv2(tables, null_ok=None):
+def check_inv2(tables: Any, null_ok: Any=None):
     """INV2 violations: columns 100% null across their carrying rows.
 
     A column is 'dead' when at least one row carries the key and EVERY
@@ -215,7 +217,7 @@ def check_inv2(tables, null_ok=None):
     return out
 
 
-def check_inv3(tables):
+def check_inv3(tables: Any):
     """INV3 violations: anonymous lifecycle dates — delegated entirely to
     lifecycle_gate.find_offenders (the TR-199 R4 predicate)."""
     out = []
@@ -235,7 +237,7 @@ def check_inv3(tables):
     return out
 
 
-def census_unexplained(tables_dir):
+def census_unexplained(tables_dir: Any):
     """Live-lane UNEXPLAINED count, from data_null_census.py --json itself
     (a subprocess, so the published number IS the census's number)."""
     env = dict(os.environ, ROUTING_DATA_DIR=str(tables_dir))
@@ -264,7 +266,7 @@ def git_sha():
     return "<unknown>"
 
 
-def publish_state(path, tables_dir, v1, v2, v3):
+def publish_state(path: Any, tables_dir: Any, v1: Any, v2: Any, v3: Any):
     """Write the watch-hook state file (AC4). Returns the doc written."""
     doc = {
         "timestamp": datetime.datetime.now(datetime.timezone.utc)
@@ -283,7 +285,7 @@ def publish_state(path, tables_dir, v1, v2, v3):
     return doc
 
 
-def main(argv=None) -> int:
+def main(argv: Any=None) -> int:
     ap = argparse.ArgumentParser(
         description="null-debt PREVENTION invariants (TR-201)")
     ap.add_argument("--json", action="store_true",

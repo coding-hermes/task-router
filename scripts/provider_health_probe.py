@@ -76,10 +76,12 @@ Calibration gotchas (TR-001, live-verified 2026-08-27/08-31):
 - Timeout ≠ down: nemotron-3-ultra ~28s, kimi k3-256k ~10s first token —
   thinking models (Bane 08-31).
 """
+from __future__ import annotations
 import json, os, socket, sys, time, datetime, urllib.request, urllib.error
 
 sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
 import router_hop_taxonomy  # noqa: E402  (TR-288: the one failure taxonomy)
+from typing import Any
 
 # Env-overridable paths (same convention as router_spawn.py) so calibration runs
 # and tests can be hermetic; defaults are byte-identical to the historical paths.
@@ -197,7 +199,7 @@ WIRE_ID_PREFIX = {
 }
 
 
-def wire_model_id(provider, model):
+def wire_model_id(provider: Any, model: Any):
     """Registry id -> the id the provider's API actually serves.
 
     clinepass wants 'modelType/model' ('cline-pass/<bare>'); every other
@@ -312,7 +314,7 @@ def load_fix_rows() -> tuple:
     return fixes, excludes
 
 
-def build_probe_set(providers):
+def build_probe_set(providers: Any):
     """{provider: [(base_url, key_env, model), ...]} — static defaults + registry
     priced/active models (cap MAX_PER_PROVIDER/provider, cheapest first)."""
     out = {}
@@ -349,7 +351,7 @@ def build_probe_set(providers):
     return out
 
 
-def _req(base, key, model, params, timeout, extra_headers=None):
+def _req(base: Any, key: Any, model: Any, params: Any, timeout: Any, extra_headers: Any=None):
     body = {'model': model,
             'messages': [{'role': 'user', 'content': 'ping'}],
             'stream': False}
@@ -382,7 +384,7 @@ def _req(base, key, model, params, timeout, extra_headers=None):
         return {'status': 'ERR', 'error': msg[:120], 'latency_ms': int((time.time() - t0) * 1000)}
 
 
-def _fmt_http_err(r):
+def _fmt_http_err(r: Any):
     """TR-164: an HTTP error says the code AND what the provider said about it —
     a quota/budget condition must not render as a bare 'HTTP 429' outage."""
     code = f'HTTP {r["code"]}'
@@ -392,7 +394,7 @@ def _fmt_http_err(r):
     return code
 
 
-def ping(base, key, model, params=None, extra_headers=None) -> dict:
+def ping(base: Any, key: Any, model: Any, params: Any=None, extra_headers: Any=None) -> dict:
     if not base:
         return {'status': 'SKIP', 'error': 'no endpoint configured'}
     r = _req(base, key, model, params, TIMEOUT_S, extra_headers)
@@ -440,7 +442,7 @@ def ping(base, key, model, params=None, extra_headers=None) -> dict:
     return {'status': 'DOWN', 'error': r.get('error'), 'latency_ms': r.get('latency_ms')}
 
 
-def check_credits(prov, env) -> dict:
+def check_credits(prov: Any, env: Any) -> dict:
     """Best-effort credit balance. Never raises; failures => source 'unknown'."""
     entry = CREDIT_ENDPOINTS.get(prov)
     if not entry:
@@ -481,7 +483,7 @@ def check_credits(prov, env) -> dict:
         return {'source': 'unknown', 'note': str(e)[:100]}
 
 
-def aggregate(models) -> tuple:
+def aggregate(models: Any) -> tuple:
     """models: {model: {status,...}} -> (status, stats). EXCLUDED and DISABLED
     rows don't count toward totals. Provider DOWN only when EVERY probed model
     is down — a single up/overloaded model keeps the provider OK (Bane 08-28);
@@ -504,7 +506,7 @@ def aggregate(models) -> tuple:
                     'down': down, 'total': total}
 
 
-def fmt_provider_block(prov, entry):
+def fmt_provider_block(prov: Any, entry: Any):
     """One provider block: name line + indented model lines, up models first
     then problems, alphabetical within each bucket."""
     st = entry.get('model_stats', {})
@@ -561,7 +563,7 @@ def fmt_provider_block(prov, entry):
     return lines
 
 
-def main(config_path=None, only_providers=None, output_path=None, write: bool=True):
+def main(config_path: Any=None, only_providers: Any=None, output_path: Any=None, write: bool=True) -> int | list[Any]:
     # Backwards compatibility: old callers pass no arguments; argparse callers
     # pass the parsed values. Unset values keep the module defaults.
     # write=False (--no-write/--dry-run, TR-031): probes run and the report
@@ -714,7 +716,7 @@ def main(config_path=None, only_providers=None, output_path=None, write: bool=Tr
     n = len(results)
     out.append(f'📡 Provider health — {n} providers · {ts} UTC')
 
-    def group(statuses) -> list:
+    def group(statuses: Any) -> list:
         return sorted([(p, r) for p, r in results.items() if r.get('status') in statuses],
                       key=lambda kv: kv[0])
 

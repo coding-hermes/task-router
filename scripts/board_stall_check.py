@@ -52,12 +52,14 @@ Usage:
                        [--now ISO8601] [--requeue --id TR-xxx ...]
                        [--json] [--quiet]
 """
+from __future__ import annotations
 import argparse
 import json
 import os
 import subprocess
 import sys
 from datetime import datetime, timezone
+from typing import Any
 
 #: In-flight worker_status vocabulary member this board actually uses. The
 #: canonical status vocabulary (complete|done|failed|pending|review|todo) is a
@@ -85,7 +87,7 @@ EVENT_TYPE = "task_updated"
 EVENT_ACTOR = "foreman"
 
 
-def parse_ts(value):
+def parse_ts(value: Any):
     """Parse a board timestamp; None when absent or unparseable.
 
     The board carries two spellings (``2026-09-26T12:33:49Z`` and
@@ -105,7 +107,7 @@ def parse_ts(value):
         return None
 
 
-def parse_now(value):
+def parse_now(value: Any):
     """Parse the --now instant (ISO-8601). None -> caller uses wall clock."""
     if not value:
         return None
@@ -121,7 +123,7 @@ def parse_now(value):
     return parsed
 
 
-def worktree_state(path, git="git") -> str:
+def worktree_state(path: Any, git: str="git") -> str:
     """Decide worktree liveness from the path alone (pure function).
 
     Returns one of:
@@ -146,7 +148,7 @@ def worktree_state(path, git="git") -> str:
     return "worktree_present"
 
 
-def classify_row(row, now, age_hours, age_field: str="created_at", git="git") -> dict | None:
+def classify_row(row: Any, now: Any, age_hours: Any, age_field: str="created_at", git: str="git") -> dict | None:
     """Classify one row -> None when healthy, else an evidence dict.
 
     In-flight requires BOTH worker_status in IN_FLIGHT and a non-terminal
@@ -188,7 +190,7 @@ def classify_row(row, now, age_hours, age_field: str="created_at", git="git") ->
     }
 
 
-def find_stalls(rows, now, age_hours, age_field: str="created_at", git="git"):
+def find_stalls(rows: Any, now: Any, age_hours: Any, age_field: str="created_at", git: str="git"):
     """The full check over a board -> list of flagged evidence dicts."""
     flagged = []
     for row in rows:
@@ -198,7 +200,7 @@ def find_stalls(rows, now, age_hours, age_field: str="created_at", git="git"):
     return flagged
 
 
-def load_board(path) -> tuple:
+def load_board(path: Any) -> tuple:
     """Read rows tolerantly (one bad line never kills the check)."""
     rows, bad = [], 0
     with open(path, encoding="utf-8", errors="replace") as fh:
@@ -216,7 +218,7 @@ def load_board(path) -> tuple:
     return rows, bad
 
 
-def render(report):
+def render(report: Any):
     """Human report; names rows and evidence, states the limitation."""
     out = ["== board stall check (TR-196) ==",
            f"board:      {report['board']}",
@@ -259,12 +261,12 @@ def _now_utc():
     return datetime.now(timezone.utc)
 
 
-def _event_id(now) -> int:
+def _event_id(now: Any) -> int:
     """Event id in the board's own shape: YYYYMMDDHHMMSS (events.jsonl)."""
     return int(now.strftime("%Y%m%d%H%M%S"))
 
 
-def requeue(board_path, events_path, ids, evidence_by_id, now) -> list:
+def requeue(board_path: Any, events_path: Any, ids: Any, evidence_by_id: Any, now: Any) -> list:
     """Explicit recovery: append ONE event per row, rewrite that row only.
 
     The event detail carries status:pending AND the evidence triple — the
@@ -334,12 +336,12 @@ def requeue(board_path, events_path, ids, evidence_by_id, now) -> list:
     return [tid for tid, _ in touched]
 
 
-def _ts_utc(dt):
+def _ts_utc(dt: Any):
     """Board timestamp spelling: ISO-8601 Z, seconds precision, UTC."""
     return dt.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
-def main(argv=None) -> int:
+def main(argv: Any=None) -> int:
     ap = argparse.ArgumentParser(
         description="flag in-flight board rows with no live worker and no "
                     "commit past a stated age (TR-196)")

@@ -35,11 +35,13 @@ Usage:
   validate_provider_quota.py [--tables DIR] [--json]
 Exit 0 = all checks pass; exit 1 = issues found (validator never repairs).
 """
+from __future__ import annotations
 
 import argparse
 import json
 import os
 import sys
+from typing import Any
 
 WINDOW_KINDS = {
     "rolling_5h",
@@ -79,7 +81,7 @@ STR_FIELDS = (
 )
 
 
-def load_jsonl(path):
+def load_jsonl(path: Any):
     rows = []
     with open(path, encoding="utf-8") as fh:
         for lineno, line in enumerate(fh, 1):
@@ -96,7 +98,7 @@ def load_jsonl(path):
     return rows
 
 
-def validate(tables_dir):
+def validate(tables_dir: Any):
     quota_path = os.path.join(tables_dir, "provider_quota.jsonl")
     prov_path = os.path.join(tables_dir, "providers.jsonl")
     issues = []

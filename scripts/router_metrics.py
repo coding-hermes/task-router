@@ -32,11 +32,13 @@ Rows have this shape (one per chain hop):
 
 outcome values: "resolved" | "excluded" | "error"
 """
+from __future__ import annotations
 import argparse
 import datetime
 import json
 import os
 import sys
+from typing import Any
 
 _HERE = os.path.dirname(os.path.realpath(__file__))
 _REPO = os.path.dirname(_HERE)
@@ -53,7 +55,7 @@ def _now_utc():
     return datetime.datetime.now(datetime.timezone.utc)
 
 
-def _parse_utc(ts):
+def _parse_utc(ts: Any):
     try:
         dt = datetime.datetime.fromisoformat(str(ts))
         if dt.tzinfo is None:
@@ -63,7 +65,7 @@ def _parse_utc(ts):
         return None
 
 
-def _parse_duration(s) -> int | None:
+def _parse_duration(s: Any) -> int | None:
     """Convert a duration string like 24h, 7d, 30m into seconds."""
     s = str(s).strip()
     if not s:
@@ -82,7 +84,7 @@ def _parse_duration(s) -> int | None:
     raise ValueError(f"invalid duration unit {unit!r}: expected h, d, or m")
 
 
-def _read_rows(path):
+def _read_rows(path: Any):
     try:
         with open(path) as f:
             for line in f:
@@ -101,7 +103,7 @@ def _read_rows(path):
         return
 
 
-def _filter_rows(path, since=None, profile=None):
+def _filter_rows(path: Any, since: Any=None, profile: Any=None):
     cutoff = None
     if since is not None:
         cutoff = _now_utc() - datetime.timedelta(seconds=since)
@@ -117,7 +119,7 @@ def _filter_rows(path, since=None, profile=None):
         yield row
 
 
-def _aggregates(rows) -> tuple:
+def _aggregates(rows: Any) -> tuple:
     providers, models, pairs = {}, {}, {}
     for row in rows:
         p = row.get("provider")
@@ -130,14 +132,14 @@ def _aggregates(rows) -> tuple:
     return providers, models, pairs
 
 
-def _top(mapping, n):
+def _top(mapping: Any, n: Any):
     items = sorted(mapping.items(), key=lambda kv: (-kv[1], kv[0]))
     if n is not None and n > 0:
         items = items[:n]
     return items
 
 
-def _table(items, headers) -> None:
+def _table(items: Any, headers: Any) -> None:
     if not items:
         print("no rows in window")
         return
@@ -147,7 +149,7 @@ def _table(items, headers) -> None:
         print("  ".join(str(cell).ljust(widths[i]) for i, cell in enumerate(row)))
 
 
-def main(argv=None) -> int:
+def main(argv: Any=None) -> int:
     ap = argparse.ArgumentParser(description="Resolve metrics query (TR-021)")
     ap.add_argument("--top-providers", nargs="?", const=10, type=int,
                     help="show top N providers by hop count (default 10)")

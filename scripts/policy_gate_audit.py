@@ -17,10 +17,12 @@ hard error (files missing/malformed). Read-only — never writes state.
 Usage:
   policy_gate_audit.py [--quota-state <path>] [--repo <repo root>]
 """
+from __future__ import annotations
 import argparse
 import json
 import os
 import sys
+from typing import Any
 
 # TR-REV-20261005-3: shared state-dir resolve (see scripts/state_dir.py),
 # computed at import so the warning lands before any state read/write.
@@ -41,7 +43,7 @@ else:
 DEFAULT_REPO = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
 
-def load_jsonl(path):
+def load_jsonl(path: Any):
     rows = []
     with open(path) as fh:
         for line in fh:
@@ -51,7 +53,7 @@ def load_jsonl(path):
     return rows
 
 
-def main(argv=None) -> int:
+def main(argv: Any=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument('--repo', default=DEFAULT_REPO,
                     help='task-router repo root (default: script parent)')

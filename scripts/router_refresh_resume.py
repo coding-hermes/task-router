@@ -29,6 +29,7 @@ Usage:
   python3 scripts/router_refresh_resume.py --commit   # commit the partial
                                                       # deterministic state
 """
+from __future__ import annotations
 import argparse
 import datetime
 import json
@@ -66,6 +67,7 @@ _RECONFIGURE_SCRIPT = _find_reconfigure_script()
 # Works both as a script (scripts/ is sys.path[0]) and via the test import.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import router_validate as rv  # noqa: E402
+from typing import Any
 
 REGISTRY_TABLES = [
     "data/tables/models.jsonl",
@@ -94,7 +96,7 @@ PIPELINE_STEPS = [
 ]
 
 
-def _git(*args):
+def _git(*args: Any):
     return subprocess.run(["git", *args], cwd=REPO, capture_output=True, text=True)
 
 
@@ -261,7 +263,7 @@ def build_plan(commit_partial: bool=False):
     return plan
 
 
-def main(argv=None) -> int:
+def main(argv: Any=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--commit", action="store_true",
                         help="commit uncommitted registry-table changes")

@@ -8,6 +8,7 @@
   + P1_CODING / P2_AGENTIC / P3_DOCS / P4_SECURITY (TR-003, 2026-08-27)
 - views: v_task_eligible, v_task_chain
 Exports tables to the routing namespace JSONL. Run: board venv python."""
+from __future__ import annotations
 import json
 import os
 import re
@@ -16,6 +17,7 @@ import subprocess
 import datetime
 import sys
 import time
+from typing import Any
 
 try:
     import duckdb  # noqa: F401  (seed needs duckdb; maintain does not)
@@ -194,7 +196,7 @@ BASE_COLUMNS = {
 
 
 # ---------- TR-168: (provider, model) uniqueness at LOAD time ----------------
-def _dedupe_models_rows(rows):
+def _dedupe_models_rows(rows: Any):
     """Fold duplicate (provider, model) pairs to one survivor (TR-168).
 
     Why here: the duckdb `models` table enforces no key, and EVERY output
@@ -235,7 +237,7 @@ def _dedupe_models_rows(rows):
     if not twins_of:
         return rows
 
-    def _empty(v):
+    def _empty(v: Any) -> bool:
         return v is None or v == '' or v == [] or v == {}
 
     out = [dict(r) for r in rows]   # copies: originals stay for the identical check
@@ -273,7 +275,7 @@ def _dedupe_models_rows(rows):
     return [r for pos, r in enumerate(out) if pos not in drop]
 
 
-def _load_base_rows(name):
+def _load_base_rows(name: Any):
     """Base-table rows from the in-repo data/tables/*.jsonl (keyed records —
     committed, self-contained), falling back to the ns mirror (array format)
     or an existing registry.json."""
@@ -458,7 +460,7 @@ try:
         _lc_rows = [json.loads(_l) for _l in _f if _l.strip()]
 except FileNotFoundError:
     pass
-def overlay_update(overlay, updatable) -> tuple:
+def overlay_update(overlay: Any, updatable: Any) -> tuple:
     """(columns, args) for ONE lifecycle overlay — ONLY the keys it names.
 
     TR-180: this used to be `SET <every column> = _o.get(c)`, so any column the
@@ -736,7 +738,7 @@ _BRIDGE_INERT_MARKERS = ('inert', 'by design', 'no overlay pattern')
 overlay = []  # (provider, model, category, rel_score, bench_source)
 
 
-def _overlay_row_excluded(src) -> bool:
+def _overlay_row_excluded(src: Any) -> bool:
     """Row-level enforcement of the overlay's declared inertness (TR-318).
 
     _BRIDGE_EXCLUDE_SRC / _BRIDGE_INERT_MARKERS guard the SQL bridge
@@ -809,7 +811,7 @@ def load_mappings():
     return rules
 
 
-def map_provider_name(name, mappings) -> tuple:
+def map_provider_name(name: Any, mappings: Any) -> tuple:
     """First-match-wins through the rules -> (mapped_name, rule_or_None)."""
     import re as _re
     for rule in mappings:
@@ -1320,7 +1322,7 @@ def apply_overlay():
     """
     n_ins = n_upd = n_decl = 0
 
-    def _is_declaration(ref):
+    def _is_declaration(ref: Any):
         """A `models.jsonl:perf_*` row is a hand-declared seed value, not a measurement.
 
         Bench evidence must beat it in BOTH directions. The rule below used to be
@@ -1447,7 +1449,7 @@ def apply_aliases():
         if str(var) not in variants:
             variants.append(str(var))
 
-    def chain(v):
+    def chain(v: Any):
         """[v, base, base-of-base, ...] — cycle-guarded (the resolver's rule)."""
         out, seen, cur = [v], {v}, v
         while True:
@@ -1459,7 +1461,7 @@ def apply_aliases():
             cur = nxt
         return out
 
-    def perfs_exact(name) -> dict:
+    def perfs_exact(name: Any) -> dict:
         """Rows stored under EXACTLY this spelling = the variant's own evidence.
 
         The skip test must be spelling-exact: `perfs_fold` below matches ANY
@@ -1472,7 +1474,7 @@ def apply_aliases():
         return dict(con.execute("SELECT category, perf FROM model_perf "
                                "WHERE model=?", [name]).fetchall())
 
-    def perfs_fold(lower_name) -> dict:
+    def perfs_fold(lower_name: Any) -> dict:
         """Rows for any casing of a name — the resolver's view of a BASE
         (`router_spawn._alias_tiers` falls back to a case-folded lookup). First
         row in table order wins for a duplicate category (deterministic)."""

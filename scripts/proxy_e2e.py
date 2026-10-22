@@ -35,6 +35,7 @@ Usage:
     python3 scripts/proxy_e2e.py                     # live battery
     python3 scripts/proxy_e2e.py --json out.json     # also write the summary
 """
+from __future__ import annotations
 import argparse
 import json
 import os
@@ -44,6 +45,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from pathlib import Path
+from typing import Any
 
 REPO = Path(__file__).resolve().parents[1]
 
@@ -65,7 +67,7 @@ CHECK_ORDER = [
 
 # --------------------------------------------------------------------------- parsing
 
-def parse_ledger_rows(text) -> tuple:
+def parse_ledger_rows(text: Any) -> tuple:
     """The JSONL rows in a ledger dump, tolerantly: malformed lines are
     skipped (the store is append-only and a torn tail line must not take the
     battery down). Returns (rows, malformed_count)."""
@@ -83,7 +85,7 @@ def parse_ledger_rows(text) -> tuple:
     return rows, malformed
 
 
-def rows_for_session(rows, session_id) -> list:
+def rows_for_session(rows: Any, session_id: Any) -> list:
     """Every row that belongs to this session, in file order.
 
     Same match the flow drill-down uses: the row's own session_id
@@ -94,7 +96,7 @@ def rows_for_session(rows, session_id) -> list:
             if str(r.get("session_id")) == sid or str(r.get("parent_session_id")) == sid]
 
 
-def classify_cost(row) -> dict:
+def classify_cost(row: Any) -> dict:
     """The cost verdict for ONE row — the fake-zero guard, precisely.
 
     fake-zero:      cost_usd == 0.0 exactly AND no price_basis  -> FAIL
@@ -124,7 +126,7 @@ def classify_cost(row) -> dict:
     return {"verdict": "priced", "ok": True, "cost_usd": cost, "price_basis": basis}
 
 
-def _has_chain_evidence(row):
+def _has_chain_evidence(row: Any):
     """Does the row say what the option chain was? (chain list, or its length.)"""
     chain = row.get("chain")
     if isinstance(chain, list) and chain:
@@ -133,7 +135,7 @@ def _has_chain_evidence(row):
     return isinstance(length, (int, float)) and not isinstance(length, bool) and length > 0
 
 
-def _has_reason(row) -> bool:
+def _has_reason(row: Any) -> bool:
     """Any of the reason fields that explain why this outcome happened."""
     for k in ("failure_reason", "degrade_reason"):
         v = row.get(k)
@@ -145,7 +147,7 @@ def _has_reason(row) -> bool:
     return False
 
 
-def classify_row(row) -> dict:
+def classify_row(row: Any) -> dict:
     """Is this ONE row interpretable — outcome + the evidence that explains it?
 
     interpretable shapes: served-with-chain, failed-with-reason,
@@ -182,7 +184,7 @@ def classify_row(row) -> dict:
             "reason": f"route_outcome is {outcome!r} — the row does not say which door it came out of"}
 
 
-def parse_flow(flow_json) -> dict:
+def parse_flow(flow_json: Any) -> dict:
     """Normalise the /api/ui/flow answer for assertion.
 
     Returns {found, present: bool, artefacts_available, artefacts_missing,
@@ -215,7 +217,7 @@ def parse_flow(flow_json) -> dict:
 
 # --------------------------------------------------------------------------- evaluation
 
-def evaluate(response, rows, flow_json, session_id):
+def evaluate(response: Any, rows: Any, flow_json: Any, session_id: Any):
     """The whole battery as an ordered check list. Pure: no I/O.
 
     response: {"status": int|None, "body": parsed-or-None, "error": str|None}
@@ -225,7 +227,7 @@ def evaluate(response, rows, flow_json, session_id):
     """
     checks = []
 
-    def add(name, ok, detail):
+    def add(name: Any, ok: Any, detail: Any):
         checks.append({"name": name, "ok": bool(ok), "detail": detail})
         return ok
 
@@ -307,7 +309,7 @@ def evaluate(response, rows, flow_json, session_id):
     return summary
 
 
-def _row_brief(row) -> dict:
+def _row_brief(row: Any) -> dict:
     """The identity slice of a row, for the per-row classification report."""
     return {"session_id": row.get("session_id"), "provider": row.get("provider"),
             "model": row.get("model"), "route_outcome": row.get("route_outcome"),
@@ -315,7 +317,7 @@ def _row_brief(row) -> dict:
             "cost_usd": row.get("cost_usd"), "price_basis": row.get("price_basis")}
 
 
-def human_tail(summary):
+def human_tail(summary: Any):
     """The human-readable tail: the six facts the brief demands, one line each."""
     cost = summary.get("cost") or {}
     hops = summary.get("hops") or {}
@@ -358,7 +360,7 @@ def upstream_key():
     return ""
 
 
-def send_request(base, session_id, prompt, model, timeout, key) -> dict:
+def send_request(base: Any, session_id: Any, prompt: Any, model: Any, timeout: Any, key: Any) -> dict:
     """ONE POST /v1/chat/completions through the proxy. Returns the response
     dict {status, body, error} — body is the parsed JSON when parseable."""
     url = base.rstrip("/") + "/v1/chat/completions"
@@ -390,7 +392,7 @@ def send_request(base, session_id, prompt, model, timeout, key) -> dict:
             "seconds": round(time.time() - t0, 3)}
 
 
-def read_flow(router_api, session_id, timeout):
+def read_flow(router_api: Any, session_id: Any, timeout: Any):
     """GET /api/ui/flow?id=<session_id>. Returns the parsed JSON or None."""
     url = (router_api.rstrip("/") + "/api/ui/flow?"
            + urllib.parse.urlencode({"id": session_id}))
@@ -406,7 +408,7 @@ def read_flow(router_api, session_id, timeout):
         return {"found": False, "error": f"{type(e).__name__}: {e}"}
 
 
-def await_rows(ledger_path, session_id, wait_s, poll_s: float=0.5) -> tuple:
+def await_rows(ledger_path: Any, session_id: Any, wait_s: Any, poll_s: float=0.5) -> tuple:
     """Poll the ledger until at least one row for the session appears (the
     record path is best-effort and may land a beat after the HTTP answer)."""
     deadline = time.time() + max(0.0, wait_s)
@@ -420,7 +422,7 @@ def await_rows(ledger_path, session_id, wait_s, poll_s: float=0.5) -> tuple:
         time.sleep(poll_s)
 
 
-def _read_text(path):
+def _read_text(path: Any):
     try:
         return Path(path).read_text(errors="replace")
     except OSError:
@@ -433,7 +435,7 @@ def ledger_default():
     return os.environ.get("ROUTING_OUTCOMES_FILE") or str(REPO / "data" / "state" / "outcomes.jsonl")
 
 
-def main(argv=None) -> int:
+def main(argv: Any=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--base", default=os.environ.get("ROUTER_PROXY_URL", "http://127.0.0.1:9391"),
                     help="proxy base URL (default http://127.0.0.1:9391)")

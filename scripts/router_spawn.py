@@ -54,6 +54,7 @@ scheduler must NEVER be blocked by the router.
 --format json = PURE JSON on stdout, every path (TR-046 dogfood): diagnostics
 go to stderr; the no-input usage line and --list-profiles also emit JSON.
 """
+from __future__ import annotations
 import argparse
 import datetime
 import json
@@ -62,6 +63,7 @@ import re
 import sys
 import time
 import zlib
+from typing import Any
 
 # Chain truncation cap (default). 2026-09-10 RCA: a cap below the eligible lane
 # count silently drops the price-sorted TAIL from every resolve (deepseek-foreman
@@ -103,7 +105,7 @@ DEFAULT_FALLBACK_PROFILE = 'P0_FORE'
 #   else                              -> True   (the new default)
 # False is returned ONLY when ROUTER_MISS_VERBOSE is set and ROUTER_SPAWN_QUIET
 # is not, so an explicit --quiet still wins over the verbose opt-in.
-def _truthy_env(val) -> bool:
+def _truthy_env(val: Any) -> bool:
     """Exact-match truthiness for the router's env flags ('1'/'true'/'yes')."""
     return val in ('1', 'true', 'yes')
 
@@ -114,7 +116,7 @@ def _quiet() -> bool:
     return not _truthy_env(os.environ.get('ROUTER_MISS_VERBOSE', ''))
 
 
-def _err(msg, force: bool = False) -> None:
+def _err(msg: Any, force: bool = False) -> None:
     """Write a diagnostic line to stderr unless quiet mode is enabled.
 
     force=True (TR-322): write even in quiet mode. The fresh-machine intake
@@ -203,7 +205,7 @@ def _cache_enabled() -> bool:
     return _CACHE_ENABLED
 
 
-def _spawn_cache():
+def _spawn_cache() -> None:
     """The process-wide cache spawn reads through (created lazily)."""
     global _SPAWN_CACHE
     if _SPAWN_CACHE is None:
@@ -220,7 +222,7 @@ def _spawn_cache():
 _SPAWN_CACHE = None
 
 
-def _tables_composite_identity(path):
+def _tables_composite_identity(path: Any) -> tuple[Any, ...]:
     """Validity spans registry.json AND every data/tables/*.jsonl: the identity
     is the tuple of every file's (path, mtime_ns, size, inode). Any change to
     any member file invalidates the whole cached load."""
@@ -291,7 +293,7 @@ _DEFAULT_QUOTA_ORDER_GUARD = 0.01
 QUOTA_ORDER_GUARD_ENV = 'ROUTER_QUOTA_ORDER_GUARD'
 
 
-def row_is_retired(row, today=None) -> bool:
+def row_is_retired(row: Any, today: Any=None) -> bool:
     """Has this registry row passed its retirement date?
 
     `valid_to` on models.jsonl is the model's RETIREMENT date (20 rows carry
@@ -316,7 +318,7 @@ def _today():
     return datetime.date.today().isoformat()
 
 
-def _days_until(date_str, today):
+def _days_until(date_str: Any, today: Any):
     """Days from today until date_str (negative = past). None = unparseable."""
     try:
         d = datetime.date.fromisoformat(str(date_str)[:10])
@@ -326,7 +328,7 @@ def _days_until(date_str, today):
         return None
 
 
-def lifecycle_state(row, today=None) -> str:
+def lifecycle_state(row: Any, today: Any=None) -> str:
     """TR-069 wave 2: the four lifecycle states, derived from DATES only.
 
     coming_soon — available_from is a FUTURE date (announced, not yet routable)
@@ -353,7 +355,7 @@ def lifecycle_state(row, today=None) -> str:
     return 'live'
 
 
-def load_json(path, default):
+def load_json(path: Any, default: Any):
     try:
         return json.load(open(path))
     except Exception:
@@ -411,7 +413,7 @@ def _alias_map():
     return amap
 
 
-def _alias_chain(model):
+def _alias_chain(model: Any):
     """[model, base, base-of-base, ...] — TRANSITIVE alias resolution.
 
     Registry history chains renames (deepseek-v4-flash-flex -> deepseek-v4-flash
@@ -435,7 +437,7 @@ def _alias_chain(model):
     return chain
 
 
-def _fold_tier_names(tiers):
+def _fold_tier_names(tiers: Any):
     """{lower(model): {category: tier}} companion index for alias lookups."""
     folded = {}
     for name, cats in (tiers or {}).items():
@@ -443,7 +445,7 @@ def _fold_tier_names(tiers):
     return folded
 
 
-def _alias_tiers(tiers, folded, model):
+def _alias_tiers(tiers: Any, folded: Any, model: Any):
     """Tier dict for a lane's model id, alias-aware (TR-043).
 
     The lane's OWN tier evidence always wins (a variant benchmarked in its own
@@ -486,7 +488,7 @@ def _alias_tiers(tiers, folded, model):
     return merged
 
 
-def _parse_utc(ts):
+def _parse_utc(ts: Any):
     """Best-effort ISO-8601 → aware UTC datetime; None on any failure."""
     try:
         dt = datetime.datetime.fromisoformat(str(ts))
@@ -526,7 +528,7 @@ QUOTA_GATE_OPEN_STATUSES = frozenset(('open', 'cleared', 'expired'))
 QUOTA_GATE_FIELDS = ('provider', 'status', 'reason', 'reset_at', 'detected_at')
 
 
-def load_quota_gates(qdoc, now=None):
+def load_quota_gates(qdoc: Any, now: Any=None):
     """{provider: gate} for the plan-window gates in quota-state.json (TR-060).
 
     `now` is an aware datetime, an ISO string, or None (= wall clock). Each
@@ -583,7 +585,7 @@ def load_quota_gates(qdoc, now=None):
     return out
 
 
-def quota_gate_summary(gates) -> dict:
+def quota_gate_summary(gates: Any) -> dict:
     """{source-less summary} of a load_quota_gates() map for the resolve output.
 
     Two sorted lists: `gated` = actively excluded providers (the fact an
@@ -603,7 +605,7 @@ def quota_gate_summary(gates) -> dict:
     return {'gated': gated, 'expired': expired}
 
 
-def ledger_has_traces(state_dir) -> bool:
+def ledger_has_traces(state_dir: Any) -> bool:
     """True when the spawn ledger exists AND holds at least one non-empty line.
 
     Path resolution: LEDGER_FILE env (the router_ledger.py shared contract)
@@ -623,7 +625,7 @@ def ledger_has_traces(state_dir) -> bool:
         return False
 
 
-def ledger_in_flight(state_dir):
+def ledger_in_flight(state_dir: Any):
     """{(provider, model): in_flight_count} derived from the spawn ledger.
 
     Traces are reconstructed by trace_id across ALL rows (terminal rows carry
@@ -674,7 +676,7 @@ def ledger_in_flight(state_dir):
         return {}
 
 
-def _effective_caps(profiles, qdoc, pid) -> dict:
+def _effective_caps(profiles: Any, qdoc: Any, pid: Any) -> dict:
     """Effective two-knob diversity caps + per-model concurrency default.
 
     Per-profile task_profiles columns beat the global 'diversity' defaults in
@@ -706,7 +708,7 @@ def _effective_caps(profiles, qdoc, pid) -> dict:
     }
 
 
-def _model_limit(models_cfg, diversity, prov, model):
+def _model_limit(models_cfg: Any, diversity: Any, prov: Any, model: Any):
     """Effective per-model concurrency limit for a pair.
 
     Precedence: explicit quota-state 'models' entry ('<provider>/<model>' →
@@ -754,7 +756,7 @@ _REASON_PREFIXES = (
 )
 
 
-def exclusion_codes(why):
+def exclusion_codes(why: Any):
     """Map a `why` list (prose) to reason codes, one per entry.
 
     Never returns an empty list for a non-empty `why`: an unmapped reason becomes
@@ -774,7 +776,7 @@ def exclusion_codes(why):
     return codes
 
 
-def _prune_diversity(out_chain, exclusions, reasons, cons_cap, tot_cap) -> None:
+def _prune_diversity(out_chain: Any, exclusions: Any, reasons: Any, cons_cap: Any, tot_cap: Any) -> None:
     """Walk the price-ordered survivor chain; drop diversity violators.
 
     Per provider: consecutive_run counts hops IN A ROW (resets when the
@@ -823,7 +825,7 @@ def _routing_env_names() -> list:
     return sorted(k for k in os.environ if k.startswith(('ROUTING_', 'ROUTER_', 'TASK_ROUTER_')))
 
 
-def _append_metrics(rows, result) -> None:
+def _append_metrics(rows: Any, result: Any) -> None:
     """Append one row per chain hop to the metrics JSONL file (TR-021).
 
     rows is the list of tuples as produced by _build_chain (each tuple is
@@ -914,7 +916,7 @@ def _append_metrics(rows, result) -> None:
         pass
 
 
-def _validate_adhoc(adhoc, tables) -> tuple:
+def _validate_adhoc(adhoc: Any, tables: Any) -> tuple:
     """Validate --profile-req requirements (TR-023). Returns (reqs, error).
 
     Honest input validation: a typo'd category or out-of-range level must be
@@ -978,7 +980,7 @@ def _validate_adhoc(adhoc, tables) -> tuple:
     return reqs, None
 
 
-def _stamp_payg_providers(tables) -> None:
+def _stamp_payg_providers(tables: Any) -> None:
     """Snapshot the PAYG provider set + stamp every lane row (Bane 2026-09-19).
 
     Data-driven from the providers table: `plan = 'PAYG'` names the pay-per-
@@ -1142,7 +1144,7 @@ _VERSION_REF_RE = re.compile(
     r'^(?P<id>.+?)(?P<sep>[:@])(?P<ver>-?\d+)$')
 
 
-def _split_version_ref(ref) -> tuple | None:
+def _split_version_ref(ref: Any) -> tuple | None:
     """TR-131: split `id:version` / `id@version` off a profile ref.
 
     Returns (id, version_int) or None. Splitting is intentional: profile ids
@@ -1158,7 +1160,7 @@ def _split_version_ref(ref) -> tuple | None:
     return m.group('id'), int(m.group('ver'))
 
 
-def _resolve_profile_tag(profiles, ref):
+def _resolve_profile_tag(profiles: Any, ref: Any):
     """TR-020: resolve a profile reference (pin, tag, or exact id) to an id.
 
     profiles is a dict keyed by profile id. Each row may contain 'tag' and
@@ -1197,7 +1199,7 @@ def _resolve_profile_tag(profiles, ref):
     return ref
 
 
-def _profile_ref_matches(profiles, ref):
+def _profile_ref_matches(profiles: Any, ref: Any):
     """TR-059: does `ref` name a profile — a pin, an exact id OR a tag?
 
     Projects and profiles live in DIFFERENT tables, so the project positional
@@ -1221,7 +1223,7 @@ def _profile_ref_matches(profiles, ref):
     return any(r.get('tag') == ref for r in profiles.values())
 
 
-def _profile_near_miss(profiles, ref):
+def _profile_near_miss(profiles: Any, ref: Any):
     """TR-059: the profile id `ref` approximately names, else None.
 
     CASE-INSENSITIVE exact match on id or tag only — never fuzzy/partial.
@@ -1244,7 +1246,7 @@ def _averages_path():
     return os.environ.get('ROUTING_AVERAGES_FILE') or AVERAGES
 
 
-def _canonical_complexity(value):
+def _canonical_complexity(value: Any):
     """Stable string for a complexity reference: a profile id, a per-category
     level map ({category: level}), or None."""
     if value is None:
@@ -1257,7 +1259,7 @@ def _canonical_complexity(value):
     return json.dumps(value, sort_keys=True, separators=(',', ':'))
 
 
-def _complexity_keys(profile_id, tables):
+def _complexity_keys(profile_id: Any, tables: Any):
     """The complexity references a lane's stats row may be keyed by: the profile
     id, plus the canonical form of its DECLARED per-category levels (the same
     reference shape the outcome store documents). Never invented — a profile
@@ -1274,7 +1276,7 @@ def _complexity_keys(profile_id, tables):
     return keys
 
 
-def load_outcome_stats(backend=None, merge_backends=None, path=None) -> tuple:
+def load_outcome_stats(backend: Any=None, merge_backends: Any=None, path: Any=None) -> tuple:
     """(index, meta) — the resolve-time view of the rolling averages.
 
     index = {(provider, model): [row, ...]}
@@ -1325,7 +1327,7 @@ def load_outcome_stats(backend=None, merge_backends=None, path=None) -> tuple:
     return index, meta
 
 
-def lane_stats(index, provider, model, keys) -> tuple:
+def lane_stats(index: Any, provider: Any, model: Any, keys: Any) -> tuple:
     """(row, match) for a lane: the stats row matching the task's complexity
     reference, else the unconditioned bucket, else a weighted merge of the
     lane's buckets. (None, None) when the store has no sample — never invented.
@@ -1367,7 +1369,7 @@ def lane_stats(index, provider, model, keys) -> tuple:
     return rows[0], 'fallback'
 
 
-def lane_metric(m, ctx, metric) -> tuple:
+def lane_metric(m: Any, ctx: Any, metric: Any) -> tuple:
     """(value, provenance) for one metric of one lane. (None, None) when the
     store has no sample for the lane."""
     ctx = ctx or {}
@@ -1386,7 +1388,7 @@ def lane_metric(m, ctx, metric) -> tuple:
                             'window_h': window}
 
 
-def outcome_note(m, ctx):
+def outcome_note(m: Any, ctx: Any):
     """Per-hop stats provenance for the resolve response."""
     ctx = ctx or {}
     window = ctx.get('window_h', DEFAULT_WINDOW_H)
@@ -1423,11 +1425,11 @@ def outcome_note(m, ctx):
     return note
 
 
-def _effective_price(m):
+def _effective_price(m: Any):
     return (m.get('normalized_price') or 0.0) * (m.get('token_factor') or 1.0)
 
 
-def _lane_price_basis(m) -> str | None:
+def _lane_price_basis(m: Any) -> str | None:
     """TR-291 (2026-10-03): WHY the lane sits where the price sort put it.
 
     Names the zero explicitly so the ordering is explainable from the row
@@ -1447,7 +1449,7 @@ def _lane_price_basis(m) -> str | None:
     return 'list'
 
 
-def _context_sort_key(m):
+def _context_sort_key(m: Any):
     ctx = m.get('context_limit')
     return -(ctx if isinstance(ctx, int) else 0)
 
@@ -1468,7 +1470,7 @@ def _quota_order_guard() -> float:
         return _DEFAULT_QUOTA_ORDER_GUARD
 
 
-def _lane_headroom(quota_ctx, provider) -> float | None:
+def _lane_headroom(quota_ctx: Any, provider: Any) -> float | None:
     """The provider's L2 quota headroom (USD/s) for the chain ordering.
 
     Pure read over the SAME view `router quota accounting` reports (TR-209):
@@ -1528,7 +1530,7 @@ def _quota_order_ctx() -> dict:
         return ctx
 
 
-def _legacy_sort_key(m) -> tuple:
+def _legacy_sort_key(m: Any) -> tuple:
     """The historical chain order: (plan_tier, effective price, larger context
     first, model, provider) — unchanged since TR-015.
 
@@ -1567,7 +1569,7 @@ def _legacy_sort_key(m) -> tuple:
             m.get('model') or '', m.get('provider') or '')
 
 
-def _sort_price(arg, lanes, ctx):
+def _sort_price(arg: Any, lanes: Any, ctx: Any):
     """The legacy ordering (the default)."""
     return _legacy_sort_key
 
@@ -1586,7 +1588,7 @@ MEASURED_MIN_SAMPLES = int(os.environ.get('ROUTER_SORT_MIN_SAMPLES') or 3)
 MEASURED_MIN_COVERAGE = float(os.environ.get('ROUTER_SORT_MIN_COVERAGE') or 0.5)
 
 
-def measured_basis(m, ctx, floor=None) -> tuple:
+def measured_basis(m: Any, ctx: Any, floor: Any=None) -> tuple:
     """(value, basis) for a lane's measured cost per task.
 
     `basis` is the provenance a caller needs to judge the ordering: the floor in
@@ -1617,7 +1619,7 @@ BLEND_CEIL_SAMPLES = int(os.environ.get('ROUTER_SORT_BLEND_CEIL') or 9)
 BLEND_WEIGHT = float(os.environ.get('ROUTER_SORT_BLEND_WEIGHT') or 5)
 
 
-def _blend_cfg(spec) -> tuple:
+def _blend_cfg(spec: Any) -> tuple:
     """(ceil, weight) from the optional 3rd/4th spec fields, env defaults.
 
     A blend pseudo-count of 0 == raw measured means (the pre-TR-174 behaviour).
@@ -1642,7 +1644,7 @@ def _blend_cfg(spec) -> tuple:
 COMPLETION_RATE_FLOOR = float(os.environ.get('ROUTER_SORT_COMPLETION_FLOOR') or 0.1)
 
 
-def completion_term(row) -> tuple:
+def completion_term(row: Any) -> tuple:
     """(effective_cost_or_None, reason) — divide a measured cost by the row's
     observed completion rate (cost per COMPLETED task). Absent success data is
     reported, never guessed as 1.0: basis 'no-completion-term' and the division
@@ -1665,7 +1667,7 @@ EXPLORE_SHARE = float(os.environ.get('ROUTER_SORT_EXPLORE_SHARE') or 0.0)
 EXPLORE_MIN_AGE_H = float(os.environ.get('ROUTER_SORT_EXPLORE_MIN_AGE_H') or 24)
 
 
-def _lane_last_outcome_age_h(provider, model, ctx) -> tuple:
+def _lane_last_outcome_age_h(provider: Any, model: Any, ctx: Any) -> tuple:
     """(age_h, source) since the lane's most recent outcome row, or (None,
     reason). Scans the RAW outcome store once per resolve (cached on ctx) —
     the averages rows carry no timestamp, so the store is the only witness.
@@ -1705,7 +1707,7 @@ def _lane_last_outcome_age_h(provider, model, ctx) -> tuple:
     return ages.get((provider, model)), source
 
 
-def _explore_pick(lanes, ctx, min_age_h) -> tuple:
+def _explore_pick(lanes: Any, ctx: Any, min_age_h: Any) -> tuple:
     """The exploration lane: fewest in-window samples among lanes older than
     the aging threshold; ties by (price, provider, model) so the pick is
     reproducible. (lane, None) — or (None, reason) when nothing qualifies."""
@@ -1722,14 +1724,14 @@ def _explore_pick(lanes, ctx, min_age_h) -> tuple:
         m.get('provider') or '', m.get('model') or '')), None
 
 
-def _lane_sample_n(m, ctx):
+def _lane_sample_n(m: Any, ctx: Any):
     """The lane's in-window sample count (0 when unmeasured — never None)."""
     _v, prov = lane_metric(m, ctx, 'cost')
     n = (prov or {}).get('n_samples')
     return n if isinstance(n, int) else 0
 
 
-def lane_expected_value(m, ctx, floor, blend_ceil, blend_w) -> tuple:
+def lane_expected_value(m: Any, ctx: Any, floor: Any, blend_ceil: Any, blend_w: Any) -> tuple:
     """(value, basis) — the lane's expected cost per COMPLETED task (the TR-174
     ranking value; exploration adds a separate head-selection gate).
 
@@ -1764,7 +1766,7 @@ def lane_expected_value(m, ctx, floor, blend_ceil, blend_w) -> tuple:
                         completion_term=rate_reason)
 
 
-def _sort_predicted_cost_per_task(arg, lanes, ctx):
+def _sort_predicted_cost_per_task(arg: Any, lanes: Any, ctx: Any):
     """Cheapest measured cost PER COMPLETED TASK first — for lanes that clear the sample
     floor, and ONLY when enough of the chain is measured to make the ordering evidence
     rather than a head-swap. Unknown is not free and one sample is not evidence (TR-183).
@@ -1796,7 +1798,7 @@ def _sort_predicted_cost_per_task(arg, lanes, ctx):
         return _legacy_sort_key
 
 
-def _tr174_sort(arg, lanes, ctx):
+def _tr174_sort(arg: Any, lanes: Any, ctx: Any):
     """The TR-174 predicted_cost_per_task factory body (see the wrapper above)."""
     ctx = ctx if isinstance(ctx, dict) else {}
     floor, min_cov = MEASURED_MIN_SAMPLES, MEASURED_MIN_COVERAGE
@@ -1863,7 +1865,7 @@ def _tr174_sort(arg, lanes, ctx):
     explore_key0 = ((explore_lane.get('provider'), explore_lane.get('model'))
                     if explore_lane is not None else None)
 
-    def key(m):
+    def key(m: Any):
         key0 = (m.get('provider'), m.get('model'))
         # TR-174 feature 3: the probe lane wins the head outright — ahead of
         # every ranked lane ((0, -1.0) sorts before any (0, value >= 0)) — so
@@ -1931,18 +1933,18 @@ def _tr174_sort(arg, lanes, ctx):
     return key
 
 
-def _sort_wall_time(arg, lanes, ctx):
+def _sort_wall_time(arg: Any, lanes: Any, ctx: Any):
     """Fastest measured wall time per task first; a lane with no sample sorts
     LAST (unknown is worst, never best)."""
-    def key(m):
+    def key(m: Any):
         value, _prov = lane_metric(m, ctx, 'wall')
         return float('inf') if value is None else value
     return key
 
 
-def _sort_turns(arg, lanes, ctx):
+def _sort_turns(arg: Any, lanes: Any, ctx: Any):
     """Fewest measured turns per task first; no sample sorts LAST."""
-    def key(m):
+    def key(m: Any):
         value, _prov = lane_metric(m, ctx, 'turns')
         return float('inf') if value is None else value
     return key
@@ -1967,7 +1969,7 @@ _TERM_ALIASES = {'cost': 'cost', 'predicted_cost_per_task': 'cost',
                  'tokens_total': 'tokens_total'}
 
 
-def _parse_ratio(spec):
+def _parse_ratio(spec: Any):
     """'0.7*cost+0.3*time' -> [(0.7, 'cost'), (0.3, 'wall')].
 
     The mix is CALLER data, never a baked-in constant (TR-049 c5). Raises
@@ -1997,7 +1999,7 @@ def _parse_ratio(spec):
     return terms
 
 
-def _sort_ratio(arg, lanes, ctx):
+def _sort_ratio(arg: Any, lanes: Any, ctx: Any):
     """ratio:<w1>*<cost>+<w2>*<time> — a caller-supplied mix of the measured
     metrics. Each term is min-max NORMALIZED across the eligible lanes before
     blending (dollars, seconds and turns are not comparable raw), and a lane
@@ -2010,7 +2012,7 @@ def _sort_ratio(arg, lanes, ctx):
             if value is not None:
                 observed.setdefault(term, []).append(value)
 
-    def norm(term, m):
+    def norm(term: Any, m: Any) -> float:
         value, _prov = lane_metric(m, ctx, term)
         values = observed.get(term) or []
         if value is None or not values:
@@ -2018,7 +2020,7 @@ def _sort_ratio(arg, lanes, ctx):
         lo, hi = min(values), max(values)
         return 0.0 if hi == lo else (value - lo) / (hi - lo)
 
-    def key(m):
+    def key(m: Any):
         return sum(w * norm(term, m) for w, term in terms)
     return key
 
@@ -2035,7 +2037,7 @@ SORT_KEYS = {
 }
 
 
-def make_sort_key(spec, lanes, ctx) -> tuple:
+def make_sort_key(spec: Any, lanes: Any, ctx: Any) -> tuple:
     """(key callable, resolved name) for a sort spec. Raises ValueError on an
     unknown key or a malformed ratio — the caller degrades visibly (fail-open,
     never a hard stop)."""
@@ -2049,8 +2051,8 @@ def make_sort_key(spec, lanes, ctx) -> tuple:
     return factory(arg, lanes, ctx), name
 
 
-def _build_chain(tables, reqs, limit=DEFAULT_CHAIN_LIMIT, sort_spec=None, sort_ctx=None,
-                 lifecycle_counts=None, quota_ctx=None) -> list:
+def _build_chain(tables: Any, reqs: Any, limit: Any=DEFAULT_CHAIN_LIMIT, sort_spec: Any=None, sort_ctx: Any=None,
+                 lifecycle_counts: Any=None, quota_ctx: Any=None) -> list:
     """Replicates v_task_chain exactly, in pure python.
 
     reqs = [(category, level), ...] (profile requirements or ad-hoc).
@@ -2179,7 +2181,7 @@ def _build_chain(tables, reqs, limit=DEFAULT_CHAIN_LIMIT, sort_spec=None, sort_c
             for i, m in enumerate(eligible[:limit])]
 
 
-def _stamp_quota_headroom(eligible, quota_ctx) -> None:
+def _stamp_quota_headroom(eligible: Any, quota_ctx: Any) -> None:
     """TR-213: stamp each eligible lane row with its provider's L2 headroom
     (USD/s) under '_quota_headroom' — the input the sort's demote slot reads.
     Pure read over the TR-209 accounting view; unknown stays ABSENT (never 0),
@@ -2197,7 +2199,7 @@ def _stamp_quota_headroom(eligible, quota_ctx) -> None:
             m['_quota_headroom'] = h
 
 
-def _deprioritised_for_low_headroom(out_chain, chain_rows, quota_ctx) -> list:
+def _deprioritised_for_low_headroom(out_chain: Any, chain_rows: Any, quota_ctx: Any) -> list:
     """TR-213: which lanes actually LOST positions to the headroom demotion.
 
     `out_chain` is the FINAL chain (post-demote order, entries carrying
@@ -2247,7 +2249,7 @@ def _deprioritised_for_low_headroom(out_chain, chain_rows, quota_ctx) -> list:
     return demoted
 
 
-def _pub_prices(m) -> tuple:
+def _pub_prices(m: Any) -> tuple:
     """Public-price triplet for a model row: (usd_1m, in_per_m, out_per_m).
 
     Bane 2026-08-27: cost reporting ("what did it cost to build feature X")
@@ -2273,8 +2275,8 @@ def _pub_prices(m) -> tuple:
     return pub, m.get('public_in_per_m'), m.get('public_out_per_m')
 
 
-def _resolve_fallback(tables, qs, hs, cs, reqs, limit=DEFAULT_CHAIN_LIMIT, profile_id=None,
-                      qgates=None):
+def _resolve_fallback(tables: Any, qs: Any, hs: Any, cs: Any, reqs: Any, limit: Any=DEFAULT_CHAIN_LIMIT, profile_id: Any=None,
+                      qgates: Any=None):
     """FALLBACK LANES (Bane 2026-08-27): when the primary chain is fully
     gated/down, resolve the always-run lanes from data/tables/fallback_lanes.jsonl
     (registry table `fallback_lanes`: {provider, model, order, key_env, profiles?}).
@@ -2322,7 +2324,7 @@ def _resolve_fallback(tables, qs, hs, cs, reqs, limit=DEFAULT_CHAIN_LIMIT, profi
             generic.append(f)  # default lane, all profiles
     out = []
 
-    def _walk(group, last_resort=False):
+    def _walk(group: Any, last_resort: bool=False) -> None:
         for f in group:
             key = (f.get('provider'), f.get('model'))
             m = by_lane.get(key)
@@ -2393,7 +2395,7 @@ def _resolve_fallback(tables, qs, hs, cs, reqs, limit=DEFAULT_CHAIN_LIMIT, profi
     return out
 
 
-def _data_home_meta(source, fallback_used):
+def _data_home_meta(source: Any, fallback_used: Any):
     """TR-046 (dogfood 2026-09-12): data/gate-state provenance for the JSON.
 
     {registry, data_dir, state_dir, source, fallback, bootstrap, note}:
@@ -2437,9 +2439,9 @@ def _data_home_meta(source, fallback_used):
     return meta
 
 
-def resolve(project=None, profile_id=None, adhoc=None, use_health: bool=True, limit=DEFAULT_CHAIN_LIMIT,
-            allow_training: bool=False, allow_slow=None, sort=None, backend=None,
-            merge_backends: bool=False, window_h=DEFAULT_WINDOW_H, ref_meta=None):
+def resolve(project: Any=None, profile_id: Any=None, adhoc: Any=None, use_health: bool=True, limit: Any=DEFAULT_CHAIN_LIMIT,
+            allow_training: bool=False, allow_slow: Any=None, sort: Any=None, backend: Any=None,
+            merge_backends: bool=False, window_h: Any=DEFAULT_WINDOW_H, ref_meta: Any=None):
     tables, src, fb, warn = _load_registry_with_meta()
     warnings = [warn] if warn else []
     projects = {r.get('id'): r for r in tables.get('projects') or []}
@@ -2604,7 +2606,7 @@ def resolve(project=None, profile_id=None, adhoc=None, use_health: bool=True, li
     # load_json() itself is blind to absence (default {} on any error), so
     # presence is checked explicitly here; a present-but-unparseable file
     # counts as loaded (the parse outcome surfaces through the gates).
-    def _present(name):
+    def _present(name: Any):
         try:
             return os.path.isfile(os.path.join(MR, name))
         except Exception:  # noqa: BLE001 — visibility only, never raise
@@ -2988,7 +2990,7 @@ def resolve(project=None, profile_id=None, adhoc=None, use_health: bool=True, li
             # contract and is stripped before JSON serialization in main().
             '_chain_rows': chain_rows}
 
-def profile_ref_for(project=None, task_id=None, board=None) -> tuple:
+def profile_ref_for(project: Any=None, task_id: Any=None, board: Any=None) -> tuple:
     """TR-124 (Bane 2026-09-24): the board row declares its own capability bar.
 
     A board task row may carry a `profile` field — an exact profile id
@@ -3095,7 +3097,7 @@ def profile_ref_for(project=None, task_id=None, board=None) -> tuple:
 COMPLEXITY_SCORERS = ('auto', 'classifier', 'jev')
 
 
-def complexity_requirements(text, scorer: str='auto', classify_fn=None, classify_name=None) -> tuple:
+def complexity_requirements(text: Any, scorer: str='auto', classify_fn: Any=None, classify_name: Any=None) -> tuple:
     """Requirement levels derived from the TASK's own complexity.
 
     Bane 2026-09-23: a profile alone made the spawn path a fixed list. The router
@@ -3175,7 +3177,7 @@ def complexity_requirements(text, scorer: str='auto', classify_fn=None, classify
     return None, meta
 
 
-def task_text_for(project=None, task_id=None, board=None) -> tuple:
+def task_text_for(project: Any=None, task_id: Any=None, board: Any=None) -> tuple:
     """Task text the router should score: the board row's own title+description.
 
     Bane 2026-09-23: "the board is outlining the task" — so the board row IS the

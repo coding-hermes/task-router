@@ -45,6 +45,7 @@ exactly about), and zero-priced lanes with no story.
 
 Exit codes: 0 healthy, 1 findings (CI-usable), like router_audit.
 """
+from __future__ import annotations
 import json
 import os
 import re
@@ -52,6 +53,7 @@ import sys
 import urllib.request
 from collections import defaultdict
 from datetime import datetime, timezone
+from typing import Any
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(REPO, 'scripts'))
@@ -98,7 +100,7 @@ CLASS_ORDER = (
 )
 
 
-def load_jsonl(path) -> list:
+def load_jsonl(path: Any) -> list:
     return [json.loads(l) for l in open(path) if l.strip()]
 
 
@@ -155,7 +157,7 @@ def realized_usage():
     return out
 
 
-def list_price(md, provider, model):
+def list_price(md: Any, provider: Any, model: Any):
     """models.dev list price for a lane, trying id/suffix/vendor forms."""
     for cand in (model, model.split('/')[-1], model.split(':')[-1]):
         for pid in (provider, provider.replace('-cloud', ''),
@@ -166,12 +168,12 @@ def list_price(md, provider, model):
     return None
 
 
-def _stamp(ev):
+def _stamp(ev: Any):
     m = DATE_RE.search(ev)
     return m.group(0) if m else None
 
 
-def classify(row, plan=None) -> tuple:
+def classify(row: Any, plan: Any=None) -> tuple:
     """Classify one lane row -> (class, is_trap, detail).
 
     Single source of truth for the audit, so the work list and the tests cannot
@@ -211,7 +213,7 @@ def classify(row, plan=None) -> tuple:
     return 'unbased', True, 'no named source'
 
 
-def audit(md=None, lanes=None, plans=None) -> tuple:
+def audit(md: Any=None, lanes: Any=None, plans: Any=None) -> tuple:
     """Run the classification over the live tables. Returns (classes, report)."""
     md = modelsdev() if md is None else md
     lanes = load_jsonl(MODELS) if lanes is None else lanes

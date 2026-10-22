@@ -27,6 +27,7 @@ Usage:
   dummy_scheduler.py --n 1 --base http://127.0.0.1:9391     # through the router
   dummy_scheduler.py --n 1 --base http://127.0.0.1:8642     # direct (control) 
 """
+from __future__ import annotations
 import argparse
 import json
 import os
@@ -37,6 +38,7 @@ import time
 import urllib.error
 import urllib.request
 from pathlib import Path
+from typing import Any
 
 # TR-202 re-pass (2026-10-07): was /home/kara/task-router/... — repo-relative
 # now (realpath, symlink-safe), ledger honouring the shared ROUTING_OUTCOMES_FILE
@@ -62,7 +64,7 @@ DEFAULT_PROMPT = (
 )
 
 
-def read_secret(name):
+def read_secret(name: Any):
     """Read a credential from ~/.hermes/.env by NAME. The value is never printed."""
     env_local = Path.home() / '.hermes' / '.env'
     if not env_local.exists():
@@ -85,7 +87,7 @@ def ledger_count():
     return n
 
 
-def one_request(idx, base, key, prompt, model, provider, timeout, results, lock, stop) -> None:
+def one_request(idx: Any, base: Any, key: Any, prompt: Any, model: Any, provider: Any, timeout: Any, results: Any, lock: Any, stop: Any) -> None:
     if stop.is_set():
         return
     tick = f'dummy-scheduler-{int(time.time())}-{idx}'

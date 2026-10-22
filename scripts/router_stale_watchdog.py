@@ -37,12 +37,14 @@ this script. Either give the UI a health route or set ROUTER_STALE_URLS to the
 instances that speak the contract. `make restart-router` verifies only the
 health-speaking instances (:9092, :9391) for the same reason.
 """
+from __future__ import annotations
 import argparse
 import json
 import os
 import sys
 import urllib.error
 import urllib.request
+from typing import Any
 
 #: The three fleet listeners (docs/health-plane.md). :9093 is the web UI.
 DEFAULT_URLS = (
@@ -62,7 +64,7 @@ EXIT_STALE = 1
 EXIT_UNREACHABLE = 2
 
 
-def configured_urls(flag_urls) -> list:
+def configured_urls(flag_urls: Any) -> list:
     """Resolution order: --url flags win, then ROUTER_STALE_URLS, then defaults.
 
     Blank entries (trailing commas, stray spaces) are dropped rather than
@@ -76,7 +78,7 @@ def configured_urls(flag_urls) -> list:
     return [u for u in urls if u]
 
 
-def evaluate_code(code) -> tuple:
+def evaluate_code(code: Any) -> tuple:
     """Verdict from the payload's `code` identity block.
 
     Returns (verdict, detail). The payload's own `stale` flag is primary —
@@ -122,7 +124,7 @@ def evaluate_code(code) -> tuple:
     return "UNREACHABLE", f"no identity fields to compare and code.stale={flag!r}{reason}"
 
 
-def check(base_url, timeout_s):
+def check(base_url: Any, timeout_s: Any):
     """Fetch one /health and classify it. Never raises — fail-open by contract."""
     url = base_url.rstrip("/") + "/health"
     result = {"url": base_url, "verdict": "UNREACHABLE", "detail": "", "code": None}
@@ -158,7 +160,7 @@ def check(base_url, timeout_s):
     return result
 
 
-def main(argv=None):
+def main(argv: Any=None) -> int:
     parser = argparse.ArgumentParser(
         description="Watch the fleet router instances' /health code.stale flag (TR-255). "
                     "Exit 0 all OK, 1 any STALE, 2 any UNREACHABLE (unless --report-only).")

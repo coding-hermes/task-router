@@ -52,6 +52,7 @@ Idempotent: a lane already targeted in data/lifecycle.jsonl is skipped, so a
 re-run after a reseed writes nothing new. R4 (no anonymous states): every row
 carries lifecycle_source + lifecycle_checked_at.
 """
+from __future__ import annotations
 import argparse
 import datetime
 import json

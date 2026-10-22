@@ -9,6 +9,7 @@ view of the same data — which lanes are coming soon, which are retiring
 Reads the same registry view as the resolver (ROUTING_REGISTRY hook, or the
 repo registry.json). Informational only: exit 0 always, fail-open display.
 """
+from __future__ import annotations
 import json
 import os
 import re
@@ -16,6 +17,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import router_spawn as rs  # lifecycle_state: the ONE shared rule (TR-069)
+from typing import Any
 
 
 def _registry_path():
@@ -30,18 +32,18 @@ def _cache_path():
         'data', 'state', 'modelsdev-cache.json')
 
 
-def _norm(s):
+def _norm(s: Any):
     return re.sub(r'[^a-z0-9]', '', str(s).lower())
 
 
-def _pdot(s):
+def _pdot(s: Any):
     """fireworks writes '.' inside a segment as 'p' (glm-5p2 == glm-5.2).
     Only a 'p' between an alphanumeric and a digit converts, so 'preview',
     'plus', 'pro' and 'compound' are never mangled."""
     return re.sub(r'(?<=[a-z0-9])p(?=[0-9])', '.', str(s).lower())
 
 
-def _split_tag(mid) -> tuple:
+def _split_tag(mid: Any) -> tuple:
     """Split a model id into (path segments, name, tag).
 
     ':' is a TAG separator only when it appears after the last '/' — otherwise
@@ -56,7 +58,7 @@ def _split_tag(mid) -> tuple:
     return segs, last, None
 
 
-def _keys(mid, with_tag: bool=True):
+def _keys(mid: Any, with_tag: bool=True):
     """Comparison keys for one id.
 
     Keys shorter than 3 chars are dropped — they match too much to be evidence
@@ -91,12 +93,12 @@ BY_DESIGN = {
 }
 
 
-def _by_design(pid, mid):
+def _by_design(pid: Any, mid: Any):
     import re as _re
     return any(_re.match(p, mid) for p in BY_DESIGN.get(pid, ()))
 
 
-def _token_key(mid):
+def _token_key(mid: Any):
     """Order-insensitive key: the LAST segment's tokens, sorted.
 
     fireworks publishes `nemotron-3-5-lightning-30b-a3b` while the catalog has
@@ -124,7 +126,7 @@ def _token_key(mid):
     return '|'.join(sorted(toks)) if toks else None
 
 
-def _catalog_index(cache):
+def _catalog_index(cache: Any):
     """provider -> (exact index, tag-stripped index).
 
     Two indexes so a tag difference (`x:free` vs `x`) can never masquerade as a
@@ -149,7 +151,7 @@ def _catalog_index(cache):
     return out
 
 
-def _match(pid_index, mid) -> tuple:
+def _match(pid_index: Any, mid: Any) -> tuple:
     """Return (kind, catalog_id). Strongest tier first."""
     exact, base, toks = pid_index
     for k in _keys(mid, with_tag=True):
@@ -172,7 +174,7 @@ def _match(pid_index, mid) -> tuple:
     return ('absent', None)
 
 
-def catalog_drift(rows, cache=None):
+def catalog_drift(rows: Any, cache: Any=None):
     """TR-069 intake assist (Bane: automate detection of silent retirements).
 
     An ACTIVE lane whose provider exists in the models.dev cache but whose
@@ -246,11 +248,11 @@ def catalog_drift(rows, cache=None):
     return out
 
 
-def _fmt_date(d):
+def _fmt_date(d: Any):
     return str(d)[:10] if d else '-'
 
 
-def build_report(rows, today=None, show_retired: bool=False):
+def build_report(rows: Any, today: Any=None, show_retired: bool=False):
     """Grouped report: counts by state, then the lanes that need a decision."""
     groups = {'coming_soon': [], 'live': [], 'retiring': [], 'retired': []}
     for m in rows:
@@ -334,7 +336,7 @@ def build_report(rows, today=None, show_retired: bool=False):
     return '\n'.join(lines)
 
 
-def _load_rows_from(candidates):
+def _load_rows_from(candidates: Any):
     """Core loader over an explicit candidate list (unit-testable)."""
     for path in candidates:
         try:
@@ -361,7 +363,7 @@ def load_rows():
                      'registry.json')])
 
 
-def main(argv=None) -> int:
+def main(argv: Any=None) -> int:
     import argparse
     ap = argparse.ArgumentParser(description='TR-069 model lifecycle digest')
     ap.add_argument('--json', action='store_true', help='machine-readable output')

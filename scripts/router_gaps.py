@@ -20,6 +20,7 @@ CLI:
   --top N      show only the N most incomplete models
 Exit 0 always (reporting tool).
 """
+from __future__ import annotations
 import argparse
 import json
 import os
@@ -38,8 +39,9 @@ CATS = 24
 # banned for live-installed tools by the TR-202 guard.
 sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))  # sibling tools
 from router_spawn import row_is_retired  # noqa: E402
+from typing import Any
 
-def _rows(name):
+def _rows(name: Any):
     path = os.path.join(DATA_DIR, f'{name}.jsonl')
     out = []
     if os.path.exists(path):
@@ -57,7 +59,7 @@ def load():
     return tables
 
 
-def assess(tables):
+def assess(tables: Any):
     models = tables['models']
     bench = tables['benchmarks']
     tier = tables['model_tier']
@@ -78,7 +80,7 @@ def assess(tables):
     notes_by = {(n['provider'], n['model']) for n in notes}
     prov_notes = {n['provider'] for n in notes if n.get('model') == '*'}
 
-    def has_note(p, name):
+    def has_note(p: Any, name: Any) -> bool:
         return (p, name) in notes_by or p in prov_notes
 
     per = []
@@ -118,7 +120,7 @@ def assess(tables):
     return per
 
 
-def main(argv=None) -> int:
+def main(argv: Any=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument('--json', action='store_true')
     ap.add_argument('--lacking', type=int, default=0)

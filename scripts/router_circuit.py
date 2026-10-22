@@ -66,6 +66,7 @@ CLI (argparse, TR-027 / TR-014 / TR-190):
   Go client (circuit_client.go) invokes record-failure/record-success with
   the exact same argv.
 """
+from __future__ import annotations
 import argparse
 import datetime
 import fcntl
@@ -74,6 +75,7 @@ import os
 import sys
 import tempfile
 import time
+from typing import Any
 
 # TR-REV-20261005-3: shared state-dir resolve (see scripts/state_dir.py):
 # env wins silently; canonical live-install invocations stay silent; anything
@@ -177,7 +179,7 @@ FAILURE_CLASS_MAP = {
 NOT_A_LANE_IDENTITIES = frozenset(('', 'none', 'unknown', 'n/a', 'null'))
 
 
-def failure_class_for(kind=None, fclass=None) -> tuple:
+def failure_class_for(kind: Any=None, fclass: Any=None) -> tuple:
     """Resolve the failure KIND to (class, cooldown_seconds) — loudly.
 
     Exactly one of `kind` (free text from the failure envelope / --kind) or
@@ -231,7 +233,7 @@ def load():
                                                    'classes': {}}}
 
 
-def _fsync_dir(path) -> None:
+def _fsync_dir(path: Any) -> None:
     try:
         dfd = os.open(os.path.dirname(path), os.O_RDONLY)
         try:
@@ -242,7 +244,7 @@ def _fsync_dir(path) -> None:
         pass  # some filesystems don't support dir fsync — best effort
 
 
-def save(st) -> None:
+def save(st: Any) -> None:
     """Atomic crash-safe write: unique temp + fsync + os.replace + dir fsync."""
     d = os.path.dirname(STATE)
     os.makedirs(d, exist_ok=True)
@@ -280,7 +282,7 @@ def now_iso():
     return datetime.datetime.now(datetime.timezone.utc).isoformat(timespec='seconds')
 
 
-def _parse_utc(ts):
+def _parse_utc(ts: Any):
     """Best-effort ISO-8601 -> aware UTC datetime; None on any failure."""
     try:
         dt = datetime.datetime.fromisoformat(str(ts))
@@ -291,7 +293,7 @@ def _parse_utc(ts):
         return None
 
 
-def _is_open(entry, now_iso_str) -> bool:
+def _is_open(entry: Any, now_iso_str: Any) -> bool:
     """True when an entry (pair or provider breaker) is still open."""
     ou = entry.get('open_until')
     if not ou:
@@ -299,7 +301,7 @@ def _is_open(entry, now_iso_str) -> bool:
     return ou > now_iso_str
 
 
-def _prune_expired(st, now, keep_pair=None) -> None:
+def _prune_expired(st: Any, now: Any, keep_pair: Any=None) -> None:
     """Remove cooling pairs and provider breakers whose open_until is past.
 
     keep_pair: key that must survive pruning (the pair being written — its
@@ -316,7 +318,7 @@ def _prune_expired(st, now, keep_pair=None) -> None:
             del prov[k]
 
 
-def _ensure_v2(st):
+def _ensure_v2(st: Any):
     """Return a v2 block, initializing it if absent."""
     if 'v2' not in st or not isinstance(st['v2'], dict):
         st['v2'] = {'provider_breakers': {}, 'classes': {}}
@@ -328,7 +330,7 @@ def _ensure_v2(st):
     return v2
 
 
-def _record_class(v2, provider, model, fclass, now) -> None:
+def _record_class(v2: Any, provider: Any, model: Any, fclass: Any, now: Any) -> None:
     """Append a class event under v2.classes.<provider>.<model>."""
     classes = v2.setdefault('classes', {})
     prov_classes = classes.setdefault(provider, {})
@@ -339,7 +341,7 @@ def _record_class(v2, provider, model, fclass, now) -> None:
     prov_classes[model] = mod_classes
 
 
-def _provider_failures_in_window(v2, provider, fclass, now, window_s):
+def _provider_failures_in_window(v2: Any, provider: Any, fclass: Any, now: Any, window_s: Any):
     """Count recent class events for provider across all models."""
     classes = v2.get('classes') or {}
     prov_classes = classes.get(provider) or {}
@@ -356,7 +358,7 @@ def _provider_failures_in_window(v2, provider, fclass, now, window_s):
     return count
 
 
-def _open_provider_breaker(st, provider, fclass, now) -> tuple:
+def _open_provider_breaker(st: Any, provider: Any, fclass: Any, now: Any) -> tuple:
     """Open (or extend) the provider-level breaker for a hard class."""
     v2 = _ensure_v2(st)
     prov = v2.setdefault('provider_breakers', {})
@@ -371,7 +373,7 @@ def _open_provider_breaker(st, provider, fclass, now) -> tuple:
     return cd, open_until
 
 
-def record_failure(provider, model, reason: str='', fclass: str='api_down', kind=None,
+def record_failure(provider: Any, model: Any, reason: str='', fclass: str='api_down', kind: Any=None,
                    provider_hard: bool=False) -> int:
     """Record a failure for (provider, model) with class fclass.
 
@@ -466,7 +468,7 @@ def record_failure(provider, model, reason: str='', fclass: str='api_down', kind
     return 0
 
 
-def record_success(provider, model) -> int:
+def record_success(provider: Any, model: Any) -> int:
     key = f'{provider}/{model}'
     lf = _acquire_lock()
     try:
@@ -491,7 +493,7 @@ def record_success(provider, model) -> int:
     return 0
 
 
-def status(provider=None, as_json: bool=False) -> int:
+def status(provider: Any=None, as_json: bool=False) -> int:
     # Read-only: no lock needed (os.replace makes state visibility atomic),
     # and deliberately NO pruning — TR-024 contract: status --json lists
     # cooling pairs. Expired entries are pruned on the next write.
@@ -541,7 +543,7 @@ def status(provider=None, as_json: bool=False) -> int:
     return 0
 
 
-def _class_counts(st, provider=None):
+def _class_counts(st: Any, provider: Any=None):
     """Return {class: count} across all recorded events (or one provider)."""
     v2 = st.get('v2') or {}
     classes = v2.get('classes') or {}
@@ -564,7 +566,7 @@ def _class_counts(st, provider=None):
     return counts
 
 
-def clear(provider=None, model=None, all_: bool=False) -> int:
+def clear(provider: Any=None, model: Any=None, all_: bool=False) -> int:
     lf = _acquire_lock()
     try:
         st = load()
@@ -589,7 +591,7 @@ def clear(provider=None, model=None, all_: bool=False) -> int:
     return 0
 
 
-def main(argv=None):
+def main(argv: Any=None):
     argv = list(sys.argv[1:] if argv is None else argv)
     # Python 3.11 argparse interleave bug (fixed in 3.12): a trailing
     # nargs='*' positional after an interspersed optional ('record-failure
