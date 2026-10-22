@@ -67,7 +67,20 @@ def main() -> int:
         print('dry-run: nothing written')
         return 0
 
-    shutil.copy(p, f'/tmp/models.jsonl.bak-mirror-{int(time.time())}')
+    # TR-342: never write to /tmp; use data/state/ with retention
+    _STATE_DIR = os.path.join(TABLES.parent, 'state')
+    os.makedirs(_STATE_DIR, exist_ok=True)
+    ts = time.strftime('%Y%m%d-%H%M%S')
+    _bak = os.path.join(_STATE_DIR, f'models.jsonl.bak-mirror-{ts}')
+    shutil.copy(p, _bak)
+    # Retention: keep only the 3 newest mirror backups
+    max_keep = 3
+    all_baks = sorted(
+        [f for f in os.listdir(_STATE_DIR) if f.startswith('models.jsonl.bak-mirror-')],
+        reverse=True,
+    )
+    for old in all_baks[max_keep:]:
+        os.remove(os.path.join(_STATE_DIR, old))
     p.write_text('\n'.join(json.dumps(r, ensure_ascii=False) for r in rows + new) + '\n')
     print(f'wrote {len(new)} rows to {p}')
     print('next: add a plan_terms row for the new account, then router_maintain.py all')

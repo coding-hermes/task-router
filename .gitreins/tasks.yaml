@@ -1124,3 +1124,12 @@ tasks:
   status: complete
   created_at: '2026-10-22T06:37:52.488953+00:00'
   completed_at: '2026-10-22T06:59:58.254720+00:00'
+- id: TR-342
+  title: 'TR-342: Fix /tmp litter by moving backups to data/state/ with retention'
+  criteria:
+  - 'PASS: a full suite run adds zero new files under /tmp (test_symlink_path_resolution.py:648
+    asserts /tmp count unchanged); sweep removed existing 21k files (9.5 GB freed);
+    retention: max 3 per source file'
+  status: complete
+  created_at: '2026-10-22T09:30:59.680197+00:00'
+  completed_at: '2026-10-22T09:58:11.392915+00:00'

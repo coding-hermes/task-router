@@ -43,10 +43,14 @@ QUOTA_UNIT_FIX = ('per-model dollar caps (Plus ~4x Go; 5h=20% wk=50% mo=100% of 
                   'kimi-k3 $60/mo)')
 
 stamp = time.strftime('%Y%m%d-%H%M%S')
+# TR-342: backup to data/state/, never /tmp
+_data_dir = TABLES.parent / 'state'
+_data_dir.mkdir(parents=True, exist_ok=True)
 for name in ('plan_terms', 'providers'):
     src = TABLES / f'{name}.jsonl'
-    shutil.copy(src, f'/tmp/{name}.bak-{stamp}')
-    print(f'backup /tmp/{name}.bak-{stamp}')
+    bak = _data_dir / f'{name}.bak-{stamp}'
+    shutil.copy(src, str(bak))
+    print(f'backup {bak}')
 
 # plan_terms
 p = TABLES / 'plan_terms.jsonl'

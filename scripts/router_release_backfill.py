@@ -364,7 +364,20 @@ def main():
     # TR-199 (spec R4): no anonymous dates — the gate runs BEFORE the backup
     # so a refused write leaves the committed file untouched.
     lifecycle_gate.gate_rows('models', models)
-    shutil.copy(path, f'/tmp/models.jsonl.bak-{time.strftime("%Y%m%d-%H%M%S")}')
+    # TR-342: move backup to data/state/ with retention (never /tmp)
+    _STATE_DIR = os.path.join(DATA_DIR.parent, 'state')
+    os.makedirs(_STATE_DIR, exist_ok=True)
+    ts = time.strftime('%Y%m%d-%H%M%S')
+    _bak = os.path.join(_STATE_DIR, f'models.jsonl.bak-{ts}')
+    shutil.copy(path, _bak)
+    # Retention: keep only the 3 newest
+    max_keep = 3
+    all_baks = sorted(
+        [f for f in os.listdir(_STATE_DIR) if f.startswith('models.jsonl.bak-')],
+        reverse=True,
+    )
+    for old in all_baks[max_keep:]:
+        os.remove(os.path.join(_STATE_DIR, old))
     _write_models(models)
 
     if catalog_filled:

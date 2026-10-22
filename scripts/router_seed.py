@@ -73,26 +73,6 @@ def _backup_with_retention(src: str, max_keep: int = 3) -> str:
         os.remove(os.path.join(_STATE_DIR, old))
 
     return bak
-
-
-def _tr342_sweep(tmp_dir: str = '/tmp', pattern: str = 'benchmarks.jsonl.bak-*', max_keep: int = 3) -> int:
-    """TR-342 one-time sweep: remove old /tmp benchmark backups.
-
-    Returns the number of files removed.  Always safe to call — only matches
-    the exact pattern and never deletes files that newer code writes into
-    data/state/ (those don't match /tmp/benchmarks.jsonl.bak-*).
-    """
-    import glob as _glob
-    matches = sorted(_glob.glob(os.path.join(tmp_dir, pattern)))
-    removed = 0
-    for f in matches:
-        try:
-            os.remove(f)
-            removed += 1
-        except OSError:
-            pass
-    return removed
-
 # ---- TR-048: direct-invocation NS guard (script layer of the TR-045 CLI guard)
 # The DuckBrain namespace is the S3-backed FLEET MIRROR. When ROUTING_NS is
 # unset, a bare `python3 scripts/router_seed.py` must NOT silently resolve to
