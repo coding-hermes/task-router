@@ -48,6 +48,50 @@ if _registry_path_mod is not None:
 else:
     REGISTRY = os.environ.get('ROUTING_REGISTRY', os.path.join(_REPO, 'registry.json'))
 DATA_DIR = os.environ.get('ROUTING_DATA_DIR', os.path.join(_REPO, 'data', 'tables'))
+_STATE_DIR = os.path.join(os.path.dirname(DATA_DIR), 'state')
+
+
+def _backup_with_retention(src: str, max_keep: int = 3) -> str:
+    """Back up a file under data/state/ with a retention policy.
+
+    Returns the backup path.  Always prunes older backups beyond *max_keep*.
+    Never writes to /tmp (TR-342).
+    """
+    os.makedirs(_STATE_DIR, exist_ok=True)
+    ts = time.strftime('%Y%m%d-%H%M%S')
+    base = os.path.basename(src)
+    bak = os.path.join(_STATE_DIR, f'{base}.bak-{ts}')
+    shutil.copy(src, bak)
+
+    # Retention: keep only *max_keep* newest backups
+    prefix = base + '.bak-'
+    all_baks = sorted(
+        [f for f in os.listdir(_STATE_DIR) if f.startswith(prefix)],
+        reverse=True,
+    )
+    for old in all_baks[max_keep:]:
+        os.remove(os.path.join(_STATE_DIR, old))
+
+    return bak
+
+
+def _tr342_sweep(tmp_dir: str = '/tmp', pattern: str = 'benchmarks.jsonl.bak-*', max_keep: int = 3) -> int:
+    """TR-342 one-time sweep: remove old /tmp benchmark backups.
+
+    Returns the number of files removed.  Always safe to call — only matches
+    the exact pattern and never deletes files that newer code writes into
+    data/state/ (those don't match /tmp/benchmarks.jsonl.bak-*).
+    """
+    import glob as _glob
+    matches = sorted(_glob.glob(os.path.join(tmp_dir, pattern)))
+    removed = 0
+    for f in matches:
+        try:
+            os.remove(f)
+            removed += 1
+        except OSError:
+            pass
+    return removed
 
 # ---- TR-048: direct-invocation NS guard (script layer of the TR-045 CLI guard)
 # The DuckBrain namespace is the S3-backed FLEET MIRROR. When ROUTING_NS is
@@ -402,8 +446,7 @@ def undamp_probe_benchmarks() -> tuple:
         print(f'  TR-232: probe row NOT undamped (no attributable ratio): '
               f'{r.get("model")} {r.get("category")} score={score} src={src[:80]}')
     if n_undamp or n_unattr:
-        _bak = f'/tmp/benchmarks.jsonl.bak-{time.strftime("%Y%m%d-%H%M%S")}'
-        shutil.copy(path, _bak)
+        _bak = _backup_with_retention(path, max_keep=3)
         with open(path, 'w', encoding='utf-8') as fh:
             for r in rows:
                 fh.write(json.dumps(r, ensure_ascii=False) + '\n')

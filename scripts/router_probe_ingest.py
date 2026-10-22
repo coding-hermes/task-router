@@ -218,7 +218,23 @@ def main():
         print('nothing to write')
         return 0
 
-    shutil.copy(bench_path, f'/tmp/benchmarks.jsonl.bak-{time.strftime("%Y%m%d-%H%M%S")}')
+    # TR-342: move backup into data/state/ so it lives under the repo's data
+    # plane and gets pruned by retention (never /tmp).
+    _STATE_DIR = os.path.join(os.path.dirname(DATA_DIR), 'state')
+    os.makedirs(_STATE_DIR, exist_ok=True)
+    ts = time.strftime('%Y%m%d-%H%M%S')
+    base = os.path.basename(bench_path)
+    _bak = os.path.join(_STATE_DIR, f'{base}.bak-{ts}')
+    # Retention: keep only the 3 newest backups, delete the rest.
+    max_keep = 3
+    shutil.copy(bench_path, _bak)
+    prefix = base + '.bak-'
+    all_baks = sorted(
+        [f for f in os.listdir(_STATE_DIR) if f.startswith(prefix)],
+        reverse=True,
+    )
+    for old in all_baks[max_keep:]:
+        os.remove(os.path.join(_STATE_DIR, old))
     with open(bench_path, 'a', encoding='utf-8') as fh:
         for r in new_rows:
             fh.write(json.dumps(r, ensure_ascii=False) + '\n')
