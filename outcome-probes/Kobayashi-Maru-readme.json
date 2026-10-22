@@ -1,11 +1,11 @@
 {
-  "authored_at": "2026-10-22T11:37:10Z",
-  "authored_by": "model-router-refresh-cron",
+  "authored_at": "2026-10-22T12:21:39Z",
+  "authored_by": "model-router-refresh-cron 2026-10-22 (suffix-role contract derived from the lane id and its board/profile role; states the outcome the next dispatch must show \u2014 no project-specific claim)",
   "probes": [
     {
       "id": "Kobayashi-Maru-readme-P1",
       "kind": "outcome",
-      "statement": "TODO(author): state the outcome this project's next dispatch must show"
+      "statement": "Kobayashi-Maru-readme: its next dispatch updates the README to describe what the project actually does now (install/run/verify commands execute as written) and closes a board row with evidence-bound criteria"
     }
   ],
   "project": "Kobayashi-Maru-readme"

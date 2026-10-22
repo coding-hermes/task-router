@@ -1,11 +1,11 @@
 {
-  "authored_at": "2026-10-22T11:37:14Z",
-  "authored_by": "model-router-refresh-cron",
+  "authored_at": "2026-10-22T12:21:39Z",
+  "authored_by": "model-router-refresh-cron 2026-10-22 (suffix-role contract derived from the lane id and its board/profile role; states the outcome the next dispatch must show \u2014 no project-specific claim)",
   "probes": [
     {
       "id": "logsey-perf-P1",
-      "kind": "outcome",
-      "statement": "TODO(author): state the outcome this project's next dispatch must show"
+      "kind": "measure",
+      "statement": "logsey-perf: its next dispatch records a before/after measurement with the reproducible command and the numbers on the board row (no improvement claim without both runs)"
     }
   ],
   "project": "logsey-perf"

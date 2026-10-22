@@ -1,11 +1,11 @@
 {
-  "authored_at": "2026-10-22T11:37:14Z",
-  "authored_by": "model-router-refresh-cron",
+  "authored_at": "2026-10-22T12:21:39Z",
+  "authored_by": "model-router-refresh-cron 2026-10-22 (suffix-role contract derived from the lane id and its board/profile role; states the outcome the next dispatch must show \u2014 no project-specific claim)",
   "probes": [
     {
       "id": "tatara-foreman-P1",
-      "kind": "outcome",
-      "statement": "TODO(author): state the outcome this project's next dispatch must show"
+      "kind": "invariant",
+      "statement": "tatara-foreman: every row it admits carries acceptance criteria and every row it closes is bound to a recorded evidence run (no PASS without cited evidence)"
     }
   ],
   "project": "tatara-foreman"
