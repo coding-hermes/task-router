@@ -20,7 +20,12 @@ def _overlay_update():
     src = open(os.path.join(REPO, 'scripts', 'router_seed.py')).read()
     start = src.index('def overlay_update(')
     end = src.index('\n\n\nfor _o in _lc_rows:')
-    ns = {}
+    # INT-CI-8: the slice carries `Any` annotations from TR-270 stage 2 but NOT the
+    # module's `from typing import Any`. On eager-annotation Pythons (<=3.11, the CI
+    # runner) the def evaluates them and dies NameError; 3.14's PEP 649 deferral hid
+    # it locally. Seed the exec namespace with every name the signature references.
+    from typing import Any
+    ns = {'Any': Any}
     exec(src[start:end], ns)  # noqa: S102 — the function is pure
     return ns['overlay_update']
 
