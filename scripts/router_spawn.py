@@ -1336,15 +1336,30 @@ def lane_stats(index: Any, provider: Any, model: Any, keys: Any) -> tuple:
     if not rows:
         return None, None
     want_sigs = []
-    for want in keys or ():
-        want_sigs.append(_canonical_complexity(want))
+
+    def _sig_forms(want: Any):
+        """The equality forms a key may take (TR-115 retry): a profile id
+        matches both its plain form and the importer's 'profile:<id>'
+        bucket key, so a declared-profile resolve finds the averages the
+        hermes import wrote."""
+        out = [_canonical_complexity(want)]
         try:
             import router_outcomes
             sig = router_outcomes.complexity_sig(want)
             if sig:
-                want_sigs.append(sig)
+                out.append(sig)
         except Exception:  # noqa: BLE001 — stats are optional; fail-open
             pass
+        return out
+
+    for want in keys or ():
+        want_sigs.extend(_sig_forms(want))
+    row_sig = lambda r: str(r.get('complexity_sig') or '')
+    for want in keys or ():
+        pid_forms = {f'profile:{want}', str(want)}
+        for r in rows:
+            if row_sig(r) in pid_forms:
+                return r, 'complexity'
     for want in want_sigs:
         for r in rows:
             if want and (r.get('complexity_sig') == want

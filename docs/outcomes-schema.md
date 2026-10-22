@@ -42,7 +42,7 @@ consumers must read by key, never by position.
 | `session_id` | string | **yes** | the backend's own session/trace id. Together with the model it is the dedupe key. |
 | `task_label` | string \| null | no | free-text label (`task` column of the source DB). |
 | `complexity` | object \| string \| null | no | **the complexity reference**: per-category required levels `{"code_gen": 2, "guard": 0}` (a profile signature), or a profile id string, or `null` when the producer did not declare one. Never invented. |
-| `profile_id` | string \| null | no | routing profile the task ran under (`P1_CODING`, …) when known. |
+| `profile_id` | string \| null | no | routing profile the task ran under (`P1_CODING`, …) when known. The hermes importer stamps the DECLARED lane profile: the coding-hermes scheduler's spawn tick names the gateway session + project, and the registry's `projects.<project>.profile` supplies the id (TR-115 retry). Unknown = null, never guessed. |
 | `required_categories` | object \| list \| null | no | raw per-category requirements when the producer has them. |
 | `provider` | string | **yes** | router provider id (derived from the immutable `billing_base_url` host on the Hermes driver — see below). |
 | `model` | string | **yes** | model id as the provider reports it. |

@@ -1107,12 +1107,249 @@ def plan_effective_cost(provider: Any, model: Any, tokens_in: Any, tokens_out: A
     return round(list_cost * ratio, 8), basis
 
 
+#: TR-115 retry (2026-10-22): every hermes import reads this map once. Keys are
+#: session KEYS (the hermes gateway's caller-facing session identity, which the
+#: coding-hermes scheduler records verbatim as `ticks.session_id`); env
+#: overrides so tests and other hosts point at their own data.
+def _sched_db_path() -> str:
+    """The coding-hermes scheduler DB (HERMES_SCHEDULER_DB override, resolved
+    at CALL time like outcomes_path — a long-lived importer must follow an
+    env change and tests stay hermetic)."""
+    return os.environ.get(
+        'HERMES_SCHEDULER_DB',
+        os.path.join(os.path.expanduser('~'), '.hermes', 'coding-hermes',
+                     'scheduler.db'))
+
+
+def _profile_registry_path() -> str:
+    """The registry backing the project->profile map (ROUTER_PROFILE_REGISTRY
+    override, resolved at CALL time — same reason as _sched_db_path)."""
+    return os.environ.get('ROUTER_PROFILE_REGISTRY',
+                          os.path.join(REPO, 'registry.json'))
+
+
+def _registry_profile_map(path: Any=None) -> dict:
+    """{project_id: profile_id} from the router registry's projects table.
+
+    This is the SAME declaration the resolve path consumes (router_spawn.py
+    reads `<project>.profile` from the identical table), so the attribution
+    stamped at import time can never drift from the profile a resolve uses.
+    Read-only, fail-open: an unreadable registry contributes an empty map and
+    the import proceeds exactly as before (no profile = honest NULL).
+    """
+    path = path or _profile_registry_path()
+    try:
+        tables = (json.load(open(path, encoding='utf-8'))
+                  or {}).get('tables') or {}
+    except (OSError, ValueError):
+        return {}
+    out = {}
+    for p in tables.get('projects') or []:
+        pid, prof = p.get('id'), p.get('profile')
+        if isinstance(pid, str) and pid.strip() \
+                and isinstance(prof, str) and prof.strip():
+            out[pid] = prof.strip()
+    return out
+
+
+def _session_profiles(db_path: str) -> dict:
+    """{session_identity: profile_id} for sessions the coding-hermes SPAWNED.
+
+    The scheduler's ticks table records the hermes gateway session key its
+    spawn created (`ticks.session_id`), and the hermes gateway records that
+    same identity AS `sessions.session_key` (row 1: join on the key). The
+    gateway's own usage table keys by `sessions.id` (a UUID), so the store's
+    `session_id` for those rows is the UUID — the gateway bridge (row 2)
+    maps `sessions.id -> session_key -> profile` so historical rows attribute
+    too. The tick's project + the registry's project->profile declaration
+    name the lane the session was spawned to serve — the declared profile
+    the averages must be keyed by (TR-115: the classifier's complexity_sig
+    never matches a profile id). Both lookups read-only and fail-open: any
+    unreadable/corrupt DB is one stderr line and an empty map — the import
+    must never block on attribution.
+    """
+    sched = os.path.expanduser(_sched_db_path())
+    if not os.path.exists(sched):
+        return {}
+    try:
+        sched_db = sqlite3.connect(f'file:{sched}?mode=ro', uri=True,
+                                   timeout=5.0)
+    except sqlite3.Error as exc:
+        print(f'profile attribution: scheduler DB unreadable: {exc}',
+              file=sys.stderr)
+        return {}
+    by_session = {}
+    try:
+        try:
+            rows = sched_db.execute(
+                'SELECT session_id, project_name FROM ticks'
+                ' WHERE session_id IS NOT NULL AND session_id != ""'
+                ' ORDER BY spawned_at').fetchall()
+        except sqlite3.Error as exc:
+            print(f'profile attribution: ticks unreadable: {exc}',
+                  file=sys.stderr)
+            return []
+        registry = _registry_profile_map()
+        if not registry:
+            print('profile attribution: no registry projects/profile map — '
+                  'sessions stay unattributed', file=sys.stderr)
+        for key, project in rows:
+            # ORDER BY spawned_at: the LAST tick for a session wins — a
+            # spawn's session belongs to the tick driving it now.
+            if isinstance(key, bytes):
+                key = key.decode('utf-8', errors='replace')
+            prof = registry.get(project) if isinstance(project, str) else None
+            if key and prof:
+                by_session[str(key)] = prof
+        # The UUID bridge: the gateway usage table keys by sessions.id, so
+        # the store's hermes rows carry the UUID — attribute through
+        # sessions.session_key. Attached read-only; a missing hermes DB
+        # (tests of the scheduler side only) simply skips this bridge.
+        try:
+            hermes = sqlite3.connect(f'file:{os.path.expanduser(db_path)}?mode=ro',
+                                     uri=True, timeout=5.0)
+            try:
+                for uid, key in hermes.execute(
+                        'SELECT id, session_key FROM sessions'
+                        ' WHERE session_key IS NOT NULL'):
+                    prof = by_session.get(str(key))
+                    if prof:
+                        by_session[str(uid)] = prof
+            finally:
+                hermes.close()
+        except sqlite3.Error:
+            pass
+    except Exception as exc:  # noqa: BLE001 — fail-open, attribution is optional
+        print(f'profile attribution failed (sessions stay unattributed): '
+              f'{type(exc).__name__}: {exc}', file=sys.stderr)
+        return {}
+    finally:
+        try:
+            sched_db.close()
+        except sqlite3.Error:
+            pass
+    return by_session
+
+
+def backfill_hermes_profiles(store_path: Any=None, db_path:
+                             str='~/.hermes/state.db') -> dict:
+    """Stamp the declared profile onto EXISTING hermes rows (TR-115 retry).
+
+    The hourly import appends only NEW rows, so a profile-keyed averages
+    rebuild would starve on the historical store without this pass. Identity
+    is (source_system, session_id, model) — the store's own key. Rows touched:
+
+    * profile_id empty AND no complexity_sig AND no required_categories:
+      stamp the declared profile (pure attribution).
+    * profile_id == an UNDECLARED inference default ('P0_FORE', the proxy's
+      ROUTER_INFER_PROFILE fallback) with no complexity_sig signiture: the
+      tick's DECLARED project profile is authoritative and CORRECTS the
+      fallback. Measured 2026-10-22: 1357 of the 2842 attributable
+      P0_FORE-stamped rows actually served P8_SYNC/P9_REVIEW/P3_DOCS/
+      P2_AGENTIC lanes — the fallback default had miscategorized them.
+    * a row carrying a complexity_sig or required_categories is NEVER
+      rewritten: a classifier band is evidence, the profile stamp is only
+      attribution.
+
+    Attribution source matches import_hermes(): the scheduler ticks +
+    registry declaration ONLY (see _session_profiles). sessions.profile_name
+    is deliberately NOT a source — it is the HERMES config profile.
+
+    Streaming rewrite (tmp+rename, backup, mtime-guard — the
+    plan_effective_backfill pattern): the live proxy may append mid-pass, so
+    the store's mtime is checked before and after and a changed mtime aborts
+    without touching anything. Returns a summary dict, never raises.
+    """
+    store = store_path or outcomes_path()
+    # TR-115: the sole attribution source is the scheduler ticks + registry
+    # declaration (the same precedence a resolve uses). sessions.profile_name
+    # is deliberately NOT a source: it is the HERMES config profile
+    # ('default' on every spawn), not the router capability profile — mapping
+    # it would stamp P3_DOCS/P8_SYNC traffic as P0_FORE.
+    try:
+        mapping = _session_profiles(db_path)
+    except Exception as exc:  # noqa: BLE001 — fail-open
+        mapping = {}
+    if not os.path.exists(store):
+        return {'changed': 0, 'reason': 'store missing'}
+    try:
+        m0 = os.path.getmtime(store)
+    except OSError as exc:
+        return {'changed': 0, 'error': str(exc)}
+    changed = corrected = unattributed = 0
+    tmp = store + '.profile-backfill.tmp'
+    backup = f'{store}.bak-profile-{datetime.datetime.now():%Y%m%d-%H%M%S}'
+    #: the INFERENCE default the proxy stamps when nothing declared
+    #: (router_server _inferred_profile). It is a fallback, not a declaration:
+    #: a row carrying it with no classifier signature is CORRECTED to the
+    #: tick's declared profile where one exists.
+    _INFER_DEFAULTS = {'P0_FORE'}
+    try:
+        with open(store, encoding='utf-8', errors='replace') as fin, \
+                open(tmp, 'w', encoding='utf-8') as fout:
+            for line in fin:
+                if not line.strip():
+                    fout.write(line)
+                    continue
+                try:
+                    row = json.loads(line)
+                except ValueError:
+                    fout.write(line)     # torn line: preserve verbatim
+                    continue
+                if isinstance(row, dict):
+                    if (row.get('source_system') == 'hermes'
+                            and not row.get('complexity_sig')
+                            and not row.get('required_categories')):
+                        declared = mapping.get(str(row.get('session_id')))
+                        current = row.get('profile_id')
+                        if declared and (
+                                current is None
+                                or current == ''
+                                or current in _INFER_DEFAULTS):
+                            row['profile_id'] = declared
+                            if current:
+                                corrected += 1
+                            else:
+                                changed += 1
+                        elif not declared and not current:
+                            unattributed += 1
+                    fout.write(json.dumps(row, ensure_ascii=False) + '\n')
+                else:
+                    fout.write(line)     # non-object row: preserve verbatim
+        if os.path.getmtime(store) != m0:
+            os.remove(tmp)
+            return {'changed': 0,
+                    'aborted': 'store changed under the backfill (live '
+                               'append) — re-run when the store is quiet'}
+        os.replace(store, backup)
+        os.replace(tmp, store)
+        return {'changed': changed, 'corrected': corrected,
+                'unattributed': unattributed, 'backup': backup}
+    except OSError as exc:
+        try:
+            os.remove(tmp)
+        except OSError:
+            pass
+        return {'changed': 0, 'error': str(exc)}
+
+
 def import_hermes(db_path: str='~/.hermes/state.db'):
     """Hermes driver: session_model_usage -> outcome rows.
     complexity stays NULL (no declared profile at the gateway yet — TR-050's
     classifier will supply it later; DATA > CODE, missing = NULL).
     success: NULL (the gateway does not report completion; do not infer)."""
     db = sqlite3.connect(os.path.expanduser(db_path))
+    # TR-115: the declared profile joins in from the scheduler ticks via
+    # _session_profiles() (HERMES_SCHEDULER_DB + registry, env-overridable,
+    # fail-open). No columns are pulled from the hermes DB's own sessions
+    # table: sessions.profile_name is the HERMES config profile ('default'
+    # on every fleet spawn), not the router capability profile.
+    try:
+        profile_by_session = _session_profiles(db_path)
+    except Exception as exc:  # noqa: BLE001 — fail-open, attribution is optional
+        print(f'profile attribution unavailable: '
+              f'{type(exc).__name__}: {exc}', file=sys.stderr)
+        profile_by_session = {}
     rows = db.execute("""
         SELECT session_id, model, billing_provider, billing_base_url, task,
                api_call_count, COALESCE(input_tokens,0), COALESCE(output_tokens,0),
@@ -1145,9 +1382,16 @@ def import_hermes(db_path: str='~/.hermes/state.db'):
                 return name
         return stamped or 'unknown'
 
+    # TR-115: NO sessions.profile_name mapping. profile_name is the HERMES
+    # config profile ('default' on every fleet spawn), not the router
+    # capability profile — mapping 'default'->P0_FORE would stamp
+    # P3_DOCS/P8_SYNC/P9_REVIEW lane traffic as P0_FORE. The declared
+    # profile comes from _session_profiles() alone (ticks -> registry).
     out = []
-    for (sid, model, prov, base, task, calls, tin, tout, treason, cost, t0, t1) in rows:
+    for (sid, model, prov, base, task, calls, tin, tout, treason, cost, t0,
+         t1) in rows:
         sid, model, prov, base, task = map(_txt, (sid, model, prov, base, task))
+        declared = profile_by_session.get(str(sid) if sid is not None else None)
         # column-drift era rows (provider/model hold numerics/epoch floats/
         # hex ints) are not lanes — a provider or model must not be purely
         # numeric in any base
@@ -1184,7 +1428,7 @@ def import_hermes(db_path: str='~/.hermes/state.db'):
                                               tin or 0, tout or 0)
             cost = _est
         out.append({'source_system': 'hermes', 'session_id': sid, 'task_label': task,
-                    'complexity': None, 'profile_id': None,
+                    'complexity': None, 'profile_id': declared,
                     'required_categories': None,
                     'provider': provider_of(base, prov), 'model': model,
                     'turns': calls, 'tokens_in': tin, 'tokens_out': tout,
@@ -1605,7 +1849,13 @@ def _iso_to_epoch(v: Any):
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.split('\n')[1])
     sub = ap.add_subparsers(dest='cmd', required=True)
-    sub.add_parser('import-hermes')
+    p_hermes = sub.add_parser('import-hermes')
+    p_hermes.add_argument('--backfill-profiles', action='store_true',
+                          help='after the append, stamp the declared '
+                               'lane profile onto EXISTING hermes rows '
+                               'whose session the scheduler '
+                               'attributed to a project (one-off; '
+                               'idempotent, mtime-guarded)')
     sub.add_parser('import-pi')
     sub.add_parser('import-opencode')
     sub.add_parser('import-openclaw')
@@ -1619,6 +1869,13 @@ def main() -> int:
     if args.cmd == 'import-hermes':
         n = append_rows(OUTCOMES, import_hermes())
         print(f'outcomes: +{n} new rows (idempotent)')
+        if getattr(args, 'backfill_profiles', False):
+            # TR-115 retry: the historical store predates profile
+            # attribution; this one-off pass makes the AVERAGES (rebuilt
+            # from the whole store) profile-keyed, not just new rows.
+            summary = backfill_hermes_profiles()
+            print('profile backfill: '
+                  + json.dumps(summary, ensure_ascii=False))
     elif args.cmd == 'import-pi':
         n = append_rows(OUTCOMES, import_pi())
         print(f'outcomes: +{n} new rows (idempotent)')
