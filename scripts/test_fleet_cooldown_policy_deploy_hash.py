@@ -23,10 +23,22 @@ import unittest
 
 
 SCRIPT = os.path.expanduser('~/.hermes/scripts/fleet-cooldown-policy.py')
+SCRIPT_EXISTS = os.path.isfile(SCRIPT)
 
 
 def _run(argv, env_extra=None, cwd=None) -> tuple:
-    """Invoke the deployed script with the given argv; return (rc, stdout, stderr)."""
+    """Invoke the deployed script with the given argv; return (rc, stdout, stderr).
+
+    Raises RuntimeError if SCRIPT is missing (clean-machine portability
+    guard: the class-level skipIf should catch this before _run is ever
+    called, but the assertion is a safety net).
+    """
+    if not SCRIPT_EXISTS:
+        raise RuntimeError(
+            f"Script not found at {SCRIPT}; this test requires "
+            "~/.hermes/scripts/fleet-cooldown-policy.py to be present "
+            "(normally installed by the operator deployment)."
+        )
     env = os.environ.copy()
     if env_extra:
         env.update(env_extra)
@@ -57,6 +69,7 @@ def _isolated_guard() -> tuple:
 class BootstrapPathTest(unittest.TestCase):
     """First run with no sidecar — golden-record bootstrap, returns OK."""
 
+    @unittest.skipUnless(SCRIPT_EXISTS, "fleet-cooldown-policy.py not installed")
     def test_bootstrap_writes_sidecar_and_returns_ok(self) -> None:
         mod, tmp = _isolated_guard()
         try:
@@ -73,6 +86,7 @@ class BootstrapPathTest(unittest.TestCase):
             import shutil
             shutil.rmtree(tmp, ignore_errors=True)
 
+    @unittest.skipUnless(SCRIPT_EXISTS, "fleet-cooldown-policy.py not installed")
     def test_bootstrap_is_idempotent(self) -> None:
         mod, tmp = _isolated_guard()
         try:
@@ -93,6 +107,7 @@ class BootstrapPathTest(unittest.TestCase):
 class MismatchPathTest(unittest.TestCase):
     """Deployed != sidecar — fail loud, do NOT auto-bump."""
 
+    @unittest.skipUnless(SCRIPT_EXISTS, "fleet-cooldown-policy.py not installed")
     def test_mismatch_returns_false_and_preserves_sidecar(self) -> None:
         mod, tmp = _isolated_guard()
         try:
@@ -124,6 +139,7 @@ class MismatchPathTest(unittest.TestCase):
 class UpdateCanonicalTest(unittest.TestCase):
     """--update-canonical bumps the sidecar to the deployed hash."""
 
+    @unittest.skipUnless(SCRIPT_EXISTS, "fleet-cooldown-policy.py not installed")
     def test_update_canonical_writes_deployed_hash(self) -> None:
         mod, tmp = _isolated_guard()
         try:
@@ -156,6 +172,7 @@ class EndToEndTest(unittest.TestCase):
     deployed script (the test battery is itself the contract).
     """
 
+    @unittest.skipUnless(SCRIPT_EXISTS, "fleet-cooldown-policy.py not installed")
     def test_verify_happy_path(self) -> None:
         # Use a temp HOME so the sidecar lives in our test sandbox. This
         # needs the deployed script to honor a HOME override, which it
@@ -190,6 +207,7 @@ class EndToEndTest(unittest.TestCase):
             self.assertNotIn('DEPLOY HASH MISMATCH', out,
                              msg=f'stdout: {out}\nstderr: {err}')
 
+    @unittest.skipUnless(SCRIPT_EXISTS, "fleet-cooldown-policy.py not installed")
     def test_dry_run_tolerates_hash_mismatch(self) -> None:
         """--dry-run is intentionally read-only; refusing it on hash
         mismatch would be noise. Verify it still proceeds."""
