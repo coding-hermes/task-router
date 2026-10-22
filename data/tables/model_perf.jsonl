@@ -3236,6 +3236,8 @@
 {"model": "qwen3.8-omni-flash", "category": "spec_docs", "perf": 1.0, "source": "family", "source_ref": "alias:qwen/qwen3.8-omni-flash"}
 {"model": "qwen3.8-omni-flash", "category": "test", "perf": 1.0, "source": "family", "source_ref": "alias:qwen/qwen3.8-omni-flash"}
 {"model": "qwen3.8-omni-flash", "category": "tool_use", "perf": 1.0, "source": "family", "source_ref": "alias:qwen/qwen3.8-omni-flash"}
+{"model": "qwen3.8-wide", "category": "reasoning", "perf": 0.86, "source": "bench", "source_ref": "bench:GPQA"}
+{"model": "qwen3.8-wide", "category": "terminal", "perf": 0.866, "source": "bench", "source_ref": "bench:Terminal-Bench"}
 {"model": "sakana/fugu-ultra", "category": "test", "perf": 0.72, "source": "estimate", "source_ref": "CATEGORY_ESTIMATES"}
 {"model": "sensenova/sensenova-6.8-flash-lite", "category": "agent_tick", "perf": 0.75, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/AGENT-TICK"}
 {"model": "sensenova/sensenova-6.8-flash-lite", "category": "code_gen", "perf": 0.667, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/T2-CODE"}

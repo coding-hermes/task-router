@@ -1,0 +1,12 @@
+{
+  "authored_at": "2026-10-22T11:37:10Z",
+  "authored_by": "model-router-refresh-cron",
+  "probes": [
+    {
+      "id": "coding-hermes-scheduler-docs-P1",
+      "kind": "outcome",
+      "statement": "TODO(author): state the outcome this project's next dispatch must show"
+    }
+  ],
+  "project": "coding-hermes-scheduler-docs"
+}

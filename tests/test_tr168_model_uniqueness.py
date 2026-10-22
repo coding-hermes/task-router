@@ -211,6 +211,13 @@ POST_DEDUPE_ADDITIONS = {
     # forms; plan sweep disabled it (not in included_models, no discount).
     # Evidence: probe_fixes clinepass/muse-wonder row 2026-10-13.
     ("clinepass", "muse-wonder"): "clinepass sync 2026-10-13 (sweep-disabled)",
+    # sync arrivals 2026-10-22 (model-registry-data-quality cron pre-run):
+    # clinepass API sync +1 (flint-v1.0:free — :free discount row + F3
+    # window-cost-pending story) and models.dev sync +1 (openrouter
+    # recursive/flint-v1.0:free — 0/0 sticker on the :free variant, paid SKU
+    # unlisted -> same TR-070 pending tag).
+    ("clinepass", "flint-v1.0:free"): "clinepass API sync 2026-10-22 (carrier arrival; :free + TR-070 window-cost-pending)",
+    ("openrouter", "recursive/flint-v1.0:free"): "models.dev sync 2026-10-22 (carrier arrival; :free sticker 0/0 + TR-070 window-cost-pending)",
     # TR-217 weekly MODEL lane 2026-09-29: router_modelsdev.py sync imports.
     # sonnet-5.5 live-verified (chat 200); the two daybreak ids are catalog
     # rows for the documented-gap model_notes (absent from the live listing).
