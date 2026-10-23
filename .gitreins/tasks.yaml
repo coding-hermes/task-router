@@ -1132,4 +1132,25 @@ tasks:
     retention: max 3 per source file'
   status: complete
   created_at: '2026-10-22T09:30:59.680197+00:00'
-  completed_at: '2026-10-22T09:58:11.392915+00:00'
+  completed_at: '2026-10-22T10:27:08.259418+00:00'
+- id: QA-TASKROUTER-1
+  title: Fix pytest -x suite failure on machines without ~/.hermes
+  criteria:
+  - Either vendor the script-under-test into the repo or guard the module with skipUnless(os.path.exists(SCRIPT),
+    reason=...) so a machine without the deployed helper grades SKIP not FAIL; after
+    either fix, pytest -x -q at repo root must exit 0 on a checkout with no ~/.hermes;
+    the full tests/ suite must stay green.
+  status: complete
+  created_at: '2026-10-22T11:57:11.872148+00:00'
+  completed_at: '2026-10-22T12:00:59.548570+00:00'
+- id: TR-341
+  title: "openai-codex credits exhausted \u2014 retire lanes per row AC option (b)"
+  criteria:
+  - All 5 live openai-codex model rows (gpt-5.6-terra, gpt-6-astra, gpt-6-luna, gpt-6-sol,
+    gpt-6.1-sol) are disabled in data/tables/models.jsonl with a dated reason citing
+    the live 429 no-credits probe, seed re-run, P3_DOCS resolve carries NO openai-codex
+    hops, 9router + coding-hermes-scheduler heads unchanged (lane was tail-only),
+    tests+guard green
+  status: complete
+  created_at: '2026-10-22T23:34:28.763329+00:00'
+  completed_at: '2026-10-23T00:56:13.192930+00:00'
