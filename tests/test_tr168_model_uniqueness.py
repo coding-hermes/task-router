@@ -402,6 +402,19 @@ POST_DEDUPE_ADDITIONS = {
     ("xkiro-2", "minimax/minimax-m3.1-flash"): "xkiro-2 carrier refresh 2026-10-20 (seat mirror, internal /30)",
     ("ollama-cloud", "beam"): "models.dev sync 2026-10-21 (catalog addition, bucket-plan unpriced + stamped)",
     ("synthetic", "hf:deepseek-ai/DeepSeek-V4.1-Flash-1017"): "models.dev sync 2026-10-21 (catalog addition, payg-sticker priced)",
+    ("clinepass", "cline-new27-20261022-gpt61sol-azure-r1"): "clinepass API sync 2026-10-23 (carrier arrivals, PAYG-outside-plan disabled)",
+    ("clinepass", "cline-new27-20261022-nemotron35vl-coreweave-r1"): "clinepass API sync 2026-10-23 (carrier arrivals, PAYG-outside-plan disabled)",
+    ("clinepass", "cline-new27-20261022-opus55-vertex-global-r1"): "clinepass API sync 2026-10-23 (carrier arrivals, PAYG-outside-plan disabled)",
+    ("clinepass", "cline-new27-20261022-sonnet55-vertex-global-r1"): "clinepass API sync 2026-10-23 (carrier arrivals, PAYG-outside-plan disabled)",
+    ("clinepass", "minimax-m3.1-flash"): "clinepass API sync 2026-10-23 (carrier arrivals, PAYG-outside-plan disabled)",
+    ("fireworks-ai", "accounts/fireworks/models/minimax-m3p1-flash"): "models.dev sync 2026-10-23 (catalog arrivals, engine-priced)",
+    ("fireworks-ai", "accounts/fireworks/routers/deepseek-v4p1-flash-1017-spot"): "models.dev sync 2026-10-23 (catalog arrivals, engine-priced)",
+    ("fireworks-ai", "accounts/fireworks/routers/deepseek-v4p1-flash-spot"): "models.dev sync 2026-10-23 (catalog arrivals, engine-priced)",
+    ("fireworks-ai", "accounts/fireworks/routers/glm-5p3-spot"): "models.dev sync 2026-10-23 (catalog arrivals, engine-priced)",
+    ("fireworks-ai", "accounts/fireworks/routers/kimi-k3-spot"): "models.dev sync 2026-10-23 (catalog arrivals, engine-priced)",
+    ("opencode-go", "minimax-m3.1-flash"): "models.dev sync 2026-10-23 (catalog arrivals, engine-priced)",
+    ("openrouter", "minimax/minimax-m3.1-flash"): "models.dev sync 2026-10-23 (catalog arrivals, engine-priced)",
+
 }
 
 

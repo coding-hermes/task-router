@@ -33,7 +33,8 @@
   "data_class": "zdr",
   "notes": [
     "onboarded live 2026-09-16 (115 lanes, 42 free-allowance)",
-    "battery evidence lives in benchmarks.jsonl only - never perf_* (TR-054 percentile-corruption incident)"
+    "battery evidence lives in benchmarks.jsonl only - never perf_* (TR-054 percentile-corruption incident)",
+    "2026-10-23: 12 cohere/* + mistralai/devstral-medium + sensenova-6.8-flash-lite lanes remain unpriced (bucket plan, no included list, per-model rate unpublished; carrier catalog reports no price) — per the stale-flat law these are NOT re-tagged; they stay documented gaps with model_notes/provider-side reasons. Nothing new discovered this run."
   ],
   "usage_multiplier": 30,
   "sticker_prices": {
@@ -110,5 +111,5 @@
       "out": 0.0
     }
   },
-  "sticker_prices_note": "Carrier catalog prices these SKUs at $0 (plan-included, no per-token price). The vendor LIST sticker is declared here as DATA so the plan-effective price (blend / usage_multiplier) can be computed; models.dev-catalog, read 2026-09-26. SKUs with no knowable sticker stay unpriced \u2014 never a guess, never 0.0."
+  "sticker_prices_note": "Carrier catalog prices these SKUs at $0 (plan-included, no per-token price). The vendor LIST sticker is declared here as DATA so the plan-effective price (blend / usage_multiplier) can be computed; models.dev-catalog, read 2026-09-26. SKUs with no knowable sticker stay unpriced — never a guess, never 0.0."
 }

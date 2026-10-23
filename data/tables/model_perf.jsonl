@@ -366,6 +366,11 @@
 {"model": "accounts/fireworks/models/minimax-m3", "category": "tool_use", "perf": 0.742, "source": "family", "source_ref": "alias:minimax-m3"}
 {"model": "accounts/fireworks/models/minimax-m3", "category": "ui_frontend", "perf": 0.45, "source": "family", "source_ref": "alias:minimax-m3"}
 {"model": "accounts/fireworks/models/minimax-m3", "category": "vision", "perf": 0.72, "source": "family", "source_ref": "alias:minimax-m3"}
+{"model": "accounts/fireworks/models/minimax-m3p1-flash", "category": "agent_tick", "perf": 0.622, "source": "family", "source_ref": "alias:minimax-m3.1-flash"}
+{"model": "accounts/fireworks/models/minimax-m3p1-flash", "category": "code_gen", "perf": 0.23, "source": "family", "source_ref": "alias:minimax-m3.1-flash"}
+{"model": "accounts/fireworks/models/minimax-m3p1-flash", "category": "long_horizon", "perf": 0.737, "source": "family", "source_ref": "alias:minimax-m3.1-flash"}
+{"model": "accounts/fireworks/models/minimax-m3p1-flash", "category": "reasoning", "perf": 0.434, "source": "family", "source_ref": "alias:minimax-m3.1-flash"}
+{"model": "accounts/fireworks/models/minimax-m3p1-flash", "category": "terminal", "perf": 0.381, "source": "family", "source_ref": "alias:minimax-m3.1-flash"}
 {"model": "accounts/fireworks/models/mistral-large-3-fp8", "category": "agent_tick", "perf": 0.75, "source": "family", "source_ref": "alias:mistral-large-3:675b"}
 {"model": "accounts/fireworks/models/mistral-large-3-fp8", "category": "code_gen", "perf": 0.5, "source": "family", "source_ref": "alias:mistral-large-3:675b"}
 {"model": "accounts/fireworks/models/mistral-large-3-fp8", "category": "debug", "perf": 0.5, "source": "family", "source_ref": "alias:mistral-large-3:675b"}
@@ -2413,12 +2418,14 @@
 {"model": "minimax-m3", "category": "ui_frontend", "perf": 0.45, "source": "estimate", "source_ref": "PROFILE_TAGS:minimax m3"}
 {"model": "minimax-m3", "category": "vision", "perf": 0.72, "source": "estimate", "source_ref": "PROFILE_TAGS:minimax m3"}
 {"model": "minimax-m3.1-flash", "category": "agent_tick", "perf": 0.622, "source": "bench", "source_ref": "bench:research-bench-2026-10-20: Automation-Bench v1.0.6 62.2 (MiniMax launch table, VENDOR-REPORTED) vs deepseek-v4.1-flash:1017 60.5"}
+{"model": "minimax-m3.1-flash", "category": "code_gen", "perf": 0.23, "source": "bench", "source_ref": "bench:research-bench-2026-10-23: SWE Refactor Bench 23.0 (VENDOR-REPORTED launch table; Opus 5 31.0 same table — weak-signal axis, kept at its true scale)"}
 {"model": "minimax-m3.1-flash", "category": "long_horizon", "perf": 0.737, "source": "bench", "source_ref": "bench:research-bench-2026-10-20: DeepSWE v1.1 73.7 (MiniMax launch table, VENDOR-REPORTED) vs deepseek-v4.1-flash:1017 77.0"}
-{"model": "minimax-m3.1-flash", "category": "reasoning", "perf": 0.42, "source": "bench", "source_ref": "bench:research-bench-2026-10-20: Artificial Analysis Intelligence Index 42 (agentic-reasoning composite, AA scale 0-100)"}
+{"model": "minimax-m3.1-flash", "category": "reasoning", "perf": 0.434, "source": "bench", "source_ref": "bench:research-bench-2026-10-23: Humanity's Last Exam without tools 43.4 (VENDOR-REPORTED launch table)"}
 {"model": "minimax-m3.1-flash", "category": "terminal", "perf": 0.381, "source": "bench", "source_ref": "bench:research-bench-2026-10-20: Terminal Bench 4.0 38.1 (MiniMax launch table, VENDOR-REPORTED) vs deepseek-v4.1-flash:1017 42.3"}
 {"model": "minimax/minimax-m3.1-flash", "category": "agent_tick", "perf": 0.622, "source": "family", "source_ref": "alias:minimax-m3.1-flash"}
+{"model": "minimax/minimax-m3.1-flash", "category": "code_gen", "perf": 0.23, "source": "family", "source_ref": "alias:minimax-m3.1-flash"}
 {"model": "minimax/minimax-m3.1-flash", "category": "long_horizon", "perf": 0.737, "source": "family", "source_ref": "alias:minimax-m3.1-flash"}
-{"model": "minimax/minimax-m3.1-flash", "category": "reasoning", "perf": 0.42, "source": "family", "source_ref": "alias:minimax-m3.1-flash"}
+{"model": "minimax/minimax-m3.1-flash", "category": "reasoning", "perf": 0.434, "source": "family", "source_ref": "alias:minimax-m3.1-flash"}
 {"model": "minimax/minimax-m3.1-flash", "category": "terminal", "perf": 0.381, "source": "family", "source_ref": "alias:minimax-m3.1-flash"}
 {"model": "mistral-large-2512", "category": "agent_tick", "perf": 1.0, "source": "family", "source_ref": "alias:mistralai/mistral-large-2512"}
 {"model": "mistral-large-2512", "category": "code_gen", "perf": 1.0, "source": "family", "source_ref": "alias:mistralai/mistral-large-2512"}
@@ -3325,7 +3332,7 @@
 {"model": "step-3.7-flash", "category": "tool_use", "perf": 0.25, "source": "bench", "source_ref": "bench:battery-T1-TOOL"}
 {"model": "step-3.7-flash", "category": "vision", "perf": 0.972051282051282, "source": "bench", "source_ref": "bench:BrowseComp multimodal"}
 {"model": "step-5-preview", "category": "agent_tick", "perf": 0.75, "source": "family", "source_ref": "alias:stepfun/step-5-preview"}
-{"model": "step-5-preview", "category": "code_gen", "perf": 0.667, "source": "family", "source_ref": "alias:stepfun/step-5-preview"}
+{"model": "step-5-preview", "category": "code_gen", "perf": 0.8375, "source": "bench", "source_ref": "bench:research-bench-2026-10-23: MindStudio Kingbench 8-task coding eval 83.75% (n=8 community tasks: archery game .. local Gemma fine-tune; small-n, treated as a directional tier signal only)"}
 {"model": "step-5-preview", "category": "debug", "perf": 0.667, "source": "family", "source_ref": "alias:stepfun/step-5-preview"}
 {"model": "step-5-preview", "category": "delegation", "perf": 0.25, "source": "family", "source_ref": "alias:stepfun/step-5-preview"}
 {"model": "step-5-preview", "category": "guard", "perf": 1.0, "source": "family", "source_ref": "alias:stepfun/step-5-preview"}

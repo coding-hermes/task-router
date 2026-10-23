@@ -9,14 +9,14 @@
 {"category": "agent_tick", "level": 3, "label": "+++", "min_perf": 1.0}
 {"category": "agent_tick", "level": 4, "label": "++++", "min_perf": 1.0}
 {"category": "agent_tick", "level": 5, "label": "+++++", "min_perf": 1.0}
-{"category": "code_gen", "level": -5, "label": "-----", "min_perf": 0.1275}
+{"category": "code_gen", "level": -5, "label": "-----", "min_perf": 0.11960000000000001}
 {"category": "code_gen", "level": -4, "label": "----", "min_perf": 0.333}
 {"category": "code_gen", "level": -3, "label": "---", "min_perf": 0.5}
 {"category": "code_gen", "level": -2, "label": "--", "min_perf": 0.5}
 {"category": "code_gen", "level": -1, "label": "-", "min_perf": 0.667}
 {"category": "code_gen", "level": 0, "label": "0", "min_perf": 0.667}
 {"category": "code_gen", "level": 1, "label": "+", "min_perf": 0.75}
-{"category": "code_gen", "level": 2, "label": "++", "min_perf": 0.8499999999999999}
+{"category": "code_gen", "level": 2, "label": "++", "min_perf": 0.85}
 {"category": "code_gen", "level": 3, "label": "+++", "min_perf": 1.0}
 {"category": "code_gen", "level": 4, "label": "++++", "min_perf": 1.0}
 {"category": "code_gen", "level": 5, "label": "+++++", "min_perf": 1.0}
