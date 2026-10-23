@@ -58,12 +58,12 @@
 {"category": "e2e_vision", "level": -3, "label": "---", "min_perf": 0.0}
 {"category": "e2e_vision", "level": -2, "label": "--", "min_perf": 0.25}
 {"category": "e2e_vision", "level": -1, "label": "-", "min_perf": 0.35}
-{"category": "e2e_vision", "level": 0, "label": "0", "min_perf": 0.4}
+{"category": "e2e_vision", "level": 0, "label": "0", "min_perf": 0.42500000000000004}
 {"category": "e2e_vision", "level": 1, "label": "+", "min_perf": 0.55}
-{"category": "e2e_vision", "level": 2, "label": "++", "min_perf": 0.6700000000000003}
+{"category": "e2e_vision", "level": 2, "label": "++", "min_perf": 0.7100000000000002}
 {"category": "e2e_vision", "level": 3, "label": "+++", "min_perf": 0.75}
-{"category": "e2e_vision", "level": 4, "label": "++++", "min_perf": 0.8958399999999999}
-{"category": "e2e_vision", "level": 5, "label": "+++++", "min_perf": 0.991072}
+{"category": "e2e_vision", "level": 4, "label": "++++", "min_perf": 0.9021949999999999}
+{"category": "e2e_vision", "level": 5, "label": "+++++", "min_perf": 0.9913510000000001}
 {"category": "guard", "level": -5, "label": "-----", "min_perf": 0.0}
 {"category": "guard", "level": -4, "label": "----", "min_perf": 0.0}
 {"category": "guard", "level": -3, "label": "---", "min_perf": 0.6560000000000001}
@@ -164,8 +164,8 @@
 {"category": "refactor", "level": 4, "label": "++++", "min_perf": 0.75}
 {"category": "refactor", "level": 5, "label": "+++++", "min_perf": 0.85}
 {"category": "review", "level": -5, "label": "-----", "min_perf": 0.0}
-{"category": "review", "level": -4, "label": "----", "min_perf": 0.536}
-{"category": "review", "level": -3, "label": "---", "min_perf": 0.668}
+{"category": "review", "level": -4, "label": "----", "min_perf": 0.62}
+{"category": "review", "level": -3, "label": "---", "min_perf": 0.71}
 {"category": "review", "level": -2, "label": "--", "min_perf": 0.75}
 {"category": "review", "level": -1, "label": "-", "min_perf": 1.0}
 {"category": "review", "level": 0, "label": "0", "min_perf": 1.0}

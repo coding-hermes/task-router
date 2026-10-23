@@ -576,7 +576,10 @@ def test_registry_integrity():
                 # reasons for tier/pricing NULLs on live lanes (field-keyed,
                 # e.g. field: model_tier, reason: no-sample-yet) — the
                 # "a NULL must carry a reason" contract as data
-                "null_reasons"}
+                "null_reasons",
+                # TR-341 lane lifecycle records (2026-10-22): per-lane
+                # disable/retire provenance rows — data sidecar
+                "lifecycle"}
     assert core <= set(tables), f"missing core tables: {core - set(tables)}"
     assert set(tables) - core <= sidecars, f"unexpected tables: {set(tables) - core - sidecars}"
     models = tables["models"]
