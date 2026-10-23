@@ -95,7 +95,23 @@ def discover_presets(catalogs_dir: Any=None) -> list[Any]:
             if n.endswith('.json')]
 
 
-def refresh_preset(preset: Any, existing: Any, *, apply: bool=False, fetch: Any=None):
+def _catalog_lists(catalog: Any) -> bool:
+    """True when the fetched payload carries actual model-list content.
+
+    openai_models_list (the only committed format today, 2026-10-23): 1+
+    entries under 'data'. Generic (list format): the payload is the list.
+    Distinct from "is a dict" — data:[] is ambiguity, not content. If a
+    future catalog_format joins, extend this (and normalize) together.
+    """
+    if isinstance(catalog, dict):
+        return bool(catalog.get('data'))
+    if isinstance(catalog, list):
+        return bool(catalog)
+    return False
+
+
+def refresh_preset(preset: Any, existing: Any, *, apply: bool=False, fetch: Any=None,
+                   archive_vanished: bool=False):
     """One preset end-to-end against the registry rows of ITS provider only.
 
     existing: {(provider, model): row} — the caller filters to preset['id'].
@@ -119,7 +135,8 @@ def refresh_preset(preset: Any, existing: Any, *, apply: bool=False, fetch: Any=
     base = {'preset': name, 'status': 'ok', 'models': 0, 'added': [],
             'changed': 0, 'unchanged': 0, 'removed': [],
             'changed_preview': [], 'unpriced_new': [], 'applied': None,
-            'probe_row': None, 'error': None}
+            'probe_row': None, 'error': None,
+            'vanished': [], 'vanished_skipped': [], 'vanished_archived': []}
     fetch = fetch or _fetch
     catalog = fetch(preset)
     new_lanes = rpi.normalize(catalog, preset)
@@ -127,6 +144,26 @@ def refresh_preset(preset: Any, existing: Any, *, apply: bool=False, fetch: Any=
     # The diff is THIS preset vs THIS provider's rows only — rows belonging to
     # other providers must never appear as "removed from catalog".
     existing = {k: v for k, v in existing.items() if k[0] == name}
+
+    # XK-404-001-R2: a "removed" diff entry is a REGISTRY convention ("this
+    # id is not in the catalog payload"), but deciding a LANE is gone is a
+    # CATALOG-shape decision: a carrier (openai_models_list) can return
+    # data:[] — ambiguous between "wiped everything" and "paginated/failed
+    # handler" — and archiving every preset row off card-dealers' roulette
+    # would be exactly the XK-404-001 failure with the polarity flipped. So
+    # vanished lanes are computed ONLY when the payload carries at least one
+    # model list; a list-less/empty-model payload reports 'vanished: skipped'
+    # with the reason and archives nothing (fail-safe).
+    cat_ids = set(new_lanes)
+    cat_lists = _catalog_lists(catalog)
+    non_archived = sorted(m for (prov, m), r in existing.items()
+                          if prov == name and not r.get('archive'))
+    if cat_lists:
+        vanished = sorted(m for m in non_archived if m not in cat_ids)
+        vanished_skipped = []
+    else:
+        vanished = []
+        vanished_skipped = non_archived
 
     # Preview on the merged view — the importer's own dry-run rule (2026-09-25):
     # a catalog that OMITS a fact is not evidence the fact changed, and a plan
@@ -154,6 +191,14 @@ def refresh_preset(preset: Any, existing: Any, *, apply: bool=False, fetch: Any=
     base['unchanged'] = len(d['unchanged'])
     base['removed'] = d['removed']
     base['changed_preview'] = [[m, touched] for m, touched in d['changed'][:10]]
+
+    # XK-404-001-R2: non-archived rows absent from a REAL catalog payload are
+    # vanished lanes — reported loudly whether or not --apply ran. When
+    # archive_vanished runs it writes the archive; a default run (flag off)
+    # reports and writes nothing. The apply branch runs AFTER the lane-file
+    # so one run can both add net-new lanes and retire dead ones.
+    base['vanished'] = list(vanished)
+    base['vanished_skipped'] = list(vanished_skipped)
     base['unpriced_new'] = sorted(
         m for m in d['added'] if preview[m].get('normalized_price') is None)
     if base['unpriced_new']:
@@ -180,6 +225,11 @@ def refresh_preset(preset: Any, existing: Any, *, apply: bool=False, fetch: Any=
         usage_multiplier=policy.get('usage_multiplier'))
     base['applied'] = True
     base['probe_row'] = rpi.ensure_probe_row(_probe_path(), preset)
+    if archive_vanished and base['vanished']:
+        base['vanished_archived'] = rpi.archive_vanished(
+            _models_path(), name, base['vanished'],
+            datetime.datetime.now(datetime.timezone.utc).date().isoformat(),
+            preset.get('catalog_url') or '')
     return base
 
 
@@ -196,23 +246,53 @@ def _probe_path():
     return os.path.join(_tables_dir(), 'probe_providers.jsonl')
 
 
-def _report(results: Any, t0: Any, apply: Any) -> tuple[Any, ...]:
+def _report(results: Any, t0: Any, apply: Any, archive_vanished: bool=False) -> tuple[Any, ...]:
     """(prose_text, json_dict) for a sweep. Prose names EVERY preset, the diff
     shapes the AC asks for (new lanes / price moves / catalog removals) and the
     loud held-block that tells the next phase exactly what to price."""
     lines = [f'== carrier catalog refresh ({len(results)} presets, '
-             f'{"APPLY" if apply else "dry-run"}) ==']
+             f'{"APPLY" if apply else "dry-run"}'
+             f'{", --archive-vanished" if archive_vanished else ""}) ==']
     totals = {'added': 0, 'changed': 0, 'removed': 0, 'unpriced_held': 0,
+              'vanished': 0, 'vanished_archived': 0, 'vanished_skipped': 0,
               'presets_ok': 0, 'presets_held': 0, 'presets_error': 0}
     for r in results:
         if r['status'] == 'error':
             totals['presets_error'] += 1
             lines.append(f"[{r['preset']}] ERROR: {r['error']}")
+            totals['vanished'] += len(r.get('vanished') or [])
+            totals['vanished_archived'] += len(r.get('vanished_archived') or [])
             continue
         totals['added'] += len(r['added'])
         totals['changed'] += r['changed']
         totals['removed'] += len(r['removed'])
         tag = {'ok': 'ok', 'held': 'HELD'}[r['status']]
+        vlines = []
+        if r.get('vanished_skipped'):
+            totals['vanished_skipped'] += len(r['vanished_skipped'])
+            vlines.append(
+                f"    VANISHED — skipped ({len(r['vanished_skipped'])} "
+                f"non-archived row(s) live under the preset but the fetched "
+                f"catalog carries NO model list — a payload without models "
+                f"is ambiguous (empty/paginated/failed handler), archiving "
+                f"off it would be a guess): {r['vanished_skipped']}")
+        if r.get('vanished'):
+            totals['vanished'] += len(r['vanished'])
+            vlines.append(
+                f"    VANISHED — {len(r['vanished'])} non-archived lane(s) "
+                f"absent from the fetched catalog "
+                f"(archive:false/valid_to:null rows stale at every chain "
+                f"walk, HTTP 404 burn — XK-404-001-R3 risk): "
+                f"{r['vanished']}" + ('' if archive_vanished else
+                                      ' — NOT archived (pass --archive-vanished with --apply)'))
+        if r.get('vanished_archived'):
+            totals['vanished_archived'] += len(r['vanished_archived'])
+            vlines.append(
+                f"    archived vanished lanes: "
+                f"{len(r['vanished_archived'])} — "
+                f"{sorted(m for _, m in r['vanished_archived'])}")
+        if vlines:
+            lines.extend(vlines)
         lines.append(
             f"[{r['preset']}] {tag}: catalog {r['models']} models — "
             f"+{len(r['added'])} new, ~{r['changed']} priced/changed, "
@@ -250,7 +330,11 @@ def _report(results: Any, t0: Any, apply: Any) -> tuple[Any, ...]:
         f'summary: +{totals["added"]} new, ~{totals["changed"]} changed, '
         f'-{totals["removed"]} removed across {len(results)} presets — '
         f'{totals["presets_ok"]} applied, {held} held (unpriced), '
-        f'{errs} errored')
+        f'{errs} errored — '
+        f'{totals["vanished"]} vanished lanes reported, '
+        f'{totals["vanished_archived"]} archived'
+        + (f', {totals["vanished_skipped"]} skipped (list-less catalog)'
+           if totals['vanished_skipped'] else ''))
     summary = {'ran_at': t0.isoformat(), 'apply': apply, 'presets': results,
                'totals': totals}
     return '\n'.join(lines), summary
@@ -265,6 +349,10 @@ def main() -> int:
                     help='limit the sweep to this preset name (repeatable)')
     ap.add_argument('--apply', action='store_true',
                     help='import lanes into models.jsonl (default: dry-run)')
+    ap.add_argument('--archive-vanished', action='store_true',
+                    help='with --apply: archive non-archived rows whose model '
+                         'id is absent from the fetched catalog (XK-404-001-R2; '
+                         'default OFF, reported loudly either way)')
     ap.add_argument('--json', action='store_true',
                     help='machine report on stdout (prose moves to stderr)')
     args = ap.parse_args()
@@ -302,17 +390,20 @@ def main() -> int:
                 preset = json.load(f)
             existing = {k: v for k, v in by_key.items()
                         if k[0] == preset['id']}
-            results.append(refresh_preset(preset, existing, apply=args.apply))
+            results.append(refresh_preset(preset, existing, apply=args.apply,
+                                          archive_vanished=args.archive_vanished))
         except Exception as e:  # noqa: BLE001 — one carrier must never kill the sweep
             results.append({'preset': name, 'status': 'error', 'models': 0,
                             'added': [], 'changed': 0, 'unchanged': 0,
                             'removed': [], 'changed_preview': [],
                             'unpriced_new': [], 'applied': None,
                             'probe_row': None,
+                            'vanished': [], 'vanished_skipped': [],
+                            'vanished_archived': [],
                             'error': f'{type(e).__name__}: {e}'})
             fatal = True
 
-    text, summary = _report(results, t0, args.apply)
+    text, summary = _report(results, t0, args.apply, args.archive_vanished)
     if args.json:
         print(text, file=sys.stderr)
         print(json.dumps(summary, indent=2, default=str))

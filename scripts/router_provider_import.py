@@ -341,6 +341,73 @@ def apply_lanes(path: Any, provider: Any, new_lanes: Any, plan_tier: Any, price_
     return updated, appended
 
 
+def archive_vanished(path: Any, provider: Any, removed: Any, run_date: Any,
+                     catalog_url: Any):
+    """Archive registry rows whose model id vanished from the carrier catalog.
+
+    XK-404-001-R2 class fix (2026-10-23, third recurrence of the same burn):
+    a lane absent from its carrier's live catalog while the row still carries
+    archive:false / valid_to:null stays eligible in every chain walk
+    (router_spawn only excludes archive:true and past-dated valid_to) —
+    every pick of it burns HTTP 404 "Model does not exist" before the router
+    hops on. The caller computes `removed` from a REAL live diff
+    (refresh_preset); this writer flips ONLY the availability lifecycle of the
+    matching rows and never deletes:
+
+      * archive -> True, valid_to -> the run date (never moved forward — the
+        caller keeps an earlier existing retirement date by not selecting an
+        already-retired row), lifecycle_source -> named evidence (TR-199 R4:
+        no anonymous dates — the committed-data gate would refuse otherwise).
+      * the reasoned note goes to the row's `note` column (the schema's
+        provenance column, BASE_COLUMNS['models']) naming the preset, catalog
+        URL and run date. A `model_notes` key does not exist in the models
+        schema and would be dropped by the seed projection.
+      * every other field is preserved (a catalog removal is evidence about
+        availability, not about price or capability); row order and all
+        non-matching lines are byte-identical (line-wise rewrite, same
+        discipline as apply_lanes with zero appends).
+
+    Already-archived rows are not selected, so re-runs report and write
+    nothing (idempotent). Returns the archived (provider, model) pairs.
+    """
+    gone = set(removed)
+    if not gone:
+        return []
+    rows = [json.loads(l) for l in open(path) if l.strip()]
+    archived = []
+    out = []
+    reason = (f'retired {run_date}: id absent from GET {catalog_url} '
+              f'(preset={provider}); archived per XK-404-001-R2 '
+              '(vanished carrier lane cannot stay active)')
+    source = (f'catalog-removal {run_date}: preset={provider} id absent from '
+              f'GET {catalog_url}; archived by router_provider_import.'
+              'archive_vanished via router_catalog_refresh --archive-vanished '
+              '(XK-404-001-R2)')
+    for r in rows:
+        if (r.get('provider') == provider and r.get('model') in gone
+                and not r.get('archive')):
+            r['archive'] = True
+            r['valid_to'] = run_date
+            r['lifecycle_source'] = source
+            if r.get('note') is None:
+                r['note'] = reason
+            elif isinstance(r['note'], str):
+                r['note'] = r['note'] + ' | ' + reason
+            elif isinstance(r['note'], list):
+                r['note'] = r['note'] + [reason]
+            archived.append((provider, r['model']))
+        out.append(r)
+    if not archived:
+        return []
+    # Same gate as every other models writer: a dated row without provenance
+    # is refused (R4, TR-199) — the stamped rows above all carry source.
+    lifecycle_gate.gate_rows('models', out)
+    with open(path, 'w') as f:
+        for r in out:
+            print(json.dumps(r, ensure_ascii=False), file=f)
+    return archived
+
+
 def ensure_probe_row(path: Any, preset: Any) -> bool:
     """Idempotently ensure probe_providers.jsonl carries this provider (key_env only)."""
     rows = [json.loads(l) for l in open(path) if l.strip()]
