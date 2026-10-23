@@ -7,6 +7,16 @@ Cooldowns: flat per failure class (CLASS_COOLDOWN_S, TR-014):
   overload=120s, quota_window=300s, api_down=1800s, out_of_credit=14400s.
 No exponential growth: every consecutive failure of the same class re-opens
 with the same class cooldown.
+
+Reset-aware classification (TR-346): a 429 that STATES its own reset far
+enough out (CAP_RESET_THRESHOLD_S = 1800s) is a PLAN CAP, not a rate window.
+Those records are classified out_of_credit and the (provider, model) pair's
+open_until is the provider's stated instant — never now+cooldown. Before this,
+a weekly-cap 429 ("Your limit resets at <39h out>") gated the pair for 300s
+and re-picked it every cooldown cycle, burning a full client retry each time.
+The stated reset is parsed from the failure text (parse_reset_at) or passed
+explicitly (--reset-at); anything inside the threshold, absent or unparseable
+keeps the pre-TR-346 behaviour byte-for-byte.
 A pair with open_until in the future is excluded from chains (router_spawn.py).
 
 State semantics (documented, TR-024):
@@ -52,7 +62,8 @@ Pruning (TR-027 / TR-014):
   Provider breakers are pruned the same way when their open_until expires.
 
 CLI (argparse, TR-027 / TR-014 / TR-190):
-  record-failure <provider> <model> [--class CLASS | --kind KIND] [reason...]
+  record-failure <provider> <model> [--class CLASS | --kind KIND]
+                 [--reset-at ISO-or-epoch] [reason...]
   record-success <provider> <model>
   status [provider] [--json]
   clear <provider> <model> | --all
@@ -72,6 +83,7 @@ import datetime
 import fcntl
 import json
 import os
+import re
 import sys
 import tempfile
 import time
@@ -120,6 +132,16 @@ if _ENV_OVERRIDE:
     except Exception:
         pass
 PROVIDER_FAILURE_THRESHOLD = 3
+
+# TR-346: a provider-stated reset further out than this is a PLAN CAP, not a
+# rate window. Inside the threshold the fixed quota_window cooldown (300s) is
+# the honest model — providers recover rate windows on their own — but beyond
+# it the pair must stay gated until the instant the PROVIDER named. Live
+# evidence (2026-10-23): commandcode/deepseek-v4-flash answered
+# "You've reached your weekly usage limit for your plan. Your limit resets at
+# 2026-10-24T23:07:30.625Z" 215 times in one day while the pair was re-picked
+# every 300s cooldown cycle, each pick burning a ~234s client retry.
+CAP_RESET_THRESHOLD_S = 1800  # 30 min
 
 # ---------------------------------------------------------------------------
 # TR-190: the failure-kind -> class mapping as ONE table.
@@ -301,6 +323,83 @@ def _is_open(entry: Any, now_iso_str: Any) -> bool:
     return ou > now_iso_str
 
 
+# ---------------------------------------------------------------------------
+# TR-346: the provider's OWN reset instant.
+#
+# Two shapes carry it, both observed live on 9router lanes:
+#   prose  "Your limit resets at 2026-10-24T23:07:30.625Z"
+#          "Weekly Limit Exhausted. Your limit will reset at <ts>"   (zai)
+#   JSON   "resets_at": 1789805473        /  'resets_at': "2026-..."
+#
+# The VALUE vocabulary (ISO-8601 with Z or a numeric offset, 9-11 digit epoch)
+# is exactly router_quota.parse_reset's, and it is REUSED — a second parser here
+# would drift from the gate writer the moment the provider changes format.
+# ---------------------------------------------------------------------------
+_RESET_PROSE_RE = re.compile(
+    r"(?:will\s+)?resets?\s+at\s+[\"']?([^\"'\s,;}\]]+)", re.IGNORECASE)
+_RESET_JSON_RE = re.compile(
+    r"[\"']?resets?_at[\"']?\s*[:=]\s*[\"']?([^\"'\s,;}\]]+)", re.IGNORECASE)
+
+
+def _normalize_reset(value: Any):
+    """Any reset representation -> aware-UTC ISO string, or None when unusable.
+
+    Accepts whatever parse_reset accepts (ISO-8601 in either Z/offset form,
+    naive -> UTC, integer epoch seconds) plus an already-parsed datetime.
+    Fail-open by contract: nothing about a failure record may ever raise
+    because a provider wrote its reset in a shape we did not anticipate.
+    """
+    if value is None:
+        return None
+    if isinstance(value, datetime.datetime):
+        dt = value if value.tzinfo else value.replace(tzinfo=datetime.timezone.utc)
+        return dt.astimezone(datetime.timezone.utc).isoformat()
+    raw = str(value).strip()
+    if not raw or raw.lower() in NOT_A_LANE_IDENTITIES:
+        return None
+    try:
+        import router_quota as _rq  # lazy: sibling module, never at import time
+        iso = _rq.parse_reset(raw)
+    except Exception:  # noqa: BLE001 — unparseable/invalid is simply "absent"
+        return None
+    dt = _parse_utc(iso)
+    return dt.isoformat() if dt is not None else None
+
+
+def parse_reset_at(text: Any):
+    """Extract the provider-stated reset instant from failure TEXT, or None.
+
+    Matching is case-insensitive and covers the prose forms ("reset at",
+    "resets at", "will reset at") and the JSON-ish key form ("resets_at": v,
+    either quote style, any whitespace around the colon/equals).
+
+    Returns an aware-UTC ISO string — the same family now_iso()/_parse_utc()
+    produce, so `_is_open`'s string comparison against open_until stays sound.
+    None when: no timestamp matched, the value is unparseable, or the instant
+    is already in the past (a stale reset must never gate anything).
+    """
+    if not text:
+        return None
+    try:
+        candidates = []
+        for rx in (_RESET_PROSE_RE, _RESET_JSON_RE):
+            for m in rx.finditer(str(text)):
+                # sentence punctuation ("...Z.") is not part of the timestamp
+                candidates.append((m.start(), m.group(1).strip().rstrip('.,;:')))
+        candidates.sort(key=lambda t: t[0])
+        now_dt = _parse_utc(now_iso())
+        for _pos, raw in candidates:
+            iso = _normalize_reset(raw)
+            if not iso:
+                continue
+            dt = _parse_utc(iso)
+            if dt is not None and now_dt is not None and dt > now_dt:
+                return iso
+    except Exception:  # noqa: BLE001 — parsers never break a failure record
+        return None
+    return None
+
+
 def _prune_expired(st: Any, now: Any, keep_pair: Any=None) -> None:
     """Remove cooling pairs and provider breakers whose open_until is past.
 
@@ -358,12 +457,28 @@ def _provider_failures_in_window(v2: Any, provider: Any, fclass: Any, now: Any, 
     return count
 
 
-def _open_provider_breaker(st: Any, provider: Any, fclass: Any, now: Any) -> tuple:
-    """Open (or extend) the provider-level breaker for a hard class."""
+def _open_provider_breaker(st: Any, provider: Any, fclass: Any, now: Any, reset_at: Any=None) -> tuple:
+    """Open (or extend) the provider-level breaker for a hard class.
+
+    TR-346: when the failure STATES its own reset (and that reset is a plan
+    cap — see record_failure), the breaker's open_until is that instant, not
+    now+class-cooldown. A provider that told us when it refills must not be
+    probed an hour earlier for a 39h weekly window.
+    """
     v2 = _ensure_v2(st)
     prov = v2.setdefault('provider_breakers', {})
     cd = CLASS_COOLDOWN_S.get(fclass, BASE_COOLDOWN_S)
-    open_until = (_parse_utc(now) + datetime.timedelta(seconds=cd)).isoformat()
+    stated = _normalize_reset(reset_at)
+    if stated:
+        rdt = _parse_utc(stated)
+        ndt = _parse_utc(now)
+        if rdt is not None and ndt is not None:
+            open_until = stated
+            cd = max(1, int(round((rdt - ndt).total_seconds())))
+        else:  # pragma: no cover — stated came from _normalize_reset
+            open_until = (_parse_utc(now) + datetime.timedelta(seconds=cd)).isoformat()
+    else:
+        open_until = (_parse_utc(now) + datetime.timedelta(seconds=cd)).isoformat()
     prov[provider] = {
         'class': fclass,
         'open_until': open_until,
@@ -374,7 +489,7 @@ def _open_provider_breaker(st: Any, provider: Any, fclass: Any, now: Any) -> tup
 
 
 def record_failure(provider: Any, model: Any, reason: str='', fclass: str='api_down', kind: Any=None,
-                   provider_hard: bool=False) -> int:
+                   provider_hard: bool=False, reset_at: Any=None) -> int:
     """Record a failure for (provider, model) with class fclass.
 
     TR-190 classification seam (loud, never silent):
@@ -402,6 +517,15 @@ def record_failure(provider: Any, model: Any, reason: str='', fclass: str='api_d
     across any model of that provider (or immediately under --provider-hard).
     Soft classes (overload/quota_window) only open the specific
     (provider, model) pair with a short cooldown.
+
+    TR-346 reset-aware classification: once the base class is resolved (exactly
+    as above), a quota_window/out_of_credit record that STATES its own reset —
+    via the reset_at argument (--reset-at) or parse_reset_at(reason) — further
+    out than CAP_RESET_THRESHOLD_S is a PLAN CAP: the class becomes
+    out_of_credit and the pair stays open until the provider's stated instant.
+    Nothing else changes: a non-quota class never adopts a reset (a timeout
+    whose text contains 'resets at' stays a timeout), and a reset inside the
+    threshold / absent / unparseable keeps the pre-TR-346 path byte-for-byte.
     """
     # --- no-hop guard: before the lock, before any state touch.
     _p = (provider or '').strip().lower()
@@ -416,6 +540,22 @@ def record_failure(provider: Any, model: Any, reason: str='', fclass: str='api_d
         fclass, _ = failure_class_for(kind=kind)
     else:
         fclass, _ = failure_class_for(fclass=fclass)
+    # --- TR-346: reset-aware refinement of a quota-class record (never others).
+    now = now_iso()
+    now_dt = _parse_utc(now)
+    stated = _normalize_reset(reset_at)
+    if stated is None and reason:
+        stated = parse_reset_at(reason)
+    cap_reset = None      # the stated instant, when it is a plan cap
+    cap_span_s = None     # derived span, carried into cooldown_s for reporting
+    if stated and fclass in ('quota_window', 'out_of_credit'):
+        rdt = _parse_utc(stated)
+        if rdt is not None and now_dt is not None:
+            span = (rdt - now_dt).total_seconds()
+            if span > CAP_RESET_THRESHOLD_S:
+                fclass = 'out_of_credit'
+                cap_reset = stated
+                cap_span_s = max(1, int(round(span)))
     if provider_hard and fclass not in HARD_CLASSES:
         print(f'WARNING: --provider-hard with soft class {fclass} — opening '
               f'the provider breaker anyway (TR-288 in-flight demotion)')
@@ -423,7 +563,6 @@ def record_failure(provider: Any, model: Any, reason: str='', fclass: str='api_d
     lf = _acquire_lock()
     try:
         st = load()
-        now = now_iso()
         _prune_expired(st, now, keep_pair=key)
         _ensure_v2(st)
         c = st['pairs'].setdefault(key, {'failures': 0, 'open_until': None,
@@ -434,7 +573,12 @@ def record_failure(provider: Any, model: Any, reason: str='', fclass: str='api_d
         cd = CLASS_COOLDOWN_S.get(fclass)
         if cd is None:
             cd = min(BASE_COOLDOWN_S * (2 ** (c['failures'] - 1)), MAX_COOLDOWN_S)
-        c['open_until'] = (_parse_utc(now) + datetime.timedelta(seconds=cd)).isoformat()
+        if cap_reset:
+            # the provider named the instant it refills: gate EXACTLY there.
+            cd = cap_span_s
+            c['open_until'] = cap_reset
+        else:
+            c['open_until'] = (_parse_utc(now) + datetime.timedelta(seconds=cd)).isoformat()
         c['last_failure'] = now
         c['cooldown_s'] = cd
         if reason:
@@ -444,7 +588,8 @@ def record_failure(provider: Any, model: Any, reason: str='', fclass: str='api_d
         # Provider-level breaker for hard classes.
         if fclass in HARD_CLASSES:
             if provider_hard:
-                pcd, p_open = _open_provider_breaker(st, provider, fclass, now)
+                pcd, p_open = _open_provider_breaker(st, provider, fclass, now,
+                                                     reset_at=cap_reset)
                 save(st)
                 print(f'OPEN {key} class={fclass} — {c["failures"]} consecutive failures, '
                       f'cooldown {cd}s, open until {c["open_until"]}; '
@@ -454,7 +599,8 @@ def record_failure(provider: Any, model: Any, reason: str='', fclass: str='api_d
             window_s = cd
             recent = _provider_failures_in_window(st['v2'], provider, fclass, now, window_s)
             if recent >= PROVIDER_FAILURE_THRESHOLD:
-                pcd, p_open = _open_provider_breaker(st, provider, fclass, now)
+                pcd, p_open = _open_provider_breaker(st, provider, fclass, now,
+                                                     reset_at=cap_reset)
                 save(st)
                 print(f'OPEN {key} class={fclass} — {c["failures"]} consecutive failures, '
                       f'cooldown {cd}s, open until {c["open_until"]}; '
@@ -603,9 +749,10 @@ def main(argv: Any=None):
         opts, rest = [], []
         i = 1
         while i < len(argv):
-            # --class and --kind both consume a value (TR-190 added --kind);
-            # move option+value pairs to the END so positionals stay contiguous.
-            if argv[i] in ('--class', '--kind') and i + 1 < len(argv):
+            # --class, --kind and --reset-at each consume a value (TR-190 added
+            # --kind, TR-346 added --reset-at); move option+value pairs to the
+            # END so positionals stay contiguous.
+            if argv[i] in ('--class', '--kind', '--reset-at') and i + 1 < len(argv):
                 opts.extend(argv[i:i + 2])
                 i += 2
             elif argv[i].startswith('--'):
@@ -636,12 +783,19 @@ def main(argv: Any=None):
                     help='open the PROVIDER breaker immediately on this one '
                          'event (TR-288: in-flight proof of an account-wide '
                          'condition — no 3-failure threshold)')
+    pf.add_argument('--reset-at', dest='reset_at', default=None,
+                    help='the provider-STATED reset instant (ISO-8601 or epoch '
+                         'seconds, TR-346); when it is more than '
+                         f'{CAP_RESET_THRESHOLD_S}s out the record is a plan CAP '
+                         'and the pair opens until exactly that instant. Absent '
+                         '-> auto-parsed from the reason text')
     pf.add_argument('reason', nargs='*', default='',
                     help='optional failure reason (multiple words are joined)')
     pf.set_defaults(func=lambda a: record_failure(a.provider, a.model,
                                                   ' '.join(a.reason),
                                                   fclass=a.fclass, kind=a.kind,
-                                                  provider_hard=a.provider_hard))
+                                                  provider_hard=a.provider_hard,
+                                                  reset_at=a.reset_at))
 
     ps = sub.add_parser('record-success', help='close the circuit for a pair')
     ps.add_argument('provider')

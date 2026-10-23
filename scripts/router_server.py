@@ -3865,29 +3865,46 @@ def _demote_on_taxonomy(provider: Any, model: Any, code: Any, detail: str='') ->
         _m = (model or '').strip()
         if not _p or not _m or _p.lower() in _NOT_A_LANE or _m.lower() in _NOT_A_LANE:
             return
+        # TR-346: the provider's OWN reset instant, parsed from the FULL detail
+        # (the reason passed to the circuit is truncated to 200 chars, and the
+        # reset sentence can sit past that cut — that truncation is exactly how
+        # a weekly-cap 429 kept being re-picked every 300s cooldown). Lazy +
+        # fail-open: no parse -> today's conservative behaviour, unchanged.
+        _stated_reset = None
+        try:
+            import router_circuit as _rc
+            _stated_reset = _rc.parse_reset_at(f'{code} {detail or ""}')
+        except Exception:  # noqa: BLE001 — demotion must never fail a request
+            _stated_reset = None
         if router_hop_taxonomy.demote_provider(code):
-            _subprocess_text("router_circuit.py",
-                             ['record-failure', _p, _m,
-                              '--provider-hard', '--class', 'out_of_credit',
-                              f'{code} {detail or "provider-wide condition"}'[:200]])
+            _args = ['record-failure', _p, _m,
+                     '--provider-hard', '--class', 'out_of_credit']
+            if _stated_reset:
+                _args += ['--reset-at', _stated_reset]
+            _args.append(f'{code} {detail or "provider-wide condition"}'[:200])
+            _subprocess_text("router_circuit.py", _args)
             if code in ('429-quota-window', '402-no-credit'):
                 # the plan-window quota gate is the surface the resolver's
                 # quota/health gates already read — a weekly window is the
                 # probe's own vocabulary (quota-state.json), so write it there
-                # too, with a conservative 24h reset (the hourly probe's
-                # calibration is the authority that clears it early).
+                # too. TR-346: when the failure stated its reset, the gate
+                # expires exactly then; otherwise keep the conservative 24h
+                # reset (the hourly probe's calibration is the authority that
+                # clears it early).
                 import router_quota
                 router_quota.quota_set(
                     _p, f'TR-288 in-flight: {code} {detail}'[:200],
+                    _stated_reset or
                     (datetime.datetime.now(datetime.timezone.utc)
                      + datetime.timedelta(seconds=86400)).isoformat(timespec='seconds'))
         else:
             fclass = {'429-capacity': 'quota_window',
                       '404-405-route': 'api_down'}.get(code, 'overload')
-            _subprocess_text("router_circuit.py",
-                             ['record-failure', _p, _m,
-                              '--class', fclass,
-                              f'{code} {detail or "hop failure"}'[:200]])
+            _args = ['record-failure', _p, _m, '--class', fclass]
+            if _stated_reset:
+                _args += ['--reset-at', _stated_reset]
+            _args.append(f'{code} {detail or "hop failure"}'[:200])
+            _subprocess_text("router_circuit.py", _args)
     except Exception:  # noqa: BLE001 — demotion must never fail a request
         pass
 
