@@ -1161,5 +1161,23 @@ tasks:
     without log grepping; TR-195 baseline alarm fires at observed volume (replay of
     2026-10-20 10:20-10:54 window); scheduler tick 503 unservable recorded as own
     failure_reason class (not gateway_transport)
-  status: in_progress
+  status: complete
   created_at: '2026-10-23T02:07:59.529786+00:00'
+  completed_at: '2026-10-23T02:32:43.731213+00:00'
+- id: XK-404-001-R2
+  title: Archive every xkiro lane absent from the live carrier catalog and stop vanished
+    lanes staying active
+  criteria:
+  - 'In /home/kara/task-router: the 8 xkiro rows verified absent from https://api.xkiro.com/v1/models
+    on 2026-10-23 (deepseek/deepseek-v4-flash-0731, deepseek/deepseek-v4-pro-0813,
+    deepseek/deepseek-v4.1-flash, nvidia/nemotron-3-super, stealth/space-bunny-alpha:free,
+    tencent/hy3, tencent/hy3-preview, tencent/hy4-preview) are archived in data/tables/models.jsonl
+    with a dated valid_to and an explicit reason note, leaving zero non-archived xkiro
+    rows absent from live; the carrier catalog refresh path detects and reports/archives
+    a non-archived lane that has vanished from a carrier catalog so it cannot stay
+    active with a NULL valid_to (offline regression test added); python3 -m pytest
+    -q tests/test_xkiro_catalog_freshness.py passes, the full suite is green, and
+    the change is committed with its evidence.'
+  status: complete
+  created_at: '2026-10-23T07:43:39.524534+00:00'
+  completed_at: '2026-10-23T08:33:14.464515+00:00'
