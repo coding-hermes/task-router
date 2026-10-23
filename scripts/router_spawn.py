@@ -2456,7 +2456,16 @@ def _data_home_meta(source: Any, fallback_used: Any):
 
 def resolve(project: Any=None, profile_id: Any=None, adhoc: Any=None, use_health: bool=True, limit: Any=DEFAULT_CHAIN_LIMIT,
             allow_training: bool=False, allow_slow: Any=None, sort: Any=None, backend: Any=None,
-            merge_backends: bool=False, window_h: Any=DEFAULT_WINDOW_H, ref_meta: Any=None):
+            merge_backends: bool=False, window_h: Any=DEFAULT_WINDOW_H, ref_meta: Any=None,
+            lane: Any=None):
+    """Resolve a project/profile/rating to an ordered chain.
+
+    `lane` (TR-344) is the CALLER's own lane identity — a scheduler lane name
+    like `lore-qa`, or an x-router-lane header value. It is used ONLY to key the
+    unservable-rating census (lane_class) and never for routing: the resolve
+    semantics, gates and ordering are untouched. Absent, the census falls back
+    to the project name, then to the 'primary' catch-all.
+    """
     tables, src, fb, warn = _load_registry_with_meta()
     warnings = [warn] if warn else []
     projects = {r.get('id'): r for r in tables.get('projects') or []}
@@ -2891,10 +2900,34 @@ def resolve(project: Any=None, profile_id: Any=None, adhoc: Any=None, use_health
         # Deliberately scoped: when lanes WERE eligible and all got gated, the contract is the
         # structured fail-closed response (head None + the full exclusion list), never an error
         # — pinned by test_absent_state_is_fail_closed_all_excluded.
+        #
+        # TR-344: this dead-end is ALSO the census point. 190 distinct scheduler
+        # lanes hit it in 34 minutes on 2026-10-20 and nothing counted them, so
+        # the alarm could not see routing starvation at fleet scale. One
+        # append-only row per unservable rating — (required_categories
+        # fingerprint, lane_class) — is written here, at the ONE place a rating
+        # is proven unservable. Fail-open: a broken counter file must never
+        # change this response or raise; the 503 semantics are untouched.
+        _rating = dict(reqs or [])
+        try:
+            import router_nohops as _nohops
+            _row = _nohops.record_unservable(
+                matrix=_rating, lane=lane, project=project, profile_id=pid,
+                source='router_spawn.resolve',
+                reason='no chain — no eligible model and no fallback lane could serve')
+        except Exception:  # noqa: BLE001 — the census is never fatal
+            _row = None
         return {'error': 'no chain — no eligible model and no fallback lane could serve',
                 'profile': pid,
                 'reasons': reasons[:12],
                 'exclusions': exclusions[:20],
+                # TR-344: the same (matrix, lane class) the counter keyed on —
+                # the proxy stamps it on the ledger row, so the row and the
+                # counter can never disagree about who starved.
+                'required_categories': _rating,
+                'matrix_hash': (_row or {}).get('matrix_hash'),
+                'lane_class': (_row or {}).get('lane_class'),
+                'lane_class_source': (_row or {}).get('lane_class_source'),
                 'data_home': _data_home_meta(src, fb)}
 
     # TR-046: computed BEFORE the return; `fb` is the registry-loader's
@@ -3291,6 +3324,10 @@ def main() -> None:
     ap.add_argument('--window-h', type=int, default=DEFAULT_WINDOW_H, metavar='H',
                     help=f'average window (half-life, hours) for stats-based sorts '
                          f'(default {DEFAULT_WINDOW_H})')
+    ap.add_argument('--lane', default=None, metavar='NAME',
+                    help='caller lane identity (e.g. lore-qa) used ONLY to key '
+                         'the TR-344 unservable-rating census (lane_class); '
+                         'never affects routing')
     args = ap.parse_args()
 
     # TR-033 / TR-055: --quiet takes precedence; set the env so the rest of the
@@ -3458,7 +3495,7 @@ def main() -> None:
                 allow_slow=args.allow_slow,
                 sort=args.sort, backend=args.backend,
                 merge_backends=args.merge_backends, window_h=args.window_h,
-                ref_meta=board_profile_meta)
+                ref_meta=board_profile_meta, lane=args.lane)
     # TR-021: metrics append is best-effort; any failure is swallowed so
     # router_spawn stdout + exit code stay identical.  Strip the internal
     # _chain_rows helper key before serialization.

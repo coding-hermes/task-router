@@ -47,6 +47,37 @@ THE ALERT
         (ROUTER_NOHOPS_THRESHOLD below the observed rate) — the threshold path
         that production runs is the path the dry run exercises.
 
+TWO BREACH ARMS (TR-344)
+    The rate arm alone could NOT see the 2026-10-20 10:20-10:54 incident: 190
+    distinct scheduler lanes failed with 503 'no eligible model for this
+    rating' in 34 minutes, and because the proxy also serves hundreds of
+    normal resolves the RATE stayed under the baseline threshold while the
+    fleet starved. Volume is the missing signal, so a second arm counts
+    ABSOLUTE no-hop resolves inside a short window:
+
+        burst no-hops >= ROUTER_NOHOPS_BURST_MIN (default 50)  within
+        ROUTER_NOHOPS_BURST_WINDOW_H (default 1.0h, clamped to the window
+        being evaluated)  =>  ALERT
+
+    A burst is its own evidence (190 unservable ratings in 34 minutes is not a
+    sample-size question), so the burst arm is not gated by MIN_N — burst_min
+    IS its volume floor. The payload names which arm fired (`breach_kind`), and
+    `check` prints one `verdict=ALERT|OK` line so an operator (or a cron) reads
+    the verdict without parsing the header prose.
+
+THE UNSERVABLE-RATING CENSUS (TR-344)
+    Every unservable rating the RESOLVER dead-ends (router_spawn.resolve ->
+    'no chain — no eligible model and no fallback lane could serve') is
+    appended, once, to data/state/unservable-counters.jsonl (append-only, one
+    row per rating: ts, matrix_hash, lane_class, required_categories). The
+    counter answers 'which rating, on which lane family, how often' WITHOUT
+    grepping logs — GET /api/ui/unservable (unservable_view) aggregates it into
+    hourly buckets and a top-n. lane_class ∈ qa | releng | docs | readme |
+    review | foreman | primary, derived from the lane/project name; 'primary'
+    means "no satellite family named", and every row also carries
+    lane_class_source so a default is never mistaken for a declaration.
+    Fail-open: an unreadable/unwritable counter file never breaks a resolve.
+
     Delivery (real mode): ALWAYS appends one JSONL row to the events log
     (data/state/router-events.jsonl, ROUTER_NOHOPS_EVENTS_FILE overrides);
     POSTs the same payload to the deliver-thread webhook ONLY when
@@ -68,6 +99,7 @@ from __future__ import annotations
 import argparse
 import collections
 import datetime
+import hashlib
 import json
 import os
 import sys
@@ -99,6 +131,28 @@ DEFAULT_HEADROOM = 0.05
 DEFAULT_MIN_N = 10
 #: Only when there is no baseline file AND no env override — loud in the payload.
 DEFAULT_THRESHOLD = 0.10
+
+#: TR-344: the absolute-volume arm. 50 no-hop resolves inside an hour is a
+#: fleet-wide starvation event (2026-10-20: 190 in 34 minutes), not noise.
+DEFAULT_BURST_MIN = 50
+DEFAULT_BURST_WINDOW_H = 1.0
+
+#: TR-344: the per-unservable-rating census (append-only JSONL).
+_DEFAULT_UNSERVABLE = os.path.join(REPO, "data", "state",
+                                   "unservable-counters.jsonl")
+
+#: The rated lane families (a satellite lane of a fleet project). 'primary' is
+#: the catch-all for a resolve that named no satellite family.
+LANE_CLASSES = ("qa", "releng", "docs", "readme", "review", "foreman",
+                "primary")
+SATELLITE_CLASSES = LANE_CLASSES[:-1]
+
+
+def unservable_path():
+    """The counter store (ROUTER_UNSERVABLE_FILE wins — hermetic tests and a
+    per-user data home both need it). Resolved at CALL time, like the outcome
+    store, so a long-lived server follows an env change."""
+    return os.environ.get("ROUTER_UNSERVABLE_FILE") or _DEFAULT_UNSERVABLE
 
 
 def _one(v: Any):
@@ -338,34 +392,306 @@ def min_n():
     return DEFAULT_MIN_N
 
 
+# ---------------------------------------------------------------------------
+# TR-344: lane class + the per-unservable-rating census
+# ---------------------------------------------------------------------------
+
+def lane_class(name: Any=None) -> str:
+    """The rated lane family a lane/project NAME belongs to (TR-344).
+
+    Fleet satellite lanes are named `<project>-<family>` (`lore-qa`,
+    `task-router-releng`, `…-releng-local`), so the RIGHTMOST token that names
+    a known family wins: a trailing qualifier (`-local`, `-2`) does not hide
+    the family it qualifies. Nothing recognised -> 'primary' (the documented
+    catch-all: "no satellite family named"), never a guess — callers that must
+    distinguish a declaration from a default use lane_class_source().
+    """
+    if not isinstance(name, str) or not name.strip():
+        return "primary"
+    tokens = [t for t in name.strip().lower().replace('_', '-')
+              .replace('.', '-').replace('/', '-').replace(':', '-').split('-')
+              if t]
+    for tok in reversed(tokens):
+        if tok in SATELLITE_CLASSES:
+            return tok
+    return "primary"
+
+
+def lane_class_source(name: Any=None, declared: Any=None) -> str:
+    """Why THIS lane_class is what it is: declared | derived-from-name |
+    default-no-lane-hint. A default is never silently presented as a fact."""
+    if isinstance(declared, str) and declared.strip():
+        return "declared"
+    if isinstance(name, str) and name.strip() \
+            and lane_class(name) != "primary":
+        return "derived-from-name"
+    return "default-no-lane-hint"
+
+
+def matrix_hash(matrix: Any) -> str:
+    """Stable fingerprint of a rating's required_categories (TR-344).
+
+    Canonical form = sorted (category, level) pairs, JSON-encoded: two
+    spellings of the same rating (dict order, tuple list) hash identically, and
+    the counter and GET /api/ui/unservable agree by construction. 16 hex chars
+    is enough to key a counter; the full matrix rides on the row.
+    """
+    pairs = []
+    if isinstance(matrix, dict):
+        pairs = [(str(k), matrix[k]) for k in matrix]
+    elif isinstance(matrix, (list, tuple)):
+        for item in matrix:
+            if isinstance(item, (list, tuple)) and len(item) == 2:
+                pairs.append((str(item[0]), item[1]))
+            elif isinstance(item, dict):
+                pairs.extend((str(k), item[k]) for k in item)
+    if not pairs:
+        return "empty"
+    canon = json.dumps(sorted(pairs), separators=(',', ':'), sort_keys=False)
+    return hashlib.sha256(canon.encode('utf-8')).hexdigest()[:16]
+
+
+def record_unservable(matrix: Any=None, lane: Any=None, project: Any=None,
+                      profile_id: Any=None, source: Any=None,
+                      reason: Any=None, path: Any=None, ts: Any=None) -> Any:
+    """Append ONE row for an unservable rating (TR-344). Returns the row, or
+    None when the write failed — NEVER raises: fail-open is the resolver's
+    contract and a broken counter must not break a 503.
+
+    `lane` is the lane identity as the caller declared it (a scheduler lane
+    name, an x-router-lane header, or the resolver's project slot). `project`
+    is recorded verbatim as provenance; lane_class is derived from the lane
+    first, then the project.
+    """
+    try:
+        name = lane if isinstance(lane, str) and lane.strip() else project
+        lclass = lane_class(name)
+        row = {
+            # one row per rating, at the moment the resolver dead-ended
+            'ts': float(ts) if ts is not None else time.time(),
+            'matrix_hash': matrix_hash(matrix),
+            'lane_class': lclass,
+            'lane_class_source': lane_class_source(name, lane),
+            'required_categories': (dict(matrix) if isinstance(matrix, dict)
+                                    else matrix),
+            'lane': (name if isinstance(name, str) and name.strip() else None),
+            'project': project if isinstance(project, str) else None,
+            'profile_id': profile_id if isinstance(profile_id, str) else None,
+            'source': source if isinstance(source, str) else None,
+            'reason': reason,
+            'task': 'TR-344',
+        }
+        target = path or unservable_path()
+        d = os.path.dirname(target)
+        if d:
+            os.makedirs(d, exist_ok=True)
+        with open(target, 'a', encoding='utf-8') as fh:
+            fh.write(json.dumps(row, ensure_ascii=False) + "\n")
+        return row
+    except Exception:  # noqa: BLE001 — the census never breaks a resolve
+        return None
+
+
+def load_unservable_rows(path: Any=None, scan_limit: int=200000) -> tuple:
+    """Tolerant TAIL-scan of the counter store (same newest-N semantics and
+    the same malformed-line accounting as the outcome store reader)."""
+    return load_store_rows(path or unservable_path(), scan_limit=scan_limit)
+
+
+def unservable_view(window_h: Any=24.0, top_n: Any=10, now_s: Any=None,
+                    path: Any=None, scan_limit: Any=200000,
+                    bucket_h: Any=1.0) -> dict:
+    """GET /api/ui/unservable: the unservable-rating census over a window.
+
+    Shape: {window_h, buckets: [{ts, iso, matrix_hash, lane_class, count}],
+    top_n, top: [{matrix_hash, lane_class, count}], …}. Every count is a row
+    count from the append-only file — never a log grep. An unreadable store is
+    a REPORTED state (error + empty buckets), never an exception.
+    """
+    try:
+        window_h = max(0.1, float(window_h))
+    except (TypeError, ValueError):
+        window_h = 24.0
+    try:
+        top_n = max(1, int(top_n))
+    except (TypeError, ValueError):
+        top_n = 10
+    try:
+        bucket_h = max(1.0 / 60.0, float(bucket_h))
+    except (TypeError, ValueError):
+        bucket_h = 1.0
+    now = float(now_s) if now_s is not None else time.time()
+    cutoff = now - window_h * 3600.0
+    try:
+        scan_limit = max(1, int(scan_limit))
+    except (TypeError, ValueError):
+        scan_limit = 200000
+    rows, meta = load_unservable_rows(path, scan_limit=scan_limit)
+    width = bucket_h * 3600.0
+    buckets = {}
+    per_key = collections.Counter()
+    total = 0
+    untimestamped = 0
+    for r in rows:
+        ts = _epoch(r.get('ts'))
+        if ts is None:
+            untimestamped += 1
+            continue
+        if ts < cutoff:
+            continue
+        total += 1
+        mhash = r.get('matrix_hash') or matrix_hash(r.get('required_categories'))
+        lclass = r.get('lane_class') or lane_class(r.get('lane'))
+        b = int(ts // width) * width
+        key = (b, mhash, lclass)
+        buckets[key] = buckets.get(key, 0) + 1
+        per_key[(mhash, lclass)] += 1
+    out_buckets = [
+        {'ts': b,
+         'iso': datetime.datetime.fromtimestamp(
+             b, datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
+         'matrix_hash': mh, 'lane_class': lc, 'count': n}
+        for (b, mh, lc), n in sorted(buckets.items())
+    ]
+    top = [{'matrix_hash': mh, 'lane_class': lc, 'count': n}
+           for (mh, lc), n in per_key.most_common(top_n)]
+    by_class = collections.Counter()
+    for (_mh, lc), n in per_key.items():
+        by_class[lc] += n
+    return {
+        'window_h': window_h,
+        'buckets': out_buckets,
+        'bucket_h': bucket_h,
+        'top_n': top_n,
+        'top': top,
+        'total': total,
+        'lane_classes': list(LANE_CLASSES),
+        'by_lane_class': dict(sorted(by_class.items())),
+        'distinct_matrices': len({mh for (mh, _lc) in per_key}),
+        'rows_scanned': meta.get('rows_scanned', 0),
+        'parse_failed': meta.get('parse_failed', 0),
+        'untimestamped_excluded': untimestamped,
+        'scan_limit': scan_limit,
+        'store': meta.get('store'),
+        'error': meta.get('error'),
+    }
+
+
+# ---------------------------------------------------------------------------
+# TR-344: the absolute-volume (burst) arm
+# ---------------------------------------------------------------------------
+
+def burst_min():
+    env = os.environ.get('ROUTER_NOHOPS_BURST_MIN')
+    if env:
+        try:
+            return max(1, int(env))
+        except ValueError:
+            pass
+    return DEFAULT_BURST_MIN
+
+
+def burst_window_h():
+    env = os.environ.get('ROUTER_NOHOPS_BURST_WINDOW_H')
+    if env:
+        try:
+            return max(1.0 / 60.0, float(env))
+        except ValueError:
+            pass
+    return DEFAULT_BURST_WINDOW_H
+
+
+def nohops_burst(rows: Any, now_s: Any=None, window_h: Any=None) -> dict:
+    """Count no-hop resolves inside the BURST window (TR-344).
+
+    The window is the burst window, clamped to the window the caller is
+    evaluating (asking for 24h must not count an hour's burst over a day, and
+    asking for 30m must not reach outside it). Rows without a usable ts cannot
+    be counted and are reported, never silently dropped.
+    """
+    now = float(now_s) if now_s is not None else time.time()
+    w = burst_window_h()
+    if window_h is not None:
+        try:
+            w = min(w, max(1.0 / 60.0, float(window_h)))
+        except (TypeError, ValueError):
+            pass
+    cutoff = now - w * 3600.0
+    n = 0
+    untimestamped = 0
+    for r in rows:
+        if not is_nohop(r):
+            continue
+        ts = _epoch(r.get('ts'))
+        if ts is None:
+            untimestamped += 1
+            continue
+        if ts >= cutoff:
+            n += 1
+    floor = burst_min()
+    return {'window_h': w, 'nohops': n, 'min': floor,
+            'breached': n >= floor,
+            'untimestamped_excluded': untimestamped,
+            'reason': (f'burst {n} no-hops in {w:g}h '
+                       f'{">=" if n >= floor else "<"} '
+                       f'ROUTER_NOHOPS_BURST_MIN={floor}')}
+
+
+
 def evaluate(rows: Any, window_h: float=24.0, now_s: Any=None, baseline: Any=None) -> dict:
-    """rate + threshold -> the verdict and the exact alert payload."""
+    """rate + threshold -> the verdict and the exact alert payload.
+
+    TR-344: TWO arms. The rate arm (baseline + headroom over the window) and
+    the absolute-volume arm (burst_min no-hop resolves inside burst_window_h).
+    ALERT when EITHER arm breaches; the payload names which one(s) with
+    `breach_kind`, and both arms' numbers ride along so a reader never has to
+    infer why the verdict is what it is.
+    """
     series = hourly_nohops_rate(rows, window_h=window_h, now_s=now_s)
     baseline_doc, baseline_source = (baseline, "given") if baseline is not None \
         else load_baseline()
     threshold, threshold_source = resolve_threshold(baseline_doc)
     n = series["n"]
     rate = series["rate"]
-    breached = None
-    breach_reason = None
+    burst = nohops_burst(rows, now_s=now_s, window_h=series["window_h"])
+    rate_breached = None
+    rate_reason = None
     if rate is None:
-        breached = False
-        breach_reason = series["rate_reason"] or "no rate measurable"
+        rate_breached = False
+        rate_reason = series["rate_reason"] or "no rate measurable"
     elif n < min_n():
-        breached = False
-        breach_reason = (f"sample {n} below ROUTER_NOHOPS_MIN_N={min_n()}")
+        rate_breached = False
+        rate_reason = (f"sample {n} below ROUTER_NOHOPS_MIN_N={min_n()}")
     else:
-        breached = rate > threshold
-        if not breached:
-            breach_reason = f"rate {rate} <= threshold {threshold}"
+        rate_breached = rate > threshold
+        if not rate_breached:
+            rate_reason = f"rate {rate} <= threshold {threshold}"
+    alert = bool(rate_breached or burst["breached"])
+    rate_bit = (f"rate {rate} > threshold {threshold}" if rate_breached
+                else rate_reason)
+    if rate_breached and burst["breached"]:
+        breach_kind = "rate+burst"
+        breach_reason = f"{rate_bit}; {burst['reason']}"
+    elif rate_breached:
+        breach_kind = "rate"
+        breach_reason = rate_bit
+    elif burst["breached"]:
+        breach_kind = "burst"
+        breach_reason = f"{burst['reason']} ({rate_bit})"
+    else:
+        breach_kind = None
+        breach_reason = f"{rate_bit}; {burst['reason']}"
     payload = {
         "kind": "nohops-alert",
-        "alert": breached is True,
+        "alert": alert,
+        "breach_kind": breach_kind,
         "breach_reason": breach_reason,
         "rate": rate,
+        "rate_breached": rate_breached,
         "threshold": threshold,
         "threshold_source": threshold_source,
         "min_n": min_n(),
+        "burst": burst,
         "nohops": series["nohops"],
         "resolves": series["resolves"],
         "n": n,
@@ -384,11 +710,18 @@ def alert_text(payload: Any) -> str:
     cat_bit = (f"; top blocking category (TR-185): {cat}"
                f" ({payload.get('top_blocking_category_count')} no-hop"
                f" resolves require it)") if cat else ""
+    burst = payload.get("burst") or {}
+    burst_bit = ""
+    if payload.get("breach_kind") in ("burst", "rate+burst"):
+        # name the arm that caught it — a volume alarm must read as one
+        burst_bit = (f"; BURST: {burst.get('nohops')} no-hop resolves in "
+                     f"{burst.get('window_h')}h (floor "
+                     f"{burst.get('min')}) — routing starvation, not a sample")
     return (f"NO-HOPS ALERT: rate {payload['rate']} over the last "
             f"{payload['window_h']}h crossed threshold "
             f"{payload['threshold']} ({payload['nohops']}/"
             f"{payload['resolves']} resolves with zero eligible hops"
-            f"{cat_bit})")
+            f"{cat_bit}{burst_bit})")
 
 
 def _append_event(path: Any, row: Any) -> None:
@@ -456,17 +789,26 @@ def cmd_check(args: Any) -> int:
         return 2
     result = evaluate(rows, window_h=args.window_h)
     p = result["payload"]
+    verdict = "ALERT" if p["alert"] else "OK"
     if args.alert_dry_run:
         rec = deliver(result, dry_run=True)
+        print(f"[dry-run] verdict={verdict} kind={p.get('breach_kind') or '-'} "
+              f"({p['breach_reason']})")
         print(f"[dry-run] store: {meta['store']} rows_scanned="
               f"{meta['rows_scanned']} parse_failed={meta['parse_failed']}")
         print(f"[dry-run] delivered to: {'; '.join(rec['delivered'])}")
         return 1 if p["alert"] else 0
     rec = deliver(result, dry_run=False)
     s = result["series"]
+    # TR-344: one machine-readable verdict line — an operator (or a cron) reads
+    # the verdict without parsing prose, and the arm that fired is named.
+    print(f"verdict={verdict} kind={p.get('breach_kind') or '-'}")
     print(f"no-hops rate {p['rate']} over {p['window_h']}h "
           f"(n={p['n']}, threshold {p['threshold']} via "
           f"{p['threshold_source']}) breach_reason={p['breach_reason']}")
+    print(f"burst: {p['burst']['nohops']} no-hops in "
+          f"{p['burst']['window_h']}h (floor {p['burst']['min']}, "
+          f"{'BREACHED' if p['burst']['breached'] else 'below floor'})")
     print(f"window scanned {meta['rows_scanned']} store rows "
           f"({meta['parse_failed']} malformed skipped); "
           f"{s['non_resolves_excluded']} non-resolves, "
@@ -484,10 +826,14 @@ def cmd_status(args: Any) -> int:
     if meta.get("error"):
         print(f"router_nohops: {meta['error']}", file=sys.stderr)
         return 2
-    s = evaluate(rows, window_h=args.window_h)["series"]
+    _ev = evaluate(rows, window_h=args.window_h)
+    s = _ev["series"]
+    ev = _ev["payload"]
     out = dict(s, store=meta["store"],
                store_rows_scanned=meta["rows_scanned"],
-               store_parse_failed=meta["parse_failed"])
+               store_parse_failed=meta["parse_failed"],
+               burst=ev["burst"], breach_kind=ev["breach_kind"],
+               breached=ev["alert"])
     out["threshold"], out["threshold_source"] = resolve_threshold(
         load_baseline()[0])
     if args.json:
@@ -498,6 +844,12 @@ def cmd_status(args: Any) -> int:
     print(f"window      : {s['window_h']}h -> rate {s['rate']} "
           f"(no-hops {s['nohops']}/{s['resolves']}, n={s['n']})")
     print(f"threshold   : {out['threshold']} ({out['threshold_source']})")
+    b = ev["burst"]
+    print(f"burst       : {b['nohops']} no-hops in {b['window_h']}h "
+          f"(floor {b['min']}, "
+          f"{'BREACHED' if b['breached'] else 'below floor'})")
+    print(f"verdict     : {'ALERT' if ev['alert'] else 'OK'} "
+          f"(kind={ev['breach_kind'] or '-'})")
     cat = s["top_blocking_category"]
     if cat:
         print(f"blocking    : {cat} ({s['top_blocking_category_count']} "
@@ -556,9 +908,34 @@ def cmd_baseline(args: Any) -> int:
     return 0
 
 
+def cmd_unservable(args: Any) -> int:
+    """TR-344: the unservable-rating census, the same document the GET route
+    serves (one function — the CLI and /api/ui/unservable cannot disagree)."""
+    view = unservable_view(window_h=args.window_h, top_n=args.top_n,
+                           scan_limit=args.scan_limit)
+    if view.get("error"):
+        print(f"router_nohops: {view['error']}", file=sys.stderr)
+    if args.json:
+        print(json.dumps(view, indent=1, sort_keys=True))
+        return 0
+    print(f"store   : {view['store']} ({view['rows_scanned']} rows scanned)")
+    print(f"window  : {view['window_h']}h -> {view['total']} unservable "
+          f"ratings, {view['distinct_matrices']} distinct matrices")
+    print(f"classes : {view['by_lane_class'] or '{}'}")
+    print("top:")
+    for t in view["top"]:
+        print(f"  {t['count']:>5}  {t['lane_class']:<8} {t['matrix_hash']}")
+    print("buckets (hour, matrix, class, count):")
+    for b in view["buckets"]:
+        print(f"  {b['iso']}  {b['matrix_hash']}  {b['lane_class']:<8} "
+              f"{b['count']}")
+    return 0
+
+
 def main(argv: Any=None) -> int:
     ap = argparse.ArgumentParser(
-        description="TR-195 no-hops-rate baseline, threshold and alert")
+        description="TR-195/TR-344 no-hops-rate baseline, threshold, alert "
+                    "and the unservable-rating census")
     sub = ap.add_subparsers(dest="cmd", required=True)
 
     def common(p: Any) -> None:
@@ -575,6 +952,13 @@ def main(argv: Any=None) -> int:
                           help="print the exact POST payload; stub poster; "
                                "no webhook, no live state")
 
+    ap_uns = sub.add_parser("unservable",
+                            help="the per-unservable-rating census "
+                                 "(TR-344; same document as /api/ui/unservable)")
+    common(ap_uns)
+    ap_uns.add_argument("--top-n", type=int, default=10)
+    ap_uns.add_argument("--json", action="store_true")
+
     ap_base = sub.add_parser("baseline", help="measure the live store")
     common(ap_base)
     ap_base.add_argument("--write", nargs="?", const=True, default=None,
@@ -587,6 +971,8 @@ def main(argv: Any=None) -> int:
         return cmd_status(args)
     if args.cmd == "check":
         return cmd_check(args)
+    if args.cmd == "unservable":
+        return cmd_unservable(args)
     return cmd_baseline(args)
 
 

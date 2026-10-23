@@ -229,6 +229,9 @@ The bus→router door: `scripts/router_ingress.py`. Contract and evidence in
 | `ROUTER_NOHOPS_THRESHOLD` | `router_nohops.py` | Absolute no-hops-rate alert threshold (overrides the baseline-derived value; a malformed value falls through to the baseline ladder) | baseline `threshold`, else baseline `rate` + headroom, else 0.10 |
 | `ROUTER_NOHOPS_HEADROOM` | `router_nohops.py` | Margin added to the baseline rate when no explicit threshold exists | `0.05` |
 | `ROUTER_NOHOPS_MIN_N` | `router_nohops.py` | Minimum resolve sample in the window before an alarm may fire (below it the verdict names the shortfall instead of alerting) | `10` |
+| `ROUTER_NOHOPS_BURST_MIN` | `router_nohops.py` | TR-344 absolute-volume arm: no-hop resolves inside the burst window that make the alarm fire regardless of the rate (a burst is its own evidence, so it is not gated by `MIN_N`) | `50` |
+| `ROUTER_NOHOPS_BURST_WINDOW_H` | `router_nohops.py` | TR-344 burst window in hours, clamped to the window being evaluated | `1.0` |
+| `ROUTER_UNSERVABLE_FILE` | `router_spawn.py`, `router_nohops.py`, `router_server.py` | TR-344 append-only per-unservable-rating census (one row: ts, matrix_hash, lane_class, required_categories); backs `GET /api/ui/unservable` | `data/state/unservable-counters.jsonl` |
 | `ROUTER_NOHOPS_BASELINE` | `router_nohops.py` | Path to the recorded baseline JSON | `data/nohops-baseline.json` |
 | `ROUTER_NOHOPS_EVENTS_FILE` | `router_nohops.py` | Events log a delivered alert is always appended to | `data/state/router-events.jsonl` |
 | `ROUTER_NOHOPS_WEBHOOK_URL` | `router_nohops.py` | Deliver-thread webhook the alert payload is POSTed to (unset = events log only; dry-run never contacts it) | — (unset) |

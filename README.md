@@ -212,7 +212,16 @@ ROUTER_EDIT_API_KEY=... router server --mode edit
     search), `/api/ui/ledger` (ledger search; truncation always
     disclosed), `/api/ui/nohops` (TR-195 no-hops rate + hourly buckets +
     baseline/threshold verdict — the SAME number the alerter posts, so
-    the UI and the alert can never disagree), `/api/ui/quota` (TR-212
+    the UI and the alert can never disagree; TR-344 adds the
+    absolute-volume arm: `breach_kind` names `rate` | `burst` |
+    `rate+burst`, because 190 no-hop resolves in 34 minutes starved the
+    fleet while the RATE stayed under threshold — see
+    `ROUTER_NOHOPS_BURST_MIN`), `/api/ui/unservable` (TR-344 the
+    unservable-rating census: every rating the resolver dead-ended,
+    counted once into `data/state/unservable-counters.jsonl` and keyed by
+    `(matrix_hash, lane_class)` with `lane_class` ∈
+    `qa|releng|docs|readme|review|foreman|primary` — hourly buckets +
+    `top_n`; `?window_h=`, `?top_n=`, `?scan_limit=`), `/api/ui/quota` (TR-212
     quota remaining panel: per provider/window remaining + confidence +
     reset time + the source rung of every number — rung-2 endpoint
     answers are OBSERVED, rung-4 ledger derivations are stamped EST

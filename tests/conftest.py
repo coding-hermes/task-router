@@ -28,6 +28,19 @@ import pytest
 # any test module imports router_spawn — means the spawn cache never spawns.
 os.environ.setdefault('ROUTER_CACHE', '0')
 
+# TR-344: the resolver now appends every UNSERVABLE rating to
+# data/state/unservable-counters.jsonl (the fleet-scale census). Pre-existing
+# tests drive real router_spawn.resolve() calls at unsatisfiable ratings
+# (test_degraded_path_contract) and would otherwise append to the repo's live
+# runtime state on every suite run — the suite must grade the tree, not write
+# into it. Default the census file to a throwaway session path; tests that
+# assert on the counter set their own ROUTER_UNSERVABLE_FILE.
+os.environ.setdefault(
+    'ROUTER_UNSERVABLE_FILE',
+    os.path.join(os.environ.get('TMPDIR') or '/tmp',
+                 'tr344-census-%d' % os.getpid(),
+                 'unservable-counters.jsonl'))
+
 
 #: duckdb seed budget. 11s idle measured -> ~55x margin even at heavy load.
 SEED_TIMEOUT = 600

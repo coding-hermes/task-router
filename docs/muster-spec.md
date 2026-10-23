@@ -119,9 +119,13 @@ proceed on your own judgment", never "stop". Muster renders HTTP errors as
 text `"Error: HTTP 403: {\"error\": \"read-only mode\"}"` with `isError: true`
 — callers parse text content, not structured errors.
 
-## 4. Operation census: 30 operations — 22 reads, 8 mutations
+## 4. Operation census: 31 operations — 23 reads, 8 mutations
 
-### Reads (22 GETs — agent-safe, the recommended MCP consumer surface)
+> TR-344 (2026-10-22) added one read: `getUiUnservable` (the unservable-rating
+> census). The rule is unchanged — reads keyless, mutations op-level
+> `EditApiKey`.
+
+### Reads (23 GETs — agent-safe, the recommended MCP consumer surface)
 
 | operationId | Path | Purpose (one line) |
 |---|---|---|
@@ -138,6 +142,7 @@ text `"Error: HTTP 403: {\"error\": \"read-only mode\"}"` with `isError: true`
 | `getUiFlow` | GET /api/ui/flow | one request end-to-end (session id) |
 | `getUiSeries` | GET /api/ui/series | traffic + cost over time, bucketed, per-bucket n |
 | `getUiNohops` | GET /api/ui/nohops | no-hops rate + threshold verdict (same computation as the alerter) |
+| `getUiUnservable` | GET /api/ui/unservable | TR-344 unservable-rating census: hourly buckets keyed by (matrix_hash, lane_class) + top-n |
 | `getUiBoard` | GET /api/ui/board | board JSONL search for the UI |
 | `getUiLedger` | GET /api/ui/ledger | outcome-ledger search (always discards nothing silently) |
 | `listProfiles` | GET /profiles | task profiles |

@@ -1154,3 +1154,12 @@ tasks:
   status: complete
   created_at: '2026-10-22T23:34:28.763329+00:00'
   completed_at: '2026-10-23T00:56:13.192930+00:00'
+- id: TR-344
+  title: no-hops/unservable-rating alarm gap at fleet scale
+  criteria:
+  - rating-resolver records per-unservable-rating counter (matrix+lane class) queryable
+    without log grepping; TR-195 baseline alarm fires at observed volume (replay of
+    2026-10-20 10:20-10:54 window); scheduler tick 503 unservable recorded as own
+    failure_reason class (not gateway_transport)
+  status: in_progress
+  created_at: '2026-10-23T02:07:59.529786+00:00'

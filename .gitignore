@@ -30,6 +30,10 @@ data/state/outcomes-averages.jsonl
 # exact names, so this class rule cannot swallow them.
 data/state/intake-seen.jsonl
 data/state/intake-resolves.jsonl
+# TR-344 unservable-rating census — append-only runtime state, one row per
+# unservable rating (never committed: it grows with traffic, and trackers would
+# dirty the tree on every starved resolve).
+data/state/unservable-counters.jsonl
 
 # guard logs are rotational run output (TR-089/TR-105): the countable metric
 # lives in the per-run logs themselves; keep the tree clean, compress old logs.

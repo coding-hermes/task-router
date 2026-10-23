@@ -142,6 +142,11 @@ def build_openapi() -> dict:
             {"name": "window_h", "in": "query", "required": False, "schema": number, "description": "How far back to read (default 24)"},
             {"name": "scan_limit", "in": "query", "required": False, "schema": integer, "description": "Store rows to tail-scan (default 200000)"},
         ]),
+        "/api/ui/unservable": ("getUiUnservable", "TR-344: the unservable-rating census — every rating the resolver dead-ended (no eligible model, no fallback lane) counted once, keyed by (required_categories fingerprint, lane_class). Hourly buckets + the top-n, read from the append-only data/state/unservable-counters.jsonl (ROUTER_UNSERVABLE_FILE). Answers 'which rating, on which lane family, how often' without grepping logs; the same document scripts/router_nohops.py unservable prints.", [
+            {"name": "window_h", "in": "query", "required": False, "schema": number, "description": "How far back to read (default 24)"},
+            {"name": "top_n", "in": "query", "required": False, "schema": integer, "description": "How many (matrix, lane_class) groups to rank (default 10)"},
+            {"name": "scan_limit", "in": "query", "required": False, "schema": integer, "description": "Counter rows to tail-scan (default 200000)"},
+        ]),
         "/api/ui/quota": ("getUiQuota", "TR-212: the quota remaining panel — one row per declared (provider, window) from the L0 quota table with remaining + confidence + reset time + the SOURCE RUNG of every number (rung-2 usage endpoint = observed; rung-4 derivation from the L2 ledger = estimated, basis derived-from-ledger; an estimate can never render as a reading). NULL limits render unknown (<reason>) verbatim from the L0 table — never 0, never blank. Burn-surplus candidates carry their reset countdown (from the same L2 view, delegated to router_quota_burn). Ledger read is tail-bounded and reports rows_scanned / scan_limit / scan_truncated.", [
             {"name": "provider", "in": "query", "required": False, "schema": string, "description": "Exact provider id to filter to"},
             {"name": "scan_limit", "in": "query", "required": False, "schema": integer, "description": "Ledger rows to tail-scan (default 200000); reported back as rows_scanned"},
@@ -696,9 +701,33 @@ class RouterApplication:
                             "threshold_source":
                                 result["payload"]["threshold_source"],
                             "breached": result["payload"]["alert"],
+                            # TR-344: WHICH arm fired (rate | burst | rate+burst)
+                            # + the burst numbers, so the panel can never show
+                            # 'not breached' while a volume alarm is live.
+                            "breach_kind": result["payload"].get("breach_kind"),
+                            "burst": result["payload"].get("burst"),
                             "breach_reason":
                                 result["payload"]["breach_reason"]})
                 return 200, res
+            if path == "/api/ui/unservable":
+                # TR-344: the unservable-rating census (see route-table entry).
+                # One function (router_nohops.unservable_view) backs the CLI and
+                # this route, so they can never disagree about a count. Fail-open:
+                # an unreadable counter store is a reported error document with
+                # empty buckets, never a 500 that kills the page.
+                try:
+                    import router_nohops as _nohops_view
+                    return 200, _nohops_view.unservable_view(
+                        window_h=router_ui_page._series_float(
+                            query, "window_h", 24.0),
+                        top_n=int(router_ui_page._series_float(
+                            query, "top_n", 10) or 10),
+                        scan_limit=int(router_ui_page._series_float(
+                            query, "scan_limit", 200000) or 200000))
+                except Exception as exc:  # noqa: BLE001
+                    return 200, {"error": f"unservable census failed: {exc}",
+                                 "window_h": 24.0, "buckets": [], "top_n": 10,
+                                 "top": [], "total": 0}
             if path == "/api/ui/quota":
                 # TR-212: the quota remaining panel (see route-table entry).
                 # Fail-open like every diagnostic: a broken quota plane is a
@@ -3231,9 +3260,43 @@ def _proxy_requirements(body: Any, headers: Any, path: Any) -> tuple:
                           'model': res.get('model'), 'problems': _probs}
 
 
-def _proxy_chain(requirements: Any, sort_spec: Any=None, window_h: Any=None):
+def _lane_hint(headers: Any) -> Any:
+    """TR-344: the caller's own lane identity, when it declares one.
+
+    A fleet scheduler lane is named `<project>-<family>` (`lore-qa`,
+    `task-router-releng`). The proxy has no other way to know which LANE a
+    request came from (one gateway, one key, many lanes), so the caller may
+    name it with `x-router-lane` (preferred) or `x-router-project`. Nothing
+    declared -> None: the census then says 'primary' WITH
+    lane_class_source='default-no-lane-hint', never a silent guess.
+    """
+    if not isinstance(headers, dict):
+        return None
+    for key in ('x-router-lane', 'x-router-project'):
+        v = headers.get(key)
+        if isinstance(v, str) and v.strip():
+            return v.strip()[:200]
+    return None
+
+
+def _lane_class_of(hint: Any) -> str:
+    """The rated lane family for a hint (TR-344), via the one classifier the
+    census uses — the row and the counter can never disagree."""
+    try:
+        import router_nohops
+        return router_nohops.lane_class(hint)
+    except Exception:  # noqa: BLE001 — evidence, never fatal
+        return 'primary'
+
+
+def _proxy_chain(requirements: Any, sort_spec: Any=None, window_h: Any=None,
+                 lane: Any=None):
     """Ask the router for the chain (subprocess: the CLI stays the single
-    source of truth for resolve semantics)."""
+    source of truth for resolve semantics).
+
+    TR-344: `lane` rides as `--lane`, which keys the unservable-rating census
+    ONLY — the resolver's routing, gates and ordering ignore it.
+    """
     args = ['--format', 'json']
     if requirements.get('profile_id'):
         args += ['--profile', requirements['profile_id']]
@@ -3243,6 +3306,8 @@ def _proxy_chain(requirements: Any, sort_spec: Any=None, window_h: Any=None):
         args += ['--sort', sort_spec]
     if window_h:
         args += ['--window-h', str(window_h)]
+    if isinstance(lane, str) and lane.strip():
+        args += ['--lane', lane.strip()]
     try:
         raw = _subprocess_text("router_spawn.py", args, timeout=180)
         out = json.loads(raw) if raw else {}
@@ -3838,7 +3903,8 @@ def _proxy_record(provider: Any, model: Any, ok: Any, requirements: Any, reason:
                   degrade_reason: Any=None, steps: Any=None, chain_evidence: Any=None,
                   classifier_evidence: Any=None, attempts: Any=None,
                   prompt_chars: Any=None, prompt_sha: Any=None, session_stats: Any=None,
-                  caller_session_key: Any=None, deadline: Any=None) -> None:
+                  caller_session_key: Any=None, deadline: Any=None,
+                  lane_class: Any=None, lane_class_source: Any=None) -> None:
     """One outcome row per attempt + breaker evidence (best effort, fail-open).
 
     TR-071: `source` is the DRIVER identity when the caller declared one
@@ -3948,6 +4014,20 @@ def _proxy_record(provider: Any, model: Any, ok: Any, requirements: Any, reason:
                # This is the per-task join key the ledger was missing: one line
                # names the tick AND the lane/cost facts already on the row.
                'caller_session_key': caller_session_key,
+               # TR-344: WHICH rated lane family this request belonged to
+               # (qa | releng | docs | readme | review | foreman | primary). A
+               # scheduler tick that dies on an unservable rating could not be
+               # told apart from a gateway outage once the row landed, and the
+               # fleet concentrated those failures in -qa/-releng lanes. The
+               # class is the caller's own declaration (x-router-lane /
+               # x-router-project) or the resolver's census verdict; NULL plus
+               # its source means no lane identity reached this layer — never
+               # an invented 'primary'.
+               'lane_class': (lane_class if isinstance(lane_class, str)
+                              and lane_class.strip() else None),
+               'lane_class_source': (lane_class_source
+                                    if isinstance(lane_class_source, str)
+                                    else None),
                # TR-264: the deadline verdict on EVERY row (criterion A/C).
                # Undeclared reads {'declared': False, 'declared_s': None,
                # 'declared_reason': 'caller declared no deadline headers', ...} —
@@ -4251,8 +4331,10 @@ def _proxy_chat_inner(path: Any, body: Any, headers: Any, max_hops: Any=None, up
                                         ['unrated prompt -> floor set unavailable (registry '
                                          'categories unreadable); degrading to P0_FORE as '
                                          'last resort (TR-139)']}
+    lane_hint = _lane_hint(headers)  # TR-344: the caller's own lane identity
     resolved = _proxy_chain(requirements, sort_spec=headers.get('x-router-sort'),
-                            window_h=headers.get('x-router-window-h'))
+                            window_h=headers.get('x-router-window-h'),
+                            lane=lane_hint)
     chain = resolved.get('chain') or []
     # TR-081: the ladder must be SELF-AUDITING. The resolver filters gated lanes
     # before the proxy ever sees the chain, so a caller can be served at hop 4
@@ -4419,6 +4501,27 @@ def _proxy_chat_inner(path: Any, body: Any, headers: Any, max_hops: Any=None, up
             error_msg = ('no eligible model for this rating in the registry and no '
                          'fallback lane could serve (requirements_unmet: the rating '
                          'outruns the fleet — see TR-185)')
+        # TR-344: the row already names the CLASS ('unservable-rating', TR-194);
+        # what it could not say is WHICH rated lane family starved, so a
+        # supervisor tick could not tell routing starvation from a gateway
+        # outage and could not see that -qa/-releng carried the damage. The
+        # resolver's census verdict wins (it keyed the counter); else the
+        # caller's own declaration. A plain gating no-hops with NO declaration
+        # stamps nothing: 'primary' is a claim about a lane family, and
+        # inventing it for an undeclared caller would be a guess on the row.
+        _row_lane_class = None
+        _row_lane_source = None
+        if failure_reason == 'unservable-rating':
+            _row_lane_class = (resolved.get('lane_class')
+                               if isinstance(resolved.get('lane_class'), str)
+                               else _lane_class_of(lane_hint))
+            _row_lane_source = (resolved.get('lane_class_source')
+                                if isinstance(resolved.get('lane_class_source'), str)
+                                else ('declared' if lane_hint
+                                      else 'default-no-lane-hint'))
+        elif lane_hint:
+            _row_lane_class = _lane_class_of(lane_hint)
+            _row_lane_source = 'declared'
         # TR-136: this is the OTHER blind exit — it returns before the ladder, so
         # it needs the same envelope or a caller cannot tell it apart from a
         # transport death.
@@ -4440,9 +4543,16 @@ def _proxy_chat_inner(path: Any, body: Any, headers: Any, max_hops: Any=None, up
                       chain_evidence=_chain_evidence(resolved, chain),
                       classifier_evidence=_classifier_evidence(requirements, source),
                       prompt_chars=_prompt_stats[0], prompt_sha=_prompt_stats[1],
-                      deadline=meta['deadline'])
+                      deadline=meta['deadline'],
+                      lane_class=_row_lane_class,
+                      lane_class_source=_row_lane_source)
+        # TR-344: the body names the class and the lane family too, so a
+        # supervisor tick classifies the failure without reading the ledger.
+        _lane_body = ({'lane_class': _row_lane_class} if _row_lane_class else {})
         return 503, {'error': error_msg,
                      'registry_missing': registry_missing,
+                     'failure_reason': failure_reason,
+                     **_lane_body,
                      '_router': _failure_envelope(meta, session_id, source_system,
                                                   parent_session_id, ladder_t0,
                                                   'no-hops', [], failure_reason,
