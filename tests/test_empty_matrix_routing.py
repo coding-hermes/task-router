@@ -70,7 +70,7 @@ def test_empty_matrix_builds_a_floor_chain_not_the_priciest_profile(monkeypatch)
                         lambda registry_path=None: list(real_cats))
     seen = {}
 
-    def fake_chain(requirements, sort_spec=None, window_h=None):
+    def fake_chain(requirements, sort_spec=None, window_h=None, lane=None):
         seen['requirements'] = requirements
         return {'chain': [{'provider': 'free', 'model': 'lane', 'usd_1m': 0.0}]}
 
@@ -144,7 +144,7 @@ def _boom_classifier(monkeypatch):
 def _capture_chain(monkeypatch):
     seen = {}
 
-    def fake_chain(requirements, sort_spec=None, window_h=None):
+    def fake_chain(requirements, sort_spec=None, window_h=None, lane=None):
         seen['requirements'] = requirements
         return {'chain': [{'provider': 'free', 'model': 'lane', 'usd_1m': 0.0}]}
 
