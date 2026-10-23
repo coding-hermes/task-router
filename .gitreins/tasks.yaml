@@ -1181,3 +1181,17 @@ tasks:
   status: complete
   created_at: '2026-10-23T07:43:39.524534+00:00'
   completed_at: '2026-10-23T08:33:14.464515+00:00'
+- id: XK-404-001-R2-FIX
+  title: 'R2 rework: every archived vanished lane carries its dated reason (judge
+    finding 2a12b7f8)'
+  criteria:
+  - 'In /home/kara/task-router at commit bf5fef9: all 16 archived rows for deepseek/deepseek-v4-flash-0731,
+    deepseek/deepseek-v4-pro-0813, deepseek/deepseek-v4.1-flash, nvidia/nemotron-3-super,
+    stealth/space-bunny-alpha:free, tencent/hy3, tencent/hy3-preview and tencent/hy4-preview
+    across providers xkiro and xkiro-2 carry archive=true, a valid_to date, a lifecycle_source
+    and a non-empty note, with data/tables/models.jsonl still at 2004 lines and every
+    other row byte-identical; tests/test_xkiro_catalog_freshness.py and tests/test_catalog_vanished.py
+    pass.'
+  status: complete
+  created_at: '2026-10-23T09:08:48.443828+00:00'
+  completed_at: '2026-10-23T09:08:52.145552+00:00'

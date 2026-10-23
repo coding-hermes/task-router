@@ -1,0 +1,65 @@
+{
+  "tick_id": "task-router-foreman-2026-10-23-07-21-45",
+  "project": "task-router",
+  "workdir": "/home/kara/task-router",
+  "created_at": "2026-10-23T07:45:00Z",
+  "finished_at": "2026-10-23T09:20:00Z",
+  "wave_budget": 10,
+  "mode": "serial",
+  "wave_size": 1,
+  "reason": "Serial fallback: the pending P2 band is registry-data work that shares the generated tables (data/tables/models.jsonl, projects.jsonl) and each row requires a router_seed.py re-run, so two workers would collide on the same regenerated files. One high-value row dispatched.",
+  "census": {
+    "board_physical_lines": 365,
+    "board_distinct_ids": 355,
+    "pending_rows": 42,
+    "pending_p2": 22,
+    "in_progress_rows": 4,
+    "complete_rows": 286,
+    "p0_pending_all_blocked": ["RELEASE-2026-10-22-001 (owner authorization + deps)", "TR-294 (owner-authorized restart)"],
+    "selected": "XK-404-001-R2",
+    "selection_rationale": "Live defect confirmed at HEAD: 8 non-archived xkiro rows absent from the live carrier catalog, 2 of them fully rankable (plan_tier 0, no archive/valid_to/disabled) so every chain walk that picked one burned HTTP 404 first — third recurrence of XK-404-001."
+  },
+  "workers": [
+    {
+      "task_id": "XK-404-001-R2",
+      "branch": "main",
+      "worktree": "/home/kara/task-router",
+      "model": "glm-5.3-flash",
+      "provider": "opencode-go",
+      "lane_note": "configured lane zai-glm was rate-limited at 02:38Z (gateway fell back to xkiro/gpt-5.4-mini then 9router); opencode-go answered in-lane with model=glm-5.3-flash provider=opencode-go and no fallback line",
+      "pid": 4189486,
+      "session": "20261023_024458_357329",
+      "log": "/tmp/xk-r2-worker-20261023.log",
+      "brief": "/tmp/xk-r2-brief-20261023-0245.txt",
+      "tool_calls": 64,
+      "duration_min": 34,
+      "exit_code": 0,
+      "status": "salvaged",
+      "status_detail": "Worker wrote the data edit, the class fix and a new test file, then exited before committing with its own new tests failing (2 NameError/fixture bugs it had already named). Foreman reviewed the diff, fixed the test bugs, verified the data integrity (2004 rows before/after, order preserved, exactly 16 rows changed), ran the gates and committed.",
+      "commits": ["de51368", "bf5fef9"],
+      "verdicts": {
+        "implementation": {"task": "XK-404-001-R2", "id": "2a12b7f8", "dir": ".gitreins/history/2026-10-23/06aaa98b", "passed": false, "commit": "de51368", "reason": "one residual: stealth/space-bunny-alpha:free rows carried no note"},
+        "rework": {"task": "XK-404-001-R2-FIX", "id": "f07e5154", "dir": ".gitreins/history/2026-10-23/cbb892d3", "passed": true, "commit": "bf5fef9"}
+      }
+    }
+  ],
+  "gates": {
+    "pytest_focused": "test_catalog_vanished 7, freshness 2, wiring 15, drift+refresh 30 — all passed",
+    "guard": "gitreins-guard-tests.sh RC=0: 2531 passed, 3 skipped, 0 failed in 661.49s; null-debt INV1-3 PASS; type-hint floor OK",
+    "seed": "ROUTING_NS=/tmp/xk-r2-ns router_seed.py RC=0",
+    "spawn_sanity": "gate OPEN, 23 hops, head xkiro/openai/gpt-5.6-terra, 0 retired ids in stderr",
+    "live_reconciler_dry_run": "xkiro 0 vanished; xkiro-2 61 vanished (none rankable; filed as XK-404-001-RESID)"
+  },
+  "merge_plan": ["verify commit", "focused + full suite", "guard", "gitreins task complete", "board closeout", "push + remote parity"],
+  "result": {
+    "commits": ["de51368", "bf5fef9"],
+    "pushed": true,
+    "remote_parity": "0/0 at bf5fef9",
+    "board_row": "XK-404-001-R2 complete (commit bf5fef9, guard PASS, ci SKIP: GitHub API 403 rate limit at close)",
+    "follow_up_row": "XK-404-001-RESID (P3, pending)",
+    "ci_health_at_dispatch": {
+      "head": "683d9191d02bfa8a65be3aaaa8f673d67c9a38fc",
+      "latest_runs": "success (683d919), success (39d3853); the two earlier failures today (58d6ee7, be75326) are the TR-344 regression pair already fixed by 39d3853 — no new CI row filed"
+    }
+  }
+}
