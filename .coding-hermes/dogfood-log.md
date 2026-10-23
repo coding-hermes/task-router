@@ -112,3 +112,67 @@ read, and one is decisive:
   environmental and reproducible, and it fails the repo's pre-push CI gate for **every** lane trying to land a
   board row. `INT-CI-5` therefore has six instances, one of them on a docs-only head — the cleanest possible
   "not our code" datum for whoever fixes it (reported as event `20261019235708`).
+### Run 39 — tick task-router-dogfood-2026-10-23-00-27-32 (resumed turn; run 1 harvest + judge)
+
+Split delivery: the scheduler delivered this tick TWICE into one session (session eb4ada7b, two identical
+user rows 19:27:34 and 19:37:35). Run 1 (19:27→19:37, ~140 messages) executed the legs but ZERO write-back
+(its model emitted no assistant prose over 100 chars; it died in a `process_manage` poll-argument loop).
+This turn harvested run 1's artifacts, judged them, and landed the write-back.
+
+**Angle (inherited + extended).** Run 1 drove the local fresh-install leg on a scratch
+(/tmp/task-router-df-20261023-002732, repo HEAD 6376b1f) and began a bunker leg on agent tr-df-1023
+(bunker-mvp). This turn re-verified the local artifacts on disk, re-drove an A/B on the same scratch, and
+pulled the bunker transcript from the session DB (proc_1619eeb92484 log).
+
+**Local leg (run 1 artifacts, verified ON DISK this turn):**
+- venv 2.93s · pip -e . 3.70s (task_router-0.2.0 editable wheel built OK) · duckdb install 4.34s (2.0.0)
+- router seed 12.91s (3944 model_perf rows → registry.json 4640.8 KB)
+- spawn cold 0.23s / warm 0.24s / status 0.32s / validate 0.19s / raw-req 0.23s / unknown-project 0.21s rc=0 fail-open error json
+- router validate: all 14 checks passed
+- unknown-project error: proper fail-open JSON, rc 0, `{"error": "project definitely-not-a-project not in registry"}` — TR-235 contract holds.
+
+**Bunker leg (run 1, transcript evidence — agent TTL expired, artifacts unrecoverable):**
+- tr-df-1023 spawned 19:32 on bunker-mvp (100.115.67.116); first staged leg had a quoting EOF bug
+  (unterminated `''` in the heredoc — rc 2 ×2); inline retry leg (proc_1619eeb92484) ran the documented
+  path end-to-end on the agent: git clone → venv → pip -e → duckdb → seed 22.61s (3954 rows) → spawn 0.26s
+  → validate 0.12s → **crashed at the final jq summary** (`jq: command not found`, rc 127).
+- Harvest result: transcript carries the full per-step rc/time (all product steps green; the failure is the
+  HARNESS's jq dependency, not the product). The spawn.json/validate.txt artifacts are GONE (agent left the
+  registry at TTL; no key file at ~/.config/bunker/keys/tr-df-1023). This is an install leg SKIPPED-row
+  candidate resolved as "ran, evidence partially harvested from transcript only."
+- RESIDUES: agent name was tr-df-1023; on the shared bunker-mvp host the agent is no longer listed
+  (`bunker list | grep tr-df` → no matches). Registry/key residue: ~/.bunker/keys/ does NOT carry the
+  agent (it was in ~/.config/bunker/keys — also absent).
+
+**A/B judgment on the empty-chain signal (run 1's most suspicious artifact).**
+Run-1's local spawn returned `chain=[]`, `gate=NO-OPEN-HOP` with 26 hop-exclusions all citing
+`policy-gate-missing-row: provider not listed in quota-state.json`. A/B on the SAME scratch tree this turn:
+
+- ARM A (README env trio: TASK_ROUTER_HOME=$DATA + ROUTER_STATE_DIR=$DATA/state) → chain EMPTY, gate NO-OPEN-HOP. [run 1's arm]
+- ARM B (TASK_ROUTER_HOME only; ROUTER_STATE_DIR unset, CLI sets it to data-home) → 26-lane chain, gate=OPEN, head xkiro/gpt-5.6-terra $0.04/task plan-effective, price-sorted with PAYG fallback lanes. /tmp/tr-ab-spawn.json
+- ARM C (no env at all, HOME isolated to /tmp/tr-rsdhome) → bootstrap correctly wrote quota-state.json to $HOME/.local/share/task-router/, spawn resolved a real chain (rc 0, non-empty chain) — the DOCUMENTED behavior.
+
+Arms B and C are the product's own convention, working. Arm A is the split-convention trap: ROUTER_STATE_DIR
+pointed at a subdir the first-run bootstrap does not write to (it writes the data-home ROOT,
+task_router/cli.py:443 → paths.quota_state_path() = resolve_data_home() = DATA root, NOT ROUTER_STATE_DIR),
+while spawn's state resolver (scripts/state_dir.py) honors ROUTER_STATE_DIR. Result on fresh install: the
+exclusion code names a file the install never received → every hop excluded → NO-OPEN-HOP. README.md:81
+promises "first run bootstraps a starter state file ... instead of a silent zero-chain surprise" — on this
+env combo the promise is false (the file exists, in a place nobody reads, and status reports present:false).
+Filed as **TR-345** (row appended; evidence list preserved in the row body).
+
+**Perf verdict (Step 2b):** no PERF row. Every CLI operation is 0.12–0.32s wall (spawn cold 0.23s, warm 0.24s,
+validate 0.19s, status 0.32s) — nothing a user would feel; seed is a 12.9s one-shot admin op. A win nobody can
+feel is not a finding.
+
+**Value verdict:** 🟡 PROMISING-BUT-ROUGH leaning SHIPPABLE. The resolve engine works (arm B/C: profile →
+eligibility → price sort → gates → head hop, all correct), error contracts hold (fail-open rc 0), fresh
+install succeeds on both hosts, and the teaching layer (README, docs, skills) is dense and accurate with ONE
+stale/incorrect promise (the ARM-A trap). Time-to-first-success on the documented path: ~25s from clone to
+chain (clone+venv+install+seed+spawn), no friction, no source-reading needed.
+
+**Left behind:** TR-345 on the board; the A/B artifacts at /tmp/tr-ab-spawn.json + run-1 scratch
+/tmp/task-router-df-20261023-002732/* (logs 01–10 + run-local.sh + bunker-leg.sh); DuckBrain run record (key
+/Dogfood/2026-10-23/task-router-dogfood-2026-10-23-00-27-32, namespace task-router). The dogfood-log entry and
+board row landed THIS turn (git commit below). The bunker transcript was the install-leg evidence; no agent
+survives (TTL'd), no key file residue.
