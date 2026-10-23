@@ -249,7 +249,13 @@ def _docs_dir():
 def _home_env_exports() -> dict:
     """Env-var map derived from the current data home (called per dispatch)."""
     home = paths.resolve_data_home(create=True)
-    state_dir = os.path.dirname(paths.circuit_state_path())  # == home
+    data_home_state = os.path.dirname(paths.circuit_state_path())  # == home
+    # TR-345: bootstrap the state dir the dispatched script will actually READ.
+    # `setdefault` below keeps an operator-set ROUTER_STATE_DIR, so that IS the
+    # spawn's state dir — bootstrapping the data home instead left the isolated
+    # dir empty (gate=NO-OPEN-HOP, every provider "not listed in
+    # quota-state.json").
+    state_dir = (os.environ.get('ROUTER_STATE_DIR') or '').strip() or data_home_state
     _bootstrap_state_dir(state_dir)
     data_dir = _data_dir()
     docs_dir = _docs_dir()
@@ -450,8 +456,23 @@ def _bootstrap_state_dir(state_dir) -> None:
     the operator gets a visible, editable file declaring the default policy
     rather than a silent zero-chain surprise. Never overwrites an existing
     file; any error is non-fatal (the underlying script still runs).
+
+    TR-345: the target MUST be the state dir the dispatched spawn will READ.
+    Pre-fix this always wrote to the DATA HOME root, so an operator who set
+    ROUTER_STATE_DIR (which `setdefault` below honors, and which the README's
+    isolation recipe recommends) got the file somewhere the isolated dir never
+    saw — gate=NO-OPEN-HOP with every provider "not listed in quota-state.json".
+    The mechanics now live in scripts/state_dir.py (one implementation, shared
+    with router_spawn.py's own isolated-dir bootstrap); the inline fallback
+    below keeps an installed-from-wheel CLI working when the checkout (and its
+    scripts/) is absent.
     """
-    qpath = paths.quota_state_path()
+    shared = _shared_state_dir_module()
+    if shared is not None:
+        shared.bootstrap_quota_state(state_dir, repo_root=REPO, warn=lambda m: print(
+            m if str(m).startswith('router:') else f"router: {m}", file=sys.stderr))
+        return
+    qpath = os.path.join(str(state_dir), 'quota-state.json')
     if os.path.exists(qpath):
         return
     try:
@@ -473,6 +494,29 @@ def _bootstrap_state_dir(state_dir) -> None:
             _json.dump(doc, f, indent=1)
     except Exception as e:  # noqa: BLE001 — bootstrap is best-effort
         print(f"router: state bootstrap skipped: {e}", file=sys.stderr)
+
+
+def _shared_state_dir_module():
+    """scripts/state_dir.py, imported for its bootstrap resolver (TR-345).
+
+    scripts/ ships with the checkout, not the wheel: an installed-from-wheel CLI
+    without a checkout gets None and the inline fallback. Never raises.
+    """
+    try:
+        import state_dir as _sd
+        if hasattr(_sd, 'bootstrap_quota_state'):
+            return _sd
+    except Exception:  # noqa: BLE001 — not on sys.path yet / stale copy
+        pass
+    try:
+        if SCRIPTS_DIR not in sys.path:
+            sys.path.insert(0, SCRIPTS_DIR)
+        import state_dir as _sd
+        if hasattr(_sd, 'bootstrap_quota_state'):
+            return _sd
+    except Exception:  # noqa: BLE001 — no checkout / stale copy
+        pass
+    return None
 
 
 def dispatch(cmd, argv) -> None:

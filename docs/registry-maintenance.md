@@ -188,6 +188,13 @@ failure semantics:
   (primary chain) and skipped in the fallback-lane path. The pre-TR-203
   behavior (silent pass-through on absence, ccce1f2/443b746) routed fresh,
   typo'd, and mirror providers with no policy decision at all.
+  **TR-345:** when the FILE itself is absent the exclusion (and the payload)
+  say so instead — `policy-gate-no-state-file: no quota-state.json at <path>`,
+  plus `quota.present=false` naming the exact path — because blaming a missing
+  ROW in a file the install never received sent operators chasing a policy
+  plane that did not exist. An explicitly isolated `ROUTER_STATE_DIR` now
+  bootstraps its own all-OPEN starter on first run, seeded from the registry's
+  provider set (which can include providers the committed table omits).
 
 Exemptions: a provider whose silence is deliberate (archived gateway alias,
 contributor tier that never routes) is listed in the file's top-level

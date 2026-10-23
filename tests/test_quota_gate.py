@@ -685,3 +685,155 @@ def test_the_second_resolution_window_is_real():
     assert second != first, (
         '_utc() stopped advancing in second resolution — the TR-095 reasoning '
         'about the comparison window would need revisiting')
+
+
+# ------------------------------------- TR-345: isolated state dir bootstrap ---
+#
+# ch:trace row=TR-345 spec=README.md:81,148 test=tests/test_quota_gate.py
+#   evidence="AC-A gate=OPEN chain=133 | AC-B 0 policy-gate-missing-row | AC-C
+#   gate=OPEN chain=83 | AC-D 35+ passed" witness=run verdict=CONFIRMED
+#
+# The defect (verified live at b80c096): the README's isolation recipe —
+# ROUTER_STATE_DIR=<scratch>, TASK_ROUTER_HOME unset — starved spawn's policy
+# gate. The first-run bootstrap only ever wrote quota-state.json to the DATA
+# HOME root, so the isolated dir received nothing, and the resolve returned
+# rc=0 with gate=NO-OPEN-HOP, chain=[] and 137 exclusions all reading
+# `policy-gate-missing-row: provider not listed in quota-state.json` — a
+# row-level complaint about a file that install never had.
+#
+# Post-fix contract, pinned here:
+#   1. an explicitly isolated state dir bootstraps its OWN all-OPEN starter
+#      (seeded from the registry's provider set) and resolves a real chain;
+#   2. an absent policy plane is self-explaining (`quota.present=false` naming
+#      the path, exclusion code `policy-gate-no-state-file`) — never the
+#      row-level code;
+#   3. the CLI bootstraps the state dir it EXPORTS to the dispatched spawn,
+#      not the data-home root (the second half of the same split-brain);
+#   4. the shared production dir is never bootstrapped (fail-closed stays).
+
+
+def test_isolated_state_dir_bootstraps_its_own_policy_plane(tmp_path):
+    """AC-A + AC-B, the exact operator recipe: ROUTER_STATE_DIR alone.
+
+    Pre-fix this run produced gate=NO-OPEN-HOP with an empty chain; the
+    assertion that fails first is the gate, so the regression is unmistakable.
+    """
+    state = tmp_path / 'isolated-state'
+    env = dict(os.environ)
+    env.pop('TASK_ROUTER_HOME', None)          # the recipe: NO data home
+    env.pop('ROUTER_STATE_DIR_WARN', None)
+    env['ROUTER_STATE_DIR'] = str(state)       # ONLY the isolation dir
+    env['ROUTING_REGISTRY'] = _write_registry(tmp_path)
+    # No tables dir on disk: the bootstrap must seed from the REGISTRY's own
+    # provider set, which is what the resolver gates against.
+    env['ROUTING_DATA_DIR'] = str(tmp_path / 'no-tables-here')
+    proc = subprocess.run(
+        [sys.executable, os.path.join(SCRIPTS, 'router_spawn.py'),
+         '--quiet', '--format', 'json', 'demo'],
+        capture_output=True, text=True, timeout=SEED_TIMEOUT, env=env)
+    assert proc.returncode == 0, proc.stderr
+    doc = json.loads(proc.stdout)
+
+    assert doc['gate'] == 'OPEN', (doc.get('gate'), doc.get('quota'))
+    assert len(doc['chain']) > 0, doc.get('quota')
+    # AC-B: zero row-level policy exclusions in an isolated first run
+    assert [e for e in doc['exclusions']
+            if 'policy-gate-missing-row' in (e.get('codes') or [])] == [], \
+        doc['exclusions']
+    # the payload names the plane it actually read
+    assert doc['quota']['present'] is True
+    assert doc['quota']['path'] == str(state / 'quota-state.json')
+    assert doc['quota']['bootstrap'] is True
+    assert os.path.isfile(state / 'quota-state.json'), (
+        'the isolated dir must be self-sufficient: the bootstrap writes the '
+        'starter INTO the dir the resolver reads')
+    seeded = json.loads((state / 'quota-state.json').read_text())
+    assert seeded['updated'] == 'bootstrap'
+    assert set(seeded['providers']) >= set(OPEN_PROVIDERS), (
+        'the starter must cover every provider the resolver can gate: '
+        f'{sorted(seeded["providers"])}')
+    assert all(row['status'] == 'open' for row in seeded['providers'].values())
+    # second run: an existing file is never rewritten (live deployments are
+    # byte-stable) and the chain is identical
+    first_bytes = (state / 'quota-state.json').read_text()
+    proc2 = subprocess.run(
+        [sys.executable, os.path.join(SCRIPTS, 'router_spawn.py'),
+         '--quiet', '--format', 'json', 'demo'],
+        capture_output=True, text=True, timeout=SEED_TIMEOUT, env=env)
+    assert proc2.returncode == 0, proc2.stderr
+    doc2 = json.loads(proc2.stdout)
+    assert (state / 'quota-state.json').read_text() == first_bytes
+    assert doc2['gate'] == 'OPEN'
+
+
+def test_absent_policy_plane_is_self_explaining_not_a_row_complaint(
+        monkeypatch, tmp_path):
+    """AC-B's other half: when the file IS missing, say THAT.
+
+    A bootstrap can be impossible (stale live byte-copy without the shared
+    module, unwritable dir, operator pointed at a half-provisioned state dir).
+    The payload must then name the missing file, and the exclusion code must be
+    `policy-gate-no-state-file` — demanding a row inside a file that does not
+    exist is the misdiagnosis this row exists for.
+    """
+    empty = tmp_path / 'never-bootstrapped'
+    empty.mkdir()
+    r = _resolve(monkeypatch, tmp_path, str(empty))
+
+    assert r['gate'] == 'NO-OPEN-HOP'
+    assert r['quota']['present'] is False
+    assert r['quota']['path'] == str(empty / 'quota-state.json')
+    assert str(empty / 'quota-state.json') in (r['quota']['note'] or '')
+    assert any('NO POLICY PLANE' in w for w in r['warnings']), r['warnings']
+
+    codes = {c for e in r['exclusions'] for c in (e.get('codes') or [])}
+    assert 'policy-gate-no-state-file' in codes
+    assert 'policy-gate-missing-row' not in codes
+    assert codes <= set(router_spawn.EXCLUSION_REASON_CODES)
+
+
+def test_cli_bootstraps_the_state_dir_it_exports(tmp_path, monkeypatch):
+    """The CLI half of the split-brain: bootstrap where the child will READ.
+
+    `_home_env_exports` exports ROUTER_STATE_DIR with setdefault, so an
+    operator-set isolation dir IS the spawn's state dir — the bootstrap used to
+    write the data-home root anyway, leaving the exported dir empty.
+    """
+    from task_router import cli
+    monkeypatch.setenv('TASK_ROUTER_HOME', str(tmp_path / 'dh'))  # data home
+    state = tmp_path / 'cli-state'
+    state.mkdir()
+    monkeypatch.setenv('ROUTER_STATE_DIR', str(state))
+    exports = cli._home_env_exports()
+    assert exports['spawn']['ROUTER_STATE_DIR'] == str(state), (
+        'premise: the export honors the operator env (setdefault)')
+    seeded = json.loads((state / 'quota-state.json').read_text())
+    assert seeded['updated'] == 'bootstrap'
+    assert seeded['providers'], 'starter must list providers'
+    # ... and the data-home root no longer receives the useless copy
+    assert not (tmp_path / 'dh' / 'quota-state.json').exists()
+
+
+def test_shared_state_dir_is_never_bootstrapped(tmp_path, monkeypatch):
+    """Fail-closed stays: the shared production dir is NOT bootstrapped, so a
+    deleted policy file still gates everything (TR-203 semantics)."""
+    prod = str(tmp_path / 'prod-state')
+    os.makedirs(prod, exist_ok=True)
+    monkeypatch.setattr(router_spawn, 'MR', prod)
+    monkeypatch.setenv('ROUTER_STATE_DIR', prod)
+    monkeypatch.setattr(router_spawn, 'DATA_DIR', str(tmp_path / 'no-tables'))
+    monkeypatch.setattr(router_spawn, '_REPO', str(tmp_path))
+    monkeypatch.setattr(router_spawn, '_state_dir_mod', _StubSharedState(
+        default=prod))
+    out = router_spawn._maybe_bootstrap_isolated_state()
+    assert out['attempted'] is False
+    assert 'shared production state dir' in (out['reason'] or '')
+    assert not (tmp_path / 'prod-state' / 'quota-state.json').exists()
+
+
+class _StubSharedState:
+    """Minimal stand-in for scripts/state_dir.py (default-dir identity only)."""
+
+    def __init__(self, default):
+        self.DEFAULT_STATE_DIR = default
+

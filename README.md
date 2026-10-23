@@ -77,11 +77,11 @@ subcommand works without it — but with no successful `router seed` there is
 no `registry.json`, so `router status` keeps reporting the sample-table
 fallback and `router validate` keeps exiting 1 (seed to clear both).
 
-On first run the CLI creates a data home and bootstraps a starter state file
-(`quota-state.json`) with every provider explicitly **open** — you get a
-visible, editable policy file instead of a silent zero-chain surprise. Edit it
-to gate providers; delete it and spawn fails closed (nothing resolves) rather
-than guessing.
+On first run the policy plane is bootstrapped for the dir that will read it:
+`quota-state.json` lands in the data home — or in `ROUTER_STATE_DIR` when you
+isolated it — with every provider explicitly **open**, so you get a visible,
+editable policy file instead of a silent zero-chain surprise. Edit it to gate
+providers; delete it and spawn fails closed (nothing resolves) rather than guess.
 
 ### Verify your install
 
@@ -149,6 +149,17 @@ state directory at a throwaway location explicitly (`ROUTER_STATE_DIR=/tmp/…`,
 or the command's own `--state-file` where it offers one) — and remember the
 default ports (`:9092` API, `:9093` web) are shared with a running fleet
 instance, so use `--port` when probing by hand.
+
+**An isolated state dir is self-sufficient on first run** (TR-345): setting
+`ROUTER_STATE_DIR` alone — no `TASK_ROUTER_HOME` — is enough for
+`python3 scripts/router_spawn.py` to bootstrap its own `quota-state.json` in
+that dir (every provider OPEN, reported as `quota.present=true` /
+`quota.bootstrap=true`), so the resolve returns a real chain instead of a
+fail-closed zero-chain. The bootstrap never overwrites an existing file and
+never touches the shared production dir. If the file is ever absent anyway, the
+payload says so plainly — `quota.present=false` with the exact path, and
+exclusions read `policy-gate-no-state-file` (not `policy-gate-missing-row`,
+which would blame a row in a file you never had).
 
 ## The router command
 
@@ -637,7 +648,7 @@ operational tools — review `--help` and use `--dry-run` where available.
 | `TASK_ROUTER_HOME` | the `router` CLI, metrics | Data home root; state + metrics resolve under it. |
 | `ROUTING_REGISTRY` | spawn, seed, maintain, validate | Path to `registry.json`. |
 | `ROUTING_DATA_DIR` | seed, spawn, pricing, modelsdev, clinepass, gaps, maintain | Directory of committed JSONL tables. |
-| `ROUTER_STATE_DIR` | spawn, circuit, ledger, probe | Directory holding quota/health/circuit state and the ledger. |
+| `ROUTER_STATE_DIR` | spawn, circuit, ledger, probe | Directory holding quota/health/circuit state and the ledger. When set, it also receives the first-run `quota-state.json` bootstrap, so an isolated state dir is self-sufficient (TR-345). |
 | `LEDGER_FILE` | ledger, spawn | Exact ledger JSONL path (shared contract). |
 | `ROUTER_EDIT_API_KEY` | server, web | Edit-mode API key; unset = read-only. |
 | `ROUTING_CIRCUIT_COOLDOWN_JSON` | circuit | JSON patch overriding per-class cooldown seconds. |

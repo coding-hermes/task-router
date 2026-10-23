@@ -731,7 +731,8 @@ def _model_limit(models_cfg: Any, diversity: Any, prov: Any, model: Any):
 #: facts in a form a consumer (the proxy envelope, a dashboard, a count of gated
 #: lanes by cause) can group on. Prose is kept: this is additive.
 EXCLUSION_REASON_CODES = (
-    'quota-gated', 'policy-gate-missing-row', 'health-down', 'health-slow',
+    'quota-gated', 'policy-gate-missing-row', 'policy-gate-no-state-file',
+    'health-down', 'health-slow',
     'health-disabled', 'model-down', 'model-slow',
     'circuit-open', 'model-busy', 'training-optin', 'consecutive-cap',
     'chain-cap', 'duplicate-lane', 'unknown',
@@ -740,6 +741,10 @@ EXCLUSION_REASON_CODES = (
 #: prefix -> code. Ordered: the FIRST match wins, so put the specific before the
 #: general ('health SLOW' before 'health').
 _REASON_PREFIXES = (
+    # TR-345: the FILE is missing (not just the row) — a distinct, self-explaining
+    # cause, so an isolated install's zero-chain never reads as "add a row to a
+    # file you were told exists".
+    ('policy-gate-no-state-file', 'policy-gate-no-state-file'),
     ('policy-gate-missing-row', 'policy-gate-missing-row'),
     ('quota GATED', 'quota-gated'),
     ('health DOWN', 'health-down'),
@@ -2410,6 +2415,127 @@ def _resolve_fallback(tables: Any, qs: Any, hs: Any, cs: Any, reqs: Any, limit: 
     return out
 
 
+def _quota_state_meta(present: Any=None):
+    """TR-345: the policy plane's IDENTITY — path, presence, provenance.
+
+    The fail-closed gate (TR-203) excludes a provider with no
+    `quota-state.json` row. That is right, but pre-TR-345 the reason code named
+    the FILE ("provider not listed in quota-state.json") even when the file did
+    not exist at all: an isolated state dir had never received one, so the
+    operator was told to fix a row in a file their install never had. This block
+    makes the payload self-explaining instead:
+
+      present=False  → `note` names the exact path, why everything is gated, and
+                       the three ways out (bootstrap/isolated dir, `router quota
+                       set … open`, restore the file);
+      present=True + updated=='bootstrap'  → sample policy in effect.
+
+    Additive only: gate behavior is untouched (fail-open incl. any error here).
+    """
+    qpath = os.path.join(MR, 'quota-state.json')
+    meta = {'path': qpath, 'present': False, 'bootstrap': False,
+            'providers': 0, 'note': None}
+    try:
+        meta['present'] = bool(present) if present is not None else os.path.isfile(qpath)
+    except Exception:  # noqa: BLE001 — visibility only, never raise
+        meta['present'] = False
+    try:
+        doc = load_json(qpath, None) if meta['present'] else None
+        if isinstance(doc, dict):
+            provs = doc.get('providers')
+            if isinstance(provs, dict):
+                meta['providers'] = len(provs)
+            if doc.get('updated') == 'bootstrap':
+                meta['bootstrap'] = True
+                meta['note'] = ('quota-state.json is the first-run bootstrap '
+                                'sample (all providers OPEN) — edit it to apply '
+                                f'real gates: {qpath}')
+    except Exception:  # noqa: BLE001 — visibility only, never raise
+        pass
+    if not meta['present']:
+        meta['note'] = (
+            f'no quota-state.json at {qpath} — the policy gate has no rows, so '
+            'fail-closed excludes EVERY provider (gate=NO-OPEN-HOP). Fix: run '
+            'with an isolated ROUTER_STATE_DIR and the first-run bootstrap '
+            'writes an all-OPEN starter there; or `router quota set <provider> '
+            f'open --json`; or restore {qpath}')
+    return meta
+
+
+def _registry_provider_ids():
+    """Every provider the RESOLVER can gate — registry models ∪ providers table.
+
+    TR-345: seeding the isolated bootstrap from data/tables/providers.jsonl alone
+    left registry-only providers (measured: deepseek-duckbrain-sync) without a
+    row, which re-created the very exclusion the fix exists to remove. The
+    resolver enumerates lanes from the registry, so the starter policy plane must
+    cover that same set. Fail-open: [] on any error (the file-based fallback in
+    state_dir.provider_ids then applies).
+    """
+    ids = []
+    try:
+        tables = _load_registry() or {}
+        rows = list(tables.get('models') or []) + list(tables.get('providers') or [])
+        for row in rows:
+            if not isinstance(row, dict):
+                continue
+            pid = row.get('provider') or row.get('id')
+            if pid and pid not in ids:
+                ids.append(pid)
+    except Exception:  # noqa: BLE001 — bootstrap is never fatal
+        return []
+    return ids
+
+
+def _maybe_bootstrap_isolated_state() -> dict:
+    """TR-345: an EXPLICITLY isolated state dir bootstraps its own policy plane.
+
+    Only an explicit `ROUTER_STATE_DIR` (the isolation recipe, and what
+    task_router.cli exports when it dispatches spawn) triggers this. Two safety
+    rails: the shared production dir is never bootstrapped, and an existing file
+    is never touched — so the fleet keeps its fail-closed semantics and a live
+    deployment is byte-identical. Fail-open: any problem leaves the dir as it was
+    and the resolve reports the missing file honestly (`quota.present=false`).
+    """
+    out = {'attempted': False, 'written': False, 'path': None, 'reason': None}
+    try:
+        env = (os.environ.get('ROUTER_STATE_DIR') or '').strip()
+        if not env:
+            out['reason'] = ('ROUTER_STATE_DIR unset — the shared state dir is '
+                             'never bootstrapped (fail-closed by design)')
+            return out
+        try:
+            if os.path.realpath(MR) == os.path.realpath(
+                    getattr(_state_dir_mod, 'DEFAULT_STATE_DIR',
+                            os.path.expanduser('~/.hermes/model-router'))):
+                out['reason'] = 'shared production state dir — never bootstrapped'
+                return out
+        except Exception:  # noqa: BLE001 — cannot compare: fall through, the
+            pass           # existing-file check below is the real guard
+        out['attempted'] = True
+        if _state_dir_mod is None or not hasattr(_state_dir_mod,
+                                                 'bootstrap_quota_state'):
+            out['reason'] = ('state_dir bootstrap unavailable (stale live '
+                             'byte-copy of scripts/state_dir.py)')
+            return out
+        res = _state_dir_mod.bootstrap_quota_state(
+            MR,
+            providers_path=[os.path.join(DATA_DIR, 'providers.jsonl')],
+            repo_root=_REPO, warn=_err,
+            provider_ids_list=_registry_provider_ids())
+        out.update(path=res.get('path'), written=bool(res.get('written')),
+                   reason=res.get('reason'))
+        if out['written']:
+            # TR-055: stderr stays quiet by default (payload carries it:
+            # state_bootstrap.written + quota.present), so this is NOT forced.
+            _err(f"router: isolated state dir {MR} had no quota-state.json — "
+                 f"first-run bootstrap wrote {res.get('path')} with "
+                 f"{res.get('providers')} providers OPEN. Edit it to gate lanes.")
+    except Exception as e:  # noqa: BLE001 — bootstrap never blocks a resolve
+        out['reason'] = f'{type(e).__name__}: {e}'
+    return out
+
+
 def _data_home_meta(source: Any, fallback_used: Any):
     """TR-046 (dogfood 2026-09-12): data/gate-state provenance for the JSON.
 
@@ -2639,6 +2765,22 @@ def resolve(project: Any=None, profile_id: Any=None, adhoc: Any=None, use_health
     qdoc = load_json(f'{MR}/quota-state.json', {})
     if not isinstance(qdoc, dict):
         qdoc = {}
+    # TR-345: ONE presence read for the whole resolve. The policy gate below
+    # uses it to say "the file itself is missing at <path>" instead of the
+    # pre-fix "provider not listed in quota-state.json" (a row-level complaint
+    # about a file the isolated install never received).
+    _quota_present = _present('quota-state.json')
+    _quota_path = os.path.join(MR, 'quota-state.json')
+    if not _quota_present:
+        # TR-345: LOUD, in-payload (not just stderr, and quiet mode is the
+        # default) — an absent policy plane is the one cause that gates EVERY
+        # lane, so it must be countable from the payload by any consumer.
+        warnings.append(
+            f'NO POLICY PLANE: {_quota_path} does not exist — the policy gate '
+            'has no rows, so fail-closed excludes every provider '
+            '(gate=NO-OPEN-HOP). An isolated ROUTER_STATE_DIR bootstraps an '
+            'all-OPEN starter on first run; otherwise create the file or run '
+            '`router quota set <provider> open --json`.')
     caps = _effective_caps(profiles, qdoc, pid)
     # TR-176: this used to return here — BEFORE the gate stage and BEFORE the fallback-lane
     # section at 4.5, which is reachable only via `if not head:` after the gates. So the
@@ -2714,12 +2856,22 @@ def resolve(project: Any=None, profile_id: Any=None, adhoc: Any=None, use_health
         # self-explaining code naming the file, never silently routed. Only a
         # row PRESENT with status != 'open' is the classic quota GATED case.
         if prov not in qs:
+            # TR-345: distinguish "no policy plane at all" from "no row for this
+            # provider". Pre-fix BOTH reported the row-level code, so a fresh
+            # isolated install (which never received the file) was told to add a
+            # row to a file that did not exist anywhere it could see.
+            if not _quota_present:
+                why.append('policy-gate-no-state-file: no quota-state.json at '
+                           f'{_quota_path} (provider {prov} is gated by '
+                           'fail-closed default)')
             # TR-203 audit contract: the file's top-level intentionally_ungated
             # list documents the deliberate silences. The mark does NOT open
             # the lane — it only makes THIS exclusion's reason say so, so the
             # audit script and the resolve path report the same story.
             _ungated = qdoc.get('intentionally_ungated')
-            if isinstance(_ungated, list) and prov in _ungated:
+            if not _quota_present:
+                pass  # already explained above; a row complaint would be a lie
+            elif isinstance(_ungated, list) and prov in _ungated:
                 why.append('policy-gate-missing-row: provider not listed in '
                            'quota-state.json (marked intentionally ungated)')
             else:
@@ -2921,6 +3073,10 @@ def resolve(project: Any=None, profile_id: Any=None, adhoc: Any=None, use_health
                 'profile': pid,
                 'reasons': reasons[:12],
                 'exclusions': exclusions[:20],
+                # TR-345: same policy-plane identity as the success payload, so
+                # a dead-end can name the missing file instead of leaving the
+                # operator to guess.
+                'quota': _quota_state_meta(_quota_present),
                 # TR-344: the same (matrix, lane class) the counter keyed on —
                 # the proxy stamps it on the ledger row, so the row and the
                 # counter can never disagree about who starved.
@@ -3010,6 +3166,10 @@ def resolve(project: Any=None, profile_id: Any=None, adhoc: Any=None, use_health
             'quota_gates': dict(quota_gate_summary(quota_gates),
                                 source=f'{MR}/quota-state.json'),
             'warnings': warnings,
+            # TR-345: the policy plane's identity + presence, so a zero-chain can
+            # be diagnosed from the payload alone (quota.present=false names the
+            # exact file + the fix). Additive; gate behavior untouched.
+            'quota': _quota_state_meta(_quota_present),
             'gate': 'OPEN' if head else ('NO-OPEN-HOP' if out_chain or exclusions else 'NO-CHAIN'),
             'settings': caps,
             # TR-049 c4/c5: which ordering was actually applied, and where the
@@ -3489,6 +3649,15 @@ def main() -> None:
              f"{args.project} given — resolving via project "
              f"(project profile wins)")
 
+    # TR-345: make an ISOLATED state dir self-sufficient BEFORE the resolve reads
+    # it. No-op unless ROUTER_STATE_DIR is explicitly set to a non-production
+    # dir; never overwrites an existing file; fail-open (a bootstrap error must
+    # not block a resolve — the payload then reports quota.present=false).
+    # Not mirrored into the payload on purpose: the fail-open error documents an
+    # exact key set (tests/test_cli_contracts.py), and `quota` already names the
+    # plane's presence/provenance.
+    _maybe_bootstrap_isolated_state()
+
     r = resolve(project=args.project, profile_id=args.profile_id,
                 adhoc=args.adhoc, use_health=not args.no_health,
                 allow_training=args.allow_training,
@@ -3524,6 +3693,12 @@ def main() -> None:
             print(f'  COMPLEXITY: {cx.get("source")} conf={cx.get("confidence")} '
                   f'({cx.get("text_chars")} chars from {cx.get("text_source")})')
     print(f'▶ {r.get("project", r.get("profile"))}  profile={r.get("profile")}  gate={r.get("gate")}')
+    qmeta = r.get('quota') or {}
+    if qmeta.get('present') is False:
+        print(f'  QUOTA: no policy plane at {qmeta.get("path")} — every lane is '
+              f'gated by fail-closed default')
+        if qmeta.get('note'):
+            print(f'    {qmeta["note"]}')
     h = r.get('head')
     if h:
         print(f'  HEAD: {h["provider"]}/{h["model"]}  ${h["usd_1m"]}/M')

@@ -50,6 +50,7 @@ Usage (inside a router script):
                             os.path.expanduser('~/.hermes/model-router'))
 """
 from __future__ import annotations
+import json
 import os
 import sys
 from typing import Any
@@ -58,6 +59,8 @@ ENV_VAR = 'ROUTER_STATE_DIR'
 WARN_ENV_VAR = 'ROUTER_STATE_DIR_WARN'
 DEFAULT_STATE_DIR = os.path.expanduser('~/.hermes/model-router')
 LIVE_INSTALL_DIR = os.path.realpath(os.path.expanduser('~/.hermes/scripts'))
+QUOTA_STATE_NAME = 'quota-state.json'
+BOOTSTRAP_NOTE = 'first-run bootstrap: all providers OPEN; edit to gate'
 
 _WARNED = set()
 
@@ -143,3 +146,127 @@ def resolve_state_dir(script_file: Any=None, argv0: Any=None, warn: Any=None,
         return DEFAULT_STATE_DIR
     except Exception:
         return DEFAULT_STATE_DIR
+
+
+# --------------------------------------------------------------------------
+# TR-345: first-run bootstrap FOR THE RESOLVED STATE DIR
+#
+# The bootstrap used to live only in task_router/cli.py and it always wrote to
+# the DATA HOME root (paths.quota_state_path()). That split-brain is the defect
+# this module now owns the fix for: an operator following the README's
+# isolation recipe (ROUTER_STATE_DIR=<scratch>, TASK_ROUTER_HOME unset) ran
+# `python3 scripts/router_spawn.py`, resolved MR to the scratch dir, found no
+# quota-state.json there — and got a fail-closed zero-chain with 137
+# `policy-gate-missing-row` exclusions naming a file the isolated dir never
+# received. One implementation, called with the dir the READER will use, so the
+# writer and the reader cannot disagree again.
+# --------------------------------------------------------------------------
+
+def quota_state_path(state_dir: Any=None):
+    """<state_dir>/quota-state.json (state_dir defaults to the resolved one)."""
+    return os.path.join(state_dir or resolve_state_dir(), QUOTA_STATE_NAME)
+
+
+def provider_ids(providers_path: Any=None, repo_root: Any=None):
+    """Provider ids from a providers.jsonl table; [] on any problem.
+
+    providers_path may be a single path or a list of candidates (first existing
+    wins) — router_spawn passes ROUTING_DATA_DIR first, then <repo>/data/tables,
+    because a live byte-copy of the script can sit outside the checkout.
+    Never raises.
+    """
+    cands = []
+    if isinstance(providers_path, (list, tuple)):
+        cands.extend([p for p in providers_path if p])
+    elif providers_path:
+        cands.append(providers_path)
+    if repo_root:
+        cands.append(os.path.join(str(repo_root), 'data', 'tables',
+                                  'providers.jsonl'))
+    cands.append(os.path.join(os.path.dirname(os.path.dirname(
+        os.path.realpath(__file__))), 'data', 'tables', 'providers.jsonl'))
+    for path in cands:
+        try:
+            if not os.path.isfile(path):
+                continue
+            ids = []
+            with open(path, encoding='utf-8') as fh:
+                for line in fh:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        pid = json.loads(line).get('id')
+                    except Exception:
+                        continue
+                    if pid:
+                        ids.append(pid)
+            if ids:
+                return ids
+        except Exception:
+            continue
+    return []
+
+
+def bootstrap_quota_state(state_dir: Any, providers_path: Any=None,
+                          repo_root: Any=None, warn: Any=None,
+                          provider_ids_list: Any=None):
+    """Write an all-OPEN starter quota-state.json into an EMPTY state dir.
+
+    The CALLER decides whether bootstrapping is appropriate (router_spawn.py
+    only does it for an explicitly isolated state dir; the shared production dir
+    keeps its fail-closed semantics). This function only mechanically makes the
+    requested dir self-sufficient:
+
+      - never overwrites an existing file (byte-stable for live deployments),
+      - never raises, never writes stdout (fail-open is sacred),
+      - writes atomically (tmp + os.replace) so concurrent first runs do not
+        leave a half-written policy plane behind.
+
+    provider_ids_list (TR-345): the caller's authoritative provider set — the
+    resolver enumerates lanes from the REGISTRY, which can name providers the
+    committed providers.jsonl does not list (measured: deepseek-duckbrain-sync
+    was registry-only, so seeding from the table alone still left one
+    policy-gate-missing-row exclusion and the isolated dir was not
+    self-sufficient). When given, it wins over providers_path.
+
+    Returns {'written', 'path', 'providers', 'reason'} — reason explains a
+    no-write ('exists', 'no provider table to seed from', 'no state dir', …) so
+    callers can report it instead of guessing.
+    """
+    out = {'written': False, 'path': None, 'providers': 0, 'reason': None}
+    try:
+        if not state_dir:
+            out['reason'] = 'no state dir'
+            return out
+        path = os.path.join(str(state_dir), QUOTA_STATE_NAME)
+        out['path'] = path
+        if os.path.exists(path):
+            out['reason'] = 'exists'
+            return out
+        ids = []
+        for pid in (provider_ids_list or []):
+            if pid and pid not in ids:
+                ids.append(pid)
+        if not ids:
+            ids = provider_ids(providers_path=providers_path, repo_root=repo_root)
+        if not ids:
+            out['reason'] = 'no provider table to seed from'
+            return out
+        os.makedirs(str(state_dir), exist_ok=True)
+        doc = {'updated': 'bootstrap',
+               'providers': {pid: {'status': 'open'} for pid in ids},
+               'note': BOOTSTRAP_NOTE}
+        tmp = path + '.tmp'
+        with open(tmp, 'w', encoding='utf-8') as fh:
+            json.dump(doc, fh, indent=1)
+        os.replace(tmp, path)
+        out.update(written=True, providers=len(ids))
+    except Exception as e:  # noqa: BLE001 — bootstrap is best-effort
+        out['reason'] = f'{type(e).__name__}: {e}'
+        try:
+            hook = warn or _default_warn
+            hook(f'router: state bootstrap skipped: {e}')
+        except Exception:
+            pass
+    return out
