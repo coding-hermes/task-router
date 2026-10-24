@@ -1,0 +1,31 @@
+{
+  "tick_id": "task-router-foreman-2026-10-24-20-18-45",
+  "project": "task-router",
+  "base": "c6c62351a98368c6129621af3dcb8079bd89e890",
+  "budget": 12,
+  "mode": "serial-verification",
+  "census": {
+    "pending_rows": 44,
+    "eligible_independent_implementation_rows": 0,
+    "selected_row": "TR-1000253612196962",
+    "selected_priority": "P1",
+    "selection_reason": "Highest-priority actionable row after P0 release row was dependency-blocked; implementation already landed, so this tick performed verification-only reconciliation."
+  },
+  "tasks": [
+    {
+      "id": "TR-1000253612196962",
+      "worktree": null,
+      "branch": null,
+      "dispatch": "not_dispatched",
+      "reason": "Verification-only row. Current live service is stale and read-only; mutation endpoints return 403. No owner-authorized restart was provided, so the live-injection acceptance criterion cannot be exercised safely."
+    }
+  ],
+  "verification": {
+    "focused_tests": "85 passed in 9.34s: tests/test_hop_taxonomy.py tests/test_circuit_v2.py tests/test_failure_contract.py tests/test_proxy_failure_envelope.py",
+    "live_health": "9391 /health returned 200; loaded_commit=187bcae615d3, repo_commit=c6c62351a983, stale=true",
+    "live_mutations": "POST /circuit/record, /ledger/start, /ledger/end each returned 403 read-only mode",
+    "gitreins": "Tier 1 passed; Tier 2 incomplete verdict 9b84d0d7 because live deployment proof was not present",
+    "ci": "Recent CI includes existing failures 40124423407 and 40124390365; tracked by INT-CI-20261024-01 / existing CI rows"
+  },
+  "finished_at": "2026-10-24T20:35:00Z"
+}
