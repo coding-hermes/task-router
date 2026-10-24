@@ -1077,14 +1077,6 @@ tasks:
   status: complete
   created_at: '2026-10-18T03:37:05.509923+00:00'
   completed_at: '2026-10-18T03:37:38.465920+00:00'
-- id: TR-274
-  title: 'Async serving core: bounded proxy serving path'
-  criteria:
-  - Implement an explicit async or bounded serving path without one thread per in-flight
-    proxied request; preserve thread default, wire health mode, compatibility, admission
-    visibility, and failure-class honesty with tests.
-  status: in_progress
-  created_at: '2026-10-21T13:25:37.623394+00:00'
 - id: TR-282
   title: Wiring score consumer and artifact integration
   criteria:
