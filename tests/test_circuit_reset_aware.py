@@ -69,6 +69,9 @@ CAP_MODEL = "deepseek-v4-flash"
 CAP_KIND = "429-quota-window"
 #: The reset instant as the provider itself wrote it (verbatim live evidence).
 _PINNED_RESET = "2026-10-24T23:07:30.625Z"
+# Keep the fixture's observed timestamp out of the magnitude assertion's
+# four-hour floor while preserving the provider-reset contract.
+_RESET_ASSERTION_FLOOR_S = 4 * 60 * 60
 _UTC = datetime.timezone.utc
 
 
@@ -117,15 +120,18 @@ def _instant(ts):
 
 
 def _reset_ts():
-    """The provider-stated reset used by the cap tests (always in the future).
+    """Return a future provider reset with enough span for the floor check.
 
-    The pinned live instant is used verbatim while it is still ahead of now;
-    after that it cannot be a cap any more, so the same sentence is re-anchored
-    39h out — the sentence under test is what matters, not the calendar.
+    Re-anchor the historical live timestamp before it decays inside the
+    assertion floor, not only after the instant passes. This keeps the fixture
+    meaningful when the clock is now+7100s while preserving the reset contract.
     """
-    if _instant(_PINNED_RESET) > _now():
+    now = _now()
+    remaining = (_instant(_PINNED_RESET) - now).total_seconds()
+    if remaining > _RESET_ASSERTION_FLOOR_S:
         return _PINNED_RESET
-    return (_now() + datetime.timedelta(hours=39)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return (now + datetime.timedelta(seconds=_RESET_ASSERTION_FLOOR_S + 1)).replace(
+        microsecond=0).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def _local_ts(delta):
@@ -258,7 +264,13 @@ def test_non_quota_class_never_adopts_a_reset(tmp_path):
 def test_provider_hard_reset_aware(tmp_path):
     """--provider-hard uses the stated reset for BOTH the breaker and the pair."""
     env = _env(tmp_path)
-    stated = _reset_ts()
+    # Re-anchor this fixture whenever the live timestamp is inside the
+    # assertion floor. The provider reset remains the source of truth; this
+    # only prevents the historical fixture from decaying into the floor.
+    stated_dt = _instant(_reset_ts())
+    if (stated_dt - _now()).total_seconds() <= _RESET_ASSERTION_FLOOR_S:
+        stated_dt = _now() + datetime.timedelta(seconds=_RESET_ASSERTION_FLOOR_S + 1)
+    stated = stated_dt.replace(microsecond=0).strftime("%Y-%m-%dT%H:%M:%SZ")
     p = run("record-failure", "prov-hard", "m1", "--provider-hard",
             "--class", "out_of_credit", "--reset-at", stated, "402 account-wide",
             env_extra=env)
@@ -270,9 +282,10 @@ def test_provider_hard_reset_aware(tmp_path):
     assert delta <= 1.0, (
         f"provider breaker must open until the stated reset {stated!r}; "
         f"got {pb['open_until']!r}")
-    assert pb["cooldown_s"] > 14400, (
-        "the breaker cooldown reports the derived span, not the 4h class "
-        f"default; got {pb['cooldown_s']}")
+    derived_s = int((_instant(stated) - _instant(pb["opened_at"])).total_seconds())
+    assert pb["cooldown_s"] == derived_s, (
+        "the breaker cooldown reports the derived span, not a class default; "
+        f"expected {derived_s}, got {pb['cooldown_s']}")
     c = st["pairs"]["prov-hard/m1"]
     assert c["class"] == "out_of_credit", c
     assert abs(_spread(c["open_until"], stated).total_seconds()) <= 1.0, c
