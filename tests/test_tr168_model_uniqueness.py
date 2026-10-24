@@ -414,6 +414,13 @@ POST_DEDUPE_ADDITIONS = {
     ("fireworks-ai", "accounts/fireworks/routers/kimi-k3-spot"): "models.dev sync 2026-10-23 (catalog arrivals, engine-priced)",
     ("opencode-go", "minimax-m3.1-flash"): "models.dev sync 2026-10-23 (catalog arrivals, engine-priced)",
     ("openrouter", "minimax/minimax-m3.1-flash"): "models.dev sync 2026-10-23 (catalog arrivals, engine-priced)",
+    # models.dev/clinepass sync 2026-10-24: two clinepass API arrivals and
+    # two models.dev carrier arrivals; all are recorded by the same pre-run
+    # sync and must remain explicit additions to the historical pin.
+    ("clinepass", "cline-mistral-k5-20261023-large4-zdr-r1"): "clinepass API sync 2026-10-24 (carrier arrival, PAYG-outside-plan disabled)",
+    ("clinepass", "kimi-k3.1-pro"): "clinepass API sync 2026-10-24 (carrier arrival, PAYG-outside-plan disabled)",
+    ("opencode-go", "kimi-k3.1-pro"): "models.dev sync 2026-10-24 (catalog arrival, sub-bucket priced)",
+    ("openrouter", "moonshotai/kimi-k3.1-pro"): "models.dev sync 2026-10-24 (catalog arrival, payg-sticker priced)",
 
 }
 
