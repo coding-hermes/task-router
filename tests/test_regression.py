@@ -6,6 +6,9 @@ gate semantics (including the absent-state fail-closed CI regression),
 ordering/tie-break semantics, registry cross-table integrity, fresh-clone
 stdlib fallback, and seed idempotency (duckdb-gated).
 """
+
+# ch:trace row=TR-248 spec=none:board-row-contract wave=none:serial-tick test=tests/test_regression.py::test_static_fallback_warning_names_selected_lane doc=none:no-doc-surface-changed prompt=/tmp/task-router-tr248-brief.txt evidence=tests/test_regression.py witness=none:local-regression-only verdict=none:pending-foreman-judge commit=none:worker-commit memory=none:not-written
+
 import datetime
 import importlib.util
 import json
@@ -744,6 +747,26 @@ def test_fallback_lane_fires_when_all_subs_down(monkeypatch, tmp_path):
     fbs = tables.get("fallback_lanes") or []
     assert any(f.get("provider") == "deepseek-foreman" and f.get("model") == "deepseek-flash"
                for f in fbs), "fallback_lanes table missing deepseek-flash lane"
+
+
+def test_static_fallback_warning_names_selected_lane(monkeypatch, tmp_path, capsys):
+    """TR-248: a real static fallback emits its warning with lane identity."""
+    tables = _load_tables()
+    provs = _open_providers(tables)
+    for provider in provs:
+        if provider != "deepseek-foreman":
+            provs[provider] = {"status": "gated", "reason": "sim-down"}
+    state = _state_dir(tmp_path, providers=provs)
+    monkeypatch.setattr(router_spawn, "MR", str(state))
+    monkeypatch.setenv("ROUTER_MISS_VERBOSE", "1")
+
+    result = _resolve(monkeypatch, tmp_path, tables, profile="P4_SECURITY")
+    captured = capsys.readouterr()
+    warning = captured.err
+    assert result["degraded_fallback"] is True
+    assert "WARNING: STATIC FALLBACK FIRED" in warning
+    assert "deepseek-foreman/deepseek-flash" in warning
+    assert "profile=P4_SECURITY" in warning
 
 
 def test_fallback_not_needed_when_deepseek_is_normal_hop(monkeypatch, tmp_path):
