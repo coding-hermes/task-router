@@ -558,6 +558,7 @@ class LiveSmoke(unittest.TestCase):
         self.assertEqual(result["mapped_fields"]["remaining"], 12)
         self.assertEqual(result["observations"], [])
         self.assertEqual(result["fall_through"]["basis"], "derived-from-ledger")
+        self.assertEqual(result["fall_through"], result["next_rung"])
 
 
 if __name__ == "__main__":

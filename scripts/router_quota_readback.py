@@ -766,6 +766,7 @@ def _live_probe(row: dict, quota_table: Any) -> dict:
                       "mapped_fields": mapped}
             if fall_through is not None:
                 result["fall_through"] = fall_through
+                result["next_rung"] = fall_through
             return result
     except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError, OSError, ValueError) as exc:
         if isinstance(exc, urllib.error.HTTPError):
@@ -805,6 +806,7 @@ def _run_live(args: Any) -> int:
                "observations": observations}
         if fall_through is not None:
             out["fall_through"] = fall_through
+            out["next_rung"] = fall_through
         print(json.dumps(out, indent=2))
         return 0
     try:
