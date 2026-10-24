@@ -1,0 +1,21 @@
+{
+  "scheduler_tick_id": "task-router-foreman-2026-10-24-14-08-40",
+  "project": "task-router",
+  "mode": "serial-verification-only",
+  "wave_budget": 12,
+  "census": {
+    "pending_rows": 46,
+    "eligible_independent_rows": 0,
+    "reason": "Highest-priority pending row TR-1000439909050761 has landed implementation and requires current live-traffic verification; no implementation worker is needed. Other P0 row TR-294 is owner-blocked."
+  },
+  "selected_task": {
+    "id": "TR-1000439909050761",
+    "status_before": "pending",
+    "verification_only": true,
+    "implementation_commit": "2a69a6e91a2572d284399119f69e3994169104c9",
+    "worker": null
+  },
+  "workers": [],
+  "merge": [],
+  "closed_at": null
+}
