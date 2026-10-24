@@ -178,9 +178,39 @@ in token/credit units, while the L2 ledger query is denominated in dollars.*
   expiring-with-surplus vs plenty-left-with-time, negative surplus => no-burn, no-limit => NULL with the
   reason, writes-nothing/no-network/no-spawn, cost-basis honesty (subscription-covered vs metered vs
   unknown, never free money unnamed), and the `router quota burn` CLI surface.)*
-- **Live smoke** (opt-in, bounded): hit the readback endpoints for providers where we have keys; assert the
-  response parses and the value is plausible; never run in CI (live-only harness, same rule as the acceptance
-  battery).
+- **Live smoke** (opt-in, bounded): `TR215_LIVE=1 python3 scripts/router_quota_readback.py --live`
+  reads the data-owned `provider_usage_endpoints.jsonl` table, makes at most five read-only requests,
+  uses a ten-second timeout, and never writes router state or quota tables. It refuses with exit 2 whenever
+  `CI` is set, and also requires the explicit `TR215_LIVE=1` opt-in. Endpoint JSON is retained as mapped
+  evidence; it is never promoted to an observation unless the response headers provide a recognized L1
+  signal. Missing headers produce the explicit `derived-from-ledger` fall-through. Recorded-header fixtures
+  remain the CI-safe test path. Keys are read from the table's environment-variable names and never emitted.
+  This is a live-only harness, under the same rule as the acceptance battery.
+
+The live harness is deliberately diagnostic: it does not update `provider_quota.jsonl`, `usage-cache.json`,
+quota state, the outcome ledger, or any other router store. A provider with no configured key is reported as
+`no-key-in-env`; a timeout, HTTP failure, malformed JSON, or oversized body is reported with a finite degraded
+basis rather than a fabricated zero.
+
+## 7a. Live smoke operator contract (TR-215)
+
+Use a real provider key only in the process environment, never in arguments or fixtures:
+
+```bash
+TR215_LIVE=1 python3 scripts/router_quota_readback.py --live --provider openrouter
+```
+
+The provider selector is optional. Selection is deterministic, one endpoint per provider, and hard-capped at
+five providers. CI and all automated tests use recorded headers only. The live leg may show an empty observation
+list when the provider exposes no recognized response headers; in that case the output must contain the ladder's
+fall-through basis rather than treating a JSON balance field as a header observation.
+
+## 7b. Verification tests
+
+`tests/test_quota_readback.py` covers CI refusal, explicit opt-in, the five-provider cap, no-write behavior,
+plausibility/mapped-field parsing, and honest fall-through. None of those tests makes a network request or
+requires credentials.
+
 
 ## 8. Non-goals
 

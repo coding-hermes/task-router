@@ -50,6 +50,8 @@ import json
 import os
 import re
 import sys
+import urllib.error
+import urllib.request
 from typing import Any
 
 DEFAULT_QUOTA_TABLE = os.path.join(
@@ -73,6 +75,8 @@ SPEC_OBSERVATION_KEYS = (
 )
 
 SOURCE_RUNG = "header"
+LIVE_MAX_PROVIDERS = 5
+LIVE_TIMEOUT_S = 10.0
 
 # Header-name vocabularies, one per MECHANISM. Every name is quoted verbatim
 # from the design authority (docs/quota-layers-spec.md §3 rung 1) or from the
@@ -705,24 +709,147 @@ def read_observation(
     return [], fall_through
 
 
+def _load_live_endpoints(path: Any) -> list:
+    """Load only endpoint rows from the data-owned live poll table."""
+    rows = []
+    with open(path, encoding="utf-8") as fh:
+        for line in fh:
+            if line.strip():
+                row = json.loads(line)
+                if row.get("status") == "endpoint":
+                    rows.append(row)
+    return rows
+
+
+def _extract_path(doc: Any, path: str):
+    cur = doc
+    for part in path.split("."):
+        if not isinstance(cur, dict) or part not in cur:
+            return None
+        cur = cur[part]
+    return cur
+
+
+def _live_probe(row: dict, quota_table: Any) -> dict:
+    """Make one bounded, read-only request and feed its headers to L1."""
+    env_name = row.get("auth_env")
+    key = os.environ.get(env_name, "") if env_name else ""
+    if not key:
+        return {"provider_id": row.get("provider_id"), "status": "degraded",
+                "basis": "no-key-in-env", "observations": [],
+                "fall_through": {"basis": "derived-from-ledger"}}
+    req = urllib.request.Request(row["url_template"], method=row.get("method", "GET"))
+    style = row.get("auth_style", "bearer")
+    if style == "bearer":
+        req.add_header("Authorization", "Bearer " + key)
+    try:
+        with urllib.request.urlopen(req, timeout=LIVE_TIMEOUT_S) as response:
+            raw = response.read(1024 * 1024 + 1)
+            if len(raw) > 1024 * 1024:
+                return {"provider_id": row["provider_id"], "status": "degraded",
+                        "basis": "body-too-large", "observations": []}
+            doc = json.loads(raw.decode("utf-8")) if raw else {}
+            observations, fall_through = read_observation(
+                row["provider_id"], dict(response.headers.items()),
+                account=row.get("account", "default"), quota_table=quota_table,
+            )
+            # Endpoint JSON is useful evidence, but never invent a quota
+            # observation from an unmapped field: the L1 contract is headers.
+            mapped = {name: _extract_path(doc, path)
+                      for name, path in (row.get("response_fields") or {}).items()}
+            if not mapped or all(value is None for value in mapped.values()):
+                basis = "no-recognized-quota-headers"
+            else:
+                basis = "header-readback-absent" if not observations else "header"
+            result = {"provider_id": row["provider_id"], "status": "ok",
+                      "basis": basis, "observations": observations,
+                      "mapped_fields": mapped}
+            if fall_through is not None:
+                result["fall_through"] = fall_through
+            return result
+    except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError, OSError, ValueError) as exc:
+        if isinstance(exc, urllib.error.HTTPError):
+            basis = "http-error"
+        elif isinstance(exc, (urllib.error.URLError, TimeoutError)):
+            basis = "timeout" if isinstance(exc, TimeoutError) else "network-error"
+        elif isinstance(exc, ValueError):
+            basis = "bad-json"
+        else:
+            basis = "network-error"
+        return {"provider_id": row["provider_id"], "status": "degraded",
+                "basis": basis, "observations": [],
+                "detail": str(exc)[:200]}
+
+
+def _run_live(args: Any) -> int:
+    if os.environ.get("CI"):
+        print("error: live quota readback refused in CI", file=sys.stderr)
+        return 2
+    if os.environ.get("TR215_LIVE") != "1":
+        print("error: live quota readback requires TR215_LIVE=1", file=sys.stderr)
+        return 2
+    if getattr(args, "headers_file", None):
+        try:
+            with open(args.headers_file, encoding="utf-8") as fh:
+                headers = json.load(fh)
+        except (OSError, ValueError) as exc:
+            print("error: headers must be a JSON object: %s" % exc, file=sys.stderr)
+            return 2
+        if not isinstance(headers, dict):
+            print("error: headers must be a JSON object", file=sys.stderr)
+            return 2
+        observations, fall_through = read_observation(
+            args.provider, headers, account=args.account, quota_table=args.quota_table,
+        )
+        out = {"live": True, "provider_id": args.provider,
+               "observations": observations}
+        if fall_through is not None:
+            out["fall_through"] = fall_through
+        print(json.dumps(out, indent=2))
+        return 0
+    try:
+        rows = _load_live_endpoints(args.endpoints_table)
+        if args.provider:
+            rows = [row for row in rows if row.get("provider_id") == args.provider]
+        # One endpoint per provider, deterministic and bounded. This avoids
+        # multiplying requests for providers with several account endpoints.
+        selected = []
+        seen = set()
+        for row in sorted(rows, key=lambda item: (item.get("provider_id", ""), item.get("endpoint_id", ""))):
+            provider = row.get("provider_id")
+            if provider in seen:
+                continue
+            seen.add(provider)
+            selected.append(row)
+            if len(selected) >= LIVE_MAX_PROVIDERS:
+                break
+        results = [_live_probe(row, args.quota_table) for row in selected]
+    except (OSError, ValueError, KeyError) as exc:
+        print("error: live readback configuration: %s" % exc, file=sys.stderr)
+        return 2
+    print(json.dumps({"live": True, "max_providers": LIVE_MAX_PROVIDERS,
+                      "providers_attempted": len(results), "results": results}, indent=2))
+    return 0
+
+
 def _main(argv: Any=None) -> int:
     parser = argparse.ArgumentParser(
-        description="Quota L1 rung-1 header readback: observations from recorded response headers."
+        description="Quota L1 readback from recorded headers or an opt-in bounded live poll."
     )
-    parser.add_argument("--provider", default="unknown", help="provider_id for the observations")
+    parser.add_argument("--provider", default="unknown", help="provider_id for recorded headers")
     parser.add_argument("--account", default="default", help="account label (default: default)")
-    parser.add_argument(
-        "--quota-table",
-        default=DEFAULT_QUOTA_TABLE,
-        help="path to provider_quota.jsonl (recognized header names)",
-    )
-    parser.add_argument(
-        "--file",
-        dest="headers_file",
-        default=None,
-        help="JSON file with {header: value}; stdin when omitted",
-    )
+    parser.add_argument("--quota-table", default=DEFAULT_QUOTA_TABLE,
+                        help="path to provider_quota.jsonl (recognized header names)")
+    parser.add_argument("--file", dest="headers_file", default=None,
+                        help="JSON file with {header: value}; stdin when omitted")
+    parser.add_argument("--live", action="store_true",
+                        help="opt-in real endpoint readback; requires TR215_LIVE=1")
+    parser.add_argument("--endpoints-table", default=os.path.join(
+        os.path.dirname(DEFAULT_QUOTA_TABLE), "provider_usage_endpoints.jsonl"),
+        help="data-owned usage endpoint table for --live")
     args = parser.parse_args(argv)
+    if args.live:
+        return _run_live(args)
     try:
         if args.headers_file:
             with open(args.headers_file, encoding="utf-8") as fh:
