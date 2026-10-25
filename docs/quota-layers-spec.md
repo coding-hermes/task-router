@@ -200,7 +200,10 @@ Use a real provider key only in the process environment, never in arguments or f
 TR215_LIVE=1 python3 scripts/router_quota_readback.py --live --provider openrouter
 ```
 
-The provider selector is optional. Selection is deterministic, one endpoint per provider, and hard-capped at
+The provider selector is optional. Omitted (or left at its argparse default,
+which serves the recorded-headers path), a live run selects deterministically
+from the endpoint table; with a selector, only that provider's endpoint row is
+polled. Selection is one endpoint per provider, and hard-capped at
 five providers. CI and all automated tests use recorded headers only. The live leg may show an empty observation
 list when the provider exposes no recognized response headers; in that case the output must contain the ladder's
 fall-through basis rather than treating a JSON balance field as a header observation.

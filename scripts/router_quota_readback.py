@@ -811,8 +811,15 @@ def _run_live(args: Any) -> int:
         return 0
     try:
         rows = _load_live_endpoints(args.endpoints_table)
-        if args.provider:
-            rows = [row for row in rows if row.get("provider_id") == args.provider]
+        # Optional provider selector (spec §7a): argparse shares one --provider
+        # default ("unknown", the recorded-headers label) across both paths, so
+        # a bare `--live` poll must treat the sentinel — and any absent
+        # attribute — as "no selector" and select from the endpoint table.
+        provider_filter = getattr(args, "provider", None)
+        if not provider_filter or provider_filter == "unknown":
+            provider_filter = None
+        if provider_filter:
+            rows = [row for row in rows if row.get("provider_id") == provider_filter]
         # One endpoint per provider, deterministic and bounded. This avoids
         # multiplying requests for providers with several account endpoints.
         selected = []
