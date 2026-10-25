@@ -1,0 +1,23 @@
+{
+  "tick": "task-router-foreman-2026-10-25-01-21-55",
+  "project": "task-router",
+  "base": "54afcdde3735fc45635d7e6f36b9ed45f34f7102",
+  "wave_budget": 4,
+  "mode": "serial-recovery",
+  "selection": {
+    "row": "TR-215",
+    "priority": "P2",
+    "reason": "Highest-priority actionable implementation row after owner-gated P0 release and existing CI/infrastructure rows; an existing task worktree contains the implementation."
+  },
+  "workers": [
+    {
+      "task_id": "TR-215",
+      "status": "recovery-only",
+      "worktree": "/home/kara/worktrees/task-router-TR-215",
+      "branch": "wt/TR-215",
+      "existing_tip": "e3f6a30ec7f8dffcf68ca22c511ba613b534bc7a",
+      "dispatch": "none:existing worker worktree recovered; no duplicate worker launched"
+    }
+  ],
+  "merge": {"status": "pending", "strategy": "serial"}
+}
