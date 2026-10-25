@@ -421,6 +421,13 @@ POST_DEDUPE_ADDITIONS = {
     ("clinepass", "kimi-k3.1-pro"): "clinepass API sync 2026-10-24 (carrier arrival, PAYG-outside-plan disabled)",
     ("opencode-go", "kimi-k3.1-pro"): "models.dev sync 2026-10-24 (catalog arrival, sub-bucket priced)",
     ("openrouter", "moonshotai/kimi-k3.1-pro"): "models.dev sync 2026-10-24 (catalog arrival, payg-sticker priced)",
+    # models.dev sync 2026-10-25 (model-registry-data-quality cron): three
+    # carrier arrivals (two sub-bucket priced opencode-go lanes, one
+    # payg-sticker priced openrouter lane); TR-070 window-cost tags applied
+    # to the two $0 SKUs in the same tick.
+    ("opencode-go", "gemini-4-argon"): "models.dev sync 2026-10-25 (catalog arrival, sub-bucket priced)",
+    ("opencode-go", "iceman-contributor-free"): "models.dev sync 2026-10-25 (catalog arrival, sub-bucket priced, $0 promo)",
+    ("openrouter", "liquid/lfm-2.5-2.6b"): "models.dev sync 2026-10-25 (catalog arrival, payg-sticker priced)",
 
 }
 
