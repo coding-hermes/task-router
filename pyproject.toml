@@ -19,6 +19,10 @@ authors = [{name = "Bane", email = "wojonstech@gmail.com"}]
 # pyyaml is imported by scripts/router_probe_run.py (config.yaml loader,
 # INT-CI-20260928-01).
 test = ["pytest", "duckdb", "pyyaml"]
+# QA-TASKROUTER-5: `dev` is the advertised developer install path
+# (`pip install -e .[dev]`). Self-referential extra — resolves to everything
+# `test` needs without duplicating the list (valid PEP 621 + setuptools).
+dev = ["task-router[test]"]
 
 [project.scripts]
 router = "task_router.cli:main"
