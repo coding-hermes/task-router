@@ -1,0 +1,22 @@
+{
+  "tick": "task-router-foreman-2026-10-25-08-27-55",
+  "project": "task-router",
+  "base": "9848b17bce2c8c9d80e4db1ba4e0aee4778d1027",
+  "selection": {
+    "row": "RELEASE-2026-10-22-001",
+    "priority": "P0",
+    "status": "pending",
+    "classification": "owner-gated-release-readiness",
+    "wave_budget": 11,
+    "wave_size": 0,
+    "dispatch": "none",
+    "reason": "Owner authorization naming task-router, the release version, and baseline SHA is absent; release row explicitly forbids tag/release actions without it."
+  },
+  "workers": [],
+  "closeout": {
+    "finished_at": "2026-10-25T08:40:00Z",
+    "implementation": "none:owner-authorization-missing",
+    "verdict": "none:not-applicable",
+    "ci": "unavailable:GitHub API rate limit; latest observed main run 40174187972 remained in_progress"
+  }
+}
