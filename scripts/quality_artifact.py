@@ -155,7 +155,7 @@ def measure_type_hint_pct() -> dict:
     except json.JSONDecodeError as exc:
         raise RuntimeError(f"quality_score.py output not JSON: {exc}") from exc
 
-    # quality_score.py returns {metrics: [{metric, value, ...}], scripts_dir: ...}
+    # quality_score.py returns {metrics: [{metric, value, breakdown, ...}], scripts_dir: ...}
     metrics = data.get("metrics", [])
     type_hint = next((m for m in metrics if m.get("metric") == "type_hint_pct"), None)
     if type_hint is None:
@@ -165,9 +165,10 @@ def measure_type_hint_pct() -> dict:
     if value is None:
         raise RuntimeError("quality_score.py type_hint_pct value is null")
 
-    # quality_score.py doesn't provide per-module breakdown in the same shape;
-    # return empty breakdown (the ladder doesn't use it either).
-    return {"value": float(value), "breakdown": []}
+    breakdown = type_hint.get("breakdown", [])
+    if not breakdown:
+        raise RuntimeError("quality_score.py type_hint_pct breakdown is empty")
+    return {"value": float(value), "breakdown": breakdown}
 
 
 def build_metric(name: str) -> dict:

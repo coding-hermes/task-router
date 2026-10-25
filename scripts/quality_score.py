@@ -187,6 +187,42 @@ def scan_type_hints(scripts_dir: Any) -> dict:
     }
 
 
+def scan_type_hint_breakdown(scripts_dir: Any) -> list[dict]:
+    """Return per-file return-annotation scores from the authoritative scan.
+
+    This is presentation data for consumers such as quality_artifact.py; the
+    headline value remains the return_pct from scan_type_hints(). Keeping the
+    traversal here prevents a second producer from silently using a different
+    scope.
+    """
+    breakdown = []
+    for dirpath, dirnames, filenames in os.walk(scripts_dir):
+        dirnames[:] = sorted(d for d in dirnames if d != "__pycache__")
+        for name in sorted(filenames):
+            if not name.endswith(".py"):
+                continue
+            path = os.path.join(dirpath, name)
+            with open(path, encoding="utf-8", errors="replace") as fh:
+                source = fh.read()
+            try:
+                tree = ast.parse(source, filename=path)
+            except SyntaxError:
+                continue
+            total = annotated = 0
+            for node in ast.walk(tree):
+                if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    continue
+                total += 1
+                annotated += node.returns is not None
+            if total:
+                breakdown.append({
+                    "module": os.path.relpath(path, os.path.dirname(scripts_dir)),
+                    "value": round(100.0 * annotated / total, 4),
+                    "n": total,
+                })
+    return breakdown
+
+
 def measure(metric: Any, scripts_dir: Any):
     """Current value for one metric, or MetricUnmeasurable. NEVER silent 0."""
     if metric == "type_hint_pct":
@@ -222,8 +258,11 @@ def build_report(ladder: Any, scripts_dir: Any, only: Any=None):
             continue
         achieved, nxt = stage_for(value, targets)
         method = "ast-scan" if metric == "type_hint_pct" else None
-        rows.append({"metric": metric, "value": value, "stage": achieved,
-                     "next_target": nxt, "targets": targets, "method": method})
+        row = {"metric": metric, "value": value, "stage": achieved,
+               "next_target": nxt, "targets": targets, "method": method}
+        if metric == "type_hint_pct":
+            row["breakdown"] = scan_type_hint_breakdown(scripts_dir)
+        rows.append(row)
     return rows
 
 
