@@ -124,47 +124,50 @@ def measure_wiring_pct() -> dict:
 
 
 def measure_type_hint_pct() -> dict:
-    """Run the stage-0 instrument and parse its JSON output.
+    """Run the ladder's own quality_score.py for type_hint_pct.
+
+    TR-1000976681059242: the artifact MUST use the same scan scope as the
+    ladder (quality_score.py scans scripts/ only). Previously this called
+    type_hint_score.py directly which scanned scripts/ + task_router/,
+    producing a different number. Now we delegate to quality_score.py so
+    the artifact and ladder cannot disagree.
 
     Returns {value, breakdown} where breakdown is [{module, value, n}].
     Raises RuntimeError if the instrument fails.
     """
-    script = REPO_ROOT / "scripts" / "type_hint_score.py"
+    script = REPO_ROOT / "scripts" / "quality_score.py"
     if not script.exists():
-        raise RuntimeError(f"type_hint_score.py not found at {script}")
+        raise RuntimeError(f"quality_score.py not found at {script}")
 
     result = subprocess.run(
-        [sys.executable, str(script), "--json"],
+        [sys.executable, str(script), "--json", "--metric", "type_hint_pct"],
         capture_output=True,
         text=True,
         cwd=REPO_ROOT,
     )
     if result.returncode != 0:
         raise RuntimeError(
-            f"type_hint_score.py exited {result.returncode}: {result.stderr.strip()}"
+            f"quality_score.py exited {result.returncode}: {result.stderr.strip()}"
         )
 
     try:
         data = json.loads(result.stdout)
     except json.JSONDecodeError as exc:
-        raise RuntimeError(f"type_hint_score.py output not JSON: {exc}") from exc
+        raise RuntimeError(f"quality_score.py output not JSON: {exc}") from exc
 
-    # The instrument returns {modules: [...], overall: {...}}.
-    # We want the overall fn_score as the value, and per-module fn_score as breakdown.
-    overall = data.get("overall", {})
-    value = overall.get("fn_score")
+    # quality_score.py returns {metrics: [{metric, value, ...}], scripts_dir: ...}
+    metrics = data.get("metrics", [])
+    type_hint = next((m for m in metrics if m.get("metric") == "type_hint_pct"), None)
+    if type_hint is None:
+        raise RuntimeError("quality_score.py output missing type_hint_pct metric")
+
+    value = type_hint.get("value")
     if value is None:
-        raise RuntimeError("type_hint_score.py output missing overall.fn_score")
+        raise RuntimeError("quality_score.py type_hint_pct value is null")
 
-    breakdown = []
-    for mod in data.get("modules", []):
-        module_name = mod.get("module", "<unknown>")
-        mod_value = mod.get("fn_score")
-        mod_n = mod.get("functions", 0)
-        if mod_value is not None:
-            breakdown.append({"module": module_name, "value": mod_value, "n": mod_n})
-
-    return {"value": float(value), "breakdown": breakdown}
+    # quality_score.py doesn't provide per-module breakdown in the same shape;
+    # return empty breakdown (the ladder doesn't use it either).
+    return {"value": float(value), "breakdown": []}
 
 
 def build_metric(name: str) -> dict:
