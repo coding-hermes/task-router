@@ -14,6 +14,7 @@ This document supplements the Configuration table in [README.md](../README.md#co
   - [Classifier response shaping](#classifier-response-shaping)
 - [Proxy](#proxy)
   - [Proxy endpoints](#proxy-endpoints)
+  - [Proxy client authentication (TR-238)](#proxy-client-authentication-tr-238)
   - [Proxy timeouts](#proxy-timeouts)
   - [Proxy concurrency](#proxy-concurrency)
   - [Proxy stats](#proxy-stats)
@@ -99,6 +100,36 @@ structured/thinking rung is recorded in classifier call metadata when available.
 | `ROUTER_PROXY_URL` | `proxy_e2e.py`, `proxy_acceptance.py` | Base URL for the classified proxy (Path B) | `http://127.0.0.1:9391` |
 | `ROUTER_API_URL` | `proxy_e2e.py` | Base URL for the router API server | `http://127.0.0.1:9092` |
 | `ROUTER_PROXY_KEY` | `drivers/deepseek_harness.py`, `drivers/hermes.py`, `drivers/openclaw.py` | Name of the environment variable holding the proxy API key | — (drivers reference this as the key env name) |
+
+### Proxy client authentication (TR-238)
+
+Remote clients reach the classified proxy (Path B, `POST /v1/chat/completions`
+and `POST /v1/responses`) through the router API server. How a **remote**
+client authenticates is governed by two facts of the code:
+
+* the server binds **loopback by default** (`--host` defaults to `127.0.0.1`,
+  `--port` to `9092`; the classified-proxy deployment recipe uses `:9391`),
+  so off-box clients must arrive over an SSH tunnel, the bus, or a facade —
+  never by re-binding the server to `0.0.0.0`;
+* `ROUTER_PROXY_AUTH=passthrough` is an **explicit opt-in** that removes the
+  router key check **only on the proxy paths** (`/v1/chat/completions`,
+  `/v1/responses`) and only when the caller's own upstream credential is the
+  real gate (the upstream gateway still authenticates the forwarded hop).
+  It defaults to OFF — the gate is never weakened silently.
+
+Passthrough does **not** disable authentication anywhere else. Normal router
+API mutations (`POST /circuit/record`, `/api/ui/registry/edit`, …) still
+require edit authorization — the `x-api-key` header compared against
+`ROUTER_EDIT_API_KEY` — and read-only mode still refuses every mutation with
+`403 read-only mode`, passthrough or not. When a lane must remain a hard
+boundary (mixed callers on one server), run edit mode with the key check in
+place and do not set passthrough.
+
+`ROUTER_PROXY_AUTH` is the router-side switch for this contract; the
+**client-side** credential delivery — `api_key_env` (a variable name resolved
+in the client's own process environment) vs literal `api_key` in the client's
+`config.yaml` — and its recorded trap are documented in
+[docs/router-in-bunker-shortcut.md § 4.2](router-in-bunker-shortcut.md#42-the-proxy-client-path-literal-key-vs-api_key_env-the-trap).
 
 ### Proxy timeouts
 

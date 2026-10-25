@@ -74,4 +74,4 @@ LANE dead-lane circuit OPENED: 3 consecutive failures, last=transport-error: URL
 ```
 
 Hermetic pins for the same invariants (no network): the 12 new tests in
-`tests/test_ingress.py` — see `docs/router-in-bunker-shortcut.md` § 5.
+`tests/test_ingress.py` — see `docs/router-in-bunker-shortcut.md` § 6.

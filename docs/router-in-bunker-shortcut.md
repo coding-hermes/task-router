@@ -107,7 +107,94 @@ is refused immediately with `lane-busy: lane 'x' queue full (…)`, and **nothin
 is fired at the target**. A burst addressed at one lane is therefore neither
 amplified onto its target nor able to consume a peer's capacity.
 
-## 4. Configuration
+## 4. Provisioning a bunker agent that can drive a router (TR-238)
+
+**No bunker image ships a Hermes.** A freshly provisioned agent container has
+`git`/`go`/`node`/`python` but no `hermes` binary and no agent home — the first
+command an operator runs on the box installs the CLI, and everything after that
+assumes it exists. This section records the provisioning path, the proxy
+authentication contract for the client that drives it, and the remote-script
+convention `bunker exec` requires.
+
+### 4.1 One command: install the Hermes CLI
+
+Inside the agent container:
+
+```bash
+uv tool install --python 3.12 hermes-agent
+```
+
+This puts three executables on the agent's `PATH` — `hermes`, `hermes-acp`,
+`hermes-agent` — with `3.12` supplied to the build (recorded result of this
+exact line: `v0.19.0` installed, all three executables present). Without the
+Python pin the resolver may pick an interpreter the package cannot build
+against; with it, one Hermes per person is one command. The CLI is only the
+binary — credentials and per-agent config still live in the agent's own home
+(see the bunker docs for `.hermes/` provisioning); this section covers the
+router-facing part only.
+
+### 4.2 The proxy client path: literal key vs `api_key_env` (the trap)
+
+When the in-bunker client is configured to call the router's classified proxy
+(Path B), its provider entry must carry the router key in one of two forms
+(short form: literal api_key in config.yaml works; api_key_env requires the
+variable present in the client process environment):
+
+* **`api_key_env`** — the value is the *name* of an environment variable, and
+  the client only resolves it if that variable is present **in the client
+  process environment** at spawn time. A variable exported in an operator's
+  shell, or in a different service unit, is invisible to the agent process.
+  "It is set on the box" is not "it is in the process env" — the recorded
+  failure of this shape was a client resolving nothing and auth failing with
+  the config looking correct.
+* **literal `api_key`** — the key value written directly in the client's
+  `config.yaml`. Recorded verified: this works with no environment coupling.
+  Never commit a real key to any tracked file; the config file lives in the
+  agent's private home, not in a repo.
+
+The two forms are mutually exclusive at the same provider entry: if
+`api_key_env` names a variable that is not in the process environment, the
+client does not silently fall back to a literal — fix the environment or use
+the literal form deliberately.
+
+### 4.3 Remote scripts for `bunker exec`: stdin, ASCII, and the `$( )` trap
+
+`bunker exec <agent> --script <file>` mangles `$( )` command substitution
+quoting on the way into the container (recorded: the substitution is rewritten
+before the shell sees it). The convention the fleet uses instead:
+
+* **Pipe the script on stdin**: `bunker exec <agent> -- sh -s < script.sh` (or
+  `... sh -c 'sh -s' < script.sh`). The script bytes reach the container
+  unmodified and are interpreted there.
+* **Keep the script ASCII-only.** Smart quotes, em dashes, and other non-ASCII
+  characters in heredocs have produced quoting/parse errors in the container
+  shell; write plain ASCII.
+* Record the trap explicitly in any harness that scripts agents: `$( )` inside
+  a `--script` payload is not safe. Do command substitution inside the script
+  itself (which runs in the container), never rely on the `--script`
+  transport to carry it.
+
+### 4.4 Recorded smoke: a fresh agent reaching a router through the tunnel
+
+The following smoke is **recorded history, not re-run for this document**
+(witness: the 2026-09-29 provisioning session). It is included as the shape a
+repeat must follow — a freshly spawned agent, driven once over `bunker exec`,
+answered through the documented tunnel with no hand-holding:
+
+```
+hermes chat -q 'Reply with exactly BUNKER-OK-FINAL and nothing else' -Q
+exit code: 0
+reply: BUNKER-OK-FINAL
+ledger: one outcome row appended (single spawn, single answer)
+```
+
+The `-q` flag runs the query non-interactively and exits; `-Q` keeps the
+session quiet on the bus. Exit 0 plus the exact sentinel plus exactly one
+ledger row is the whole assertion. Anyone re-provisioning should reproduce
+this and record the new transcript; this document does not claim the external
+smoke was re-executed for TR-238.
+
+## 5. Configuration
 
 | Variable | Default | Effect |
 |---|---|---|
@@ -119,7 +206,7 @@ amplified onto its target nor able to consume a peer's capacity.
 | `ROUTER_INGRESS_GLOBAL_MAX_INFLIGHT` | `0` | optional global backstop (0 = off; never the first bound) |
 | `ROUTER_INGRESS_MAX_INFLIGHT` / `…_QUEUE_MAX` / `…_QUEUE_WAIT_S` | `4` / `16` / `20` | the legacy **shared** pool (`Admission`) — kept for callers that explicitly want one global cap |
 
-## 5. Evidence
+## 6. Evidence
 
 Hermetic pins in `tests/test_ingress.py` (11 new tests, 47 in the file):
 
@@ -143,7 +230,7 @@ Live transcript through the real push door (a genuinely closed port beside a rea
 HTTP target, including the 6-message burst that reached the target exactly once):
 `docs/evidence/router-in-bunker-isolation-2026-10-03.md`.
 
-## 6. Known gaps (not silently absent)
+## 7. Known gaps (not silently absent)
 
 1. **The actually-usable remote path is still a single process.** The
    facade (`fleet-gateway-facade.py`, one port) and the dispatcher (one loop)
