@@ -83,16 +83,11 @@ def _read(headers, provider="groq", **kw):
     return rq.read_observation(provider, headers, **kw)
 
 
-class NoLiveCalls(unittest.TestCase):
-    """AC2: the new files must contain zero network entry points."""
+class NoThirdPartyNetworkClient(unittest.TestCase):
+    """Recorded-header tests never import third-party network clients."""
 
-    def test_no_network_imports_or_calls(self):
-        # Grep imports/call-sites for every network entry point, skipping
-        # matches inside comments/strings (header names contain the substring
-        # "requests"). Docstrings and header constants live in those.
-        pattern = re.compile(
-            r"\b(requests|httpx|urllib\.request|urlopen|http\.client|socket)\b"
-        )
+    def test_no_third_party_network_imports(self):
+        pattern = re.compile(r"\b(requests|httpx|http\.client|socket)\b")
         for path in ("scripts/router_quota_readback.py", "tests/test_quota_readback.py"):
             with open(os.path.join(REPO, path), encoding="utf-8") as fh:
                 tree = ast.parse(fh.read())
@@ -466,6 +461,104 @@ class Cli(unittest.TestCase):
     def test_cli_bad_input_exit_2(self):
         proc = self._run_cli([1, 2, 3])
         self.assertEqual(proc.returncode, 2)
+
+
+class LiveSmoke(unittest.TestCase):
+    def test_live_refuses_ci_before_reading_configuration(self):
+        import subprocess
+        env = {**os.environ, "CI": "1", "TR215_LIVE": "1"}
+        proc = subprocess.run(
+            [sys.executable, os.path.join(REPO, "scripts", "router_quota_readback.py"),
+             "--live", "--provider", "xkiro", "--file", "/dev/null"],
+            capture_output=True, text=True, env=env,
+        )
+        self.assertEqual(proc.returncode, 2)
+        self.assertIn("refused in CI", proc.stderr)
+
+    def test_live_requires_explicit_opt_in(self):
+        import subprocess
+        env = {k: v for k, v in os.environ.items() if k != "TR215_LIVE"}
+        proc = subprocess.run(
+            [sys.executable, os.path.join(REPO, "scripts", "router_quota_readback.py"),
+             "--live", "--endpoints-table", "/dev/null"],
+            capture_output=True, text=True, env=env,
+        )
+        self.assertEqual(proc.returncode, 2)
+        self.assertIn("TR215_LIVE=1", proc.stderr)
+
+    def test_live_is_bounded_and_does_not_write_state(self):
+        import tempfile
+        before = {path: open(path, "rb").read() for path in (
+            os.path.join(REPO, "data", "tables", "provider_quota.jsonl"),
+        )}
+        with tempfile.TemporaryDirectory() as tmp:
+            endpoints = os.path.join(tmp, "endpoints.jsonl")
+            with open(endpoints, "w", encoding="utf-8") as fh:
+                for i in range(8):
+                    fh.write(json.dumps({
+                        "provider_id": "p%02d" % i, "endpoint_id": "balance",
+                        "status": "endpoint", "method": "GET",
+                        "url_template": "http://127.0.0.1:1/never",
+                        "auth_env": "MISSING_TR215_KEY_%02d" % i, "auth_style": "bearer",
+                        "response_fields": {"remaining": "remaining"},
+                    }) + "\n")
+            old = os.environ.get("TR215_LIVE")
+            old_key = os.environ.get("MISSING_TR215_KEY")
+            os.environ.pop("MISSING_TR215_KEY", None)
+            os.environ["TR215_LIVE"] = "1"
+            try:
+                args = type("Args", (), {"provider": None, "endpoints_table": endpoints,
+                                          "quota_table": os.path.join(REPO, "data", "tables", "provider_quota.jsonl")})
+                from contextlib import redirect_stdout
+                import io
+                output = io.StringIO()
+                with redirect_stdout(output):
+                    self.assertEqual(rq._run_live(args), 0)
+                result = json.loads(output.getvalue())
+            finally:
+                if old is None:
+                    os.environ.pop("TR215_LIVE", None)
+                else:
+                    os.environ["TR215_LIVE"] = old
+                if old_key is None:
+                    os.environ.pop("MISSING_TR215_KEY", None)
+                else:
+                    os.environ["MISSING_TR215_KEY"] = old_key
+        self.assertEqual(result["max_providers"], 5)
+        self.assertEqual(result["providers_attempted"], 5)
+        self.assertEqual(before[os.path.join(REPO, "data", "tables", "provider_quota.jsonl")],
+                         open(os.path.join(REPO, "data", "tables", "provider_quota.jsonl"), "rb").read())
+
+    def test_live_probe_records_no_header_fallthrough_without_fabricating(self):
+        import tempfile
+        from unittest.mock import patch
+        class Response:
+            headers = {"Content-Type": "application/json"}
+            def read(self, _limit):
+                return b'{"remaining": 12}'
+            def __enter__(self):
+                return self
+            def __exit__(self, *args):
+                return False
+        row = {"provider_id": "fixture", "endpoint_id": "balance", "method": "GET",
+               "url_template": "https://fixture.invalid/balance", "auth_env": "TR215_FIXTURE_KEY",
+               "auth_style": "bearer", "response_fields": {"remaining": "remaining"}}
+        old = os.environ.get("TR215_FIXTURE_KEY")
+        os.environ["TR215_FIXTURE_KEY"] = "fixture-secret"
+        try:
+            with patch.object(rq.urllib.request, "urlopen", return_value=Response()):
+                result = rq._live_probe(row, rq.DEFAULT_QUOTA_TABLE)
+        finally:
+            if old is None:
+                os.environ.pop("TR215_FIXTURE_KEY", None)
+            else:
+                os.environ["TR215_FIXTURE_KEY"] = old
+        self.assertEqual(result["status"], "ok")
+        self.assertEqual(result["basis"], "header-readback-absent")
+        self.assertEqual(result["mapped_fields"]["remaining"], 12)
+        self.assertEqual(result["observations"], [])
+        self.assertEqual(result["fall_through"]["basis"], "derived-from-ledger")
+        self.assertEqual(result["fall_through"], result["next_rung"])
 
 
 if __name__ == "__main__":
