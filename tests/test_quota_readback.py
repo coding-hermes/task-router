@@ -484,7 +484,39 @@ class LiveSmoke(unittest.TestCase):
             capture_output=True, text=True, env=env,
         )
         self.assertEqual(proc.returncode, 2)
-        self.assertIn("TR215_LIVE=1", proc.stderr)
+        self.assertIn("requires TR215_LIVE=1", proc.stderr)
+
+    def test_live_without_selector_polls_endpoint_table_not_zero(self):
+        # Spec §7a: "The provider selector is optional." A bare `--live` run
+        # must select from the endpoint table — the argparse --provider default
+        # ("unknown", a recorded-headers label) must not filter the poll down
+        # to zero providers (TR-215 follow-up regression). Fully hermetic:
+        # every row's key env is absent, so each probe degrades to
+        # `no-key-in-env` without opening a socket.
+        import subprocess
+        import tempfile
+        env = {k: v for k, v in os.environ.items() if k not in {"CI", "TR215_LIVE"}}
+        env["TR215_LIVE"] = "1"
+        with tempfile.TemporaryDirectory() as tmp:
+            endpoints = os.path.join(tmp, "endpoints.jsonl")
+            with open(endpoints, "w", encoding="utf-8") as fh:
+                for i in range(8):
+                    fh.write(json.dumps({
+                        "provider_id": "p%02d" % i, "endpoint_id": "balance",
+                        "status": "endpoint", "method": "GET",
+                        "url_template": "http://127.0.0.1:1/never",
+                        "auth_env": "MISSING_TR215_KEY_%02d" % i, "auth_style": "bearer",
+                        "response_fields": {"remaining": "remaining"},
+                    }) + "\n")
+            proc = subprocess.run(
+                [sys.executable, os.path.join(REPO, "scripts", "router_quota_readback.py"),
+                 "--live", "--endpoints-table", endpoints],
+                capture_output=True, text=True, env=env, timeout=120,
+            )
+        self.assertEqual(proc.returncode, 0)
+        result = json.loads(proc.stdout)
+        self.assertEqual(result["max_providers"], 5)
+        self.assertEqual(result["providers_attempted"], 5)
 
     def test_live_is_bounded_and_does_not_write_state(self):
         import tempfile
