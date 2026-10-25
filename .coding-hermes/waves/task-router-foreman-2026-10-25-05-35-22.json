@@ -1,0 +1,26 @@
+{
+  "tick": "task-router-foreman-2026-10-25-05-35-22",
+  "project": "task-router",
+  "base": "0b4cfb0b41be9b02149ef2e225cc5c9bea67b57b",
+  "wave_budget": 1,
+  "mode": "serial-owner-gated",
+  "census": {
+    "pending_p0": ["RELEASE-2026-10-22-001"],
+    "pending_p2_implementation": ["INT-CI-20261024-01", "INT-CI-6", "SUP-DEPS-20261018-TR", "TR-1000976681059244"],
+    "selected": "RELEASE-2026-10-22-001"
+  },
+  "selection": {
+    "row": "RELEASE-2026-10-22-001",
+    "priority": "P0",
+    "reason": "Highest-priority pending row; owner authorization and version/baseline selection are explicit prerequisites, so no implementation or worker dispatch is authorized."
+  },
+  "workers": [],
+  "dispatch": "none:owner-authorization-missing",
+  "closeout": {
+    "status": "pending",
+    "implementation": "none:owner-gated",
+    "gitreins": "none:not-applicable",
+    "evidence": "docs/releases/release-readiness.md; pyproject.toml; task_router/__init__.py; CHANGELOG.md; gh release list; gh run list",
+    "ci": "current recent run green on 0b4cfb0; existing INT-CI-20261024-01 tracks the older run 40087433253 failure"
+  }
+}
