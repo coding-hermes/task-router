@@ -477,7 +477,7 @@ class LiveSmoke(unittest.TestCase):
 
     def test_live_requires_explicit_opt_in(self):
         import subprocess
-        env = {k: v for k, v in os.environ.items() if k != "TR215_LIVE"}
+        env = {k: v for k, v in os.environ.items() if k not in {"CI", "TR215_LIVE"}}
         proc = subprocess.run(
             [sys.executable, os.path.join(REPO, "scripts", "router_quota_readback.py"),
              "--live", "--endpoints-table", "/dev/null"],
@@ -502,6 +502,7 @@ class LiveSmoke(unittest.TestCase):
                         "auth_env": "MISSING_TR215_KEY_%02d" % i, "auth_style": "bearer",
                         "response_fields": {"remaining": "remaining"},
                     }) + "\n")
+            os.environ.pop("CI", None)
             old = os.environ.get("TR215_LIVE")
             old_key = os.environ.get("MISSING_TR215_KEY")
             os.environ.pop("MISSING_TR215_KEY", None)
