@@ -130,6 +130,12 @@ _LABEL_RE = r"[a-z0-9][a-z0-9._-]{0,63}"
 REFUSAL_NO_ELIGIBLE = "NO_ELIGIBLE_CANDIDATE"
 REFUSAL_FALLBACK = "DEGRADED_FALLBACK_REFUSED"
 
+#: Chain-binding refusals (H1-F5). `previous_route_digest` is a CLAIM about the
+#: route the previous attempt used; it is checked against the issuance ledger
+#: instead of being echoed unverified.
+ERR_PREVIOUS_ROUTE_UNKNOWN = "PREVIOUS_ROUTE_UNKNOWN"
+ERR_PREVIOUS_ROUTE_MISMATCH = "PREVIOUS_ROUTE_MISMATCH"
+
 #: Machine-readable error codes for NON-receipt responses (the request itself
 #: was refused — no route decision was computed).
 ERR_INVALID_REQUEST = "INVALID_REQUEST"
@@ -161,6 +167,7 @@ ERR_RECEIPT_UNSIGNED = "RECEIPT_UNSIGNED"
 ERR_RECEIPT_SIGNATURE_INVALID = "RECEIPT_SIGNATURE_INVALID"
 ERR_RECEIPT_NOT_ISSUED = "RECEIPT_NOT_ISSUED"
 ERR_RECEIPT_ISSUANCE_MISMATCH = "RECEIPT_ISSUANCE_MISMATCH"
+ERR_RECEIPT_ISSUANCE_CONFLICT = "RECEIPT_ISSUANCE_CONFLICT"
 ERR_RECEIPT_KEY_UNAVAILABLE = "RECEIPT_KEY_UNAVAILABLE"
 
 #: Verification failure codes for BINDING and TRUST (H1-F1 / H1-F2).
@@ -1069,18 +1076,45 @@ def _reset_issuance_index() -> None:
         _ISSUANCE_INDEX.clear()
 
 
+class IssuanceError(RuntimeError):
+    """A named issuance-ledger failure (H1-F5 idempotency, H1-F7 durability)."""
+
+    def __init__(self, code: str, problem: str):
+        super().__init__(problem)
+        self.code = code
+        self.problem = problem
+
+
 def append_issuance(receipt: dict) -> None:
-    """Append the issuance record. This is the ONLY write a decision makes."""
+    """Append the issuance record. This is the ONLY write a decision makes.
+
+    Idempotent per `receipt_digest` (H1-F5): `receipt_id` is deterministic, so
+    re-issuing the SAME request at the SAME clock produces a byte-identical
+    receipt — and must not append a second row for it. A digest that is already
+    on file with a DIFFERENT record is a ledger inconsistency and refuses
+    (`RECEIPT_ISSUANCE_CONFLICT`) rather than silently duplicating or
+    overwriting.
+    """
     record = issuance_record(receipt)
     directory = issuance_dir()
     os.makedirs(directory, mode=0o700, exist_ok=True)
     month = _ledger_month(record.get("issued_at")) or _canonical_ts(
         datetime.datetime.now(datetime.timezone.utc))[:7].replace("-", "")
     path = ledger_path(month)
-    line = canonical_json(record) + "\n"
+    digest = record.get("receipt_digest")
+    line = canonical_json(record)
+    if isinstance(digest, str):
+        existing = issuance_rows_for_month(digest, month)
+        if existing:
+            if any(canonical_json(row) == line for row in existing):
+                return          # re-issue: the durable record already exists
+            raise IssuanceError(
+                ERR_RECEIPT_ISSUANCE_CONFLICT,
+                f"ledger {path} already records digest {digest} with a "
+                f"different issuance record — refusing to duplicate it")
     fd = os.open(path, os.O_CREAT | os.O_APPEND | os.O_WRONLY, 0o600)
     try:
-        os.write(fd, line.encode("utf-8"))
+        os.write(fd, (line + "\n").encode("utf-8"))
     finally:
         os.close(fd)
 
@@ -1112,6 +1146,41 @@ def verify_issuance(receipt: dict) -> tuple[bool, str, dict | None]:
     return False, ERR_RECEIPT_ISSUANCE_MISMATCH, None
 
 
+def _previous_route_problem(normalized: dict) -> dict | None:
+    """Validate the declared chain link (H1-F5) — a claim, not a formality.
+
+    `previous_route_digest` names the receipt the previous attempt used, so the
+    issuer can check it exists in ITS OWN ledger and belongs to the same
+    parent run; otherwise the chain a foreman reconstructs is fiction. Absent
+    is absent (a first attempt declares nothing and is not checked).
+
+    Returns an error doc, or None when the link is sound.
+    """
+    declared = normalized.get("previous_route_digest")
+    if declared is None:
+        return None
+    rows = issuance_rows_any_month(declared)
+    if not rows:
+        return _error_doc(
+            ERR_PREVIOUS_ROUTE_UNKNOWN,
+            f"previous_route_digest {declared} has no issuance record on this "
+            f"router — the chain link cannot be verified (a first attempt must "
+            f"declare no previous route)", False,
+            [{"field": "previous_route_digest",
+              "problem": "no issuance record for this digest on this router"}])
+    parent = normalized.get("parent_run_id")
+    if not any(row.get("parent_run_id") == parent for row in rows):
+        seen = sorted({str(row.get("parent_run_id")) for row in rows})
+        return _error_doc(
+            ERR_PREVIOUS_ROUTE_MISMATCH,
+            f"previous_route_digest {declared} was issued for parent_run_id "
+            f"{seen} but this request is for {parent!r} — the chain link "
+            f"crosses runs", False,
+            [{"field": "previous_route_digest",
+              "problem": f"issued for {seen}, request is for {parent!r}"}])
+    return None
+
+
 def _refusal(code: str, reasons: list) -> dict:
     return {"code": code, "reasons": list(reasons)}
 
@@ -1138,6 +1207,12 @@ def decide(request: Any, now: Any = None) -> dict:
     if normalized is None:
         return _error_doc(ERR_INVALID_REQUEST,
                           "invalid execution-decision request", False, problems)
+
+    # H1-F5: a declared chain link is validated against the issuance ledger,
+    # never echoed unverified.
+    chain_problem = _previous_route_problem(normalized)
+    if chain_problem is not None:
+        return chain_problem
 
     resolved_at = _canonical_ts(clock)
     if "attempt_deadline" in normalized:
@@ -1217,6 +1292,12 @@ def decide(request: Any, now: Any = None) -> dict:
     # recorded cannot be verified later, so it is never handed out.
     try:
         append_issuance(receipt)
+    except IssuanceError as exc:
+        # H1-F5 (conflicting duplicate): named, and the receipt is never
+        # handed out.
+        return _error_doc(exc.code, f"receipt issuance record failed: {exc.problem}",
+                          False,
+                          [{"field": "issuance_ledger", "problem": exc.problem}])
     except Exception as exc:  # noqa: BLE001 — fail closed
         return _error_doc(ERR_RESOLVER_ERROR,
                           f"receipt issuance record failed: "
@@ -1649,6 +1730,10 @@ def http_status_for(doc: dict) -> int:
         # key). That is a server-side precondition, not a client error and not
         # a computed answer — 503, never a 200 and never a silent key mint.
         return 503
+    if code in (ERR_PREVIOUS_ROUTE_UNKNOWN, ERR_PREVIOUS_ROUTE_MISMATCH,
+                ERR_RECEIPT_ISSUANCE_CONFLICT):
+        # H1-F5: the request conflicts with what this router actually issued.
+        return 409
     if isinstance(doc.get("ok"), bool):
         return 200 if doc["ok"] else 409
     if doc.get("error") is None and "receipt_digest" in doc:

@@ -60,7 +60,7 @@ says so; timestamps are normalized to UTC second precision `...Z`.
 | `budget_ceiling_usd` / `budget_remaining_usd` | no | number ≥ 0 | remaining must be ≤ ceiling |
 | `attempt_deadline` | no | RFC3339 | bounds `valid_until`; must be after the decision clock (`ATTEMPT_DEADLINE_PASSED` otherwise) |
 | `valid_for_s` | no | int > 0 | requested window, clamped to the policy ceiling |
-| `previous_route_digest` | no | sha256 hex | reconciliation: the receipt the previous attempt used |
+| `previous_route_digest` | no | sha256 hex | the receipt the previous attempt used. **Validated, not echoed** (H1-F5): it must have an issuance record on this router (`PREVIOUS_ROUTE_UNKNOWN`) issued for the same `parent_run_id` (`PREVIOUS_ROUTE_MISMATCH`). A first attempt declares nothing |
 
 `id` = `[A-Za-z0-9][A-Za-z0-9._:@-]{0,127}`; `label` =
 `[a-z0-9][a-z0-9._-]{0,63}`; digests = 64 lowercase hex.
@@ -109,7 +109,11 @@ decision-stage exclusions (`data-class-mismatch`, `fallback-refused`).
   `resolved_at`, `valid_until`. `receipt_id` is deterministic — sha256 over
   `{request_digest, resolved_at, valid_until}` — so the same request at the
   same clock re-issues byte-identically (reconciliation-friendly) and tampering
-  with expiry or issuance time is a digest mismatch.
+  with expiry or issuance time is a digest mismatch. Determinism is why
+  issuance is **idempotent per `receipt_digest`** (H1-F5): a re-issue of an
+  identical receipt returns the same receipt and appends no second ledger row;
+  a digest already on file with a DIFFERENT record is a ledger inconsistency
+  (`RECEIPT_ISSUANCE_CONFLICT`), never a silent duplicate.
 - Deterministic across input key order **and process restart**.
 
 ## Policy
@@ -183,6 +187,8 @@ and touches nothing.
 | no candidate / all gated | receipt, `eligible=false`, `refusal=NO_ELIGIBLE_CANDIDATE` | 200 | 0 |
 | fallback offered | receipt, `eligible=false`, `refusal=DEGRADED_FALLBACK_REFUSED` | 200 | 0 |
 | invalid request / deadline passed | error doc `INVALID_REQUEST` / `ATTEMPT_DEADLINE_PASSED` | 400 | 2 |
+| chain link unknown or from another run | error doc `PREVIOUS_ROUTE_UNKNOWN` / `PREVIOUS_ROUTE_MISMATCH` — no receipt | 409 | 1 |
+| issuance ledger holds a different record for this digest | error doc `RECEIPT_ISSUANCE_CONFLICT` — no receipt | 409 | 1 |
 | signing key not bootstrapped (or unusable) | error doc `RECEIPT_KEY_UNAVAILABLE` — nothing is written | 503 | 1 |
 | resolver/infrastructure failure | error doc `RESOLVER_ERROR` (fail **closed**, never a fabricated route) | 500 | 1 |
 

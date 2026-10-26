@@ -156,7 +156,6 @@ def base_request(**overrides):
         "budget_remaining_usd": 1.25,
         "attempt_deadline": "2026-10-17T10:30:00Z",
         "requester": "hermes-foreman",
-        "previous_route_digest": "d" * 64,
     }
     for key, value in overrides.items():
         if value is _DROP:
@@ -929,13 +928,80 @@ def test_valid_for_s_is_clamped_to_the_policy_ceiling(decision_env):
 
 
 def test_previous_route_digest_is_echoed_for_reconciliation(decision_env):
-    rc, doc, _ = decide_cli(decision_env,
-                            base_request(previous_route_digest="e" * 64))
-    assert rc == 0
-    assert doc["previous_route_digest"] == "e" * 64
+    """A declared chain link is echoed — and it must be a real one (H1-F5)."""
+    rc, prior, _ = decide_cli(decision_env, base_request(step_id="step-7"))
+    assert rc == 0, prior
+    rc, doc, _ = decide_cli(decision_env, base_request(
+        step_id="step-8", generation=4,
+        previous_route_digest=prior["receipt_digest"]))
+    assert rc == 0, doc
+    assert doc["previous_route_digest"] == prior["receipt_digest"]
     rc, doc, _ = decide_cli(decision_env, base_request(previous_route_digest=_DROP))
     assert rc == 0
     assert doc["previous_route_digest"] is None
+
+
+def test_reissue_at_the_same_second_is_idempotent_in_the_ledger(decision_env):
+    """A deterministic receipt_id must not become a duplicate ledger row
+    (H1-F5).
+
+    Two identical requests at the same injected second produce the same
+    receipt; the issuance ledger must hold exactly one row for that digest, and
+    the receipt must still verify.
+    """
+    state = _state(decision_env)
+    rc, first, _ = decide_cli(decision_env, base_request())
+    assert rc == 0, first
+    rc, second, _ = decide_cli(decision_env, base_request())
+    assert rc == 0, second
+    assert first["receipt_id"] == second["receipt_id"]
+    assert first["receipt_digest"] == second["receipt_digest"]
+    month = first["resolved_at"][:7].replace("-", "")
+    ledger = state / "decision-receipts" / f"{month}.jsonl"
+    rows = [json.loads(line) for line in ledger.read_text().splitlines() if line.strip()]
+    matching = [row for row in rows if row.get("receipt_digest") == first["receipt_digest"]]
+    assert len(matching) == 1, f"{len(matching)} issuance rows for one digest"
+    import router_decision as rd
+    result = rd.verify_receipt(first, now=NOW, expect=EXPECT)
+    assert result["ok"] is True, result
+
+
+def test_previous_route_digest_is_checked_against_the_ledger(decision_env):
+    """`previous_route_digest` is a chain link the issuer must validate, not a
+    field it merely echoes (H1-F5).
+
+    Unknown digest -> PREVIOUS_ROUTE_UNKNOWN; a genuine digest issued for a
+    DIFFERENT parent run -> PREVIOUS_ROUTE_MISMATCH. Both are named refusals
+    with no receipt.
+    """
+    rc, prior, _ = decide_cli(decision_env, base_request(step_id="step-7"))
+    assert rc == 0, prior
+
+    rc, doc, _ = decide_cli(decision_env, base_request(
+        step_id="step-8", generation=4,
+        previous_route_digest="e" * 64))
+    assert rc != 0, doc
+    assert doc.get("code") == "PREVIOUS_ROUTE_UNKNOWN", doc
+    assert "receipt_digest" not in doc, doc
+    assert any(p.get("field") == "previous_route_digest"
+               for p in doc.get("problems") or []), doc
+
+    rc, other_run, _ = decide_cli(decision_env,
+                                  base_request(parent_run_id="run-0002",
+                                               step_id="step-1"))
+    assert rc == 0, other_run
+    rc, doc, _ = decide_cli(decision_env, base_request(
+        step_id="step-9", previous_route_digest=other_run["receipt_digest"]))
+    assert rc != 0, doc
+    assert doc.get("code") == "PREVIOUS_ROUTE_MISMATCH", doc
+    assert "receipt_digest" not in doc, doc
+
+    # The chain link from the SAME run is accepted (and echoed).
+    rc, chained, _ = decide_cli(decision_env, base_request(
+        step_id="step-8", generation=4,
+        previous_route_digest=prior["receipt_digest"]))
+    assert rc == 0, chained
+    assert chained["previous_route_digest"] == prior["receipt_digest"]
 
 
 # ---------------------------------------------------------------------------
