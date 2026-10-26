@@ -23,7 +23,10 @@ Task Router remains **model/provider-only**. This surface:
   recipient or board row (the receipt's `constraints.selected_*` are explicit
   nulls — a non-null value would be a forged selection);
 - never dispatches, creates sessions, writes outcomes, appends metrics or
-  mutates live routing state (a decision call is read-only end to end);
+  mutates live routing state. The **only** durable write on this surface is the
+  append-only issuance record for a receipt that is handed out; it is a
+  *write*, not a read, and the endpoint is authenticated accordingly
+  (H1-F4 — see Writes);
 - never reorders the resolver's candidates (`candidates` keep resolver order
   and hop numbers);
 - never serves the requirements-unmet always-run fallback as a route —
@@ -133,6 +136,9 @@ hold for `ok=true`:
   for the receipt's digest, and its `receipt_id`, `request_digest`,
   `parent_run_id`, `step_id`, `generation` and `valid_until` equal the
   receipt's — refused as `RECEIPT_NOT_ISSUED` / `RECEIPT_ISSUANCE_MISMATCH`.
+  The month file is the one named by the receipt's own `resolved_at`, and it is
+  read through an in-process digest index (parsed once, then tail-updated), so
+  verification cost does not grow with the ledger (H1-F4).
 
 Consequence: a receipt is verifiable only on the host that issued it (the key
 and ledger are local authority, never shipped inside the receipt). Refusals
@@ -145,11 +151,29 @@ receipts (`HEAD_MISMATCH`, `ELIGIBILITY_MISMATCH`, `MALFORMED_RECEIPT`,
 
 ## Writes
 
-A decision writes exactly two things, both inside the router state dir: the
-signing key (once) and one issuance record per issued receipt. It never writes
-quota, health, circuit, ledger, registry or table state. If the issuance record
-cannot be written the receipt is **not** returned (`RESOLVER_ERROR`): an
-unrecorded receipt could never be verified later.
+Signing material is an **operator bootstrap step**, never a side effect of a
+request: the server key at `<state>/decision-receipt.key` (32 bytes, mode 0600)
+is created exactly once by
+
+    python3 scripts/router_decision.py --init-receipt-key
+
+which is idempotent and never overwrites an existing key. Until it has run,
+every decision refuses with `RECEIPT_KEY_UNAVAILABLE` (HTTP **503**) and writes
+nothing — no key, no ledger directory. A request must never be able to mint
+authority (H1-F4).
+
+A decision then writes exactly ONE thing: one issuance record per issued
+receipt, appended to `<state>/decision-receipts/<YYYYMM>.jsonl` (the month of
+the receipt's own `resolved_at`). It never writes quota, health, circuit,
+ledger, registry or table state. If the issuance record cannot be written
+durably the receipt is **not** returned (`RESOLVER_ERROR`): an unrecorded
+receipt could never be verified later, and a partially written record would
+fail verification as if it were forged (H1-F7).
+
+Because issuing is a durable write, `POST /api/v1/execution-decision` requires
+the edit key and is unavailable in read-only mode. `POST
+/api/v1/execution-decision/verify` is a read: it is served without the edit key
+and touches nothing.
 
 ## Response semantics
 
@@ -159,6 +183,7 @@ unrecorded receipt could never be verified later.
 | no candidate / all gated | receipt, `eligible=false`, `refusal=NO_ELIGIBLE_CANDIDATE` | 200 | 0 |
 | fallback offered | receipt, `eligible=false`, `refusal=DEGRADED_FALLBACK_REFUSED` | 200 | 0 |
 | invalid request / deadline passed | error doc `INVALID_REQUEST` / `ATTEMPT_DEADLINE_PASSED` | 400 | 2 |
+| signing key not bootstrapped (or unusable) | error doc `RECEIPT_KEY_UNAVAILABLE` — nothing is written | 503 | 1 |
 | resolver/infrastructure failure | error doc `RESOLVER_ERROR` (fail **closed**, never a fabricated route) | 500 | 1 |
 
 ## Compatibility

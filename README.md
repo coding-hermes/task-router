@@ -207,14 +207,18 @@ ROUTER_EDIT_API_KEY=... router server --mode edit
     a `runtime_cache` TR-277 stats block).
   - **Routing reads** — `/resolve?project=X`, `/profiles`, `/providers`,
     `/circuit/status`, `/gaps`, `/pricing`, `/chains`.
-  - **Execution decision** (ACP-ROUTER-001; POST but a READ — answers in
-    read-only mode, no edit key) — `/api/v1/execution-decision` (closed v1
-    request → canonical expiring route receipt; `eligible=false` refusal
-    instead of any requirements-unmet fallback; no harness/connector/tool/
-    workspace is ever selected) and `/api/v1/execution-decision/verify`
-    (receipt digest + expiry verification). Same contract on the CLI
-    (`router decide`) and in Python (`router_decision.decide` /
-    `verify_receipt`); schema in
+  - **Execution decision** (ACP-ROUTER-001; a durable WRITE — one
+    append-only issuance record per issued receipt — so it requires the edit
+    key and is unavailable in read-only mode) — `/api/v1/execution-decision`
+    (closed v1 request → canonical expiring route receipt; `eligible=false`
+    refusal instead of any requirements-unmet fallback; no harness/connector/
+    tool/workspace is ever selected; it never creates signing material — run
+    `router_decision.py --init-receipt-key` once, as the operator, or the
+    endpoint answers 503 `RECEIPT_KEY_UNAVAILABLE` and writes nothing) and
+    `/api/v1/execution-decision/verify` (receipt binding + digest + expiry +
+    signature + issuance verification; a read, so it answers in read-only mode
+    without the edit key). Same contract on the CLI (`router decide`) and in
+    Python (`router_decision.decide` / `verify_receipt`); schema in
     [docs/specs/SPEC-EXECUTION-DECISION.md](docs/specs/SPEC-EXECUTION-DECISION.md).
   - **Proxy ops** — `/v1/capabilities` (TR-140 freshness ladder: a live
     probe of the upstream first; if that fails, the startup-probe result

@@ -101,6 +101,7 @@ import json
 import os
 import secrets
 import sys
+import threading
 from typing import Any
 
 # scripts/ must be importable when this file is dispatched via runpy (the
@@ -821,28 +822,53 @@ def issuance_dir() -> str:
     return os.path.join(_state_dir(), ISSUANCE_DIRNAME)
 
 
-def load_receipt_key(create: bool = True) -> bytes:
-    """Read (or atomically create) the 32-byte HMAC key, mode 0600.
+class ReceiptKeyError(ValueError):
+    """A named signing-key refusal, never a silent success.
 
-    Creation uses O_CREAT|O_EXCL so two concurrent decisions cannot race into
-    two different keys: exactly one wins, the other reads the winner.
+    Carries the machine-readable `code` so a caller can tell "no key
+    bootstrapped" from "key too old" from "key file permissions were
+    loosened" — each needs a different operator action.
+    """
+
+    def __init__(self, code: str, problem: str):
+        super().__init__(problem)
+        self.code = code
+        self.problem = problem
+
+
+def load_receipt_key(create: bool = False) -> bytes:
+    """Read the 32-byte HMAC key, mode 0600.
+
+    `create=True` is the OPERATOR BOOTSTRAP path (`--init-receipt-key`) and
+    the ONLY way a key comes into existence; it uses O_CREAT|O_EXCL so two
+    concurrent bootstraps cannot race into two different keys — exactly one
+    wins, the other reads the winner. Request paths (issue, verify) call with
+    `create=False` (the default), so a decision can never mint signing
+    material as a side effect of an HTTP call (H1-F4).
     """
     path = receipt_key_path()
     try:
         with open(path, "rb") as handle:
             key = handle.read()
-        if len(key) == 32:
-            return key
+    except OSError as exc:
         if not create:
-            raise ValueError(f"{path} is not a 32-byte key")
-    except FileNotFoundError:
-        if not create:
-            raise
-    except OSError:
-        if not create:
-            raise
+            raise ReceiptKeyError(
+                ERR_RECEIPT_KEY_UNAVAILABLE,
+                f"no signing key at {path} ({type(exc).__name__}) — issuing and "
+                f"verifying receipts require the operator bootstrap step: "
+                f"router_decision.py --init-receipt-key") from exc
+        key = None
+    if key:
+        if len(key) != 32:
+            raise ReceiptKeyError(
+                ERR_RECEIPT_KEY_UNAVAILABLE,
+                f"{path} is not a 32-byte key")
+        return key
     if not create:
-        raise FileNotFoundError(path)
+        raise ReceiptKeyError(
+            ERR_RECEIPT_KEY_UNAVAILABLE,
+            f"no signing key at {path} — issuing and verifying receipts require "
+            f"the operator bootstrap step: router_decision.py --init-receipt-key")
     os.makedirs(os.path.dirname(path), mode=0o700, exist_ok=True)
     fresh = secrets.token_bytes(32)
     try:
@@ -851,18 +877,34 @@ def load_receipt_key(create: bool = True) -> bytes:
         with open(path, "rb") as handle:
             key = handle.read()
         if len(key) != 32:
-            raise ValueError(f"{path} is not a 32-byte key")
+            raise ReceiptKeyError(ERR_RECEIPT_KEY_UNAVAILABLE,
+                                  f"{path} is not a 32-byte key")
         return key
     try:
-        os.write(fd, fresh)
+        written = os.write(fd, fresh)
+        if written != len(fresh):
+            raise OSError(f"short key write ({written}/{len(fresh)} bytes)")
+        os.fsync(fd)
     finally:
         os.close(fd)
     return fresh
 
 
+def bootstrap_receipt_key() -> str:
+    """The operator bootstrap step: create the key if, and only if, absent.
+
+    Idempotent and non-destructive — it never overwrites or rotates an
+    existing key (rotation is an explicit operator action: stop issuing,
+    archive the old key, delete the file, re-run this, and every outstanding
+    receipt becomes unverifiable, which is the point of rotating).
+    """
+    load_receipt_key(create=True)
+    return receipt_key_path()
+
+
 def sign_receipt(receipt: dict) -> dict:
     """Stamp `signature_alg` + `signature` over the canonical receipt body."""
-    key = load_receipt_key(create=True)
+    key = load_receipt_key(create=False)
     mac = hmac.new(key, signature_message(receipt).encode("utf-8"),
                    hashlib.sha256).hexdigest()
     receipt["signature_alg"] = SIGNATURE_ALG
@@ -882,6 +924,8 @@ def verify_signature(receipt: dict) -> tuple[bool, str]:
         return False, ERR_RECEIPT_SIGNATURE_INVALID
     try:
         key = load_receipt_key(create=False)
+    except ReceiptKeyError as exc:
+        return False, exc.code
     except (OSError, ValueError):
         return False, ERR_RECEIPT_KEY_UNAVAILABLE
     expected = hmac.new(key, signature_message(receipt).encode("utf-8"),
@@ -914,15 +958,125 @@ def issuance_record(receipt: dict) -> dict:
     }
 
 
+def _ledger_month(issued_at: Any) -> str | None:
+    """`YYYYMM` for a canonical `resolved_at`, or None when it is unusable.
+
+    The month is NOT guessed from the wall clock: the receipt's own (signed,
+    digest-covered) `resolved_at` says where its issuance row lives.
+    """
+    if not isinstance(issued_at, str) or len(issued_at) < 7:
+        return None
+    head = issued_at[:7]
+    if len(head) != 7 or head[4] != "-":
+        return None
+    year, month = head[:4], head[5:]
+    if not (year.isdigit() and month.isdigit() and 1 <= int(month) <= 12):
+        return None
+    return year + month
+
+
+def ledger_path(month: str) -> str:
+    return os.path.join(issuance_dir(), f"{month}.jsonl")
+
+
+#: Per-month ledger index: {path: {"offset": bytes parsed, "rows": {digest: [row]}}}.
+#: The server is a ThreadingHTTPServer, so the index is shared state behind a
+#: lock. Verification reads ONE month file, parses only the bytes appended
+#: since the last look, and answers from the digest map (H1-F4: a small
+#: unauthenticated POST must not cost a full-ledger parse).
+_ISSUANCE_INDEX: dict[str, dict] = {}
+_ISSUANCE_LOCK = threading.Lock()
+
+
+def _index_ledger(path: str) -> dict:
+    """{receipt_digest: [issuance row]} for one month file, tail-updated.
+
+    The stat comes first so a warm lookup opens nothing at all. A file that
+    shrank (rotation, truncation, restore) is re-indexed from byte 0; a
+    trailing partial line is left unparsed and re-read on the next call, so a
+    writer in flight can never hide a committed row.
+    """
+    with _ISSUANCE_LOCK:
+        entry = _ISSUANCE_INDEX.get(path)
+        offset = entry["offset"] if entry else 0
+        rows = entry["rows"] if entry else {}
+        try:
+            size = os.path.getsize(path)
+        except OSError:
+            _ISSUANCE_INDEX.pop(path, None)
+            return {}
+        if size < offset:                 # truncated or replaced on disk
+            offset, rows = 0, {}
+        if size == offset:
+            _ISSUANCE_INDEX[path] = {"offset": offset, "rows": rows}
+            return rows
+        try:
+            with open(path, "rb") as handle:
+                handle.seek(offset)
+                chunk = handle.read(size - offset)
+        except OSError:
+            _ISSUANCE_INDEX.pop(path, None)
+            return {}
+        *complete, tail = chunk.split(b"\n")
+        for raw in complete:
+            raw = raw.strip()
+            if not raw:
+                continue
+            try:
+                row = json.loads(raw)
+            except ValueError:
+                continue                       # torn line: never guessed at
+            if isinstance(row, dict) and isinstance(row.get("receipt_digest"), str):
+                rows.setdefault(row["receipt_digest"], []).append(row)
+        offset += len(chunk) - len(tail)
+        _ISSUANCE_INDEX[path] = {"offset": offset, "rows": rows}
+        return rows
+
+
+def issuance_rows_for_month(digest: str, month: str) -> list:
+    """Every issuance row for `digest` in exactly that month file."""
+    rows = _index_ledger(ledger_path(month))
+    return list(rows.get(digest) or [])
+
+
+def issuance_rows_any_month(digest: str) -> list:
+    """Every issuance row for `digest`, newest month file first.
+
+    Used only for chain lookups (a previous route may have been issued in an
+    earlier month); each month file is still parsed at most once per process.
+    """
+    directory = issuance_dir()
+    try:
+        names = sorted(os.listdir(directory), reverse=True)
+    except OSError:
+        return []
+    found: list = []
+    for name in names:
+        if not name.endswith(".jsonl"):
+            continue
+        stem = name[:-6]
+        if len(stem) != 6 or not stem.isdigit():
+            continue
+        found.extend(issuance_rows_for_month(digest, stem))
+        if found:
+            break
+    return found
+
+
+def _reset_issuance_index() -> None:
+    """Drop the in-process index (tests, and after an external repair)."""
+    with _ISSUANCE_LOCK:
+        _ISSUANCE_INDEX.clear()
+
+
 def append_issuance(receipt: dict) -> None:
     """Append the issuance record. This is the ONLY write a decision makes."""
     record = issuance_record(receipt)
     directory = issuance_dir()
     os.makedirs(directory, mode=0o700, exist_ok=True)
-    month = str(record.get("issued_at") or "")[:7].replace("-", "")
-    if not month or not month.isdigit():
-        month = _canonical_ts(datetime.datetime.now(datetime.timezone.utc))[:7].replace("-", "")
-    path = os.path.join(directory, f"{month}.jsonl")
+    month = _ledger_month(record.get("issued_at")) or _canonical_ts(
+        datetime.datetime.now(datetime.timezone.utc))[:7].replace("-", "")
+    path = ledger_path(month)
     line = canonical_json(record) + "\n"
     fd = os.open(path, os.O_CREAT | os.O_APPEND | os.O_WRONLY, 0o600)
     try:
@@ -931,43 +1085,20 @@ def append_issuance(receipt: dict) -> None:
         os.close(fd)
 
 
-def _issuance_candidates(receipt_digest_value: str) -> list:
-    """Every issuance record matching that digest, scanning this month and the
-    previous one (a receipt issued at a month boundary must still verify)."""
-    directory = issuance_dir()
-    if not os.path.isdir(directory):
-        return []
-    now = datetime.datetime.now(datetime.timezone.utc)
-    months = {now.strftime("%Y%m"), (now - datetime.timedelta(days=32)).strftime("%Y%m")}
-    found = []
-    for name in sorted(os.listdir(directory)):
-        stem = name[:-6] if name.endswith(".jsonl") else name
-        if stem and stem not in months:
-            continue
-        path = os.path.join(directory, name)
-        try:
-            with open(path) as handle:
-                for line in handle:
-                    line = line.strip()
-                    if not line:
-                        continue
-                    try:
-                        row = json.loads(line)
-                    except ValueError:
-                        continue
-                    if isinstance(row, dict) and row.get("receipt_digest") == receipt_digest_value:
-                        found.append(row)
-        except OSError:
-            continue
-    return found
-
-
 def verify_issuance(receipt: dict) -> tuple[bool, str, dict | None]:
-    """(ok, problem-code, record) — was this exact receipt issued here?"""
+    """(ok, problem-code, record) — was this exact receipt issued here?
+
+    The lookup is scoped to the month file named by the receipt's own
+    `resolved_at` and served from the digest index (H1-F4), so verification
+    cost does not grow with the ledger.
+    """
     digest = receipt.get("receipt_digest")
-    if not isinstance(digest, str):
+    if not isinstance(digest, str) or not _match(_DIGEST_RE, digest):
         return False, ERR_RECEIPT_NOT_ISSUED, None
-    rows = _issuance_candidates(digest)
+    month = _ledger_month(receipt.get("resolved_at"))
+    if month is None:
+        return False, ERR_RECEIPT_NOT_ISSUED, None
+    rows = issuance_rows_for_month(digest, month)
     if not rows:
         return False, ERR_RECEIPT_NOT_ISSUED, None
     for row in rows:
@@ -990,7 +1121,14 @@ def decide(request: Any, now: Any = None) -> dict:
 
     Never raises for request problems — the body is untrusted; unexpected
     resolver failures become a RESOLVER_ERROR error doc (fail closed, never a
-    fabricated route). No state file, table, metric or ledger is written."""
+    fabricated route).
+
+    Writes: exactly ONE durable thing — an issuance record in
+    `<state>/decision-receipts/<YYYYMM>.jsonl` — and only for a receipt that
+    is actually handed out (H1-F4). It does NOT create signing material: the
+    key is an operator bootstrap step (`--init-receipt-key`), so an
+    unkeyed install refuses with `RECEIPT_KEY_UNAVAILABLE` and writes
+    nothing rather than minting authority as a side effect of a request."""
     try:
         clock = decision_clock(now)
     except ValueError as exc:
@@ -1064,6 +1202,13 @@ def decide(request: Any, now: Any = None) -> dict:
         tiers, folded = _tier_index(tables or {})
         receipt = _build_receipt(normalized, resolved, tiers, folded,
                                  resolved_at, valid_until, ttl, warnings)
+    except ReceiptKeyError as exc:
+        # H1-F4: no key bootstrapped, key too old, or key file permissions
+        # loosened — a NAMED refusal that writes nothing. Signing material is
+        # never created by a request.
+        return _error_doc(exc.code,
+                          f"receipt cannot be signed: {exc.problem}", False,
+                          [{"field": "signing_key", "problem": exc.problem}])
     except Exception as exc:  # noqa: BLE001 — fail closed, never a traceback
         return _error_doc(ERR_RESOLVER_ERROR,
                           f"receipt build failed: {type(exc).__name__}: {exc}",
@@ -1499,6 +1644,11 @@ def http_status_for(doc: dict) -> int:
     code = doc.get("code")
     if code in (ERR_INVALID_REQUEST, ERR_DEADLINE_PASSED):
         return 400
+    if code == ERR_RECEIPT_KEY_UNAVAILABLE:
+        # H1-F4: the install is not ready to issue (no operator-bootstrapped
+        # key). That is a server-side precondition, not a client error and not
+        # a computed answer — 503, never a 200 and never a silent key mint.
+        return 503
     if isinstance(doc.get("ok"), bool):
         return 200 if doc["ok"] else 409
     if doc.get("error") is None and "receipt_digest" in doc:
@@ -1552,8 +1702,28 @@ def main(argv: list | None = None) -> int:
     ap.add_argument("--expect-head", metavar="PROVIDER/MODEL",
                     help="--verify: the head the caller already knows it will "
                          "execute; a different head is refused")
+    ap.add_argument("--init-receipt-key", action="store_true",
+                    help="operator bootstrap: create the receipt signing key "
+                         "(32 bytes, mode 0600) if it does not exist. Idempotent "
+                         "and non-destructive; a decision NEVER creates it.")
     ap.add_argument("--format", choices=["json"], default="json")
     args = ap.parse_args(argv)
+
+    if args.init_receipt_key:
+        if args.request or args.verify:
+            ap.error("--init-receipt-key cannot be combined with --request/--verify")
+        try:
+            path = bootstrap_receipt_key()
+        except (OSError, ValueError) as exc:
+            print(json.dumps(_error_doc(ERR_RECEIPT_KEY_UNAVAILABLE, str(exc),
+                                        False, [{"field": "signing_key",
+                                                 "problem": str(exc)}]), indent=1))
+            return 1
+        print(json.dumps({"version": RECEIPT_VERSION, "ok": True,
+                          "key_path": path,
+                          "key_mode": "0600",
+                          "max_age_s": RECEIPT_KEY_MAX_AGE_S}, indent=1))
+        return 0
 
     if bool(args.request) == bool(args.verify):
         ap.error("exactly one of --request / --verify is required")

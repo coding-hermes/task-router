@@ -189,6 +189,13 @@ in the client's own process environment) vs literal `api_key` in the client's
 | `ROUTER_DECISION_NOW` | `router_decision.py`, `router_server.py` | Inject the decision clock (RFC3339, explicit offset) for deterministic replay and tests: `resolved_at`/`valid_until`/`receipt_id` derive from it. Unparseable values are ignored (system clock wins). Never accepted from an HTTP request body. Issuance only: **verification ignores it** | — (system clock) |
 | `ROUTER_DECISION_TEST_CLOCK` | `router_decision.py` | **Test-only.** The string `1` collapses receipt verification to the injected clock instead of checking the host wall clock as well (the hermetic suite pins a 2026 clock). Any other value, or unset, leaves the safe dual-clock check in force. Never set it in production: it removes the only clock a caller cannot supply | unset |
 
+No environment variable configures the receipt signing key — it is an operator
+bootstrap step, not a knob: run `python3 scripts/router_decision.py
+--init-receipt-key` once, as the operator, before the first decision. It
+creates `<ROUTER_STATE_DIR>/decision-receipt.key` (32 bytes, mode 0600),
+idempotently and without overwriting. A request never creates it: an unkeyed
+install answers 503 `RECEIPT_KEY_UNAVAILABLE` and writes nothing.
+
 ---
 
 ## Health and verification

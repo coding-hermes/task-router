@@ -124,6 +124,11 @@ def decision_env(tmp_path, monkeypatch):
     # this file ran first.
     import router_decision as _rd
     monkeypatch.setattr(_rd._rs, "MR", str(state), raising=False)
+    # H1-F4: key creation is an OPERATOR bootstrap step, never a side effect of
+    # a request. The fixture plays the operator, exactly as
+    # `router_decision.py --init-receipt-key` does in production; every test
+    # that wants the refusal path deletes the file first.
+    _rd.load_receipt_key(create=True)
     return env
 
 
@@ -223,11 +228,14 @@ def _free_port():
         return sock.getsockname()[1]
 
 
-def _http_request(port, path, body):
+def _http_request(port, path, body, key=None):
     data = json.dumps(body).encode()
+    headers = {"Content-Type": "application/json"}
+    if key:
+        headers["x-api-key"] = key
     req = urllib.request.Request(
         f"http://127.0.0.1:{port}{path}", data=data,
-        headers={"Content-Type": "application/json"}, method="POST")
+        headers=headers, method="POST")
     try:
         with urllib.request.urlopen(req, timeout=30) as response:
             return response.status, json.load(response)
@@ -236,8 +244,11 @@ def _http_request(port, path, body):
 
 
 @contextlib.contextmanager
-def running_server(env, mode="read-only"):
+def running_server(env, mode="read-only", key=None):
     port = _free_port()
+    env = dict(env)
+    if key:
+        env["ROUTER_EDIT_API_KEY"] = key
     proc = subprocess.Popen(
         [PY, str(SERVER), "--mode", mode, "--host", "127.0.0.1", "--port", str(port)],
         cwd=str(REPO), env=env,
@@ -698,8 +709,9 @@ def test_http_openapi_and_cli_parity(decision_env):
     request = base_request()
     env = dict(decision_env)
     env["ROUTER_DECISION_NOW"] = NOW
-    with running_server(env) as port:
-        status, http_doc = _http_request(port, "/api/v1/execution-decision", request)
+    with running_server(env, mode="edit", key="tr-h1-secret") as port:
+        status, http_doc = _http_request(port, "/api/v1/execution-decision",
+                                         request, key="tr-h1-secret")
         assert status == 200
         # OpenAPI + MCP parity: the same operation is discoverable and callable
         with urllib.request.urlopen(
@@ -710,13 +722,19 @@ def test_http_openapi_and_cli_parity(decision_env):
         assert "/api/v1/execution-decision/verify" in paths
         assert paths["/api/v1/execution-decision"]["post"]["operationId"] == \
             "postExecutionDecision"
-        assert paths["/api/v1/execution-decision"]["post"]["security"] == []
+        # H1-F4: a decision appends a durable issuance row, so the contract
+        # says it is authenticated — it is NOT the `security: []` read the
+        # slice first advertised. Verification stays an anonymous read.
+        assert paths["/api/v1/execution-decision"]["post"]["security"] == \
+            [{"EditApiKey": []}]
+        assert paths["/api/v1/execution-decision/verify"]["post"]["security"] == []
         rpc = {"jsonrpc": "2.0", "id": 1, "method": "tools/call",
                "params": {"name": "postExecutionDecision",
                           "arguments": request}}
         rpc_req = urllib.request.Request(
             f"http://127.0.0.1:{port}/mcp", data=json.dumps(rpc).encode(),
-            headers={"Content-Type": "application/json"}, method="POST")
+            headers={"Content-Type": "application/json",
+                     "x-api-key": "tr-h1-secret"}, method="POST")
         with urllib.request.urlopen(rpc_req, timeout=60) as response:
             mcp_doc = json.load(response)
         mcp_receipt = mcp_doc["result"]["structuredContent"]
@@ -744,8 +762,9 @@ def test_strict_unknown_field_rejection_is_identical_everywhere(decision_env):
 
     env = dict(decision_env)
     env["ROUTER_DECISION_NOW"] = NOW
-    with running_server(env) as port:
-        status, http_doc = _http_request(port, "/api/v1/execution-decision", bad)
+    with running_server(env, mode="edit", key="tr-h1-secret") as port:
+        status, http_doc = _http_request(port, "/api/v1/execution-decision", bad,
+                                         key="tr-h1-secret")
         assert status == 400
         assert http_doc["code"] == "INVALID_REQUEST"
         assert http_doc["problems"] == cli_doc["problems"]
@@ -773,9 +792,10 @@ def test_decision_calls_change_no_state_files_or_tables(decision_env):
     # WALL clock (no ROUTER_DECISION_NOW here) or verification — which checks
     # the wall clock too (H1-F2) — refuses it as expired.
     env = dict(decision_env)
-    with running_server(env) as port:
+    with running_server(env, mode="edit", key="tr-h1-secret") as port:
         status, http_doc = _http_request(port, "/api/v1/execution-decision",
-                                         base_request(attempt_deadline=_DROP))
+                                         base_request(attempt_deadline=_DROP),
+                                         key="tr-h1-secret")
         assert status == 200
         status, verify_doc = _http_request(
             port, "/api/v1/execution-decision/verify",
@@ -791,9 +811,10 @@ def test_decision_calls_change_no_state_files_or_tables(decision_env):
         "data": snapshot_tree(data_dir),
         "registry": registry.read_bytes() if registry.exists() else None,
     }
-    # A decision writes EXACTLY TWO things: the signing key (once) and one
-    # issuance record per issued receipt. No quota/health/circuit/ledger row,
-    # no registry or table byte, may ever change.
+    # A decision writes EXACTLY ONE thing: one issuance record per issued
+    # receipt. The signing key is an operator bootstrap step (H1-F4) and was
+    # already present, so it must not be re-created or rewritten. No
+    # quota/health/circuit/ledger row, no registry or table byte, may change.
     assert after["data"] == before["data"]
     assert after["registry"] == before["registry"]
     added = {name: digest for name, digest in after["state"].items()
@@ -801,9 +822,8 @@ def test_decision_calls_change_no_state_files_or_tables(decision_env):
     assert added, "expected the issuance record to be written"
     for name, digest in before["state"].items():
         assert after["state"][name] == digest, f"{name} was mutated by a decision"
-    allowed = {"decision-receipt.key"}
     for name in added:
-        assert name in allowed or name.startswith("decision-receipts/"), \
+        assert name.startswith("decision-receipts/"), \
             f"unexpected state write: {name}"
 
 
@@ -949,6 +969,10 @@ def test_seeded_registry_source_and_version_are_reported(seed_registry_copy,
         "ROUTING_AVERAGES_FILE": str(tmp_path / "outcomes-averages.jsonl"),
     })
     env.pop("ROUTER_DECISION_NOW", None)
+    # H1-F4: issuing requires the operator-bootstrapped signing key; the
+    # request path never creates it.
+    rc, _boot, proc = run_json([str(DECISION), "--init-receipt-key"], env)
+    assert rc == 0, proc.stdout + proc.stderr
     rc, doc, _ = decide_cli(env, base_request())
     assert rc == 0
     assert doc["source"] == "registry.json"
@@ -1100,3 +1124,181 @@ def test_injected_clock_cannot_resurrect_an_expired_receipt(decision_env, monkey
     result = rd.verify_receipt(doc, now="2026-10-17T10:01:00Z", expect=EXPECT)
     assert result["ok"] is False, result
     assert "EXPIRED" in _codes(result), result
+
+
+# ---------------------------------------------------------------------------
+# H1-F4 — the decision endpoint is a durable WRITE, not a read-only surface
+# ---------------------------------------------------------------------------
+
+def _state(env):
+    return Path(env["ROUTER_STATE_DIR"])
+
+
+def _drop_signing_material(state):
+    """The empty-install shape: no operator-bootstrapped key, no ledger."""
+    key = state / "decision-receipt.key"
+    if key.exists():
+        key.unlink()
+    ledger = state / "decision-receipts"
+    if ledger.exists():
+        shutil.rmtree(ledger)
+
+
+@contextlib.contextmanager
+def _opened_paths():
+    """Record every absolute path opened through builtins `open`."""
+    import builtins
+    real_open = builtins.open
+    opened = []
+
+    def spy(file, *args, **kwargs):
+        try:
+            opened.append(os.path.abspath(str(file)))
+        except Exception:  # noqa: BLE001 — an odd descriptor is not the point
+            pass
+        return real_open(file, *args, **kwargs)
+
+    builtins.open = spy
+    try:
+        yield opened
+    finally:
+        builtins.open = real_open
+
+
+def _append_ledger_rows(path, count, tag):
+    """Append `count` decoy issuance rows (distinct digests) to a month file."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    lines = []
+    for i in range(count):
+        digest = hashlib.sha256(f"{tag}-{i}".encode()).hexdigest()
+        lines.append(json.dumps({"version": 1, "receipt_digest": digest,
+                                 "receipt_id": digest, "decoy": True}))
+    with path.open("a") as handle:
+        handle.write("\n".join(lines) + "\n")
+
+
+def test_decision_without_a_bootstrapped_key_refuses_and_writes_nothing(decision_env):
+    """A decision must never mint signing material (H1-F4).
+
+    Key creation belongs to an operator bootstrap step. Without one the
+    decision refuses with a NAMED error and leaves the state dir untouched —
+    no key, no ledger directory.
+    """
+    state = _state(decision_env)
+    _drop_signing_material(state)
+    rc, doc, _ = decide_cli(decision_env, base_request())
+    assert rc != 0, doc
+    assert doc.get("code") == "RECEIPT_KEY_UNAVAILABLE", doc
+    assert "receipt_digest" not in doc, doc
+    assert not (state / "decision-receipt.key").exists(), \
+        "a decision request minted the signing key"
+    assert not (state / "decision-receipts").exists(), \
+        "a decision request created the issuance ledger"
+    # The named error must tell the operator what to run.
+    assert any("--init-receipt-key" in str(p) for p in doc.get("problems") or []), doc
+
+    # ... and after the operator bootstrap the same request issues normally.
+    rc, boot, proc = run_json([str(DECISION), "--init-receipt-key"], decision_env)
+    assert rc == 0, proc.stdout + proc.stderr
+    key = state / "decision-receipt.key"
+    assert key.exists()
+    assert (key.stat().st_mode & 0o777) == 0o600
+    rc, doc, _ = decide_cli(decision_env, base_request())
+    assert rc == 0, doc
+    assert doc["receipt_digest"]
+
+
+def test_decision_endpoint_is_not_an_anonymous_write(decision_env):
+    """The endpoint appends a durable ledger row, so it is NOT an anonymous
+    read (H1-F4).
+
+    With no key bootstrapped an authorized POST must refuse (503) and write
+    nothing; in read-only mode the same POST must not answer at all (the write
+    path is behind the edit key, like every other mutation).
+    """
+    state = _state(decision_env)
+    _drop_signing_material(state)
+    env = dict(decision_env)
+    env["ROUTER_DECISION_NOW"] = NOW
+
+    with running_server(env, mode="read-only") as port:
+        status, doc = _http_request(port, "/api/v1/execution-decision", base_request())
+    assert status == 403, doc
+    assert not (state / "decision-receipt.key").exists()
+    assert not (state / "decision-receipts").exists()
+
+    with running_server(env, mode="edit", key="tr-h1-secret") as port:
+        status, doc = _http_request(port, "/api/v1/execution-decision",
+                                    base_request(), key="tr-h1-secret")
+    assert status == 503, doc
+    assert doc["code"] == "RECEIPT_KEY_UNAVAILABLE", doc
+    assert not (state / "decision-receipt.key").exists(), \
+        "an authenticated decision request minted the signing key"
+    assert not (state / "decision-receipts").exists(), \
+        "a refused decision request created the issuance ledger"
+
+    # Verify stays a read: after the operator bootstrap it answers in
+    # read-only mode WITHOUT the edit key, and writes nothing itself. The
+    # receipt is minted at the WALL clock so its own window is live.
+    rc, boot, proc = run_json([str(DECISION), "--init-receipt-key"], decision_env)
+    assert rc == 0, proc.stdout + proc.stderr
+    rc, receipt, _ = decide_cli(decision_env, base_request(attempt_deadline=_DROP),
+                                now=None)
+    assert rc == 0, receipt
+    before = snapshot_tree(state)
+    with running_server(env, mode="read-only") as port:
+        status, verify_doc = _http_request(
+            port, "/api/v1/execution-decision/verify",
+            {"receipt": receipt, "expect": EXPECT})
+    assert status == 200, verify_doc
+    assert verify_doc["ok"] is True, verify_doc
+    assert snapshot_tree(state) == before, "verification wrote to the state dir"
+
+
+def test_verify_reads_only_the_receipt_month_and_parses_it_once(decision_env, monkeypatch):
+    """Verification must not re-parse the ledger on every call (H1-F4).
+
+    The issuance record lives in the month file named by the receipt's own
+    (signed) `resolved_at`; verification opens THAT file and no other, parses
+    it once, and serves the warm path from an index.
+    """
+    state = _state(decision_env)
+    rc, doc, _ = decide_cli(decision_env, base_request())
+    assert rc == 0, doc
+    month = doc["resolved_at"][:7].replace("-", "")
+    current = state / "decision-receipts" / f"{month}.jsonl"
+    assert current.exists(), list((state / "decision-receipts").iterdir())
+    # A neighbouring month file that does NOT contain this receipt.
+    last_month = (datetime.now(timezone.utc) - timedelta(days=32)).strftime("%Y%m")
+    if last_month == month:
+        last_month = (datetime.now(timezone.utc) - timedelta(days=64)).strftime("%Y%m")
+    neighbour = state / "decision-receipts" / f"{last_month}.jsonl"
+    _append_ledger_rows(neighbour, 25, "neighbour")
+    _append_ledger_rows(current, 20000, "current")
+
+    import router_decision as rd
+    parsed = []
+    real_loads = rd.json.loads
+
+    def counting_loads(text, *args, **kwargs):
+        parsed.append(1)
+        return real_loads(text, *args, **kwargs)
+
+    monkeypatch.setattr(rd.json, "loads", counting_loads)
+
+    with _opened_paths() as opened:
+        first = rd.verify_receipt(doc, now=NOW, expect=EXPECT)
+    assert first["ok"] is True, first
+    ledger_reads = {p for p in opened if "decision-receipts" in p}
+    assert ledger_reads == {str(current.resolve())}, \
+        f"verify opened more than the receipt's own month: {sorted(ledger_reads)}"
+    assert len(parsed) >= 20000, f"cold verify parsed only {len(parsed)} rows"
+
+    parsed.clear()
+    with _opened_paths() as opened:
+        second = rd.verify_receipt(doc, now=NOW, expect=EXPECT)
+    assert second["ok"] is True, second
+    assert len(parsed) == 0, \
+        f"a warm verify re-parsed {len(parsed)} ledger rows (no index)"
+    assert not {p for p in opened if "decision-receipts" in p}, \
+        "a warm verify re-opened the ledger it had already indexed"

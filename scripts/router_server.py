@@ -338,12 +338,16 @@ def build_openapi() -> dict:
         )
     }
     # ACP-ROUTER-001: the just-in-time execution decision contract (v1,
-    # closed). READ-ONLY by construction — it computes a route receipt and
-    # never mutates state — so it answers in read-only mode with NO edit key
-    # (same trust model as GET /resolve); `security: []` says so in the
-    # contract. Unknown request fields are rejected (the schema is closed:
-    # additionalProperties false). The receipt never names a harness,
-    # connector, tool or workspace and never a requirements-unmet fallback.
+    # closed). It computes a route receipt AND appends one durable issuance
+    # record per issued receipt, so it is a WRITE, not a read (H1-F4: the
+    # `security: []` "read-only" label was the defect — the auth exemption
+    # rested on a false premise). It therefore sits behind the edit key, like
+    # every other mutation. It never creates signing material: the key is an
+    # operator bootstrap step and an unkeyed install answers 503
+    # RECEIPT_KEY_UNAVAILABLE without writing anything. Unknown request fields
+    # are rejected (the schema is closed: additionalProperties false). The
+    # receipt never names a harness, connector, tool or workspace and never a
+    # requirements-unmet fallback.
     execution_decision_schema = {
         "type": "object",
         "additionalProperties": False,
@@ -397,13 +401,22 @@ def build_openapi() -> dict:
                        "eligible=false + a machine-readable refusal — never a "
                        "requirements-unmet fallback. Model/provider only: no harness, "
                        "connector, tool, workspace or dispatch decision exists here. "
-                       "Read-only; safe in read-only mode (no edit key).",
-            "security": [],
+                       "A durable write: one append-only issuance record per issued "
+                       "receipt, so it requires the edit key (H1-F4). It never "
+                       "creates signing material — an unkeyed install answers 503 "
+                       "RECEIPT_KEY_UNAVAILABLE until the operator runs "
+                       "`router_decision.py --init-receipt-key`.",
+            "security": [{"EditApiKey": []}],
             "requestBody": {
                 "required": True,
                 "content": {"application/json": {"schema": execution_decision_schema}},
             },
             "responses": {"200": JSON_RESPONSE, "400": ERROR_RESPONSES["400"],
+                          "401": {"description": "missing or wrong edit key"},
+                          "403": {"description": "read-only mode: this endpoint "
+                                                 "appends a durable issuance record"},
+                          "503": {"description": "no operator-bootstrapped signing "
+                                                 "key (RECEIPT_KEY_UNAVAILABLE)"},
                           "500": ERROR_RESPONSES["500"]},
         }
     }
@@ -1022,19 +1035,20 @@ class RouterApplication:
                              "hint": "this is not a POST endpoint; GET /openapi.json lists the contract",
                              "surface": known_post_paths()}
             if path not in READ_ONLY_POST_PATHS:
-                # ACP-ROUTER-001: the execution-decision seam is a READ — it
-                # must answer in read-only mode (the foreman queries it just in
-                # time); every real mutation keeps the auth gate.
+                # ACP-ROUTER-001: the execution-decision seam is a durable
+                # WRITE (one issuance record per receipt), so it keeps the auth
+                # gate like every other mutation (H1-F4). Receipt VERIFICATION
+                # is a read and answers in read-only mode without the key.
                 auth_error = self._authorize(headers)
                 if auth_error:
                     return auth_error
 
-        # ACP-ROUTER-001: closed v1 decision / receipt verification. Both
-        # branches are READS (compute-only) and answer in read-only mode
-        # without the edit key (see READ_ONLY_POST_PATHS). Fail-closed on the
-        # route: an unserviceable request is an explicit machine-readable
-        # refusal — never a fabricated or fallback route — and no state file,
-        # table, metric or ledger is written by a decision call. A non-object
+        # ACP-ROUTER-001: closed v1 decision / receipt verification.
+        # Fail-closed on the route: an unserviceable request is an explicit
+        # machine-readable refusal — never a fabricated or fallback route. A
+        # decision appends exactly one issuance record and NEVER creates
+        # signing material (the key is an operator bootstrap step); a
+        # verification reads only the receipt's own month file. A non-object
         # body is a named INVALID_REQUEST, not a 500.
         if path == "/api/v1/execution-decision":
             doc = router_decision.decide(body)
@@ -1257,8 +1271,14 @@ PROXY_PATHS = ("/v1/chat/completions", "/v1/responses")
 #: ACP-ROUTER-001: POST paths that are READS (compute-only, never mutate) and
 #: therefore answer in read-only mode WITHOUT the edit key — the same trust
 #: model as GET /resolve. Everything else stays behind _authorize.
+#:
+#: H1-F4: `/api/v1/execution-decision` is deliberately NOT here. It appends an
+#: issuance record on every successful call, and an unauthenticated durable
+#: write into the router state dir is exactly what the "read-only" label used
+#: to hide. Verification (`.../verify`) is a genuine read: it is served
+#: anonymously, but it reads only the receipt's own month file and writes
+#: nothing.
 READ_ONLY_POST_PATHS = (
-    "/api/v1/execution-decision",
     "/api/v1/execution-decision/verify",
 )
 
