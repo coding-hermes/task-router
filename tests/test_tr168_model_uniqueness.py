@@ -197,6 +197,22 @@ POST_DEDUPE_ADDITIONS = {
     ("xkiro-2", "moonshotai/kimi-k3-agent"): "xkiro carrier refresh 2026-10-14 (TR-167 import + TR-254 filing)",
     ("xkiro-2", "stealth/big-pickle"): "xkiro carrier refresh 2026-10-14 (TR-167 import + TR-254 filing)",
     ("xkiro-2", "tencent/hy3-preview"): "xkiro carrier refresh 2026-10-14 (TR-167 import + TR-254 filing)",
+    # sync arrivals 2026-10-26 (model-registry-data-quality cron):
+    # 7 commandcode + 6 opencode-go-2 lanes filed by the carrier
+    # refresh after preset sticker fills (models.dev-sourced).
+    ("commandcode", "inclusionai/ling-3.1-flash"): "carrier refresh 2026-10-26 (preset sticker fills from models.dev)",
+    ("commandcode", "meta/muse-spark-open"): "carrier refresh 2026-10-26 (preset sticker fills from models.dev)",
+    ("commandcode", "minimax/minimax-m3.1-flash"): "carrier refresh 2026-10-26 (preset sticker fills from models.dev)",
+    ("commandcode", "moonshotai/Kimi-K3.1-Pro"): "carrier refresh 2026-10-26 (preset sticker fills from models.dev)",
+    ("commandcode", "nvidia/nemotron-3.5-super-vl"): "carrier refresh 2026-10-26 (preset sticker fills from models.dev)",
+    ("commandcode", "ornith/ornith-1.5-122b"): "carrier refresh 2026-10-26 (preset sticker fills from models.dev)",
+    ("commandcode", "reflection/beam:free"): "carrier refresh 2026-10-26 (preset sticker fills from models.dev; free SKU + TR-070 tag)",
+    ("opencode-go-2", "beam-free"): "carrier refresh 2026-10-26 (preset sticker fills from models.dev; free SKU + TR-070 tag)",
+    ("opencode-go-2", "gemini-4-argon"): "carrier refresh 2026-10-26 (preset sticker fills from models.dev)",
+    ("opencode-go-2", "iceman-contributor-free"): "carrier refresh 2026-10-26 (preset sticker fills from models.dev; free SKU + TR-070 tag)",
+    ("opencode-go-2", "kimi-k3.1-pro"): "carrier refresh 2026-10-26 (preset sticker fills from models.dev)",
+    ("opencode-go-2", "minimax-m3.1-flash"): "carrier refresh 2026-10-26 (preset sticker fills from models.dev)",
+    ("opencode-go-2", "step-5-preview"): "carrier refresh 2026-10-26 (preset sticker fills from models.dev)",
     # --- end TR-254 additions ---
     # models.dev sync 2026-10-19 (model-registry-data-quality cron pre-run):
     # two catalog arrivals. fireworks deepseek-v4p1-flash-1017 = dated
