@@ -81,7 +81,7 @@ Every key is always present (`RECEIPT_KEYS`):
 | `requirements`, `constraints` | requirement echo + connector capability echo with explicit null selections |
 | `source`, `registry`, `policy`, `fallback_used`, `degraded_fallback`, `warnings` | provenance: registry `{source, version, digest}`, policy = `quota-state.json` `{source, version, digest}` (null digest = file absent — unknown is not empty) |
 | `gate_evidence` | `gates_loaded` + verbatim `quota`/`health`/`circuit` rows for exactly the lanes considered |
-| `signature`, `signature_alg` | **authentication**: HMAC-SHA256 (`hmac-sha256-v1`) over the canonical receipt body, key held server-side |
+| `key_id`, `signature`, `signature_alg` | **authentication**: `key_id` = `sha256(key)[:32]` names the signing key that produced the HMAC-SHA256 (`hmac-sha256-v1`) signature over the canonical receipt body; the key is held server-side. Rotation is therefore visible (`RECEIPT_KEY_ID_MISMATCH`), not silent (H1-F6) |
 
 Candidate: `{hop, provider, model, price{list_usd_1m, in_per_m, out_per_m,
 cache_read_per_m, cache_write_per_m, normalized, effective, basis},
@@ -133,9 +133,15 @@ hold for `ok=true`:
 
 - the receipt carries a valid `signature` (`hmac-sha256-v1`) over the canonical
   body, computed with the server key at
-  `<state>/decision-receipt.key` (32 bytes, mode 0600, created exactly once) —
-  refused as `RECEIPT_UNSIGNED` / `RECEIPT_SIGNATURE_INVALID` /
-  `RECEIPT_KEY_UNAVAILABLE`;
+  `<state>/decision-receipt.key` (32 bytes, mode 0600, created exactly once by
+  the operator bootstrap) — refused as `RECEIPT_UNSIGNED` /
+  `RECEIPT_SIGNATURE_INVALID` / `RECEIPT_KEY_UNAVAILABLE`. The receipt also
+  names the key it was signed with (`key_id`), so a rotated key is a named
+  `RECEIPT_KEY_ID_MISMATCH` rather than an indistinguishable invalid MAC. The
+  key file itself is re-validated on every load: a file readable by
+  group/other is `RECEIPT_KEY_INSECURE_MODE`, and a key older than
+  `RECEIPT_KEY_MAX_AGE_S` (90 days) is `RECEIPT_KEY_EXPIRED` — both refusals,
+  both naming the operator repair (H1-F6);
 - a matching issuance record exists in `<state>/decision-receipts/<YYYYMM>.jsonl`
   for the receipt's digest, and its `receipt_id`, `request_digest`,
   `parent_run_id`, `step_id`, `generation` and `valid_until` equal the

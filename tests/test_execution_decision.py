@@ -632,7 +632,7 @@ def test_receipt_never_names_a_harness_connector_tool_or_workspace(decision_env)
         "valid_for_s", "eligible", "refusal", "head", "candidates",
         "exclusions", "gate_reasons", "requirements", "constraints", "source",
         "registry", "policy", "fallback_used", "degraded_fallback", "warnings",
-        "gate_evidence", "signature", "signature_alg",
+        "gate_evidence", "key_id", "signature", "signature_alg",
     }
     # the only selection-shaped values in the whole receipt are the explicit
     # nulls under constraints — a non-null one would be a forged selection
@@ -1368,3 +1368,86 @@ def test_verify_reads_only_the_receipt_month_and_parses_it_once(decision_env, mo
         f"a warm verify re-parsed {len(parsed)} ledger rows (no index)"
     assert not {p for p in opened if "decision-receipts" in p}, \
         "a warm verify re-opened the ledger it had already indexed"
+
+
+# ---------------------------------------------------------------------------
+# H1-F6 — signing-key lifecycle: age policy, key identity, file mode
+# ---------------------------------------------------------------------------
+
+def test_stale_signing_key_is_refused_after_policy_max_age(decision_env):
+    """`RECEIPT_KEY_MAX_AGE_S` must be enforced, not merely declared (H1-F6).
+
+    A key older than the policy ceiling is refused with a NAMED code on both
+    paths — issuing a new receipt and verifying an existing one.
+    """
+    state = _state(decision_env)
+    key_path = state / "decision-receipt.key"
+    rc, receipt, _ = decide_cli(decision_env, base_request())
+    assert rc == 0, receipt
+
+    import router_decision as rd
+    stale = time.time() - rd.RECEIPT_KEY_MAX_AGE_S - 1
+    os.utime(key_path, (stale, stale))
+
+    result = rd.verify_receipt(receipt, now=NOW, expect=EXPECT)
+    assert result["ok"] is False, result
+    assert "RECEIPT_KEY_EXPIRED" in _codes(result), result
+
+    rc, doc, _ = decide_cli(decision_env, base_request(step_id="step-8"))
+    assert rc != 0, doc
+    assert doc.get("code") == "RECEIPT_KEY_EXPIRED", doc
+    assert "receipt_digest" not in doc, doc
+
+
+def test_receipt_names_its_signing_key_and_a_rotated_key_is_named(decision_env):
+    """A receipt must carry a key id, so rotation is visible (H1-F6).
+
+    Without one, a rotated key turns every outstanding receipt into a generic
+    RECEIPT_SIGNATURE_INVALID — indistinguishable from forgery.
+    """
+    state = _state(decision_env)
+    rc, receipt, _ = decide_cli(decision_env, base_request())
+    assert rc == 0, receipt
+    import router_decision as rd
+    current = rd.load_receipt_key(create=False)
+    assert receipt["key_id"] == rd.receipt_key_id(current), receipt["key_id"]
+    assert isinstance(receipt["key_id"], str) and len(receipt["key_id"]) >= 16
+
+    # Rotate: a NEW key material file (same shape, different bytes).
+    (state / "decision-receipt.key").write_bytes(bytes(range(32)))
+    result = rd.verify_receipt(receipt, now=NOW, expect=EXPECT)
+    assert result["ok"] is False, result
+    assert "RECEIPT_KEY_ID_MISMATCH" in _codes(result), result
+
+
+def test_key_file_mode_must_not_be_group_or_world_readable(decision_env):
+    """A key file whose permissions were loosened must be refused (H1-F6).
+
+    The docstring promised 0600 but the mode was only set at creation; a
+    `chmod 644` was read happily. It is now a named refusal, and the operator
+    is told the exact repair.
+    """
+    state = _state(decision_env)
+    key_path = state / "decision-receipt.key"
+    rc, receipt, _ = decide_cli(decision_env, base_request())
+    assert rc == 0, receipt
+    key_path.chmod(0o644)
+
+    import router_decision as rd
+    result = rd.verify_receipt(receipt, now=NOW, expect=EXPECT)
+    assert result["ok"] is False, result
+    assert "RECEIPT_KEY_INSECURE_MODE" in _codes(result), result
+
+    with pytest.raises(rd.ReceiptKeyError) as refused:
+        rd.load_receipt_key(create=False)
+    assert refused.value.code == "RECEIPT_KEY_INSECURE_MODE"
+    assert "chmod 600" in refused.value.problem, refused.value.problem
+
+    rc, doc, _ = decide_cli(decision_env, base_request(step_id="step-8"))
+    assert rc != 0, doc
+    assert doc.get("code") == "RECEIPT_KEY_INSECURE_MODE", doc
+
+    # The repair restores service — the refusal is about the mode, not the key.
+    key_path.chmod(0o600)
+    result = rd.verify_receipt(receipt, now=NOW, expect=EXPECT)
+    assert result["ok"] is True, result

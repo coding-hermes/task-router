@@ -102,6 +102,7 @@ import os
 import secrets
 import sys
 import threading
+import time
 from typing import Any
 
 # scripts/ must be importable when this file is dispatched via runpy (the
@@ -170,6 +171,12 @@ ERR_RECEIPT_ISSUANCE_MISMATCH = "RECEIPT_ISSUANCE_MISMATCH"
 ERR_RECEIPT_ISSUANCE_CONFLICT = "RECEIPT_ISSUANCE_CONFLICT"
 ERR_RECEIPT_KEY_UNAVAILABLE = "RECEIPT_KEY_UNAVAILABLE"
 
+#: Signing-key lifecycle refusals (H1-F6). The key has an age ceiling, an
+#: identity, and a file-mode floor; each is enforced, not documented only.
+ERR_RECEIPT_KEY_EXPIRED = "RECEIPT_KEY_EXPIRED"
+ERR_RECEIPT_KEY_INSECURE_MODE = "RECEIPT_KEY_INSECURE_MODE"
+ERR_RECEIPT_KEY_ID_MISMATCH = "RECEIPT_KEY_ID_MISMATCH"
+
 #: Verification failure codes for BINDING and TRUST (H1-F1 / H1-F2).
 #: `RECEIPT_UNBOUND_EXPECTATION` is the no-expectation refusal: a receipt on
 #: its own proves integrity and provenance, never that it is the receipt FOR
@@ -215,7 +222,7 @@ RECEIPT_KEYS = frozenset({
     "valid_for_s", "eligible", "refusal", "head", "candidates", "exclusions",
     "gate_reasons", "requirements", "constraints", "source", "registry",
     "policy", "fallback_used", "degraded_fallback", "warnings",
-    "gate_evidence", "signature", "signature_alg",
+    "gate_evidence", "key_id", "signature", "signature_alg",
 })
 
 
@@ -843,6 +850,43 @@ class ReceiptKeyError(ValueError):
         self.problem = problem
 
 
+def receipt_key_id(key: bytes) -> str:
+    """The public identity of a signing key: sha256(key), first 16 hex bytes.
+
+    Distinct from the key material itself (the digest is not usable as a MAC
+    key), so it can ride the receipt: rotation then shows up as a named
+    `RECEIPT_KEY_ID_MISMATCH` instead of a generic signature failure.
+    """
+    return hashlib.sha256(key).hexdigest()[:32]
+
+
+def _reject_unsafe_key_file(path: str) -> None:
+    """Enforce the key-file floor and ceiling (H1-F6).
+
+    mode: no group/other permission bits (the key is 0600 or it is refused);
+    age: mtime within RECEIPT_KEY_MAX_AGE_S (rotation is an operator action,
+    but a key nobody rotated must not stay authoritative forever).
+    """
+    try:
+        info = os.stat(path)
+    except OSError as exc:
+        raise ReceiptKeyError(ERR_RECEIPT_KEY_UNAVAILABLE,
+                              f"{path} cannot be inspected: {exc}") from exc
+    mode = info.st_mode & 0o777
+    if mode & 0o077:
+        raise ReceiptKeyError(
+            ERR_RECEIPT_KEY_INSECURE_MODE,
+            f"{path} is mode {oct(mode)} — the receipt signing key must be 0600 "
+            f"(repair: chmod 600 {path}); it was readable by group/other")
+    age = time.time() - info.st_mtime
+    if age > RECEIPT_KEY_MAX_AGE_S:
+        raise ReceiptKeyError(
+            ERR_RECEIPT_KEY_EXPIRED,
+            f"{path} is {int(age)}s old, beyond RECEIPT_KEY_MAX_AGE_S="
+            f"{RECEIPT_KEY_MAX_AGE_S}s — rotate it: stop issuing, archive and "
+            f"delete the key, then re-run --init-receipt-key")
+
+
 def load_receipt_key(create: bool = False) -> bytes:
     """Read the 32-byte HMAC key, mode 0600.
 
@@ -870,6 +914,7 @@ def load_receipt_key(create: bool = False) -> bytes:
             raise ReceiptKeyError(
                 ERR_RECEIPT_KEY_UNAVAILABLE,
                 f"{path} is not a 32-byte key")
+        _reject_unsafe_key_file(path)
         return key
     if not create:
         raise ReceiptKeyError(
@@ -886,6 +931,7 @@ def load_receipt_key(create: bool = False) -> bytes:
         if len(key) != 32:
             raise ReceiptKeyError(ERR_RECEIPT_KEY_UNAVAILABLE,
                                   f"{path} is not a 32-byte key")
+        _reject_unsafe_key_file(path)
         return key
     try:
         written = os.write(fd, fresh)
@@ -909,9 +955,15 @@ def bootstrap_receipt_key() -> str:
     return receipt_key_path()
 
 
-def sign_receipt(receipt: dict) -> dict:
-    """Stamp `signature_alg` + `signature` over the canonical receipt body."""
-    key = load_receipt_key(create=False)
+def sign_receipt(receipt: dict, key: bytes | None = None) -> dict:
+    """Stamp `key_id`, `signature_alg` + `signature` over the canonical body.
+
+    `key_id` is stamped here too, so the receipt names the key that signed it
+    (H1-F6) — rotation is then a named mismatch, not a generic invalid MAC.
+    """
+    if key is None:
+        key = load_receipt_key(create=False)
+    receipt["key_id"] = receipt_key_id(key)
     mac = hmac.new(key, signature_message(receipt).encode("utf-8"),
                    hashlib.sha256).hexdigest()
     receipt["signature_alg"] = SIGNATURE_ALG
@@ -935,6 +987,11 @@ def verify_signature(receipt: dict) -> tuple[bool, str]:
         return False, exc.code
     except (OSError, ValueError):
         return False, ERR_RECEIPT_KEY_UNAVAILABLE
+    named = receipt.get("key_id")
+    if named is not None and named != receipt_key_id(key):
+        # H1-F6: the receipt names a different key. Rotation is visible as its
+        # own refusal instead of a generic "signature does not verify".
+        return False, ERR_RECEIPT_KEY_ID_MISMATCH
     expected = hmac.new(key, signature_message(receipt).encode("utf-8"),
                         hashlib.sha256).hexdigest()
     if not hmac.compare_digest(expected, sig):
@@ -1420,8 +1477,13 @@ def _build_receipt(request: dict, resolved: dict, tiers: dict,
         "resolved_at": resolved_at,
         "valid_until": valid_until,
     }))
+    # H1-F6: the key identity is digest-covered, so it is stamped BEFORE the
+    # digest and the MAC. Loading it here (create=False) is also what makes an
+    # unbootstrapped/stale/insecure key a refusal instead of a receipt.
+    key = load_receipt_key(create=False)
+    receipt["key_id"] = receipt_key_id(key)
     receipt["receipt_digest"] = receipt_digest(receipt)
-    return sign_receipt(receipt)
+    return sign_receipt(receipt, key=key)
 
 
 def _error_doc(code: str, error: str, retryable: bool, problems: list,
@@ -1506,6 +1568,30 @@ def _expectation_problems(receipt: dict, expect: Any) -> list:
                                        f"{wanted_head[field]!r} but the receipt "
                                        f"carries {seen_head.get(field)!r}"})
     return problems
+
+
+def _signature_problem_text(code: str) -> str:
+    """Human text for a signature-layer refusal (the code carries the meaning)."""
+    return {
+        ERR_RECEIPT_UNSIGNED:
+            "receipt carries no signature",
+        ERR_RECEIPT_SIGNATURE_INVALID:
+            "receipt signature is malformed or does not verify against this "
+            "server's key",
+        ERR_RECEIPT_KEY_UNAVAILABLE:
+            "this router has no usable signing key (not bootstrapped, wrong "
+            "length, or unreadable) — receipts cannot be authenticated here",
+        ERR_RECEIPT_KEY_EXPIRED:
+            "this router's signing key is older than RECEIPT_KEY_MAX_AGE_S and "
+            "must be rotated before it can authenticate anything",
+        ERR_RECEIPT_KEY_INSECURE_MODE:
+            "this router's signing key file is readable by group/other; it must "
+            "be 0600 before it is used",
+        ERR_RECEIPT_KEY_ID_MISMATCH:
+            "receipt names a different signing key than the one this router "
+            "holds — the key was rotated (or the receipt is from another "
+            "install); the receipt is not authority here",
+    }.get(code, "receipt signature does not verify")
 
 
 def verify_receipt(receipt: Any, now: Any = None, expect: Any = None) -> dict:
@@ -1620,8 +1706,7 @@ def verify_receipt(receipt: Any, now: Any = None, expect: Any = None) -> dict:
     out["signature_ok"] = sig_ok
     if not sig_ok:
         problems.append({"code": sig_problem,
-                         "problem": "receipt signature is missing, malformed or "
-                                    "does not verify against this server's key"})
+                         "problem": _signature_problem_text(sig_problem)})
     issued_ok, issued_problem, _issued_row = verify_issuance(receipt)
     out["issued"] = issued_ok
     if not issued_ok:
@@ -1725,10 +1810,12 @@ def http_status_for(doc: dict) -> int:
     code = doc.get("code")
     if code in (ERR_INVALID_REQUEST, ERR_DEADLINE_PASSED):
         return 400
-    if code == ERR_RECEIPT_KEY_UNAVAILABLE:
-        # H1-F4: the install is not ready to issue (no operator-bootstrapped
-        # key). That is a server-side precondition, not a client error and not
-        # a computed answer — 503, never a 200 and never a silent key mint.
+    if code in (ERR_RECEIPT_KEY_UNAVAILABLE, ERR_RECEIPT_KEY_EXPIRED,
+                ERR_RECEIPT_KEY_INSECURE_MODE):
+        # H1-F4/F6: the install cannot issue (no operator-bootstrapped key, an
+        # over-age key, or a key file whose permissions were loosened). That is
+        # a server-side precondition, not a client error and not a computed
+        # answer — 503, never a 200 and never a silent key mint.
         return 503
     if code in (ERR_PREVIOUS_ROUTE_UNKNOWN, ERR_PREVIOUS_ROUTE_MISMATCH,
                 ERR_RECEIPT_ISSUANCE_CONFLICT):

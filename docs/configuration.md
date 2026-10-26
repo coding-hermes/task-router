@@ -196,6 +196,16 @@ creates `<ROUTER_STATE_DIR>/decision-receipt.key` (32 bytes, mode 0600),
 idempotently and without overwriting. A request never creates it: an unkeyed
 install answers 503 `RECEIPT_KEY_UNAVAILABLE` and writes nothing.
 
+Key lifecycle is enforced, not documented only (H1-F6): every load re-checks
+the file mode (group/other-readable → `RECEIPT_KEY_INSECURE_MODE`, repair with
+`chmod 600`) and the file mtime against `RECEIPT_KEY_MAX_AGE_S` (90 days →
+`RECEIPT_KEY_EXPIRED`, rotate). Receipts carry `key_id` = `sha256(key)[:32]`,
+so after a rotation an old receipt refuses as `RECEIPT_KEY_ID_MISMATCH`
+instead of a generic invalid signature. To rotate: stop issuing, archive the
+old key file, delete it, re-run `--init-receipt-key`; every receipt signed with
+the old key stops verifying — that is the intended consequence, and it is now
+named.
+
 ---
 
 ## Health and verification
