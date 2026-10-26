@@ -277,3 +277,10 @@ The project publishes quality in a machine-readable artifact; know which number 
   the agent asked to "make the numbers visible", that row is the wiring job; nothing regenerates
   the artifact on a schedule either, so state what refreshes it.
 - Cost: ~0.5s warm (full AST scan), ~1s cold on a fresh box. Needs no duckdb; it is stdlib-only.
+
+## Dogfood 2026-10-26 additions
+
+- Fresh isolated install: `uv venv`, `uv pip install -e .`, `uv pip install duckdb`, then `router seed`; verify `router validate` rc=0 and resolve JSON has `source=registry.json` and `fallback_used=false`.
+- The package entry point is `router`, not `toolsd`; a generic harness that checks only `toolsd` can falsely report install failure.
+- For isolated CLI runs export HOME, TASK_ROUTER_HOME, ROUTER_STATE_DIR, and ROUTING_DATA_DIR deliberately. Unknown-project resolution is fail-open: JSON error plus rc=0.
+- For API evidence start `router server --mode read-only --host 127.0.0.1 --port <port>` and compare `/health` loaded commit with checkout HEAD; the shared default server may be stale.

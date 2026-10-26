@@ -176,3 +176,10 @@ chain (clone+venv+install+seed+spawn), no friction, no source-reading needed.
 /Dogfood/2026-10-23/task-router-dogfood-2026-10-23-00-27-32, namespace task-router). The dogfood-log entry and
 board row landed THIS turn (git commit below). The bunker transcript was the install-leg evidence; no agent
 survives (TTL'd), no key file residue.
+### 2026-10-26 — task-router-dogfood-2026-10-26-05-26-13
+
+Verdict: PROMISING-BUT-ROUGH. Promise: a fresh user can install task-router, seed the registry, and resolve a task profile into a gated, price-ordered chain with fail-open JSON errors. Control run at f75e1bace20cdffb46ace69b5246fcf2415fc808 passed: seed 11.85s; spawn 0.17s cold / 0.12s warm; status 0.18s; validate 0.06s; unknown-project rc=0 JSON error. Isolated API on :19192 returned 200 for health, OpenAPI, profiles and profile resolve; serving commit matched HEAD. No PERF row: interactive timings were below a noticeable threshold; seed was a one-shot admin operation.
+
+Install leg: bunker-mvp reachable, bunker-qa launched agent 2bd9809a, evidence collected and agent destroyed. Fresh-install was FAIL from the generic harness: rc=0 installed duckdb/pyyaml/task-router but the harness looked only for a `toolsd` artifact. Native CI reproduced existing open QA-TASKROUTER-6; act lacked its Docker image; resource cell reproduced the same test failure. No new product row was filed.
+
+Evidence: /tmp/task-router-dogfood-scratch-20261026/run.log; /tmp/task-router-bunker-20261026.jsonl; docs/dogfood/2026-10-26-integration.md; docs/dogfood/2026-10-26-diagnostics.md.
