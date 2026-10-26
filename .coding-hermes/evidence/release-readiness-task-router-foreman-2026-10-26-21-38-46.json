@@ -1,0 +1,64 @@
+{
+  "candidate_version": "v0.3.0",
+  "changelog_headings": [
+    "[Unreleased]",
+    "[0.2.0] \u2014 2026-09-24",
+    "[0.1.0] \u2014 2026-09-21"
+  ],
+  "decision": "NO DISPATCH / KEEP PENDING",
+  "dependencies": [
+    "TR-341",
+    "TR-344",
+    "QA-TASKROUTER-2",
+    "XK-404-001-R2"
+  ],
+  "github_releases": 0,
+  "gitreins": "none:not run: no implementation task dispatched",
+  "local_semver_tags": 0,
+  "main_sha": "6b3943178110e3ecb4a0f7226e00d0eb92a7fa11",
+  "owner_authorization": "absent: no authorization naming task-router, release version, and baseline SHA",
+  "releases": [],
+  "remote_semver_tags": 0,
+  "row": "RELEASE-2026-10-22-001",
+  "runs": [
+    {
+      "conclusion": "success",
+      "createdAt": "2026-10-26T11:56:34Z",
+      "databaseId": 40318783855,
+      "displayTitle": "data(router): thin-row backfill for 13 filed lanes + og-2 lifecycle o\u2026",
+      "headBranch": "main",
+      "headSha": "6b3943178110e3ecb4a0f7226e00d0eb92a7fa11",
+      "status": "completed",
+      "url": "https://github.com/coding-hermes/task-router/actions/runs/40318783855"
+    },
+    {
+      "conclusion": "failure",
+      "createdAt": "2026-10-26T10:54:31Z",
+      "databaseId": 40311033166,
+      "displayTitle": "data(router): price 7 commandcode HELD lanes, 5 og-2 mirrors; note gh\u2026",
+      "headBranch": "main",
+      "headSha": "1a9012f181752a98ed50778a29342d82a116ae95",
+      "status": "completed",
+      "url": "https://github.com/coding-hermes/task-router/actions/runs/40311033166"
+    },
+    {
+      "conclusion": "success",
+      "createdAt": "2026-10-26T05:57:38Z",
+      "databaseId": 40277069865,
+      "displayTitle": "dogfood: task-router PROMISING-BUT-ROUGH \u2014 fresh install and API reproof",
+      "headBranch": "main",
+      "headSha": "da80e8e510e3c024f8fe79f5ba760bb69b48d7c0",
+      "status": "completed",
+      "url": "https://github.com/coding-hermes/task-router/actions/runs/40277069865"
+    }
+  ],
+  "status": "pending",
+  "tick": "task-router-foreman-2026-10-26-21-38-46",
+  "trace": "ch:trace row=RELEASE-2026-10-22-001 spec=docs/releases/release-readiness.md#written-procedure wave=none:owner-authorization-gated test=none:readiness-only doc=docs/releases/release-readiness.md prompt=~/.hermes/skills/coding-hermes-foreman/references/owner-infrastructure-verification.md evidence=.coding-hermes/evidence/release-readiness-task-router-foreman-2026-10-26-21-38-46.json witness=live:git-tags+gh-release-list+version-pins+dependency-rows+gh-run-list verdict=none:not-applicable commit=none:owner-block memory=none:duckbrain-token-unavailable STATUS: PENDING TIER: T3 EVIDENCE: owner authorization absent; no dispatch or release action.",
+  "version_pins": {
+    "package": "0.2.0",
+    "pyproject": "0.2.0"
+  },
+  "wave": "none:owner-authorization-gated",
+  "worker": "none:owner-block"
+}
