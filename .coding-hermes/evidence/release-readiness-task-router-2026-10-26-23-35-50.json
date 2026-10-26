@@ -1,6 +1,7 @@
 {
   "tick": "task-router-foreman-2026-10-26-23-35-50",
   "repository": "coding-hermes/task-router",
+  "selected": "RELEASE-2026-10-22-001",
   "checkout_head": "924b06bc489c5ea7defabb87d61b57f9894da2a9",
   "branch": "tr-224-commandcode-claude-entitlement",
   "branch_remote_parity": {"ahead": 0, "behind": 0},
