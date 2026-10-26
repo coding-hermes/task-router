@@ -1,0 +1,12 @@
+{
+  "tick": "task-router-foreman-2026-10-26-23-35-50",
+  "project": "task-router",
+  "repo": "/home/kara/task-router",
+  "budget": 2,
+  "selected": "RELEASE-2026-10-22-001",
+  "pending_count": 40,
+  "eligible_independent": 0,
+  "status": "no-dispatch",
+  "reason": "The highest-priority pending release row is owner-gated; no implementation or worker dispatch is authorized.",
+  "tasks": []
+}

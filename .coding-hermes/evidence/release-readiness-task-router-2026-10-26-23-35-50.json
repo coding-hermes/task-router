@@ -1,0 +1,39 @@
+{
+  "tick": "task-router-foreman-2026-10-26-23-35-50",
+  "repository": "coding-hermes/task-router",
+  "checkout_head": "924b06bc489c5ea7defabb87d61b57f9894da2a9",
+  "branch": "tr-224-commandcode-claude-entitlement",
+  "branch_remote_parity": {"ahead": 0, "behind": 0},
+  "owner_authorization": {
+    "present": false,
+    "required": "explicit authorization naming task-router, release version, and baseline SHA",
+    "source_check": "release procedure and current board evidence contain only the requirement; no authorization statement is present"
+  },
+  "release_surface": {
+    "local_numeric_tags": 0,
+    "remote_numeric_tags": 0,
+    "github_releases": 0
+  },
+  "version_pins": {
+    "pyproject.toml": "0.2.0",
+    "task_router/__init__.py": "0.2.0",
+    "changelog_newest_heading": "Unreleased"
+  },
+  "dependencies": {
+    "TR-341": "complete",
+    "TR-344": "complete",
+    "QA-TASKROUTER-2": "complete",
+    "XK-404-001-R2": "complete"
+  },
+  "ci_recent": [
+    {"run_id": 40416068559, "head_sha": "ea1bd89875b5809732f7468ba12b7e0c565dc63b", "status": "completed", "conclusion": "success"},
+    {"run_id": 40415570319, "head_sha": "793bd68150d6d2f4250c2e61ee26eb88acf96897", "status": "completed", "conclusion": "success"},
+    {"run_id": 40408345153, "head_sha": "79db191ba9e64fc1c33ca46fd2336520cb806361", "status": "completed", "conclusion": "success"}
+  ],
+  "decision": "NO DISPATCH / KEEP PENDING",
+  "reason": "The P0 release-readiness row requires owner authorization before version preparation, tagging, Release creation, or worker dispatch. The required authorization is absent. Existing CI is green on the three latest listed runs; no CI failure is new or untracked.",
+  "wave": ".coding-hermes/waves/task-router-foreman-2026-10-26-23-35-50.json",
+  "witness": "live:git-tags+gh-release-list+version-pins+dependency-rows+gh-run-list",
+  "off_by_one": "none:verification-only no debugging",
+  "trace": "ch:trace row=RELEASE-2026-10-22-001 spec=docs/releases/release-readiness.md#written-procedure wave=.coding-hermes/waves/task-router-foreman-2026-10-26-23-35-50.json#owner-gated test=none:readiness-only doc=docs/releases/release-readiness.md evidence=.coding-hermes/evidence/release-readiness-task-router-2026-10-26-23-35-50.json witness=live:git-tags+gh-release-list+version-pins+dependency-rows+gh-run-list verdict=none:not-applicable commit=none:owner-block memory=none:duckbrain-token-unavailable STATUS: PENDING TIER: T3 EVIDENCE: owner authorization naming task-router, release version, and baseline SHA is absent; no worker, implementation, tag, Release, or GitReins implementation lifecycle dispatched."
+}
