@@ -1,0 +1,38 @@
+{
+  "tick": "task-router-foreman-2026-10-26-21-10-51",
+  "timestamp": "2026-10-26T21:14:48Z",
+  "row": "RELEASE-2026-10-22-001",
+  "repository": "coding-hermes/task-router",
+  "checkout_head": "ea6d86605cda38417740406ae66739d77f6abb4f",
+  "branch": "tr-224-commandcode-claude-entitlement",
+  "remote_parity": {"ahead": 0, "behind": 0},
+  "owner_authorization": {
+    "present": false,
+    "required": "explicit authorization naming task-router, release version, and baseline SHA"
+  },
+  "release_surface": {
+    "local_numeric_tags": [],
+    "remote_numeric_tags": [],
+    "github_releases": []
+  },
+  "version_pins": {
+    "pyproject.toml": "0.2.0",
+    "task_router/__init__.py": "0.2.0",
+    "changelog_newest_heading": "Unreleased"
+  },
+  "dependencies": {
+    "TR-341": "complete",
+    "TR-344": "complete",
+    "QA-TASKROUTER-2": "complete",
+    "XK-404-001-R2": "complete"
+  },
+  "ci_recent": [
+    {"head_sha": "6b3943178110e3ecb4a0f7226e00d0eb92a7fa11", "status": "completed", "conclusion": "success"},
+    {"head_sha": "1a9012f181752a98ed50778a29342d82a116ae95", "status": "completed", "conclusion": "failure", "tracked_by": "TR-1000976681059240"},
+    {"head_sha": "da80e8e510e3c024f8fe79f5ba760bb69b48d7c0", "status": "completed", "conclusion": "success"}
+  ],
+  "decision": "NO DISPATCH / KEEP PENDING",
+  "reason": "The P0 release row remains owner-gated. The row forbids release actions until authorization and version selection are explicit; no worker or GitReins implementation lifecycle is authorized.",
+  "witness": "live:git-tags+gh-release-list+version-pins+dependency-rows+gh-run-list",
+  "gitreins": "not run: owner-gated release action; no implementation task dispatched"
+}

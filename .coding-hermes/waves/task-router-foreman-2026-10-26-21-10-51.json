@@ -1,0 +1,17 @@
+{
+  "tick": "task-router-foreman-2026-10-26-21-10-51",
+  "project": "task-router",
+  "base": "ea6d86605cda38417740406ae66739d77f6abb4f",
+  "selected": "RELEASE-2026-10-22-001",
+  "census": {
+    "pending_rows": 40,
+    "highest_priority": "P0",
+    "eligible_implementation_rows": 0,
+    "owner_or_infrastructure_blocked": ["RELEASE-2026-10-22-001"],
+    "existing_ci_failure_tracking": "TR-1000976681059240"
+  },
+  "dispatch": "none:owner-authorization-missing",
+  "workers": [],
+  "merge": "none",
+  "reason": "The selected P0 release-readiness row requires explicit owner authorization naming task-router, the release version, and baseline SHA. No such authorization exists in the repository or board evidence. No implementation or release worker is authorized."
+}
