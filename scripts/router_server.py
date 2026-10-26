@@ -48,6 +48,7 @@ import router_hop_taxonomy  # noqa: E402  (TR-288: the one failure taxonomy)
 import router_models_browser  # noqa: E402  (TR-258: models browser + rollups)
 import router_ui_page  # noqa: E402  (TR-150: the one self-contained page)
 import router_health  # noqa: E402  (TR-087 health plane)
+import router_decision  # noqa: E402  (ACP-ROUTER-001: JIT execution decision)
 import lifecycle_gate  # noqa: E402  (TR-199: R4 no anonymous dates)
 from typing import Any
 
@@ -335,6 +336,102 @@ def build_openapi() -> dict:
             },
             ["source_system", "session_id", "provider", "model"],
         )
+    }
+    # ACP-ROUTER-001: the just-in-time execution decision contract (v1,
+    # closed). READ-ONLY by construction — it computes a route receipt and
+    # never mutates state — so it answers in read-only mode with NO edit key
+    # (same trust model as GET /resolve); `security: []` says so in the
+    # contract. Unknown request fields are rejected (the schema is closed:
+    # additionalProperties false). The receipt never names a harness,
+    # connector, tool or workspace and never a requirements-unmet fallback.
+    execution_decision_schema = {
+        "type": "object",
+        "additionalProperties": False,
+        "properties": {
+            "version": {"type": "integer", "enum": [1]},
+            "parent_run_id": string,
+            "step_id": string,
+            "generation": {"type": "integer", "minimum": 0},
+            "brief_digest": string,
+            "context_refs": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "properties": {"name": string, "digest": string},
+                    "required": ["name", "digest"],
+                },
+            },
+            "required_levels": {"type": "object"},
+            "required_context_limit": {"type": "integer"},
+            "required_data_class": {"type": "string"},
+            "policy_labels": {"type": "array", "items": string},
+            "required_connector_capabilities": {
+                "type": "array", "items": string,
+                "description": "informational constraints echoed to the "
+                               "foreman — never used to choose anything here",
+            },
+            "budget_ceiling_usd": {"type": "number"},
+            "budget_remaining_usd": {"type": "number"},
+            "attempt_deadline": {"type": "string"},
+            "valid_for_s": {"type": "integer"},
+            "previous_route_digest": {"type": "string"},
+            "requester": string,
+        },
+        "required": ["version", "parent_run_id", "step_id", "generation",
+                     "brief_digest", "required_levels", "requester"],
+    }
+    paths["/api/v1/execution-decision"] = {
+        "post": {
+            "operationId": "postExecutionDecision",
+            "summary": "ACP-ROUTER-001: just-in-time execution decision — a closed v1 "
+                       "request (parent/step/generation, brief digest, context "
+                       "reference digests, raw per-category levels, context limit, "
+                       "data class, policy labels, connector capabilities, budget, "
+                       "deadline, requester, optional previous route digest) returns "
+                       "a canonical SHA-256-digestable route receipt: the exact "
+                       "ordered model/provider candidates with price basis and "
+                       "eligibility evidence, the exact exclusions and gate evidence, "
+                       "the policy-bound valid_until, and the chosen head ONLY when "
+                       "the route is eligible and OPEN. No eligible route yields "
+                       "eligible=false + a machine-readable refusal — never a "
+                       "requirements-unmet fallback. Model/provider only: no harness, "
+                       "connector, tool, workspace or dispatch decision exists here. "
+                       "Read-only; safe in read-only mode (no edit key).",
+            "security": [],
+            "requestBody": {
+                "required": True,
+                "content": {"application/json": {"schema": execution_decision_schema}},
+            },
+            "responses": {"200": JSON_RESPONSE, "400": ERROR_RESPONSES["400"],
+                          "500": ERROR_RESPONSES["500"]},
+        }
+    }
+    paths["/api/v1/execution-decision/verify"] = {
+        "post": {
+            "operationId": "postExecutionDecisionVerify",
+            "summary": "ACP-ROUTER-001: verify a route receipt — binds the receipt to "
+                       "the step being executed (expected parent_run_id + step_id, "
+                       "optional generation/head), recomputes the canonical digest "
+                       "(covering every authority-bearing field including expiry), "
+                       "checks the server signature and the durable issuance record, "
+                       "and refuses an expired receipt explicitly against BOTH the "
+                       "supplied clock and the host wall clock. Body is the envelope "
+                       "{\"receipt\": {...}, \"expect\": {\"parent_run_id\": ..., "
+                       "\"step_id\": ...}}; a bare receipt is refused as "
+                       "RECEIPT_UNBOUND_EXPECTATION. 200 only when ok=true; a refusal "
+                       "is 409. Read-only.",
+            "security": [],
+            "requestBody": {
+                "required": True,
+                "content": {"application/json": {"schema": {"type": "object"}}},
+            },
+            "responses": {"200": JSON_RESPONSE, "400": ERROR_RESPONSES["400"],
+                          "409": {"description": "verification refused (ok=false) — "
+                                                 "expired, not issued here, bound to a "
+                                                 "different step, or unbound call"},
+                          "500": ERROR_RESPONSES["500"]},
+        }
     }
     nullable_string = {"type": ["string", "null"]}
     nullable_number = {"type": ["number", "null"]}
@@ -924,9 +1021,35 @@ class RouterApplication:
                 return 404, {"error": "not found", "path": path,
                              "hint": "this is not a POST endpoint; GET /openapi.json lists the contract",
                              "surface": known_post_paths()}
-            auth_error = self._authorize(headers)
-            if auth_error:
-                return auth_error
+            if path not in READ_ONLY_POST_PATHS:
+                # ACP-ROUTER-001: the execution-decision seam is a READ — it
+                # must answer in read-only mode (the foreman queries it just in
+                # time); every real mutation keeps the auth gate.
+                auth_error = self._authorize(headers)
+                if auth_error:
+                    return auth_error
+
+        # ACP-ROUTER-001: closed v1 decision / receipt verification. Both
+        # branches are READS (compute-only) and answer in read-only mode
+        # without the edit key (see READ_ONLY_POST_PATHS). Fail-closed on the
+        # route: an unserviceable request is an explicit machine-readable
+        # refusal — never a fabricated or fallback route — and no state file,
+        # table, metric or ledger is written by a decision call. A non-object
+        # body is a named INVALID_REQUEST, not a 500.
+        if path == "/api/v1/execution-decision":
+            doc = router_decision.decide(body)
+            return router_decision.http_status_for(doc), doc
+        if path == "/api/v1/execution-decision/verify":
+            # H1-F1: verification is only meaningful against an EXPECTATION, so
+            # the body is either the envelope {"receipt": {...}, "expect":
+            # {...}} (the normal form) or a bare receipt, which is refused as
+            # RECEIPT_UNBOUND_EXPECTATION. H1-F3: a refusal is a 409, not a 200.
+            if isinstance(body, dict) and isinstance(body.get("receipt"), dict):
+                expect = body.get("expect", body.get("expected"))
+                doc = router_decision.verify_receipt(body["receipt"], expect=expect)
+            else:
+                doc = router_decision.verify_receipt(body)
+            return router_decision.http_status_for(doc), doc
         body = _require_object(body)
 
         if path == "/circuit/record":
@@ -1130,6 +1253,14 @@ class RouterApplication:
 
 
 PROXY_PATHS = ("/v1/chat/completions", "/v1/responses")
+
+#: ACP-ROUTER-001: POST paths that are READS (compute-only, never mutate) and
+#: therefore answer in read-only mode WITHOUT the edit key — the same trust
+#: model as GET /resolve. Everything else stays behind _authorize.
+READ_ONLY_POST_PATHS = (
+    "/api/v1/execution-decision",
+    "/api/v1/execution-decision/verify",
+)
 
 #: POST paths that are NOT in the OpenAPI contract because they are dynamic.
 _DYNAMIC_POST_PREFIXES = ("/listings/",)

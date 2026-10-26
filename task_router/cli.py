@@ -32,6 +32,11 @@ registry.json even inside a checkout.
                               ROUTER_STATE_DIR (dir that holds
                               circuit-state.json, health-state.json,
                               ledger.jsonl)
+  router_decision.py          ROUTING_DATA_DIR,
+                              ROUTER_STATE_DIR (ACP-ROUTER-001: the
+                              execution-decision surface resolves through
+                              router_spawn.py in-process, so it must see the
+                              same tables + gate state as spawn)
   router_circuit.py           ROUTER_STATE_DIR
   router_ledger.py            LEDGER_FILE
   router_maintain.py          ROUTING_DATA_DIR
@@ -207,6 +212,7 @@ COMMANDS = {
     "pricing-audit": "router_pricing_audit.py",  # TR-070: evidence-class pricing audit
     "ingress":    "router_ingress.py",        # TR-236: bus -> router ingress + endpoint contract
     "context-call": "router_context_call.py", # TR-254: ONE CONTEXT CALL (code + DuckBrain + specs + board)
+    "decide":     "router_decision.py",       # ACP-ROUTER-001: JIT execution decision route receipt
 }
 RESERVED = ()
 
@@ -278,6 +284,14 @@ def _home_env_exports() -> dict:
         # and state dir — otherwise `router chain-run` would walk a chain from
         # a different fleet view than `router spawn` (the TR-056 defect class).
         "chain-run": {
+            "ROUTING_DATA_DIR": data_dir,
+            "ROUTER_STATE_DIR": state_dir,
+        },
+        # ACP-ROUTER-001: the execution-decision surface resolves through the
+        # SAME router_spawn resolver (in-process), so it must see the same
+        # tables + gate state as `router spawn`. ROUTING_REGISTRY deliberately
+        # not exported (TR-REV-1012-1, same reason as spawn).
+        "decide": {
             "ROUTING_DATA_DIR": data_dir,
             "ROUTER_STATE_DIR": state_dir,
         },
@@ -640,6 +654,7 @@ def _print_help() -> None:
         "diff":       "chain snapshot diff between two dates (head moves, price deltas)",
         "web":        "local web UI: settings editor + live resolve preview (:9093)",
         "server":     "OpenAPI API server + MCP bridge (read-only | edit with API key)",
+        "decide":     "just-in-time execution decision: closed v1 request -> canonical expiring route receipt (ACP-ROUTER-001; --verify checks a receipt)",
     }
     for name in sorted(COMMANDS):
         pad = " " * (12 - len(name))
