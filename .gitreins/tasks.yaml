@@ -1223,11 +1223,29 @@ tasks:
   created_at: '2026-10-23T16:22:49.070000+00:00'
   completed_at: '2026-10-23T17:37:56.049793+00:00'
 - id: TR-215
-  title: Quota live readback smoke
+  title: Quota live readback smoke (opt-in, never CI)
   criteria:
-  - Implement the opt-in bounded live quota readback path; CI refusal, at most five
-    providers, plausible observations/fall-through, no live state writes, with offline
-    regression tests and docs.
+  - 'PASS: pytest tests/test_quota_readback.py exits 0 with recorded-header fixtures;
+    PASS: live leg refuses CI (CI=1 exits 2 with ''refused in CI''); PASS: bounded
+    (max_providers constant) and side-effect free (no git status changes after run)'
+  status: in_progress
+  created_at: '2026-10-26T04:36:15.307804+00:00'
+- id: RELEASE-2026-10-22-001
+  title: Verify owner-gated release readiness remains blocked
+  criteria:
+  - Verify live release surface has no v* tags or GitHub Release, version pins remain
+    aligned at 0.2.0, and no explicit owner authorization names task-router, release
+    version, and baseline SHA; keep the board row pending and perform no release or
+    implementation dispatch.
   status: complete
-  created_at: '2026-10-25T02:36:19.253885+00:00'
-  completed_at: '2026-10-25T02:36:27.328934+00:00'
+  created_at: '2026-10-25T20:10:42.177268+00:00'
+  completed_at: '2026-10-25T20:11:00.267373+00:00'
+- id: TR-224
+  title: 'commandcode: mark claude lanes plan-not-entitled and document'
+  criteria:
+  - '1. PASS: router_gaps.py --json names no commandcode claude-* lane. 2. PASS: jq
+    -s ''[.[] | select(.provider=="commandcode" and .reason=="plan-not-entitled")]
+    | length'' data/tables/null_reasons.jsonl prints >= 14. 3. PASS: grep -rl commandcode
+    docs/decisions/ prints at least one file.'
+  status: in_progress
+  created_at: '2026-10-26T05:21:02.223053+00:00'
