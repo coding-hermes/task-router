@@ -48,7 +48,37 @@
     "step-5-preview-free": {
       "in": 0.0,
       "out": 0.0
+    },
+    "beam-free": {
+      "in": 0.0,
+      "out": 0.0,
+      "src": "models.dev 'opencode' provider 2026-10-26: beam-free 0/0 (free SKU on same catalog; carrier carries no paid beam)"
+    },
+    "gemini-4-argon": {
+      "in": 2.0,
+      "out": 10.0,
+      "src": "models.dev 2026-10-26: google vendor + opencode primary 2/10 (contributor twin 4/20 already on file)"
+    },
+    "iceman-contributor-free": {
+      "in": 0.0,
+      "out": 0.0,
+      "src": "models.dev 'opencode' provider 2026-10-26: iceman-contributor-free 0/0 (free SKU; carrier carries no paid iceman)"
+    },
+    "kimi-k3.1-pro": {
+      "in": 2.0,
+      "out": 10.0,
+      "src": "models.dev 2026-10-26: moonshotai vendor + opencode primary 2/10"
+    },
+    "minimax-m3.1-flash": {
+      "in": 0.15,
+      "out": 0.6,
+      "src": "models.dev 2026-10-26: minimax vendor + opencode primary 0.15/0.6"
+    },
+    "step-5-preview": {
+      "in": 1.0,
+      "out": 2.7,
+      "src": "models.dev 2026-10-26: stepfun vendor 1/2.7, opencode primary + ~8 hubs agree"
     }
   },
-  "sticker_prices_source": "models.dev 'opencode-go' provider (the primary account's mirror catalog), cache 2026-10-15 05:30 + live api.json same day; og-2 serves the same Go SKUs on a 2nd account. Free SKUs 0/0 on the same catalog."
+  "sticker_prices_source": "models.dev 'opencode-go' provider (the primary account's mirror catalog), cache 2026-10-15 05:30 + live api.json same day; og-2 serves the same Go SKUs on a 2nd account. Free SKUs 0/0 on the same catalog. | 2026-10-26: 5 mirror fills + 2 free SKUs from models.dev (opencode primary catalog + vendor entries); mirror-seats-price-from-own-carrier rule respected: all fills are ids served by the og-2 carrier itself."
 }

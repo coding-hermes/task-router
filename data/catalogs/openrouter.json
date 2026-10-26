@@ -39,6 +39,7 @@
     "z-ai/glm-5.3-prime": "throughput SKU (2026-09-24): GLM-5.3 at 1.5-2x output throughput for ~2x list — a speed purchase, not a price change",
     "qwen/qwen3.8-max-prime": "throughput SKU (2026-09-24): qwen3.8-max at higher throughput for ~2x list — separate SKU, higher price point",
     "google/gemini-3.8-flash": "INTRO PRICING 2026-09-24: 0.75/3.75 doubles to 1.50/7.50 on 2027-01-01 — re-check before any long-horizon plan",
-    "stealth/space-bunny-alpha": "stealth free promo (2026-09-23): 0/0 while anonymous; name-watch for a real launch"
+    "stealth/space-bunny-alpha": "stealth free promo (2026-09-23): 0/0 while anonymous; name-watch for a real launch",
+    "nvidia/switchyard": "HELD-UNFILED 2026-10-26: bare 'switchyard' id matches NVIDIA NIM's switchyard ROUTER-POOL alias (models.dev 'nvidia' provider carries only namespaced /org/model SKUs, so there is nothing to price a pool alias with). Prefer the namespaced ids when NVIDIA lists them; until then the bare id stays a ghost (2026-10-25 law: report, do not fabricate)."
   }
 }

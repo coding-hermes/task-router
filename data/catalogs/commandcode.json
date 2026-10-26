@@ -106,6 +106,47 @@
       "in": 4.0,
       "out": 12.0,
       "cache_read": 0.5
+    },
+    "inclusionai/ling-3.1-flash": {
+      "in": 0.075,
+      "out": 0.225,
+      "agree": 3,
+      "src": "models.dev 2026-10-26: openrouter 0.075/0.225 == vercel == novita-ai (nano-gpt 0.22 out); vendor-listed on 4 hubs"
+    },
+    "meta/muse-spark-open": {
+      "in": 1.25,
+      "out": 4.25,
+      "agree": 10,
+      "src": "models.dev 2026-10-26: 10 hubs agree (modal/togetherai/nebius/fireworks-ai/openrouter/vercel/kilo/prime/requesty/edenai)"
+    },
+    "minimax/minimax-m3.1-flash": {
+      "in": 0.15,
+      "out": 0.6,
+      "agree": 15,
+      "src": "models.dev 2026-10-26: minimax vendor 0.15/0.6, 15 hub listings agree"
+    },
+    "moonshotai/Kimi-K3.1-Pro": {
+      "in": 2.0,
+      "out": 10.0,
+      "agree": 20,
+      "src": "models.dev 2026-10-26: moonshotai vendor 2/10, ~20 hub listings agree (kilo/nano-gpt/prime/requesty/vercel/edenai/...)"
+    },
+    "nvidia/nemotron-3.5-super-vl": {
+      "in": 0.15,
+      "out": 0.5,
+      "agree": 3,
+      "src": "models.dev 2026-10-26: openrouter == vercel == nano-gpt 0.15/0.5 (nebius 0.3/0.9 = hosting variant, outvoted)"
+    },
+    "ornith/ornith-1.5-122b": {
+      "in": 0.26,
+      "out": 2.08,
+      "agree": 1,
+      "src": "models.dev 2026-10-26: nano-gpt sole listing 0.26/2.08 (single-source, agree=1)"
+    },
+    "reflection/beam:free": {
+      "in": 0.0,
+      "out": 0.0,
+      "src": "models.dev 2026-10-26: free SKU — kilo beam-free 0/0, vercel beam-free 0/0, vercel reflection/beam 0/0 (carrier serves no paid beam; window cost unpriced, F3/TR-070 tag applies: no priced sibling for this lane on this carrier)"
     }
   },
   "notes": [
@@ -115,6 +156,7 @@
     "2026-10-15: Qwen/Qwen3.8-Max-Prime sticker from OpenRouter live /models (4.0/12.0 per 1M, ctx 1M) — pass-through convention normalized==public==in sticker; commandcode catalog itself carries no cost block.",
     "2026-10-15: inclusionai/ling-3.1-flash stays HELD — no price source anywhere (carrier catalog has no cost block; models.dev lists no ling-3.1-flash entry; the :free twin was catalog-removed upstream 10-15 and chat-probed model-not-found). Needs a commandcode pricing-page scrape (ollama.com/library method) or a live chat probe carrying gateway cost metadata.",
     "2026-10-17: 5 net-new lanes HELD (unpriced, NOT filed) — carrier catalog carries no sticker for any of them, and sibling-carrier prices are another provider's facts that must not be inherited: inclusionai/ling-3.1-flash (openrouter lists it free after the vendor's 10-11 free-tier monetization wave — a $0 price on a paying lane is suspect; files when commandcode lists its own price), meta/muse-spark-open (fireworks/openrouter list $1.25 — NOT inherited), nvidia/nemotron-3.5-super-vl (openrouter lists $0.15 paid — NOT inherited), reflection/beam:free (free variant; commandcode lists no paid beam sticker either), stealth/cat-jam:free (stealth ids carry no prices anywhere on commandcode). Next reprice files them automatically when stickers appear.",
-    "2026-10-23: refresh archived 7 vanished lanes (catalog trim verified 10-23). 6 net-new unpriced lanes HELD: inclusionai/ling-3.1-flash — CAUTION: openrouter :free promo still live 10-23 (chat probe cost 5.0e-06/39tok), do NOT inherit either way; meta/muse-spark-open; minimax/minimax-m3.1-flash; nvidia/nemotron-3.5-super-vl; ornith/ornith-1.5-122b; reflection/beam:free. Files when stickers appear (commandcode-2 has no catalog preset yet — its lanes carry their own price evidence)."
+    "2026-10-23: refresh archived 7 vanished lanes (catalog trim verified 10-23). 6 net-new unpriced lanes HELD: inclusionai/ling-3.1-flash — CAUTION: openrouter :free promo still live 10-23 (chat probe cost 5.0e-06/39tok), do NOT inherit either way; meta/muse-spark-open; minimax/minimax-m3.1-flash; nvidia/nemotron-3.5-super-vl; ornith/ornith-1.5-122b; reflection/beam:free. Files when stickers appear (commandcode-2 has no catalog preset yet — its lanes carry their own price evidence).",
+    "2026-10-26: all 7 HELD net-new lanes resolved — 6 priced from models.dev vendor/hub listings, reflection/beam:free filed as free SKU 0/0 (window cost stays pending per TR-070: no priced sibling for this lane on this carrier)."
   ]
 }
