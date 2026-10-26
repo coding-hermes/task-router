@@ -1,0 +1,48 @@
+{
+  "tick": "task-router-foreman-2026-10-26-13-45-58",
+  "observed_at": "2026-10-26T13:45:58-05:00",
+  "repository": "coding-hermes/task-router",
+  "checkout": {
+    "branch": "tr-224-commandcode-claude-entitlement",
+    "head": "272a5799dede60d818f651a39fed7fb51cc8440a",
+    "origin_main": "6b3943178110e3ecb4a0f7226e00d0eb92a7fa11",
+    "remote_parity_current_branch": "ahead=0 behind=0"
+  },
+  "release_surface": {
+    "local_v_tags": [],
+    "remote_v_tags": [],
+    "github_releases": []
+  },
+  "version_pins": {
+    "pyproject": "0.2.0",
+    "package": "0.2.0",
+    "changelog_newest": "Unreleased"
+  },
+  "owner_authorization": {
+    "present": false,
+    "required": "explicit authorization naming task-router, release version, and baseline SHA",
+    "source_witness": "docs/releases/release-readiness.md states no owner authorization exists"
+  },
+  "dependencies_last_row_per_id": {
+    "TR-341": "complete",
+    "TR-344": "complete",
+    "QA-TASKROUTER-2": "complete",
+    "XK-404-001-R2": "complete"
+  },
+  "ci": {
+    "latest_main_success": {
+      "run_id": 40318783855,
+      "head_sha": "6b3943178110e3ecb4a0f7226e00d0eb92a7fa11"
+    },
+    "existing_failure": {
+      "run_id": 40311033166,
+      "head_sha": "1a9012f181752a98ed50778a29342d82a116ae95",
+      "failed_step": "Full test suite (pure JSON — no duckdb needed)",
+      "tracking_row": "TR-1000976681059240"
+    }
+  },
+  "decision": "NO DISPATCH / KEEP PENDING",
+  "witness": "live:git-tags+gh-release-list+version-pins+dependency-rows+gh-run-view",
+  "off_by_one": "none:verification-only no debugging",
+  "gitreins": "053edc24 INCOMPLETE/FAIL: correctly found absent authorization but observed lifecycle mutation violated the pending fallback; task deleted after readback"
+}
