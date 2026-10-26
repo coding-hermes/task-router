@@ -1,0 +1,42 @@
+{
+  "tick": "task-router-foreman-2026-10-26-22-30-15",
+  "timestamp": "2026-10-26T22:33:51Z",
+  "row": "RELEASE-2026-10-22-001",
+  "repository": "coding-hermes/task-router",
+  "checkout_head": "0424cf0cae053df136d76dc103f32e03eb6351c8",
+  "branch": "tr-224-commandcode-claude-entitlement",
+  "branch_remote_parity": {"ahead": 0, "behind": 0},
+  "published_main_sha": "79db191ba9e64fc1c33ca46fd2336520cb806361",
+  "owner_authorization": {
+    "present": false,
+    "required": "explicit authorization naming task-router, release version, and baseline SHA",
+    "source_check": "repository search and release-readiness procedure found no authorization"
+  },
+  "release_surface": {
+    "local_numeric_tags": [],
+    "remote_numeric_tags": [],
+    "github_releases": []
+  },
+  "version_pins": {
+    "pyproject.toml": "0.2.0",
+    "task_router/__init__.py": "0.2.0",
+    "changelog_newest_heading": "Unreleased"
+  },
+  "dependencies": {
+    "TR-341": "complete",
+    "TR-344": "complete",
+    "QA-TASKROUTER-2": "complete",
+    "XK-404-001-R2": "complete"
+  },
+  "ci_recent": [
+    {"head_sha": "79db191ba9e64fc1c33ca46fd2336520cb806361", "status": "completed", "conclusion": "success", "run_id": 40408345153},
+    {"head_sha": "6b3943178110e3ecb4a0f7226e00d0eb92a7fa11", "status": "completed", "conclusion": "success", "run_id": 40318783855},
+    {"head_sha": "1a9012f181752a98ed50778a29342d82a116ae95", "status": "completed", "conclusion": "failure", "run_id": 40311033166, "tracked_by": "TR-1000976681059240"}
+  ],
+  "decision": "NO DISPATCH / KEEP PENDING",
+  "reason": "The highest-priority pending row is owner-gated. Its acceptance criteria forbid version preparation, tagging, release creation, or worker dispatch until explicit owner authorization names task-router, the release version, and the baseline SHA.",
+  "wave": "none:owner-authorization-gated",
+  "worker": "none:owner-block",
+  "gitreins": "none:not run: no implementation task dispatched",
+  "trace": "ch:trace row=RELEASE-2026-10-22-001 spec=docs/releases/release-readiness.md#written-procedure wave=.coding-hermes/waves/task-router-foreman-2026-10-26-22-30-15.json#owner-gated test=none:readiness-only doc=docs/releases/release-readiness.md prompt=~/.hermes/skills/coding-hermes-foreman/references/owner-infrastructure-verification.md evidence=.coding-hermes/evidence/release-readiness-task-router-2026-10-26-22-30-15.json witness=live:git-tags+gh-release-list+version-pins+dependency-rows+gh-run-list verdict=none:not-applicable commit=none:owner-block memory=none:duckbrain-token-unavailable STATUS: PENDING TIER: T3 EVIDENCE: owner authorization absent; no dispatch or release action."
+}
