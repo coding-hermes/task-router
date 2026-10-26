@@ -1,0 +1,36 @@
+{
+  "tick": "task-router-foreman-2026-10-26-04-48-21",
+  "observed_at": "2026-10-26T04:59:30.344456+00:00",
+  "head": "fcd06d1cd440b0e289315b3f352b23aa39480e9b",
+  "remote_parity": {
+    "ahead": 0,
+    "behind": 0
+  },
+  "release_surface": {
+    "local_v_tags": [],
+    "remote_v_tags": [],
+    "github_releases": []
+  },
+  "version_pins": {
+    "pyproject": "0.2.0",
+    "package": "0.2.0",
+    "changelog_newest": "Unreleased"
+  },
+  "owner_authorization": {
+    "present": false,
+    "required": "task-router, release version, baseline SHA"
+  },
+  "canonical_board_row": {
+    "id": "RELEASE-2026-10-22-001",
+    "status": "pending",
+    "priority": "P0",
+    "dependencies": [
+      "TR-341",
+      "TR-344",
+      "QA-TASKROUTER-2",
+      "XK-404-001-R2"
+    ]
+  },
+  "decision": "NO DISPATCH / KEEP PENDING",
+  "witness": "live:git-tags+gh-release-list+repo-version-grep+board-row"
+}

@@ -1,0 +1,21 @@
+{
+  "tick": "task-router-foreman-2026-10-26-04-48-21",
+  "project": "task-router",
+  "base": "fcd06d1cd440b0e289315b3f352b23aa39480e9b",
+  "selection": {
+    "row": "RELEASE-2026-10-22-001",
+    "priority": "P0",
+    "classification": "owner-gated-records-only",
+    "reason": "Owner authorization naming task-router, release version, and baseline SHA is absent; the row forbids release or implementation dispatch without it."
+  },
+  "dispatch": "none:owner-authorization-missing",
+  "workers": [],
+  "verification": {
+    "artifact": ".coding-hermes/evidence/release-readiness-task-router-2026-10-26.json",
+    "gitreins_task": "RELEASE-2026-10-22-001-20261026",
+    "gitreins_verdict": "2a1927ec",
+    "gitreins_result": "FAIL: Tier 1 was blocked by pre-existing dirty/untracked checkout state; live owner-gate discriminator itself was recorded separately.",
+    "decision": "NO CUT / KEEP PENDING"
+  },
+  "trace": "ch:trace row=RELEASE-2026-10-22-001 spec=docs/releases/release-readiness.md#written-procedure wave=.coding-hermes/waves/task-router-foreman-2026-10-26-04-48-21.json#owner-gated test=none:readiness-only doc=docs/releases/release-readiness.md prompt=~/.hermes/skills/coding-hermes-foreman/references/owner-infrastructure-verification.md evidence=.coding-hermes/evidence/release-readiness-task-router-2026-10-26.json witness=live:git-tags+gh-release-list+version-pins+board-row verdict=2a1927ec commit=fcd06d1 memory=none:not-written"
+}
