@@ -1,0 +1,31 @@
+{
+  "candidate_version": "v0.3.0",
+  "row": "RELEASE-2026-10-22-001",
+  "tick": "task-router-foreman-2026-10-26-23-23-34",
+  "checked_at_utc": "2026-10-26T23:27:55Z",
+  "checkout_head": "793bd68150d6d2f4250c2e61ee26eb88acf96897",
+  "branch": "tr-224-commandcode-claude-entitlement",
+  "branch_remote": "11e4ecfa0887beb08d71b763e89c08d622bc3177",
+  "branch_parity": {"ahead": 16, "behind": 14},
+  "published_main_sha": "ea1bd89875b5809732f7468ba12b7e0c565dc63b",
+  "owner_authorization": "absent: no authorization naming task-router, release version, and baseline SHA",
+  "release_surface": {"local_semver_tags": [], "remote_semver_tags": [], "github_releases": []},
+  "version_pins": {"pyproject.toml": "0.2.0", "task_router/__init__.py": "0.2.0", "newest_changelog_heading": "Unreleased"},
+  "dependencies": {
+    "TR-341": "complete",
+    "TR-344": "complete",
+    "QA-TASKROUTER-2": "complete",
+    "XK-404-001-R2": "complete"
+  },
+  "ci_recent": [
+    {"run_id": 40416068559, "status": "completed", "conclusion": "success", "head_sha": "ea1bd89875b5809732f7468ba12b7e0c565dc63b"},
+    {"run_id": 40415570319, "status": "completed", "conclusion": "success", "head_sha": "793bd68150d6d2f4250c2e61ee26eb88acf96897"},
+    {"run_id": 40408345153, "status": "completed", "conclusion": "success", "head_sha": "79db191ba9e64fc1c33ca46fd2336520cb806361"}
+  ],
+  "decision": "NO DISPATCH / KEEP PENDING",
+  "reason": "The highest-priority pending row requires explicit owner authorization naming task-router, the release version, and baseline SHA. No release or implementation action is authorized.",
+  "wave": "none:owner-authorization-gated",
+  "worker": "none:owner-block",
+  "gitreins": "none:not run: readiness-only owner block",
+  "trace": "ch:trace row=RELEASE-2026-10-22-001 spec=docs/releases/release-readiness.md#written-procedure wave=none:owner-authorization-gated test=none:readiness-only doc=docs/releases/release-readiness.md evidence=.coding-hermes/evidence/release-readiness-task-router-foreman-2026-10-26-23-27-55.json witness=live:git-tags+gh-release-list+version-pins+dependency-rows+gh-run-list verdict=none:not-applicable commit=none:owner-block memory=none:duckbrain-token-unavailable STATUS: PENDING TIER: T3 EVIDENCE: owner authorization naming task-router, release version, and baseline SHA is absent; no worker, implementation, tag, Release, or GitReins action authorized."
+}
