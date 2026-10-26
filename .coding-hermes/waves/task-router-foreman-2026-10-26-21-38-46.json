@@ -1,0 +1,15 @@
+{
+  "budget": 3,
+  "census": {
+    "eligible_independent": 0,
+    "pending": 39,
+    "selected": "RELEASE-2026-10-22-001"
+  },
+  "project": "task-router",
+  "reason": "highest-priority row is owner-gated; no implementation dispatch authorized",
+  "repo": "/home/kara/task-router",
+  "row": "RELEASE-2026-10-22-001",
+  "status": "no-dispatch",
+  "tasks": [],
+  "tick": "task-router-foreman-2026-10-26-21-38-46"
+}
