@@ -1451,3 +1451,75 @@ def test_key_file_mode_must_not_be_group_or_world_readable(decision_env):
     key_path.chmod(0o600)
     result = rd.verify_receipt(receipt, now=NOW, expect=EXPECT)
     assert result["ok"] is True, result
+
+
+# ---------------------------------------------------------------------------
+# H1-F7 — a partial issuance write must never hand out a receipt
+# ---------------------------------------------------------------------------
+
+def _ledger_target(state, month="202610"):
+    """Absolute realpath of the month ledger file a decide() will append to."""
+    directory = state / "decision-receipts"
+    directory.mkdir(parents=True, exist_ok=True)
+    path = directory / f"{month}.jsonl"
+    path.touch(exist_ok=True)
+    return path, os.path.realpath(path)
+
+
+def test_short_issuance_write_never_hands_out_a_receipt(decision_env, monkeypatch):
+    """A short ledger write must fail the issuance (H1-F7).
+
+    `append_issuance` discarded the `os.write` return, so a partial write
+    returned success and the caller received a signed, unexpired receipt whose
+    truncated row is silently skipped at verification — RECEIPT_NOT_ISSUED,
+    i.e. a disk problem reported as forgery.
+    """
+    state = _state(decision_env)
+    path, target = _ledger_target(state)
+    import router_decision as rd
+    real_write = os.write
+    seen = []
+
+    def short_write(fd, data):
+        try:
+            fd_path = os.readlink(f"/proc/self/fd/{fd}")
+        except OSError:
+            fd_path = ""
+        if fd_path and os.path.realpath(fd_path) == target:
+            seen.append(len(data))
+            return real_write(fd, bytes(data[:max(1, len(data) // 2)]))
+        return real_write(fd, data)
+
+    monkeypatch.setattr(rd.os, "write", short_write)
+    doc = rd.decide(base_request(), now=NOW)
+
+    assert seen, "the test never reached the ledger write"
+    assert doc.get("code") == "RECEIPT_ISSUANCE_WRITE_FAILED", doc
+    assert doc.get("retryable") is True, doc
+    assert "receipt_digest" not in doc, doc
+    # The partial line is removed, not left to be skipped as a torn row.
+    assert path.stat().st_size == 0, path.read_text()[:400]
+
+
+def test_issuance_write_is_fsynced_before_the_receipt_is_returned(
+        decision_env, monkeypatch):
+    """Durability is part of the issuance contract (H1-F7)."""
+    state = _state(decision_env)
+    _path, target = _ledger_target(state)
+    import router_decision as rd
+    synced = []
+    real_fsync = os.fsync
+
+    def counting_fsync(fd):
+        try:
+            fd_path = os.readlink(f"/proc/self/fd/{fd}")
+        except OSError:
+            fd_path = ""
+        if fd_path and os.path.realpath(fd_path) == target:
+            synced.append(fd_path)
+        return real_fsync(fd)
+
+    monkeypatch.setattr(rd.os, "fsync", counting_fsync)
+    doc = rd.decide(base_request(), now=NOW)
+    assert doc.get("receipt_digest"), doc
+    assert synced, "the issuance row was handed out without an fsync"

@@ -169,6 +169,7 @@ ERR_RECEIPT_SIGNATURE_INVALID = "RECEIPT_SIGNATURE_INVALID"
 ERR_RECEIPT_NOT_ISSUED = "RECEIPT_NOT_ISSUED"
 ERR_RECEIPT_ISSUANCE_MISMATCH = "RECEIPT_ISSUANCE_MISMATCH"
 ERR_RECEIPT_ISSUANCE_CONFLICT = "RECEIPT_ISSUANCE_CONFLICT"
+ERR_RECEIPT_ISSUANCE_WRITE_FAILED = "RECEIPT_ISSUANCE_WRITE_FAILED"
 ERR_RECEIPT_KEY_UNAVAILABLE = "RECEIPT_KEY_UNAVAILABLE"
 
 #: Signing-key lifecycle refusals (H1-F6). The key has an age ceiling, an
@@ -1170,8 +1171,28 @@ def append_issuance(receipt: dict) -> None:
                 f"ledger {path} already records digest {digest} with a "
                 f"different issuance record — refusing to duplicate it")
     fd = os.open(path, os.O_CREAT | os.O_APPEND | os.O_WRONLY, 0o600)
+    start = None
     try:
-        os.write(fd, (line + "\n").encode("utf-8"))
+        # H1-F7: a short write must never be mistaken for a durable record. The
+        # O_APPEND offset is the file size, so the partial bytes (if any) are
+        # truncated away again: a torn row would be skipped by every later
+        # parse and the receipt would fail verification as if it were forged.
+        start = os.fstat(fd).st_size
+        written = os.write(fd, (line + "\n").encode("utf-8"))
+        if written != len(line) + 1:
+            raise IssuanceError(
+                ERR_RECEIPT_ISSUANCE_WRITE_FAILED,
+                f"short write to {path}: {written} of {len(line) + 1} bytes — "
+                f"the receipt was NOT issued")
+        os.fsync(fd)
+    except BaseException:
+        try:
+            if start is not None:
+                os.ftruncate(fd, start)
+                os.fsync(fd)
+        except OSError:
+            pass
+        raise
     finally:
         os.close(fd)
 
@@ -1350,10 +1371,12 @@ def decide(request: Any, now: Any = None) -> dict:
     try:
         append_issuance(receipt)
     except IssuanceError as exc:
-        # H1-F5 (conflicting duplicate): named, and the receipt is never
-        # handed out.
+        # H1-F5 (conflicting duplicate) / H1-F7 (short write): named, and the
+        # receipt is never handed out. A short write is a storage fault, so it
+        # is retryable; a conflicting duplicate is not.
+        retryable = exc.code == ERR_RECEIPT_ISSUANCE_WRITE_FAILED
         return _error_doc(exc.code, f"receipt issuance record failed: {exc.problem}",
-                          False,
+                          retryable,
                           [{"field": "issuance_ledger", "problem": exc.problem}])
     except Exception as exc:  # noqa: BLE001 — fail closed
         return _error_doc(ERR_RESOLVER_ERROR,

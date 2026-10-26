@@ -195,6 +195,7 @@ and touches nothing.
 | invalid request / deadline passed | error doc `INVALID_REQUEST` / `ATTEMPT_DEADLINE_PASSED` | 400 | 2 |
 | chain link unknown or from another run | error doc `PREVIOUS_ROUTE_UNKNOWN` / `PREVIOUS_ROUTE_MISMATCH` — no receipt | 409 | 1 |
 | issuance ledger holds a different record for this digest | error doc `RECEIPT_ISSUANCE_CONFLICT` — no receipt | 409 | 1 |
+| issuance row could not be written durably (short write / fsync) | error doc `RECEIPT_ISSUANCE_WRITE_FAILED` (`retryable=true`) — no receipt, partial row removed | 500 | 1 |
 | signing key not bootstrapped (or unusable) | error doc `RECEIPT_KEY_UNAVAILABLE` — nothing is written | 503 | 1 |
 | resolver/infrastructure failure | error doc `RESOLVER_ERROR` (fail **closed**, never a fabricated route) | 500 | 1 |
 
