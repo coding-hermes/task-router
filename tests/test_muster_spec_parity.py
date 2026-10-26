@@ -67,6 +67,10 @@ MUTATION_OPS = {
     "updateProviderListing",
     "updateModelListing",
     "updateProfileListing",
+    # H1-F4 (2026-10-26): issuing a route receipt appends a durable ledger row,
+    # so the decision endpoint is a MUTATION, not the read the old
+    # `security: []` label claimed. Deliberate spec revision, not drift.
+    "postExecutionDecision",
 }
 
 
