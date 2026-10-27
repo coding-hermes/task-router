@@ -22,6 +22,19 @@ already complete in the OLD lines. For every such row REQUIRE at least one of:
      artifact-path forms (the gate this module deliberately does NOT
      duplicate — it reuses board_complete_gate.evidence_state).
 
+TR-348 arm — the priority vocabulary boundary. The docs-audit row writer
+(lives outside this repo) copied documentation severities P4/P5 into the
+`priority` field verbatim; the board vocabulary is CLOSED at P0-P3 and eight
+DOC rows landed that way, turning main's CI red. A diff that INTRODUCES an
+off-vocabulary priority value (off-vocabulary or corrupt-fragment per the
+fleet census classifier) is REFUSED. A value already on the OLD side is
+history, not a new emission — re-appending an existing row must not be
+blocked, which is what makes a normalization pass (board_priority_normalize)
+landable while the class stays closed forward. The canonical mapping for the
+docs severities lives in scripts/board_priority_normalize.py (P4/P5 -> P3,
+original label kept in notes/title); this gate is the enforcement half that
+makes the TR-112 class unable to recur silently.
+
 A row that flips to complete with NONE of these is REFUSED with exit 1 and
 the refusal names the row id, the file, and the missing evidence forms.
 
@@ -50,6 +63,8 @@ REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(REPO, "scripts"))
 
 from board_complete_gate import TERMINAL, evidence_state  # noqa: E402
+from board_priority_census import classify as classify_priority  # noqa: E402
+from board_priority_census import VOCABULARY as PRIORITY_VOCABULARY  # noqa: E402
 
 BOARD_BASENAME = os.path.join(".coding-hermes", "board", "tasks.jsonl")
 
@@ -116,6 +131,46 @@ def rows_flipped_to_complete(old_lines: list[str], new_lines: list[str]) -> list
             continue  # already-terminal: history is not re-judged
         flipped.append(row)
     return flipped
+
+
+# ---------------------------------------------------------------------------
+# TR-348: the priority-vocabulary arm. A row whose LAST state in the diff
+# carries a priority value that was NOT already carried by that id on the OLD
+# side is a fresh emission — the write path failed to canonicalize. Absent on
+# both sides is a shape, not a spelling (REVIEW-TR-002); absent -> present is
+# judged; present -> present compares the last carried values, so re-appends
+# and history rewrites of an already-off-vocabulary row pass.
+# ---------------------------------------------------------------------------
+
+def priorities_introduced(old_lines: list[str], new_lines: list[str]) -> list[dict]:
+    """Rows whose NEW last-state carries an off-vocabulary priority the OLD
+    side did not already carry for that id. `why` names the census class."""
+    old = _rows_from_lines(old_lines)
+    new = _rows_from_lines(new_lines)
+    introduced = []
+    for rid, row in new.items():
+        value = row.get("priority")
+        kind = classify_priority(value)
+        if kind in ("canonical", "absent"):
+            continue
+        prev = old.get(rid) or {}
+        if prev.get("priority") == value:
+            continue  # already carried on the old side: history, not a new emission
+        introduced.append({"id": rid, "priority": value, "why": kind})
+    return introduced
+
+
+def check_introduced_priorities(introduced: list[dict]) -> list[str]:
+    """Refusal lines for freshly-emitted off-vocabulary priorities."""
+    refusals = []
+    for item in introduced:
+        refusals.append(
+            f"{item['id']}: board write REFUSED by board_commit_boundary_gate (TR-348): "
+            f"priority {item['priority']!r} is {item['why']} — the board vocabulary is "
+            f"closed at {PRIORITY_VOCABULARY}. Map docs-audit severities before filing "
+            f"(scripts/board_priority_normalize.py: P4/P5 -> P3, original label kept "
+            f"in notes/title), then re-file.")
+    return refusals
 
 
 def check_flipped_rows(flipped: list[dict]) -> list[str]:
@@ -187,15 +242,20 @@ def main(argv: list[str] | None = None) -> int:
         old, new = _diff_lines(None, None, args.repo)
 
     flipped = rows_flipped_to_complete(old, new)
-    refusals = check_flipped_rows(flipped)
+    introduced = priorities_introduced(old, new)
+    refusals = check_introduced_priorities(introduced)
+    refusals += check_flipped_rows(flipped)
     if refusals:
         for r in refusals:
             print(r, file=sys.stderr)
-        print(f"board_commit_boundary_gate: {len(refusals)} completion(s) refused",
+        print(f"board_commit_boundary_gate: {len(refusals)} refusal(s) "
+              f"({len(introduced)} off-vocabulary priority emission(s), "
+              f"{len(flipped)} unbound completion(s))",
               file=sys.stderr)
         return 1
     print(f"board_commit_boundary_gate: OK "
-          f"({len(flipped)} completion flip(s) in the diff, all evidence-bound)")
+          f"({len(flipped)} completion flip(s) in the diff, all evidence-bound; "
+          f"{len(introduced)} off-vocabulary priority emission(s))")
     return 0
 
 

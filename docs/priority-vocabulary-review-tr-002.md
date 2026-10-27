@@ -114,6 +114,27 @@ under which `"3"` and `"P2"` are unrelated values — exactly the failure the ro
 fleet-wide rather than on this board. `board_priority_census.py` is the tool that measures it;
 run it after a project's normalisation pass to confirm the class shrank.
 
+## TR-348 (2026-10-26): the writer-side recurrence path is closed
+
+The class reopened once through the WRITE path, not by hand: the fleet docs-audit lane (its
+doctrine lives in the filing skill, outside this repo) files documentation findings at
+severities P4/P5 and copied that label into `priority` verbatim — eight DOC rows
+(DOC-5..7, 13..17) landed that way and turned main's CI red. The repo-owned contract now:
+
+* `scripts/board_priority_normalize.py` — the canonicalisation adapter: docs severity
+  P4/P5 maps to **P3** (lowest canonical tier; a doc row must not outrank functional
+  work), the original label stays legible on the row (title untouched + a `notes`
+  provenance marker), unmapped values are never guessed, `--apply` is line-wise and
+  line-count-asserted.
+* `board_commit_boundary_gate.py` (TR-251 gate, runs at pre-push AND CI) — a diff that
+  INTRODUCES an off-vocabulary priority (census classes `off-vocabulary`/
+  `corrupt-fragment`) for an id that did not already carry that value is REFUSED;
+  values already on the old side are history, so normalisation passes stay landable.
+* `tests/test_tr348_writer_priority_contract.py` — the regression pin (27 tests), incl.
+  the exact filed DOC-15 shape and the exact c45ee4f normalisation diff.
+
+Evidence: `docs/evidence/tr348-docs-audit-writer-contract-2026-10-26.md`.
+
 ## Reproduce
 
 ```bash
