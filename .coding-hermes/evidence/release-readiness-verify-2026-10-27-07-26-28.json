@@ -1,0 +1,41 @@
+{
+  "tick": "task-router-foreman-2026-10-27-07-26-28",
+  "row": "RELEASE-2026-10-22-001",
+  "repository": "coding-hermes/task-router",
+  "branch": "main",
+  "head": "284f813f59ddd02e37ba7bd1a96f05af5bf0de0d",
+  "origin_main": "284f813f59ddd02e37ba7bd1a96f05af5bf0de0d",
+  "ahead": 0,
+  "behind": 0,
+  "dependencies": {
+    "TR-341": "complete",
+    "TR-344": "complete",
+    "QA-TASKROUTER-2": "complete",
+    "XK-404-001-R2": "complete"
+  },
+  "version_pins": {
+    "pyproject_toml": "0.2.0",
+    "task_router_init": "0.2.0",
+    "changelog_heading": "## [Unreleased]"
+  },
+  "tags": [],
+  "github_releases": [],
+  "ci_recent": [
+    {"run_id": 40466352163, "status": "in_progress", "conclusion": "", "head_sha": "284f813f59ddd02e37ba7bd1a96f05af5bf0de0d", "title": "board: close TR-174 — per-task value ledger verified merged, all ACs met"},
+    {"run_id": 40463598100, "status": "completed", "conclusion": "failure", "head_sha": "73ce6239e8b021e20c51cb931198f8f15ef8d9be", "title": "board: close TR-265 — deadline report subcommand implemented and verified"},
+    {"run_id": 40463343821, "status": "completed", "conclusion": "success", "head_sha": "89ad9416d5d1f0ec3770ddc481c5d2983e6cf88f", "title": "chore(gitreins): delete TR-265 task row after judge PASS"}
+  ],
+  "ci_failure_attribution": {
+    "run_id": 40463598100,
+    "failure_step": "TR-251 evidence replay",
+    "failure": "REPLAY-FAIL TR-265: completion carries no evidence run at all",
+    "existing_board_row": "TR-265 is already complete; no duplicate CI row filed"
+  },
+  "decision": "KEEP PENDING",
+  "authorization": "absent",
+  "next_owner_action": "Explicitly authorize task-router release version and baseline SHA before any release mutation.",
+  "trace": "ch:trace row=RELEASE-2026-10-22-001 spec=docs/releases/release-readiness.md#written-procedure wave=.coding-hermes/waves/task-router-foreman-2026-10-27-07-26-28.json#owner-gated test=none:owner-gated doc=.coding-hermes/evidence/release-readiness-verify-2026-10-27-07-26-28.json prompt=~/.hermes/skills/owner-gated-foreman-ticks/SKILL.md evidence=.coding-hermes/evidence/release-readiness-verify-2026-10-27-07-26-28.json witness=live:git-tags+gh-release-list+version-pins+gh-run-list+gh-run-40463598100 verdict=none:not-applicable commit=none:owner-block memory=none:duckbrain-token-unavailable",
+  "status": "PENDING",
+  "tier": "T3",
+  "evidence_summary": "All dependencies are complete and main is currently at origin parity, but owner authorization is absent; no version-prep commit, tag, or release was created. CI failure is an existing TR-265 evidence-replay defect, not a new failure surface."
+}
