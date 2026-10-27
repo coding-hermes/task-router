@@ -1,0 +1,27 @@
+{
+  "tick": "task-router-foreman-2026-10-27-04-36-21",
+  "project": "task-router",
+  "base_commit": "ab2b0f666f30c7d369cd66e32515b87887172f52",
+  "board": ".coding-hermes/board/tasks.jsonl",
+  "census": {
+    "pending_rows": 33,
+    "highest_priority": "P0",
+    "selected_row": "RELEASE-2026-10-22-001",
+    "eligible_implementation_rows": 0,
+    "owner_gated_rows": ["RELEASE-2026-10-22-001", "TR-294"],
+    "already_dispatched_rows": ["QA-TASKROUTER-6"]
+  },
+  "dispatch": {
+    "mode": "serial-fallback",
+    "workers": [],
+    "reason": "Selected P0 row requires explicit owner authorization naming task-router, release version, and baseline SHA before any implementation, tag, or Release object. No worker dispatched."
+  },
+  "verification_only": {
+    "evidence": ".coding-hermes/evidence/release-readiness-task-router-2026-10-27-04-36-21.json",
+    "witness": "live:git-tags+gh-release-list+version-pins+gh-run-list",
+    "next_owner_action": "Authorize task-router release version and baseline SHA explicitly",
+    "gitreins": "not run: no implementation task dispatched",
+    "off_by_one": "none:verification-only no debugging"
+  },
+  "status": "closed-no-dispatch"
+}
