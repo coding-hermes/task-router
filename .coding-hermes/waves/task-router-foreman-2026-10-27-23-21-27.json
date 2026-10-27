@@ -1,0 +1,40 @@
+{
+  "tick_id": "task-router-foreman-2026-10-27-23-21-27",
+  "project": "task-router",
+  "workdir": "/home/kara/task-router",
+  "created_at": "2026-10-27T23:26:59Z",
+  "finished_at": "2026-10-27T23:26:59Z",
+  "wave_budget": 1,
+  "mode": "serial-owner-gated",
+  "wave_size": 0,
+  "reason": "Highest-priority pending P0 row RELEASE-2026-10-22-001 remains owner-authorization gated. All dependencies are complete, but explicit owner authorization naming task-router, the release version, and baseline SHA is absent. WAVE_BUDGET=1; no independent implementation worker was dispatched. A recent CI failure was rechecked and classified as an executed-step guard hang/timeout, not an unowned new failure; existing INT-CI-10/11 rows remain the active evidence-replay owner records.",
+  "census": {
+    "board_physical_rows": 382,
+    "board_pending_rows": 45,
+    "selected": "RELEASE-2026-10-22-001",
+    "selected_status": "pending",
+    "selected_priority": "P0",
+    "selected_dependencies": {
+      "TR-341": "complete",
+      "TR-344": "complete",
+      "QA-TASKROUTER-2": "complete",
+      "XK-404-001-R2": "complete"
+    },
+    "eligible_independent": 0
+  },
+  "workers": [],
+  "gitreins": "none:owner-authorization-gated",
+  "gates": {
+    "board_parse": "JSONL parse pass; existing legacy boardctl key-uniformity/event-id warnings remain unrepaired",
+    "release_surface": "pyproject=0.2.0, package=0.2.0, CHANGELOG v0.3.0 count=0, numeric tags=0, GitHub Releases=0",
+    "repository_parity": "HEAD=6c601d18d16e4219b6fb0257f26d2913927f4cd1; origin/main=dd030b9c1f6d713f13ffef5961e118eb5957b976; before closeout this checkout is ahead by one pre-existing tick commit; this tick did not push or alter it",
+    "ci_health": "mandatory latest-three query: 40533162796 success, 40525999548 success, 40525707014 success; older run 40521658620 failure was inspected: test job completed full suite then remained at Guard test command in_progress until run failure, with no TR-251 evidence-replay execution; active owner rows INT-CI-10/INT-CI-11 already cover evidence-replay failures",
+    "off_by_one": "none:verification-only; no debugging performed"
+  },
+  "evidence": ".coding-hermes/waves/task-router-foreman-2026-10-27-23-21-27.json",
+  "result": {
+    "row": "RELEASE-2026-10-22-001 remains pending",
+    "owner_action": "Explicitly authorize task-router and name the release version and baseline SHA, or leave release blocked.",
+    "ci_owner_reconciliation": "40521658620 is an executed-step guard timeout/failure, not a duplicate evidence-replay row; no new row filed because existing CI owner rows cover the active TR-251 class."
+  }
+}

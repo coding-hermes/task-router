@@ -1,0 +1,39 @@
+{
+  "tick_id": "task-router-foreman-2026-10-27-15-51-44",
+  "project": "task-router",
+  "workdir": "/home/kara/task-router",
+  "created_at": "2026-10-27T16:02:00Z",
+  "finished_at": "2026-10-27T16:02:00Z",
+  "wave_budget": 12,
+  "mode": "serial-owner-gated",
+  "wave_size": 0,
+  "reason": "Highest-priority pending P0 row RELEASE-2026-10-22-001 is owner-authorization gated. All four dependencies are complete, but explicit owner authorization naming task-router, the release version, and the baseline SHA is absent. Per owner-gated procedure, no worker, worktree, implementation GitReins task, version-prep commit, tag, or GitHub Release mutation is authorized.",
+  "census": {
+    "board_physical_rows": 376,
+    "board_pending_rows": 39,
+    "selected": "RELEASE-2026-10-22-001",
+    "selected_status": "pending",
+    "selected_priority": "P0",
+    "selected_dependencies": {
+      "TR-341": "complete",
+      "TR-344": "complete",
+      "QA-TASKROUTER-2": "complete",
+      "XK-404-001-R2": "complete"
+    },
+    "eligible_independent": 0
+  },
+  "workers": [],
+  "gitreins": "none:owner-authorization-gated",
+  "gates": {
+    "board_parse": "JSONL parse pass; boardctl validation retains pre-existing legacy key-uniformity/event-id errors; no repair attempted",
+    "release_surface": "pyproject=0.2.0, package=0.2.0, CHANGELOG v0.3.0 count=0, numeric tags=0, GitHub Releases=0",
+    "repository_parity": "HEAD=origin/main=dd030b9c1f6d713f13ffef5961e118eb5957b976; ahead=0; behind=0",
+    "ci_health": "40533162796 in_progress on dd030b9; 40525999548 completed/success on 16429d5; 40525707014 completed/success on 9084bbe; no completed failure in latest three",
+    "off_by_one": "none:verification-only; no debugging performed"
+  },
+  "evidence": ".coding-hermes/evidence/release-readiness-verify-2026-10-27-15-51-44.json",
+  "result": {
+    "row": "RELEASE-2026-10-22-001 remains pending",
+    "owner_action": "Explicitly authorize task-router and name the release version and baseline SHA, or leave release blocked."
+  }
+}
