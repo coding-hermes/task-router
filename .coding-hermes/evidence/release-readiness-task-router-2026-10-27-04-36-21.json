@@ -1,0 +1,59 @@
+{
+  "tick": "task-router-foreman-2026-10-27-04-36-21",
+  "row": "RELEASE-2026-10-22-001",
+  "repository": "coding-hermes/task-router",
+  "checked_at": "2026-10-27T04:47:36Z",
+  "checkout": {
+    "head": "ab2b0f666f30c7d369cd66e32515b87887172f52",
+    "branch": "main",
+    "remote": "git@github.com:coding-hermes/task-router.git",
+    "unrelated_untracked_residue": [
+      ".coding-hermes/evidence/release-readiness-task-router-2026-10-25-20-07-51.txt",
+      ".vfs/",
+      "data/state/.quality-floors.json",
+      "data/state/benchmarks.jsonl.bak-20261026-202837",
+      "data/state/benchmarks.jsonl.bak-20261026-202909",
+      "data/state/benchmarks.jsonl.bak-20261026-202919"
+    ]
+  },
+  "owner_gate": {
+    "authorization": "absent",
+    "required": "Explicit authorization naming task-router, release version, and baseline SHA",
+    "decision": "NO CUT; keep pending; no implementation worker, tag, or GitHub Release"
+  },
+  "release_surface": {
+    "local_numeric_tags": 0,
+    "remote_numeric_tags": 0,
+    "github_releases": 0,
+    "version_pyproject": "0.2.0",
+    "version_package": "0.2.0",
+    "newest_changelog_heading": "[Unreleased]",
+    "candidate_v030_heading_count": 0
+  },
+  "ci": {
+    "query": "gh run list --repo coding-hermes/task-router --limit 3 --json status,conclusion,displayTitle,headBranch,headSha,createdAt",
+    "latest_runs": [
+      {"run": "39822341677", "head_sha": "630af6190cd12c1ee0dc94383c3c17528c985dab", "status": "completed", "conclusion": "success"},
+      {"head_sha": "565be9bc88cc6a038cc498231027aea9f4f4b580", "status": "completed", "conclusion": "success"},
+      {"head_sha": "79730d83c639485332278744ddb4716ecde7ec71", "status": "completed", "conclusion": "success"}
+    ],
+    "exact_candidate_run": {
+      "run": "39822341677",
+      "head_sha": "630af6190cd12c1ee0dc94383c3c17528c985dab",
+      "conclusion": "success",
+      "jobs": [{"name": "test", "conclusion": "success", "steps": 19, "all_steps_success": true}]
+    },
+    "health": "GREEN for the three most recent listed runs; no untracked recent failure"
+  },
+  "dependencies": {
+    "row_declared": ["TR-341", "TR-344", "QA-TASKROUTER-2", "XK-404-001-R2"],
+    "release_action": "Still owner-gated; this tick does not change dependency status"
+  },
+  "verification": {
+    "board_validate": "FAIL on pre-existing legacy event-id ordering and key-uniformity drift; no new board row corruption inferred",
+    "gitreins": "not run: no implementation task dispatched",
+    "off_by_one": "none:verification-only no debugging",
+    "witness": "live:git-tags+gh-release-list+version-pins+gh-run-list",
+    "next_owner_action": "Authorize task-router release version and baseline SHA explicitly"
+  }
+}
