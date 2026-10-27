@@ -1,0 +1,51 @@
+{
+  "tick_id": "task-router-foreman-2026-10-27-15-29-03",
+  "captured_at": "2026-10-27T15:34:38Z",
+  "project": "task-router",
+  "selected_row": "RELEASE-2026-10-22-001",
+  "selected_status": "pending",
+  "selected_priority": "P0",
+  "dependencies": {
+    "TR-341": "complete",
+    "TR-344": "complete",
+    "QA-TASKROUTER-2": "complete",
+    "XK-404-001-R2": "complete"
+  },
+  "owner_gate": "Explicit owner authorization naming task-router, the release version, and the baseline SHA is absent.",
+  "mutations_not_performed": [
+    "No worker dispatch",
+    "No worktree creation",
+    "No implementation GitReins task",
+    "No version-prep mutation",
+    "No tag or GitHub Release mutation"
+  ],
+  "repository": {
+    "head": "16429d57fd2eae8966d44c23f594203df0c1c4ba",
+    "origin_main": "16429d57fd2eae8966d44c23f594203df0c1c4ba",
+    "ahead": 0,
+    "behind": 0
+  },
+  "release_surface": {
+    "pyproject_version": "0.2.0",
+    "package_version": "0.2.0",
+    "changelog_v0_3_0_count": 0,
+    "numeric_tag_count": 0,
+    "github_release_count": 0
+  },
+  "board": {
+    "physical_rows": 376,
+    "pending_rows": 39,
+    "jsonl_parse": "pass",
+    "boardctl_validate": "pre-existing legacy key-uniformity/event-id errors; no repair attempted"
+  },
+  "ci_health": {
+    "command": "gh run list --repo coding-hermes/task-router --limit 3 --json status,conclusion,displayTitle,headBranch,createdAt,headSha",
+    "runs": [
+      {"id": "40522403364", "status": "in_progress", "conclusion": null, "head_sha": "16429d5fd..."},
+      {"id": "40521658620", "status": "in_progress", "conclusion": null, "head_sha": "16429d5fd..."},
+      {"id": "40508135483", "status": "completed", "conclusion": "success", "head_sha": "70bd5b087..."}
+    ],
+    "result": "No completed failure in the mandatory latest-three query; two runs remain in progress."
+  },
+  "off_by_one": "none: verification-only; no debugging performed"
+}
