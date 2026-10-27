@@ -471,7 +471,9 @@ def _github_tag_probe(locator: str, workdir: str | None = None) -> tuple[bool, s
 def _github_release_probe(locator: str, workdir: str | None = None) -> tuple[bool, str]:
     """locator '<owner>/<repo>' (or '#<tag>') → does a release object exist?
     The TR-252 stop condition: a release row may not close while
-    `git ls-remote --tags origin` AND `gh release list` both return empty."""
+    `git ls-remote --tags origin` AND `gh release list` both return empty.
+    Probe ERRORS are refused identically, fail-closed: an unobservable
+    surface counts as ZERO evidence (QA-TASKROUTER-6)."""
     loc = locator.strip()
     owner_repo = loc.split('#', 1)[0]
     want_tag = loc.split('#', 1)[1] if '#' in loc else None
@@ -479,14 +481,19 @@ def _github_release_probe(locator: str, workdir: str | None = None) -> tuple[boo
         rc, out = _run(['git', 'ls-remote', '--tags', 'origin'],
                        timeout=60, cwd=workdir)
         if rc != 0:
-            return False, f'git ls-remote --tags origin failed (rc={rc})'
+            return False, (f'STOP CONDITION (TR-252): git ls-remote --tags '
+                           f'origin failed (rc={rc}: {out.strip()[:120]}) — '
+                           f'fail-closed: ZERO tags evidenced')
         if not out.strip():
             return False, ('STOP CONDITION (TR-252): git ls-remote --tags '
                            'origin returns ZERO tags')
     rc, out = _run(['gh', 'release', 'list', '--repo', owner_repo,
                     '--limit', '50'], timeout=60)
     if rc != 0:
-        return False, f'gh release list failed (rc={rc}): {out.strip()[:120]}'
+        return False, (f'STOP CONDITION (TR-252): gh release list '
+                       f'--repo {owner_repo} failed (rc={rc}: '
+                       f'{out.strip()[:120]}) — fail-closed: ZERO releases '
+                       'evidenced')
     lines = [l for l in out.splitlines() if l.strip()]
     if not lines:
         return False, (f'STOP CONDITION (TR-252): gh release list '

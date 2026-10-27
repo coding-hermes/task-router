@@ -656,6 +656,55 @@ def test_release_item_may_not_close_while_origin_is_empty(tmp_path):
     assert 'ZERO' in why.upper()
 
 
+def _fake_run_failing(rc, msg):
+    """Deterministic _run replacement: every external command 'fails' with
+    (rc, msg) — no network, no gh binary, no auth needed."""
+    return lambda cmd, timeout=30, cwd=None: (rc, msg)
+
+
+def test_probe_error_refusal_names_the_surface_with_zero(monkeypatch):
+    """QA-TASKROUTER-6 — the error arms previously returned e.g.
+    'git ls-remote --tags origin failed (rc=128)' with no ZERO, so on a
+    chaos-disconnect (tags probe errors) or fresh box (gh errors/absent)
+    the live refusal said only NOT WITNESSED. Fail-closed means an
+    unobservable surface counts as ZERO evidence, and the refusal must
+    say so and name the surface (deterministic: _run is faked)."""
+    locator = rel_item()['witness']['locator']
+    # arm 1 (tags): real checkout so the git leg RUNS and ls-remote errors
+    # (chaos-disconnect QA — rc=128 network unreachable)
+    monkeypatch.setattr(gate, '_run', _fake_run_failing(
+        128, 'ssh: connect to host github.com port 22: Network is unreachable'))
+    ok, why = gate._github_release_probe(
+        locator, workdir=os.path.dirname(SCRIPTS))
+    assert ok is False
+    assert 'ZERO' in why.upper()
+    assert 'ls-remote' in why and 'tags' in why.lower()
+    # arm 2 (releases): workdir=None skips the git leg; gh errors
+    # (fresh-system QA — rc=127, gh absent/no auth)
+    monkeypatch.setattr(gate, '_run', _fake_run_failing(
+        127, 'gh: command not found (exit 127)'))
+    ok, why = gate._github_release_probe(locator, workdir=None)
+    assert ok is False
+    assert 'ZERO' in why.upper()
+    assert 'release list' in why and 'releases' in why.lower()
+
+
+def test_live_refusal_names_zero_when_surface_unobservable(tmp_path, monkeypatch):
+    """Flow-through: scale_state_for_row's live refusal carries BOTH
+    'NOT WITNESSED' and the literal ZERO when the probes error, matching
+    the live test's contract on a box where the surfaces cannot be read."""
+    d = write_envelope(tmp_path, HEADER, [rel_item()])
+    row = bound_row()
+    monkeypatch.setattr(gate, '_run', _fake_run_failing(
+        127, 'gh: command not found (exit 127)'))
+    problems = gate.scale_state_for_row(row, envelopes_dir=d, live=True)
+    assert problems, 'unobservable surface must refuse the close'
+    joined = ' '.join(problems)
+    assert 'NOT WITNESSED' in joined
+    assert 'ZERO' in joined.upper()
+    assert 'releases' in joined.lower()
+
+
 def test_live_ingress_and_provider_kinds_need_out_of_band_observer(tmp_path):
     d = write_envelope(tmp_path, HEADER, [
         rel_item(id='i1', witness={'kind': 'live_ingress_resolves',
