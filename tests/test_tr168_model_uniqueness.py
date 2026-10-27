@@ -444,7 +444,20 @@ POST_DEDUPE_ADDITIONS = {
     ("opencode-go", "gemini-4-argon"): "models.dev sync 2026-10-25 (catalog arrival, sub-bucket priced)",
     ("opencode-go", "iceman-contributor-free"): "models.dev sync 2026-10-25 (catalog arrival, sub-bucket priced, $0 promo)",
     ("openrouter", "liquid/lfm-2.5-2.6b"): "models.dev sync 2026-10-25 (catalog arrival, payg-sticker priced)",
-
+    # sync arrivals 2026-10-27 (model-registry-data-quality cron): the
+    # gpt-6.1-terra wave — 10 lanes across 4 carriers (models.dev catalog
+    # + clinepass API). Kit applied same tick: TR-039 alias+test-fill
+    # (prefixed->bare), census stamp (codex price), thin-row backfills.
+    ("clinepass", "gpt-6.1-terra"): "clinepass API sync 2026-10-27 (carrier arrival; sweep-disabled, thin row backfilled)",
+    ("clinepass", "gpt-6.1-terra-pro"): "clinepass API sync 2026-10-27 (carrier arrival; sweep-disabled, thin row backfilled)",
+    ("clinepass", "gpt-6.1-terra:batch"): "clinepass API sync 2026-10-27 (carrier arrival; sweep-disabled, thin row backfilled)",
+    ("clinepass", "gpt-6.1-terra-pro:batch"): "clinepass API sync 2026-10-27 (carrier arrival; sweep-disabled, thin row backfilled)",
+    ("commandcode", "gpt-6.1-terra"): "models.dev sync 2026-10-27 (payg-sticker priced; TR-039 alias+test-fill)",
+    ("openai-codex", "gpt-6.1-terra"): "models.dev sync 2026-10-27 (unpriced; provider disabled TR-341 credits; census stamp)",
+    ("openrouter", "openai/gpt-6.1-terra"): "models.dev sync 2026-10-27 (payg-sticker priced; TR-039 alias+test-fill)",
+    ("openrouter", "openai/gpt-6.1-terra-pro"): "models.dev sync 2026-10-27 (payg-sticker priced)",
+    ("openrouter", "openai/gpt-6.1-terra:batch"): "models.dev sync 2026-10-27 (payg-sticker priced; :batch twin backfilled)",
+    ("openrouter", "openai/gpt-6.1-terra-pro:batch"): "models.dev sync 2026-10-27 (payg-sticker priced; :batch twin backfilled)",
 }
 
 

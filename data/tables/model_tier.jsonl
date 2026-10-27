@@ -1668,6 +1668,7 @@
 {"model": "gpt-6.1-sol", "category": "terminal", "perf": 0.95, "tier": 5, "tier_source": "bench", "source_ref": "bench:Terminal-Bench"}
 {"model": "gpt-6.1-sol", "category": "test", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:openai/gpt-6.1-sol"}
 {"model": "gpt-6.1-sol", "category": "tool_use", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:openai/gpt-6.1-sol"}
+{"model": "gpt-6.1-terra", "category": "test", "perf": 0.72, "tier": -1, "tier_source": "estimate", "source_ref": "CATEGORY_ESTIMATES"}
 {"model": "gpt-oss-120b", "category": "code_gen", "perf": 0.72, "tier": 0, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:gpt-oss"}
 {"model": "gpt-oss-120b", "category": "multilingual", "perf": 0.8, "tier": -4, "tier_source": "estimate", "source_ref": "QUALITY_ESTIMATES"}
 {"model": "gpt-oss-120b", "category": "refactor", "perf": 0.72, "tier": 2, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:gpt-oss"}
@@ -2890,6 +2891,7 @@
 {"model": "openai/gpt-6.1-sol", "category": "spec_docs", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:SPEC-DOCS"}
 {"model": "openai/gpt-6.1-sol", "category": "test", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:TEST"}
 {"model": "openai/gpt-6.1-sol", "category": "tool_use", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:T1-TOOL"}
+{"model": "openai/gpt-6.1-terra", "category": "test", "perf": 0.72, "tier": -1, "tier_source": "family", "source_ref": "alias:gpt-6.1-terra"}
 {"model": "openai/gpt-oss-120b", "category": "agent_tick", "perf": 0.75, "tier": 2, "tier_source": "measured", "source_ref": "models.jsonl:perf_agent_tick"}
 {"model": "openai/gpt-oss-120b", "category": "debug", "perf": 0.75, "tier": 1, "tier_source": "measured", "source_ref": "models.jsonl:perf_debug"}
 {"model": "openai/gpt-oss-120b", "category": "delegation", "perf": 0.72, "tier": -2, "tier_source": "measured", "source_ref": "models.jsonl:perf_delegation"}
