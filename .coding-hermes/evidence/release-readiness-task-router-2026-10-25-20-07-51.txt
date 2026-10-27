@@ -1,0 +1,28 @@
+Release readiness verification — task-router-foreman-2026-10-25-20-07-51
+Timestamp:
+2026-10-25T20:10:51Z
+HEAD:
+46fbfb824f4671eaf008e2711cf35ed80507e651
+Remote parity:
+ahead=0
+behind=0
+Local tags:
+Remote tags:
+GitHub releases:
+Version pins:
+pyproject.toml:7:version = "0.2.0"
+task_router/__init__.py:11:__version__ = "0.2.0"
+Changelog headings:
+7:## [Unreleased]
+73:## [0.2.0] — 2026-09-24
+127:## [0.1.0] — 2026-09-21
+Release procedure authorization gate:
+1:# Release readiness — task-router, current state: NO CUT
+24:No owner authorization for a cut exists. This row deliberately does NOT
+64:### Cut procedure (fires only after owner authorization + pre-cut checklist)
+67:TAG=v0.3.0                                # owner's chosen version
+74:# Tag + push (DESTRUCTIVE release actions — only on owner authorization):
+116:1. Owner authorization statement exists (who, when, version, baseline SHA).
+124:Anything less = NO CUT. This row's verdict: **NO CUT (blocked on owner
+Recent CI:
+[{"conclusion":"","createdAt":"2026-10-25T20:07:48Z","displayTitle":"docs(board): file task-router documentation audit finding DOC-13","headBranch":"main","headSha":"46fbfb824f4671eaf008e2711cf35ed80507e651","status":"in_progress"},{"conclusion":"","createdAt":"2026-10-25T19:51:37Z","displayTitle":"chore(board): close QA-TASKROUTER-5 with CI evidence","headBranch":"main","headSha":"4015e8d41629408f524bad25b30f392cf5f2c524","status":"in_progress"},{"conclusion":"success","createdAt":"2026-10-25T19:30:07Z","displayTitle":"fix(packaging): add developer install extra. Addresses QA-TASKROUTER-5.","headBranch":"main","headSha":"ad1c04f08d39850f88a6dd01198980ee89423542","status":"completed"}]
