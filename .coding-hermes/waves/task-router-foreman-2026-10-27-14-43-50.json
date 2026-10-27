@@ -1,0 +1,32 @@
+{
+  "tick_id": "task-router-foreman-2026-10-27-14-43-50",
+  "project": "task-router",
+  "workdir": "/home/kara/task-router",
+  "created_at": "2026-10-27T14:52:56Z",
+  "finished_at": "2026-10-27T14:52:56Z",
+  "wave_budget": 5,
+  "mode": "serial-idle-light-audit",
+  "wave_size": 0,
+  "reason": "Highest-priority pending row RELEASE-2026-10-22-001 is owner-authorization gated. All dependencies are complete, but explicit authorization naming task-router, release version, and baseline SHA is absent. Per owner-gated procedure, no worker, worktree, implementation GitReins task, version-prep commit, tag, or Release mutation is authorized.",
+  "census": {
+    "board_physical_lines": 376,
+    "board_distinct_ids": 376,
+    "pending_rows": 39,
+    "selected": "RELEASE-2026-10-22-001",
+    "selected_status": "pending",
+    "eligible_independent": 0,
+    "p0_pending_all_blocked": ["RELEASE-2026-10-22-001"]
+  },
+  "workers": [],
+  "gates": {
+    "board_parse": "JSONL line parse succeeds; boardctl validate reports pre-existing legacy key-uniformity/event-id errors",
+    "remote_parity": "HEAD=origin/main=171c3f18347efaecef55e862dd4c001ae03b180f; ahead=0; behind=0",
+    "release_surface": "0 local numeric tags; 0 remote numeric tags; 0 GitHub releases; versions 0.2.0/0.2.0/0.2.0",
+    "ci_health": "latest three GitHub Actions runs 40522403364, 40521658620, 40521537058 are in_progress; no completed failure in required latest-three query",
+    "off_by_one": "discover ci-evidence-replay returned not_found; corpus grep found related historical answers; no debugging performed"
+  },
+  "result": {
+    "row": "RELEASE-2026-10-22-001 remains pending",
+    "owner_action": "Explicitly authorize task-router and name the release version and baseline SHA, or leave release blocked."
+  }
+}
