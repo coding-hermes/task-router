@@ -324,7 +324,143 @@ def test_old_default_would_have_violated_a_900s_declaration(
         'the old 180s default must NOT be what applied to a 900s declaration')
 
 
-# ---------- fail-open reading ----------
+# ---------- TR-265: the deadline-report subcommand ----------
+
+def _deadline_row(layer='router-proxy', declared=True, declared_s=900.0,
+                  applied_s=180.0, mode='wall', margin=5.0, aligned=False,
+                  ts=1791100000.0, **extra):
+    """One outcome row shaped exactly like the live store's TR-264 block
+    (scripts/router_server.py:_dl_deadline / _no_deadline)."""
+    dl = {'declared': declared,
+          'declared_s': declared_s if declared else None,
+          'mode': mode if declared else None,
+          'applied_s': applied_s if declared else None,
+          'layer': layer if declared else 'router-proxy',
+          'aligned': aligned if declared else True,
+          'stricter_reason': (None if aligned or not declared
+                              else 'ladder clamp (test)'),
+          'margin_s': margin,
+          'ts': ts}
+    dl.update(extra)
+    return {'source_system': 'router-proxy', 'session_id': 'proxy-test',
+            'provider': 'p', 'model': 'm', 'ts': ts, 'deadline': dl}
+
+
+def test_report_subcommand_classifies_binding_guess_and_other(
+        tmp_path, monkeypatch, capsys):
+    import router_outcomes as ro
+    store = tmp_path / 'outcomes.jsonl'
+    rows = [
+        # 3 binding rows at the proxy (the 2026-10-03 shape: hop budget
+        # squeezed far below the declared caller budget)
+        _deadline_row(ts=1791100000.0),
+        _deadline_row(ts=1791100060.0),
+        _deadline_row(ts=1791100120.0),
+        # 1 binding row at a different layer (aligned=True but applied
+        # < declared - margin is still arithmetic binding: the flag is the
+        # ladder's opinion, the numbers are the evidence)
+        _deadline_row(layer='gateway', applied_s=90.0, aligned=True,
+                      ts=1791100180.0),
+        # 2 guesses: declared=false and declared key missing entirely
+        _deadline_row(declared=False, ts=1791100240.0),
+        {'source_system': 'router-proxy', 'provider': 'p', 'model': 'm',
+         'ts': 1791100300.0, 'deadline': {'declared': False,
+                                          'declared_s': None,
+                                          'applied_s': None}},
+        # 1 no-deadline row (counts in rows_scanned only) and 1 malformed
+        # block (declared=True, no numbers -> 'other', never mis-classed)
+        {'source_system': 'hermes', 'provider': 'x', 'model': 'y',
+         'ts': 1791100360.0},
+        {'source_system': 'router-proxy', 'provider': 'p', 'model': 'm',
+         'ts': 1791100420.0, 'deadline': {'declared': True}},
+    ]
+    monkeypatch.setenv('ROUTING_OUTCOMES_FILE', str(store))
+    store.write_text(''.join(json.dumps(r) + '\n' for r in rows))
+    rc = ro.main(['deadline-report'])
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert '=== Deadline Alignment Report ===' in out
+    assert 'Window: all (no --window specified)' in out
+    assert 'Rows scanned: 8' in out
+    assert 'Rows with deadline block: 7' in out
+    assert 'Binding constraints (narrowest layer): 4' in out
+    assert 'Guess class (declared=false): 2' in out
+    assert 'Other (malformed/foreign deadline blocks): 1' in out
+    # histogram: counts re-derivable from the raw rows above (columns are
+    # padded to the widest layer name, so match on token, not literal space)
+    import re
+    assert re.search(r'^  router-proxy\s+3$', out, re.M)
+    assert re.search(r'^  gateway\s+1$', out, re.M)
+    # summary arithmetic: 3/4 = 75.0%, 2/7 = 28.6%
+    assert 'Narrowest link is the router-proxy in 75.0% of binding' in out
+    assert '28.6% of deadline-bearing rows are guesses.' in out
+
+
+def test_report_window_filters_on_ts_and_validates_input(
+        tmp_path, monkeypatch, capsys):
+    import router_outcomes as ro
+    store = tmp_path / 'outcomes.jsonl'
+    # 2026-10-03 00:00:00 UTC = 1790985600.0 (verified: date -u -d); two rows
+    # inside the day, one out
+    in_day = 1790985600.0 + 3600.0
+    rows = [_deadline_row(ts=in_day), _deadline_row(ts=in_day + 60.0),
+            _deadline_row(ts=1790985600.0 - 1.0)]   # the day before
+    monkeypatch.setenv('ROUTING_OUTCOMES_FILE', str(store))
+    store.write_text(''.join(json.dumps(r) + '\n' for r in rows))
+    rc = ro.main(['deadline-report',
+                  '--window', '2026-10-03/2026-10-03'])
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert 'Window: 2026-10-03/2026-10-03' in out
+    assert 'Rows scanned: 3' in out
+    assert 'Rows with deadline block: 2' in out
+    assert 'Binding constraints (narrowest layer): 2' in out
+    # a malformed window is the ONE loud failure: exit 2, message names it
+    rc = ro.main(['deadline-report', '--window', 'not-a-window'])
+    assert rc == 2
+    err = capsys.readouterr().err
+    assert 'START/END' in err
+
+
+def test_report_fails_open_on_missing_and_empty_store(
+        tmp_path, monkeypatch, capsys):
+    import router_outcomes as ro
+    monkeypatch.setenv('ROUTING_OUTCOMES_FILE',
+                       str(tmp_path / 'missing.jsonl'))
+    assert ro.main(['deadline-report']) == 0
+    out = capsys.readouterr().out
+    assert 'Rows scanned: 0' in out
+    assert 'Rows with deadline block: 0' in out
+    assert 'Binding constraints (narrowest layer): 0' in out
+    assert 'Guess class (declared=false): 0' in out
+    assert '(none: no request declared a deadline' in out
+    # empty (zero-byte) store: same zeros, exit 0
+    empty = tmp_path / 'empty.jsonl'
+    empty.write_text('')
+    monkeypatch.setenv('ROUTING_OUTCOMES_FILE', str(empty))
+    assert ro.main(['deadline-report']) == 0
+    assert 'Rows scanned: 0' in capsys.readouterr().out
+
+
+def test_report_classify_matches_the_2026_10_03_defect_shape():
+    """The TR-243 census: 47 x 180.08s hop-wall-timeouts against a 30m
+    caller. A block with applied_s=180.08 vs declared_s=1800 must classify
+    as BINDING at the router-proxy layer, and the same numbers re-derive
+    from the raw rows via deadline_report() — the same computation, two
+    entry points, one answer."""
+    import router_outcomes as ro
+    dl = {'declared': True, 'declared_s': 1800.0, 'mode': 'wall',
+          'applied_s': 180.08, 'layer': 'router-proxy', 'aligned': False,
+          'stricter_reason': 'ladder wall backstop', 'margin_s': 5.0}
+    assert ro.classify_deadline_row(dl) == 'binding'
+    rep = ro.deadline_report([_deadline_row(declared_s=1800.0,
+                                            applied_s=180.08)])
+    assert rep['binding_total'] == 1
+    assert rep['by_layer'] == {'router-proxy': 1}
+    # equal-to-declared (within margin) is NOT binding: arithmetic only
+    even = dict(dl, applied_s=1795.0)      # declared - margin exactly
+    assert ro.classify_deadline_row(even) is None
+
 
 def test_malformed_headers_fail_open_with_a_reason(proxy_env, monkeypatch):
     _wire(monkeypatch, [('p1', 'm1')])

@@ -17,6 +17,7 @@ Subcommands:
   import-hermes   pull rows from the hermes gateway DB (~/.hermes/state.db)
   averages        recompute outcomes-averages.jsonl from the outcome store
   query           print the average for a lane (optionally merged)
+  deadline-report narrowest-link census (TR-265): binding vs guess, by layer
 """
 from __future__ import annotations
 import argparse
@@ -450,6 +451,163 @@ def merge_average_rows(rows: Any):
                                     if r.get('source_system')})
         out.append(entry)
     return out
+
+
+# ---------- deadline alignment (TR-265) ----------
+
+#: binding = applied_s < declared_s - margin. A margin at or below zero would
+#: call "equal to declared" binding, which misattributes arithmetic as a
+#: squeezed hop; a positive margin is required to accuse a layer.
+_MIN_BINDING_MARGIN_S = 1e-9
+
+
+def _window_to_bounds(window: Any) -> tuple:
+    """'YYYY-MM-DD/YYYY-MM-DD' -> (start_epoch, end_epoch), never guessed.
+
+    The window is INCLUSIVE on both ends: an end date means "through that
+    day", so it resolves to end-of-day (23:59:59 UTC). Local dates are read
+    as UTC for reproducibility (a report must not move with the host tz).
+    Returns (None, None) for None/'all'; raises ValueError naming the exact
+    malformed input so the caller prints a real error instead of silently
+    scanning everything.
+    """
+    if window is None or (isinstance(window, str)
+                          and window.strip().lower() in ('all', '')):
+        return None, None
+    if not isinstance(window, str) or '/' not in window:
+        raise ValueError(
+            f"window must be START/END ISO dates (e.g. "
+            f"2026-10-01/2026-10-31), got {window!r}")
+    start_s, _, end_s = window.partition('/')
+    try:
+        start = datetime.datetime.strptime(
+            start_s.strip(), '%Y-%m-%d').replace(
+            tzinfo=datetime.timezone.utc).timestamp()
+    except ValueError:
+        raise ValueError(f'window start date is not YYYY-MM-DD: '
+                         f'{start_s.strip()!r} (in {window!r})')
+    try:
+        end_day = datetime.datetime.strptime(
+            end_s.strip(), '%Y-%m-%d').replace(tzinfo=datetime.timezone.utc)
+    except ValueError:
+        raise ValueError(f'window end date is not YYYY-MM-DD: '
+                         f'{end_s.strip()!r} (in {window!r})')
+    end = end_day.timestamp() + 86399.0     # inclusive: through 23:59:59
+    if end < start:
+        raise ValueError(f'window end precedes start: {window!r}')
+    return start, end
+
+
+def classify_deadline_row(deadline: Any) -> tuple:
+    """One deadline block -> class label ('binding' | 'guess' | None).
+
+    TR-265: 'binding' is arithmetic, not interpretation — the layer applied
+    LESS time than the caller declared (beyond the declared margin), so this
+    layer is the narrowest link on that request. 'guess' is an honest gap —
+    the caller declared nothing (declared=false or missing), so the layer ran
+    on configured defaults. Anything else (a malformed/foreign block: not a
+    dict, declared=True with no numeric applied_s) classifies as None and is
+    reported in 'other' — never forced into a class it does not fit.
+    """
+    if not isinstance(deadline, dict):
+        return None
+    if deadline.get('declared') is True:
+        applied, declared = deadline.get('applied_s'), deadline.get('declared_s')
+        try:
+            margin = float(deadline.get('margin_s') or 0.0)
+        except (TypeError, ValueError):
+            margin = 0.0
+        if (isinstance(declared, (int, float)) and not isinstance(declared, bool)
+                and isinstance(applied, (int, float)) and not isinstance(applied, bool)):
+            return ('binding' if float(applied) < float(declared) - margin
+                    - _MIN_BINDING_MARGIN_S else None)
+        return None
+    # declared=false / null / missing / junk -> the guess class
+    return 'guess'
+
+
+def deadline_report(rows: Any, window: Any=None) -> dict:
+    """Group outcome rows by deadline block into the TR-265 histogram.
+
+    Counted: rows scanned (every input row), rows with a deadline block,
+    binding constraints by layer, guess rows (declared=false — a window
+    slice may carry no deadline at all). Fail-open by contract: a missing/
+    empty store returns zero counts; a malformed window raises ValueError
+    (the caller prints it — never a silently ignored argument).
+    """
+    start, end = _window_to_bounds(window) if window else (None, None)
+    report = {'rows_scanned': 0, 'rows_with_deadline': 0,
+              'binding_total': 0, 'guess_total': 0,
+              'other_total': 0, 'by_layer': {}, 'window': None,
+              'window_start': None, 'window_end': None}
+    if window:
+        report['window'] = window
+        report['window_start'], report['window_end'] = start, end
+    for r in rows:
+        if not isinstance(r, dict):
+            continue
+        report['rows_scanned'] += 1
+        dl = r.get('deadline')
+        if not isinstance(dl, dict):
+            continue
+        if start is not None:
+            ts = r.get('ts')
+            if not isinstance(ts, (int, float)) or isinstance(ts, bool):
+                continue          # no timestamp: not provably in the window
+            if not (start <= float(ts) <= end):
+                continue
+        report['rows_with_deadline'] += 1
+        cls = classify_deadline_row(dl)
+        if cls == 'binding':
+            report['binding_total'] += 1
+            layer = str(dl.get('layer') or 'unknown')
+            report['by_layer'][layer] = report['by_layer'].get(layer, 0) + 1
+        elif cls == 'guess':
+            report['guess_total'] += 1
+        else:
+            report['other_total'] += 1
+    return report
+
+
+def format_deadline_report(rep: Any) -> str:
+    """The clean-text render of deadline_report() output.
+
+    Percentages name their denominator in prose and print zero when the
+    denominator is zero (a 0/0 is not an error — it is an empty store, and
+    the fail-open contract says print the zeros).
+    """
+    lines = ['=== Deadline Alignment Report ===']
+    lines.append('Window: all (no --window specified)' if not rep['window']
+                 else f'Window: {rep["window"]}')
+    lines.append(f'Rows scanned: {rep["rows_scanned"]}')
+    lines.append(f'Rows with deadline block: {rep["rows_with_deadline"]}')
+    lines.append(f'Binding constraints (narrowest layer): {rep["binding_total"]}')
+    lines.append(f'Guess class (declared=false): {rep["guess_total"]}')
+    if rep.get('other_total'):
+        lines.append(f'Other (malformed/foreign deadline blocks): {rep["other_total"]}')
+    lines.append('')
+    lines.append('By layer:')
+    if rep['by_layer']:
+        width = max(len(k) for k in rep['by_layer'])
+        for layer, n in sorted(rep['by_layer'].items(),
+                               key=lambda kv: (-kv[1], kv[0])):
+            lines.append(f'  {layer:<{width}}  {n}')
+    else:
+        lines.append('  (none: no request declared a deadline in this window)')
+    lines.append('')
+    lines.append('Summary:')
+    denom = (rep['rows_with_deadline'] or rep['rows_scanned'])
+    pct_guess = (100.0 * rep['guess_total'] / denom) if denom else 0.0
+    if rep['by_layer']:
+        top_layer, top_n = sorted(rep['by_layer'].items(),
+                                  key=lambda kv: (-kv[1], kv[0]))[0]
+        pct_top = (100.0 * top_n / rep['binding_total']) if rep['binding_total'] else 0.0
+        lines.append(f'  Narrowest link is the {top_layer} in '
+                     f'{pct_top:.1f}% of binding constraints.')
+    else:
+        lines.append('  Narrowest link: no binding constraints in this window.')
+    lines.append(f'  {pct_guess:.1f}% of deadline-bearing rows are guesses.')
+    return '\n'.join(lines)
 
 
 def required_levels(profile_id: Any=None, matrix: Any=None, registry_path: Any=None):
@@ -1846,7 +2004,7 @@ def _iso_to_epoch(v: Any):
         return None
 
 
-def main() -> int:
+def main(argv: Any=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split('\n')[1])
     sub = ap.add_subparsers(dest='cmd', required=True)
     p_hermes = sub.add_parser('import-hermes')
@@ -1864,7 +2022,14 @@ def main() -> int:
     p_q = sub.add_parser('query')
     p_q.add_argument('--provider'); p_q.add_argument('--model')
     p_q.add_argument('--merge-backends', action='store_true')
-    args = ap.parse_args()
+    p_dl = sub.add_parser('deadline-report',
+                          help='narrowest-link census over the deadline '
+                               'blocks in the outcome store (TR-265)')
+    p_dl.add_argument('--window', default=None,
+                      help='ISO date range START/END, e.g. '
+                           '2026-10-01/2026-10-31 (inclusive; default: all '
+                           'rows)')
+    args = ap.parse_args(argv)
 
     if args.cmd == 'import-hermes':
         n = append_rows(OUTCOMES, import_hermes())
@@ -1906,6 +2071,18 @@ def main() -> int:
             if args.model and a['model'] != args.model:
                 continue
             print(json.dumps(a))
+    elif args.cmd == 'deadline-report':
+        # TR-265: the narrowest-link census. Fail-open — a missing/empty
+        # store prints zero counts and exits 0; a malformed --window is the
+        # ONE loud failure (a silently ignored argument would scan
+        # everything and misattribute the answer).
+        try:
+            rep = deadline_report(load_outcome_rows(outcomes_path()),
+                                  window=args.window)
+        except ValueError as exc:
+            print(f'deadline-report: {exc}', file=sys.stderr)
+            return 2
+        print(format_deadline_report(rep))
     return 0
 
 

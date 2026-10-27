@@ -1249,3 +1249,9 @@ tasks:
     docs/decisions/ prints at least one file.'
   status: in_progress
   created_at: '2026-10-26T05:21:02.223053+00:00'
+- id: TR-265
+  title: Implement deadline report subcommand in router_outcomes.py
+  criteria:
+  - 'AC2: report command ranks narrowest-link layer; AC3: names GUESS class separately'
+  status: in_progress
+  created_at: '2026-10-27T06:27:08.651393+00:00'
