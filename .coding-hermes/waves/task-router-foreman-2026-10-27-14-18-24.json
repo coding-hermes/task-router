@@ -1,0 +1,19 @@
+{
+  "scheduler_tick_id": "task-router-foreman-2026-10-27-14-18-24",
+  "project": "task-router",
+  "base_sha": "ea5e34c5565490e7e5b0bc988ec344a23390afe7",
+  "mode": "serial-idle-light-audit",
+  "selected_block": "RELEASE-2026-10-22-001",
+  "selected_task": "RELEASE-2026-10-22-001",
+  "wave_budget": 8,
+  "wave_size": 0,
+  "workers": [],
+  "reason": "Highest-priority pending row is owner-gated release readiness; authorization and version choice are absent, so implementation dispatch and release mutation are prohibited.",
+  "census": {
+    "pending_p0": ["RELEASE-2026-10-22-001"],
+    "pending_p1": ["INT-CI-10", "INT-CI-11"],
+    "pending_implementation_rows": ["TR-1000976681059244", "TR-266", "TR-275", "TR-276", "TR-278", "TR-279", "TR-280", "TR-293"],
+    "dependencies_complete": ["TR-341", "TR-344", "QA-TASKROUTER-2", "XK-404-001-R2"]
+  },
+  "evidence": ".coding-hermes/evidence/release-readiness-verify-2026-10-27-14-18-24.json"
+}

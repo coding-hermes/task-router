@@ -1,0 +1,61 @@
+{
+  "scheduler_tick_id": "task-router-foreman-2026-10-27-14-18-24",
+  "row": "RELEASE-2026-10-22-001",
+  "tested_sha": "ea5e34c5565490e7e5b0bc988ec344a23390afe7",
+  "repo": "coding-hermes/task-router",
+  "remote_parity": {"origin_main_ahead": 0, "origin_main_behind": 0},
+  "release_surface": {
+    "local_numeric_tags": 0,
+    "remote_numeric_tags": 0,
+    "github_release_v0.3.0": false
+  },
+  "version_state": {
+    "pyproject": "0.2.0",
+    "package_init": "0.2.0",
+    "latest_changelog_version": "0.2.0",
+    "unreleased_populated": false
+  },
+  "owner_gate": {
+    "authorization_for_task_router_and_version": false,
+    "required_action": "Owner must explicitly authorize task-router and name the release version/baseline SHA before any tag or Release object is created."
+  },
+  "dependencies": {
+    "TR-341": "complete",
+    "TR-344": "complete",
+    "QA-TASKROUTER-2": "complete",
+    "XK-404-001-R2": "complete"
+  },
+  "ci": {
+    "run_id": 40519302361,
+    "head_sha": "ea5e34c5565490e7e5b0bc988ec344a23390afe7",
+    "status": "in_progress",
+    "conclusion": null,
+    "job": "test",
+    "completed_steps": [
+      "Set up job",
+      "Run actions/checkout@v4",
+      "Router state plane at the default path (ci-mirror)",
+      "Run actions/setup-python@v5",
+      "Install test deps",
+      "Seed registry (registry.json is gitignored — CI must generate it)"
+    ],
+    "active_step": "Full test suite (pure JSON — no duckdb needed)",
+    "queued_steps": [
+      "Guard test command (gitreins parity)",
+      "Fresh-clone resolve smoke (stdlib, hermetic state)",
+      "Registry integrity",
+      "Null-debt invariants (TR-201)",
+      "TR-251 boundary gate",
+      "TR-251 evidence replay",
+      "outcome_probes check-all + reference-gate (TR-339-05)",
+      "Proxy harness guard (compile + no-live-harness tripwire)"
+    ]
+  },
+  "decision": "NO CUT / NO DISPATCH: owner authorization and version-prep commit remain absent; preserve row pending.",
+  "verification": {
+    "off_by_one": "none:verification-only no debugging",
+    "wave": "none:verification-only",
+    "witness": "github:40519302361 in_progress; release surface probes; version probes",
+    "next_owner_action": "Authorize task-router release and specify version/baseline SHA, or leave release blocked."
+  }
+}
