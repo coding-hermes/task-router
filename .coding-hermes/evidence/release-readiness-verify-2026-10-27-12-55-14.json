@@ -1,0 +1,66 @@
+{
+  "tick": "task-router-foreman-2026-10-27-12-49-23",
+  "row": "RELEASE-2026-10-22-001",
+  "repository": "coding-hermes/task-router",
+  "branch": "main",
+  "head_sha": "c9b4ad0f3eb25b1fbe9d487db04da9ffd60cbcb5",
+  "remote_sha": "c9b4ad0f3eb25b1fbe9d487db04da9ffd60cbcb5",
+  "parity": "0 ahead, 0 behind",
+  "authorization": "absent",
+  "required_authorization": "Explicit owner authorization naming task-router, v0.3.0, and a baseline SHA",
+  "version": {
+    "pyproject": "0.2.0",
+    "package": "0.2.0",
+    "changelog_v0_3_0_headings": 0
+  },
+  "release_surface": {
+    "local_numeric_tags": [],
+    "remote_numeric_tags": [],
+    "github_releases": []
+  },
+  "dependencies": {
+    "TR-341": "complete",
+    "TR-344": "complete",
+    "QA-TASKROUTER-2": "complete",
+    "XK-404-001-R2": "complete"
+  },
+  "ci": {
+    "query": "gh run list --repo coding-hermes/task-router --limit 3 --json status,conclusion,displayTitle,headBranch,createdAt,headSha,databaseId",
+    "runs": [
+      {
+        "id": 40504803512,
+        "head_sha": "c9b4ad0f3eb25b1fbe9d487db04da9ffd60cbcb5",
+        "status": "in_progress",
+        "conclusion": null,
+        "title": "board: keep cumulative tick counter numeric"
+      },
+      {
+        "id": 40504592644,
+        "head_sha": "2772644cd6abb95b6591fc314e797a98d5d7390f",
+        "status": "in_progress",
+        "conclusion": null,
+        "title": "board: file CI evidence replay follow-up"
+      },
+      {
+        "id": 40504069846,
+        "head_sha": "252f78851dee192f77982f46cc4c14e469281400",
+        "status": "in_progress",
+        "conclusion": null,
+        "title": "board: record release readiness audit event"
+      }
+    ],
+    "historical_failure_already_filed": "INT-CI-10 / run 40473682824; INT-CI-11 / run 40480018298"
+  },
+  "board_validation": "FAIL with pre-existing legacy event-id ordering/key-uniformity errors; no repair attempted",
+  "off_by_one": "none:verification-only no debugging",
+  "decision": "NO CUT / KEEP PENDING",
+  "witness": [
+    "git rev-parse HEAD and origin/main",
+    "git tag -l v[0-9]*",
+    "git ls-remote --tags origin refs/tags/v*",
+    "gh release list --repo coding-hermes/task-router --limit 20",
+    "version pins",
+    "gh run list --repo coding-hermes/task-router --limit 3"
+  ],
+  "owner_action": "Authorize task-router release v0.3.0 and name the baseline SHA before any version-prep, tag, or Release mutation."
+}
