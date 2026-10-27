@@ -1,0 +1,43 @@
+{
+  "tick": "task-router-foreman-2026-10-27-12-09-38",
+  "row": "RELEASE-2026-10-22-001",
+  "repository": "coding-hermes/task-router",
+  "branch": "main",
+  "head_sha": "16f78402b3bc948a4cacd440adaa8236a407df6c",
+  "remote_sha": "16f78402b3bc948a4cacd440adaa8236a407df6c",
+  "parity": "0 ahead, 0 behind",
+  "authorization": "absent",
+  "required_authorization": "Explicit owner authorization naming task-router, v0.3.0, and a baseline SHA",
+  "version": "0.2.0",
+  "package_version": "0.2.0",
+  "v0_3_0_tag": false,
+  "github_release": false,
+  "dependencies": {
+    "TR-341": "complete",
+    "TR-344": "complete",
+    "QA-TASKROUTER-2": "complete",
+    "XK-404-001-R2": "complete"
+  },
+  "ci": {
+    "latest_head": "16f78402b3bc948a4cacd440adaa8236a407df6c",
+    "latest_status": "in_progress",
+    "latest_conclusion": null,
+    "historical_failure_run": "40473682824",
+    "historical_failure_head": "50c156b372c85ff0a7f4c4eb1fac2eb6fc95317d",
+    "historical_failure_step": "TR-251 evidence replay",
+    "historical_failure_row": "INT-CI-10",
+    "historical_failure_already_filed": true,
+    "implementation_health": "No new implementation attempted because release authorization is absent"
+  },
+  "off_by_one": "none:verification-only no debugging",
+  "decision": "NO CUT / KEEP PENDING",
+  "witness": [
+    "git rev-parse HEAD and origin/main",
+    "gh release list --repo coding-hermes/task-router --limit 20",
+    "git tag -l v0.3.0",
+    "pyproject.toml project.version",
+    "task_router.__version__",
+    "gh run list --repo coding-hermes/task-router --limit 3"
+  ],
+  "owner_action": "Authorize task-router release v0.3.0 and name the baseline SHA before any version-prep, tag, or Release mutation."
+}

@@ -1,0 +1,16 @@
+{
+  "scheduler_tick_id": "task-router-foreman-2026-10-27-12-09-38",
+  "project": "task-router",
+  "workdir": "/home/kara/task-router",
+  "wave_budget": 9,
+  "pending_census": 39,
+  "selected_row": "RELEASE-2026-10-22-001",
+  "selected_priority": "P0",
+  "eligible_independent": 0,
+  "status": "no-dispatch",
+  "reason": "owner-authorization-gated",
+  "authorization_required": "Explicit owner authorization naming task-router, release version, and baseline SHA",
+  "worker_model": "glm-5.3-flash",
+  "worker_provider": "zai-glm",
+  "created_at": "2026-10-27T12:19:34Z"
+}
