@@ -1,0 +1,57 @@
+{
+  "tick": "task-router-foreman-2026-10-27-07-50-45",
+  "project": "task-router",
+  "row": "RELEASE-2026-10-22-001",
+  "decision": "NO CUT — owner authorization absent",
+  "authorization": {
+    "task_router": false,
+    "version": "unset",
+    "baseline_sha": "unset"
+  },
+  "repository": {
+    "path": "/home/kara/task-router",
+    "branch": "main",
+    "head": "6dbd1c59a4b6aaa005e99200ebff3b56b13195b4",
+    "origin_main": "6dbd1c59a4b6aaa005e99200ebff3b56b13195b4",
+    "ahead": 0,
+    "behind": 0,
+    "dirty": false
+  },
+  "release_surface": {
+    "numeric_tags": 0,
+    "github_releases": 0,
+    "version_pins": {
+      "pyproject": "0.2.0",
+      "package": "0.2.0",
+      "changelog_v030_headings": 0
+    }
+  },
+  "dependencies": {
+    "TR-341": "complete",
+    "TR-344": "complete",
+    "QA-TASKROUTER-2": "complete",
+    "XK-404-001-R2": "complete"
+  },
+  "ci": {
+    "current_head_run": {
+      "id": 40468925880,
+      "status": "in_progress",
+      "conclusion": null
+    },
+    "preexisting_failure": {
+      "id": 40463598100,
+      "head_sha": "73ce6239e8b021e20c51cb931198f8f15ef8d9be",
+      "conclusion": "failure",
+      "title": "board: close TR-265 — deadline report subcommand implemented and verified"
+    },
+    "failure_handling": "TR-265 already exists; no duplicate row filed"
+  },
+  "wave_budget": 9,
+  "eligible_independent": 0,
+  "dispatch": "none",
+  "gitreins": "not applicable: owner-gated verification-only",
+  "off_by_one": "none:verification-only no debugging",
+  "witness": "git parity, version probes, gh run list, gh release list, git tag list",
+  "trace": "ch:trace row=RELEASE-2026-10-22-001 spec=docs/releases/release-readiness.md#written-procedure wave=.coding-hermes/waves/task-router-foreman-2026-10-27-07-50-45.json#owner-gated test=none:owner-gated doc=.coding-hermes/evidence/release-readiness-verify-2026-10-27-07-59-34.json evidence=.coding-hermes/evidence/release-readiness-verify-2026-10-27-07-59-34.json witness=live:git-parity+tags+release-list+version-pins+gh-run-list verdict=none:not-applicable commit=none:owner-block memory=none:duckbrain-token-unavailable",
+  "closeout": "STATUS: PENDING TIER: T3 EVIDENCE: release remains blocked pending explicit owner authorization naming task-router, version, and baseline SHA."
+}
