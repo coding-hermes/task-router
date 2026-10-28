@@ -31,3 +31,20 @@ router = "task_router.cli:main"
 # Package ONLY task_router/ — scripts/ stay repo-relative runtime tools,
 # dispatched in place (runpy) so the installed CLI always tracks the repo.
 packages = ["task_router"]
+
+[tool.ruff]
+# TR-REV-20261027-01: pin the lint ruleset so every ruff version (0.15..0.17+)
+# judges the same set. Default rules = E4/E7/E9/F (pycodestyle subset +
+# pyflakes); I adds import sorting (the I001 class this row fixed). E402 is
+# DELIBERATE: router_server.py / router_spawn.py bootstrap sys.path to import
+# sibling runtime modules before their imports — that pattern IS the file's
+# structure, not an accident.
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I"]
+ignore = ["E402"]
+
+[tool.ruff.lint.per-file-ignores]
+# test helpers import repo modules after sys.path surgery
+"tests/*" = ["E402"]

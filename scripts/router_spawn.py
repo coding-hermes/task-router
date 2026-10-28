@@ -1458,7 +1458,8 @@ def lane_stats(index: Any, provider: Any, model: Any, keys: Any) -> tuple:
 
     for want in keys or ():
         want_sigs.extend(_sig_forms(want))
-    row_sig = lambda r: str(r.get('complexity_sig') or '')
+    def row_sig(r):
+        return str(r.get('complexity_sig') or '')
     for want in keys or ():
         pid_forms = {f'profile:{want}', str(want)}
         for r in rows:
@@ -2869,7 +2870,7 @@ def resolve(project: Any=None, profile_id: Any=None, adhoc: Any=None, use_health
             # task's complexity reference exactly as a profile's are —
             # without them no lane can ever match its exact-band stats row
             # and measured ordering is unreachable for adhoc resolves.
-            sig_map = {str(c): l for c, l in reqs if c != 'min_context'}
+            sig_map = {str(c): lvl for c, lvl in reqs if c != 'min_context'}
             if sig_map:
                 keys = set(keys) | {_canonical_complexity(sig_map)}
         sort_ctx = {'index': stats_index, 'meta': stats_meta, 'window_h': window_h,
