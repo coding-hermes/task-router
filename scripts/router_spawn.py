@@ -55,6 +55,7 @@ scheduler must NEVER be blocked by the router.
 go to stderr; the no-input usage line and --list-profiles also emit JSON.
 """
 from __future__ import annotations
+
 import argparse
 import datetime
 import json
@@ -128,7 +129,7 @@ def _err(msg: Any, force: bool = False) -> None:
     if force or not _quiet():
         try:
             print(msg, file=sys.stderr)
-        except Exception:
+        except Exception:  # noqa: BLE001, S110 — fail-open contract
             pass
 
 # Text registry (Bane 2026-08-27): the live store is a gitignored JSON file in
@@ -144,7 +145,7 @@ _REPO = os.path.dirname(_HERE)
 if _HERE not in sys.path:
     sys.path.insert(0, _HERE)
 try:
-    import router_quota_accounting as _rqa  # noqa: E402
+    import router_quota_accounting as _rqa
 except Exception as _rqa_exc:  # noqa: BLE001 — fail-open: quota never blocks a resolve
     _rqa = None
     _err(f'WARNING: TR-213 quota ordering unavailable — '
@@ -190,7 +191,7 @@ else:
 # restores the read-per-call behaviour byte-for-byte (hermetic tests, debug).
 # ---------------------------------------------------------------------------
 try:
-    import router_data_cache as _rdc  # noqa: E402
+    import router_data_cache as _rdc
 except ImportError:  # live byte-copy not yet synced -> no cache, unchanged reads
     _rdc = None
 
@@ -324,7 +325,7 @@ def _days_until(date_str: Any, today: Any):
         d = datetime.date.fromisoformat(str(date_str)[:10])
         t = datetime.date.fromisoformat(str(today)[:10])
         return (d - t).days
-    except Exception:
+    except Exception:  # noqa: BLE001 — fail-open contract
         return None
 
 
@@ -358,7 +359,7 @@ def lifecycle_state(row: Any, today: Any=None) -> str:
 def load_json(path: Any, default: Any):
     try:
         return json.load(open(path))
-    except Exception:
+    except Exception:  # noqa: BLE001 — fail-open contract
         return default
 
 
@@ -493,9 +494,9 @@ def _parse_utc(ts: Any):
     try:
         dt = datetime.datetime.fromisoformat(str(ts))
         if dt.tzinfo is None:
-            dt = dt.replace(tzinfo=datetime.timezone.utc)
-        return dt.astimezone(datetime.timezone.utc)
-    except Exception:
+            dt = dt.replace(tzinfo=datetime.UTC)
+        return dt.astimezone(datetime.UTC)
+    except Exception:  # noqa: BLE001 — fail-open contract
         return None
 
 
@@ -543,10 +544,10 @@ def _next_utc_midnight(now: Any) -> datetime.datetime:
     honest bound for "this seat's free pool is spent" is that boundary."""
     now_dt = now if isinstance(now, datetime.datetime) else _parse_utc(now)
     if now_dt is None:
-        now_dt = datetime.datetime.now(datetime.timezone.utc)
+        now_dt = datetime.datetime.now(datetime.UTC)
     if now_dt.tzinfo is None:
-        now_dt = now_dt.replace(tzinfo=datetime.timezone.utc)
-    midnight = now_dt.astimezone(datetime.timezone.utc).replace(
+        now_dt = now_dt.replace(tzinfo=datetime.UTC)
+    midnight = now_dt.astimezone(datetime.UTC).replace(
         hour=0, minute=0, second=0, microsecond=0)
     return midnight + datetime.timedelta(days=1)
 
@@ -574,10 +575,10 @@ def _free_pool_seats(hs: Any, now: Any=None) -> dict:
         return out
     now_dt = now if isinstance(now, datetime.datetime) else _parse_utc(now)
     if now_dt is None:
-        now_dt = datetime.datetime.now(datetime.timezone.utc)
+        now_dt = datetime.datetime.now(datetime.UTC)
     if now_dt.tzinfo is None:
-        now_dt = now_dt.replace(tzinfo=datetime.timezone.utc)
-    now_dt = now_dt.astimezone(datetime.timezone.utc)
+        now_dt = now_dt.replace(tzinfo=datetime.UTC)
+    now_dt = now_dt.astimezone(datetime.UTC)
     marker = FREE_POOL_MARKER.lower()
     for prov, entry in hs.items():
         if not isinstance(entry, dict):
@@ -589,7 +590,7 @@ def _free_pool_seats(hs: Any, now: Any=None) -> dict:
                 hits.append(prov_ts)
         models = entry.get('models')
         if isinstance(models, dict):
-            for _m, ment in models.items():
+            for ment in models.values():
                 if not isinstance(ment, dict):
                     continue
                 mts = ment.get('ts') or prov_ts
@@ -623,7 +624,7 @@ def _probe_coverage_ctx(hs: Any) -> dict:
                 continue
             models = entry.get('models')
             if isinstance(models, dict) and models:
-                probed[str(prov)] = set(str(k) for k in models)
+                probed[str(prov)] = {str(k) for k in models}
     return {'probed_models': probed}
 
 
@@ -656,9 +657,9 @@ def load_quota_gates(qdoc: Any, now: Any=None):
                     gates[str(prov)] = merged
     now_dt = now if isinstance(now, datetime.datetime) else _parse_utc(now)
     if now_dt is None:
-        now_dt = datetime.datetime.now(datetime.timezone.utc)
+        now_dt = datetime.datetime.now(datetime.UTC)
     if now_dt.tzinfo is None:
-        now_dt = now_dt.replace(tzinfo=datetime.timezone.utc)
+        now_dt = now_dt.replace(tzinfo=datetime.UTC)
     out = {}
     for prov, ent in gates.items():
         status = str(ent.get('status') or 'gated').strip().lower()
@@ -720,7 +721,7 @@ def ledger_has_traces(state_dir: Any) -> bool:
                 if line.strip():
                     return True
         return False
-    except Exception:
+    except Exception:  # noqa: BLE001 — fail-open contract
         return False
 
 
@@ -745,7 +746,7 @@ def ledger_in_flight(state_dir: Any):
                     continue
                 try:
                     row = json.loads(line)
-                except Exception:
+                except Exception:  # noqa: BLE001, S112 — fail-open contract
                     continue
                 if not isinstance(row, dict):
                     continue
@@ -761,7 +762,7 @@ def ledger_in_flight(state_dir: Any):
                     rec[2] = row['outcome']
                 if row.get('ts') is not None:
                     rec[3] = row['ts']
-        now = datetime.datetime.now(datetime.timezone.utc)
+        now = datetime.datetime.now(datetime.UTC)
         counts = {}
         for prov, mdl, outcome, ts in last.values():
             if outcome != 'started' or not prov or not mdl:
@@ -771,7 +772,7 @@ def ledger_in_flight(state_dir: Any):
                 continue
             counts[(prov, mdl)] = counts.get((prov, mdl), 0) + 1
         return counts
-    except Exception:
+    except Exception:  # noqa: BLE001 — fail-open contract
         return {}
 
 
@@ -946,7 +947,7 @@ def _append_metrics(rows: Any, result: Any) -> None:
         d = os.path.dirname(path)
         if d:
             os.makedirs(d, exist_ok=True)
-        ts = datetime.datetime.now(datetime.timezone.utc).isoformat(timespec='seconds')
+        ts = datetime.datetime.now(datetime.UTC).isoformat(timespec='seconds')
         project = result.get('project')
         profile = result.get('profile')
         gates = result.get('gates_loaded') or {}
@@ -983,7 +984,7 @@ def _append_metrics(rows: Any, result: Any) -> None:
                 excluded_map[ex.get('hop')] = ex
             chain_by_hop = {c.get('hop'): c for c in (result.get('chain') or [])}
             for ent in (rows or []):
-                hop, prov, model, price, dc, mrow = ent
+                hop, prov, model, price, _dc, _mrow = ent
                 ex = excluded_map.get(hop)
                 if ex is not None and ex.get('provider') == prov and ex.get('model') == model:
                     outcome = 'excluded'
@@ -1014,9 +1015,8 @@ def _append_metrics(rows: Any, result: Any) -> None:
                     'config_snapshot': snapshot,
                 })
         with open(path, 'a') as f:
-            for row in lines:
-                f.write(json.dumps(row) + '\n')
-    except Exception:
+            f.writelines(json.dumps(row) + '\n' for row in lines)
+    except Exception:  # noqa: BLE001, S110 — fail-open contract
         pass
 
 
@@ -1133,8 +1133,8 @@ def _registry_loader_with_meta() -> tuple:
             f'{err} AND data/tables unreadable/empty — empty registry (fail-open)'
     except Exception as e:  # noqa: BLE001 — fail-open, visible
         return None, \
-            f'{err} AND data/tables unreadable: {type(e).__name__}: {e} ' \
-            '— empty registry (fail-open)'
+            (f'{err} AND data/tables unreadable: {type(e).__name__}: {e} '
+             '— empty registry (fail-open)')
 
 
 def _cache_registry_with_meta() -> tuple | None:
@@ -1230,8 +1230,8 @@ def _load_registry_with_meta() -> tuple:
             f'{err} AND data/tables unreadable/empty — empty registry (fail-open)'
     except Exception as e:  # noqa: BLE001 — fail-open, visible
         return {}, 'data/tables', True, \
-            f'{err} AND data/tables unreadable: {type(e).__name__}: {e} ' \
-            '— empty registry (fail-open)'
+            (f'{err} AND data/tables unreadable: {type(e).__name__}: {e} '
+             '— empty registry (fail-open)')
 
 
 def _load_registry():
@@ -1452,7 +1452,7 @@ def lane_stats(index: Any, provider: Any, model: Any, keys: Any) -> tuple:
             sig = router_outcomes.complexity_sig(want)
             if sig:
                 out.append(sig)
-        except Exception:  # noqa: BLE001 — stats are optional; fail-open
+        except Exception:  # noqa: BLE001, S110 — stats are optional; fail-open
             pass
         return out
 
@@ -1483,7 +1483,7 @@ def lane_stats(index: Any, provider: Any, model: Any, keys: Any) -> tuple:
             merged = router_outcomes.merge_average_rows(rows)
             if merged:
                 return merged[0], 'merged'
-        except Exception:  # noqa: BLE001
+        except Exception:  # noqa: BLE001, S110
             pass
     return rows[0], 'fallback'
 
@@ -1971,7 +1971,7 @@ def _tr174_sort(arg: Any, lanes: Any, ctx: Any):
     task_key = ctx.get('task_key')
     if explore_share > 0.0 and task_key and lanes_n:
         gate = zlib.crc32(str(task_key).encode('utf-8')) % 1000
-        in_share = gate < int(round(explore_share * 1000))
+        in_share = gate < round(explore_share * 1000)
         if in_share:
             explore_lane, explore_reason = _explore_pick(lanes, ctx, EXPLORE_MIN_AGE_H)
         else:
@@ -2020,7 +2020,7 @@ def _tr174_sort(arg: Any, lanes: Any, ctx: Any):
         value, b = basis_by_lane.get(key0, (None, None))
         row, _match = lane_stats(ctx.get('index') or {}, head.get('provider'),
                                  head.get('model'), ctx.get('keys'))
-        rate, rate_reason = completion_term(row)
+        _rate, rate_reason = completion_term(row)
         is_explore = (explore_lane is not None and
                       key0 == (explore_lane.get('provider'),
                                explore_lane.get('model')))
@@ -2258,7 +2258,7 @@ def _build_chain(tables: Any, reqs: Any, limit: Any=DEFAULT_CHAIN_LIMIT, sort_sp
                 for cat, lvl, tier in misses:
                     _err(f"ROUTER-MISS: {prov}/{model} fails {cat}>={lvl} "
                          f"(tier={tier})")
-            except Exception:
+            except Exception:  # noqa: BLE001, S110 — fail-open contract
                 pass
             continue
 
@@ -2292,7 +2292,7 @@ def _build_chain(tables: Any, reqs: Any, limit: Any=DEFAULT_CHAIN_LIMIT, sort_sp
     # _legacy_sort_key, so a stamp applied after the sort would move nothing.
     try:
         _stamp_probe_coverage(eligible, probe_ctx)
-    except Exception:  # noqa: BLE001 — fail-open: ordering unchanged on error
+    except Exception:  # noqa: BLE001, S110 — fail-open: ordering unchanged on error
         pass
     eligible.sort(key=_legacy_sort_key)
     sort_used, sort_warning = 'price', None
@@ -2595,7 +2595,7 @@ def _quota_state_meta(present: Any=None):
                 meta['note'] = ('quota-state.json is the first-run bootstrap '
                                 'sample (all providers OPEN) — edit it to apply '
                                 f'real gates: {qpath}')
-    except Exception:  # noqa: BLE001 — visibility only, never raise
+    except Exception:  # noqa: BLE001, S110 — visibility only, never raise
         pass
     if not meta['present']:
         meta['note'] = (
@@ -2655,7 +2655,7 @@ def _maybe_bootstrap_isolated_state() -> dict:
                             os.path.expanduser('~/.hermes/model-router'))):
                 out['reason'] = 'shared production state dir — never bootstrapped'
                 return out
-        except Exception:  # noqa: BLE001 — cannot compare: fall through, the
+        except Exception:  # noqa: BLE001, S110 — cannot compare: fall through, the
             pass           # existing-file check below is the real guard
         out['attempted'] = True
         if _state_dir_mod is None or not hasattr(_state_dir_mod,
@@ -2717,7 +2717,7 @@ def _data_home_meta(source: Any, fallback_used: Any):
             notes.append(
                 "quota-state.json is the first-run bootstrap sample "
                 "(all providers OPEN) — edit it to apply real gates")
-    except Exception:  # noqa: BLE001 — visibility only, never raise
+    except Exception:  # noqa: BLE001, S110 — visibility only, never raise
         pass
     if notes:
         meta['bootstrap'] = True
@@ -2996,7 +2996,7 @@ def resolve(project: Any=None, profile_id: Any=None, adhoc: Any=None, use_health
             'TASK-ROUTER-002 call side)'
         )
         _err('WARNING: spawn ledger NOT WIRED — model busy gate cannot fire')
-    now = datetime.datetime.now(datetime.timezone.utc).isoformat(timespec='seconds')
+    now = datetime.datetime.now(datetime.UTC).isoformat(timespec='seconds')
 
     # Training gate (Bane 2026-09-01): provider facts live in the providers
     # table (trains_on_hosted); index once for the per-hop check below.
@@ -3438,8 +3438,8 @@ def profile_ref_for(project: Any=None, task_id: Any=None, board: Any=None) -> tu
             break
     if not row:
         return None, {'requested': task_id, 'matched': False,
-                      'problems': [f'task {task_id} not found in {len(cands)} '
-                                   f'board path(s)']}
+                      'problems': [(f'task {task_id} not found in {len(cands)} '
+                                    f'board path(s)')]}
     # TR-292 (Bane 2026-10-03, complexity-model R6.1): a row's
     # `required_categories` map IS the task's raw per-category levels — the
     # canonical vocabulary ({category: int -5..+5}, same shape the resolver's
@@ -3468,8 +3468,8 @@ def profile_ref_for(project: Any=None, task_id: Any=None, board: Any=None) -> tu
             return '__DECLARED_RAW__', meta
         # every entry was malformed: fall through, degrade visibly
         return None, {'requested': task_id, 'matched': False, 'declared_raw': raw,
-                      'problems': ['required_categories present but had no '
-                                   'numeric -5..+5 levels'],
+                      'problems': [('required_categories present but had no '
+                                    'numeric -5..+5 levels')],
                       'source_path': where}
     ref = str(row.get('profile') or '').strip()
     if not ref:
@@ -3860,7 +3860,7 @@ def main() -> None:
     # _chain_rows helper key before serialization.
     try:
         _append_metrics(r.get('_chain_rows'), r)
-    except Exception:
+    except Exception:  # noqa: BLE001, S110 — fail-open contract
         pass
     r.pop('_chain_rows', None)
     if complexity_meta is not None:

@@ -11,12 +11,12 @@ import argparse
 import datetime
 import fcntl
 import hmac
-from http.server import BaseHTTPRequestHandler, HTTPServer, ThreadingHTTPServer
 import json
+import math
 import os
-from pathlib import Path
 import re
 import signal
+import socket
 import struct
 import subprocess
 import sys
@@ -24,9 +24,11 @@ import threading
 import time
 import urllib.error
 import urllib.request
-from urllib.parse import parse_qs, urlparse
 import uuid
 from concurrent.futures import ThreadPoolExecutor
+from http.server import BaseHTTPRequestHandler, HTTPServer, ThreadingHTTPServer
+from pathlib import Path
+from urllib.parse import parse_qs, urlparse
 
 REPO = Path(__file__).resolve().parents[1]
 SCRIPTS = REPO / "scripts"
@@ -40,17 +42,18 @@ MAX_BODY_BYTES = 1024 * 1024
 # HTTP ingest and the batch tools.
 if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
-import router_outcomes  # noqa: E402
-import router_data_cache  # noqa: E402  (TR-277: runtime data cache)
-import router_drain  # noqa: E402  (stdlib-only sibling script module)
-import router_wire_ids  # noqa: E402  (TR-148: registry id -> upstream wire id)
-import router_hop_taxonomy  # noqa: E402  (TR-288: the one failure taxonomy)
-import router_models_browser  # noqa: E402  (TR-258: models browser + rollups)
-import router_ui_page  # noqa: E402  (TR-150: the one self-contained page)
-import router_health  # noqa: E402  (TR-087 health plane)
-import router_decision  # noqa: E402  (ACP-ROUTER-001: JIT execution decision)
-import lifecycle_gate  # noqa: E402  (TR-199: R4 no anonymous dates)
 from typing import Any
+
+import lifecycle_gate
+import router_data_cache
+import router_decision
+import router_drain
+import router_health
+import router_hop_taxonomy
+import router_models_browser
+import router_outcomes
+import router_ui_page
+import router_wire_ids
 
 JSON_RESPONSE = {
     "description": "JSON response",
@@ -586,7 +589,7 @@ def _ui_registry_edit(body: Any, headers: Any, edit_key: Any) -> tuple:
 def _subprocess_json(script: Any, args: Any, timeout: int=60):
     proc = subprocess.run(
         [sys.executable, str(SCRIPTS / script), *[str(arg) for arg in args]],
-        cwd=REPO,
+        check=False, cwd=REPO,
         env=os.environ.copy(),
         capture_output=True,
         text=True,
@@ -606,7 +609,7 @@ def _subprocess_json(script: Any, args: Any, timeout: int=60):
 def _subprocess_text(script: Any, args: Any, timeout: int=60):
     proc = subprocess.run(
         [sys.executable, str(SCRIPTS / script), *[str(arg) for arg in args]],
-        cwd=REPO,
+        check=False, cwd=REPO,
         env=os.environ.copy(),
         capture_output=True,
         text=True,
@@ -620,7 +623,7 @@ def _subprocess_text(script: Any, args: Any, timeout: int=60):
 
 def _require_object(body: Any):
     if not isinstance(body, dict):
-        raise ValueError("JSON body must be an object")
+        raise ValueError("JSON body must be an object")  # noqa: TRY004 — ValueError maps to HTTP 400
     return body
 
 
@@ -681,7 +684,7 @@ def _latest_chains() -> dict:
             "generated_at": doc.get("generated_at"),
             "tables": sorted((doc.get("tables") or {}).keys()),
         }
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 — fail-open contract
         return {"error": f"no chain snapshot available: {exc}"}
 
 
@@ -940,8 +943,8 @@ class RouterApplication:
                 if grouping not in (None, "model", "band", "model_band"):
                     return 400, {"error": "grouping must be model, band or model_band"}
                 try:
-                    import router_proxy_stats as rps
                     import router_outcomes as _ro
+                    import router_proxy_stats as rps
                     return 200, rps.get_rollup_cached(_ro.outcomes_path(), windows=windows,
                                                       grouping=grouping or "model_band")
                 except Exception as exc:  # noqa: BLE001 — fail-open, like every read
@@ -1198,7 +1201,7 @@ class RouterApplication:
         if name not in self.operations:
             raise ValueError(f"unknown tool: {name}")
         if not isinstance(arguments, dict):
-            raise ValueError("tool arguments must be an object")
+            raise ValueError("tool arguments must be an object")  # noqa: TRY004 — ValueError maps to HTTP 400
         method, path, operation = self.operations[name]
         query = {}
         query_names = {
@@ -1254,7 +1257,7 @@ class RouterApplication:
             return {"jsonrpc": "2.0", "id": rpc_id, "result": result}
         except ValueError as exc:
             return self._rpc_error(rpc_id, -32602, str(exc))
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 — fail-open contract
             return self._rpc_error(rpc_id, -32603, str(exc))
 
     @staticmethod
@@ -1299,7 +1302,7 @@ def known_post_paths() -> list:
         for path, item in build_openapi().get("paths", {}).items():
             if "post" in item:
                 paths.add(path)
-    except Exception:  # noqa: BLE001 — advisory: a broken contract must not block serving
+    except Exception:  # noqa: BLE001, S110 — advisory: a broken contract must not block serving
         pass
     return sorted(paths)
 
@@ -1696,7 +1699,7 @@ def _hermes_capabilities_metadata(base: Any, _opener: Any=None):
         with opener(req, timeout=10) as resp:
             doc = json.loads(resp.read())
         if not isinstance(doc, dict):
-            raise ValueError('capabilities payload is not an object')
+            raise ValueError('capabilities payload is not an object')  # noqa: TRY004 — ValueError maps to HTTP 400
         out['object'] = doc.get('object')
         out['is_hermes_gateway'] = doc.get('object') == _HERMES_CAPABILITY_MARKER
         features = doc.get('features') if isinstance(doc.get('features'), dict) else {}
@@ -1809,7 +1812,7 @@ def _hermes_responses_call(path: Any, body: Any, headers: Any, _opener: Any=None
     finally:
         try:
             resp.close()
-        except Exception:  # noqa: BLE001
+        except Exception:  # noqa: BLE001, S110
             pass
 
 
@@ -1837,7 +1840,7 @@ class _BareResponse:
     def close(self) -> None:
         try:
             self._resp.close()
-        except Exception:  # noqa: BLE001
+        except Exception:  # noqa: BLE001, S110
             pass
 
 
@@ -1876,14 +1879,31 @@ def _hermes_proxy_chat(body: Any, headers: Any, upstream: Any=None) -> tuple:
         # a private key; _hermes_responses_call stamps the same wire headers
         # the buffered upstream path forwards (never silently dropped).
         try:
+            # TR-264 (fixed TR-REV-20261027-01): this block read
+            # `dl_declared_b`/`hop_dl`, names defined in NO enclosing scope —
+            # the NameError was swallowed by this except and the echo NEVER
+            # reached the wire-consume half in _hermes_responses_call. The
+            # ladder does not stamp the private key, so re-derive the hop
+            # deadline here the same way the default upstream site does:
+            # parse -> this hop's elapsed -> derive.
+            _hop_h = {str(k).strip().lower(): v
+                      for k, v in (hop_headers or {}).items()}
+            _hop_declared, _ = _parse_caller_deadline(_hop_h)
+            try:
+                _hop_elapsed = float(
+                    _hop_h.get(ROUTER_PROXY_HOP_ELAPSED_HEADER) or 0.0)
+            except (TypeError, ValueError):
+                _hop_elapsed = 0.0
+            _hop_dl = _derive_deadline_budget(_hop_declared, True,
+                                              elapsed_s=_hop_elapsed)
             merged['x-router-deadline-echo'] = {
-                'declared': bool(dl_declared_b),
-                'declared_s': hop_dl.get('budget_s'),
-                'mode': hop_dl.get('mode'),
-                'applied_s': hop_dl.get('hop_budget_s'),
+                'declared': _deadline_declared(_hop_declared),
+                'declared_s': _hop_dl.get('declared_s'),
+                'mode': _hop_dl.get('mode'),
+                'applied_s': _hop_dl.get('hop_budget_s'),
                 'layer': 'router-proxy',
-                'stricter_reason': hop_dl.get('stricter_reason')}
-        except Exception:  # noqa: BLE001 — a lost echo never fails the hop
+                'stricter_reason': _hop_dl.get('stricter_reason')}
+        except Exception:  # noqa: BLE001, S110 — a lost echo never fails the hop
             pass
         status, payload, session_id = upstream(path, hop_body, merged)
         if session_id:
@@ -2239,7 +2259,7 @@ def _parse_caller_deadline(headers: Any):
         except (TypeError, ValueError):
             problems.append(f'{header}: dropped unparsable value {str(raw)[:60]!r}')
             return None
-        if val != val or val < 0:  # NaN or negative — neither is a budget
+        if math.isnan(val) or val < 0:  # NaN or negative — neither is a budget
             problems.append(f'{header}: dropped out-of-range value {val!r}')
             return None
         return val
@@ -2363,10 +2383,9 @@ def _derive_deadline_budget(declared: Any, want_stream: Any, elapsed_s: float=0.
     idle = declared.get('idle_budget_s')
     if idle is None:
         idle = _proxy_idle_budget_s()
-    if idle > hop:
-        # The transport budget bounds the watch: arithmetic identity, not a
-        # stricter choice (the hop budget carries the reason when clamped).
-        idle = hop
+    # The transport budget bounds the watch: arithmetic identity, not a
+    # stricter choice (the hop budget carries the reason when clamped).
+    idle = min(idle, hop)
     return {'declared_s': float(declared_budget), 'mode': mode,
             'budget_s': remaining, 'hop_budget_s': hop, 'idle_budget_s': idle,
             'stricter_reason': stricter_reason,
@@ -2412,8 +2431,9 @@ def _collect_openai_stream(lines: Any, path: str='/v1/chat/completions', on_even
             delta = choice.get('delta') or choice.get('message') or {}
             if not isinstance(delta, dict):
                 continue
-            if isinstance(delta.get('role'), str):
-                role = delta['role']
+            # delta['role'] is validated but never re-emitted; the
+            # assembled text/reasoning sinks carry the payload.
+            _ = isinstance(delta.get('role'), str)
             for key, sink in (('content', text), ('reasoning_content', reasoning)):
                 v = delta.get(key)
                 if isinstance(v, str):
@@ -2518,7 +2538,6 @@ def _proxy_upstream_default(path: Any, body: Any, headers: Any, _opener: Any=Non
     # watch (plus the wall as a backstop), and the stream is assembled into the
     # buffered payload the client asked for. A hop that cannot stream is
     # unaffected: same wall, same buffered read.
-    want_stream = ask_stream or bool(body.get('stream'))
     # TR-241: the ladder helper owns the budget for BOTH shapes — the
     # buffered branch used to take _proxy_hop_timeout_s() alone, ten times
     # below the caller's patience, killing slow-but-alive work.
@@ -2657,7 +2676,7 @@ def _provider_upstream_factory(provider_id: Any, providers_map: Any):
                 return resp.status, json.loads(resp.read())
         except urllib.error.HTTPError as exc:
             return exc.code, {'error': exc.read().decode()[:400]}
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 — fail-open contract
             return 0, {'error': str(exc)[:300]}
     return _call
 
@@ -2683,7 +2702,7 @@ def _load_provider_routing():
                         'api_base_url': row['api_base_url'],
                         'api_key_env': row.get('api_key_env', ''),
                     }
-    except Exception:
+    except Exception:  # noqa: BLE001, S110 — advisory pass, never fails the caller
         pass
     _PROVIDER_ROUTING_CACHE = result
     return result
@@ -2764,7 +2783,7 @@ def _registry_categories(registry_path: Any=None):
                 if c and c not in cats:
                     cats.append(c)
             return cats
-        except Exception:  # noqa: BLE001 — fail-open to the plain read below
+        except Exception:  # noqa: BLE001, S110 — fail-open to the plain read below
             pass
     if registry_path is None and _CATS_CACHE and (time.time() - _CATS_CACHE_AT) < ttl:
         return list(_CATS_CACHE)
@@ -2845,7 +2864,7 @@ def _admission_stats():
     return d
 
 
-class _admission(object):
+class _admission:
     """Context manager bounding concurrent work; raises _ProxyOverloaded when full.
 
     Deliberately NOT a silent queue-forever: an unbounded wait would just move the
@@ -2876,11 +2895,10 @@ class _admission(object):
         with _ADMISSION['lock']:
             _ADMISSION['inflight'] += 1
             _ADMISSION['accepted'] += 1
-            if _ADMISSION['inflight'] > _ADMISSION['peak_inflight']:
-                _ADMISSION['peak_inflight'] = _ADMISSION['inflight']
+            _ADMISSION['peak_inflight'] = max(_ADMISSION['peak_inflight'], _ADMISSION['inflight'])
         return self
 
-    def __exit__(self, *exc: Any) -> bool:
+    def __exit__(self, *exc: object) -> bool:
         try:
             _admission_semaphore().release()
         finally:
@@ -3090,7 +3108,7 @@ class RouterHTTPServerAsync(HTTPServer):
             # name the error, always retire the socket.
             try:
                 self.finish_request(request, client_address)
-            except Exception:
+            except Exception:  # noqa: BLE001 — fail-open contract
                 self.handle_error(request, client_address)
             finally:
                 self.shutdown_request(request)
@@ -3147,7 +3165,7 @@ def _classify_cache_key(text: Any):
 def classify_cache_get(text: Any) -> tuple:
     """(hit: bool, value). Expired entries are dropped on read, never served."""
     key = _classify_cache_key(text)
-    maxn, ttl = _classify_cache_limits()
+    _maxn, ttl = _classify_cache_limits()
     now = time.time()
     with _CLASSIFY_LOCK:
         at = _CLASSIFY_CACHE_AT.get(key)
@@ -3213,7 +3231,7 @@ def _registry_profile_ids(registry_path: Any=None):
             ids = {r.get("id") for r in tables.get("task_profiles") or []}
             ids.discard(None)
             return ids
-        except Exception:  # noqa: BLE001 — fail-open to the plain read below
+        except Exception:  # noqa: BLE001, S110 — fail-open to the plain read below
             pass
     if registry_path is None and _PROFILE_IDS_CACHE is not None \
             and (time.time() - _PROFILE_IDS_CACHE_AT) < ttl:
@@ -3245,8 +3263,8 @@ def _empty_matrix_profile(registry_path: Any=None) -> tuple:
         return None, []
     if name in _registry_profile_ids(registry_path):
         return name, []
-    return None, [f'ROUTER_EMPTY_MATRIX_PROFILE={name[:80]} is not a registry '
-                  'task_profile: override ignored, fail-cheap floor applies (TR-139)']
+    return None, [(f'ROUTER_EMPTY_MATRIX_PROFILE={name[:80]} is not a registry '
+                   'task_profile: override ignored, fail-cheap floor applies (TR-139)')]
 
 
 def _stamp_unrated(problems: Any, entry: Any):
@@ -3311,7 +3329,7 @@ def _proxy_requirements(body: Any, headers: Any, path: Any) -> tuple:
         try:
             import router_outcomes as ro
             sig = ro.complexity_sig(ro.profile_signature(declared) or {})
-        except Exception:  # noqa: BLE001
+        except Exception:  # noqa: BLE001, S110
             pass
         return 'declared', {'profile_id': declared, 'matrix': None,
                             'complexity_sig': sig, 'problems': []}
@@ -3360,7 +3378,7 @@ def _proxy_requirements(body: Any, headers: Any, path: Any) -> tuple:
             try:
                 import router_outcomes as _ro_sig
                 _sig = _ro_sig.complexity_sig(_m)
-            except Exception:  # noqa: BLE001
+            except Exception:  # noqa: BLE001, S110
                 pass
         return 'jev', {'matrix': _m, 'matrix_inferred': jres['matrix'],
                        'complexity_sig': _sig,
@@ -3402,7 +3420,7 @@ def _proxy_requirements(body: Any, headers: Any, path: Any) -> tuple:
         try:
             import router_outcomes as _ro_sig
             _sig = _ro_sig.complexity_sig(_m)
-        except Exception:  # noqa: BLE001
+        except Exception:  # noqa: BLE001, S110
             pass
     return 'classifier', {'matrix': _m, 'matrix_inferred': res['matrix'],
                           'complexity_sig': _sig,
@@ -3876,7 +3894,7 @@ def _hermes_session_stats(gateway_session_id: Any, timeout_s: float=3.0):
         try:
             if con is not None:
                 con.close()
-        except Exception:  # noqa: BLE001
+        except Exception:  # noqa: BLE001, S110
             pass
 
 
@@ -4046,7 +4064,7 @@ def _demote_on_taxonomy(provider: Any, model: Any, code: Any, detail: str='') ->
                 router_quota.quota_set(
                     _p, f'TR-288 in-flight: {code} {detail}'[:200],
                     _stated_reset or
-                    (datetime.datetime.now(datetime.timezone.utc)
+                    (datetime.datetime.now(datetime.UTC)
                      + datetime.timedelta(seconds=86400)).isoformat(timespec='seconds'))
         else:
             fclass = {'429-capacity': 'quota_window',
@@ -4056,7 +4074,7 @@ def _demote_on_taxonomy(provider: Any, model: Any, code: Any, detail: str='') ->
                 _args += ['--reset-at', _stated_reset]
             _args.append(f'{code} {detail or "hop failure"}'[:200])
             _subprocess_text("router_circuit.py", _args)
-    except Exception:  # noqa: BLE001 — demotion must never fail a request
+    except Exception:  # noqa: BLE001, S110 — demotion must never fail a request
         pass
 
 
@@ -4217,7 +4235,7 @@ def _proxy_record(provider: Any, model: Any, ok: Any, requirements: Any, reason:
             ro.accumulate_row(ro.outcomes_path(), row)
         else:
             ro.append_row_fast(ro.outcomes_path(), row)
-    except Exception:  # noqa: BLE001
+    except Exception:  # noqa: BLE001, S110
         pass
     try:
         _p = (provider or '').strip()
@@ -4253,7 +4271,7 @@ def _proxy_record(provider: Any, model: Any, ok: Any, requirements: Any, reason:
                              ['record-failure', _p, _m,
                               '--class', _circuit_class(reason),
                               reason or 'transport failure'])
-    except Exception:  # noqa: BLE001
+    except Exception:  # noqa: BLE001, S110
         pass
 
 
@@ -4325,7 +4343,7 @@ def proxy_chat(path: Any, body: Any, headers: Any, max_hops: Any=None, upstream:
                           caller_session_key=refusal_key,
                           route_outcome='rejected', failure_reason='overloaded',
                           hops_attempted=0, max_hops=0, steps=0)
-        except Exception:  # noqa: BLE001 — a refusal must still be answerable
+        except Exception:  # noqa: BLE001, S110 — a refusal must still be answerable
             pass
         retry_s = 5
         # TR-264: even the refusal carries the deadline verdict — the caller
@@ -4478,16 +4496,16 @@ def _proxy_chat_inner(path: Any, body: Any, headers: Any, max_hops: Any=None, up
                                         [degrade_entry]}
         elif override_profile:
             requirements = {**requirements, 'problems': (requirements.get('problems') or []) +
-                                        [f'unrated prompt -> operator override profile '
-                                         f'{override_profile} (TR-139)']}
+                                        [(f'unrated prompt -> operator override profile '
+                                          f'{override_profile} (TR-139)')]}
         elif source == 'classifier':
             # No category list available: keep the old, visible fall-back rather than
             # guess a scale.
             source = 'classifier-empty'
             requirements = {**requirements, 'profile_id': 'P0_FORE',
                             'problems': (requirements.get('problems') or []) +
-                                        ['empty matrix -> default profile P0_FORE '
-                                         '(registry categories unreadable)']}
+                                        [('empty matrix -> default profile P0_FORE '
+                                          '(registry categories unreadable)')]}
         else:
             # TR-139 last resort: a FAILURE with no floor set available (registry
             # categories unreadable) and NO honoured override — an override is
@@ -4496,9 +4514,9 @@ def _proxy_chat_inner(path: Any, body: Any, headers: Any, max_hops: Any=None, up
             # arm is the one place P0_FORE may still appear, explicitly named.
             requirements = {**requirements, 'profile_id': 'P0_FORE',
                             'problems': (requirements.get('problems') or []) +
-                                        ['unrated prompt -> floor set unavailable (registry '
-                                         'categories unreadable); degrading to P0_FORE as '
-                                         'last resort (TR-139)']}
+                                        [('unrated prompt -> floor set unavailable (registry '
+                                          'categories unreadable); degrading to P0_FORE as '
+                                          'last resort (TR-139)')]}
     lane_hint = _lane_hint(headers)  # TR-344: the caller's own lane identity
     resolved = _proxy_chain(requirements, sort_spec=headers.get('x-router-sort'),
                             window_h=headers.get('x-router-window-h'),
@@ -4795,7 +4813,7 @@ def _proxy_chat_inner(path: Any, body: Any, headers: Any, max_hops: Any=None, up
                     f"{dl_declared['idle_budget_s']:.6f}"
         hdrs = fwd_headers
 
-        def _attempt_once() -> tuple:
+        def _attempt_once(provider=fwd and provider, fwd=fwd, hdrs=hdrs) -> tuple:
             t0 = time.time()
             exc_seen = None
             try:
@@ -5085,7 +5103,7 @@ class RouterHandler(BaseHTTPRequestHandler):
                 headers=self._headers(),
             )
             self._send(status, payload)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 — fail-open contract
             self._send(500, {"error": str(exc)})
 
     def do_POST(self) -> None:
@@ -5141,7 +5159,7 @@ class RouterHandler(BaseHTTPRequestHandler):
             self._send(status, payload, extra_headers=extra)
         except ValueError as exc:
             self._send(400, {"error": str(exc)})
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 — fail-open contract
             self._send(500, {"error": str(exc)})
 
     def _send_sse_chat(self, payload: Any) -> None:
@@ -5341,7 +5359,7 @@ def openai_models_payload(data_dir: Any=None, max_age_s: int=300):
             and (now - _OPENAI_MODELS_CACHE["at"]) < max_age_s):
         return _OPENAI_MODELS_CACHE["payload"]
     ddir = Path(data_dir) if data_dir else DATA_DIR
-    today = datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%d')
+    today = datetime.datetime.now(datetime.UTC).strftime('%Y-%m-%d')
     data = []
     try:
         with open(Path(ddir) / 'models.jsonl') as fh:
@@ -5492,7 +5510,7 @@ def main(argv: Any=None) -> bool | int:
                 file=sys.stderr,
             )
             return True
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 — fail-open contract
             fatal = _classifier_failure_is_fatal(exc)
             print(
                 f"router_server: classifier self-check FAILED ({exc}) — "
