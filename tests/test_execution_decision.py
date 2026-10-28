@@ -64,6 +64,9 @@ EXPECTED_SPAWN_KEYS = {
     "fallback_used", "data_home", "bootstrap", "note", "gates_loaded",
     "quota_gates", "warnings", "gate", "settings", "sort", "sort_stats",
     "quota",   # added on main after this feature branched (spawn schema drift)
+    # TR-1000976681059244: additive gate/ordering visibility — the exhausted
+    # free-pool seats and the coverage demotion, both documented on the doc.
+    "free_pool", "probe_coverage",
 }
 
 #: requirements no lane in the committed tables clears (tiers max out per

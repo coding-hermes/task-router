@@ -527,6 +527,105 @@ def _parse_utc(ts: Any):
 QUOTA_GATE_OPEN_STATUSES = frozenset(('open', 'cleared', 'expired'))
 QUOTA_GATE_FIELDS = ('provider', 'status', 'reason', 'reset_at', 'detected_at')
 
+#: TR-1000976681059244: the provider's own wording when a free-tier DAILY token
+#: pool is dry (xkiro and friends answer `429 ... reached today's free-model
+#: token quota`). The pool is per ACCOUNT and covers every ':free' SKU on that
+#: seat, but the health probe records the 429 against ONE lane (it caps at
+#: MAX_PER_PROVIDER probes, cheapest first) — so a single sibling's 429 is the
+#: only evidence that the whole seat's free pool is gone. Matching this phrase
+#: lets resolve() gate the SEAT instead of just the probed SKU.
+FREE_POOL_MARKER = 'free-model token quota'
+
+
+def _next_utc_midnight(now: Any) -> datetime.datetime:
+    """The next UTC midnight STRICTLY after `now` — a free daily pool's reset
+    anchor. Free-tier daily pools refill on the UTC day boundary, so the only
+    honest bound for "this seat's free pool is spent" is that boundary."""
+    now_dt = now if isinstance(now, datetime.datetime) else _parse_utc(now)
+    if now_dt is None:
+        now_dt = datetime.datetime.now(datetime.timezone.utc)
+    if now_dt.tzinfo is None:
+        now_dt = now_dt.replace(tzinfo=datetime.timezone.utc)
+    midnight = now_dt.astimezone(datetime.timezone.utc).replace(
+        hour=0, minute=0, second=0, microsecond=0)
+    return midnight + datetime.timedelta(days=1)
+
+
+def _free_pool_seats(hs: Any, now: Any=None) -> dict:
+    """{provider: until_iso} for seats whose ACCOUNT-WIDE free pool is spent.
+
+    A 429 carrying FREE_POOL_MARKER anywhere in a provider's health entry
+    (provider-level error/note, or any model-level error/note) means the seat's
+    free daily pool is dry — every ':free' lane on that provider id is spent,
+    not just the lane that happened to be probed.
+
+    The bound is the next UTC midnight AFTER THE OBSERVATION: the pool refills
+    on the UTC day boundary, so an entry stamped earlier today holds the gate
+    only until that boundary, and an entry from a previous UTC day has already
+    expired. That matters because probe coverage ROTATES (see
+    provider_health_probe.probe_window) — a lane may not be re-probed for a
+    day, and a sticky gate on a stale snapshot would strand a healthy seat. A
+    marker entry with no parseable ts falls back to `now` (conservative).
+
+    Fail-open: an unreadable/malformed health map yields {} and gates nothing.
+    """
+    out = {}
+    if not isinstance(hs, dict):
+        return out
+    now_dt = now if isinstance(now, datetime.datetime) else _parse_utc(now)
+    if now_dt is None:
+        now_dt = datetime.datetime.now(datetime.timezone.utc)
+    if now_dt.tzinfo is None:
+        now_dt = now_dt.replace(tzinfo=datetime.timezone.utc)
+    now_dt = now_dt.astimezone(datetime.timezone.utc)
+    marker = FREE_POOL_MARKER.lower()
+    for prov, entry in hs.items():
+        if not isinstance(entry, dict):
+            continue
+        prov_ts = entry.get('ts')
+        hits = []
+        for blob in (entry.get('error'), entry.get('note')):
+            if isinstance(blob, str) and marker in blob.lower():
+                hits.append(prov_ts)
+        models = entry.get('models')
+        if isinstance(models, dict):
+            for _m, ment in models.items():
+                if not isinstance(ment, dict):
+                    continue
+                mts = ment.get('ts') or prov_ts
+                for blob in (ment.get('error'), ment.get('note')):
+                    if isinstance(blob, str) and marker in blob.lower():
+                        hits.append(mts)
+        if not hits:
+            continue
+        bounds = []
+        for stamp in hits:
+            seen = _parse_utc(stamp) if stamp else None
+            bounds.append(_next_utc_midnight(seen if seen is not None else now_dt))
+        bound = max(bounds)
+        if bound > now_dt:
+            out[str(prov)] = bound.isoformat(timespec='seconds')
+    return out
+
+
+def _probe_coverage_ctx(hs: Any) -> dict:
+    """{'probed_models': {provider: {model, ...}}} — who this snapshot probed.
+
+    Only a provider whose health entry carries a NON-EMPTY `models` map counts
+    as probed: a provider with no entry (or an entry written before model-level
+    detail existed) has no coverage to compare against, so it demotes nothing
+    ('unknown is not low', the rule the TR-213 headroom slot already uses).
+    """
+    probed = {}
+    if isinstance(hs, dict):
+        for prov, entry in hs.items():
+            if not isinstance(entry, dict):
+                continue
+            models = entry.get('models')
+            if isinstance(models, dict) and models:
+                probed[str(prov)] = set(str(k) for k in models)
+    return {'probed_models': probed}
+
 
 def load_quota_gates(qdoc: Any, now: Any=None):
     """{provider: gate} for the plan-window gates in quota-state.json (TR-060).
@@ -1576,8 +1675,18 @@ def _legacy_sort_key(m: Any) -> tuple:
     _h = m.get('_quota_headroom')
     _guard = _quota_order_guard()
     demote = 1 if (_h is not None and _guard > 0.0 and float(_h) < _guard) else 0
+    # TR-1000976681059244: the coverage demote — a SECOND tie-break-class slot,
+    # placed AFTER the headroom demote and BEFORE the context tie-break. A lane
+    # this snapshot did NOT probe sorts behind a probed lane of the SAME
+    # provider when everything above it ties (same bucket, plan_tier,
+    # priced-ness, price). A probed lane therefore heads, and an unprobed lane
+    # can still serve as a fallback hop. Unstamped (provider not probed, or no
+    # coverage data at all) demotes nothing — the historical ordering, by
+    # construction. Like the headroom slot it can never reorder lanes of
+    # DIFFERENT prices, so the no-silent-re-rank guard keeps passing.
+    _unprobed = 1 if m.get('_probe_unprobed') else 0
     if m.get('_payg'):
-        return (1, 1 << 30, priced, _effective_price(m), demote,
+        return (1, 1 << 30, priced, _effective_price(m), demote, _unprobed,
                 _context_sort_key(m), m.get('model') or '', m.get('provider') or '')
     return (0,
             m.get('plan_tier') if m.get('plan_tier') is not None else 1 << 30,
@@ -1585,7 +1694,7 @@ def _legacy_sort_key(m: Any) -> tuple:
             # unpriced ones, so an unknown price stops tying with a genuine $0 lane at the head
             # of the chain (the fake-cheap burn trap). Unknown sinks; it is never the cheapest.
             priced,
-            _effective_price(m), demote, _context_sort_key(m),
+            _effective_price(m), demote, _unprobed, _context_sort_key(m),
             m.get('model') or '', m.get('provider') or '')
 
 
@@ -2072,7 +2181,7 @@ def make_sort_key(spec: Any, lanes: Any, ctx: Any) -> tuple:
 
 
 def _build_chain(tables: Any, reqs: Any, limit: Any=DEFAULT_CHAIN_LIMIT, sort_spec: Any=None, sort_ctx: Any=None,
-                 lifecycle_counts: Any=None, quota_ctx: Any=None) -> list:
+                 lifecycle_counts: Any=None, quota_ctx: Any=None, probe_ctx: Any=None) -> list:
     """Replicates v_task_chain exactly, in pure python.
 
     reqs = [(category, level), ...] (profile requirements or ad-hoc).
@@ -2178,6 +2287,13 @@ def _build_chain(tables: Any, reqs: Any, limit: Any=DEFAULT_CHAIN_LIMIT, sort_sp
     # demote slot lives inside _legacy_sort_key, so a stamp applied after the
     # sort would move nothing (found by the AC1 red test, never shipped).
     _stamp_quota_headroom(eligible, quota_ctx)
+    # TR-1000976681059244: coverage stamps land BEFORE the first sort for the
+    # same reason the headroom stamps do — the slot lives inside
+    # _legacy_sort_key, so a stamp applied after the sort would move nothing.
+    try:
+        _stamp_probe_coverage(eligible, probe_ctx)
+    except Exception:  # noqa: BLE001 — fail-open: ordering unchanged on error
+        pass
     eligible.sort(key=_legacy_sort_key)
     sort_used, sort_warning = 'price', None
     if sort_spec and sort_spec != 'price':
@@ -2217,6 +2333,35 @@ def _stamp_quota_headroom(eligible: Any, quota_ctx: Any) -> None:
         h = _cache[prov]
         if h is not None:
             m['_quota_headroom'] = h
+
+
+def _stamp_probe_coverage(eligible: Any, probe_ctx: Any) -> None:
+    """TR-1000976681059244: stamp each eligible lane this snapshot did NOT probe
+    with '_probe_unprobed' — the input the sort's coverage slot reads.
+
+    The probe caps at MAX_PER_PROVIDER lanes per provider, so on a provider
+    with more rankable lanes than the cap most lanes carry no health stamp at
+    any instant, and the gate stage cannot tell an unprobed lane from a healthy
+    one. A lane with no stamp was therefore free to HEAD a chain and burn the
+    first call.
+
+    Stamped ONLY when BOTH hold: the lane's provider WAS probed this snapshot
+    (its health entry exists with a non-empty models map) AND this lane has no
+    stamp in it. A provider nobody probed demotes nothing — 'unknown is not
+    low', exactly as the TR-213 headroom stamp treats absent headroom. Any
+    failure leaves rows unstamped (fail-open, ordering unchanged).
+    """
+    if not isinstance(probe_ctx, dict):
+        return
+    probed = probe_ctx.get('probed_models')
+    if not isinstance(probed, dict) or not probed:
+        return
+    for m in eligible:
+        known = probed.get(str(m.get('provider')))
+        if not isinstance(known, set) or not known:
+            continue
+        if str(m.get('model')) not in known:
+            m['_probe_unprobed'] = True
 
 
 def _deprioritised_for_low_headroom(out_chain: Any, chain_rows: Any, quota_ctx: Any) -> list:
@@ -2743,8 +2888,18 @@ def resolve(project: Any=None, profile_id: Any=None, adhoc: Any=None, use_health
     # an empty chain — identical to v_task_eligible.)
     _quota_ctx = _quota_order_ctx()
     _lc_counts = {}
+    # TR-1000976681059244: the coverage term needs the health snapshot BEFORE
+    # the chain is built, because its stamps must land before the sort. The map
+    # is therefore read here as well as in the gate stage below (a local file
+    # read; the gate stage keeps its own read so its presence/fail-open
+    # reporting is unchanged).
+    _probe_ctx = None
+    if use_health:
+        _hdoc = load_json(f'{MR}/health-state.json', {})
+        _probe_ctx = _probe_coverage_ctx(
+            _hdoc.get('providers') if isinstance(_hdoc, dict) else None)
     chain_rows = _build_chain(tables, reqs, limit=limit, lifecycle_counts=_lc_counts, sort_spec=sort_spec,
-                              sort_ctx=sort_ctx, quota_ctx=_quota_ctx) if reqs else []
+                              sort_ctx=sort_ctx, quota_ctx=_quota_ctx, probe_ctx=_probe_ctx) if reqs else []
     sort_used = (sort_ctx or {}).get('used') or 'price'
     # TR-021: keep the raw price-ordered eligible list for metrics before gates.
     chain = list(chain_rows)
@@ -2808,6 +2963,10 @@ def resolve(project: Any=None, profile_id: Any=None, adhoc: Any=None, use_health
     quota_gates = load_quota_gates(qdoc)
     hsrc = load_json(f'{MR}/health-state.json', {}) if use_health else {}
     hs = hsrc.get('providers', {}) if use_health else {}
+    # TR-1000976681059244: the seat's free DAILY pool is ACCOUNT-WIDE — one
+    # ':free' lane's 429 means every ':free' SKU on that provider id is spent,
+    # until the pool's own reset (next UTC midnight). See _free_pool_seats.
+    free_pool_seats = _free_pool_seats(hs) if use_health else {}
     cstate = load_json(f'{MR}/circuit-state.json', {})
     cs = cstate.get('pairs', {})
     # TR-014 provider-level breakers (v2 section; absent = {} = no provider gates)
@@ -2907,6 +3066,17 @@ def resolve(project: Any=None, profile_id: Any=None, adhoc: Any=None, use_health
             why.append(f'model DOWN ({mt})')
         elif hm.get('status') == 'SLOW' and not _allow_slow:
             why.append(f'model SLOW ({hm.get("latency_ms")}ms)')
+        # TR-1000976681059244: the seat's free-tier daily pool is spent.
+        # Account-wide, so EVERY ':free' lane on this provider is excluded —
+        # not just the sibling that was probed and answered 429 — and the
+        # exclusion names the reset bound it self-expires on. Because `why`
+        # becomes the exclusion row, this is visible in the payload, never a
+        # silent skip.
+        _fp_until = free_pool_seats.get(prov)
+        if _fp_until and str(model).endswith(':free'):
+            why.append(f'free pool exhausted: {FREE_POOL_MARKER} on {prov} '
+                       f'(account-wide; every :free lane on this seat is '
+                       f'excluded until {_fp_until})')
         c = cs.get(f'{prov}/{model}')
         if c and c.get('open_until') and c['open_until'] > now:
             why.append(f'circuit OPEN until {c["open_until"]} ({c.get("failures", 0)} failures)')
@@ -3114,6 +3284,26 @@ def resolve(project: Any=None, profile_id: Any=None, adhoc: Any=None, use_health
             'board_profile': ref_meta,
             'head': head, 'chain': out_chain, 'exclusions': exclusions,
             'gate_reasons': reasons,
+            # TR-1000976681059244 (A): the seats whose ACCOUNT-WIDE free daily
+            # pool is spent, with the reset bound their exclusions name. Empty
+            # list = no seat gated on this resolve.
+            'free_pool': {
+                'exhausted': [{'provider': p, 'until': t}
+                              for p, t in sorted(free_pool_seats.items())],
+            },
+            # TR-1000976681059244 (C): the coverage ordering term, stated on
+            # the doc — how many providers this snapshot probed, and which
+            # eligible lanes carried no health stamp (they sort behind probed
+            # siblings of the same provider). Never silent.
+            'probe_coverage': {
+                'providers_probed': len((_probe_ctx or {}).get('probed_models') or {}),
+                'unprobed_eligible': [
+                    {'provider': p, 'model': mo}
+                    for p, mo in sorted({
+                        (str(m.get('provider')), str(m.get('model')))
+                        for _h, _p, _mo, _pr, _dc, m in chain_rows
+                        if isinstance(m, dict) and m.get('_probe_unprobed')})],
+            },
             'degraded_fallback': bool(fb_used),
             # TR-213: the quota-headroom ordering term, stated on the doc —
             # enabled/guard/reason (why NOT when inert), the summary of lanes

@@ -314,40 +314,109 @@ def load_fix_rows() -> tuple:
     return fixes, excludes
 
 
+def rankable_lanes(reg: Any, prov: Any) -> list:
+    """[(price_key, model), ...] for every lane of `prov` that can RANK in a
+    chain: not disabled/archived, not past valid_to, and priced or plan-tiered.
+    Cheapest-first. UNCAPPED — the cap is applied by probe_window() so the
+    window can ROTATE across runs (TR-1000976681059244)."""
+    rows = []
+    today = datetime.date.today().isoformat()
+    for r in (reg.get('tables', {}) or {}).get('models', []) or []:
+        if r.get('provider') != prov:
+            continue
+        if r.get('disabled') or r.get('archive'):
+            continue
+        vt = r.get('valid_to')
+        if vt and str(vt) < today:
+            continue
+        price = r.get('normalized_price')
+        if price is None and r.get('plan_tier') is None:
+            continue  # not an offered/priced model
+        rows.append((price if price is not None else 1e9, r.get('model')))
+    rows.sort(key=lambda x: (x[0], x[1]))
+    return rows
+
+
+def probe_window(rows: Any, cap: Any, hour: Any) -> list:
+    """The slice of an UNCAPPED, cheapest-first lane list to probe NOW.
+
+    A fixed `rows[:cap]` window never reaches the tail of a provider with more
+    rankable lanes than the cap (xkiro has 40+ $0 ':free' lanes), so those
+    lanes were NEVER probed and were therefore indistinguishable from healthy
+    ones to the resolver — one of them was free to HEAD a chain and 429 on the
+    first call (TR-1000976681059244). Rotating the window by the UTC HOUR makes
+    coverage a property of the clock: with hourly runs every lane is probed at
+    least once per day whenever len(rows) <= 24*cap. The window WRAPS, so the
+    tail is reached before the list is exhausted, and a short list probes
+    whole. Deterministic: same rows + same hour -> same window.
+    """
+    if not rows:
+        return []
+    n = len(rows)
+    cap = max(1, int(cap))
+    if n <= cap:
+        return list(rows)
+    start = ((int(hour) % 24) * cap) % n
+    return [rows[(start + i) % n] for i in range(cap)]
+
+
 def build_probe_set(providers: Any):
-    """{provider: [(base_url, key_env, model), ...]} — static defaults + registry
-    priced/active models (cap MAX_PER_PROVIDER/provider, cheapest first)."""
+    """{provider: [(base_url, key_env, model), ...]} — static defaults + a
+    ROTATING window of each provider's rankable lanes.
+
+    The window is keyed on the current UTC hour (probe_window), so the lanes a
+    run skips are covered by a later run the same day instead of never
+    (TR-1000976681059244)."""
     out = {}
     for prov, (base, key_env, model) in providers.items():
         out.setdefault(prov, []).append((base, key_env, model))
     try:
         reg = json.load(open(REGISTRY))
-        models = reg.get('tables', {}).get('models', [])
-        today = datetime.date.today().isoformat()
-        by_prov = {}
-        for r in models:
-            p = r.get('provider')
-            if p not in providers:
-                continue  # only probe providers we have endpoints/keys for
-            if r.get('disabled') or r.get('archive'):
+        hour = datetime.datetime.now(datetime.timezone.utc).hour
+        for p in list(providers):
+            rows = rankable_lanes(reg, p)
+            if not rows:
                 continue
-            vt = r.get('valid_to')
-            if vt and str(vt) < today:
-                continue
-            price = r.get('normalized_price')
-            if price is None and r.get('plan_tier') is None:
-                continue  # not an offered/priced model
-            by_prov.setdefault(p, []).append((price if price is not None else 1e9, r.get('model')))
-        for p, rows in by_prov.items():
-            rows.sort(key=lambda x: (x[0], x[1]))
             base, key_env, _ = providers[p]
             existing = {m for _, _, m in out[p]}
-            for _, m in rows[:MAX_PER_PROVIDER]:
+            for _, m in probe_window(rows, MAX_PER_PROVIDER, hour):
                 if m not in existing:
                     out[p].append((base, key_env, m))
                     existing.add(m)
     except Exception:
         pass  # registry unreadable -> static defaults only
+    return out
+
+
+def coverage_block(results: Any) -> dict:
+    """TR-1000976681059244: what this run probed vs what CAN rank.
+
+    `unprobed` names the rankable lanes this run left without a health stamp —
+    the signal behind the resolver's coverage demote (an unprobed lane sorts
+    behind a probed sibling of the same provider). Purely additive: the
+    resolver ignores this key, and an unreadable registry yields {} (fail-open).
+    """
+    out = {}
+    try:
+        reg = json.load(open(REGISTRY))
+    except Exception:
+        return out
+    for p in (results or {}):
+        try:
+            rows = rankable_lanes(reg, p)
+        except Exception:  # noqa: BLE001 — reporting only, never gate a probe run
+            continue
+        if not rows:
+            continue
+        ent = (results or {}).get(p) or {}
+        models = ent.get('models')
+        probed = set(str(k) for k in models) if isinstance(models, dict) else set()
+        rankable_models = [m for _pr, m in rows]
+        out[str(p)] = {
+            'rankable': len(rankable_models),
+            'probed': sorted(m for m in rankable_models if m in probed),
+            'unprobed': sorted(m for m in rankable_models if m not in probed),
+        }
     return out
 
 
@@ -695,7 +764,12 @@ def main(config_path: Any=None, only_providers: Any=None, output_path: Any=None,
     # keeping stale entries alive only because a partial run carried them.
     merged_providers = {p: e for p, e in prev_provs.items() if p in data_providers}
     merged_providers.update(results)
-    state = {'updated': ts, 'probe_version': 3, 'providers': merged_providers}
+    # TR-1000976681059244: what this run covered vs what CAN rank — the signal
+    # behind the resolver's coverage demote (an unprobed lane sorts behind a
+    # probed sibling). Additive: consumers that do not know the key ignore it.
+    _coverage = coverage_block(results)
+    state = {'updated': ts, 'probe_version': 3, 'providers': merged_providers,
+             'coverage': _coverage}
     if write:
         out_dir = os.path.dirname(HEALTH_STATE)
         if out_dir:
@@ -706,7 +780,8 @@ def main(config_path: Any=None, only_providers: Any=None, output_path: Any=None,
         os.replace(tmp, HEALTH_STATE)
         with open(HEALTH_JSONL, 'a') as f:
             f.write(json.dumps({'ts': ts, 'probe_version': 3,
-                                'providers': merged_providers}) + '\n')
+                                'providers': merged_providers,
+                                'coverage': _coverage}) + '\n')
 
     # ---- report: transitions, then full formatted listing --------------------
     out = []

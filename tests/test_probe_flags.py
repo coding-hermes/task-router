@@ -162,3 +162,45 @@ def test_probe_default_still_writes(tmp_path):
         f"model entry missing probe ts: model={mm.get('ts')} provider={prov.get('ts')}")
     jsonl = out_dir / "health-state.jsonl"
     assert jsonl.exists() and jsonl.read_text().strip(), "health jsonl not appended"
+
+
+def test_free_pool_probe_window_rotates_and_demotes_unprobed_lanes():
+    """TR-1000976681059244 — the probe-coverage invariant.
+
+    The probe caps at MAX_PER_PROVIDER lanes, and a fixed cheapest-first slice
+    left the tail of a wide provider (xkiro: 40+ $0 ':free' lanes) NEVER
+    probed, so an unprobed lane could HEAD a chain and 429 on the first call.
+    Two halves are asserted here:
+
+      (a) the window ROTATES by the UTC hour, so every rankable lane is probed
+          at least once per day when len(rows) <= 24*cap;
+      (b) an unprobed lane sorts BEHIND a probed sibling of the same provider,
+          so a chain head is never a lane with no health stamp while a sibling
+          was probed in the same snapshot.
+    """
+    sys.path.insert(0, os.path.join(REPO, "scripts"))
+    import provider_health_probe as php
+    import router_spawn
+
+    rows = [(float(i), f"free_pool-lane-{i}") for i in range(200)]
+    seen = set()
+    for hour in range(24):
+        win = php.probe_window(rows, php.MAX_PER_PROVIDER, hour)
+        assert len(win) == php.MAX_PER_PROVIDER
+        seen.update(m for _p, m in win)
+    assert seen == {m for _p, m in rows}, (
+        f"lanes never probed in a 24-run day: {sorted({m for _p, m in rows} - seen)[:5]}")
+    # degenerate inputs stay honest
+    assert php.probe_window(rows, 500, 3) == rows      # list shorter than cap
+    assert php.probe_window([], php.MAX_PER_PROVIDER, 0) == []
+    assert php.probe_window(rows, 1, 0) == rows[:1]
+
+    # (b) resolver side: the probed sibling wins the tie, the unprobed lane is
+    # demoted (still a usable fallback hop — demoted, never banned)
+    a = {"provider": "seat", "model": "probed", "normalized_price": 0.0, "plan_tier": 0}
+    b = {"provider": "seat", "model": "unprobed", "normalized_price": 0.0, "plan_tier": 0}
+    router_spawn._stamp_probe_coverage([a, b], {"probed_models": {"seat": {"probed"}}})
+    assert not a.get("_probe_unprobed")
+    assert b.get("_probe_unprobed")
+    assert router_spawn._legacy_sort_key(a) < router_spawn._legacy_sort_key(b), (
+        "an unprobed lane outranked a probed sibling — an unprobed head is possible")
