@@ -783,3 +783,5 @@
 {"id": 1000733261642159, "timestamp": "2026-10-28T04:37:49Z", "event_type": "task_created", "task_id": "TR-350", "actor": "foreman", "detail": "{\"id\":\"TR-350\",\"status\":\"pending\"}", "tick_number": null}
 {"id": 1000733261642160, "timestamp": "2026-10-28T04:37:49Z", "event_type": "task_created", "task_id": "TR-351", "actor": "foreman", "detail": "{\"id\":\"TR-351\",\"status\":\"pending\"}", "tick_number": null}
 {"id": 1000733261642161, "timestamp": "2026-10-28T04:37:49Z", "event_type": "task_created", "task_id": "TR-352", "actor": "foreman", "detail": "{\"id\":\"TR-352\",\"status\":\"pending\"}", "tick_number": null}
+{"id": 1000733261642162, "timestamp": "2026-10-29T01:13:40Z", "event_type": "task_created", "task_id": "TR-353", "actor": "foreman", "detail": "{\"id\":\"TR-353\",\"status\":\"pending\"}", "tick_number": null}
+{"id": 1793245121415, "timestamp": "2026-10-29T03:38:41Z", "event_type": "task_created", "task_id": "TR-354", "actor": "foreman", "detail": "{\"id\": \"TR-354\", \"status\": \"pending\", \"priority\": \"P0\"}", "tick_number": null}
