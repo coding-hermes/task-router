@@ -1768,9 +1768,13 @@ def _hermes_responses_call(path: Any, body: Any, headers: Any, _opener: Any=None
             fwd_headers['X-Caller-Margin-S'] = f"{_dl_declared['margin_s']:.6f}"
     fwd_body = dict(body)
     want_stream = bool(fwd_body.pop('stream', None))
+    # TR-355: the hop loop stamps this on a DEGRADED (requirements_unmet)
+    # fallback hop; it is read here, where every hop's budget is decided, and
+    # stripped below so it never reaches the upstream.
+    _degraded_hop = str(fwd_headers.pop(_HOP_DEGRADED_HEADER, '') or '') == '1'
     # TR-241: one ladder helper budgets both upstream sites (the default
     # gateway caller below used to compute its own — the two disagreed).
-    timeout = _hop_budget_s(want_stream)
+    timeout = _hop_budget_s(want_stream, degraded=_degraded_hop)
     # TR-264: a declared budget is an upper bound for THIS hop too (this site
     # has no derive context — the ladder carries the row/envelope evidence).
     if _dl_declared.get('budget_s') is not None:
@@ -1924,6 +1928,10 @@ def _hermes_proxy_chat(body: Any, headers: Any, upstream: Any=None) -> tuple:
         meta['hermes_wall_time_s'] = wall
         meta['hermes_idle_timeout_s'] = _hermes_idle_timeout_s()
     return status, out
+
+#: TR-355: stamped by the hop loop on a DEGRADED fallback hop, read (and
+#: stripped) where that hop's budget is decided. Private to this layer.
+_HOP_DEGRADED_HEADER = 'X-Router-Hop-Degraded-Fallback'
 
 #: Injectable upstream call for tests: (path, body, headers) -> (status, payload)
 _UPSTREAM_CALL = None
@@ -2181,7 +2189,32 @@ def _proxy_wall_ceiling_s():
     return val if val > 0 else 3600.0
 
 
-def _hop_budget_s(want_stream: Any):
+def _proxy_degraded_wall_s():
+    """The leash on a hop that is ALREADY known not to meet the requirements.
+
+    Measured 2026-10-29: 18 of 32 scheduler failures in 24h were 30-minute
+    stalls, and the envelope showed the mechanism — with every eligible hop
+    health-DOWN/circuit-OPEN, the exhausted-chain fallback served a lane whose
+    ladder row carried `requirements_unmet`, and that lane was allowed to run the
+    full 600s hop wall before answering 502 (wall_time_s 600.38). A lane that
+    cannot satisfy the task's requirements cannot succeed at it; the full wall
+    only converts a certain failure into a ten-minute one, and the caller gets no
+    earlier signal with which to re-admit the project.
+
+    So a DEGRADED fallback hop gets this budget instead (ROUTER_DEGRADED_WALL_S,
+    default 120s), clamped against whatever the ladder already allowed — it can
+    only ever SHORTEN a hop, never extend one. Healthy hops are untouched: the
+    clamp is keyed on the hop's own `requirements_unmet`, not on load or policy.
+    """
+    raw = os.environ.get('ROUTER_DEGRADED_WALL_S', '120')
+    try:
+        val = float(raw)
+    except (TypeError, ValueError):
+        return 120.0
+    return val if val > 0 else 120.0
+
+
+def _hop_budget_s(want_stream: Any, degraded: bool = False):
     """THE TIMEOUT LADDER (TR-241): one helper decides every hop's budget.
 
     The invariant: the router must answer the caller BEFORE the caller gives
@@ -2202,9 +2235,15 @@ def _hop_budget_s(want_stream: Any):
     by 120s on the same hop shape.
     """
     if want_stream:
-        return max(_proxy_idle_budget_s(), _proxy_wall_ceiling_s())
-    ceiling = ROUTER_CALLER_PATIENCE_S - ROUTER_HOP_LADDER_MARGIN_S
-    return min(_proxy_hop_timeout_s(), ceiling)
+        budget = max(_proxy_idle_budget_s(), _proxy_wall_ceiling_s())
+    else:
+        ceiling = ROUTER_CALLER_PATIENCE_S - ROUTER_HOP_LADDER_MARGIN_S
+        budget = min(_proxy_hop_timeout_s(), ceiling)
+    if degraded:
+        # TR-355: only ever shortens (min), so a configured degraded wall above
+        # the ladder can never extend a hop past what it was already allowed.
+        budget = min(budget, _proxy_degraded_wall_s())
+    return budget
 
 
 #: THE CALLER-DECLARED DEADLINE CONTRACT (TR-264). TR-241 built a ladder from
@@ -4800,6 +4839,12 @@ def _proxy_chat_inner(path: Any, body: Any, headers: Any, max_hops: Any=None, up
         dl_elapsed = time.time() - dl_t0
         hop_dl = _derive_deadline_budget(dl_declared, True, elapsed_s=dl_elapsed)
         fwd_headers = {**headers, 'x-router-provider': str(provider)}
+        # TR-355: the hop dict is the only place that knows this attempt is a
+        # DEGRADED fallback (its ladder row carries requirements_unmet). Stamp it
+        # so the budget site can leash the hop to ROUTER_DEGRADED_WALL_S; the
+        # stamp is stripped before the request leaves this layer.
+        if hop.get('requirements_unmet') or hop.get('degraded'):
+            fwd_headers[_HOP_DEGRADED_HEADER] = '1'
         if dl_declared_b:
             for alias in ROUTER_PROXY_DEADLINE_HEADER_ALIASES:
                 fwd_headers.pop(alias, None)
