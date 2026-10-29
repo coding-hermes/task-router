@@ -137,6 +137,7 @@ in the client's own process environment) vs literal `api_key` in the client's
 |---|---|---|---|
 | `ROUTER_PROXY_HOP_TIMEOUT_S` | `router_server.py` | Timeout in seconds for each individual hop in the proxy fallback ladder | `180` |
 | `ROUTER_PROXY_HOP_WALL_S` | `router_server.py` | Wall-clock timeout in seconds for the entire proxy request (all hops combined) | `3600` (1 hour) |
+| `ROUTER_DEGRADED_WALL_S` | `router_server.py` | Maximum wall-clock budget for a fallback hop marked `requirements_unmet`; only shortens the normal hop budget | `120` seconds |
 | `ROUTER_PROXY_IDLE_TIMEOUT_S` | `router_server.py` | Idle timeout in seconds for proxy connections | `1800` (30 minutes) |
 | `ROUTER_DEGRADED_WALL_S` | `router_server.py` | TR-355: wall-clock budget for a DEGRADED fallback hop (a hop whose requirements are unmet). Only ever shortens the hop budget (min with the normal budget), never lengthens it. Prevents a guaranteed-failure hop from burning the full 600s hop wall | `120` |
 | `ROUTER_PROXY_STREAM_HOPS` | `router_server.py` | Comma-separated list of hop indices that should stream responses (empty = none) | — (empty) |

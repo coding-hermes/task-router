@@ -2192,6 +2192,11 @@ def _failure_envelope(meta: Any, session_id: Any, source_system: Any, parent_ses
            'outcome_row': {'source_system': source_system, 'session_id': session_id,
                            'parent_session_id': parent_session_id},
            'wall_time_s': round(time.time() - ladder_t0, 3)}
+    degraded = [h for h in tried if isinstance(h, dict) and (h.get('requirements_unmet') or h.get('fallback') or h.get('degraded'))]
+    if degraded:
+        out['fallback_policy'] = 'degraded-wall-cap'
+        out['degraded_wall_s'] = _proxy_degraded_wall_s()
+        out['degraded_reason'] = 'requirements_unmet'
     if registry_missing:
         # additive and only-when-true: the plain no-hops envelope is unchanged
         out['registry_missing'] = True
@@ -3905,7 +3910,7 @@ def _chain_evidence(resolved: Any, chain: Any):
                          # TR-194: a DEGRADED fallback hop carries its unmet
                          # requirement; dropping it here is how a row can say it
                          # was served degraded without saying what was unmet.
-                         'requirements_unmet', 'fallback')
+                         'requirements_unmet', 'fallback', 'degraded', 'timeout_kind', 'retry_policy')
                         if k in h})
         return out
     chain = chain or []
@@ -4797,7 +4802,9 @@ def _proxy_chat_inner(path: Any, body: Any, headers: Any, max_hops: Any=None, up
             # via meta['deadline'] = ...; absent is impossible.
             'deadline': _dl_deadline(0.0, _derive_deadline_budget(
                 dl_declared, False, elapsed_s=0.0)),
-            'problems': list(caller_problems)}
+            'problems': list(caller_problems),
+            'fallback_policy': 'degraded-wall-cap',
+            'degraded_wall_s': _proxy_degraded_wall_s()}
     if dev_rewrites:
         # never silent: the caller's payload was adjusted
         meta['problems'].append(
@@ -4805,6 +4812,8 @@ def _proxy_chat_inner(path: Any, body: Any, headers: Any, max_hops: Any=None, up
             f'(reference provider compat; x-router-developer-role: preserve to keep)')
     if not chain:
         meta['gate'] = resolved.get('gate')
+        meta.pop('fallback_policy', None)
+        meta.pop('degraded_wall_s', None)
         # TR-235: attribute the empty chain BEFORE the row is written. When the
         # resolver's own provenance says registry.json is MISSING, the row and
         # the body must say 'registry-missing', not a bare 'no-hops' — the
@@ -4970,6 +4979,9 @@ def _proxy_chat_inner(path: Any, body: Any, headers: Any, max_hops: Any=None, up
         # shape activates the leash instead of silently riding the full wall.
         if (hop.get('requirements_unmet') or hop.get('fallback')
                 or hop.get('degraded')):
+            attempt['degraded'] = True
+            attempt['degraded_wall_s'] = _proxy_degraded_wall_s()
+            attempt['fallback_policy'] = 'degraded-wall-cap'
             fwd_headers[_HOP_DEGRADED_HEADER] = '1'
         if dl_declared_b:
             for alias in ROUTER_PROXY_DEADLINE_HEADER_ALIASES:
