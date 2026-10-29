@@ -56,6 +56,21 @@ def test_degraded_wall_is_configurable(rsrv, monkeypatch):
     assert rsrv._hop_budget_s(False, degraded=True) == 45.0
 
 
+def test_failure_envelope_names_degraded_wall_policy(rsrv):
+    envelope = rsrv._failure_envelope(
+        {"ladder": [{"provider": "deepseek-foreman", "model": "deepseek-flash",
+                     "requirements_unmet": ["tool_use"], "fallback": True,
+                     "reason": "hop-wall-timeout", "timeout_kind": "hop-wall-timeout"}]},
+        "s", "router-proxy", None, 0.0, "hop-wall-timeout",
+        [{"provider": "deepseek-foreman", "model": "deepseek-flash",
+          "requirements_unmet": ["tool_use"], "fallback": True,
+          "reason": "hop-wall-timeout", "timeout_kind": "hop-wall-timeout"}],
+        "hop timed out")
+    assert envelope["terminal_reason"] == "hop-wall-timeout"
+    assert envelope["fallback_policy"] == "degraded-wall-cap"
+    assert envelope["degraded_wall_s"] == 120.0
+
+
 def test_unparseable_degraded_wall_falls_back_to_default(rsrv, monkeypatch):
     monkeypatch.setenv("ROUTER_DEGRADED_WALL_S", "not-a-number")
     assert rsrv._proxy_degraded_wall_s() == 120.0
