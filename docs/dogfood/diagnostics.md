@@ -554,3 +554,15 @@ The control that separates "our change broke it" from "the CI environment": run 
 on this box. `12.08s passed` locally vs `>300s capped` on ubuntu-latest, same commit — an environment-specific
 hang (import scan / `_path_stat` through runpy), not a data or logic regression. Any fix should therefore
 remove the runpy EXECUTION (static-parse the constants) rather than chase the duckdb query.
+
+## 2026-10-29 dogfood run 40 — real CLI/API use and incomplete bunker battery
+
+Target HEAD: `46c7308fc36ab73bfe15696813e56caa794b1099`.
+
+The isolated local consumer path worked: editable install 4.69s, duckdb 1.76s, `router seed` 32.47s, `router status --format json` 0.30s, `router validate` 0.14s with all 14 checks passing. `router spawn --profile P0_FORE --format json --quiet` returned rc=0 with `source=registry.json`, `fallback_used=false`, a 50-hop chain, and head `xkiro/qwen/qwen3.7-plus:free`; cold 0.30s and warm 0.26s. The raw-level request `reasoning=5 debug=3 min_context=100000` returned a 93-hop chain. An unknown project returned rc=0 with a JSON error, preserving fail-open behavior.
+
+A scratch read-only API server on port 19192 returned 200 for `/health`, `/openapi.json`, `/profiles`, and `/resolve?profile=P0_FORE`; `/resolve` took 0.13s. `/health` reported loaded commit `46c7308fc36a` equal to HEAD and `stale=false`. The read-only execution-decision POST returned HTTP 403. The listening port closed after shutdown. These interactive timings are not user-noticeably slow, so no PERF row was warranted.
+
+The bunker helper was exercised literally. A first attempt against a detached worktree was rejected as not a git repo and was not treated as product evidence. The corrected primary-root launch on bunker-las-03 spawned agent `54ebefe7`, but repo sync failed because the harness used port 2223 and the server refused it; the agent was destroyed and verified absent. The primary-root run on bunker-mvp spawned `9d5d53d3` at this HEAD. Its fresh-install cell passed the package install (`task-router-0.2.0`, duckdb 2.0.0, PyYAML 6.0.3), but the battery was `INCOMPLETE/TRUNCATED` in the CI cell before the full suite and chaos cells completed. The agent logs establish install/toolchain setup, not a complete battery pass. Teardown first refused because live operator processes remained; after terminating those owned processes, destroy succeeded and `bunker info 9d5d53d3` returned `not_found`.
+
+No source, board, or scheduler state was changed. Existing install/harness rows already cover the observed classes (TR-045, TR-046, TR-057, TR-082, TR-085, TR-134, QA-TASKROUTER-5/6, QA-TASK-ROUTER-9); this run adds corroborating evidence only.
