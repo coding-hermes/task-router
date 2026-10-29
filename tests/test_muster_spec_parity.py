@@ -261,7 +261,11 @@ def test_read_only_app_refuses_mutation_before_any_handler():
         headers={},
     )
     assert status == 403
-    assert payload == {"error": "read-only mode"}
+    # TR-276: the body gained the `reason` field (WHICH mode read-only is and
+    # where a mutation is accepted); the muster battery greps the pinned
+    # "read-only mode" text, so the exact legacy string stays in `error`.
+    assert payload["error"] == "read-only mode"
+    assert isinstance(payload.get("reason"), str) and payload["reason"]
 
 
 # ---------------------------------------------------------------------------

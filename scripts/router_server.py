@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import datetime
+import errno
 import fcntl
 import hmac
 import json
@@ -689,9 +690,13 @@ def _latest_chains() -> dict:
 
 
 class RouterApplication:
-    def __init__(self, mode: Any, edit_key: Any) -> None:
+    def __init__(self, mode: Any, edit_key: Any, surface: Any=None) -> None:
         self.mode = mode
         self.edit_key = edit_key
+        # TR-276: which surface this process serves (api|proxy|ui|all). The
+        # instance carries it so an in-process app is truthful without main()
+        # having run; the process-wide _SURFACE_MODE stays the boot record.
+        self.surface = set_surface_mode(surface)
         self.lifecycle = router_drain.DrainController()
         self.runtime_identity = router_drain.runtime_identity()
         self.openapi = OPENAPI
@@ -710,7 +715,15 @@ class RouterApplication:
 
     def _authorize(self, headers: Any) -> tuple | None:
         if self.mode == "read-only":
-            return 403, {"error": "read-only mode"}
+            # TR-276: the body keeps its pinned shape ("read-only mode" — the
+            # muster battery greps it) and gains the reason the brief asks
+            # for: which auth mode refused, and where a write is accepted.
+            return 403, {
+                "error": "read-only mode",
+                "reason": "the process runs --mode read-only; restart with "
+                          "--mode edit and ROUTER_EDIT_API_KEY to accept "
+                          "authenticated mutations",
+            }
         supplied = headers.get("x-api-key", "")
         if not supplied or not hmac.compare_digest(supplied, self.edit_key):
             return 401, {"error": "unauthorized"}
@@ -719,6 +732,19 @@ class RouterApplication:
     def dispatch(self, method: Any, path: Any, query: Any=None, body: Any=None, headers: Any=None):
         query = query or {}
         headers = headers or {}
+        # TR-276: the surface gate runs FIRST — before routing, before auth,
+        # before the 405 — so a read-only instance answers every mutation with
+        # the same named refusal and never leaks a 500 from a handler the
+        # surface was never meant to serve.
+        surface = getattr(self, "surface", None) or surface_mode_name()
+        if method in ("POST", "PUT", "PATCH", "DELETE"):
+            if surface == "ui":
+                return 403, _read_only_body(surface)
+            if surface == "api" and not _is_listing_path(path):
+                return 403, _read_only_body(surface)
+            if surface == "proxy" and path not in PROXY_PATHS \
+                    and not _is_listing_path(path):
+                return 403, _read_only_body(surface)
         if method == "GET":
             if path == "/openapi.json":
                 return 200, self.openapi
@@ -886,6 +912,13 @@ class RouterApplication:
                 # TR-172: expose this process's admission and rating-cache state.
                 if isinstance(payload, dict):
                     payload['admission'] = _admission_stats()
+                    # TR-276: the headroom shape the row asks for — a caller
+                    # must not have to know which of the three counters above
+                    # is the ceiling and which the live gauge.
+                    payload['admission']['max_in_flight'] = \
+                        payload['admission']['max_inflight']
+                    payload['admission']['current_in_flight'] = \
+                        payload['admission']['inflight']
                     # TR-274: WHICH serving path this process is running. The
                     # field names the path ('thread' | 'async') and the pool's
                     # explicit bounds when the bounded path is active, so an
@@ -894,6 +927,18 @@ class RouterApplication:
                     payload['serving'] = serving_stats()
                     payload['classify_cache'] = classify_cache_stats()
                     payload['data_cache'] = router_data_cache.get_cache().stats()  # TR-277
+                    # TR-276: the surface + identity + cache generation in one
+                    # typed payload. `commit`/`code.loaded_*` stay as the load
+                    # identity; `source_sha` is the brief's field name for the
+                    # same value (the tree the server loaded).
+                    payload['surface_mode'] = surface_mode_name()
+                    try:
+                        payload['cache_generation'] = int(
+                            router_data_cache.get_cache().stats().get('generation', 0))
+                    except Exception:  # noqa: BLE001 — the field is typed even when the cache cannot answer
+                        payload['cache_generation'] = 0
+                    payload['source_sha'] = payload.get('code', {}).get(
+                        'loaded_source_sha', 'unknown')
                     payload['runtime'] = {
                         **self.runtime_identity,
                         **self.lifecycle.snapshot(),
@@ -1287,6 +1332,83 @@ READ_ONLY_POST_PATHS = (
 
 #: POST paths that are NOT in the OpenAPI contract because they are dynamic.
 _DYNAMIC_POST_PREFIXES = ("/listings/",)
+
+
+# ---------------------------------------------------------------------------
+# TR-276: SURFACE MODES — one binary, explicit surfaces.
+#
+# Three services run the same file today (API :9092, proxy :9391, web UI
+# :9093) and the mode is decided by CLI flags nobody reads back, so "am I
+# hitting the right process" had to be answered by guessing a port (REVIEW-
+# TR-001; the second undocumented instance). `--surface {api,proxy,ui,all}`
+# (default `all` for back-compat) makes the surface explicit, loggable at
+# boot, and visible on /health next to the cache generation and admission
+# headroom.
+#
+# Deliberate naming: `--mode` already means the AUTH mode (read-only|edit) —
+# the systemd units, docs/integration.md, the muster battery and
+# tests/test_muster_spec_parity.py all pin it — so the new axis takes a new
+# flag. Surface refusal bodies name the surface ("ui mode is read-only");
+# the AUTH refusal keeps its pinned body ("read-only mode") + the reason.
+# ---------------------------------------------------------------------------
+_SURFACE_MODES = ("api", "proxy", "ui", "all")
+_DEFAULT_SURFACE_MODE = "all"
+_SURFACE_MODE = {"name": None}
+
+#: Deprecated aliases accepted for the launch lines this row replaces; each
+#: maps onto its canonical surface.
+_SURFACE_ALIASES = {
+    "api-server": "api",
+    "proxy-server": "proxy",
+    "ui-server": "ui",
+}
+
+
+def normalize_surface_mode(value: Any) -> str:
+    """Map a --surface value (or legacy alias) onto a canonical surface."""
+    raw = str(value or "").strip().lower()
+    return _SURFACE_ALIASES.get(raw, raw)
+
+
+def set_surface_mode(value: Any) -> str:
+    """Record the process surface; the single write point, called by main()."""
+    _SURFACE_MODE["name"] = normalize_surface_mode(value)
+    return _SURFACE_MODE["name"]
+
+
+def surface_mode_name() -> str:
+    """The ACTIVE surface (api|proxy|ui|all), as /health reports it."""
+    return _SURFACE_MODE["name"] or _DEFAULT_SURFACE_MODE
+
+
+def _read_only_body(mode: Any) -> dict:
+    """The TR-276 surface-refusal body: which mode refused, and why.
+
+    The reason is not decoration: a caller that just learned its write hit
+    the wrong instance must be able to read WHERE the write would be
+    accepted without grepping the source.
+    """
+    reasons = {
+        "ui": "the ui surface is the read-only data plane; mutations need "
+              "--surface api or --surface all with an edit key",
+        "api": "the api surface serves reads and operator endpoints; run "
+               "--surface all (with --mode edit and an edit key) to mutate",
+        "proxy": "the proxy surface only accepts /v1/chat/completions, "
+                 "/v1/responses and /listings/* appends; every other "
+                 "mutation is refused here",
+    }
+    return {
+        "error": f"{mode} mode is read-only",
+        "reason": reasons.get(mode, f"the {mode} surface does not serve mutations"),
+    }
+
+
+def _is_listing_path(path: Any) -> bool:
+    """The learn pipeline's /listings/<kind> appends (the proxy's one write)."""
+    return any(
+        str(path).startswith(prefix) and len(str(path)) > len(prefix)
+        for prefix in _DYNAMIC_POST_PREFIXES
+    )
 
 
 def known_post_paths() -> list:
@@ -5211,6 +5333,19 @@ class RouterHandler(BaseHTTPRequestHandler):
         except Exception as exc:  # noqa: BLE001 — fail-open contract
             self._send(500, {"error": str(exc)})
 
+    # TR-276 (AC3): PUT/PATCH/DELETE reach the same dispatch gate as POST, so
+    # a read-only SURFACE refuses them with the named 403 — the base class's
+    # built-in 501 "Unsupported method" would answer a mutation the surface
+    # owns nothing for, and 501 is neither a refusal nor a reason.
+    def do_PUT(self) -> None:
+        self.do_POST()
+
+    def do_PATCH(self) -> None:
+        self.do_POST()
+
+    def do_DELETE(self) -> None:
+        self.do_POST()
+
     def _send_sse_chat(self, payload: Any) -> None:
         """Buffered completion -> OpenAI chat-completions SSE frames.
 
@@ -5444,6 +5579,12 @@ def main(argv: Any=None) -> bool | int:
     parser = argparse.ArgumentParser(description="Task Router OpenAPI + MCP server")
     parser.add_argument("--mode", choices=("read-only", "edit"), default="read-only")
     parser.add_argument(
+        "--surface", choices=_SURFACE_MODES, default=_DEFAULT_SURFACE_MODE,
+        help="TR-276: which surface this process serves — api (control "
+             "plane), proxy (chat mirror + listing appends), ui (read-only "
+             "data plane), or all (default; every route, back-compat). "
+             "Mutations on a read-only surface answer 403 with a reason.")
+    parser.add_argument(
         "--serving", choices=_SERVING_MODES, default=None,
         help="serving path for accepted connections: 'thread' = one handler "
              "thread per connection (legacy, default), 'async' = a bounded "
@@ -5452,6 +5593,7 @@ def main(argv: Any=None) -> bool | int:
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=9092)
     args = parser.parse_args(argv)
+    surface = set_surface_mode(args.surface)
     serving_mode = _serving_mode_from_cli_or_env(args.serving)
     _SERVING_MODE["name"] = serving_mode
 
@@ -5463,7 +5605,7 @@ def main(argv: Any=None) -> bool | int:
         )
         return 2
 
-    app = RouterApplication(args.mode, edit_key)
+    app = RouterApplication(args.mode, edit_key, surface=surface)
 
     # TR-235: the registry check a boot log cannot skip. A missing
     # registry.json used to be invisible at startup — the server served, the
@@ -5571,11 +5713,39 @@ def main(argv: Any=None) -> bool | int:
     if not _check_classifier():
         sys.exit(1)
 
-    if serving_mode == "async":
-        server = RouterHTTPServerAsync((args.host, args.port), app)
-    else:
-        server = RouterHTTPServer((args.host, args.port), app)
+    # TR-276 (AC4): the constructor is the bind point — the socket is bound
+    # here, BEFORE the boot line, the readiness log, signals and the serve
+    # loop — so a second process on a taken port dies here, loudly, naming
+    # the port: the silent second instance REVIEW-TR-001 found can never
+    # happen again. allow_reuse_address (TIME_WAIT reuse) is untouched; a
+    # LIVE listener still refuses the bind with EADDRINUSE.
+    try:
+        if serving_mode == "async":
+            server = RouterHTTPServerAsync((args.host, args.port), app)
+        else:
+            server = RouterHTTPServer((args.host, args.port), app)
+    except OSError as exc:
+        if getattr(exc, "errno", None) == errno.EADDRINUSE:
+            print(
+                f"router_server: port {args.port} already in use",
+                file=sys.stderr,
+            )
+            return 2
+        raise
     actual_host, actual_port = server.server_address[:2]
+    # TR-276: the boot line the row asks for — one INFO line naming the
+    # surface, the bound port and the loaded commit, so "which process is
+    # this" is answered by the log, not by guessing a port.
+    try:
+        boot_commit = str(router_health.health(mode=args.mode).get(
+            "commit", "unknown") or "unknown")
+    except Exception:  # noqa: BLE001 — identity is advisory, never a boot blocker
+        boot_commit = "unknown"
+    print(
+        f"router_server mode={surface} port={actual_port} "
+        f"commit={boot_commit}",
+        flush=True,
+    )
     print(
         json.dumps(
             {
@@ -5583,6 +5753,7 @@ def main(argv: Any=None) -> bool | int:
                 "host": actual_host,
                 "port": actual_port,
                 "mode": args.mode,
+                "surface": surface,
                 "serving": serving_mode,
             }
         ),

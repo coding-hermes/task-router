@@ -480,3 +480,220 @@ def test_resolve_neither_project_nor_profile_is_400(server_env):
         assert code == 400, payload
         assert payload["error"] == "project query parameter is required"
 
+
+# ---------------------------------------------------------------------------
+# TR-276 — one binary, explicit surface modes (api | proxy | ui | all)
+# ---------------------------------------------------------------------------
+
+#: The contextmanager's --mode stays the AUTH axis; --surface is the new
+#: TR-276 axis. Extend the local server fixture instead of duplicating it.
+@contextlib.contextmanager
+def _surface_server(server_env, surface, *, mode="read-only", key=None):
+    port = _free_port()
+    env = dict(server_env)
+    if key is None:
+        env.pop("ROUTER_EDIT_API_KEY", None)
+    else:
+        env["ROUTER_EDIT_API_KEY"] = key
+    proc = subprocess.Popen(
+        [PY, str(SERVER), "--mode", mode, "--surface", surface,
+         "--host", "127.0.0.1", "--port", str(port)],
+        cwd=REPO,
+        env=env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    try:
+        deadline = time.monotonic() + 10
+        while time.monotonic() < deadline:
+            if proc.poll() is not None:
+                stdout, stderr = proc.communicate()
+                pytest.fail(f"server exited {proc.returncode}: {stdout} {stderr}")
+            try:
+                status, _ = _request(port, "/status")
+                if status == 200:
+                    break
+            except OSError:
+                time.sleep(0.05)
+        else:
+            pytest.fail("server did not become ready")
+        yield port
+    finally:
+        proc.terminate()
+        try:
+            proc.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            proc.wait(timeout=5)
+
+
+def test_health_names_surface_commit_cache_generation_and_admission(server_env):
+    """AC1+AC2: /health is ONE typed payload that answers which mode this
+    process is, what it loaded, its cache generation and its admission
+    headroom — 'am I hitting the right process' stops being a port guess."""
+    with _server(server_env) as port:
+        code, payload = _request(port, "/health")
+    assert code == 200
+    # the four keys this row gates on — present, typed, back-compat additive
+    assert {"surface_mode", "commit", "cache_generation", "admission"} <= set(payload)
+    assert payload["surface_mode"] in ("api", "proxy", "ui", "all")
+    assert payload["surface_mode"] == "all"          # default surface, back-compat
+    assert isinstance(payload["commit"], str) and payload["commit"]
+    assert isinstance(payload["cache_generation"], int)
+    assert payload["cache_generation"] >= 0
+    assert isinstance(payload["source_sha"], str) and payload["source_sha"]
+    admission = payload["admission"]
+    assert isinstance(admission["max_in_flight"], int)
+    assert isinstance(admission["current_in_flight"], int)
+    assert admission["max_in_flight"] == admission["max_inflight"]
+    assert admission["current_in_flight"] == admission["inflight"]
+    # existing fields survive (the payload GROWS, never reshapes)
+    assert payload["status"] == "ok"
+    assert payload["mode"] == "read-only"            # AUTH axis unchanged
+    assert payload["code"]["loaded_commit"] == payload["commit"]
+    assert payload["code"]["loaded_source_sha"] == payload["source_sha"]
+
+
+def test_surface_modes_serve_their_surface_and_refuse_other_mutations(server_env):
+    """AC3: per mode — the surface serves its reads, and a mutation aimed at
+    a surface it does not own is a 403 with a reason, NEVER a 500."""
+    mutations = {
+        "ui": "/circuit/record",       # the UI plane owns no mutations
+        "api": "/v1/chat/completions", # the proxy's route, not the API's
+        "proxy": "/circuit/record",    # a control-plane write, not the proxy's
+    }
+    for surface, wrong_path in mutations.items():
+        with _surface_server(server_env, surface) as port:
+            # the surface serves its own READ surface
+            code, health = _request(port, "/health")
+            assert code == 200, (surface, health)
+            assert health["surface_mode"] == surface
+            for read_path in ("/status", "/openapi.json"):
+                code, payload = _request(port, read_path)
+                assert code == 200, (surface, read_path, payload)
+            # ...and refuses a mutation it does not own: 403 + reason, not 500
+            body = {"provider": "tr276", "model": "m", "outcome": "failure"}
+            if wrong_path == "/v1/chat/completions":
+                body = {"messages": [{"role": "user", "content": "tr276 probe"}]}
+            code, payload = _request(port, wrong_path, method="POST", body=body)
+            assert code == 403, (surface, wrong_path, code, payload)
+            assert payload["error"] == f"{surface} mode is read-only", payload
+            assert isinstance(payload["reason"], str) and payload["reason"]
+            # the refused write wrote nothing: the store still answers, and no
+            # tr276 pair exists in it
+            code, circuits = _request(port, "/circuit/status")
+            assert code == 200
+            assert not any(
+                row["pair"].startswith("tr276/") for row in circuits["pairs"])
+
+    # proxy surface: its OWN mutation flows through (let-through proof) —
+    # the /listings append reaches the handler and appends with a key.
+    with _surface_server(server_env, "proxy", mode="edit", key="secret276") as port:
+        code, payload = _request(
+            port, "/listings/profile", method="POST", key="secret276",
+            body={"id": "TR276_PROFILE", "title": "TR-276 proxy let-through"})
+        assert code == 200, payload
+        assert payload["appended"] is True
+        # a GET the UI plane owns still answers on the proxy (additive reads);
+        # /ui is HTML, so this one is fetched raw rather than JSON-parsed.
+        with urllib.request.urlopen(
+                f"http://127.0.0.1:{port}/ui", timeout=15) as resp:
+            assert resp.status == 200
+            assert b"</html>" in resp.read().lower()
+
+    # ui surface: EVERY mutation verb is refused at the gate — including
+    # methods that would otherwise 405 — so a read-only instance can never
+    # leak a 500 from a handler it was never meant to serve.
+    with _surface_server(server_env, "ui") as port:
+        for method in ("POST", "PUT", "DELETE", "PATCH"):
+            code, payload = _request(
+                port, "/anything-at-all", method=method,
+                body={"x": "tr276"} if method in ("POST", "PUT", "PATCH") else None)
+            assert code == 403, (method, code, payload)
+            assert payload["error"] == "ui mode is read-only"
+
+
+def test_surface_all_keeps_every_route_and_the_auth_refusal(server_env):
+    """Default --surface all is back-compat: every POST answers as before,
+    and the pinned read-only AUTH refusal keeps its exact shape (the muster
+    battery greps the text 'read-only mode' on :9092)."""
+    with _server(server_env) as port:
+        code, health = _request(port, "/health")
+        assert health["surface_mode"] == "all"
+        body = {"provider": "tr276-all", "model": "m", "outcome": "failure"}
+        code, payload = _request(
+            port, "/circuit/record", method="POST", body=body)
+        assert code == 403
+        assert payload["error"] == "read-only mode"      # AUTH body, pinned
+        assert payload["reason"]                         # + the new reason
+        # ...and with the key, the mutation runs exactly as before
+    with _server(server_env, mode="edit", key="secret123") as port:
+        code, payload = _request(
+            port, "/circuit/record", method="POST", body=body, key="secret123")
+        assert code == 200 and payload["ok"] is True
+
+
+def test_surface_mode_normalization_and_aliases():
+    sys.path.insert(0, str(REPO / "scripts"))
+    import router_server as rsrv
+    assert rsrv.normalize_surface_mode("API") == "api"
+    assert rsrv.normalize_surface_mode("all") == "all"
+    assert rsrv.normalize_surface_mode("proxy-server") == "proxy"
+    assert rsrv.normalize_surface_mode("ui-server") == "ui"
+    assert rsrv.normalize_surface_mode("api-server") == "api"
+
+
+def test_surface_gate_refuses_in_process_before_any_handler():
+    """The gate sits in dispatch (the chokepoint MCP also flows through), so
+    an in-process app refuses exactly like a served one."""
+    sys.path.insert(0, str(REPO / "scripts"))
+    import router_server as rsrv
+    app_ui = rsrv.RouterApplication("read-only", "", surface="ui")
+    status, payload = app_ui.dispatch(
+        "POST", "/circuit/record",
+        body={"provider": "p", "model": "m", "outcome": "failure"}, headers={})
+    assert status == 403
+    assert payload["error"] == "ui mode is read-only"
+    assert payload["reason"]
+
+    app_api = rsrv.RouterApplication("read-only", "", surface="api")
+    status, payload = app_api.dispatch(
+        "POST", "/v1/chat/completions",
+        body={"messages": [{"role": "user", "content": "x"}]}, headers={})
+    assert status == 403 and payload["error"] == "api mode is read-only"
+    # the api surface's one let-through (listing appends) reaches the AUTH
+    # gate, not the surface gate: the pinned auth body proves the pass.
+    status, payload = app_api.dispatch(
+        "POST", "/listings/profile", body={}, headers={})
+    assert status == 403 and payload["error"] == "read-only mode"
+
+    app_proxy = rsrv.RouterApplication("read-only", "", surface="proxy")
+    status, payload = app_proxy.dispatch(
+        "POST", "/circuit/record",
+        body={"provider": "p", "model": "m", "outcome": "failure"}, headers={})
+    assert status == 403 and payload["error"] == "proxy mode is read-only"
+
+
+def test_second_bind_on_the_same_port_fails_loudly(server_env):
+    """AC4: starting twice on the same port exits non-zero and its stderr
+    names the port — the silent second instance cannot happen again."""
+    with _server(server_env) as port:
+        proc = subprocess.Popen(
+            [PY, str(SERVER), "--host", "127.0.0.1", "--port", str(port)],
+            cwd=REPO,
+            env=dict(server_env),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        try:
+            stdout, stderr = proc.communicate(timeout=15)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            proc.communicate()
+            pytest.fail("second server kept running on an already-bound port")
+    assert proc.returncode != 0
+    assert f"port {port} already in use" in stderr
+    assert "listening" not in (stdout or "")
+
