@@ -1,0 +1,30 @@
+{
+  "tick_id": "task-router-foreman-2026-10-29-03-08-41",
+  "project": "task-router",
+  "workdir": "/home/kara/task-router",
+  "control_worktree": "/home/kara/task-router-wt-foreman-20261029-030841",
+  "created_at": "2026-10-28T22:15:45-05:00",
+  "wave_budget": 12,
+  "mode": "serial-owner-gated",
+  "wave_size": 0,
+  "reason": "Highest-priority pending P0 row RELEASE-2026-10-22-001 is owner-authorization gated. Its four dependencies are complete, but no explicit owner authorization naming task-router, release version, and baseline SHA is present. No implementation, release mutation, or worker dispatch is authorized.",
+  "census": {
+    "board_source": ".coding-hermes/board/tasks.jsonl",
+    "board_physical_rows": 387,
+    "board_unique_task_ids": 385,
+    "selected": "RELEASE-2026-10-22-001",
+    "selected_status": "pending",
+    "selected_priority": "P0",
+    "selected_dependencies": {
+      "TR-341": "complete",
+      "TR-344": "complete",
+      "QA-TASKROUTER-2": "complete",
+      "XK-404-001-R2": "complete"
+    },
+    "eligible_independent_implementation_rows": 0
+  },
+  "workers": [],
+  "gitreins": "none:owner-authorization-gated",
+  "dispatch": "none:owner-authorization-gated",
+  "next_owner_action": "Explicitly authorize task-router, name the release version, and name the baseline SHA before any version-prep commit, tag, or GitHub Release mutation."
+}
