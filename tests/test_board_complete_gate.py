@@ -150,6 +150,56 @@ def test_evidence_none_field_is_stated_null():
     assert gate.evaluate(row) == []
 
 
+# ------------------------------------------- structured evidence (SCHED-GAP) #
+# The board's structured form — a LIST OF OBJECTS carrying kind/artifact/commit/
+# witness — was unreadable by the gate: `_evidence_item_ok` accepted only str,
+# so a row that named its artifact path AND a stated-reason witness was refused
+# as "unbound". Measured live 2026-10-29: TR-280's completion was refused and
+# main's CI stayed red for 7h on a row whose evidence names
+# docs/decisions/tr-280-python-not-go.md.
+
+def test_structured_evidence_with_artifact_is_bound():
+    row = base_row(status='complete', acceptance_criteria=GOOD_CRITERIA,
+                   evidence=[{'kind': 'decision-record',
+                              'artifact': 'docs/decisions/tr900-python-not-go.md',
+                              'commit': 'fdbd469', 'verdict': '241bf06e',
+                              'witness': 'none:docs-only ADR, no measurable outcome'}])
+    ok, why = gate.evidence_state(row)
+    assert ok is True, why
+    assert 'tr900-python-not-go.md' in why
+    assert gate.evaluate(row) == []
+
+
+def test_structured_evidence_with_evidence_run_id_is_bound():
+    row = base_row(status='complete', acceptance_criteria=GOOD_CRITERIA,
+                   evidence=[{'kind': 'ci-run', 'run_id': '36953390462',
+                              'conclusion': 'success'}])
+    assert gate.evaluate(row) == []
+
+
+def test_structured_evidence_with_a_measured_detail_is_bound():
+    row = base_row(status='complete', acceptance_criteria=GOOD_CRITERIA,
+                   evidence=[{'kind': 'measurement',
+                              'detail': 'p50 412ms p99 1100ms over 500 calls'}])
+    assert gate.evaluate(row) == []
+
+
+@pytest.mark.parametrize('item', [
+    {'kind': 'note', 'text': 'looks good to me'},
+    {'kind': 'claim', 'artifact': 'the tests pass'},
+    {'artifact': ''},
+    {'witness': 'none:'},
+])
+def test_structured_evidence_that_binds_nothing_is_still_refused(item):
+    """The structured form must not become a rubber stamp."""
+    row = base_row(status='complete', acceptance_criteria=GOOD_CRITERIA,
+                   evidence=[item])
+    ok, why = gate.evidence_state(row)
+    assert ok is False and 'evidence' in why
+    assert gate.evaluate(row)
+
+
+
 def test_gate_row_raises_with_named_fields():
     with pytest.raises(gate.CompletionGateError) as ei:
         gate.gate_row(base_row(status='complete'))

@@ -131,7 +131,18 @@ def criteria_state(row: dict) -> tuple[bool, str]:
 # ----------------------------------------------------------------- evidence #
 
 def _evidence_item_ok(item: object) -> bool:
-    """One evidence string: measured number | artifact path | stated NULL."""
+    """One evidence item: measured number | artifact path | stated NULL.
+
+    Both forms the board actually carries:
+      * a STRING ('docs/x.md', 'CI run 36953390462: 1443 passed', 'none:<why>');
+      * a STRUCTURED object ({kind, artifact, commit, verdict, witness, ...}) —
+        the shape every board_complete/writer emits, and the one the gate could
+        not read: it accepted only str, so a row naming its artifact path AND a
+        stated-reason witness was refused as "unbound" (measured 2026-10-29:
+        main's CI red for 7h on TR-280's decision-record evidence).
+    """
+    if isinstance(item, dict):
+        return _structured_evidence_ok(item)
     if not isinstance(item, str):
         return False
     t = item.strip()
@@ -143,6 +154,44 @@ def _evidence_item_ok(item: object) -> bool:
         return True
     if '/' in t or ARTIFACT_EXT.search(t):  # names an artifact path
         return True
+    return False
+
+
+#: Keys whose VALUE can bind evidence when it is a number, a measured statement
+#: or a path. Enumerated rather than "any string in the object": the structured
+#: form must not become a rubber stamp for prose like {'kind': 'note'}.
+_EVIDENCE_TEXT_KEYS = ('artifact', 'artifact_path', 'path', 'locator', 'url',
+                       'witness', 'detail', 'note', 'summary', 'claim', 'text')
+_EVIDENCE_RUN_KEYS = ('run_id', 'evidence_run_id', 'run_ids', 'runs')
+_EVIDENCE_NUMBER_KEYS = ('measured', 'measurement', 'number', 'value', 'metric')
+
+
+def _evidence_value_ok(value: object) -> bool:
+    """A scalar (or list of scalars) evidence value that BINDS something."""
+    if isinstance(value, bool):
+        return False
+    if isinstance(value, (int, float)):
+        return True                          # a measurement
+    if isinstance(value, str):
+        return _evidence_item_ok(value)      # number | path | none:<reason>
+    if isinstance(value, (list, tuple)):
+        return any(_evidence_value_ok(v) for v in value)
+    return False
+
+
+def _structured_evidence_ok(item: dict) -> bool:
+    """A structured evidence object binds when it names an evidence run, a
+    measurement, a locator/path, or a stated-reason NULL in a known field."""
+    for key in _EVIDENCE_RUN_KEYS:
+        v = item.get(key)
+        if isinstance(v, (str, int)) and not isinstance(v, bool) and str(v).strip():
+            return True
+    for key in _EVIDENCE_NUMBER_KEYS:
+        if key in item and _evidence_value_ok(item.get(key)):
+            return True
+    for key in _EVIDENCE_TEXT_KEYS:
+        if key in item and _evidence_value_ok(item.get(key)):
+            return True
     return False
 
 
