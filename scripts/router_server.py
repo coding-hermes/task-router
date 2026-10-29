@@ -4843,7 +4843,11 @@ def _proxy_chat_inner(path: Any, body: Any, headers: Any, max_hops: Any=None, up
         # DEGRADED fallback (its ladder row carries requirements_unmet). Stamp it
         # so the budget site can leash the hop to ROUTER_DEGRADED_WALL_S; the
         # stamp is stripped before the request leaves this layer.
-        if hop.get('requirements_unmet') or hop.get('degraded'):
+        # TR-194 names the two keys a resolver marks a fallback hop with; accept
+        # both (and the explicit `degraded`) so a resolver that reports either
+        # shape activates the leash instead of silently riding the full wall.
+        if (hop.get('requirements_unmet') or hop.get('fallback')
+                or hop.get('degraded')):
             fwd_headers[_HOP_DEGRADED_HEADER] = '1'
         if dl_declared_b:
             for alias in ROUTER_PROXY_DEADLINE_HEADER_ALIASES:
