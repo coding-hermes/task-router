@@ -55,9 +55,46 @@ condition it exists to report is worse than useless.
   "circuit":       { /* circuit-breaker / policy-gate pairs */ },
   "chains_snapshot": { /* newest data/state/chains/<date>.md */ },
   "admission":     { /* TR-172: proxy admission counters + the ceiling */ },
-  "serving":       { /* TR-274: which serving path is active (see below) */ }
+  "serving":       { /* TR-274: which serving path is active (see below) */ },
+  "coverage":      { /* SCHED-GAP-16942: how much of the chain is MEASURED */ }
 }
 ```
+
+### `coverage` — how much of the chain is measured
+
+The resolver only orders a chain by measured cost-per-task once enough of it
+carries measurement (`MEASURED_MIN_COVERAGE`, `ROUTER_SORT_MIN_COVERAGE`,
+default `0.5`). `coverage` publishes that fraction so the question "how much of
+this chain is measured?" is answerable without reading the outcomes store.
+
+| Field | Meaning |
+|-------|---------|
+| `coverage` | `measured / lanes`, rounded to 4 dp — the resolver's own number |
+| `basis` | `predicted_cost_per_task` when `coverage >= floor`, else `price-first` |
+| `reason` | the sentence an operator reads: basis, the **measured fraction**, the floor |
+| `floor` | the bar in force for this call (`ROUTER_SORT_MIN_COVERAGE`) |
+| `lanes` / `measured` / `unmeasured` | the denominator and its split |
+| `completion_known` | lanes whose outcomes are known — the ONLY lanes a rate may divide by |
+| `denominator` | `enabled-registry-lanes`: a disabled lane is not unmeasured capacity |
+| `source` / `error` | the rolling-averages path, its row count, and a NAMED failure |
+
+The number is computed by the resolver's own machinery (`load_outcome_stats` +
+`lane_expected_value` + the same sample floor), never by a second definition: a
+status page that disagreed with the sorter would be worse than no page.
+
+`GET /model_status` carries the same block per provider **and** a
+`measurement` object on every lane:
+
+```json
+{"basis": "measured-raw|blended-raw|measured-completed|blended-completed|no-sample",
+ "measured": false, "n_samples": 0, "n_completed": 0, "n_success_known": 0,
+ "success_rate": null, "cost_per_task_window": null, "window_h": 24,
+ "floor_samples": 3, "match": null}
+```
+
+A lane with no sample reports `n_samples: 0` and `success_rate: null` — **never
+`0.0`**. Unmeasured is not failure; only lanes with known outcomes enter a rate
+denominator.
 
 ### `serving` — which serving path the process runs (TR-274)
 
