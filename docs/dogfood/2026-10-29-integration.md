@@ -22,7 +22,7 @@ No PERF row was filed. CLI help was 0.04s, status 0.25s, validate 0.07s, spawn 0
 
 ## Fresh-machine install leg
 
-The bunker-mvp host was reachable. `bunker-qa.sh launch` created agent d28dbe43 and recorded HEAD 46c7308fc36ab73bfe15696813e56caa794b1099 in `/tmp/task-router-bunker-20261029-055952.jsonl`. At close, the battery was still running: its log had HARNESS-COMPOSE=ok and HARNESS_NODE=ok, but no completion marker. `bunker-qa.sh collect --evidence /tmp/task-router-bunker-20261029-055952.jsonl` returned `RUNNING` and correctly left the agent intact. This install leg is PARTIAL and must not be reported as a pass.
+The bunker-mvp host was reachable. `bunker-qa.sh launch` created agent d28dbe43 and recorded HEAD 46c7308fc36ab73bfe15696813e56caa794b1099 in `/tmp/task-router-bunker-20261029-055952.jsonl`. The first collect observed RUNNING, then a later collect completed and destroyed agent d28dbe43. Final evidence had 21 rows: fresh-install OK (build-only install; duckdb-2.0.0, pyyaml-6.0.3, task-router-0.2.0), but ci-pass FAIL after 24m31s with `FAILED tests/test_classifier_lane_failover.py::test_429_still_retries_primary_first`; chaos-disconnect was UNVERIFIED because ci-pass failed, and chaos-resource was INFO with 1 failed / 174 passed / 6 skipped under the 3,145,728 KB cap. Therefore the install artifact itself passed, but the fresh-machine suite is not green and the overall install leg is FAIL/PARTIAL rather than a pass. Agent teardown was verified by the collector's final row; recheck the server list before claiming zero residue.
 
 ## Findings
 
