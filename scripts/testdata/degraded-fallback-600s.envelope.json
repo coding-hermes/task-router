@@ -1,0 +1,52 @@
+{
+  "_note": "Measured 2026-10-29 from schedulerd's journal: a gateway POST for tick mischief-chaos-2026-10-29-02-40-57 returned HTTP 502 after 600.38s. This is the _router envelope the response carried, trimmed to the fields the degraded-wall claim needs. Provider keys are not present in it (the envelope never carries credentials).",
+  "complexity_source": "classifier",
+  "sort": "predicted_cost_per_task",
+  "chain_length": 1,
+  "max_hops": 3,
+  "ladder": [
+    {
+      "hop": 1,
+      "provider": "deepseek-foreman",
+      "model": "deepseek-flash",
+      "wire_id": "deepseek-flash",
+      "usd_1m": 0.375,
+      "stats_fallback": null,
+      "latency_s": 600.093,
+      "status": 0,
+      "reason": "hop-wall-timeout",
+      "reason_detail": "timed out",
+      "outcome": "timeout",
+      "timeout_kind": "hop-wall-timeout",
+      "retry_policy": "skip",
+      "tokens_in": null,
+      "tokens_out": null,
+      "cost_usd": null,
+      "price_basis": "no usage block; price not applied"
+    }
+  ],
+  "exclusions": [
+    {"hop": 1, "provider": "commandcode-2", "model": "tencent/hy4-preview", "why": ["health DOWN (2026-10-29T03:00:58+00:00)"], "codes": ["health-down"]},
+    {"hop": 2, "provider": "openrouter", "model": "tencent/hy4-preview", "why": ["circuit OPEN until 2026-10-29T03:13:06+00:00 (2 failures)"], "codes": ["circuit-open"]},
+    {"hop": 3, "provider": "commandcode", "model": "tencent/hy4-preview", "why": ["health DOWN (2026-10-29T03:00:58+00:00)"], "codes": ["health-down"]},
+    {"hop": 4, "provider": "commandcode", "model": "zai-org/GLM-5.3", "why": ["health DOWN (2026-10-29T03:00:58+00:00)"], "codes": ["health-down"]},
+    {"hop": 5, "provider": "commandcode-2", "model": "zai-org/GLM-5.3", "why": ["health DOWN (2026-10-29T03:00:58+00:00)"], "codes": ["health-down"]},
+    {"hop": 6, "provider": "commandcode", "model": "gpt-6.1-sol", "why": ["health DOWN (2026-10-29T03:00:58+00:00)"], "codes": ["health-down"]}
+  ],
+  "gate_reasons": [
+    "hop 1 commandcode-2/tencent/hy4-preview: health DOWN (2026-10-29T03:00:58+00:00)",
+    "hop 2 openrouter/tencent/hy4-preview: circuit OPEN until 2026-10-29T03:13:06+00:00 (2 failures)",
+    "hop 3 commandcode/tencent/hy4-preview: health DOWN (2026-10-29T03:00:58+00:00)",
+    "hop 4 commandcode/zai-org/GLM-5.3: health DOWN (2026-10-29T03:00:58+00:00)",
+    "hop 5 commandcode-2/zai-org/GLM-5.3: health DOWN (2026-10-29T03:00:58+00:00)",
+    "hop 6 commandcode/gpt-6.1-sol: health DOWN (2026-10-29T03:00:58+00:00)",
+    "FALLBACK: all 6 eligible hops gated — using deepseek-foreman/deepseek-flash (always-run lane; DEGRADED — requirements_unmet: [('terminal', 1, 0), ('tool_use', 1, 0)])"
+  ],
+  "exhausted": true,
+  "terminal_reason": "hop-wall-timeout",
+  "hops_attempted": 1,
+  "wall_time_s": 600.355,
+  "idle_budget_s": 1800.0,
+  "wall_ceiling_s": 3600.0,
+  "hermes_idle_timeout_s": 300.0
+}
