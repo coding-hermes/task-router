@@ -146,7 +146,14 @@ router circuit record-success <provider> <model>
 - **Scratch seeds stay out of the live DuckBrain mirror** — the `router` CLI
   exports `ROUTING_NS` under the data home for the seed subprocess, and
   `router_maintain.py` setdefaults its seed child the same way (setdefault
-  semantics: an explicit `ROUTING_NS` wins; TR-045). Only direct
+  semantics: an explicit `ROUTING_NS` wins; TR-045). The exported namespace
+  must already contain the mirrored `tables/` files; on a fresh clone with no
+  namespace mirror, `router seed` currently fails with `No such file or
+  directory: <data-home>/ns/routing/tables/providers.jsonl` before creating
+  `registry.json` (dogfood HEAD 46c7308, 2026-10-29). Until fixed, use the
+  repository's `data/tables` as the seed source without pointing `ROUTING_NS`
+  at an empty directory, and do not treat fallback `status` as a seeded
+  registry. Only direct
   `scripts/router_seed.py` runs need care: with `ROUTING_NS` unset they
   resolve under the data home's scratch ns, never the fleet mirror (TR-048)
   — set `ROUTING_NS` explicitly to place them elsewhere.
@@ -284,3 +291,11 @@ The project publishes quality in a machine-readable artifact; know which number 
 - The package entry point is `router`, not `toolsd`; a generic harness that checks only `toolsd` can falsely report install failure.
 - For isolated CLI runs export HOME, TASK_ROUTER_HOME, ROUTER_STATE_DIR, and ROUTING_DATA_DIR deliberately. Unknown-project resolution is fail-open: JSON error plus rc=0.
 - For API evidence start `router server --mode read-only --host 127.0.0.1 --port <port>` and compare `/health` loaded commit with checkout HEAD; the shared default server may be stale.
+
+## Dogfood run 40 (2026-10-29)
+
+Use an isolated HOME together with TASK_ROUTER_HOME and ROUTER_STATE_DIR, then run `router seed` before trusting status or spawn. On task-router HEAD 46c7308, the local path was verified with `router validate` (14/14 checks), `router spawn --profile P0_FORE --format json --quiet` (50-hop chain), and the raw-level request `--profile-req 'reasoning=5 debug=3 min_context=100000'` (93-hop chain). Unknown-project resolution remains fail-open: rc=0 plus a JSON `error` and no head.
+
+For API use, start `router server --mode read-only --host 127.0.0.1 --port <scratch-port>` and verify `/health`, `/openapi.json`, `/profiles`, and `/resolve`. Compare `/health`'s `code.loaded_commit` with the checkout HEAD; the scratch run reported equal commits and `stale=false`. A read-only execution-decision POST is expected to return HTTP 403.
+
+The generic `bunker-qa.sh` install leg must be run against the primary git checkout, not a detached worktree that the helper rejects as non-repository. A completed package install does not prove the whole battery: inspect per-cell evidence and the agent logs. If the battery is truncated before the full suite/chaos cells, classify it incomplete even when the fresh-install cell says rc=0. Teardown is not proven by destroy output alone: retry after stopping owned operator processes, then require `bunker info <agent>` to return `not_found`.
