@@ -1609,8 +1609,12 @@ def _model_family_stats(ctx: Any, model: Any) -> dict | None:
     for (prov, mod), grows in (ctx.get('index') or {}).items():
         if mod == model:
             rows.extend(grows)
-    if not rows:
-        return None
+    return _summed_record(rows, model) if rows else None
+
+
+def _summed_record(rows: Any, model: Any) -> dict:
+    """One honest bucket over `rows`: counts summed, rate from the totals.
+    `provider` = the heaviest witness (most known outcomes, then samples)."""
     n = sum((r.get('n_samples') or 0) for r in rows)
     known = sum((r.get('n_success_known') or 0) for r in rows)
     completed = sum((r.get('n_completed') or 0) for r in rows)
@@ -1625,17 +1629,25 @@ def _model_family_stats(ctx: Any, model: Any) -> dict | None:
 def _lane_outcomes_record(m: Any, ctx: Any) -> dict | None:
     """TR-354: the record a lane is JUDGED on — its own rows when the store
     has any, else the model family's aggregate. Returns {source, row} where
-    source is 'lane' or 'model-family', or None when nobody measured the
-    model at all. The stats-read seam for the outcome-floor gate, so the
-    gate and the per-hop provenance note can never disagree. Accepts either
-    a lane dict or a _build_chain row tuple (hop, provider, model, ...)."""
+    source is 'lane' or 'model-family'. The LANE view sums EVERY bucket the
+    store holds for the pair (a head-eligibility verdict reads the lane's
+    total record, not one complexity bucket — a thin bucket would hide 417
+    known outcomes behind a 3-known row), and the family view merges every
+    provider id measuring the same model. Accepts either a lane dict or a
+    _build_chain row tuple (hop, provider, model, ...)."""
     if isinstance(m, tuple):
         m = {'provider': m[1], 'model': m[2]}
     index = ctx.get('index') or {}
-    own = index.get((m.get('provider'), m.get('model'))) or []
+    model = m.get('model')
+    own = index.get((m.get('provider'), model)) or []
+    # The gate is a HEAD-eligibility verdict ('may this lane serve THIS
+    # tick'), so it reads the lane's TOTAL own record — every bucket summed
+    # — never one bucket the per-metric ladder happened to pick for one
+    # metric (a thin complexity bucket would hide 417 known outcomes behind
+    # a 3-known row, the exact per-lane blindness this gate exists to fix).
     if own:
-        return {'source': 'lane', 'row': own[0]}
-    fam = _model_family_stats(ctx, m.get('model'))
+        return {'source': 'lane', 'row': _summed_record(own, model)}
+    fam = _model_family_stats(ctx, model)
     if fam is not None:
         return {'source': 'model-family', 'row': fam}
     return None
