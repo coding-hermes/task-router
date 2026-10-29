@@ -136,8 +136,13 @@ def rollup(rows: Any, grouping: str='model_band'):
     """Aggregate rows into {key: metrics}.
 
     grouping 'model_band' keys by (provider, model, band); 'model' collapses the
-    band; 'band' collapses the lane. Each entry carries its sample counts so a
-    thin average cannot masquerade as a strong one.
+    band; 'band' collapses the lane; 'model_family' (TR-354) collapses the
+    PROVIDER too — every provider id that measured the same weights lands in
+    one bucket (`family:<model>`), because provider ids multiply (xkiro vs
+    xkiro-2) and per-lane views hide the model's real record. Each entry
+    carries its sample counts so a thin average cannot masquerade as a strong
+    one; family entries additionally disclose `family_providers` and
+    `samples_by_provider`, with `provider` = the heaviest witness.
     """
     buckets = {}
     for row in rows:
@@ -146,6 +151,8 @@ def rollup(rows: Any, grouping: str='model_band'):
         band, band_source = band_for(row)
         if grouping == 'model':
             key = f'{provider}/{model}'
+        elif grouping == 'model_family':
+            key = f'family:{model}'
         elif grouping == 'band':
             key = band or 'unknown'
         else:
@@ -156,8 +163,10 @@ def rollup(rows: Any, grouping: str='model_band'):
                                      'metered_samples': 0,
                                      '_cost': [], '_steps': [], '_wall': [],
                                      '_cache_read': 0, '_tokens_in': 0,
-                                     '_failure_reasons': {}})
+                                     '_failure_reasons': {},
+                                     '_providers': {}})
         b['samples'] += 1
+        b['_providers'][provider] = b['_providers'].get(provider, 0) + 1
         if row.get('success') is True:
             b['successes'] += 1
         if isinstance(row.get('cost_usd'), (int, float)) and not isinstance(row.get('cost_usd'), bool):
@@ -196,6 +205,13 @@ def rollup(rows: Any, grouping: str='model_band'):
             'cache_reason': None if b['_tokens_in'] else 'input tokens not reported',
             'failure_reasons': dict(sorted(b['_failure_reasons'].items())),
         }
+        # TR-354: the family view discloses WHO it merged — a family entry
+        # that silently looked like one provider's lane would be a lie.
+        if grouping == 'model_family':
+            entry['family_providers'] = sorted(b['_providers'])
+            entry['samples_by_provider'] = dict(sorted(b['_providers'].items()))
+            entry['provider'] = max(sorted(b['_providers']),
+                                    key=lambda p: b['_providers'][p])
         if not n:
             entry['success_reason'] = 'no samples in window'
         out[key] = entry

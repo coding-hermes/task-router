@@ -835,7 +835,7 @@ EXCLUSION_REASON_CODES = (
     'health-down', 'health-slow',
     'health-disabled', 'model-down', 'model-slow',
     'circuit-open', 'model-busy', 'training-optin', 'consecutive-cap',
-    'chain-cap', 'duplicate-lane', 'unknown',
+    'chain-cap', 'outcome-floor', 'duplicate-lane', 'unknown',
 )
 
 #: prefix -> code. Ordered: the FIRST match wins, so put the specific before the
@@ -857,6 +857,7 @@ _REASON_PREFIXES = (
     ('training on prompts', 'training-optin'),
     ('consecutive cap', 'consecutive-cap'),
     ('chain cap', 'chain-cap'),
+    ('outcome-floor', 'outcome-floor'),
     ('duplicate', 'duplicate-lane'),
 )
 
@@ -1522,6 +1523,19 @@ def outcome_note(m: Any, ctx: Any):
     note = {'window_h': window, 'matched': match,
             'stats_fallback': _FALLBACK_KIND.get(match, 'weighted-fallback'),
             'stats_source': (ctx.get('meta') or {}).get('source')}
+    # TR-354: a lane with NO own rows borrows the MODEL FAMILY's aggregate
+    # and SAYS SO — a reader must be able to tell a measured lane from a
+    # borrowed record. The borrow is provenance only; it never invents a
+    # value the lane itself did not earn.
+    if row is None:
+        fam = _model_family_stats(ctx, m.get('model'))
+        if fam is not None:
+            note['stats_fallback'] = 'model-family'
+            note['stats_fallback_family'] = fam.get('provider')
+            note['family_n_samples'] = fam.get('n_samples')
+            note['family_n_success_known'] = fam.get('n_success_known')
+            note['family_n_completed'] = fam.get('n_completed')
+            note['family_success_rate'] = fam.get('success_rate')
     if row is not None:
         note['n_samples'] = row.get('n_samples')
         note['complexity_sig'] = row.get('complexity_sig')
@@ -1547,6 +1561,110 @@ def outcome_note(m: Any, ctx: Any):
 
 def _effective_price(m: Any):
     return (m.get('normalized_price') or 0.0) * (m.get('token_factor') or 1.0)
+
+
+#: TR-354 (2026-10-29): the outcome-floor exclusion. A lane whose measured
+#: record is CATASTROPHIC may not head a chain that has an alternative
+#: clearing the same profile. The gate is deliberately two-sided: the record
+#: must be both WELL-KNOWN (>= ROUTER_OUTCOME_FLOOR_MIN_KNOWN, default 8,
+#: independent verdicts) and BAD (completion rate <= ROUTER_OUTCOME_FLOOR_RATE,
+#: default 0.35). Below the known floor a poor rate is thin evidence, not a
+#: verdict — the same doctrine as the TR-183 sample floor. 0 known = unknown
+#: = pass. Settable per spec (positions 6/7) or per environment; the env is
+#: re-read per resolve so ROUTER_OUTCOME_FLOOR_RATE/ROUTER_OUTCOME_FLOOR=0 is
+#: a live kill switch. Spec positions win over env; env wins over defaults.
+
+
+def _outcome_floor_cfg() -> tuple:
+    """(min_known, rate_floor) — the TR-354 floors in force right now.
+
+    ROUTER_OUTCOME_FLOOR=0 (or a min_known of 0) disables the gate entirely;
+    malformed env values fall back to the defaults, never crash a resolve.
+    """
+    try:
+        min_known = max(0, int(os.environ.get('ROUTER_OUTCOME_FLOOR_MIN_KNOWN') or 8))
+    except ValueError:
+        min_known = 8
+    if str(os.environ.get('ROUTER_OUTCOME_FLOOR') or '') == '0':
+        min_known = 0
+    try:
+        rate = max(0.0, float(os.environ.get('ROUTER_OUTCOME_FLOOR_RATE') or 0.35))
+    except ValueError:
+        rate = 0.35
+    return min_known, rate
+
+
+def _model_family_stats(ctx: Any, model: Any) -> dict | None:
+    """TR-354: the MODEL FAMILY's aggregate stats, across every provider id.
+
+    Outcome rows are keyed (provider, model), and provider ids multiply —
+    xkiro vs xkiro-2 measured the SAME weights, so the catastrophic record
+    lived under `xkiro` while the chain carried `xkiro-2` and per-lane
+    gating saw nothing. The family view merges every provider's rows for the
+    model into one honest bucket (sample counts summed, rate recomputed from
+    the totals — never averaged as equals, the merge_average_rows rule).
+    None when nobody measured the model; never zeros, never guessed.
+    """
+    rows = []
+    for (prov, mod), grows in (ctx.get('index') or {}).items():
+        if mod == model:
+            rows.extend(grows)
+    if not rows:
+        return None
+    n = sum((r.get('n_samples') or 0) for r in rows)
+    known = sum((r.get('n_success_known') or 0) for r in rows)
+    completed = sum((r.get('n_completed') or 0) for r in rows)
+    heaviest = max(rows, key=lambda r: (r.get('n_success_known') or 0,
+                                        r.get('n_samples') or 0))
+    return {'provider': heaviest.get('provider'), 'model': model,
+            'n_samples': n, 'n_success_known': known, 'n_completed': completed,
+            'success_rate': (completed / known) if known else None,
+            'providers': sorted({str(r.get('provider')) for r in rows})}
+
+
+def _lane_outcomes_record(m: Any, ctx: Any) -> dict | None:
+    """TR-354: the record a lane is JUDGED on — its own rows when the store
+    has any, else the model family's aggregate. Returns {source, row} where
+    source is 'lane' or 'model-family', or None when nobody measured the
+    model at all. The stats-read seam for the outcome-floor gate, so the
+    gate and the per-hop provenance note can never disagree. Accepts either
+    a lane dict or a _build_chain row tuple (hop, provider, model, ...)."""
+    if isinstance(m, tuple):
+        m = {'provider': m[1], 'model': m[2]}
+    index = ctx.get('index') or {}
+    own = index.get((m.get('provider'), m.get('model'))) or []
+    if own:
+        return {'source': 'lane', 'row': own[0]}
+    fam = _model_family_stats(ctx, m.get('model'))
+    if fam is not None:
+        return {'source': 'model-family', 'row': fam}
+    return None
+
+
+def _outcome_floor_scan(lanes: Any, ctx: Any, min_known: Any, rate_floor: Any) -> list:
+    """TR-354 pre-pass: which eligible lanes does the outcome-floor gate
+    exclude? Returns [{provider, model, source, n_success_known,
+    n_completed, success_rate}] — the audit rows the gate reasons carry.
+    Lanes may be dicts or _build_chain row tuples. Fail-open: a malformed
+    row excludes NOTHING and never raises."""
+    excluded = []
+    for m in lanes or []:
+        rec = _lane_outcomes_record(m, ctx)
+        if rec is None:
+            continue
+        row = rec.get('row') or {}
+        known = row.get('n_success_known')
+        known = known if isinstance(known, int) and not isinstance(known, bool) else 0
+        rate = row.get('success_rate')
+        rate = rate if isinstance(rate, (int, float)) and not isinstance(rate, bool) else None
+        if known >= min_known and rate is not None and rate <= rate_floor:
+            prov, model = ((m[1], m[2]) if isinstance(m, tuple)
+                           else (m.get('provider'), m.get('model')))
+            excluded.append({'provider': prov, 'model': model,
+                             'source': rec.get('source'),
+                             'n_success_known': known, 'n_completed': row.get('n_completed'),
+                             'success_rate': rate})
+    return excluded
 
 
 def _lane_price_basis(m: Any) -> str | None:
@@ -1946,6 +2064,19 @@ def _tr174_sort(arg: Any, lanes: Any, ctx: Any):
     blend_ceil, blend_w = _blend_cfg(parts)
     floor = max(0, floor)
     min_cov = max(0.0, min_cov)
+    # TR-354: spec positions 6/7 — the outcome floor; spec wins over env,
+    # env over the default (re-read per call so it is a live kill switch).
+    min_known, rate_floor = _outcome_floor_cfg()
+    if len(parts) > 5 and parts[5] not in ('', 'None'):
+        try:
+            min_known = max(0, int(parts[5]))
+        except ValueError:
+            pass
+    if len(parts) > 6 and parts[6] not in ('', 'None'):
+        try:
+            rate_floor = max(0.0, float(parts[6]))
+        except ValueError:
+            pass
 
     # Pre-pass: compute each candidate's basis ONCE, decide the ordering, THEN rank. Sorting
     # on side effects of the key function would make the result depend on call order.
@@ -1959,6 +2090,28 @@ def _tr174_sort(arg: Any, lanes: Any, ctx: Any):
     lanes_n = len(basis_by_lane)
     coverage = (ranked / lanes_n) if lanes_n else 0.0
     use_measured = bool(lanes_n) and coverage >= min_cov
+
+    # TR-354: the outcome-floor pre-pass. A lane whose own (or, when it has
+    # none, its MODEL FAMILY's) record is well-known AND catastrophic may not
+    # win the head while any alternative remains — it is excluded, NAMED,
+    # never silently re-ranked. When the gate empties the chain the resolve's
+    # always-run fallback (4.5) serves instead — with its own loud TR-248
+    # warning — which is the designed degraded path for "every hop gated";
+    # ROUTER_OUTCOME_FLOOR=0 is the kill switch for callers who disagree.
+    floor_excluded = []
+    ctx['_tr354_lane_record'] = {}
+    if min_known > 0:
+        floor_excluded = _outcome_floor_scan(lanes, ctx, min_known, rate_floor)
+        # TR-354: the per-lane judged record, on the ctx the resolve's gate
+        # stage reads — the exclusion rows and the ordering stay one story.
+        # ALWAYS stamped (empty = the gate ran and judged nothing / is off
+        # via spec) so the gate stage can tell "sort ran" from "sort never
+        # ran" (None) and only then recompute on its own.
+        for e in floor_excluded:
+            fam = _model_family_stats(ctx, e['model']) or {}
+            ctx['_tr354_lane_record'][(e['provider'], e['model'])] = dict(
+                e, floor_rate=rate_floor, min_known=min_known,
+                witness=fam.get('provider'))
 
     # TR-174 feature 3: the exploration gate — evaluated BEFORE the ranking so
     # a probe can win the head even when it would not have ranked first.
@@ -1986,6 +2139,13 @@ def _tr174_sort(arg: Any, lanes: Any, ctx: Any):
              'lanes': lanes_n, 'effective': 'measured' if use_measured else 'price',
              'blend_ceiling_samples': blend_ceil, 'blend_weight': blend_w,
              'explore_share': explore_share, 'explore_reason': explore_reason}
+    # TR-354: the gate's own audit block — who the floor judged, on which
+    # record (lane vs model-family), and the floors in force. Empty list =
+    # the gate judged nothing exclusionary (visible, never silent); absent
+    # entirely = the gate is disabled.
+    if min_known > 0:
+        basis['outcome_floor'] = {'min_known': min_known, 'floor_rate': rate_floor,
+                                  'excluded': floor_excluded}
     if explore_lane is not None:
         basis['explore_lane'] = f'{explore_lane.get("provider")}/{explore_lane.get("model")}'
     if not use_measured:
@@ -1994,6 +2154,11 @@ def _tr174_sort(arg: Any, lanes: Any, ctx: Any):
     win_reason = {}
     explore_key0 = ((explore_lane.get('provider'), explore_lane.get('model'))
                     if explore_lane is not None else None)
+    floor_pairs = {(e['provider'], e['model']) for e in floor_excluded}
+
+    def _floor_sank(k0: Any, excluded: Any) -> bool:
+        """TR-354: did the outcome-floor gate sink this lane's key?"""
+        return k0 in floor_pairs
 
     def key(m: Any):
         key0 = (m.get('provider'), m.get('model'))
@@ -2002,6 +2167,13 @@ def _tr174_sort(arg: Any, lanes: Any, ctx: Any):
         # the resolve actually EXERCISES the lane it chose to explore.
         if explore_key0 is not None and key0 == explore_key0:
             return (0, -1.0)
+        # TR-354: an outcome-floor lane may not WIN while any alternative
+        # remains ((0, +inf) sorts behind every finite measured value and
+        # behind the legacy bucket (1, ...)). The lane stays in the chain —
+        # it is excluded downstream with the named code, not hidden here.
+        if any(e['provider'] == m.get('provider') and e['model'] == m.get('model')
+               for e in floor_excluded):
+            return (0, float('inf'))
         value, _b = basis_by_lane.get(key0, (None, None))
         if use_measured and value is not None:
             return (0, value)
@@ -2053,7 +2225,10 @@ def _tr174_sort(arg: Any, lanes: Any, ctx: Any):
         # TR-183 doctrine: a selection record is a CLAIM. Emit it only when
         # the head actually won on measurement (or an explore probe was
         # deliberately exercised) — a price-fallback head claims nothing.
-        if is_explore or (use_measured and value is not None):
+        # TR-354: a head the outcome-floor gate sank below an alternative
+        # claims even less — the win record stays silent for it too.
+        if is_explore or (use_measured and value is not None
+                          and not _floor_sank(key0, floor_excluded)):
             win_reason[key0] = rec
             basis['win_reason'] = rec
 
@@ -3105,57 +3280,125 @@ def resolve(project: Any=None, profile_id: Any=None, adhoc: Any=None, use_health
                 why.append('training on prompts/completions (opt in with '
                            'allow_training to include)')
         if why:
+            # TR-354: an earlier gate does not SILENCE the outcome verdict —
+            # a lane that is both model-slow AND outcome-floor reports BOTH,
+            # so a reader never has to wonder whether the outcome gate was
+            # even consulted. Judgement happens against the same records the
+            # sort used (or, when the sort never ran — an in-process caller
+            # with its own ctx — computed here), so the rows and the
+            # ordering can never tell different stories.
+            _of_rec = (sort_ctx or {}).get('_tr354_lane_record')
+            if _of_rec is None and sort_ctx is not None:
+                _min_known, _rate_floor = _outcome_floor_cfg()
+                _of_rec = {}
+                if _min_known > 0:
+                    for _e in _outcome_floor_scan(chain, sort_ctx, _min_known,
+                                                  _rate_floor):
+                        _fam = _model_family_stats(sort_ctx, _e['model']) or {}
+                        _of_rec[(_e['provider'], _e['model'])] = dict(
+                            _e, floor_rate=_rate_floor, min_known=_min_known,
+                            witness=_fam.get('provider'))
+            _of = (_of_rec or {}).get((prov, model))
+            if _of:
+                why_of = ('outcome-floor: {model} has {known} known outcomes with '
+                          'completion rate {rate:.2f} ({src}) — below the {rate_floor} '
+                          'floor over {min_known}+ known outcomes'
+                          .format(model=model, known=_of['n_success_known'],
+                                  rate=_of['success_rate'],
+                                  src=('its own record' if _of['source'] == 'lane'
+                                       else f'the model-family record (heaviest witness '
+                                            f'provider {_of["witness"]})'),
+                                  rate_floor=_of['floor_rate'], min_known=_of['min_known']))
+                why.append(why_of)
             exclusions.append({'hop': hop, 'provider': prov, 'model': model, 'why': why,
                                'codes': exclusion_codes(why)})
             reasons.append(f'hop {hop} {prov}/{model}: ' + '; '.join(why))
-        else:
-            pub_usd, pub_in, pub_out = _pub_prices(mrow)
-            ent = {'hop': hop, 'provider': prov, 'model': model,
-                   'usd_1m': round(float(pub_usd), 4) if pub_usd is not None else None,
-                   'in_per_m': pub_in, 'out_per_m': pub_out,
-                   # TR-291 (2026-10-03): the lane's DECLARED prices ride on every
-                   # chain entry — 0.0 included. A genuine free promo must not be
-                   # conflated with an unpriced lane: 0.0 is carried as 0.0, None
-                   # (no declared price) stays None. UNKNOWN IS NOT FREE.
-                   'price': mrow.get('normalized_price'),
-                   'effective_price': (_effective_price(mrow)
-                                       if mrow.get('normalized_price') is not None else None),
-                   'price_basis': _lane_price_basis(mrow),
-                   # Cache rates ride along on every hop (Bane 2026-09-24: cache is
-                   # the term that compounds in agent loops, so a hop's real cost is
-                   # not knowable from in/out alone). None = the provider does not
-                   # publish it — never 0, which would read as free cache.
-                   'cache_read_per_m': mrow.get('public_cache_read_per_m'),
-                   'cache_write_per_m': mrow.get('public_cache_write_per_m'),
-                   'data_class': dc}
-            # TR-213: the lane's window headroom (USD/s) rides on the hop when
-            # KNOWN — the same view `router quota accounting` reports. Unknown
-            # (no limit configured / unpriceable spend) stays ABSENT, never 0.
-            _qhh = mrow.get('_quota_headroom')
-            if isinstance(_qhh, (int, float)) and not isinstance(_qhh, bool):
-                ent['headroom_usd_per_s'] = float(_qhh)
-            # TR-069 wave 2: retiring lanes warn on EVERY hop (date + successor);
-            # capacity is never silently cut, but callers see the deadline.
-            _ls = lifecycle_state(mrow)
-            if _ls == 'retiring':
-                ent['lifecycle'] = 'retiring'
-                ent['retires_on'] = str(mrow.get('valid_to'))[:10]
-                if mrow.get('replaced_by'):
-                    ent['replaced_by'] = mrow.get('replaced_by')
-            # TR-015: expose per-lane context window; preserve unknown as None.
-            ctx = mrow.get('context_limit')
-            if ctx is not None:
-                ent['context_limit'] = ctx
+            continue
+        # TR-354: the outcome-floor gate. The sort already sank the lane's key
+        # (it cannot win while an alternative remains); here the exclusion
+        # becomes a NAMED, countable row — `code: outcome-floor` — instead of
+        # a silent re-rank. The records come from the sort's ctx stamp; when
+        # that is absent (an in-process caller that supplied its OWN sort ctx
+        # — the proxy's route — so the sort never ran), they are computed
+        # HERE against the same ctx, so the gate and the ordering can never
+        # tell different stories and the code is never shadowed by an
+        # earlier gate's silence.
+        _of_rec = (sort_ctx or {}).get('_tr354_lane_record')
+        if _of_rec is None and sort_ctx is not None:
+            _min_known, _rate_floor = _outcome_floor_cfg()
+            if _min_known > 0:
+                _of_rec = {}
+                for _e in _outcome_floor_scan(chain, sort_ctx, _min_known,
+                                              _rate_floor):
+                    _fam = _model_family_stats(sort_ctx, _e['model']) or {}
+                    _of_rec[(_e['provider'], _e['model'])] = dict(
+                        _e, floor_rate=_rate_floor, min_known=_min_known,
+                        witness=_fam.get('provider'))
             else:
-                ent['context_limit'] = None
-            note = mrow.get('_context_note')
-            if note:
-                ent['context_note'] = note
-            if sort_ctx is not None:
-                # TR-049: the stats this hop was ranked by (additive key; the
-                # sort itself never changes gate behavior).
-                ent['outcomes'] = outcome_note(mrow, sort_ctx)
-            out_chain.append(ent)
+                _of_rec = {}
+        _of = (_of_rec or {}).get((prov, model))
+        if _of:
+            why_of = ('outcome-floor: {model} has {known} known outcomes with '
+                      'completion rate {rate:.2f} ({src}) — below the {rate_floor} '
+                      'floor over {min_known}+ known outcomes'
+                      .format(model=model, known=_of['n_success_known'],
+                              rate=_of['success_rate'],
+                              src=('its own record' if _of['source'] == 'lane'
+                                   else f'the model-family record (heaviest witness '
+                                        f'provider {_of["witness"]})'),
+                              rate_floor=_of['floor_rate'], min_known=_of['min_known']))
+            exclusions.append({'hop': hop, 'provider': prov, 'model': model,
+                               'why': [why_of],
+                               'codes': exclusion_codes([why_of])})
+            reasons.append(f'hop {hop} {prov}/{model}: {why_of}')
+            continue
+        pub_usd, pub_in, pub_out = _pub_prices(mrow)
+        ent = {'hop': hop, 'provider': prov, 'model': model,
+               'usd_1m': round(float(pub_usd), 4) if pub_usd is not None else None,
+               'in_per_m': pub_in, 'out_per_m': pub_out,
+               # TR-291 (2026-10-03): the lane's DECLARED prices ride on every
+               # chain entry — 0.0 included. A genuine free promo must not be
+               # conflated with an unpriced lane: 0.0 is carried as 0.0, None
+               # (no declared price) stays None. UNKNOWN IS NOT FREE.
+               'price': mrow.get('normalized_price'),
+               'effective_price': (_effective_price(mrow)
+                                   if mrow.get('normalized_price') is not None else None),
+               'price_basis': _lane_price_basis(mrow),
+               # Cache rates ride along on every hop (Bane 2026-09-24: cache is
+               # the term that compounds in agent loops, so a hop's real cost is
+               # not knowable from in/out alone). None = the provider does not
+               # publish it — never 0, which would read as free cache.
+               'cache_read_per_m': mrow.get('public_cache_read_per_m'),
+               'cache_write_per_m': mrow.get('public_cache_write_per_m'),
+               'data_class': dc}
+        # TR-213: the lane's window headroom (USD/s) rides on the hop when
+        # KNOWN — the same view `router quota accounting` reports. Unknown
+        # (no limit configured / unpriceable spend) stays ABSENT, never 0.
+        _qhh = mrow.get('_quota_headroom')
+        if isinstance(_qhh, (int, float)) and not isinstance(_qhh, bool):
+            ent['headroom_usd_per_s'] = float(_qhh)
+        # TR-069 wave 2: retiring lanes warn on EVERY hop (date + successor);
+        # capacity is never silently cut, but callers see the deadline.
+        _ls = lifecycle_state(mrow)
+        if _ls == 'retiring':
+            ent['lifecycle'] = 'retiring'
+            ent['retires_on'] = str(mrow.get('valid_to'))[:10]
+            if mrow.get('replaced_by'):
+                ent['replaced_by'] = mrow.get('replaced_by')
+        # TR-015: expose per-lane context window; preserve unknown as None.
+        ctx = mrow.get('context_limit')
+        if ctx is not None:
+            ent['context_limit'] = ctx
+        else:
+            ent['context_limit'] = None
+        note = mrow.get('_context_note')
+        if note:
+            ent['context_note'] = note
+        if sort_ctx is not None:
+            # TR-049: the stats this hop was ranked by (additive key; the
+            # sort itself never changes gate behavior).
+            ent['outcomes'] = outcome_note(mrow, sort_ctx)
+        out_chain.append(ent)
 
     # --- 4. diversity pruning: two-knob caps on the survivor chain -------------
     _prune_diversity(out_chain, exclusions, reasons,

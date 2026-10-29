@@ -520,11 +520,16 @@ def test_resolve_default_sorts_by_predicted_cost_with_no_selection_claims(tmp_pa
 
 def test_resolve_exploit_head_selection_record(tmp_path, monkeypatch):
     """Without exploration the head's selection reads exploit/measured, and
-    the completion term shows up when the row carries a success rate."""
+    the completion term shows up when the row carries a success rate.
+
+    TR-354: the outcome-floor gate is DISABLED in this spec (min_known 0) —
+    prov-a's 20% record over 10 known outcomes is exactly what the gate now
+    excludes, and this test's subject is the TR-174 value/selection ledger,
+    not head eligibility (pinned by tests/test_tr354_outcomes_floor.py)."""
     _wire(tmp_path, monkeypatch,
           averages=[_avg_row('prov-a', 'a-expensive', 0.01, n=10, rate=0.2),
                     _avg_row('prov-b', 'b-cheap', 0.5, n=10, rate=1.0)])
-    r = rs.resolve(project='proj', sort='predicted_cost_per_task:3:0')
+    r = rs.resolve(project='proj', sort='predicted_cost_per_task:3:0:9:5:0:0')
     # per completed task: a = 0.05, b = 0.5 -> a wins DESPITE the 90% failure rate
     assert r['chain'][0]['provider'] == 'prov-a'
     sel = r['chain'][0]['outcomes']['selection']
