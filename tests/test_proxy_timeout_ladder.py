@@ -45,6 +45,9 @@ def _json_resp(obj, ctype="application/json"):
         def __exit__(self, *a):
             return False
 
+        def close(self):
+            pass
+
     return _Resp(json.dumps(obj).encode())
 
 
@@ -74,6 +77,9 @@ def _sse_resp(*events):
         def __exit__(self, *a):
             return False
 
+        def close(self):
+            pass
+
     return _Sse()
 
 
@@ -94,9 +100,9 @@ def test_one_helper_computes_the_budget_for_both_upstream_sites(monkeypatch):
     )
     seen = []
 
-    def spy(want_stream, _real=real):
-        seen.append(want_stream)
-        return _real(want_stream)
+    def spy(want_stream, degraded=False, _real=real):
+        seen.append((want_stream, degraded))
+        return _real(want_stream, degraded=degraded)
 
     monkeypatch.setattr(rsrv, "_hop_budget_s", spy)
     monkeypatch.setattr(
@@ -122,8 +128,8 @@ def test_one_helper_computes_the_budget_for_both_upstream_sites(monkeypatch):
     )
     rsrv._proxy_upstream_default("/v1/embeddings", {"model": "m"}, {})
 
-    assert True in seen, "the streamed branch must budget via _hop_budget_s(True)"
-    assert False in seen, "the buffered branch must budget via _hop_budget_s(False)"
+    assert any(s[0] is True for s in seen), "the streamed branch must budget via _hop_budget_s(True)"
+    assert any(s[0] is False for s in seen), "the buffered branch must budget via _hop_budget_s(False)"
 
 
 def test_both_upstream_callers_agree_on_the_buffered_budget(monkeypatch):
