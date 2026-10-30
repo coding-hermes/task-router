@@ -19,20 +19,22 @@ Data sources (all read-only, all already on disk):
   data/state/chains/ — latest chain snapshot via router_maintain export
 """
 from __future__ import annotations
+
 import datetime
 import hashlib
 import json
 import os
-from pathlib import Path
 import time
+from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
 SERVER_SCRIPTS = REPO / "scripts"
 if str(SERVER_SCRIPTS) not in __import__("sys").path:
     __import__("sys").path.insert(0, str(SERVER_SCRIPTS))
+from typing import Any
+
 import router_circuit  # noqa: E402
 import router_validate  # noqa: E402  (TR-REVIEW-001: gate verdict + registry mtime)
-from typing import Any
 
 MR_DIR = Path(os.environ.get("ROUTER_MODEL_ROUTER_DIR",
                              str(Path.home() / ".hermes" / "model-router")))
@@ -405,6 +407,14 @@ def health(mode: str="read-only", data_dir: Any=None):
             "provider_status_counts": counts,
         }
 
+    # TR-356: silent prompt caps are distinct from ordinary provider health.
+    # Publish the probe store even when it is empty so UNKNOWN is observable.
+    try:
+        out["context_fidelity"] = context_fidelity()
+    except Exception as exc:  # noqa: BLE001 — status surfaces fail open
+        out["context_fidelity"] = {"status": "UNKNOWN", "lanes": {},
+                                   "error": str(exc)[:200]}
+
     # --- circuit / gate states -------------------------------------------------
     try:
         st = router_circuit.load()
@@ -473,6 +483,34 @@ def _gate_open(state: Any) -> bool:
 def _load_health_state():
     hs = _load_json_safe(MR_DIR / "health-state.json")
     return hs if hs else None
+
+
+def context_fidelity(provider: Any = None, model: Any = None) -> dict:
+    """TR-356: per-lane prompt-preservation evidence for status surfaces.
+
+    Missing or malformed evidence is explicitly UNKNOWN. The block is read-only
+    and fail-open: a probe-store problem must not turn /health into a 500.
+    """
+    path = MR_DIR / "context-fidelity-state.json"
+    try:
+        import router_context_fidelity as _fidelity
+        state = _fidelity.load_state(MR_DIR)
+        lanes = state.get("lanes") or {}
+    except Exception as exc:  # noqa: BLE001 — health must survive probe failure
+        return {"status": "UNKNOWN", "updated": None, "lanes": {},
+                "source": str(path), "error": str(exc)[:200]}
+    if provider is not None and model is not None:
+        key = f"{provider}/{model}"
+        row = lanes.get(key)
+        if not isinstance(row, dict):
+            return {"status": "UNKNOWN", "provider": provider, "model": model,
+                    "measured_at": None, "source": str(path), "reason": "unmeasured"}
+        return {**row, "provider": provider, "model": model,
+                "source": str(path), "status": row.get("status", "UNKNOWN")}
+    return {"status": "OK" if lanes else "UNKNOWN", "updated": state.get("updated"),
+            "lanes": lanes, "source": str(path),
+            "measured": len(lanes), "error": None,
+            "reason": None if lanes else "unmeasured"}
 
 
 def _load_json_safe(path: Any):
@@ -745,6 +783,9 @@ def model_status(provider: Any=None, data_dir: Any=None) -> dict:
             # SCHED-GAP-16942 AC2: every lane states its own measurement. A lane
             # with no sample reports n=0 and rate None — unmeasured, not 0%.
             "measurement": meas.get((pid, mid)) or _no_sample(window_h, floor_n),
+            # TR-356: context fidelity is independent of ordinary health and
+            # always carries provenance; absent evidence is explicitly UNKNOWN.
+            "context_fidelity": context_fidelity(pid, mid),
             "probe": {"status": probe_status,
                       "latency_ms": probe_m.get("latency_ms"),
                       "ts": probe_m.get("ts")} if probe_m else None,
