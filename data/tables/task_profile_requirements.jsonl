@@ -6,11 +6,14 @@
 {"task_id": "P0_FORE", "category": "e2e_vision", "level": -2}
 {"task_id": "P0_FORE", "category": "guard", "level": -3}
 {"task_id": "P0_FORE", "category": "long_doc", "level": 0}
+{"task_id": "P0_FORE", "category": "math", "level": -5}
 {"task_id": "P0_FORE", "category": "mock", "level": -3}
+{"task_id": "P0_FORE", "category": "multilingual", "level": -5}
 {"task_id": "P0_FORE", "category": "reasoning", "level": 0}
 {"task_id": "P0_FORE", "category": "review", "level": -1}
 {"task_id": "P0_FORE", "category": "schema", "level": 1}
 {"task_id": "P0_FORE", "category": "terminal", "level": -1}
+{"task_id": "P0_FORE", "category": "ui_frontend", "level": -5}
 {"task_id": "P0_FORE", "category": "vision", "level": -3}
 {"task_id": "P1_CODING", "category": "code_gen", "level": 0}
 {"task_id": "P1_CODING", "category": "debug", "level": 0}

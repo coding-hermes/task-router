@@ -1654,6 +1654,11 @@ PROFILES = {
                 {'agent_tick': 2, 'delegation': 2,
                  'reasoning': 0, 'long_doc': 0, 'debug': -2,
                  'terminal': -1, 'review': -1, 'schema': 1, 'code_gen': -1,
+                 # Keep the generated profile vocabulary aligned with the
+                 # category ladder. These are neutral floors: they expose every
+                 # ladder category to classifier validation without changing the
+                 # existing foreman capability policy.
+                 'math': -5, 'multilingual': -5, 'ui_frontend': -5,
                  'creative': -3, 'vision': -3, 'e2e_vision': -2,
                  'mock': -3, 'guard': -3}),
     'P5_VISION_E2E': ("Frontend E2E / visual QA",
@@ -1722,6 +1727,15 @@ except Exception:
 # first; the PROFILES dict is only a fresh-clone bootstrap.
 _prof_rows = _load_base_rows('task_profiles')
 _req_rows = _load_base_rows('task_profile_requirements')
+# The capability ladder is the canonical generated vocabulary. Keep the
+# profile-requirement table structurally reconciled with it by adding neutral
+# vocabulary rows to the default profile when an older committed export omitted
+# ladder categories. This is a generation-time repair, not a runtime union: the
+# resulting task_profile_requirements.jsonl is rewritten by the normal export.
+_ladder_categories = {r[0] for r in con.execute(
+    'SELECT DISTINCT category FROM category_levels').fetchall()}
+for _category in sorted(_ladder_categories - {r[1] for r in _req_rows}):
+    _req_rows.append(('P0_FORE', _category, -5))
 if _prof_rows and _req_rows:
     for _prow in _prof_rows:
         # rows are positional tuples in BASE_COLUMNS order:
