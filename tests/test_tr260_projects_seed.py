@@ -203,6 +203,22 @@ def test_classify_lane_refuses_unknown_suffix(tmp_path):
         dps.classify_lane("newproj-banana")
 
 
+def test_classify_lane_uses_scheduler_foreman_role_for_bare_primary():
+    sys.path.insert(0, SCRIPTS)
+    import derive_projects_seed as dps
+
+    assert dps.classify_lane("code-factory", "tasks") == ("P0_FORE", "jsonl")
+    with pytest.raises(ValueError, match="refusing to guess"):
+        dps.classify_lane("newproj-banana", "cooldown")
+
+
+def test_classify_lane_uses_documented_memory_role_for_bare_satellite():
+    sys.path.insert(0, SCRIPTS)
+    import derive_projects_seed as dps
+
+    assert dps.classify_lane("code-factory-duckbrain", "cooldown") == ("P8_SYNC", "jsonl")
+
+
 # ---------------------------------------------------------------------------
 # fixtures: a tmp fleet world (scheduler DB + fleet.toml + tables dir)
 # ---------------------------------------------------------------------------
@@ -351,6 +367,36 @@ def test_generator_db_fleet_divergence_names_both_sides(tmp_path):
     assert "NOTE" in p.stderr and "db-only-lane-foreman" in p.stderr \
         and "fleet-only-lane" in p.stderr
     assert "appended 1 rows" in p.stdout
+
+
+def test_generator_uses_live_roles_and_omits_disabled_sitrep_lane(tmp_path):
+    db = str(tmp_path / "scheduler.db")
+    fleet = str(tmp_path / "fleet.toml")
+    tables = str(tmp_path / "tables")
+    con = sqlite3.connect(db)
+    con.execute("CREATE TABLE projects (name TEXT PRIMARY KEY, enabled INTEGER, admission_mode TEXT)")
+    con.executemany(
+        "INSERT INTO projects (name, enabled, admission_mode) VALUES (?, ?, ?)",
+        [("code-factory", 1, "tasks"),
+         ("code-factory-duckbrain", 1, "cooldown"),
+         ("project-sitrep-print", 0, "cooldown")],
+    )
+    con.commit()
+    con.close()
+    _write_fleet(fleet, ["code-factory", "code-factory-duckbrain", "project-sitrep-print"])
+    _write_tables(tables)
+
+    p = _run_gen(db, fleet, tables)
+    assert p.returncode == 0, p.stderr[-400:]
+    assert "appended 2 rows" in p.stdout
+    with open(os.path.join(tables, "projects.jsonl"), encoding="utf-8") as f:
+        rows = [json.loads(line) for line in f if line.strip()]
+    assert rows == [
+        {"id": "code-factory", "sensitivity": "open",
+         "board_type": "jsonl", "profile": "P0_FORE"},
+        {"id": "code-factory-duckbrain", "sensitivity": "open",
+         "board_type": "jsonl", "profile": "P8_SYNC"},
+    ]
 
 
 # ---------------------------------------------------------------------------

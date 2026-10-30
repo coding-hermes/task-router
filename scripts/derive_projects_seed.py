@@ -12,13 +12,16 @@ the registry topology behind (66 ROUTER-MISS lanes — TR-260). The next lane
 wave will leave a different set behind; re-running this script closes that gap
 from live data without editing tables by hand.
 
-Row policy (matches the table's own 590-row conventions, TR-125 rule "the
-table wins where a brief map disagrees"):
-  profile     by lane suffix — the foreman PRIMARY (-foreman, and any lane
-              whose id IS a foreman) gets P0_FORE; satellites follow their
-              suffix family (docs/readme P3_DOCS, sync/pm/dogfood P8_SYNC,
-              qa/review P9_REVIEW, releng/perf P2_AGENTIC, security
-              P4_SECURITY). Unknown suffix -> refused loudly (never guessed).
+# Row policy (matches the table's own 590-row conventions, TR-125 rule "the
+# table wins where a brief map disagrees"):
+#  profile     authoritative scheduler role first: admission_mode=tasks means
+#              board-driven foreman and gets P0_FORE (including bare primary
+#              ids such as code-factory). An explicit scheduler command ending
+#              in -sync is P8_SYNC. Otherwise classify by lane suffix:
+#              docs/readme P3_DOCS, sync/pm/dogfood P8_SYNC,
+#              qa/review P9_REVIEW, releng/perf P2_AGENTIC, security
+#              P4_SECURITY. Unknown roles/suffixes are refused loudly (never
+#              guessed).
   board_type  'jsonl' except -sync lanes ('' — the 75-row -sync precedent).
   shape       the 4-column projects schema (id, sensitivity='open',
               board_type, profile); extra fields would be dropped
@@ -65,16 +68,28 @@ SUFFIX_PROFILE = {
     'security': 'P4_SECURITY',  # python-audit-security precedent
 }
 
+# Exact-name exception backed by the live scheduler prompt: this lane only
+# captures Code Factory decisions into DuckBrain. P8_SYNC is the profile for
+# DuckBrain summaries with no code or delegation.
+ROLE_PROFILE_BY_NAME = {
+    'code-factory-duckbrain': 'P8_SYNC',
+}
 
-def classify_lane(lane_id: Any) -> tuple:
-    """(profile, board_type) for a lane id, from the table's own conventions.
 
-    Raises ValueError on a suffix with no precedent — an unclassified lane is
-    an owner decision (TR-125 precedent: 122 such lanes were left out on
-    purpose rather than guessed).
+def classify_lane(lane_id: Any, admission_mode: Any=None) -> tuple:
+    """(profile, board_type) from the live scheduler role and table conventions.
+
+    ``admission_mode=tasks`` is the scheduler's authoritative foreman marker;
+    explicitly documented unsuffixed roles use ROLE_PROFILE_BY_NAME. Other
+    lanes use the established suffix table. Unknown roles/suffixes remain owner
+    decisions (TR-125: 122 such lanes were left out rather than guessed).
     """
     stem, _, suffix = lane_id.rpartition('-')
-    if suffix in SUFFIX_PROFILE and stem:
+    if admission_mode == 'tasks':
+        profile = SUFFIX_PROFILE['foreman']
+    elif lane_id in ROLE_PROFILE_BY_NAME:
+        profile = ROLE_PROFILE_BY_NAME[lane_id]
+    elif suffix in SUFFIX_PROFILE and stem:
         profile = SUFFIX_PROFILE[suffix]
     elif lane_id.endswith('foreman') or 'foreman' in lane_id.rsplit('-', 1)[-1]:
         # a bare foreman lane id with no dash-suffix (defensive; all current
@@ -89,13 +104,25 @@ def classify_lane(lane_id: Any) -> tuple:
     return profile, board_type
 
 
-def enabled_fleet_lanes(db_path: Any) -> set:
-    """Set of enabled lane ids from the scheduler DB (authoritative per TR-260)."""
+def enabled_fleet_lane_modes(db_path: Any) -> dict:
+    """Map enabled lane ids to scheduler admission modes (DB authoritative)."""
     con = sqlite3.connect(db_path)
     try:
-        return {n for (n,) in con.execute('SELECT name FROM projects WHERE enabled=1')}
+        columns = {row[1] for row in con.execute('PRAGMA table_info(projects)')}
+        if 'admission_mode' in columns:
+            return dict(con.execute(
+                'SELECT name, admission_mode FROM projects WHERE enabled=1'))
+        # Older/minimal DBs retain suffix-only behavior; never infer a role
+        # that the schema cannot prove.
+        return {name: None for (name,) in con.execute(
+            'SELECT name FROM projects WHERE enabled=1')}
     finally:
         con.close()
+
+
+def enabled_fleet_lanes(db_path: Any) -> set:
+    """Set of enabled lane ids from the scheduler DB (authoritative per TR-260)."""
+    return set(enabled_fleet_lane_modes(db_path))
 
 
 def fleet_toml_lanes(fleet_path: Any) -> set:
@@ -147,7 +174,8 @@ def main(argv: Any=None) -> int:
               f'that references them', file=sys.stderr)
         return 2
 
-    db_lanes = enabled_fleet_lanes(args.db)
+    lane_modes = enabled_fleet_lane_modes(args.db)
+    db_lanes = set(lane_modes)
     if not db_lanes:
         print(f'REFUSING: scheduler DB {args.db} yielded 0 enabled lanes — '
               f'refusing to treat that as "nothing to do" (fail loud, never '
@@ -176,7 +204,7 @@ def main(argv: Any=None) -> int:
 
     new_rows = []
     for lane in missing:
-        profile, board_type = classify_lane(lane)
+        profile, board_type = classify_lane(lane, lane_modes.get(lane))
         # TR-200: projects.stack removed — 100% empty since creation, no
         # reader anywhere; the row is the 4-column schema.
         new_rows.append({'id': lane, 'sensitivity': 'open',
