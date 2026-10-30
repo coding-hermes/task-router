@@ -507,9 +507,10 @@ def context_fidelity(provider: Any = None, model: Any = None) -> dict:
                     "measured_at": None, "source": str(path), "reason": "unmeasured"}
         return {**row, "provider": provider, "model": model,
                 "source": str(path), "status": row.get("status", "UNKNOWN")}
-    return {"status": "OK", "updated": state.get("updated"),
+    return {"status": "OK" if lanes else "UNKNOWN", "updated": state.get("updated"),
             "lanes": lanes, "source": str(path),
-            "measured": len(lanes), "error": None}
+            "measured": len(lanes), "error": None,
+            "reason": None if lanes else "unmeasured"}
 
 
 def _load_json_safe(path: Any):
