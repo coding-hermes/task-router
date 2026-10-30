@@ -859,7 +859,17 @@ _REASON_PREFIXES = (
     ('chain cap', 'chain-cap'),
     ('outcome-floor', 'outcome-floor'),
     ('duplicate', 'duplicate-lane'),
+    ('context fidelity', 'context-fidelity'),
 )
+
+
+def _context_fidelity_state() -> dict:
+    """Read per-lane context evidence; unreadable state fails open."""
+    try:
+        import router_context_fidelity as _fidelity
+        return _fidelity.load_state(MR)
+    except Exception:  # noqa: BLE001 — evidence must never block routing
+        return {"lanes": {}}
 
 
 def exclusion_codes(why: Any):
@@ -3189,6 +3199,11 @@ def resolve(project: Any=None, profile_id: Any=None, adhoc: Any=None, use_health
     # Training gate (Bane 2026-09-01): provider facts live in the providers
     # table (trains_on_hosted); index once for the per-hop check below.
     provs_by_id = {r.get('id'): r for r in (tables.get('providers') or [])}
+    # TR-356: context fidelity is measured per provider/model lane. Unknown
+    # evidence is fail-open; only a measured TRUNCATED result gates a lane.
+    fidelity_lanes = (_context_fidelity_state().get('lanes') or {})
+    fidelity_floor = any(cat == 'min_context' and isinstance(level, int)
+                         and level > 0 for cat, level in reqs)
 
     out_chain, exclusions, reasons = [], [], []
     for hop, prov, model, price, dc, mrow in chain:
@@ -3246,6 +3261,13 @@ def resolve(project: Any=None, profile_id: Any=None, adhoc: Any=None, use_health
         # gpt-5.6-sol review 2026-08-27: the router previously ignored it and
         # routed onto 22 DOWN pairs)
         hm = (h.get('models') or {}).get(model) or {}
+        # TR-356: a context-floor profile requires evidence that the lane did
+        # not silently cap the prompt. This is lane-scoped, not provider-wide,
+        # and unknown/unmeasured evidence remains fail-open.
+        fidelity = fidelity_lanes.get(f'{prov}/{model}') or {}
+        if fidelity_floor and fidelity.get('status') in {'TRUNCATED', 'FAILED'}:
+            why.append('context fidelity: measured prompt truncation '
+                       f'({fidelity.get("reason") or fidelity.get("status")})')
         # TR-104: render the model's own transition ts (probe v3 stamps every
         # model entry); entries written before stamping fall back to the
         # provider-level probe ts — never a bare '?'.

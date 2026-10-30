@@ -11,6 +11,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 import router_context_fidelity as fidelity  # noqa: E402
+import router_spawn  # noqa: E402
 
 
 class _StubHandler(BaseHTTPRequestHandler):
@@ -89,3 +90,51 @@ def test_state_round_trip_is_lane_scoped(tmp_path):
     loaded = fidelity.load_state(tmp_path)
     assert loaded["lanes"]["xkiro/claude-opus-5.5"] == result
     assert loaded["updated"]
+
+
+def _resolver_fixture(tmp_path):
+    models = [
+        {"provider": "xkiro", "model": "anthropic/bad", "normalized_price": 0.1,
+         "plan_tier": 0, "data_class": "unknown", "context_limit": 500000},
+        {"provider": "xkiro", "model": "openai/good", "normalized_price": 0.2,
+         "plan_tier": 0, "data_class": "unknown", "context_limit": 500000},
+    ]
+    tables = {
+        "models": models,
+        "providers": [{"id": "xkiro", "status": "active"}],
+        "model_tier": [{"model": row["model"], "category": "reasoning", "tier": 3}
+                        for row in models],
+        "task_profiles": [{"id": "PCTX", "title": "context floor"}],
+        "task_profile_requirements": [
+            {"task_id": "PCTX", "category": "reasoning", "level": 1},
+            {"task_id": "PCTX", "category": "min_context", "level": 500000},
+        ],
+    }
+    registry = tmp_path / "registry.json"
+    registry.write_text(json.dumps({"version": 3, "tables": tables}))
+    state = tmp_path / "state"
+    state.mkdir()
+    (state / "quota-state.json").write_text(json.dumps({"providers": {"xkiro": {"status": "open"}}}))
+    (state / "health-state.json").write_text(json.dumps({"providers": {"xkiro": {"status": "OK"}}}))
+    (state / "circuit-state.json").write_text(json.dumps({"pairs": {}}))
+    fidelity.save_result({"provider": "xkiro", "model": "anthropic/bad",
+                          "status": "TRUNCATED", "reason": "reported input capped at 2004",
+                          "measured_at": "2026-10-30T00:00:00+00:00"}, state)
+    fidelity.save_result({"provider": "xkiro", "model": "openai/good",
+                          "status": "OK", "reason": "tail present",
+                          "measured_at": "2026-10-30T00:00:00+00:00"}, state)
+    return registry, state
+
+
+def test_context_floor_excludes_only_measured_truncating_lane(monkeypatch, tmp_path):
+    registry, state = _resolver_fixture(tmp_path)
+    monkeypatch.setattr(router_spawn, "REGISTRY", str(registry))
+    monkeypatch.setattr(router_spawn, "DATA_DIR", str(tmp_path / "unused-tables"))
+    monkeypatch.setattr(router_spawn, "MR", str(state))
+    result = router_spawn.resolve(profile_id="PCTX", sort="price")
+    assert result["chain"]
+    assert {f'{row["provider"]}/{row["model"]}' for row in result["chain"]} == {"xkiro/openai/good"}
+    excluded = next(row for row in result["exclusions"] if row["model"] == "anthropic/bad")
+    assert "context-fidelity" in excluded["codes"]
+    assert any("context fidelity" in why for why in excluded["why"])
+    assert any("context fidelity" in reason for reason in result["gate_reasons"])
