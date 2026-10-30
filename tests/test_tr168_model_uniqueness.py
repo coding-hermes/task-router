@@ -458,6 +458,10 @@ POST_DEDUPE_ADDITIONS = {
     ("openrouter", "openai/gpt-6.1-terra-pro"): "models.dev sync 2026-10-27 (payg-sticker priced)",
     ("openrouter", "openai/gpt-6.1-terra:batch"): "models.dev sync 2026-10-27 (payg-sticker priced; :batch twin backfilled)",
     ("openrouter", "openai/gpt-6.1-terra-pro:batch"): "models.dev sync 2026-10-27 (payg-sticker priced; :batch twin backfilled)",
+    ("clinepass", "particle-1"): "clinepass carrier sync 2026-10-29 (arrival; plan-sweep disabled as PAYG-outside-plan; census stamp)",
+    ("clinepass", "ternary-bonsai-2-9b"): "clinepass carrier sync 2026-10-29 (arrival; plan-sweep disabled as PAYG-outside-plan; census stamp)",
+    ("openrouter", "particle-ai/particle-1"): "models.dev sync 2026-10-29 (arrival; payg-sticker priced)",
+    ("openrouter", "prism-ml/ternary-bonsai-2-9b"): "models.dev sync 2026-10-29 (arrival; payg-sticker priced)",
 }
 
 
