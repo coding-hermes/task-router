@@ -1,0 +1,20 @@
+{
+  "tick": "task-router-foreman-2026-10-30-03-49-36",
+  "project": "task-router",
+  "repo": "/home/kara/task-router",
+  "wave_budget": 12,
+  "status": "owner_gated",
+  "selected_row": "RELEASE-2026-10-22-001",
+  "selected_priority": "P0",
+  "pending_census": "P0 release row selected; implementation rows below it not dispatched",
+  "workers": [],
+  "decision": "NO DISPATCH / KEEP PENDING",
+  "reason": "The highest-priority pending row is verification-only and requires explicit owner authorization naming task-router, target version, and baseline SHA before any worker, version-prep commit, tag, or GitHub Release mutation.",
+  "owner_action": "Authorize task-router + target version + baseline SHA explicitly.",
+  "tested_commit": "d91d54b196b000dec7c83274eb275df5c912c4b8",
+  "origin_main": "d91d54b196b000dec7c83274eb275df5c912c4b8",
+  "ahead": 0,
+  "behind": 0,
+  "evidence": ".coding-hermes/evidence/release-readiness-verify-2026-10-30-03-49-36.txt",
+  "trace": "ch:trace row=RELEASE-2026-10-22-001 spec=docs/releases/release-readiness.md#written-procedure wave=.coding-hermes/waves/task-router-foreman-2026-10-30-03-49-36.json#owner-gated test=none:owner-gated-readiness doc=.coding-hermes/evidence/release-readiness-verify-2026-10-30-03-49-36.txt prompt=~/.hermes/skills/foreman-verification-only-closeout/SKILL.md evidence=.coding-hermes/evidence/release-readiness-verify-2026-10-30-03-49-36.txt witness=none:owner-authorization-missing verdict=none:not-applicable commit=none:owner-block memory=/project/task-router/status-2026-10-30-03-49-36"
+}
