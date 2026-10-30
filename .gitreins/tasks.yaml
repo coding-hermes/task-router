@@ -1263,3 +1263,22 @@ tasks:
   status: complete
   created_at: '2026-10-28T02:08:46.961194+00:00'
   completed_at: '2026-10-28T04:05:04.305911+00:00'
+- id: TR-356
+  title: xkiro Anthropic lanes silently truncate the prompt to ~2004 tokens (200 OK,
+    no error)
+  criteria:
+  - 1. Context-fidelity probe exists per lane (needle near end of large prompt; distinguishes
+    TRUNCATED vs OK) with non-vacuous stub tests (caps input at 2004 -> fails pre-fix,
+    passes post-fix). 2. Lane with prompt_tokens below measured prompt size beyond
+    tolerance is INELIGIBLE for context-floor profiles, exclusion visible in resolve
+    output with reason; scoped to measured lane fidelity, healthy lanes preserved.
+    3. /health or /model_status exposes per-lane context fidelity distinguishing unmeasured/OK/TRUNCATED
+    with provenance. 4. Fail-open preserved for unrelated router errors.
+  - "Trace gate: the ch:trace marker in the TR-356 board row resolves end to end \u2014\
+    \ row=TR-356 exists in .coding-hermes/board/tasks.jsonl; test node tests/test_context_fidelity.py::test_capped_upstream_is_non_vacuously_truncated\
+    \ collects and passes; witness commit e1a985d95c8628a0e02786d9e3f33f415ede398c\
+    \ is on origin/main carrying scripts/router_context_fidelity.py; memory key /project/task-router/ticks/2026-10-30-tr356-close\
+    \ resolves in DuckBrain namespace task-router."
+  status: complete
+  created_at: '2026-10-30T00:11:24.558613+00:00'
+  completed_at: '2026-10-30T01:24:47.090663+00:00'
