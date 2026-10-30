@@ -1,4 +1,6 @@
 """TR-087: control-plane health plane tests.
+# ruff: noqa: F811
+
 
 Covers the /health + / + /model_status surfaces end-to-end through a real
 server process, plus the lookup contract (query, not report), plus the
@@ -16,8 +18,10 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 import router_health  # noqa: E402
-from test_server import PY, server_env, _server, _request  # noqa: E402,F401
+from test_server import PY, _request, _server, server_env  # noqa: E402,F401,F811
 
+# The imported fixture is intentionally shadowed by each test parameter.
+_UNUSED_FIXTURE = server_env
 REPO = Path(__file__).resolve().parents[1]
 
 
@@ -39,6 +43,33 @@ def test_health_payload_shape(server_env):
     assert payload["chains_snapshot"]["count"] >= 0
 
 
+def test_context_fidelity_is_explicit_per_lane_and_provenanced(tmp_path, monkeypatch, server_env):
+    state = tmp_path / "state"
+    state.mkdir(exist_ok=True)
+    model_row = json.loads((Path(server_env["ROUTING_DATA_DIR"]) / "models.jsonl").read_text().splitlines()[0])
+    provider, model = model_row["provider"], model_row["model"]
+    (state / "context-fidelity-state.json").write_text(json.dumps({
+        "updated": "2026-10-30T00:00:00+00:00",
+        "lanes": {
+            f"{provider}/{model}": {
+                "provider": provider, "model": model,
+                "status": "TRUNCATED", "measured_at": "2026-10-30T00:00:00+00:00",
+                "reason": "reported input capped at 2004",
+            }
+        },
+    }))
+    monkeypatch.setattr(router_health, "MR_DIR", state)
+    payload = router_health.model_status(data_dir=server_env["ROUTING_DATA_DIR"])
+    lane = next(row for row in payload["lanes"] if row["provider"] == provider and row["model"] == model)
+    assert lane["context_fidelity"]["status"] == "TRUNCATED"
+    assert lane["context_fidelity"]["measured_at"]
+    unknown = router_health.context_fidelity("missing", "lane")
+    assert unknown["status"] == "UNKNOWN"
+    assert unknown["reason"] == "unmeasured"
+    health = router_health.health(mode="read-only", data_dir=server_env["ROUTING_DATA_DIR"])
+    assert health["context_fidelity"]["updated"] == "2026-10-30T00:00:00+00:00"
+
+
 def test_model_status_is_a_lookup_not_a_report(server_env):
     data_dir = server_env["ROUTING_DATA_DIR"]
     payload = router_health.model_status(data_dir=data_dir)
@@ -56,7 +87,8 @@ def test_model_status_is_a_lookup_not_a_report(server_env):
 
 def test_model_status_counts_match_registry(server_env):
     data_dir = Path(server_env["ROUTING_DATA_DIR"])
-    rows = [json.loads(l) for l in (data_dir / "models.jsonl").read_text().splitlines() if l.strip()]
+    rows = [json.loads(line) for line in (data_dir / "models.jsonl").read_text().splitlines()
+            if line.strip()]
     payload = router_health.model_status(data_dir=str(data_dir))
     assert payload["count"] == len(rows)
 
@@ -267,8 +299,6 @@ def test_health_gate_never_reports_invalid_when_the_checks_cannot_run(
 
 def test_health_degrades_fail_open_on_bad_state_files(server_env, tmp_path, monkeypatch):
     # corrupt probe + circuit state must not raise — blocks degrade to errors
-    import os
-
     mr = tmp_path / "mr"
     mr.mkdir()
     (mr / "health-state.json").write_text("{corrupt json")
