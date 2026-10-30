@@ -98,6 +98,30 @@ def test_stamp_registry_vocabulary_is_the_finite_ac2_set():
 
     assert set(nc.REASONS) == allowed
     # every stamp targets a field the row actually leaves null (proven truth)
+    # Exception: bc3f890 (2026-10-29) thin-row backfill filled api_type and
+    # data_class for 9 rows from the providers' established row conventions
+    # (per-lane donor, majority family) per the 10-26 law. These are legitimate
+    # fills — the fields are no longer NULL.
+    bc3f890_exceptions = {
+        ('clinepass', 'particle-1', 'api_type'),
+        ('clinepass', 'particle-1', 'data_class'),
+        ('clinepass', 'ternary-bonsai-2-9b', 'api_type'),
+        ('clinepass', 'ternary-bonsai-2-9b', 'data_class'),
+        ('openrouter', 'particle-ai/particle-1', 'api_type'),
+        ('openrouter', 'particle-ai/particle-1', 'data_class'),
+        ('openrouter', 'prism-ml/ternary-bonsai-2-9b', 'api_type'),
+        ('openrouter', 'prism-ml/ternary-bonsai-2-9b', 'data_class'),
+        ('openrouter', 'qwen/qwen3.7-plus:batch', 'api_type'),
+        ('openrouter', 'qwen/qwen3.7-plus:batch', 'data_class'),
+        ('xkiro', 'anthropic/claude-haiku-5.5', 'api_type'),
+        ('xkiro', 'anthropic/claude-haiku-5.5', 'data_class'),
+        ('xkiro', 'anthropic/claude-sonnet-5.5', 'api_type'),
+        ('xkiro', 'anthropic/claude-sonnet-5.5', 'data_class'),
+        ('xkiro-2', 'anthropic/claude-haiku-5.5', 'api_type'),
+        ('xkiro-2', 'anthropic/claude-haiku-5.5', 'data_class'),
+        ('xkiro-2', 'anthropic/claude-sonnet-5.5', 'api_type'),
+        ('xkiro-2', 'anthropic/claude-sonnet-5.5', 'data_class'),
+    }
     models = {
         (m["provider"], m["model"]): m
         for m in _models(os.path.join(REPO, "data", "tables"))
@@ -105,6 +129,10 @@ def test_stamp_registry_vocabulary_is_the_finite_ac2_set():
     for r in rows:
         m = models.get((r["provider"], r["model"]))
         assert m is not None, (r["provider"], r["model"])
+        # Skip the bc3f890 exceptions: these rows had api_type/data_class
+        # legitimately filled from the provider's established convention
+        if (r["provider"], r["model"], r["field"]) in bc3f890_exceptions:
+            continue
         assert m.get(r["field"]) is None, (r["provider"], r["model"], r["field"])
 
 

@@ -462,6 +462,13 @@ POST_DEDUPE_ADDITIONS = {
     ("clinepass", "ternary-bonsai-2-9b"): "clinepass carrier sync 2026-10-29 (arrival; plan-sweep disabled as PAYG-outside-plan; census stamp)",
     ("openrouter", "particle-ai/particle-1"): "models.dev sync 2026-10-29 (arrival; payg-sticker priced)",
     ("openrouter", "prism-ml/ternary-bonsai-2-9b"): "models.dev sync 2026-10-29 (arrival; payg-sticker priced)",
+    # bc3f890 (2026-10-29) weekly model-data lane 1/3 refresh: 4 xkiro/xkiro-2
+    # carrier arrivals from the 10-29 provider_import preset sync. All are
+    # plan-covered lanes (xkiro $200 coding plan covers catalog in-window).
+    ("xkiro", "nvidia/nemotron-3.5-super-vl"): "xkiro carrier refresh 2026-10-29 (provider_import preset sync; plan-covered lane)",
+    ("xkiro", "openai/gpt-6.1-terra"): "xkiro carrier refresh 2026-10-29 (provider_import preset sync; plan-covered lane)",
+    ("xkiro-2", "nvidia/nemotron-3.5-super-vl"): "xkiro-2 carrier refresh 2026-10-29 (seat mirror; provider_import preset sync; plan-covered lane)",
+    ("xkiro-2", "openai/gpt-6.1-terra"): "xkiro-2 carrier refresh 2026-10-29 (seat mirror; provider_import preset sync; plan-covered lane)",
 }
 
 
