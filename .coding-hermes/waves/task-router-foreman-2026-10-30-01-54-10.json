@@ -1,0 +1,15 @@
+{
+  "scheduler_tick_id": "task-router-foreman-2026-10-30-01-54-10",
+  "project": "task-router",
+  "selected_row": "TR-355",
+  "selection": "highest-priority pending row; implementation already landed; live cutover is owner-controlled",
+  "wave_budget": 12,
+  "wave_size": 0,
+  "dispatches": [],
+  "landed": [],
+  "verification_only": true,
+  "owner_blocker": "Restarting the live :9092 proxy is an owner-controlled cutover because it carries scheduler traffic.",
+  "verification_command": "curl -sS --max-time 8 http://127.0.0.1:9092/health",
+  "off_by_one": "none:verification-only no debugging",
+  "status": "PENDING"
+}
