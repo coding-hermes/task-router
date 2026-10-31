@@ -1,0 +1,43 @@
+Release readiness verification
+Tick: task-router-foreman-2026-10-31-16-18-53
+Row: RELEASE-2026-10-22-001
+Tested tree: 68f0986c3cc64c8b75f0d0edea9ea1879d15b0c0 (origin/main)
+Decision: NO CUT — owner authorization is absent.
+
+Repository identity
+- Remote: git@github.com:coding-hermes/task-router.git
+- Branch: main
+- HEAD/origin parity at probe: origin/main = 68f0986c3cc64c8b75f0d0edea9ea1879d15b0c0; dedicated detached verification worktree is clean before evidence write.
+
+Release surface
+- Local numeric tags: 0 (git tag -l 'v[0-9]*')
+- Remote numeric tags: 0 (git ls-remote --tags origin 'refs/tags/v[0-9]*')
+- GitHub Releases: 0 (gh release list --repo coding-hermes/task-router --limit 10)
+- pyproject.toml version: 0.2.0
+- task_router/__init__.py version: 0.2.0
+- CHANGELOG v0.3.0 heading: 0
+- CHANGELOG [Unreleased]: populated; no candidate section exists.
+- Workflow files: .github/workflows/ci.yml only; workflow_count=1.
+- Release/build surface: Makefile exists; no Dockerfile or release driver was found in the bounded top-level probe. Release procedure is documented in docs/releases/release-readiness.md.
+
+CI health
+Latest three GitHub Actions runs from the canonical repository:
+1. 68f0986c3cc64c8b75f0d0edea9ea1879d15b0c0: completed, success, chore(board): stamp release readiness tick, 2026-10-31T13:28:22Z.
+2. d46ccdc48d24b2144da213fd4594b858aa7d4e34: completed, success, chore(board): record release readiness verification, 2026-10-31T13:27:36Z.
+3. bb797be1a43f2e7fe9ffea409bd962425190df0c: completed, success, board: record TR-355 degraded fallback verification, 2026-10-31T11:32:51Z.
+CI health at this tested head: GREEN. No recent untracked failure was found in the required latest-three query.
+
+Dependencies
+- TR-341: complete, commit 380893b, CI GREEN.
+- TR-344: complete; no commit/CI fields populated in the row.
+- QA-TASKROUTER-2: complete, commit 705742aed21ffa563e29ccbe37bf52d584ffb5ca, CI GREEN.
+- XK-404-001-R2: complete, commit bf5fef9, CI SKIP; row records exact-head CI as unverifiable at its close due to GitHub API rate limiting and retains a residual for absent xkiro-2 lanes.
+
+Owner gate
+The acceptance contract requires explicit authorization naming task-router, the release version, and the baseline SHA before any version-prep commit, tag, GitHub Release, or publication. No such authorization is present in the current board/release evidence. The natural candidate remains v0.3.0, but it is not authorization.
+
+Required next owner action
+Explicitly authorize or decline the task-router first cut, naming the version and baseline SHA. Until then keep the row pending; do not bump versions, promote CHANGELOG, create a tag, create a GitHub Release, or build candidate release artifacts.
+
+Trace
+ch:trace row=RELEASE-2026-10-22-001 spec=docs/releases/release-readiness.md#2 test=none:owner-gated-readiness evidence=.coding-hermes/evidence/release-readiness-verify-2026-10-31-16-18-53.txt witness=none:owner-authorization-missing verdict=none:not-applicable commit=68f0986c3cc64c8b75f0d0edea9ea1879d15b0c0 memory=none:pending-final-sha
