@@ -1,0 +1,39 @@
+Release readiness verification
+Tick: task-router-foreman-2026-10-31-16-49-45
+Row: RELEASE-2026-10-22-001
+Tested tree: 68f0986c3cc64c8b75f0d0edea9ea1879d15b0c0 (origin/main)
+Decision: NO CUT — owner authorization is absent.
+
+Repository identity
+- Remote: git@github.com:coding-hermes/task-router.git
+- Branch: main
+- HEAD/origin parity at probe: 68f0986c3cc64c8b75f0d0edea9ea1879d15b0c0; dedicated detached verification worktree is clean before evidence write.
+
+Release surface
+- Local numeric tags: 0 (git tag -l 'v[0-9]*')
+- Remote numeric tags: 0 (git ls-remote --tags origin 'refs/tags/v[0-9]*')
+- GitHub Releases: 0 (gh release list --repo coding-hermes/task-router --limit 10)
+- pyproject.toml version: 0.2.0
+- task_router/__init__.py version: 0.2.0
+- CHANGELOG v0.3.0 heading: 0
+- CHANGELOG [Unreleased]: present; no candidate section exists.
+- Workflow files: .github/workflows/ci.yml only.
+- Release/build surface: Makefile exists; no numeric tag or Release object exists. Release procedure is documented in docs/releases/release-readiness.md.
+
+CI health
+The mandatory latest-three query returned one in-progress run on the prior verification branch f4077712df664757b66c2eda01d91fd55a2d7e0f and two completed successful runs: 68f0986c3cc64c8b75f0d0edea9ea1879d15b0c0 and d46ccdc48d24b2144da213fd4594b858aa7d4e34. No completed failure appeared in the latest-three query. The in-progress run is not treated as green evidence for this tick.
+
+Dependencies
+- TR-341: complete, commit 380893b, CI GREEN.
+- TR-344: complete; no commit/CI fields populated in the row.
+- QA-TASKROUTER-2: complete, commit 705742aed21ffa563e29ccbe37bf52d584ffb5ca, CI GREEN.
+- XK-404-001-R2: complete, commit bf5fef9, CI SKIP; its row retains the exact-head CI/routing residual.
+
+Owner gate
+The acceptance contract requires explicit authorization naming task-router, the release version, and the baseline SHA before any version-prep commit, tag, GitHub Release, or publication. No such authorization is present in the current board/release evidence. The natural candidate remains v0.3.0, but it is not authorization.
+
+Required next owner action
+Explicitly authorize or decline the task-router first cut, naming the version and baseline SHA. Until then keep the row pending; do not bump versions, promote CHANGELOG, create a tag, create a GitHub Release, or build candidate release artifacts.
+
+Trace
+ch:trace row=RELEASE-2026-10-22-001 spec=docs/releases/release-readiness.md#2 test=none:owner-gated-readiness evidence=.coding-hermes/evidence/release-readiness-verify-2026-10-31-16-49-45.txt witness=none:owner-authorization-missing verdict=none:not-applicable commit=68f0986c3cc64c8b75f0d0edea9ea1879d15b0c0 memory=none:pending-final-sha
