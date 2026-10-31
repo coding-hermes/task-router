@@ -3624,6 +3624,69 @@ def _lane_class_of(hint: Any) -> str:
         return 'primary'
 
 
+def _requested_model(body: Any, headers: Any, requirements: Any=None) -> str | None:
+    """Return a caller-named model, when the caller actually names one.
+
+    ``auto`` (and the other router sentinel values) means "use the resolved
+    chain".  Any other model is an explicit request.  The optional header is
+    an additive escape hatch for clients that cannot put a model in the body.
+    Keeping this decision in one place prevents the resolver and the hop walk
+    from disagreeing about whether a model was requested (TR-352).
+    """
+    req = requirements if isinstance(requirements, dict) else {}
+    for key in ('requested_model', 'explicit_model'):
+        value = req.get(key)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    hdrs = headers if isinstance(headers, dict) else {}
+    for key in ('x-router-model', 'x-router-requested-model'):
+        value = hdrs.get(key)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    # The OpenAI body `model` is deliberately only a provider hint on the
+    # proxy surface (docs/integration.md). Callers that need an explicit lane
+    # use the router header or the already-normalized requirements payload.
+    return None
+
+
+def _model_matches(provider: Any, model: Any, requested: Any) -> bool:
+    """Match a requested model against a registry or provider wire spelling."""
+    if not isinstance(requested, str) or not requested:
+        return False
+    candidates = {str(model or ''), str(provider or '') + '/' + str(model or '')}
+    requested = requested.strip()
+    return requested in candidates or requested.rsplit('/', 1)[-1] == str(model or '')
+
+
+def _choice_required(requested: Any, missing_capability: Any, *, resolved: Any=None,
+                     reason: Any=None) -> dict:
+    """Build the fail-closed TR-352 model-choice response."""
+    capability = str(missing_capability or requested or 'requested model')
+    text = reason or (f'explicit model {requested!r} is unavailable; '
+                      f'missing capability: {capability}')
+    return {
+        'error': 'choice_required',
+        'code': 'choice_required',
+        'choice_required': True,
+        'missing_capability': capability,
+        'requested_model': requested,
+        'reason': text,
+        'resolution': resolved if isinstance(resolved, dict) else {},
+    }
+
+
+def _resolution_skips(resolved: Any) -> list:
+    """Project resolver skip evidence without inventing a substitute."""
+    if not isinstance(resolved, dict):
+        return []
+    skips = resolved.get('resolution_skips')
+    if skips is None:
+        skips = resolved.get('skipped')
+    if isinstance(skips, list):
+        return [s for s in skips if isinstance(s, dict)]
+    return []
+
+
 def _proxy_chain(requirements: Any, sort_spec: Any=None, window_h: Any=None,
                  lane: Any=None):
     """Ask the router for the chain (subprocess: the CLI stays the single
@@ -3648,7 +3711,61 @@ def _proxy_chain(requirements: Any, sort_spec: Any=None, window_h: Any=None,
         out = json.loads(raw) if raw else {}
     except Exception:  # noqa: BLE001 — resolve problems degrade, never 500
         return {}
-    return out if isinstance(out, dict) else {}
+    if not isinstance(out, dict):
+        return {}
+
+    # TR-352: a caller-named model is an explicit choice, not a hint. The
+    # resolver may return a normal price-ordered chain, but serving its head
+    # after the requested lane disappeared is silent substitution. Fail closed
+    # before the hop loop can send any request.
+    requested = None
+    if isinstance(requirements, dict):
+        for key in ('requested_model', 'explicit_model'):
+            value = requirements.get(key)
+            if isinstance(value, str) and value.strip():
+                requested = value.strip()
+                break
+    skips = _resolution_skips(out)
+    if skips:
+        # Keep the resolver's evidence under one stable name for callers. The
+        # original alias remains untouched for backwards compatibility.
+        out['resolution_skips'] = skips
+    chain = out.get('chain')
+    if not isinstance(chain, list):
+        chain = []
+    if requested:
+        matching = [h for h in chain if isinstance(h, dict) and
+                    _model_matches(h.get('provider'), h.get('model'), requested)]
+        if not matching:
+            return _choice_required(requested, requested, resolved=out,
+                                    reason=(f'explicit model {requested!r} is unavailable; '
+                                            'no eligible chain entry confirmed it'))
+        selected = matching[0]
+        unmet = selected.get('requirements_unmet')
+        if unmet:
+            capability = unmet[0][0] if isinstance(unmet, (list, tuple)) and unmet \
+                and isinstance(unmet[0], (list, tuple)) else unmet
+            return _choice_required(
+                requested, capability, resolved=out,
+                reason=(f'explicit model {requested!r} is unavailable; '
+                        f'missing capability: {capability}'))
+        # Explicit requests must not be reordered into an unrelated head.
+        out['chain'] = [selected] + [h for h in chain if h is not selected]
+    elif chain:
+        head = chain[0] if isinstance(chain[0], dict) else {}
+        unmet = head.get('requirements_unmet') if isinstance(head, dict) else None
+        # The designated degraded fallback is an intentional, reported path.
+        # A non-fallback head carrying unmet requirements is instead an
+        # unavailable head and must not be allowed to masquerade as eligible.
+        if unmet and not (head.get('fallback') or head.get('degraded')):
+            capability = unmet[0][0] if isinstance(unmet, (list, tuple)) and unmet \
+                and isinstance(unmet[0], (list, tuple)) else unmet
+            return _choice_required(
+                f"{head.get('provider')}/{head.get('model')}", capability,
+                resolved=out,
+                reason=(f"head-of-chain model {head.get('provider')}/{head.get('model')} "
+                        f"is unavailable; missing capability: {capability}"))
+    return out
 
 
 def _proxy_usage(payload: Any) -> None | int | tuple[Any, ...]:
@@ -4612,6 +4729,12 @@ def _proxy_chat_inner(path: Any, body: Any, headers: Any, max_hops: Any=None, up
         except (TypeError, ValueError):
             dl_problems.append('x-caller-max-hops: non-integer value dropped')
     source, requirements = _proxy_requirements(body, headers, path)
+    # TR-352: explicit model selection is carried separately from the OpenAI
+    # body model hint. It must survive into the resolver so an unavailable
+    # request cannot be replaced by the normal price-ordered head.
+    requested_model = _requested_model(body, headers, requirements)
+    if requested_model and isinstance(requirements, dict):
+        requirements = {**requirements, 'requested_model': requested_model}
     # TR-163: one measurement per request, reused by every row this request writes.
     _prompt_stats = _prompt_evidence(body)
     # TR-142: the envelope states the LEVELS that admitted the served lane, resolved
@@ -4687,7 +4810,22 @@ def _proxy_chat_inner(path: Any, body: Any, headers: Any, max_hops: Any=None, up
     resolved = _proxy_chain(requirements, sort_spec=headers.get('x-router-sort'),
                             window_h=headers.get('x-router-window-h'),
                             lane=lane_hint)
+    if isinstance(resolved, dict) and resolved.get('choice_required'):
+        # No upstream call and no ladder fallback: the caller explicitly chose
+        # an unavailable capability, so it must choose another one.
+        return 409, {
+            **resolved,
+            '_router': {
+                'status': 'choice_required',
+                'requested_model': resolved.get('requested_model'),
+                'missing_capability': resolved.get('missing_capability'),
+                'resolution': resolved.get('resolution') or {},
+            },
+        }
     chain = resolved.get('chain') or []
+    resolution_skips = _resolution_skips(resolved)
+    if resolution_skips:
+        resolved['resolution_skips'] = resolution_skips
     # TR-081: the ladder must be SELF-AUDITING. The resolver filters gated lanes
     # before the proxy ever sees the chain, so a caller can be served at hop 4
     # (e.g. $1.52/M) while the registry's own chain head was 18x cheaper — and
