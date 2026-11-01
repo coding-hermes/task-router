@@ -57,6 +57,18 @@ Rules inherited from this repo's doctrine:
 - **Multi-account is per account** (`account: "xkiro"` vs `"xkiro-2"`). Aggregation is a display choice;
   the accounting is per account. Two accounts of the same plan never merge into "2× the window" unless the
   provider's own docs say the limit is per-person.
+- **Aggregated display is declared, not guessed** (`aggregate_display: {sum_limits: permitted|unknown,
+  reason}`). Until a provider's own docs permit summing, every multi-account row declares `unknown` and the
+  L2 view surfaces that verbatim on its split blocks — it never computes a cross-account sum of its own.
+  *(Declared 2026-11-01, TR-216: all six seat rows of xkiro/-2, opencode-go/-2, commandcode/-2 are
+  `unknown` — no provider doc statement permits summing.)*
+- **Seat provider ids fold to the family at query time.** The outcome ledger keys each account as its own
+  provider id (`xkiro`, `xkiro-2`); `router_quota_accounting.py` reads the L0 table's uniform per-provider
+  `account` declarations at query time and reports ONE entry per account under the family provider, with
+  `seats` naming the ledger ids absorbed (`--provider xkiro-2` still resolves, via the seats). The name
+  shape alone never folds: both sides must be declared with distinct accounts. `rollover` semantics ride
+  the same rows — commandcode is modeled (included no-rollover / top-up never-expire); xkiro/-2 and
+  opencode-go/-2 are explicitly `unknown` with the reason. *(Implemented 2026-11-01, TR-216.)*
 - **Concurrency is a different axis** from quota (already in `providers.jsonl`) — the pacing layer treats it
   as a second ceiling, not as quota.
 

@@ -468,8 +468,10 @@ def main(argv: Any=None) -> int:
 
     pac = sub.add_parser('accounting',
                          help='L2 quota accounting: spent/remaining/resets_at '
-                              'per provider, derived from the outcome ledger '
-                              '(TR-209; no second store)')
+                              'per provider account, derived from the outcome '
+                              'ledger (TR-209; per-account since TR-216 — '
+                              'multi-account providers report one entry per '
+                              'account, never a summed row; no second store)')
     pac.add_argument('--provider', default=None)
     pac.add_argument('--ledger', default=None,
                      help='outcome ledger (default: $ROUTING_OUTCOMES_FILE '

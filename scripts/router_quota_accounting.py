@@ -69,6 +69,28 @@ carries the no-limit reason. A config entry that declares no `account` (the
 normal single-account shape) keeps the byte-identical pre-TR-216 behavior:
 ONE block per provider, every row of the provider summed into it.
 
+L0-DERIVED ACCOUNT RESOLUTION (TR-216, the real-ledger shape): the outcome
+ledger does not carry an `account` field — the fleet's seat providers are
+recorded as DISTINCT provider ids (xkiro, xkiro-2, opencode-go-2,
+commandcode-2). The L0 research table (data/tables/provider_quota.jsonl) is
+the authority on which provider id is which account: rows declaring a uniform
+`account` per provider_id feed the view at QUERY time (never stored, same
+doctrine as the limits config). The view then (a) labels every block with the
+declared account, (b) folds a seat provider id (xkiro-2) into its FAMILY
+provider (xkiro) when the table declares both sides as distinct accounts of
+the same family — so `accounting --provider xkiro` reports ONE ENTRY PER
+ACCOUNT, never a summed row. The fold fires only when BOTH ids declare
+accounts AND the accounts differ; a provider merely NAMED like a sibling
+stays its own budget. Each folded block names its `seats` (the ledger
+provider ids absorbed), and the CLI's --provider filter matches seat ids too.
+
+AGGREGATED DISPLAY (TR-216): the view NEVER emits a summed cross-account row.
+Whether a consumer may sum the per-account limits is a DISPLAY declaration
+that lives in the L0 table (`aggregate_display.sum_limits`: "unknown" until a
+provider doc permits it — quota-layers-spec §2); split blocks surface that
+declaration verbatim, so an aggregate stays UNKNOWN instead of becoming a
+wrong 2x.
+
 WINDOW BOUNDARIES (deliberate, AC2-tested):
   rolling windows:  start < ts <= now      (a row exactly at the start edge has
                                             rolled OFF; at `now` it counts)
@@ -99,6 +121,7 @@ import datetime
 import json
 import math
 import os
+import re
 import sys
 import time
 
@@ -115,6 +138,11 @@ LIMITS_ENV = 'ROUTER_QUOTA_LIMITS_FILE'
 DEFAULT_WINDOW = 'rolling_5h'
 WINDOW_KINDS = ('rolling_5h', 'rolling_daily', 'daily', 'rolling', 'weekly',
                 'monthly')
+# The L0 research table — authority for which ledger provider id is WHICH
+# ACCOUNT (TR-216). Read at query time, never stored, like the limits config.
+DEFAULT_QUOTA_TABLE = os.path.join(REPO, 'data', 'tables',
+                                   'provider_quota.jsonl')
+QUOTA_TABLE_ENV = 'ROUTER_PROVIDER_QUOTA_FILE'
 
 
 # ------------------------------------------------------------------ config ---
@@ -155,6 +183,101 @@ def load_limits(path: Any):
     providers = doc.get('providers')
     return {'default_window': doc.get('default_window') or DEFAULT_WINDOW,
             'providers': providers if isinstance(providers, dict) else {}}
+
+
+# ------------------------------------------------------ L0 account table ----
+
+def quota_table_path(explicit: Any=None):
+    """Resolved L0 table path: --flag/explicit > env > repo default."""
+    if explicit:
+        return os.path.abspath(os.path.expanduser(explicit))
+    env = os.environ.get(QUOTA_TABLE_ENV)
+    if env:
+        return os.path.abspath(os.path.expanduser(env))
+    return DEFAULT_QUOTA_TABLE
+
+
+def _load_quota_table_rows(path: Any) -> list:
+    """Decoded rows of the L0 table. Missing file -> [] (silent: no labels
+    is the honest empty); corrupt -> one stderr warning + [] (fail-open,
+    same policy as load_limits)."""
+    if not os.path.exists(path):
+        return []
+    rows = []
+    try:
+        with open(path, encoding='utf-8') as fh:
+            for line in fh:
+                line = line.strip()
+                if not line:
+                    continue
+                r = json.loads(line)
+                if isinstance(r, dict):
+                    rows.append(r)
+    except Exception as e:  # noqa: BLE001
+        print(f'router_quota_accounting: unreadable quota table {path}: '
+              f'{type(e).__name__}: {e} — no account labels applied',
+              file=sys.stderr)
+        return []
+    return rows
+
+
+def load_account_map(path: Any=None) -> dict:
+    """{provider_id: account} for providers whose L0 rows declare a uniform,
+    non-empty `account` (TR-216). A mixed or absent declaration is NOT a
+    guessable identity, so that provider maps to nothing and its rows stay
+    unlabeled — never a guessed 'default'."""
+    by_pid = {}
+    for r in _load_quota_table_rows(quota_table_path(path)):
+        by_pid.setdefault(str(r.get('provider_id')), []).append(r)
+    out = {}
+    for pid, prows in by_pid.items():
+        if not pid or pid == 'None':
+            continue
+        accts = {r.get('account') for r in prows}
+        accts.discard(None)
+        if len(accts) == 1:
+            out[pid] = next(iter(accts))
+    return out
+
+
+def seat_folds(account_map: Any) -> dict:
+    """{seat_provider: family_provider} for L0-declared sibling accounts.
+
+    A provider id folds into its family when stripping a trailing -<digits>
+    suffix names ANOTHER provider that ALSO declares an account in the map,
+    and the two declarations differ. Both sides come from the committed
+    table — the name shape alone is never trusted (a provider legitimately
+    named foo-2 without a declaring foo sibling stays its own budget).
+    """
+    amap = account_map if isinstance(account_map, dict) else {}
+    folds = {}
+    for pid in amap:
+        m = re.match(r'^(.*)-\d+$', str(pid))
+        if not m:
+            continue
+        base_acct = amap.get(m.group(1))
+        if base_acct is not None and base_acct != amap[pid]:
+            folds[pid] = m.group(1)
+    return folds
+
+
+def load_aggregate_display(path: Any=None) -> dict:
+    """{provider_id: declaration} of the L0 rows' `aggregate_display` field
+    (whether docs permit summing limits across accounts — quota-layers-spec
+    §2). Uniform per provider like the account map: a provider whose rows
+    disagree, or that declares nothing, maps to nothing."""
+    by_pid = {}
+    for r in _load_quota_table_rows(quota_table_path(path)):
+        by_pid.setdefault(str(r.get('provider_id')), []).append(r)
+    out = {}
+    for pid, prows in by_pid.items():
+        if not pid or pid == 'None':
+            continue
+        decls = {json.dumps(r.get('aggregate_display'), sort_keys=True)
+                 for r in prows if r.get('aggregate_display') is not None}
+        if len(decls) == 1:
+            out[pid] = json.loads(next(iter(decls)))
+    return out
 
 
 # ------------------------------------------------------------------- time ----
@@ -410,7 +533,8 @@ def account_provider(provider: Any, rows: Any, cfg: Any, now_ts: Any, default_wi
     return block
 
 
-def account(rows: Any, limits: Any, now_ts: Any) -> list:
+def account(rows: Any, limits: Any, now_ts: Any, account_map: Any=None,
+            aggregate_display: Any=None) -> list:
     """Per-provider (or per provider+account) blocks over ledger rows — the
     L2 VIEW (pure function).
 
@@ -422,8 +546,20 @@ def account(rows: Any, limits: Any, now_ts: Any) -> list:
     declares (or the provider block itself when none is declared). Providers
     from the config appear even with zero rows, so a configured-but-idle
     budget is visible instead of missing.
+
+    L0-derived resolution (TR-216, the real-ledger shape): `account_map` is
+    {provider_id: account} loaded from the committed quota table by the
+    caller (account_ledger; tests pass fixtures). Rows of a mapped provider
+    are labeled with the declared account, and a SEAT provider id (xkiro-2)
+    folds into its family provider (xkiro) per seat_folds() — one entry per
+    account, never a summed row. Folded blocks carry `seats` (the absorbed
+    ledger provider ids) and — when the L0 table declares it —
+    `aggregate_display`, the doc-permission statement for summing limits
+    across accounts. The view itself never emits a summed cross-account row.
     """
     now = float(now_ts)
+    amap = account_map if isinstance(account_map, dict) else {}
+    folds = seat_folds(amap)
     by_provider = {}
     for r in rows:
         if not isinstance(r, dict):
@@ -431,7 +567,18 @@ def account(rows: Any, limits: Any, now_ts: Any) -> list:
         p = r.get('provider')
         if p is None:
             continue        # unattributable usage cannot sit in a provider budget
-        by_provider.setdefault(str(p), []).append(r)
+        p = str(p)
+        if p in folds:
+            # a seat id: label with ITS declared account, then re-key to the
+            # family provider so the family reports one entry per account
+            r.setdefault('account', amap[p])
+            p = folds[p]
+        by_provider.setdefault(p, []).append(r)
+    for p, prow in by_provider.items():
+        acct = amap.get(p)
+        if acct is not None:
+            for r in prow:
+                r.setdefault('account', acct)
     providers_cfg = limits.get('providers') or {}
     default_window = limits.get('default_window') or DEFAULT_WINDOW
 
@@ -450,31 +597,55 @@ def account(rows: Any, limits: Any, now_ts: Any) -> list:
             by_provider.pop(str(alias), None)
 
     def _blocks(provider: Any, prow: Any, cfg: Any):
-        declared = (cfg or {}).get('account')
-        if not declared:
-            # single-account shape: byte-identical pre-TR-216 behavior
-            return [account_provider(provider, prow, cfg, now,
-                                     default_window=default_window)]
-        paccount_cfgs = cfg.get('accounts') or {}
-        row_acct_names = set()
+        cfg = cfg if isinstance(cfg, dict) else {}
+        declared = cfg.get('account')
+        labeled = set()
+        has_unlabeled = False
         for r in prow:
             a = r.get('account')
-            row_acct_names.add(str(a) if a is not None else declared)
-        acct_names = sorted(row_acct_names |
-                            (set(paccount_cfgs) | {declared}
-                             if isinstance(paccount_cfgs, dict)
-                             else {declared}))
+            if a is None:
+                has_unlabeled = True
+            else:
+                labeled.add(str(a))
 
-        def _row_account(r: Any):
-            a = r.get('account')
-            return str(a) if a is not None else declared
+        if not declared and len(labeled) < 2:
+            # single-account shape: byte-identical pre-TR-216 behavior when
+            # nothing declares an account; when the L0 table labels the rows,
+            # the block carries that account name (explicit per-account
+            # accounting instead of a bare null). A MIX of labeled and
+            # unlabeled rows stays unlabeled — a label would attribute the
+            # unlabeled spend to an account it never declared.
+            single = (next(iter(labeled))
+                      if len(labeled) == 1 and not has_unlabeled else None)
+            return [account_provider(provider, prow, cfg, now,
+                                     default_window=default_window,
+                                     account=single)]
+
+        paccount_cfgs = cfg.get('accounts') if isinstance(cfg.get('accounts'),
+                                                          dict) else {}
+        if declared:
+            # config-declared shape: unlabeled rows belong to the DECLARED
+            # account (the legacy-ledger contract, never the void)
+            def _row_account(r: Any):
+                a = r.get('account')
+                return str(a) if a is not None else declared
+            acct_names = sorted({str(r.get('account')) for r in prow
+                                 if r.get('account') is not None}
+                                | set(paccount_cfgs) | {declared})
+        else:
+            # L0-declared multi-account family: one block per labeled
+            # account; (should-not-happen) unlabeled rows keep an honest
+            # account=None bucket instead of being dropped or guessed.
+            def _row_account(r: Any):
+                a = r.get('account')
+                return str(a) if a is not None else None
+            acct_names = sorted(labeled) + ([None] if has_unlabeled else [])
         by_acct = {}
         for r in prow:
             by_acct.setdefault(_row_account(r), []).append(r)
         out = []
         for acct in acct_names:
-            acfg = paccount_cfgs.get(acct) if isinstance(paccount_cfgs, dict) \
-                else None
+            acfg = paccount_cfgs.get(acct) if acct is not None else None
             if acfg is None:
                 # account not individually configured: inherit the provider's
                 # own entry (window/limits), minus the account marker — spend
@@ -494,6 +665,25 @@ def account(rows: Any, limits: Any, now_ts: Any) -> list:
     for p in sorted(set(by_provider) | set(providers_cfg)):
         cfg = providers_cfg.get(p) or {}
         out_blocks.extend(_blocks(p, by_provider.get(p, []), cfg))
+
+    # -- TR-216 annotations: which ledger seat ids each block absorbed, and
+    # the family's doc-permission statement for summing limits (declared in
+    # the L0 table, "unknown" until a provider doc permits it). The view
+    # never computes a cross-account sum itself.
+    family_blocks = {}
+    for b in out_blocks:
+        family_blocks.setdefault(b['provider'], []).append(b)
+    for p, blocks in family_blocks.items():
+        seats = sorted(s for s, fam in folds.items() if fam == p)
+        split = len(blocks) > 1
+        for b in blocks:
+            mine = [s for s in seats if amap.get(s) == b.get('account')]
+            if mine:
+                b['seats'] = mine
+            decl = (aggregate_display or {}).get(p) \
+                if isinstance(aggregate_display, dict) else None
+            if decl is not None and split:
+                b['aggregate_display'] = decl
     return out_blocks
 
 
@@ -503,13 +693,18 @@ def account_ledger(path: Any=None, limits: Any=None, now_ts: Any=None) -> list:
     `limits` may be a loaded config dict or a PATH to a config file (loaded
     here, still at query time — callers that query repeatedly pass the doc
     and re-load it themselves so an edit between queries is honored).
+    The L0 account map + aggregate-display declarations are read from the
+    committed quota table at query time too (TR-216) — the same
+    no-second-store doctrine: the table is DATA, the view is a query.
     """
     path = path or router_outcomes.outcomes_path()
     if isinstance(limits, str):
         limits = load_limits(limits)
     limits = limits if limits is not None else load_limits(limits_path())
     rows = router_outcomes.load_outcome_rows(path)
-    return account(rows, limits, now_ts if now_ts is not None else time.time())
+    return account(rows, limits, now_ts if now_ts is not None else time.time(),
+                   account_map=load_account_map(),
+                   aggregate_display=load_aggregate_display())
 
 
 # -------------------------------------------------------------------- CLI ----
@@ -528,6 +723,8 @@ def _print_human(blocks: Any, ledger: Any, limits_file: Any, as_of: Any) -> int:
         label = b['provider']
         if b.get('account'):
             label = f"{label}/{b['account']}"
+        if b.get('seats'):
+            label = f"{label} (+{','.join(b['seats'])})"
         print(f"  {label:<30} {str(b['window']):<13} "
               f"spent=${_fmt_usd(b['spent_usd'])} "
               f"tokens={b['tokens_in']}/{b['tokens_out']} "
@@ -583,7 +780,11 @@ def main(argv: Any=None) -> int | None:
         blocks = account_ledger(path=ledger, limits=limits, now_ts=now_ts)
         if args.provider:
             want = str(args.provider).strip()
-            blocks = [b for b in blocks if b['provider'] == want]
+            # a seat provider id (xkiro-2) names a block that reports under
+            # its family provider (xkiro) — match the seats too (TR-216)
+            blocks = [b for b in blocks
+                      if b['provider'] == want
+                      or want in (b.get('seats') or [])]
         as_of = _iso(now_ts)
         if args.json:
             print(json.dumps({'as_of': as_of, 'ledger': ledger,

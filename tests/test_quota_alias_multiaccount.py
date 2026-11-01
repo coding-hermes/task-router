@@ -12,11 +12,32 @@ The quota plane held three implicit things the data had not made explicit:
   * commandcode rollover semantics live in the DATA as a declared `rollover`
     field (AC4), not in anyone's memory.
 
+Phase 2 (this dispatch) closes the REAL-ledger gap the first commit left:
+the ledger keys each seat as a DISTINCT provider id (xkiro, xkiro-2, ...) and
+carries no `account` field, so `router quota accounting --provider xkiro`
+reported ONE SUMMED row. Now (AC5):
+
+  * the L0 table is the authority for which ledger provider id is WHICH
+    account: `load_account_map` reads the uniform per-provider `account`
+    declarations at query time (no second store), `seat_folds` folds a seat
+    id (xkiro-2) into its family (xkiro) ONLY when the table declares both
+    sides as distinct accounts;
+  * the view reports ONE ENTRY PER ACCOUNT — never a summed row — labeling
+    folded blocks with `seats` (the absorbed ledger provider ids); the CLI
+    --provider filter matches seat ids too;
+  * aggregated display is enforced: the view never sums across accounts, and
+    each split block surfaces the L0 `aggregate_display` declaration
+    ("unknown" until a provider doc permits summing — quota-layers-spec §2);
+  * xkiro/-2 and opencode-go/-2 declare rollover semantics explicitly as
+    unknown-with-reason (AC4's "or explicitly mark unknown" branch).
+
 The L2 tests are hermetic (temp ledger + temp limit config, same fixtures as
-test_quota_accounting.py); the REAL outcome ledger is never read.
+test_quota_accounting.py); the REAL outcome ledger is never read. Data
+checks read the committed L0 table explicitly by path.
 """
 import json
 import os
+import subprocess
 import sys
 
 import pytest
@@ -159,6 +180,10 @@ def _hermetic(monkeypatch, tmp_path):
     monkeypatch.setenv("ROUTING_OUTCOMES_FILE", str(tmp_path / "unused.jsonl"))
     monkeypatch.setenv("ROUTER_QUOTA_LIMITS_FILE",
                        str(tmp_path / "unused-limits.json"))
+    # the L0 account map is loaded at query time on the CLI/ledger path —
+    # pin it away from the committed table unless a test points at it
+    monkeypatch.setenv("ROUTER_PROVIDER_QUOTA_FILE",
+                       str(tmp_path / "unused-quota-table.jsonl"))
     monkeypatch.setattr(router_outcomes, "_PRICE_MAP", {})
 
 
@@ -308,3 +333,163 @@ def test_ac4_rollover_agrees_with_the_providers_jsonl_note():
             assert "never expire" in note.lower() or "never expires" in note.lower() \
                 or "top-up" in note.lower() or "topup" in note.lower(), (
                 f"{pid}: providers.jsonl note lost the top-up rollover statement")
+
+
+# ==========================================================================
+# AC5 — the real-ledger shape: L0-derived seat fold, one entry per account,
+# aggregated display enforced unknown
+# ==========================================================================
+
+SEAT_PROVIDERS = ("xkiro", "xkiro-2", "opencode-go", "opencode-go-2",
+                  "commandcode", "commandcode-2")
+
+
+def test_ac5_l0_map_declares_the_six_seat_identities():
+    amap = acc.load_account_map(QUOTA)
+    for pid in SEAT_PROVIDERS:
+        assert amap.get(pid), f"{pid}: no account in the L0 map"
+    assert amap["xkiro"] == "xkiro-1"
+    assert amap["xkiro-2"] == "xkiro-2"
+    assert amap["opencode-go"] == "opencode-go-1"
+    assert amap["opencode-go-2"] == "opencode-go-2"
+    assert amap["commandcode"] == "seat-1"
+    assert amap["commandcode-2"] == "seat-2"
+
+
+def test_ac5_seat_folds_come_from_the_table_not_the_name_shape():
+    folds = acc.seat_folds(acc.load_account_map(QUOTA))
+    assert folds == {"xkiro-2": "xkiro",
+                     "opencode-go-2": "opencode-go",
+                     "commandcode-2": "commandcode"}
+    # a provider merely NAMED like a sibling folds to nothing...
+    assert acc.seat_folds({"gwid-2": "some-account"}) == {}
+    # ...and neither does a sibling whose account the table does NOT declare
+    # as distinct (same account on both sides = not a seat split)
+    assert acc.seat_folds({"x": "a", "x-2": "a"}) == {}
+
+
+def test_ac5_one_entry_per_account_never_a_summed_row():
+    """THE acceptance shape: ledger rows keyed by seat provider ids, the L0
+    map from the committed table — the view reports (xkiro, xkiro-1) and
+    (xkiro, xkiro-2) as two budgets; xkiro-2's spend never lands in the
+    xkiro-1 window and no summed cross-account row exists."""
+    rows = [
+        _row("xkiro", cost=3.0, session="a"),
+        _row("xkiro", cost=1.5, session="b"),
+        _row("xkiro-2", cost=8.0, session="c"),
+    ]
+    blocks = acc.account(rows, {}, T0,
+                         account_map=acc.load_account_map(QUOTA))
+    assert len(blocks) == 2, "expected one entry per account, got a merge"
+    by_acct = {b["account"]: b for b in blocks}
+    assert set(by_acct) == {"xkiro-1", "xkiro-2"}
+    assert all(b["provider"] == "xkiro" for b in blocks)
+    assert by_acct["xkiro-1"]["spent_usd"] == pytest.approx(4.5)
+    assert by_acct["xkiro-1"]["n_rows"] == 2
+    assert by_acct["xkiro-2"]["spent_usd"] == pytest.approx(8.0)
+    assert by_acct["xkiro-2"]["n_rows"] == 1
+    # the folded block names the ledger provider id it absorbed
+    assert by_acct["xkiro-2"]["seats"] == ["xkiro-2"]
+    assert "seats" not in by_acct["xkiro-1"]      # the family id is not a seat
+
+
+def test_ac5_aggregate_display_surfaces_unknown_no_aggregate_row():
+    """Item 3: summing across accounts is a DISPLAY declaration from the L0
+    table; the view surfaces it on split blocks and NEVER computes an
+    aggregate row of its own."""
+    rows = [_row("xkiro", cost=3.0, session="a"),
+            _row("xkiro-2", cost=8.0, session="c")]
+    blocks = acc.account(rows, {}, T0,
+                         account_map=acc.load_account_map(QUOTA),
+                         aggregate_display=acc.load_aggregate_display(QUOTA))
+    assert len(blocks) == 2        # two budgets — not two budgets + a total
+    for b in blocks:
+        assert b["aggregate_display"]["sum_limits"] == "unknown"
+        assert b["aggregate_display"]["reason"]
+    # a single-account family surfaces no aggregation statement
+    single = acc.account([_row("zai-glm", cost=1.0, session="a")], {}, T0,
+                         account_map=acc.load_account_map(QUOTA))
+    assert len(single) == 1
+    assert single[0]["account"] == "default"       # labeled, not split
+    assert "aggregate_display" not in single[0]
+
+
+def test_ac5_unlabeled_rows_fall_in_the_maps_declared_account():
+    """With the L0 map present the map is the AUTHORITY: a legacy row without
+    an account field belongs to the account the table declares (xkiro -> xkiro-1),
+    so the seat (xkiro-2, explicitly labeled) still reports separately.
+    Without a map, the same mixed shape stays unlabeled (AC3 pins that)."""
+    rows = [_row("xkiro", cost=1.0, session="legacy"),      # no account field
+            _row("xkiro", account="xkiro-2", cost=2.0, session="new")]
+    blocks = acc.account(rows, {}, T0, account_map={"xkiro": "xkiro-1"})
+    by_acct = {b["account"]: b for b in blocks}
+    assert set(by_acct) == {"xkiro-1", "xkiro-2"}
+    assert by_acct["xkiro-1"]["spent_usd"] == pytest.approx(1.0)
+    assert by_acct["xkiro-2"]["spent_usd"] == pytest.approx(2.0)
+
+
+def test_ac5_cli_reports_distinct_accounts_for_xkiro(tmp_path, monkeypatch):
+    """The acceptance command, replicated hermetically: temp ledger carrying
+    BOTH seat provider ids, the committed L0 table as the account authority —
+    `router_quota.py accounting --provider xkiro --json` yields two entries
+    with distinct accounts; the SEAT id filters too."""
+    led = _led(tmp_path, [
+        {"provider": "xkiro", "model": "m", "tokens_in": 100, "tokens_out": 0,
+         "cost_usd": 3.0, "ts": T0, "session_id": "a"},
+        {"provider": "xkiro-2", "model": "m", "tokens_in": 100,
+         "tokens_out": 0, "cost_usd": 8.0, "ts": T0, "session_id": "c"},
+    ])
+    monkeypatch.setenv("ROUTING_OUTCOMES_FILE", led)
+    monkeypatch.setenv("ROUTER_QUOTA_LIMITS_FILE",
+                       str(tmp_path / "unused-limits.json"))
+    monkeypatch.setenv("ROUTER_PROVIDER_QUOTA_FILE", QUOTA)
+    monkeypatch.setattr(router_outcomes, "_PRICE_MAP", {})
+    script = os.path.join(SCRIPTS, "router_quota.py")
+    out = {}
+    for flag, want_accounts in ((["--provider", "xkiro"],
+                                 {"xkiro-1", "xkiro-2"}),
+                                (["--provider", "xkiro-2"],
+                                 {"xkiro-2"}),):
+        proc = subprocess.run(
+            [sys.executable, script, "accounting", *flag,
+             f"--now={int(T0)}", "--json"],
+            capture_output=True, text=True)
+        assert proc.returncode == 0, proc.stderr
+        out = json.loads(proc.stdout)
+        got = {b["account"] for b in out["providers"]}
+        assert got == want_accounts, (
+            f"{flag}: expected distinct per-account entries, got {got}")
+        for b in out["providers"]:
+            assert b["provider"] == "xkiro"
+    # the seat-id run names the family provider and its own spend only
+    seat_block = next(b for b in out["providers"] if b["account"] == "xkiro-2")
+    assert seat_block["spent_usd"] == pytest.approx(8.0)
+    assert seat_block["seats"] == ["xkiro-2"]
+
+
+def test_ac5_real_table_declares_aggregate_and_rollover_on_seat_rows():
+    """Data-level (item 3 + item 4): every multi-account row carries
+    aggregate_display unknown-with-reason; xkiro/-2 and opencode-go/-2 mark
+    rollover explicitly unknown-with-reason; commandcode keeps its MODELED
+    (non-unknown) rollover values."""
+    for pid in SEAT_PROVIDERS:
+        for r in _rows_by_provider(pid):
+            decl = r.get("aggregate_display")
+            assert isinstance(decl, dict), f"{pid}: no aggregate_display"
+            assert decl.get("sum_limits") == "unknown", (
+                f"{pid}: summing across accounts has no doc permission — "
+                f"must stay unknown, got {decl.get('sum_limits')!r}")
+            assert decl.get("reason"), f"{pid}: unknown without a reason"
+    for pid in ("xkiro", "xkiro-2", "opencode-go", "opencode-go-2"):
+        for r in _rows_by_provider(pid):
+            ro = r.get("rollover")
+            assert isinstance(ro, dict), f"{pid}: rollover not declared"
+            assert ro.get("included_credits") == "unknown", (
+                f"{pid}: rollover must be explicitly unknown (no doc "
+                f"statement), got {ro.get('included_credits')!r}")
+            assert ro.get("reason"), f"{pid}: unknown rollover without reason"
+    for pid in ("commandcode", "commandcode-2"):
+        for r in _rows_by_provider(pid):
+            ro = r.get("rollover")
+            assert ro.get("included_credits") == "no-rollover"
+            assert ro.get("topup_credits") == "rollover-never-expire"
