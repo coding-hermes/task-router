@@ -1,0 +1,34 @@
+{
+  "tick": "task-router-foreman-2026-11-01-17-39-47",
+  "task": "RELEASE-2026-10-22-001",
+  "tested_sha": "f7bddcec20aeb054b1c1fd9e3a7de235c23b43e0",
+  "decision": "NO CUT — owner authorization and version-prep are absent",
+  "release_surface": {
+    "numeric_tags": 0,
+    "remote_numeric_tags": 0,
+    "github_releases": 0,
+    "pyproject_version": "0.2.0",
+    "package_version": "0.2.0",
+    "changelog_v0.3.0": 0,
+    "workflow": ".github/workflows/ci.yml",
+    "release_procedure": "docs/releases/release-readiness.md"
+  },
+  "ci": {
+    "latest_three": [
+      {"run_id": 41317196788, "sha": "f7bddcec20aeb054b1c1fd9e3a7de235c23b43e0", "conclusion": "failure", "failed_step": "Full test suite (pure JSON — no duckdb needed)", "failures": 3},
+      {"run_id": 41316944038, "sha": "289d37cd12b586e59b426815d16f8d9fe6375ff6", "conclusion": "failure", "failed_step": "Full test suite (pure JSON — no duckdb needed)", "failures": 3},
+      {"run_id": 41316209172, "sha": "f991dcc5d479a3d17d45b3d45790492657cbd5b9", "conclusion": "failure", "failed_step": "Full test suite (pure JSON — no duckdb needed)", "failures": 3}
+    ],
+    "failure_class": "code/data baseline drift: soft-gate and visibility golden expectations disagree with current generated outcomes state; additionally _FakeResponse lacks close() in classifier tests",
+    "existing_board_owners": ["INT-CI-15", "INT-CI-12"],
+    "new_ci_row_filed": false,
+    "reason": "The failures are already represented by existing rows/closeout history; no duplicate row was filed."
+  },
+  "blockers": [
+    "No explicit owner authorization naming task-router, release version, and baseline SHA.",
+    "No version-prep commit; pyproject.toml and task_router/__init__.py remain 0.2.0; CHANGELOG has no v0.3.0 heading.",
+    "Latest exact-head CI is red on the full suite; three failures are present on f7bddce and the two prior heads.",
+    "Dogfood/QA and live-serving blockers remain open or owner-controlled, including TR-355 live cutover."
+  ],
+  "next_action": "Owner must explicitly authorize task-router, select the release version and baseline SHA, then land version-prep and clear exact-head CI before any tag or Release object."
+}
