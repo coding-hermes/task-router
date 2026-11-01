@@ -1,0 +1,32 @@
+Task-router release-readiness verification
+Tick: task-router-foreman-2026-11-01-18-30-54
+Repository: coding-hermes/task-router
+Tested published base: f7bddcec20aeb054b1c1fd9e3a7de235c23b43e0
+
+Selection
+Highest-priority pending row: RELEASE-2026-10-22-001 (P0).
+Decision: keep pending; no worker or GitReins implementation lifecycle.
+Owner gate: no explicit authorization naming task-router, target release version, and baseline SHA.
+
+Release surface
+origin/main: f7bddcec20aeb054b1c1fd9e3a7de235c23b43e0
+pyproject.toml version: 0.2.0
+ task_router/__init__.py version: 0.2.0
+CHANGELOG.md v0.3.0 headings: 0
+Local numeric tags: 0
+GitHub Releases: 0
+No tag, version-prep, Release object, or artifact publication was attempted.
+
+CI health
+Required latest-three query at 2026-11-01T18:35:xx scheduler-local time:
+41317196788 head f7bddcec20aeb054b1c1fd9e3a7de235c23b43e0 — failure; failed step Full test suite (pure JSON — no duckdb needed).
+41316944038 head 289d37cd12b586e59b426815d16f8d9fe6375ff6 — failure; failed step Full test suite (pure JSON — no duckdb needed).
+41316209172 head f991dcc5d479a3d17d45b3d45790492657cbd5b9 — failure; failed step Full test suite (pure JSON — no duckdb needed).
+This is a pre-existing failure signature already tracked by INT-CI-15; no duplicate row filed. The latest earlier release-readiness run 41261675829 on 0f5e775a was green with every workflow step green, including the TR-251 boundary and evidence-replay steps, but it is not the current head.
+
+Trace
+ch:trace row=RELEASE-2026-10-22-001 spec=docs/releases/release-readiness.md#written-procedure wave=.coding-hermes/waves/task-router-foreman-2026-11-01-18-30-54.json#owner-gated test=none:owner-gated-readiness doc=.coding-hermes/evidence/release-readiness-verify-2026-11-01-18-30-54.txt evidence=.coding-hermes/evidence/release-readiness-verify-2026-11-01-18-30-54.txt witness=none:owner-authorization-missing verdict=none:not-applicable commit=none:owner-block memory=none:duckbrain-read-unverified
+
+STATUS: PENDING
+TIER: T3 (release surface, exact-head CI, board and owner gate independently checked)
+EVIDENCE: .coding-hermes/evidence/release-readiness-verify-2026-11-01-18-30-54.txt
