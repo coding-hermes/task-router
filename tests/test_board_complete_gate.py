@@ -432,11 +432,19 @@ def bound_row(**over):
     return row
 
 
+# Witness observations must be re-recorded within the item's freshness window
+# (default 30d) relative to REAL now — any hardcoded date ages out of the gate
+# and turns its test red (INT-CI-15). One day back is inside every window and
+# still after every fixture claim timestamp used below.
+RECENT_OBS_AT = (datetime.now(timezone.utc) - timedelta(days=1)).strftime(
+    '%Y-%m-%dT%H:%M:%SZ')
+
+
 def obs(item_id='release-0.2.0', observer='external-cron', at=None,
         locator='coding-hermes/task-router#v0.2.0'):
     return {'item_id': item_id, 'observer': observer,
             'locator': locator, 'observed': 'release present',
-            'observed_at': at or '2026-10-02T12:00:00Z'}
+            'observed_at': at or RECENT_OBS_AT}
 
 
 # ------------------------------------------------------------- envelopes --- #
@@ -594,7 +602,7 @@ def test_record_observation_appends_and_gate_reads_it_back(tmp_path):
     gate.record_observation('task-router', 'release-0.2.0', 'external-cron',
                             'coding-hermes/task-router#v0.2.0',
                             '1 release present', envelopes_dir=d,
-                            observed_at='2026-10-02T12:00:00Z')
+                            observed_at=RECENT_OBS_AT)
     obs_loaded = gate.load_observations('task-router', d)
     assert len(obs_loaded) == 1
     assert obs_loaded[0]['observer'] == 'external-cron'
@@ -880,7 +888,7 @@ def test_cli_check_bound_row_with_observation_exit_0(tmp_path):
     gate.record_observation('task-router', 'release-0.2.0', 'external-cron',
                             'coding-hermes/task-router#v0.2.0', 'present',
                             envelopes_dir=d,
-                            observed_at='2026-10-02T12:00:00Z')
+                            observed_at=RECENT_OBS_AT)
     board = write_board(tmp_path, [bound_row()])
     r = subprocess.run(
         [PY, os.path.join(SCRIPTS, 'board_complete_gate.py'), 'check',
@@ -927,7 +935,7 @@ def test_cli_record_then_check_witness_flow(tmp_path):
          '--observer', 'external-cron',
          '--locator', 'coding-hermes/task-router#v0.2.0',
          '--observed', '1 release present',
-         '--at', '2026-10-02T12:00:00Z',
+         '--at', RECENT_OBS_AT,
          '--envelopes', d], capture_output=True, text=True)
     assert r1.returncode == 0, r1.stderr
     r2 = subprocess.run(
