@@ -1,0 +1,15 @@
+{
+  "scheduler_tick": "task-router-foreman-2026-11-01-17-39-47",
+  "project": "task-router",
+  "selected_task": "RELEASE-2026-10-22-001",
+  "mode": "owner-gated-verification-only",
+  "workers": [],
+  "worktrees": [],
+  "wave_size": 0,
+  "wave_budget": 7,
+  "owner_gate": "No release cut or version-prep authorization; verify readiness surface only and keep row pending.",
+  "base_sha": "f7bddcec20aeb054b1c1fd9e3a7de235c23b43e0",
+  "status": "PENDING",
+  "finished_at": "2026-11-01T17:50:26Z",
+  "evidence": ".coding-hermes/evidence/release-readiness-verify-2026-11-01-17-39-47.json"
+}
