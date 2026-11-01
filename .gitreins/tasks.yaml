@@ -305,17 +305,12 @@ tasks:
   created_at: '2026-09-18T17:19:20.945778+00:00'
   completed_at: '2026-09-18T17:24:29.985486+00:00'
 - id: TR-049
-  title: 'COST-PER-TASK ENGINE: outcomes database + rolling averages + pluggable sort
-    keys'
+  title: Activate cost-per-task engine
   criteria:
-  - 'epic: (1) outcomes ingest POST endpoint, (2) outcomes.jsonl store + gitignored,
-    (3) exponential-decay rolling averages (1d/3d/7d) in outcomes-averages.jsonl,
-    (4) per-backend isolation + merge option at resolve-time, (5) pluggable sort keys
-    (default: predicted-cost/task, alternates: wall-time, turns, ratio mix), (6) driver
-    plugin system (hermes first), (7) router_seed.py emits averages table. Doctrine:
-    DATA>JSONL, fail-open, gitignored state files, no hardcoded weights.'
+  - Default sort switches to predicted_cost_per_task; live resolve proves different
+    head; low-sample bands guarded; sort source recorded.
   status: in_progress
-  created_at: '2026-09-19T07:46:57.080144+00:00'
+  created_at: '2026-11-01T10:28:08.741153+00:00'
 - id: TR-051
   title: "RESEARCH: agentic-system landscape \u2014 10+ integration targets with endpoint/protocol\
     \ survey"
