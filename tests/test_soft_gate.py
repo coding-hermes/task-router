@@ -110,11 +110,11 @@ def test_spawn_resolves_normally_despite_many_in_flight(tmp_path):
     env = _env(tmp_path)
     env["ROUTING_REGISTRY"] = _write_registry(tmp_path, tables)
 
-    # 2026-10-04: gpt-5.6-luna retired (xkiro seat retirement, valid_to
-    # 2026-10-03); the P1_CODING head is now xkiro's cheapest eligible plan
-    # lane, z-ai/glm-5.3-flash (matches the golden fixed-point fixture).
-    # In-flight rows must target the head lane.
-    head_lane = ("xkiro", "openai/gpt-5.6-terra")
+    # 2026-11-01: the head lane is commandcode-2/z-ai/glm-5.3-flash ($0.075) —
+    # the 10-04 golden xkiro/openai/gpt-5.6-terra is outcome-floor FILTERED by
+    # live fleet telemetry (955 known outcomes at 0.33 completion < the 0.35
+    # floor). In-flight rows must target the head lane.
+    head_lane = ("commandcode-2", "z-ai/glm-5.3-flash")
     with open(env["LEDGER_FILE"], "a") as f:
         for i in range(99):
             row = {"ts": datetime.datetime.now(datetime.timezone.utc).isoformat(),
@@ -207,22 +207,18 @@ def test_soft_gate_on_excludes_busy_models(tmp_path):
     provs = _open_providers(tables)
     # Leave only xkiro and one fallback option open so the head shift is
     # deterministic when the busy model is excluded.
-    # 2026-10-17: the busy lane is openai/gpt-5.6-terra — the xkiro head after
-    # glm-5.3-flash died upstream (chat 404 'does not exist' 10-17, absent
-    # from the live 107-id catalog; lifecycle overlay aa318c6). With the gate
-    # ON it is excluded individually and the head advances within xkiro (the
-    # next eligible tier-eligible xkiro lane; head live-pong x2 2026-10-17).
-    # 2026-10-17: the busy lane is openai/gpt-5.6-terra — the xkiro head AND
-    # the fallback_lanes order-1 (glm-5.3-flash died upstream 10-17, chat 404
-    # + absent from the live catalog; overlay aa318c6). With the gate ON it
-    # is excluded individually and the head ADVANCES to the next tier-eligible
-    # lane on the normal chain: opencode-go/deepseek-flash (the only other
-    # P1_CODING-eligible lane in the current registry).
+    # 2026-11-01: the busy lane is commandcode-2/z-ai/glm-5.3-flash — the
+    # current head ($0.075; the 10-17 anchor xkiro/openai/gpt-5.6-terra is
+    # outcome-floor filtered by live telemetry, 955 outcomes at 0.33 < 0.35,
+    # and commandcode-2/glm-5.3-flash itself passed the floor as head). With
+    # the gate ON it is excluded individually and the head ADVANCES to the
+    # next tier-eligible lane on the normal chain: the commandcode twin
+    # z-ai/glm-5.3-flash at the same $0.075 (hop-2 in the 11-01 resolve).
     for p in provs:
-        if p not in ("xkiro", "opencode-go"):
+        if p not in ("commandcode-2", "commandcode"):
             provs[p] = {"status": "gated", "reason": "gate-on-test"}
     qdoc = {"updated": "test", "providers": provs, "soft_gate": True,
-            "models": {"xkiro/openai/gpt-5.6-terra": {"concurrency_limit": 5}}}
+            "models": {"commandcode-2/z-ai/glm-5.3-flash": {"concurrency_limit": 5}}}
     d = tmp_path / "state"
     d.mkdir(exist_ok=True)
     json.dump(qdoc, open(d / "quota-state.json", "w"))
@@ -234,8 +230,8 @@ def test_soft_gate_on_excludes_busy_models(tmp_path):
     with open(env["LEDGER_FILE"], "a") as f:
         for i in range(5):
             row = {"ts": datetime.datetime.now(datetime.timezone.utc).isoformat(),
-                   "trace_id": f"tr-limit-{i}", "provider": "xkiro",
-                   "model": "openai/gpt-5.6-terra", "outcome": "started"}
+                   "trace_id": f"tr-limit-{i}", "provider": "commandcode-2",
+                   "model": "z-ai/glm-5.3-flash", "outcome": "started"}
             f.write(json.dumps(row) + "\n")
 
     p = _run(SCRIPT, "coding-hermes-scheduler", "--format", "json", env_extra=env)
@@ -243,12 +239,12 @@ def test_soft_gate_on_excludes_busy_models(tmp_path):
     data = json.loads(p.stdout)
     assert data.get("error") is None, data.get("error")
     head = (data["head"]["provider"], data["head"]["model"]) if data["head"] else None
-    assert head != ("xkiro", "openai/gpt-5.6-terra"), data["head"]
-    # 2026-10-17: the head must ADVANCE to the next tier-eligible lane
-    # (opencode-go/deepseek-flash), not serve the busy pair.
-    assert head == ("opencode-go", "deepseek-flash"), data["head"]
+    assert head != ("commandcode-2", "z-ai/glm-5.3-flash"), data["head"]
+    # 2026-11-01: the head must ADVANCE to the next tier-eligible lane
+    # (commandcode/z-ai/glm-5.3-flash), not serve the busy pair.
+    assert head == ("commandcode", "z-ai/glm-5.3-flash"), data["head"]
     excluded = {_pair_str(e) for e in data.get("exclusions", [])}
-    assert "xkiro/openai/gpt-5.6-terra" in excluded
+    assert "commandcode-2/z-ai/glm-5.3-flash" in excluded
 
 
 # ------------------------------------------------------------------ AC5: fail-open --

@@ -151,6 +151,9 @@ POST_DEDUPE_ADDITIONS = {
     # lanes from the daily syncs + the HELD-lane filing wave. Every key matches a
     # lane in the committed models.jsonl at HEAD; reasons per family below.
     ("clinepass", "extract"): "clinepass API sync 2026-10-14 (carrier arrivals, engine-priced)",
+    # 2026-11-01 (model-router-refresh tick): two research filings
+    ("commandcode", "inclusionai/ling-3.1-flash-1019:free"): "filed 2026-11-01 — carrier-arrival :free dated leaf, $0 window-cost-pending (TR-070), census-stamped",
+    ("openrouter", "nvidia/switchyard"): "filed 2026-11-01 — router meta-model, active NULL by design (10-14 hold superseded; unblocked the openrouter preset apply)",
     ("clinepass", "gemini-4-argon"): "clinepass API sync 2026-10-14 (carrier arrivals, engine-priced)",
     ("clinepass", "gemini-4-argon:batch"): "clinepass API sync 2026-10-14 (carrier arrivals, engine-priced)",
     ("clinepass", "lfm-2.5-24b-a2b"): "clinepass API sync 2026-10-14 (carrier arrivals, engine-priced)",

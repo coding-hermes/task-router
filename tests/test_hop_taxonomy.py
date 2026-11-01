@@ -314,7 +314,7 @@ def test_resolve_model_pair_breaker_skips_only_that_pair(tmp_path, monkeypatch):
     still resolve."""
     import pathlib
     spawn = _resolve_env(tmp_path, monkeypatch, _committed_tables(),
-                         open_pairs={'zai-glm/glm-5.3-flash':
+                         open_pairs={'commandcode-2/z-ai/glm-5.3-flash':
                                      {'failures': 1,
                                       'open_until': '2099-01-01T00:00:00+00:00',
                                       'class': 'quota_window'}})
@@ -322,7 +322,13 @@ def test_resolve_model_pair_breaker_skips_only_that_pair(tmp_path, monkeypatch):
     chain = r.get('chain') or []
     assert chain, 'the resolve must still offer hops'
     assert all((h.get('provider'), h.get('model')) !=
-               ('zai-glm', 'glm-5.3-flash') for h in chain), \
+               ('commandcode-2', 'z-ai/glm-5.3-flash') for h in chain), \
         'the broken pair must be excluded'
-    assert any(h.get('provider') == 'zai-glm' for h in chain), \
+    assert any(h.get('provider') == 'commandcode-2' for h in chain), \
         "the provider's other models must stay eligible"
+    # 2026-11-01: re-anchored from zai-glm/glm-5.3-flash — the sibling
+    # zai-glm/glm-5.3 is now outcome-floor FILTERED by live fleet telemetry
+    # (10 known outcomes at 0.00 < the 0.35 floor), so no zai-glm lane
+    # survives a glm-5.3-flash pair breaker. commandcode-2 keeps a floor-legal
+    # sibling (stepfun/Step-3.7-Flash, hop-4 in the 11-01 muster resolve), so
+    # the pair-vs-provider blast-radius property stays testable there.
