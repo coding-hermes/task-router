@@ -1,0 +1,45 @@
+TR-355 verification-only evidence
+Tick: scheduler-tick-task-router-2026-11-02-00-54-22
+Observed at: 2026-11-02T01:09:38Z
+
+Scope
+-----
+The highest-priority pending task remains TR-355. Its implementation is already merged, but AC5 requires an owner-controlled production cutover of the live router-proxy services and one live tick. This tick performs read-only verification only; no service restart or teardown was attempted.
+
+Exact commands and observations
+------------------------------
+$ curl -sS --max-time 10 http://127.0.0.1:9092/health
+HTTP response status was 200. Response reported loaded_commit=187bcae615d3, loaded_at=2026-10-19T20:42:28+00:00, repo_commit=a4685fff7666, stale=true, runtime.pid=7563, mode=read-only, ready=true, draining=false, inflight=1.
+
+$ curl -sS --max-time 10 http://127.0.0.1:9391/health
+HTTP response status was 200. Response reported loaded_commit=13ef7482e1d7, loaded_at=2026-10-29T16:08:20+00:00, repo_commit=a4685fff7666, stale=true, runtime.pid=1808674, mode=read-only, ready=true, draining=false, inflight=2.
+
+$ ps -eo pid,lstart,args | grep -E '[r]outer_server.py.*(--port 9092|--port 9391)'
+7563 Mon Oct 19 15:42:27 2026 /usr/bin/python3 /home/kara/task-router/scripts/router_server.py --mode read-only --host 127.0.0.1 --port 9092
+1808674 Thu Oct 29 11:08:19 2026 /usr/bin/python3 /home/kara/task-router/scripts/router_server.py --mode read-only --host 127.0.0.1 --port 9391
+
+$ uptime
+20:09:38 up 13 days, 4:27, 2 users, load average: 9.16, 12.19, 12.74
+
+$ free -h
+Mem: total 59Gi, used 14Gi, free 6.7Gi, available 45Gi; Swap: total 55Gi, used 20Gi, free 35Gi.
+
+$ ss -ltnp '( sport = :9092 or sport = :9391 )'
+127.0.0.1:9092 LISTEN, pid 7563; 127.0.0.1:9391 LISTEN, pid 1808674.
+
+Result
+------
+Both serving instances are healthy but stale relative to the current repository commit a4685fff7666. The required AC5 live acceptance was not run because restarting/cutting over :9092 and :9391 is owner-controlled and unsafe to perform from this verification tick. Before/after state is unchanged because all probes were read-only.
+
+Required owner action
+---------------------
+Deliberate cutover of the live :9092 and :9391 router-proxy instances onto the current main tree, followed by one live tick under ROUTER_DEGRADED_WALL_S. Keep TR-355 pending until that live acceptance is observed.
+
+Off-by-One
+----------
+none:verification-only no debugging
+
+ch:trace row=TR-355 spec=none:board-acceptance-only wave=.coding-hermes/waves/scheduler-tick-task-router-2026-11-02-00-54-22.json#zero-dispatch test=tests/test_tr355_degraded_wall.py::test_failure_envelope_names_degraded_wall_policy doc=none:verification-only evidence=.coding-hermes/evidence/tr355-verify-task-router-2026-11-02-00-54-22.txt witness=live:9092-stale-187bcae+9391-stale-13ef748 verdict=none:verification-judge-pending commit=none:owner-block memory=none:duckbrain-token-unavailable
+STATUS: partial
+TIER: T3 invoked and observed — both live /health probes, process census, resource pressure, and socket ownership captured; no cutover performed
+EVIDENCE: .coding-hermes/evidence/tr355-verify-task-router-2026-11-02-00-54-22.txt
