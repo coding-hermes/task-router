@@ -1,0 +1,19 @@
+{
+  "tick_id": "task-router-foreman-2026-11-02-06-01-25",
+  "project": "task-router",
+  "selected_row": "RELEASE-2026-10-22-001",
+  "eligible_independent": 0,
+  "wave_size": 0,
+  "workers": [],
+  "worktrees": [
+    {
+      "path": "/home/kara/worktrees/task-router-release-2026-11-02-06-01-25-r2",
+      "branch": "wt/release-2026-11-02-06-01-25-r2",
+      "base": "origin/main",
+      "base_sha": "a4685fff7666a66b37fb71e8fa36fefe3e6e4a31"
+    }
+  ],
+  "dispatch": "none:owner-authorization-required",
+  "blocker": "No owner authorization naming task-router, release version, and baseline SHA; first-release surface has no numeric tag or GitHub Release.",
+  "next_owner_action": "Owner must explicitly authorize the target and version before any version-prep, tag, Release object, or artifact publication."
+}

@@ -1,0 +1,52 @@
+{
+  "tick_id": "task-router-foreman-2026-11-02-06-01-25",
+  "row": "RELEASE-2026-10-22-001",
+  "status": "PENDING",
+  "tier": "T3",
+  "decision": "NO-GO / NO DISPATCH",
+  "tested_commit": "a4685fff7666a66b37fb71e8fa36fefe3e6e4a31",
+  "published_ref": "origin/main",
+  "remote": "git@github.com:coding-hermes/task-router.git",
+  "release_surface": {
+    "numeric_tags": [],
+    "github_releases": [],
+    "current_version_pyproject": "0.2.0",
+    "current_version_package": "0.2.0",
+    "changelog_headings": ["Unreleased"],
+    "candidate_version": "v0.3.0",
+    "candidate_version_status": "proposal_only"
+  },
+  "owner_gate": {
+    "authorized": false,
+    "required": "Explicit owner authorization naming task-router, release version, and baseline SHA",
+    "next_action": "Owner must authorize the target and version before version-prep, tag, Release object, or artifact publication"
+  },
+  "local_verification": {
+    "fresh_worktree": "/home/kara/worktrees/task-router-release-2026-11-02-06-01-25-r2",
+    "base": "origin/main",
+    "base_sha": "a4685fff7666a66b37fb71e8fa36fefe3e6e4a31",
+    "worktree_clean_before_evidence": true,
+    "pytest_command": "~/.hermes/venvs/board/bin/python3 -m pytest -q tests/",
+    "pytest_result": "TIMEOUT after 420 seconds; no PASS/FAIL verdict",
+    "build_probe": "python3 -m build unavailable: No module named build",
+    "version_prep": "not run; owner authorization absent",
+    "tag_or_release_mutation": "not run; owner authorization absent"
+  },
+  "ci": {
+    "latest_three_query": "gh run list --repo coding-hermes/task-router --limit 3 --json status,conclusion,displayTitle,headBranch,createdAt,headSha",
+    "latest_three": [
+      {"head_sha":"a4685fff7666a66b37fb71e8fa36fefe3e6e4a31","conclusion":"failure","title":"tr355 closeout: bind TR-355-R2 verdict 3be9be8e to evidence commit 8d1ffe1","created_at":"2026-11-02T00:42:26Z"},
+      {"head_sha":"8d1ffe1125fe8161f964d72aebc9cb6fcec85e40","conclusion":"failure","title":"tr355 verification-only: evidence artifact + zero-dispatch manifests","created_at":"2026-11-02T00:33:02Z"},
+      {"head_sha":"bf227be55943d01ff1fb82abb1349bc13a218dd8","conclusion":"failure","title":"chore(board): file TR-OF-20261101-01 (outcome-floor over-gating) and annotate INT-CI-16","created_at":"2026-11-01T21:10:04Z"}
+    ],
+    "classification": "Existing owner row INT-CI-16 covers the recurring full-suite failure; no duplicate CI row filed. Older TR-251 evidence-replay failures remain owned by INT-CI-10 and INT-CI-11."
+  },
+  "dispatch": {
+    "eligible_independent": 0,
+    "wave_size": 0,
+    "workers": [],
+    "reason": "Owner-gated release row; lower-priority implementation work was not substituted"
+  },
+  "wave_manifest": ".coding-hermes/waves/task-router-foreman-2026-11-02-06-01-25.json",
+  "trace": "ch:trace row=RELEASE-2026-10-22-001 spec=docs/releases/release-readiness.md#First-cut-decision wave=.coding-hermes/waves/task-router-foreman-2026-11-02-06-01-25.json#zero-dispatch test=none:owner-gated-readiness doc=docs/releases/release-readiness.md evidence=.coding-hermes/evidence/release-readiness-task-router-2026-11-02-06-01-25.json witness=none:owner-authorization-absent verdict=none:not-applicable commit=none:pending-closeout memory=none:unverified"
+}
