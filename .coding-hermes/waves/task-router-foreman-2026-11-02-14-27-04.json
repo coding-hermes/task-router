@@ -1,0 +1,13 @@
+{
+  "tick": "task-router-foreman-2026-11-02-14-27-04",
+  "project": "task-router",
+  "base": "7c4231a43becb07a65a347515dfc686e9306b010",
+  "wave_budget": 12,
+  "wave_size": 0,
+  "workers": [],
+  "worktrees": [],
+  "status": "verification-only-owner-gated",
+  "selected_row": "RELEASE-2026-10-22-001",
+  "disposition": "NO DISPATCH / KEEP PENDING",
+  "owner_gate": "Explicit authorization naming task-router, target release version, and baseline SHA is absent."
+}
