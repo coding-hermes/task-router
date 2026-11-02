@@ -96,6 +96,7 @@ def _resolve(monkeypatch, tmp_path, tables=None, project="coding-hermes-schedule
                         registry if registry is not None else _write_registry(tmp_path, tables))
     if state_dir is not None:
         monkeypatch.setattr(router_spawn, "MR", state_dir)
+    monkeypatch.setenv("ROUTING_AVERAGES_FILE", str(tmp_path / "outcomes-averages.jsonl"))
     return router_spawn.resolve(project=project)
 
 
@@ -165,7 +166,13 @@ def test_corrupt_registry_source_fallback_and_warning(monkeypatch, tmp_path):
     assert r["head"] is not None  # resilience: resolution still works
     # the fallback data is the committed registry — head must match the
     # golden fixed-point head for this profile (same tables as registry.json)
-    assert _pair(r["head"]) == "commandcode-2/z-ai/glm-5.3-flash"  # 2026-11-01: xkiro/openai/gpt-5.6-terra (the 10-04 golden) is outcome-floor FILTERED by live fleet telemetry — 955 known outcomes at 0.33 completion < the 0.35 floor; next cheapest eligible plan lane = commandcode-2/z-ai/glm-5.3-flash $0.075 (09-18 doctrine: update the golden with the dated reason, never re-enable to silence)
+    assert _pair(r["head"]) == "xkiro/openai/gpt-5.6-terra"
+    # 2026-11-02 (INT-CI-16): hermetic golden — _resolve pins ROUTING_AVERAGES_FILE to an absent
+    # tmp path, so the TR-354 outcome floor is inert in this fixture (0 known outcomes = pass).
+    # The 11-01 commandcode-2 golden encoded host-live outcomes leakage (repo data/state/
+    # outcomes-averages.jsonl is gitignored: present on hosts, absent in CI), and the rolling
+    # store has since aged the xkiro evidence out, failing BOTH environments. Live xkiro
+    # filtering stays production behavior; its coverage is tests/test_tr354_outcomes_floor.py.
 
 
 def test_missing_registry_source_fallback(monkeypatch, tmp_path):
@@ -199,7 +206,13 @@ def test_missing_health_state_reported_false(monkeypatch, tmp_path):
     # behavior unchanged: a missing health file must NOT fabricate a DOWN
     # gate — the chain still resolves to the healthy head
     assert r["head"] is not None
-    assert _pair(r["head"]) == "commandcode-2/z-ai/glm-5.3-flash"  # 2026-11-01: xkiro/openai/gpt-5.6-terra (the 10-04 golden) is outcome-floor FILTERED by live fleet telemetry — 955 known outcomes at 0.33 completion < the 0.35 floor; head = next cheapest eligible plan lane (09-18 doctrine: update the golden with the dated reason, never re-enable to silence)
+    assert _pair(r["head"]) == "xkiro/openai/gpt-5.6-terra"
+    # 2026-11-02 (INT-CI-16): hermetic golden — _resolve pins ROUTING_AVERAGES_FILE to an absent
+    # tmp path, so the TR-354 outcome floor is inert in this fixture (0 known outcomes = pass).
+    # The 11-01 commandcode-2 golden encoded host-live outcomes leakage (repo data/state/
+    # outcomes-averages.jsonl is gitignored: present on hosts, absent in CI), and the rolling
+    # store has since aged the xkiro evidence out, failing BOTH environments. Live xkiro
+    # filtering stays production behavior; its coverage is tests/test_tr354_outcomes_floor.py.
 
 
 def test_missing_all_state_files_reported(monkeypatch, tmp_path):

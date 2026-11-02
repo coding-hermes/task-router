@@ -39,7 +39,8 @@ def _run(cmd, *args, timeout=60, env_extra=None):
 def _env(tmp_path):
     return {"ROUTER_STATE_DIR": str(tmp_path / "state"),
             "LEDGER_FILE": str(tmp_path / "ledger.jsonl"),
-            "TASK_ROUTER_HOME": str(tmp_path)}
+            "TASK_ROUTER_HOME": str(tmp_path),
+            "ROUTING_AVERAGES_FILE": str(tmp_path / "outcomes-averages.jsonl")}
 
 
 def _state_dir(tmp_path, providers=None, health=None, circuit=None):
@@ -110,11 +111,10 @@ def test_spawn_resolves_normally_despite_many_in_flight(tmp_path):
     env = _env(tmp_path)
     env["ROUTING_REGISTRY"] = _write_registry(tmp_path, tables)
 
-    # 2026-11-01: the head lane is commandcode-2/z-ai/glm-5.3-flash ($0.075) —
-    # the 10-04 golden xkiro/openai/gpt-5.6-terra is outcome-floor FILTERED by
-    # live fleet telemetry (955 known outcomes at 0.33 completion < the 0.35
-    # floor). In-flight rows must target the head lane.
-    head_lane = ("commandcode-2", "z-ai/glm-5.3-flash")
+    # 2026-11-02 (INT-CI-16): _env pins ROUTING_AVERAGES_FILE to an absent tmp path, so the
+    # hermetic head is xkiro/openai/gpt-5.6-terra (identical on host and CI). In-flight rows
+    # must target the head lane.
+    head_lane = ("xkiro", "openai/gpt-5.6-terra")
     with open(env["LEDGER_FILE"], "a") as f:
         for i in range(99):
             row = {"ts": datetime.datetime.now(datetime.timezone.utc).isoformat(),
