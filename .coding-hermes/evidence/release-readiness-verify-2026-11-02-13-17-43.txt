@@ -1,1 +1,40 @@
-{"tick":"task-router-foreman-2026-11-02-13-17-43","project":"task-router","selected":"RELEASE-2026-10-22-001","status":"PENDING","tier":"T3","dispatch":"none:owner-gated-release-authorization","owner_authorization":"missing: explicit authorization naming task-router, release version, and baseline SHA","base_commit":"2ebc94293b31a2661aeba99cec27e3cff1d89c2a","origin_main":"2ebc94293b31a2661aeba99cec27e3cff1d89c2a","release_surface":{"pyproject_version":"0.2.0","package_version":"0.2.0","unreleased_heading":true,"v0.3.0_heading":false,"local_numeric_tags":0,"github_releases":0},"dependencies":"all four complete","ci":{"latest_three":[{"run_id":41433804045,"status":"completed","conclusion":"success","head_sha":"2ebc94293b31a2661aeba99cec27e3cff1d89c2a"},{"run_id":41428641322,"status":"completed","conclusion":"success","head_sha":"76f3868b1bce04f2e74f5a4a7d10ab376799a468"},{"run_id":41428565643,"status":"completed","conclusion":"success","head_sha":"a48b4f43f6678f83e867f5b677f22d3bb41e2ef3"}],"classification":"green latest three; no new CI failure filed"},"implementation":"none:owner-authorization-required","next_owner_action":"explicitly authorize task-router release version and baseline SHA; then prepare version/changelog commit","evidence":"read-only probes in this tick; no release mutation","trace":"ch:trace row=RELEASE-2026-10-22-001 spec=docs/releases/release-readiness.md#written-procedure wave=.coding-hermes/waves/task-router-foreman-2026-11-02-13-17-43.json#zero-dispatch test=none:owner-gated-readiness doc=none:read-only-probe evidence=live:release-surface witness=github:41433804045 verdict=none:not-applicable commit=none:owner-block memory=none:pending"}
+Task-router release-readiness verification
+Tick: task-router-foreman-2026-11-02-13-17-43
+Selected row: RELEASE-2026-10-22-001 (P0)
+
+Owner gate:
+- No explicit owner authorization was found naming task-router, the release version, and the baseline SHA.
+- No release mutation was performed.
+- Required next owner action: explicitly authorize the release version and baseline SHA, then prepare the version/changelog commit.
+
+Dependencies:
+- TR-341: complete
+- TR-344: complete
+- QA-TASKROUTER-2: complete
+- XK-404-001-R2: complete
+
+Frozen repository:
+- HEAD/origin/main: 2ebc94293b31a2661aeba99cec27e3cff1d89c2a
+- Local/remote parity: 0 ahead, 0 behind after fetch
+
+Release surface probes:
+- pyproject.toml version: 0.2.0
+- task_router/__init__.py version: 0.2.0
+- CHANGELOG.md: populated Unreleased section present; no v0.3.0 heading
+- Numeric local tags: 0
+- GitHub Releases: 0
+
+CI-health probe:
+- 41433804045: completed/success, head 2ebc94293b31a2661aeba99cec27e3cff1d89c2a
+- 41428641322: completed/success, head 76f3868b1bce04f2e74f5a4a7d10ab376799a468
+- 41428565643: completed/success, head a48b4f43f6678f83e867f5b677f22d3bb41e2ef3
+- Classification: latest three green; no current CI failure to file.
+
+Closeout:
+- STATUS: PENDING
+- TIER: T3
+- EVIDENCE: live release-surface probes and owner gate
+- dispatch: none:owner-gated-release-authorization
+- verdict: none:not-applicable
+- implementation: none:owner-authorization-required
+- trace: ch:trace row=RELEASE-2026-10-22-001 spec=docs/releases/release-readiness.md#written-procedure wave=.coding-hermes/waves/task-router-foreman-2026-11-02-13-17-43.json#zero-dispatch test=none:owner-gated-readiness doc=.coding-hermes/evidence/release-readiness-verify-2026-11-02-13-17-43.txt evidence=live:release-surface witness=github:41433804045 verdict=none:not-applicable commit=none:owner-block memory=none:pending
