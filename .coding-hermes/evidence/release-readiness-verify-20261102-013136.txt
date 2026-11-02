@@ -1,0 +1,16 @@
+release-readiness verification
+observed_utc=2026-11-02T01:42:59Z
+selected_row=RELEASE-2026-10-22-001
+canonical_head=a4685fff7666a66b37fb71e8fa36fefe3e6e4a31
+origin_main=a4685fff7666a66b37fb71e8fa36fefe3e6e4a31
+owner_authorization=ABSENT in repository release-readiness record; no authorization message supplied to this tick
+proposed_version=0.3.0 (proposal only; not authorization)
+local_numeric_tags=0
+remote_numeric_tags=0
+github_releases=0
+version = "0.2.0"
+__version__ = "0.2.0"
+changelog_v0.3.0_heading_count=0
+latest_three_ci=[{"conclusion":"failure","createdAt":"2026-11-02T00:42:26Z","displayTitle":"tr355 closeout: bind TR-355-R2 verdict 3be9be8e to evidence commit 8d…","headBranch":"main","headSha":"a4685fff7666a66b37fb71e8fa36fefe3e6e4a31","status":"completed"},{"conclusion":"failure","createdAt":"2026-11-02T00:33:02Z","displayTitle":"tr355 verification-only: evidence artifact + zero-dispatch manifests …","headBranch":"main","headSha":"8d1ffe1125fe8161f964d72aebc9cb6fcec85e40","status":"completed"},{"conclusion":"failure","createdAt":"2026-11-01T21:10:04Z","displayTitle":"chore(board): file TR-OF-20261101-01 (outcome-floor over-gating) and …","headBranch":"main","headSha":"bf227be55943d01ff1fb82abb1349bc13a218dd8","status":"completed"}]
+release_action=NO DISPATCH; no version bump, tag, release object, or candidate artifact created
+blocker=owner must explicitly authorize task-router, name the version, and name the baseline SHA
