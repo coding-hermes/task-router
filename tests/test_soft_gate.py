@@ -37,8 +37,14 @@ def _run(cmd, *args, timeout=60, env_extra=None):
 
 
 def _env(tmp_path):
+    # 2026-11-02 (TR-275 green-suite repair): ROUTING_OUTCOMES_FILE pins the
+    # outcome-floor scan's store to the fixture — never redirected, it read
+    # the LIVE fleet ledger's trailing 24h and the head golden flip-flopped
+    # with fleet traffic. A test must not assert values from mutable
+    # production data.
     return {"ROUTER_STATE_DIR": str(tmp_path / "state"),
             "LEDGER_FILE": str(tmp_path / "ledger.jsonl"),
+            "ROUTING_OUTCOMES_FILE": str(tmp_path / "outcomes.jsonl"),
             "TASK_ROUTER_HOME": str(tmp_path)}
 
 
@@ -110,11 +116,13 @@ def test_spawn_resolves_normally_despite_many_in_flight(tmp_path):
     env = _env(tmp_path)
     env["ROUTING_REGISTRY"] = _write_registry(tmp_path, tables)
 
-    # 2026-11-01: the head lane is commandcode-2/z-ai/glm-5.3-flash ($0.075) —
-    # the 10-04 golden xkiro/openai/gpt-5.6-terra is outcome-floor FILTERED by
-    # live fleet telemetry (955 known outcomes at 0.33 completion < the 0.35
-    # floor). In-flight rows must target the head lane.
-    head_lane = ("commandcode-2", "z-ai/glm-5.3-flash")
+    # 2026-11-02 (TR-275 green-suite repair): the outcomes store is now
+    # HERMETIC (ROUTING_OUTCOMES_FILE → fixture, see _env) — no samples, so
+    # no outcome-floor filter applies and the head is the cheapest eligible
+    # plan lane: xkiro/openai/gpt-5.6-terra ($0.04). The 11-01 glm golden
+    # rode the live ledger's trailing 24h and flipped back with fleet
+    # traffic; in-flight rows must target the head lane.
+    head_lane = ("xkiro", "openai/gpt-5.6-terra")
     with open(env["LEDGER_FILE"], "a") as f:
         for i in range(99):
             row = {"ts": datetime.datetime.now(datetime.timezone.utc).isoformat(),

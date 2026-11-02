@@ -96,6 +96,15 @@ def _resolve(monkeypatch, tmp_path, tables=None, project="coding-hermes-schedule
                         registry if registry is not None else _write_registry(tmp_path, tables))
     if state_dir is not None:
         monkeypatch.setattr(router_spawn, "MR", state_dir)
+    # 2026-11-02 (TR-275 green-suite repair): the outcome-floor scan reads
+    # ROUTING_OUTCOMES_FILE (router_outcomes.outcomes_path, call-time
+    # resolution) — never redirected, it read the LIVE fleet ledger's
+    # trailing 24h, so the head golden flip-flopped with fleet traffic
+    # (10-04 terra → 11-01 glm → terra again). Pin the store to the fixture:
+    # a test must not assert values from mutable production data.
+    outcomes = tmp_path / "outcomes-fixture.jsonl"
+    outcomes.write_text("")
+    monkeypatch.setenv("ROUTING_OUTCOMES_FILE", str(outcomes))
     return router_spawn.resolve(project=project)
 
 
@@ -165,7 +174,7 @@ def test_corrupt_registry_source_fallback_and_warning(monkeypatch, tmp_path):
     assert r["head"] is not None  # resilience: resolution still works
     # the fallback data is the committed registry — head must match the
     # golden fixed-point head for this profile (same tables as registry.json)
-    assert _pair(r["head"]) == "commandcode-2/z-ai/glm-5.3-flash"  # 2026-11-01: xkiro/openai/gpt-5.6-terra (the 10-04 golden) is outcome-floor FILTERED by live fleet telemetry — 955 known outcomes at 0.33 completion < the 0.35 floor; next cheapest eligible plan lane = commandcode-2/z-ai/glm-5.3-flash $0.075 (09-18 doctrine: update the golden with the dated reason, never re-enable to silence)
+    assert _pair(r["head"]) == "xkiro/openai/gpt-5.6-terra"  # 2026-11-02 (TR-275 green-suite repair): the floor scan now reads a HERMETIC outcomes store (ROUTING_OUTCOMES_FILE fixture, see _resolve) — the old golden rode the live ledger's trailing 24h and flip-flopped (10-04 terra → 11-01 glm → terra again). With no samples no floor filter applies; cheapest eligible plan lane = xkiro/openai/gpt-5.6-terra $0.04 (09-18 doctrine: update the golden with the dated reason, never re-enable to silence)
 
 
 def test_missing_registry_source_fallback(monkeypatch, tmp_path):
@@ -199,7 +208,7 @@ def test_missing_health_state_reported_false(monkeypatch, tmp_path):
     # behavior unchanged: a missing health file must NOT fabricate a DOWN
     # gate — the chain still resolves to the healthy head
     assert r["head"] is not None
-    assert _pair(r["head"]) == "commandcode-2/z-ai/glm-5.3-flash"  # 2026-11-01: xkiro/openai/gpt-5.6-terra (the 10-04 golden) is outcome-floor FILTERED by live fleet telemetry — 955 known outcomes at 0.33 completion < the 0.35 floor; head = next cheapest eligible plan lane (09-18 doctrine: update the golden with the dated reason, never re-enable to silence)
+    assert _pair(r["head"]) == "xkiro/openai/gpt-5.6-terra"  # 2026-11-02 (TR-275 green-suite repair): hermetic outcomes store (see _resolve) — no samples, no floor filter; cheapest eligible plan lane = xkiro/openai/gpt-5.6-terra $0.04. The 11-01 glm golden rode the live ledger's trailing 24h and flipped back with fleet traffic (09-18 doctrine: update the golden with the dated reason, never re-enable to silence)
 
 
 def test_missing_all_state_files_reported(monkeypatch, tmp_path):

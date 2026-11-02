@@ -1,49 +1,46 @@
 """Doc-parity regression tests.
 
 Two checks:
-1. Every GET route in router_server.py must appear in README.md (DOC-2)
+1. Every GET route in the PUBLISHED CONTRACT (build_openapi()'s paths — the
+   same machine-checked set tests/test_openapi_dispatch_conformance.py proves
+   equals the dispatch table) must appear in README.md (DOC-2, closed by
+   TR-275 against the machine-checked list, not a hand count)
 2. Every ROUTER_* env key in code must be documented in README.md or docs/configuration.md (DOC-3)
 """
 import re
+import sys
 from pathlib import Path
+
+REPO = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(REPO / "scripts"))
+import router_server  # noqa: E402
 
 
 def test_readme_documents_all_get_routes():
-    """Every GET route in router_server.py must appear in README.md."""
-    repo_root = Path(__file__).resolve().parents[1]
-    server_py = repo_root / "scripts" / "router_server.py"
-    readme_md = repo_root / "README.md"
+    """Every GET route in the published contract must appear in README.md.
 
-    # Extract GET routes from router_server.py
-    # Look for patterns like: "GET /health", "GET /model_status", etc.
-    # or route definitions like: @app.get("/health")
-    server_content = server_py.read_text()
+    DOC-2 (TR-275): the enumerated set comes from build_openapi() — the
+    machine-checked list — never from a hand count of the source. If this
+    test fails, either the README is missing a served endpoint (add the
+    entry the test names) or the conformance suite needs to rule first.
+    """
+    readme_md = REPO / "README.md"
 
-    # Find all route paths - look for @app.get() decorators and route definitions
-    routes = set()
+    get_routes = sorted(
+        path
+        for path, path_item in router_server.build_openapi()["paths"].items()
+        if "get" in path_item
+    )
+    assert get_routes, "the published contract declares no GET routes"
 
-    # Pattern 1: @app.get("/path")
-    for match in re.finditer(r'@app\.get\(["\']([^"\']+)["\']', server_content):
-        routes.add(match.group(1))
-
-    # Pattern 2: "GET /path" in comments or docstrings
-    for match in re.finditer(r'["\']GET\s+(/[^\s"\']+)["\']', server_content):
-        routes.add(match.group(1))
-
-    # Pattern 3: Route definitions in route tables
-    for match in re.finditer(r'["\'](/[^"\']+)["\']\s*:\s*["\']?GET', server_content):
-        routes.add(match.group(1))
-
-    # Filter to only actual routes (start with /)
-    routes = {r for r in routes if r.startswith("/")}
-
-    # Read README and check each route is mentioned
     readme_content = readme_md.read_text()
 
     missing = []
-    for route in sorted(routes):
-        # Check if route appears in README (as a code block or in text)
-        if route not in readme_content and f"`{route}`" not in readme_content:
+    for route in get_routes:
+        # The route must open a code span (`/health`, `/resolve?project=X`) —
+        # how the README's API section names endpoints. A span that starts
+        # with the path counts: it documents the route with its parameters.
+        if f"`{route}" not in readme_content:
             missing.append(route)
 
     assert not missing, f"Routes missing from README.md: {missing}"
