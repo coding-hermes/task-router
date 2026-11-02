@@ -1311,3 +1311,12 @@ tasks:
   status: complete
   created_at: '2026-11-02T00:33:58.839750+00:00'
   completed_at: '2026-11-02T00:34:16.701169+00:00'
+- id: INT-CI-16
+  title: 'CI red on main: full test suite fails after INT-CI-15 closeout'
+  criteria:
+  - Failing tests named from a clean-tree reproduction; hermetic outcomes pin restores
+    host==CI parity without weakening tests; full suite green; pushed exact-head GitHub
+    Actions run with test job and guard/evidence steps successful
+  status: complete
+  created_at: '2026-11-02T08:04:58.031707+00:00'
+  completed_at: '2026-11-02T08:24:49.461631+00:00'

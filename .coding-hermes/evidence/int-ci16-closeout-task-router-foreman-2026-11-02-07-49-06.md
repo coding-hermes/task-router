@@ -1,0 +1,31 @@
+# INT-CI-16 closeout evidence — task-router-foreman-2026-11-02-07-49-06
+
+Row: CI red on main — full test suite fails after INT-CI-15 closeout. Fix commit: 0778f55d704baa38069d202a3ac4bea60412aadc (origin/main, parity 0/0).
+
+## AC map
+
+1. Reproduce from a clean published tree, name exact failing test + root cause — DONE. CI run 41368587313 (head a4685ff, the row's referenced signature, still failing at 00:42Z 11-02): 3 failed / 2699 passed — tests/test_visibility.py::test_corrupt_registry_source_fallback_and_warning (L168), tests/test_visibility.py::test_missing_health_state_reported_false (L202), tests/test_soft_gate.py::test_spawn_resolves_normally_despite_many_in_flight (head_lane hardcode). Root cause: the TR-354 outcome floor reads `_averages_path()` = env ROUTING_AVERAGES_FILE else repo-relative gitignored `data/state/outcomes-averages.jsonl`; the 11-01 golden re-anchor (ddea7d9) derived its commandcode-2 head from a HOST run where that live store leaked into the fixture (xkiro then 955 known @ 0.33 < 0.35 floor); CI's clean checkout has no store → floor inert → xkiro heads → goldens fail. The rolling store has since aged the xkiro evidence out (rows now n_success_known=0), so the same tests fail on the host too — a golden derived from a rolling live store fails in both directions over time. Local red proof: `ROUTING_AVERAGES_FILE=/tmp/int-ci16-absent-averages.jsonl pytest <3 tests>` → 3 failed (identical to CI).
+2. Fix without weakening — DONE. Commit 0778f55 (+21/−8, exactly two files): `_resolve()` in test_visibility pins ROUTING_AVERAGES_FILE to an absent tmp path (TR-354 doctrine: 0 known = pass); goldens restored to the hermetic answer xkiro/openai/gpt-5.6-terra with dated INT-CI-16 rationale; test_soft_gate `_env()` gains the same pin (repo precedent: 10+ sibling test files already pin it, incl. tests/test_tr354_outcomes_floor.py:90); soft-gate in-flight rows retargeted to the hermetic head. No assert weakened; floor coverage untouched (tests/test_tr354_outcomes_floor.py 14 passed).
+3. Full suite — CI GREEN (authoritative, run 41412772585 on exact head 0778f55: test job success, "2702 passed, 11 skipped in 731.19s"; guard-parity step "2702 passed, 11 skipped in 726.80s"; fresh-clone smoke, registry integrity, TR-251 boundary gate, TR-251 evidence replay, outcome_probes, proxy harness guard ALL success). Host-local full suite: blocked by a pre-existing, separately-owned residual — see verdict disposition below. Focused local proof: tests/test_visibility.py + tests/test_soft_gate.py = 33 passed; the 3 previously-failing tests = 3 passed (verified BOTH with the live store present and absent — the judge independently reproduced 47/47 both ways including the floor file).
+4. Pushed exact-head GitHub Actions run with test job + required guard/evidence steps successful — DONE: run 41412772585, conclusion success, headSha == origin/main == 0778f55.
+
+## Dispatch record
+
+Worker glm-5.3-flash@zai-glm (lane probed: API call #1 model=glm-5.3-flash, NO fallback line — real sub lane). Worktree /home/kara/worktrees/task-router-INT-CI-16, branch wt/INT-CI-16, base a4685ff (worktree.sh; stale zero-commit orphan branch swept via worktree.sh stale first). Brief: /home/kara/.hermes/cache/scratch/int-ci16-f20261102074906/INT-CI-16-brief.txt. Wave manifest (gitignored, force-added to this commit): .coding-hermes/waves/task-router-foreman-2026-11-02-07-49-06.json — serial single worker (exactly-one-row contract); 49 pending rows censused; P0 skips named: RELEASE-2026-10-22-001 (owner-gated, authorization absent) and TR-355 (owner-gated AC5 live cutover, verify-only evidence 8d1ffe1). GitReins: task create+start INT-CI-16 before dispatch; task complete after merge → tier1 PASSED, tier2 verdict below.
+
+## Tier-2 verdict triage (verdict ef76d6e5, .gitreins/history/2026-11-02/5927dd4f/verdict.json, judged commit 0778f55 — binding verified)
+
+Verdict: Overall FAIL [DEGRADED]. Mode classification: **blocked-by-residual** (stored-verdict-triage §2), NOT merit:
+- The verdict's own detail confirms every part this row targeted: failing tests named from clean-tree repro ✓; no weakening (floor tests 14 passed, pins are additive env pins) ✓; exact-head CI green with all steps success ✓; the pin makes the 3 outcome-floor goldens environment-independent (judge reproduced: 47 passed with the live store present, 47 passed with it moved away) ✓.
+- The single failing leg: host-only full-suite red `tests/test_tr260_projects_seed.py::test_enabled_fleet_lanes_all_in_committed_table` — "21 enabled fleet lanes missing from data/tables/projects.jsonl (ROUTER-MISS): [board-criteria-backfill, code-factory, code-factory-docs, ...]". That test is host-conditional (skipif on ~/.hermes/coding-hermes/scheduler.db + fleet.toml; skips in CI's 11, runs on host's 3).
+- Disjointness proof: `git diff 0778f55~1 0778f55 -- tests/test_tr260_projects_seed.py` is EMPTY (the fix touches only tests/test_visibility.py + tests/test_soft_gate.py). Foreman re-ran the residual at HEAD: 1 failed, 9 passed — same live-data drift.
+- Disposition: NAMED tracking row **TR-358** (pending, same class — ROUTER-MISS tripwire, enabled lanes missing from committed projects.jsonl; filed at 15 lanes, judge re-measured 21 on 2026-11-02 ~09:0xZ; TR-358's foreman_note annotated with the fresh measurement in this closeout). Per stored-verdict-triage §6 the work row closes with the failing leg and the tracking-row id recorded here. The verdict is preserved verbatim and never rewritten.
+
+## Push-gate override (logged)
+
+The pre-push CI gate refused the fix itself (parent tip red). ALLOW_RED_PUSH=1 was used to land 0778f55 — the commit whose entire purpose is turning main green — after the boundary gate passed (0 completion flips). This is the documented chicken-and-egg case, same as the 00:02 tick's bookkeeping override; never used for unrelated product work.
+
+## Residual risk / next owner actions
+
+- TR-358 owns the 21-lane projects.jsonl drift (host-only tripwire); until it lands, the host full suite stays red in that one test while CI is green.
+- Sibling tick concurrently dispatched TR-275 (wt/TR-275, 2 commits + its own guard cycle observed 06:59–09:0xZ) — no file overlap with 0778f55; its merge will arrive on top of this head.
