@@ -1,0 +1,36 @@
+Task-router release-readiness verification
+Tick: task-router-foreman-2026-11-02-13-48-42
+Selected row: RELEASE-2026-10-22-001 (P0)
+
+Owner gate:
+- No explicit owner authorization was found naming task-router, the release version, and the baseline SHA.
+- No release mutation was performed.
+- Required next owner action: explicitly authorize the release version and baseline SHA, then prepare the version/changelog commit.
+
+Frozen repository:
+- HEAD/origin/main: 7c4231a43becb07a65a347515dfc686e9306b010
+- Local/remote parity: 0 ahead, 0 behind after fetch
+- Worktree: /home/kara/worktrees/task-router-RELEASE-2026-10-22-001-20261102-134842
+
+Release surface probes:
+- pyproject.toml version: 0.2.0
+- task_router/__init__.py version: 0.2.0
+- CHANGELOG.md: no v0.3.0 heading observed; Unreleased heading probe returned no match
+- Numeric local tags: 0
+- GitHub Releases: 0
+
+CI-health probe:
+- 41433804045: completed/success, head 2ebc94293b31a2661aeba99cec27e3cff1d89c2a
+- 41428641322: completed/success, head 76f3868b1bce04f2e74f5a4a7d10ab376799a468
+- 41428565643: completed/success, head a48b4f43f6678f83e867f5b677f22d3bb41e2ef3
+- 39822341677: completed/success, head 630af6190cd12c1ee0dc94383c3c17528c985dab
+- Current main closeout runs 41433804045, 41428641322, and 41428565643 are in progress at report time; no completed failure was observed in the required latest-three listing.
+
+Closeout:
+- STATUS: PENDING
+- TIER: T3
+- EVIDENCE: live release-surface probes and owner gate
+- dispatch: none:owner-gated-release-authorization
+- verdict: none:not-applicable
+- implementation: none:owner-authorization-required
+- trace: ch:trace row=RELEASE-2026-10-22-001 spec=docs/releases/release-readiness.md#written-procedure wave=.coding-hermes/waves/task-router-foreman-2026-11-02-13-48-42.json#zero-dispatch test=none:owner-gated-readiness doc=.coding-hermes/evidence/release-readiness-verify-2026-11-02-13-48-42.txt evidence=live:release-surface witness=github:41433804045 verdict=none:not-applicable commit=none:owner-block memory=none:pending
