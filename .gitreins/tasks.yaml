@@ -1285,3 +1285,13 @@ tasks:
   status: complete
   created_at: '2026-11-01T06:45:23.627930+00:00'
   completed_at: '2026-11-01T07:41:25.679387+00:00'
+- id: TR-355
+  title: router-proxy degraded fallback wall cap
+  criteria:
+  - 'On the merged tree, the degraded fallback proxy behavior is explicit and tested:
+    a DEGRADED requirements_unmet hop is capped by ROUTER_DEGRADED_WALL_S (default
+    120s), the envelope names fallback_policy and degraded_wall_s, and the failure
+    reason remains distinct from no eligible hop.'
+  status: complete
+  created_at: '2026-11-01T19:17:11.223814+00:00'
+  completed_at: '2026-11-01T19:18:54.298759+00:00'

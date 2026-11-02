@@ -1,0 +1,69 @@
+=== TR-355 verification-only evidence artifact ===
+tick: task-router-foreman-2026-11-02-00-02-44
+captured_utc: 2026-11-02T00:26:10Z
+row: TR-355 (stays PENDING; owner-controlled live cutover)
+
+--- [1] git state ---
+$ git rev-parse HEAD
+bf227be55943d01ff1fb82abb1349bc13a218dd8
+$ git rev-parse origin/main
+bf227be55943d01ff1fb82abb1349bc13a218dd8
+$ git rev-list --count origin/main..HEAD  (ahead)
+0
+$ git rev-list --count HEAD..origin/main  (behind)
+0
+$ git merge-base --is-ancestor 189d76bc9c8a85f557cc8086ab832eec7152b5ef HEAD; echo $?
+exit=0
+
+--- [2] live service probes (read-only; nothing restarted) ---
+$ curl -s http://127.0.0.1:9092/health
+{"status": "ok", "service": "task-router/1.0", "commit": "187bcae615d3", "stale": true, "code": {"loaded_commit": "187bcae615d3", "loaded_source_sha": "bd722a4c675a0c18", "loaded_at": "2026-10-19T20:42:28+00:00", "repo_commit": "bf227be55943", "live_source_sha": "65cde0c44877f3aa", "stale": true, "error": null}, "mode": "read-only", "ts": "2026-11-02T00:26:10+00:00", "registry": {"data_dir": "/home/kara/task-router/data/tables", "models": 2056, "newest_valid_from": "2026-11-01", "age_days": 0}, "probe": {"updated": "2026-11-02T00:00:51+00:00", "age_minutes": 25.3, "providers": 28, "provider_status_counts": {"OK": 21, "DOWN": 4, "DISABLED": 3}}, "circuit": {"pairs": 1, "open": 1, "open_pairs": ["ollama-cloud/kimi-k3"], "classes": {"policy_gate": 1}, "provider_breakers": 0}, "chains_snapshot": {"latest": null, "count": 0}, "registry_age": {"path": "/home/kara/task-router/registry.json", "exists": true, "mtime": "2026-11-01T11:17:09+00:00", "age_s": 47341.449, "age_h": 13.15, "newest_table": "providers.jsonl", "newest_table_age_s": 45666.909, "lag_s": 1674.541, "content_match": true, "stale": false, "state": "ok"}, "gate": {"valid": true, "issues": [], "issues_total": 0, "failed_checks": [], "check_names": ["registry.exists", "registry.parse", "registry.version", "registry.schema", "registry.models_schema", "freshness", "freshness.paths", "lifecycle.provenance", "state.circuit-state.json", "state.health-state.json", "state.quota-state.json", "state.ledger.jsonl", "profiles.table", "profiles.requirements"], "checks": 14}, "registry_state": "ok", "admission": {"waiting": 0, "accepted": 0, "rejected": 0, "peak_inflight": 0, "inflight": 0, "max_inflight": 8, "queue_max": 32, "queue_wait_s": 20.0}, "classify_cache": {"hits": 0, "misses": 0, "puts": 0, "evictions": 0, "entries": 0, "max_entries": 512, "ttl_s": 900.0, "hit_rate": null}, "data_cache": {"enabled": true, "source": "server", "generation": 188, "reload_count": 188, "reloads": 188, "cached_paths": 3, "inotify_available": true, "generations": 188, "reload_errors": 0, "last_reload_ms": 1076.432, "last_reload_error": null, "loaded_at": "2026-11-01T11:45:04+00:00", "hits": 4, "misses": 0, "served_stale": 0, "hit_rate": 1.0, "cached_files": 3, "pending_reloads": 0, "inflight_reloads": 0, "inotify_mode": "watchdog", "poll_interval_s": 1.0, "copy_mode": "share", "max_bytes_per_file": 67108864, "files": {"/home/kara/task-router/data/tables/task_profiles.jsonl": {"generation": 186, "loaded_at": "2026-11-01T11:17:09+00:00", "age_s": 47341.529, "bytes": 2097, "error": null, "identity": [1793531829410531181, 2097, 25184683]}, "/home/kara/task-router/data/tables/providers.jsonl": {"generation": 187, "loaded_at": "2026-11-01T11:45:04+00:00", "age_s": 45666.922, "bytes": 10504, "error": null, "identity": [1793533503860861574, 10504, 25170231]}, "/home/kara/task-router/data/tables/models.jsonl": {"generation": 188, "loaded_at": "2026-11-01T11:45:04+00:00", "age_s": 45666.239, "bytes": 0, "error": null, "identity": [1793533503755791685, 2450037, 25188129]}}}, "runtime": {"pid": 7563, "source_revision": "187bcae615d30b2a476f8776b382e9c2d6d47ee3", "source_dirty": false, "source_digest": "841cf139a0953ff4e52c8b7a8a03168b4363fafc08e98435fa21ebaee05cc526", "ready": true, "draining": false, "inflight": 1}}
+$ curl -s http://127.0.0.1:9391/health
+{"status": "ok", "service": "task-router/1.0", "commit": "13ef7482e1d7", "stale": true, "code": {"loaded_commit": "13ef7482e1d7", "loaded_source_sha": "d85a609033fb1105", "loaded_at": "2026-10-29T16:08:20+00:00", "repo_commit": "bf227be55943", "live_source_sha": "65cde0c44877f3aa", "stale": true, "error": null}, "mode": "read-only", "ts": "2026-11-02T00:26:10+00:00", "registry": {"data_dir": "/home/kara/task-router/data/tables", "models": 2056, "newest_valid_from": "2026-11-01", "age_days": 0}, "probe": {"updated": "2026-11-02T00:00:51+00:00", "age_minutes": 25.3, "providers": 28, "provider_status_counts": {"OK": 21, "DOWN": 4, "DISABLED": 3}}, "circuit": {"pairs": 1, "open": 1, "open_pairs": ["ollama-cloud/kimi-k3"], "classes": {"policy_gate": 1}, "provider_breakers": 0}, "chains_snapshot": {"latest": null, "count": 0}, "registry_age": {"path": "/home/kara/task-router/registry.json", "exists": true, "mtime": "2026-11-01T11:17:09+00:00", "age_s": 47341.655, "age_h": 13.15, "newest_table": "providers.jsonl", "newest_table_age_s": 45667.114, "lag_s": 1674.541, "content_match": true, "stale": false, "state": "ok"}, "gate": {"valid": true, "issues": [], "issues_total": 0, "failed_checks": [], "check_names": ["registry.exists", "registry.parse", "registry.version", "registry.schema", "registry.models_schema", "freshness", "freshness.paths", "lifecycle.provenance", "state.circuit-state.json", "state.health-state.json", "state.quota-state.json", "state.ledger.jsonl", "profiles.table", "profiles.requirements"], "checks": 14}, "registry_state": "ok", "admission": {"waiting": 0, "accepted": 2056, "rejected": 0, "peak_inflight": 10, "inflight": 0, "max_inflight": 12, "queue_max": 32, "queue_wait_s": 90.0, "max_in_flight": 12, "current_in_flight": 0}, "serving": {"mode": "thread", "pool": null, "busy_workers": null}, "classify_cache": {"hits": 765, "misses": 1286, "puts": 1286, "evictions": 508, "entries": 512, "max_entries": 512, "ttl_s": 900.0, "hit_rate": 0.373}, "data_cache": {"enabled": true, "source": "server", "generation": 7, "reload_count": 7, "reloads": 7, "cached_paths": 1, "inotify_available": true, "generations": 7, "reload_errors": 90, "last_reload_ms": 24.813, "last_reload_error": "load failed: JSONDecodeError: Expecting ',' delimiter: line 143454 column 42 (char 4311799)", "loaded_at": "2026-11-01T11:17:09+00:00", "hits": 0, "misses": 0, "served_stale": 0, "hit_rate": null, "cached_files": 1, "pending_reloads": 0, "inflight_reloads": 0, "inotify_mode": "watchdog", "poll_interval_s": 1.0, "copy_mode": "share", "max_bytes_per_file": 67108864, "files": {"/home/kara/task-router/registry.json": {"generation": 7, "loaded_at": "2026-11-01T11:17:09+00:00", "age_s": 47341.818, "bytes": 4892286, "error": null, "identity": [1793531829320164787, 4892286, 22947751]}}}, "surface_mode": "all", "cache_generation": 7, "source_sha": "d85a609033fb1105", "runtime": {"pid": 1808674, "source_revision": "13ef7482e1d744202788a9da6a3e78156d8670e3", "source_dirty": false, "source_digest": "cf85b934e84585b859191dfa8871f07270fe3698e8e4f5fe9f46aa1c84cd269a", "ready": true, "draining": false, "inflight": 1}}
+$ ps -o pid,lstart,cmd -p 7563 -p 1808674 -p 7564
+    PID                  STARTED CMD
+   7563 Mon Oct 19 15:42:27 2026 /usr/bin/python3 /home/kara/task-router/scripts/router_server.py --mode read-only --host 127.0.0.1 --port 9092
+   7564 Mon Oct 19 15:42:27 2026 /home/kara/.hermes/venvs/board/bin/python3 /home/kara/.hermes/scripts/router_web.py --host 127.0.0.1 --port 9093 --mode read-only
+1808674 Thu Oct 29 11:08:19 2026 /usr/bin/python3 /home/kara/task-router/scripts/router_server.py --mode read-only --host 127.0.0.1 --port 9391
+$ ss -tlnp | grep -E ':(9092|9093|9391)'
+LISTEN 0      5                        127.0.0.1:9391       0.0.0.0:*    users:(("python3",pid=1808674,fd=3))        
+LISTEN 0      5                        127.0.0.1:9093       0.0.0.0:*    users:(("python3",pid=7564,fd=3))           
+LISTEN 0      5                        127.0.0.1:9092       0.0.0.0:*    users:(("python3",pid=7563,fd=3))           
+
+--- [3] focused regression probe (row AC4 test) ---
+$ ~/.hermes/venvs/board/bin/python3 -m pytest -q tests/test_tr355_degraded_wall.py
+.......                                                                  [100%]
+7 passed in 0.17s
+exit=0
+
+--- [4] resource pressure ---
+$ uptime
+ 19:26:11 up 13 days,  3:44,  2 users,  load average: 38.01, 17.98, 12.19
+$ free -b | head -2
+               total        used        free      shared  buff/cache   available
+Mem:     64047951872 17898668032 10597826560   217964544 36498939904 46149283840
+
+--- [5] exact-head / recent CI state (org/repo from git remote = coding-hermes/task-router) ---
+$ gh run list --repo coding-hermes/task-router --limit 6
+41350591737	completed	failure	bf227be5	2026-11-01T21:10:04Z	chore(board): file TR-OF-20261101-01 (outcome-floor 
+41342638535	completed	failure	73e95519	2026-11-01T19:37:05Z	chore(board): bind header to final TR-355 closeout
+41342588727	completed	failure	17325632	2026-11-01T19:36:29Z	chore(board): bind header to TR-355 audit
+41342103186	completed	failure	5bc5ee4d	2026-11-01T19:30:50Z	audit: record TR-355 verification boundary
+41338586453	completed	failure	41fa50fe	2026-11-01T18:49:34Z	chore(board): bind header to final tick correction
+41338530169	completed	failure	a6c25abd	2026-11-01T18:48:56Z	chore(board): correct final tick header and CI state
+$ gh run view 41350591737 --json jobs (failing step of head bf227be run)
+{"conclusion":"failure","failed_steps":["Full test suite (pure JSON — no duckdb needed)"],"name":"test"}
+
+--- [6] working-tree residue classified at tick start ---
+M .gitreins/tasks.yaml = prior tick scheduler-tick-task-router-2026-11-01-19-10-26 gitreins lifecycle record for TR-355 (task complete, Tier 2 terminated without verdict) left uncommitted; attributed to that tick, committed with this closeout.
+?? data/state/benchmarks.jsonl.bak-20261101-060756 / -060933 / -061659 = backup residue from scripts/router_seed.py:67 / scripts/router_probe_ingest.py:231 '.bak-' scheme (data run 2026-11-01 ~06:07-06:16 UTC); source benchmarks.jsonl no longer present; preserved (moved, not deleted) to scratch before staging.
+
+--- [7] criterion mapping (gitreins verification task TR-355-R2) ---
+(a) merged-tree behavior probe: tests/test_tr355_degraded_wall.py -> section [3]
+(b) live witness of the blocker: both /health stale=true -> section [2]
+(c) owner-controlled block + zero-dispatch decision: sections [1],[6] + wave manifest .coding-hermes/waves/task-router-foreman-2026-11-02-00-02-44.json
+(d) CI classification vs INT-CI-16 (full-suite red, runs 41317196788/41342103186/41342588727/41342638535/41350591737): section [5]
+
+--- [8] mutation assertion ---
+No restart, no config change, no write to :9092/:9391 or data/state was performed by this tick; before == after for the live services (probe-only).
+off_by_one=none:verification-only no debugging

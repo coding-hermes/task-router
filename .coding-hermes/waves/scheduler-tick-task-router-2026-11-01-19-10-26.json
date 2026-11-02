@@ -1,0 +1,15 @@
+{
+  "tick": "scheduler-tick-task-router-2026-11-01-19-10-26",
+  "project": "task-router",
+  "base_sha": "41fa50fe5314e66aedccd1609298c7f579f8a475",
+  "wave_budget": 1,
+  "wave_size": 0,
+  "decision": "serial verification-only; TR-355 implementation already landed, but live cutover remains owner-controlled",
+  "tasks": ["TR-355"],
+  "workers": [],
+  "worktrees": [],
+  "owner_gate": "restart the production router-proxy on 127.0.0.1:9092 before live acceptance",
+  "finished_at": "2026-11-02T00:26:36Z",
+  "disposition": "zero workers dispatched (never any); closed by tick task-router-foreman-2026-11-02-00-02-44 after live re-probe showed the blocker unchanged. TR-355 kept PENDING. That tick's gitreins TR-355 lifecycle completed at state level but its Tier 2 judge was terminated without a verdict.json; the verification leg is re-run as TR-355-R2 after this tick's evidence commit.",
+  "observed_reality": "branch wt/task-router-foreman-2026-11-01-19-10-26 (worktree task-router-RELEASE-2026-11-01-19-10-26) exists at 73e9551, an ancestor of main with 0 unique commits; no live worker process attributable to this manifest at reconciliation time (process census found only long-lived router_server/router_web services). Not reaped this tick (outside the selected row's scope)."
+}
