@@ -1,0 +1,21 @@
+{
+  "tick": "task-router-foreman-2026-11-02-09-28-48",
+  "project": "task-router",
+  "base_sha": "1a4f40a6f5e5c79561a1fabfbaa858aa601355d1",
+  "selected": ["TR-355"],
+  "selection": "highest-priority pending P0 row; owner-gated verification-only + stranded R3 closeout reconciliation; no lower-priority substitution",
+  "wave_size": 0,
+  "workers": [],
+  "worktrees": ["/home/kara/worktrees/task-router-tr355r3-land-20261102-092848"],
+  "dispatch": "none:owner-gated-live-cutover",
+  "owner_gate": "Production restart/cutover of router-proxy services on :9092 and :9391, then one live tick under ROUTER_DEGRADED_WALL_S. AC5 live acceptance stays owner-controlled; TR-355 kept PENDING.",
+  "reconciliation": "Stranded wt/TR-355-R3 closeout (d34084cc evidence, 0f55fd1 board record, fb65341 header; TR-355-R3 verdict bd7bc021 PASS bound to d34084cc) merged intact onto main. Pre-tick residue .gitreins/tasks.yaml (INT-CI-16 record) proven byte-identical to its committed home on origin/main (sha256 46515a28beb93f9c88eb95cb1e37121d72e13eda60783ec4ed61647a929c81f8) and reconciled by ff-sync 0778f55 -> 1a4f40a (producer tick task-router-foreman-2026-11-02-07-49-06 published its own closeout in 4b310ac/1a4f40a).",
+  "verification_command": "curl -sS --max-time 5 http://127.0.0.1:9092/health; curl -sS --max-time 5 http://127.0.0.1:9391/health; git merge-tree --write-tree main fb65341; jq verdict readback; gh run list --repo coding-hermes/task-router --limit 3",
+  "evidence": ".coding-hermes/evidence/tr355-r3-land-task-router-2026-11-02-09-28-48.txt",
+  "off_by_one": "none:verification-only no debugging",
+  "ci": {
+    "tip_1a4f40a": "success (run created 2026-11-02T09:18:48Z)",
+    "prior_0778f55": "success",
+    "superseded_red_a4685ff": "failure = INT-CI-16 signature (full suite after INT-CI-15 closeout), owned and fixed at 0778f55, row closed; no new CI row filed"
+  }
+}

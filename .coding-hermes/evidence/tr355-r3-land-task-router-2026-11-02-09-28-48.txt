@@ -1,0 +1,84 @@
+TR-355 stranded-R3-landing reconciliation evidence
+Tick: task-router-foreman-2026-11-02-09-28-48
+Observed at: 2026-11-02T09:29:45Z .. 2026-11-02T09:52:00Z
+
+Scope
+-----
+Highest-priority pending row TR-355 (P0) remains owner-gated on AC5 (production
+cutover of :9092/:9391 + one live tick under ROUTER_DEGRADED_WALL_S). No
+lower-priority substitution. This tick reconciles and lands the stranded
+TR-355-R3 verification closeout (tick scheduler-tick-task-router-2026-11-02-00-54-22),
+which had complete evidence and a PASS verdict but was never merged to main,
+and re-probes the owner gate read-only.
+
+Exact commands and observations
+------------------------------
+$ bash scripts/root-operation-gate.sh /home/kara/task-router <scratch> github.com/coding-hermes/task-router
+gate_violations=0 gate_rc=0; branch=main; head=0778f55d704baa38069d202a3ac4bea60412aadc;
+origin_canonical=github.com/coding-hermes/task-router
+
+$ git status --porcelain=v1 --untracked-files=all
+ M .gitreins/tasks.yaml   (single dirty path; +9 lines = completed GitReins record INT-CI-16)
+
+Residue binding (bounded classification, read-only):
+- producing run: gitreins task INT-CI-16, status=complete, created 2026-11-02T08:04:58Z,
+  completed 2026-11-02T08:24:49Z; matching verdict .gitreins/history/2026-11-02/5927dd4f/verdict.json
+  (task_id INT-CI-16, commit 0778f55d704baa38069d202a3ac4bea60412aadc)
+- exact-cwd process census: only router_server.py (:9391, read-only) and router_web.py
+  (:9093, read-only) daemons; no gitreins/judge/worker/foreman writer processes
+- implementation landed as main tip at the time: 0778f55 "fix(tests): INT-CI-16 hermetic
+  ROUTING_AVERAGES_FILE pin"
+
+$ git fetch origin; git rev-list --count main..origin/main
+2  (origin/main=1a4f40a = 4b310ac "chore(board): close INT-CI-16" + 1a4f40a header bind;
+   producer tick task-router-foreman-2026-11-02-07-49-06 published its own closeout)
+$ sha256sum .gitreins/tasks.yaml; git show origin/main:.gitreins/tasks.yaml | sha256sum
+46515a28beb93f9c88eb95cb1e37121d72e13eda60783ec4ed61647a929c81f8  (both, byte-identical)
+$ git checkout HEAD -- .gitreins/tasks.yaml && git merge --ff-only origin/main
+Updating 0778f55..1a4f40a / Fast-forward; status afterwards CLEAN (0 dirty paths)
+
+Stranded branch inventory (wt/TR-355-R3 @ fb65341, 3 commits ahead of base a4685fff7666):
+- d34084cc "tr355: record owner-gated live verification" — evidence txt + zero-dispatch
+  manifest (manifest already closed: finished_at 2026-11-02T01:09:38Z, disposition
+  pending-owner-cutover)
+- 0f55fd1 "chore(board): record TR-355 verification tick" — TR-355 row update (pending,
+  detail.evidence run_id bd7bc021 + tree_fp) + audit event 1000889452787156 (task_id TR-355)
+- fb65341 "chore(board): bind header to final TR-355 closeout"
+
+$ jq '<verdict projection>' /home/kara/worktrees/task-router-TR-355-R3/.gitreins/history/2026-11-02/bd7bc021/verdict.json
+task_id=TR-355-R3; task_title="Verify TR-355 owner-gated live cutover evidence";
+passed=true; worktree=/home/kara/worktrees/task-router-TR-355-R3; branch=wt/TR-355-R3;
+commit=d34084cc0214924b62660b1ceb428473006aa7a6; items[0].status=PASS
+
+$ git merge-tree --write-tree main fb65341
+rc=0 (clean). board-merge-driver merged 398 task rows / 827 event rows / 3 header rows;
+renumbered one colliding event id to 1000335982916859 (event_type=task_completed) —
+post-merge events tail inspected at closeout.
+
+Owner-gate re-probe (read-only; before/after state unchanged):
+$ curl -sS --max-time 5 http://127.0.0.1:9092/health   (2026-11-02T09:47:53Z)
+status=ok; commit=187bcae615d3; stale=true; loaded_at=2026-10-19T20:42:28+00:00;
+repo_commit=0778f55d704b; mode=read-only; pid=7563 (started 2026-10-19 15:42:27)
+$ curl -sS --max-time 5 http://127.0.0.1:9391/health   (2026-11-02T09:47:53Z)
+status=ok; commit=13ef7482e1d7; stale=true; loaded_at=2026-10-29T16:08:20+00:00;
+repo_commit=0778f55d704b; mode=read-only; pid=1808674 (started 2026-10-29 11:08:19)
+Result: both serving instances healthy but STALE and UNCHANGED since the R3/R2 probes;
+AC5 live acceptance remains owner-blocked. Next owner action: deliberate :9092/:9391
+cutover onto current main, then one live tick under ROUTER_DEGRADED_WALL_S.
+
+CI health (gh run list --repo coding-hermes/task-router --limit 3):
+- 1a4f40a (tip) created 2026-11-02T09:18:48Z conclusion=success
+- 0778f55 created 2026-11-02T08:23:59Z conclusion=success
+- a4685ff created 2026-11-02T00:42:26Z conclusion=failure — INT-CI-16 signature
+  (full-suite failure after INT-CI-15 closeout), owned and fixed at 0778f55, row closed;
+  superseded by two green successors; no duplicate CI row filed.
+
+Off-by-One
+----------
+none:verification-only no debugging
+
+ch:trace row=TR-355 spec=none:board-acceptance-only wave=.coding-hermes/waves/task-router-foreman-2026-11-02-09-28-48.json#zero-dispatch test=tests/test_tr355_degraded_wall.py::test_failure_envelope_names_degraded_wall_policy doc=none:verification-only evidence=.coding-hermes/evidence/tr355-r3-land-task-router-2026-11-02-09-28-48.txt witness=live:9092-stale-187bcae+9391-stale-13ef748 verdict=none:judge-pending-at-evidence-commit commit=none:pre-closeout memory=none:pending
+STATUS: partial
+TIER: T3 invoked and observed — live /health probes, process census, merge-tree preview,
+verdict readback, CI listing captured exactly; no cutover performed
+EVIDENCE: .coding-hermes/evidence/tr355-r3-land-task-router-2026-11-02-09-28-48.txt
