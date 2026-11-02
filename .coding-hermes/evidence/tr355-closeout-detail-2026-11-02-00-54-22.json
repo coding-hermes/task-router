@@ -1,0 +1,33 @@
+{
+  "tick": "scheduler-tick-task-router-2026-11-02-00-54-22",
+  "project": "task-router",
+  "row": "TR-355",
+  "status": "PENDING",
+  "tier": "T3",
+  "selected": "highest-priority pending P0 row; owner-gated verification-only",
+  "dispatch": "none:owner-gated-live-cutover",
+  "wave_size": 0,
+  "workers": [],
+  "implementation": "48d9ad6 remains the implementation commit already merged on origin/main; this tick produced no implementation change",
+  "verification": {
+    "focused_tests": "~/.hermes/venvs/board/bin/python3 -m pytest -q tests/test_tr355_degraded_wall.py -> 7 passed in 2.34s, exit 0",
+    "9092": "health HTTP 200; loaded_commit=187bcae615d3; loaded_at=2026-10-19T20:42:28+00:00; repo_commit=a4685fff7666; stale=true; pid=7563",
+    "9391": "health HTTP 200; loaded_commit=13ef7482e1d7; loaded_at=2026-10-29T16:08:20+00:00; repo_commit=a4685fff7666; stale=true; pid=1808674",
+    "processes": "9092 pid 7563 started 2026-10-19 15:42:27; 9391 pid 1808674 started 2026-10-29 11:08:19",
+    "resources": "load average 9.16/12.19/12.74; memory available 45Gi; both ports listening",
+    "mutation": "none; all external probes read-only; before/after state unchanged"
+  },
+  "owner_gate": "Production restart/cutover of :9092 and :9391, then one live tick under ROUTER_DEGRADED_WALL_S, remains owner-controlled.",
+  "next_owner_action": "Deliberate cutover onto current main, then observe one live tick satisfying TR-355 AC5.",
+  "evidence": ".coding-hermes/evidence/tr355-verify-task-router-2026-11-02-00-54-22.txt",
+  "wave": ".coding-hermes/waves/scheduler-tick-task-router-2026-11-02-00-54-22.json#zero-dispatch",
+  "verdict": "bd7bc021",
+  "verdict_note": "TR-355-R3 Tier 2 PASS; evidence-only verification, not proof of the owner-controlled live acceptance.",
+  "ci": {
+    "latest_main_runs": [41368587313, 41367743871, 41350591737],
+    "classification": "All failed at the full test suite; existing open owner INT-CI-16 tracks the same outcome-floor fixture/head drift signature. No duplicate CI row filed.",
+    "exact_head_verification_branch": "no workflow runs returned for wt/TR-355-R3"
+  },
+  "off_by_one": "none:verification-only no debugging",
+  "trace": "ch:trace row=TR-355 spec=none:board-acceptance-only wave=.coding-hermes/waves/scheduler-tick-task-router-2026-11-02-00-54-22.json#zero-dispatch test=tests/test_tr355_degraded_wall.py::test_failure_envelope_names_degraded_wall_policy doc=none:verification-only evidence=.coding-hermes/evidence/tr355-verify-task-router-2026-11-02-00-54-22.txt witness=live:9092-stale-187bcae+9391-stale-13ef748 verdict=bd7bc021 commit=d34084cc0214924b62660b1ceb428473006aa7a6 memory=none:duckbrain-token-unavailable"
+}
