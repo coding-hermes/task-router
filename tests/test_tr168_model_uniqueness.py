@@ -472,6 +472,11 @@ POST_DEDUPE_ADDITIONS = {
     ("xkiro", "openai/gpt-6.1-terra"): "xkiro carrier refresh 2026-10-29 (provider_import preset sync; plan-covered lane)",
     ("xkiro-2", "nvidia/nemotron-3.5-super-vl"): "xkiro-2 carrier refresh 2026-10-29 (seat mirror; provider_import preset sync; plan-covered lane)",
     ("xkiro-2", "openai/gpt-6.1-terra"): "xkiro-2 carrier refresh 2026-10-29 (seat mirror; provider_import preset sync; plan-covered lane)",
+    # 2026-11-02 (model-router-refresh tick): models.dev sync added 2 ollama-cloud
+    # mimo-v2.6 name-variant lanes. Bucket-plan documented gap: NULL price +
+    # model_notes row + null_reasons stamps (census green same tick).
+    ("ollama-cloud", "mimo-v2.6-flash"): "models.dev sync 2026-11-02 (bucket-plan documented gap, census-stamped)",
+    ("ollama-cloud", "mimo-v2.6-pro"): "models.dev sync 2026-11-02 (bucket-plan documented gap, census-stamped)",
 }
 
 
