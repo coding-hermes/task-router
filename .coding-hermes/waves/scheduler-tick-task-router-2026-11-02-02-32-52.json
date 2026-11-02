@@ -1,0 +1,25 @@
+{
+  "tick": "scheduler-tick-task-router-2026-11-02-02-32-52",
+  "project": "task-router",
+  "base_sha": "a4685fff7666a66b37fb71e8fa36fefe3e6e4a31",
+  "wave_budget": 10,
+  "wave_size": 0,
+  "decision": "verification-only; highest-priority pending row is owner-gated release readiness",
+  "tasks": ["RELEASE-2026-10-22-001"],
+  "workers": [],
+  "worktrees": [],
+  "owner_gate": "explicit owner authorization naming task-router, release version, and baseline SHA before any tag, release, or version-prep commit",
+  "verification": {
+    "commands": [
+      "git tag --list 'v*'",
+      "gh release list --limit 20",
+      "gh run list --repo coding-hermes/task-router --limit 3 --json status,conclusion,displayTitle,headBranch,headSha,createdAt",
+      "git show origin/main:pyproject.toml",
+      "git show origin/main:task_router/__init__.py",
+      "git show origin/main:CHANGELOG.md"
+    ],
+    "expected": "record current release surface, version pins, changelog state, and exact-head CI"
+  },
+  "status": "pending",
+  "finished_at": null
+}

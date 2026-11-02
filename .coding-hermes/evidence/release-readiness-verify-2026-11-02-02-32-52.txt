@@ -1,0 +1,61 @@
+STATUS: PENDING
+TIER: T3 verification-only; no owner authorization; no release mutation
+SELECTED_ROW: RELEASE-2026-10-22-001
+OFF_BY_ONE: none:verification-only no debugging
+
+=== identity ===
+root=/home/kara/worktrees/task-router-RELEASE-2026-11-02-02-32-52
+head=a4685fff7666a66b37fb71e8fa36fefe3e6e4a31
+origin_main=a4685fff7666a66b37fb71e8fa36fefe3e6e4a31
+branch=wt/RELEASE-2026-11-02-02-32-52
+parity=0	0
+
+=== numeric tags ===
+tag_count=0
+
+=== github releases ===
+
+=== recent CI ===
+[{"conclusion":"failure","createdAt":"2026-11-02T00:42:26Z","displayTitle":"tr355 closeout: bind TR-355-R2 verdict 3be9be8e to evidence commit 8d…","headBranch":"main","headSha":"a4685fff7666a66b37fb71e8fa36fefe3e6e4a31","status":"completed"},{"conclusion":"failure","createdAt":"2026-11-02T00:33:02Z","displayTitle":"tr355 verification-only: evidence artifact + zero-dispatch manifests …","headBranch":"main","headSha":"8d1ffe1125fe8161f964d72aebc9cb6fcec85e40","status":"completed"},{"conclusion":"failure","createdAt":"2026-11-01T21:10:04Z","displayTitle":"chore(board): file TR-OF-20261101-01 (outcome-floor over-gating) and …","headBranch":"main","headSha":"bf227be55943d01ff1fb82abb1349bc13a218dd8","status":"completed"}]
+
+=== version pins ===
+7:version = "0.2.0"
+11:__version__ = "0.2.0"
+
+=== changelog headings ===
+7:## [Unreleased]
+73:## [0.2.0] — 2026-09-24
+127:## [0.1.0] — 2026-09-21
+
+=== release workflow surface ===
+.github/workflows/ci.yml:7:  # Release verification: CI must run (and stay green) on the v0.2.0 tag
+.github/workflows/ci.yml:8:  # commit, but tag pushes are not push-events on branches — dispatch it.
+.github/workflows/ci.yml:9:  workflow_dispatch:
+docs/releases/release-readiness.md:12:| Tags | `git tag -l`; `gh api repos/coding-hermes/task-router/tags` | **zero tags, ever** (`[]`) |
+docs/releases/release-readiness.md:13:| Releases | `gh release list` | **zero releases** |
+docs/releases/release-readiness.md:15:| Version pins | `pyproject.toml`, `task_router/__init__.py` | both `0.2.0` (0.2.0 shipped UNRELEASED — no tag was ever cut for it) |
+docs/releases/release-readiness.md:17:Conclusion of the v0.2.0 readiness report (`v0.2.0-readiness.md` §7: "tag
+docs/releases/release-readiness.md:18:`v0.2.0`, push the tag, dispatch CI…") was never executed: the release
+docs/releases/release-readiness.md:33:3. **Pick the tag baseline SHA** — normally `origin/main` HEAD at cut time,
+docs/releases/release-readiness.md:36:Until that decision exists: **NO tag, NO GitHub Release, no version bump.**
+docs/releases/release-readiness.md:38:## 3. How releases conceptually fire — tag-triggered procedure
+docs/releases/release-readiness.md:40:There is no tag-triggered workflow (`.github/workflows/ci.yml` triggers on
+docs/releases/release-readiness.md:41:`push: branches: [main]`, `pull_request`, and `workflow_dispatch` only — tag
+docs/releases/release-readiness.md:42:pushes deliberately do not auto-run anything). Verification of the tag commit
+docs/releases/release-readiness.md:43:is MANUAL, via `workflow_dispatch`, which is this repo's established pattern
+docs/releases/release-readiness.md:45:`workflow_dispatch` so the release tag commit is CI-verified").
+docs/releases/release-readiness.md:70:# CI green on the tagged SHA — REQUIRED before tagging:
+docs/releases/release-readiness.md:75:git tag -a "$TAG" -m "task-router $TAG" "$BASE"
+docs/releases/release-readiness.md:78:# CI on the tagged commit (tag pushes do NOT trigger ci.yml — dispatch, then verify):
+docs/releases/release-readiness.md:81:gh run watch "$(gh run list --workflow=ci --event=workflow_dispatch --limit 1 --json databaseId -q '.[0].databaseId')"
+docs/releases/release-readiness.md:84:gh release create "$TAG" --verify-tag --title "task-router $TAG" \
+docs/releases/release-readiness.md:88:gh release view "$TAG" --json name,tagName,assets,isDraft,publishedAt
+docs/releases/release-readiness.md:103:artifacts: this is a pure-stdlib package — `gh release create` with no asset
+docs/releases/release-readiness.md:105:wanted, build with `python -m build` and pass the dist file to
+docs/releases/release-readiness.md:106:`gh release create`. Re-download the published artifact
+docs/releases/release-readiness.md:107:(`gh release download "$TAG"` into an empty dir) and
+docs/releases/release-readiness.md:119:3. CI green on the exact tagged SHA (a `workflow_dispatch` run on that ref).
+docs/releases/release-readiness.md:121:5. `gh release view` shows the release with notes + assets.
+docs/releases/release-readiness.md:137:  workflow_dispatch; 75-min job timeout; full suite runs TWICE per job).
+
+OWNER_GATE: No explicit owner authorization naming task-router, release version, and baseline SHA is present in the selected row/evidence. Natural v0.3.0 remains a proposal only; no tag, Release, version bump, or artifact publication performed.
