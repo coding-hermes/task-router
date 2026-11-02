@@ -1320,3 +1320,49 @@ tasks:
   status: complete
   created_at: '2026-11-02T08:04:58.031707+00:00'
   completed_at: '2026-11-02T08:24:49.461631+00:00'
+- id: TR-355-R4
+  title: Land stranded TR-355-R3 verification closeout onto main
+  criteria:
+  - 'The judged tree contains (a) the stranded TR-355-R3 closeout merged intact: .coding-hermes/evidence/tr355-verify-task-router-2026-11-02-00-54-22.txt
+    and its zero-dispatch manifest (from d34084cc), TR-355 audit event 1000889452787156
+    present in events.jsonl, and the TR-355 row still status=pending carrying detail.evidence
+    run_id bd7bc021; (b) this tick''s reconciliation evidence .coding-hermes/evidence/tr355-r3-land-task-router-2026-11-02-09-28-48.txt
+    plus zero-dispatch manifest whose exact outputs prove the pre-tick residue reconciliation
+    (tasks.yaml byte-identical to its committed origin/main copy) and the owner-gate
+    re-probe (:9092 loaded 187bcae615d3 stale=true pid 7563, :9391 loaded 13ef7482e1d7
+    stale=true pid 1808674, unchanged versus the R3 probes). AC5 live acceptance remains
+    owner-controlled and the row must stay PENDING. A Tier-2 pass certifies the landing
+    and evidence discipline only, not the external acceptance.'
+  status: complete
+  created_at: '2026-11-02T10:06:44.231943+00:00'
+  completed_at: '2026-11-02T10:09:42.264795+00:00'
+- id: TR-355-R5
+  title: Re-verify landed TR-355-R3 closeout on the exact pushed tree (narrow, wrong-tree-safe)
+  criteria:
+  - "INSTRUMENT CONTRACT: every command must run with cwd exactly /home/kara/worktrees/task-router-tr355r3-land-20261102-092848\
+    \ and 'git -C /home/kara/worktrees/task-router-tr355r3-land-20261102-092848 rev-parse\
+    \ --show-toplevel' must print that exact path; if any command resolves to a different\
+    \ repository (for example /home/kara/duckbrain/namespaces/task-router), STOP and\
+    \ report instrument-failure/wrong-tree instead of grading. Literal sub-checks\
+    \ (already run by the foreman at 2026-11-02T10:2xZ with the outputs shown): (1)\
+    \ git -C /home/kara/worktrees/task-router-tr355r3-land-20261102-092848 rev-parse\
+    \ HEAD must print f7c8256b9a089447e997688d9035d8550ef376aa; (2) ls must show both\
+    \ /home/kara/worktrees/task-router-tr355r3-land-20261102-092848/.coding-hermes/evidence/tr355-verify-task-router-2026-11-02-00-54-22.txt\
+    \ and /home/kara/worktrees/task-router-tr355r3-land-20261102-092848/.coding-hermes/evidence/tr355-r3-land-task-router-2026-11-02-09-28-48.txt;\
+    \ (3) grep -c 1000889452787156 /home/kara/worktrees/task-router-tr355r3-land-20261102-092848/.coding-hermes/board/events.jsonl\
+    \ must print 1; (4) jq -s on /home/kara/worktrees/task-router-tr355r3-land-20261102-092848/.coding-hermes/board/tasks.jsonl\
+    \ (group_by(.id)|map(last)) must show TR-355 status=pending with detail.evidence\
+    \ last run_id bd7bc021; (5) the two zero-dispatch manifests must exist with the\
+    \ R3 one carrying finished_at (scheduler-tick-task-router-2026-11-02-00-54-22.json)\
+    \ and this tick's (task-router-foreman-2026-11-02-09-28-48.json); (6) grep 187bcae615d3\
+    \ and 13ef7482e1d7 in tr355-r3-land-task-router-2026-11-02-09-28-48.txt must each\
+    \ match (the owner-gate re-probe values). OUT OF SCOPE: the owner-controlled :9092/:9391\
+    \ cutover and AC5 live acceptance (tracked on board row TR-355); the host-only\
+    \ test_tr260_projects_seed ROUTER-MISS residual (tracked as TR-358); and run 388bc315\
+    \ / verdict e801b1ef, which graded the foreign repository /home/kara/duckbrain/namespaces/task-router\
+    \ and is preserved verbatim as an instrument failure \u2014 do not re-grade that\
+    \ repository. A pass certifies the landing and evidence discipline of commit f7c8256\
+    \ only, not the external acceptance."
+  status: complete
+  created_at: '2026-11-02T10:16:08.385054+00:00'
+  completed_at: '2026-11-02T10:17:05.411910+00:00'

@@ -2,6 +2,7 @@
   "tick": "task-router-foreman-2026-11-02-09-28-48",
   "project": "task-router",
   "base_sha": "1a4f40a6f5e5c79561a1fabfbaa858aa601355d1",
+  "pre_closeout_sha": "f7c8256b9a089447e997688d9035d8550ef376aa",
   "selected": ["TR-355"],
   "selection": "highest-priority pending P0 row; owner-gated verification-only + stranded R3 closeout reconciliation; no lower-priority substitution",
   "wave_size": 0,
