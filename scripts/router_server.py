@@ -225,6 +225,14 @@ def build_openapi() -> dict:
                 },
             ],
         ),
+        # TR-275: the OpenAI-interop surface the handler serves before dispatch()
+        # (RouterHandler.do_GET), now in the contract so an OpenAI-shaped caller
+        # can machine-check it like everything else.
+        "/v1/models": ("getV1Models", "OpenAI-compatible model list (GET /v1/models): every registry lane a request could actually reach - not archived, not disabled, inside the lifecycle window. Clients probe this first; a 404 reads as a broken provider, so it is contract, not convention.", []),
+        "/models": ("getModelsAlias", "Alias spelling of GET /v1/models (same payload, same cache) for clients that strip the /v1 prefix.", []),
+        # TR-275: liveness was dispatched but undocumented; the conformance test
+        # diffs the served surface against this schema in BOTH directions.
+        "/readyz": ("getReadyz", "Liveness/drain state: 200 while the process serves, 503 once the drain controller is draining. Body is the drain snapshot (ready, draining, inflight).", []),
     }
     paths = {}
     for path, (operation_id, summary, parameters) in get_paths.items():
@@ -514,6 +522,397 @@ def build_openapi() -> dict:
                 required,
             )
         }
+
+    # ------------------------------------------------------------------
+    # TR-275: operator honesty fields with TYPES, not only prose. The
+    # /health handler (dispatch()) always stamps these fields; the schema
+    # now promises them so an operator dashboard can machine-check the
+    # payload it renders. AC: mode, loaded commit/source sha, cache
+    # generation, admission and circuit state.
+    # ------------------------------------------------------------------
+    string_or_null = {"type": ["string", "null"]}
+    integer_or_null = {"type": ["integer", "null"]}
+    number_or_null = {"type": ["number", "null"]}
+    boolean_or_null = {"type": ["boolean", "null"]}
+    paths["/health"]["get"]["responses"]["200"] = {
+        "description": "Control-plane health with the operator honesty fields",
+        "content": {
+            "application/json": {
+                "schema": {
+                    "type": "object",
+                    "properties": {
+                        "status": string,
+                        "service": string,
+                        # The commit THIS process loaded (never the repo HEAD).
+                        "commit": string,
+                        "stale": boolean_or_null,
+                        "code": {
+                            "type": "object",
+                            "description": "loaded-code identity: what vintage is answering",
+                            "properties": {
+                                "loaded_commit": string,
+                                "loaded_source_sha": string,
+                                "loaded_at": string,
+                                "repo_commit": string_or_null,
+                                "live_source_sha": string_or_null,
+                                "stale": boolean_or_null,
+                            },
+                            "additionalProperties": True,
+                        },
+                        "mode": {"type": "string",
+                                 "enum": ["read-only", "edit"],
+                                 "description": "the AUTH mode of this process"},
+                        "surface_mode": {"type": "string",
+                                         "enum": ["api", "proxy", "ui", "all"],
+                                         "description": "WHICH serving surface this process is (TR-276)"},
+                        "source_sha": {"type": "string",
+                                       "description": "the source sha of the tree this process loaded (same value as code.loaded_source_sha)"},
+                        "cache_generation": {"type": "integer",
+                                             "description": "the runtime data cache's current generation (TR-277): increments on every invalidation/reload"},
+                        "ts": string,
+                        "registry": {
+                            "type": "object",
+                            "properties": {
+                                "data_dir": string,
+                                "models": integer,
+                                "newest_valid_from": string_or_null,
+                                "age_days": integer_or_null,
+                                "unparsable_lines": integer,
+                                "error": string,
+                            },
+                            "additionalProperties": True,
+                        },
+                        "probe": {
+                            "type": "object",
+                            "properties": {
+                                "updated": string_or_null,
+                                "age_minutes": number_or_null,
+                                "providers": integer,
+                                "provider_status_counts": {"type": "object"},
+                                "error": string,
+                            },
+                            "additionalProperties": True,
+                        },
+                        "circuit": {
+                            "type": "object",
+                            "description": "circuit breaker state: how many pairs exist, how many are OPEN, by class",
+                            "properties": {
+                                "pairs": integer,
+                                "open": integer,
+                                "open_pairs": {"type": "array", "items": string},
+                                "classes": {"type": "object",
+                                            "additionalProperties": integer},
+                                "provider_breakers": integer,
+                                "error": string,
+                            },
+                            "additionalProperties": True,
+                        },
+                        "admission": {
+                            "type": "object",
+                            "description": "the concurrency gate: live gauges + enforced ceilings (TR-172); max_in_flight/current_in_flight are the headroom aliases",
+                            "properties": {
+                                "waiting": integer,
+                                "accepted": integer,
+                                "rejected": integer,
+                                "peak_inflight": integer,
+                                "inflight": integer,
+                                "max_inflight": integer,
+                                "queue_max": integer,
+                                "queue_wait_s": number,
+                                "max_in_flight": integer,
+                                "current_in_flight": integer,
+                            },
+                            "additionalProperties": True,
+                        },
+                        "serving": {
+                            "type": "object",
+                            "description": "the active serving path (TR-274): thread (legacy) or async (bounded pool) with its bounds",
+                            "properties": {
+                                "mode": {"type": "string",
+                                         "enum": ["thread", "async"]},
+                                "pool": {
+                                    "oneOf": [
+                                        {"type": "null"},
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "max_workers": integer_or_null,
+                                                "queue_bound": integer_or_null,
+                                            },
+                                            "additionalProperties": True,
+                                        },
+                                    ]
+                                },
+                                "busy_workers": integer_or_null,
+                            },
+                            "additionalProperties": True,
+                        },
+                        "classify_cache": {
+                            "type": "object",
+                            "description": "the complexity classifier's cache stats",
+                            "additionalProperties": True,
+                        },
+                        "data_cache": {
+                            "type": "object",
+                            "description": "the runtime data cache's stats (TR-277): generation, reloads, hit/miss, per-file state",
+                            "additionalProperties": True,
+                        },
+                        "runtime": {
+                            "type": "object",
+                            "description": "drain controller snapshot + runtime identity (revision, source_digest)",
+                            "properties": {
+                                "ready": boolean_or_null,
+                                "draining": boolean_or_null,
+                                "inflight": integer_or_null,
+                                "revision": string_or_null,
+                                "source_digest": string_or_null,
+                            },
+                            "additionalProperties": True,
+                        },
+                        "context_fidelity": {
+                            "type": "object",
+                            "additionalProperties": True,
+                        },
+                        "chains_snapshot": {
+                            "type": "object",
+                            "additionalProperties": True,
+                        },
+                        "registry_age": {
+                            "type": "object",
+                            "additionalProperties": True,
+                        },
+                        "gate": {
+                            "type": "object",
+                            "description": "the router_validate verdict, computed in-process (TR-REVIEW-001)",
+                            "additionalProperties": True,
+                        },
+                        "registry_state": string,
+                        "coverage": {
+                            "type": "object",
+                            "additionalProperties": True,
+                        },
+                        "hermes_upstream": {
+                            "type": "object",
+                            "description": "TR-129: the upstream /v1/capabilities learned at startup (present only when the probe ran)",
+                            "additionalProperties": True,
+                        },
+                    },
+                    "required": [
+                        "status", "mode", "commit", "code", "ts",
+                        "surface_mode", "source_sha", "cache_generation",
+                        "admission", "circuit",
+                    ],
+                    "additionalProperties": True,
+                }
+            }
+        },
+    }
+    paths["/status"]["get"]["responses"]["200"] = {
+        "description": "Server and registry status",
+        "content": {
+            "application/json": {
+                "schema": {
+                    "type": "object",
+                    "properties": {
+                        "status": string,
+                        "mode": string,
+                        "data_dir": string,
+                        "runtime_cache": {
+                            "type": "object",
+                            "description": "TR-277 runtime data cache stats (generation, reloads, hit/miss)",
+                            "additionalProperties": True,
+                        },
+                        "profiles": integer,
+                        "providers": integer,
+                        "models": integer,
+                    },
+                    "required": ["status", "mode"],
+                    "additionalProperties": True,
+                }
+            }
+        },
+    }
+    paths["/circuit/status"]["get"]["responses"]["200"] = {
+        "description": "Circuit breaker state (router_circuit.py status --json)",
+        "content": {
+            "application/json": {
+                "schema": {
+                    "type": "object",
+                    "properties": {
+                        "pairs": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {"pair": string},
+                                "additionalProperties": True,
+                            },
+                        },
+                        "ts": string_or_null,
+                        "v2": {"type": "object", "additionalProperties": True},
+                    },
+                    "required": ["pairs"],
+                    "additionalProperties": True,
+                }
+            }
+        },
+    }
+    readyz_schema = {
+        "type": "object",
+        "properties": {
+            "ready": {"type": "boolean"},
+            "draining": {"type": "boolean"},
+            "inflight": integer,
+        },
+        "required": ["ready", "draining", "inflight"],
+        "additionalProperties": True,
+    }
+    readyz_content = {"application/json": {"schema": readyz_schema}}
+    paths["/readyz"]["get"]["responses"] = {
+        "200": {"description": "the process serves", "content": readyz_content},
+        "503": {"description": "draining: not accepting routed work",
+                "content": readyz_content},
+        "500": ERROR_RESPONSES["500"],
+    }
+    openai_model_object = {
+        "type": "object",
+        "properties": {
+            "id": string,
+            "object": {"type": "string", "enum": ["model"]},
+            "created": integer,
+            "owned_by": string,
+        },
+        "required": ["id", "object", "created", "owned_by"],
+        "additionalProperties": True,
+    }
+    openai_list_content = {
+        "application/json": {
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "object": {"type": "string", "enum": ["list"]},
+                    "data": {"type": "array", "items": openai_model_object},
+                },
+                "required": ["object", "data"],
+                "additionalProperties": True,
+            }
+        }
+    }
+    for interop_path in ("/v1/models", "/models"):
+        paths[interop_path]["get"]["responses"]["200"] = {
+            "description": "OpenAI-compatible model list",
+            "content": openai_list_content,
+        }
+
+    # ------------------------------------------------------------------
+    # TR-275: the /v1 proxy surface the server has always served, now in
+    # the contract. Both paths are auth-gated mutations (they append
+    # outcome/ledger rows per hop) - read-only answers 403, edit mode
+    # requires the key, and ROUTER_PROXY_AUTH=passthrough delegates the
+    # gate to the caller's own upstream credential (TR-067).
+    # ------------------------------------------------------------------
+    chat_message_schema = {
+        "type": "object",
+        "properties": {
+            "role": string,
+            "content": {"type": ["string", "array", "null"]},
+        },
+        "required": ["role"],
+        "additionalProperties": True,
+    }
+    proxy_request_properties = {
+        "model": {
+            "type": "string",
+            "description": "PROVIDER HINT only on this surface (docs/integration.md): "
+                           "omitted or a router sentinel means classify-and-resolve; "
+                           "an explicit lane goes via X-Router-Model / X-Router-Profile "
+                           "headers",
+        },
+        "stream": {"type": "boolean",
+                   "description": "true = the buffered answer is re-served as SSE "
+                                  "(chat chunks, or the Responses event set on /v1/responses)"},
+    }
+    proxy_error_responses = {
+        "400": ERROR_RESPONSES["400"],
+        "401": ERROR_RESPONSES["401"],
+        "403": {"description": "read-only mode refuses every proxied call",
+                "content": JSON_RESPONSE["content"]},
+        "429": {"description": "admission refused: in-flight and queue bounds both "
+                               "full; carries retry_after_s and the Retry-After header (TR-172)",
+                "content": JSON_RESPONSE["content"]},
+        "500": ERROR_RESPONSES["500"],
+        "502": {"description": "upstream hop failed after the fallback ladder",
+                "content": JSON_RESPONSE["content"]},
+        "503": {"description": "no open hop for this request / unservable rating "
+                               "(the router's own refusal, never a fabricated route)",
+                "content": JSON_RESPONSE["content"]},
+    }
+    paths["/v1/chat/completions"] = {
+        "post": {
+            "operationId": "proxyChatCompletions",
+            "summary": "OpenAI-compatible chat proxy (TR-067 Path B): classify (or take "
+                       "the declared profile), resolve the chain internally, call the "
+                       "upstream through the bounded fallback ladder, return the upstream "
+                       "response shape plus additive _router metadata (outcome, hops, "
+                       "cost, deadline verdict). A durable write per hop (outcome rows), "
+                       "so it is auth-gated: read-only answers 403; edit mode requires "
+                       "X-API-Key; ROUTER_PROXY_AUTH=passthrough forwards the caller's "
+                       "own upstream credential instead.",
+            "security": [{"EditApiKey": []}],
+            "requestBody": {
+                "required": True,
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                **proxy_request_properties,
+                                "messages": {
+                                    "type": "array",
+                                    "items": chat_message_schema,
+                                    "description": "the chat transcript; text content feeds the classifier",
+                                },
+                            },
+                            "required": ["messages"],
+                            "additionalProperties": True,
+                        }
+                    }
+                },
+            },
+            "responses": {"200": JSON_RESPONSE, **proxy_error_responses},
+        }
+    }
+    paths["/v1/responses"] = {
+        "post": {
+            "operationId": "proxyResponses",
+            "summary": "OpenAI Responses-API proxy (TR-129): through a Hermes-gateway "
+                       "upstream it speaks the gateway session protocol (X-Hermes-Session-Key "
+                       "forward, X-Hermes-Session-Id echo, SSE keepalive, idle deadline); "
+                       "same chain resolution, metering and bounded ladder as "
+                       "/v1/chat/completions. Auth identical: read-only 403, edit mode "
+                       "X-API-Key, or ROUTER_PROXY_AUTH=passthrough.",
+            "security": [{"EditApiKey": []}],
+            "requestBody": {
+                "required": True,
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                **proxy_request_properties,
+                                "input": {
+                                    "type": ["string", "array"],
+                                    "description": "the Responses-API input; a string feeds the classifier",
+                                },
+                            },
+                            "required": ["input"],
+                            "additionalProperties": True,
+                        }
+                    }
+                },
+            },
+            "responses": {"200": JSON_RESPONSE, **proxy_error_responses},
+        }
+    }
 
     return {
         "openapi": "3.1.0",

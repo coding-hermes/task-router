@@ -96,6 +96,15 @@ def _resolve(monkeypatch, tmp_path, tables=None, project="coding-hermes-schedule
                         registry if registry is not None else _write_registry(tmp_path, tables))
     if state_dir is not None:
         monkeypatch.setattr(router_spawn, "MR", state_dir)
+    # 2026-11-02 (TR-275 + INT-CI-16): BOTH outcome-floor stores are pinned
+    # hermetic — ROUTING_OUTCOMES_FILE and ROUTING_AVERAGES_FILE. Never
+    # redirected, the floor scan read host-live stores (trailing 24h), so
+    # the head golden flip-flopped with fleet traffic (10-04 terra →
+    # 11-01 glm → terra again). Pin the stores to the fixture: a test must
+    # not assert values from mutable production data.
+    outcomes = tmp_path / "outcomes-fixture.jsonl"
+    outcomes.write_text("")
+    monkeypatch.setenv("ROUTING_OUTCOMES_FILE", str(outcomes))
     monkeypatch.setenv("ROUTING_AVERAGES_FILE", str(tmp_path / "outcomes-averages.jsonl"))
     return router_spawn.resolve(project=project)
 
@@ -167,12 +176,16 @@ def test_corrupt_registry_source_fallback_and_warning(monkeypatch, tmp_path):
     # the fallback data is the committed registry — head must match the
     # golden fixed-point head for this profile (same tables as registry.json)
     assert _pair(r["head"]) == "xkiro/openai/gpt-5.6-terra"
-    # 2026-11-02 (INT-CI-16): hermetic golden — _resolve pins ROUTING_AVERAGES_FILE to an absent
-    # tmp path, so the TR-354 outcome floor is inert in this fixture (0 known outcomes = pass).
-    # The 11-01 commandcode-2 golden encoded host-live outcomes leakage (repo data/state/
-    # outcomes-averages.jsonl is gitignored: present on hosts, absent in CI), and the rolling
-    # store has since aged the xkiro evidence out, failing BOTH environments. Live xkiro
-    # filtering stays production behavior; its coverage is tests/test_tr354_outcomes_floor.py.
+    # 2026-11-02 (INT-CI-16 + TR-275): hermetic golden — _resolve pins BOTH
+    # outcome-floor stores (ROUTING_AVERAGES_FILE + ROUTING_OUTCOMES_FILE)
+    # to tmp fixtures, so the TR-354 outcome floor is inert in this fixture
+    # (0 known outcomes = pass). The 11-01 commandcode-2 golden encoded
+    # host-live outcomes leakage (repo data/state/outcomes-averages.jsonl is
+    # gitignored: present on hosts, absent in CI), and the rolling store has
+    # since aged the xkiro evidence out, failing BOTH environments. Live
+    # xkiro filtering stays production behavior; its coverage is
+    # tests/test_tr354_outcomes_floor.py. (09-18 doctrine: update the golden
+    # with the dated reason, never re-enable to silence.)
 
 
 def test_missing_registry_source_fallback(monkeypatch, tmp_path):
@@ -207,12 +220,11 @@ def test_missing_health_state_reported_false(monkeypatch, tmp_path):
     # gate — the chain still resolves to the healthy head
     assert r["head"] is not None
     assert _pair(r["head"]) == "xkiro/openai/gpt-5.6-terra"
-    # 2026-11-02 (INT-CI-16): hermetic golden — _resolve pins ROUTING_AVERAGES_FILE to an absent
-    # tmp path, so the TR-354 outcome floor is inert in this fixture (0 known outcomes = pass).
-    # The 11-01 commandcode-2 golden encoded host-live outcomes leakage (repo data/state/
-    # outcomes-averages.jsonl is gitignored: present on hosts, absent in CI), and the rolling
-    # store has since aged the xkiro evidence out, failing BOTH environments. Live xkiro
-    # filtering stays production behavior; its coverage is tests/test_tr354_outcomes_floor.py.
+    # 2026-11-02 (INT-CI-16 + TR-275): hermetic golden, same _resolve pins as
+    # above — no samples, no floor filter; cheapest eligible plan lane wins.
+    # The 11-01 glm golden encoded host-live outcomes leakage and flipped
+    # back with fleet traffic (09-18 doctrine: update the golden with the
+    # dated reason, never re-enable to silence.)
 
 
 def test_missing_all_state_files_reported(monkeypatch, tmp_path):

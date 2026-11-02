@@ -192,6 +192,10 @@ ROUTER_EDIT_API_KEY=... router server --mode edit
 ```
 
 - `GET /openapi.json` — the OpenAPI 3.1 description of every endpoint.
+  TR-275: the contract is machine-checked against the dispatch table in BOTH
+  directions (`tests/test_openapi_dispatch_conformance.py`) — every route the
+  server serves is in the schema (the /v1 interop surface included), every
+  schema entry is served, and this list is proven, not hand-counted.
 - Reads (all modes):
   - **Health plane** — `/` (health + status surface with a `_links` index),
     `/health` (running commit, registry mtime age + freshness verdict,
@@ -203,8 +207,16 @@ ROUTER_EDIT_API_KEY=... router server --mode edit
     block, naming the active serving path (`thread` legacy default or the
     bounded `async` pool) with its enforced pool bounds), `/model_status`
     (per-model/provider status joined from registry + probe + circuit;
-    filter with `?provider=<id>`), `/status` (server mode + table counts +
+    filter with `?provider=<id>`), `/readyz` (liveness: `200` while the
+    process serves, `503` once draining; body is the drain snapshot), and
+    `/status` (server mode + table counts +
     a `runtime_cache` TR-277 stats block).
+  - **Models browser** — `/api/models` (TR-258: every registry lane joined
+    with the health probe and rolling 168h averages — status, latency with
+    its source level, sampled tokens, public price; every missing value
+    names its reason; local files only, zero provider requests at render)
+    and `/api/provider-rollups` (per-provider rollups derived from the same
+    lane list, with the totals reconciliation proven in the response).
   - **Routing reads** — `/resolve?project=X`, `/profiles`, `/providers`,
     `/circuit/status`, `/gaps`, `/pricing`, `/chains`.
   - **Execution decision** (ACP-ROUTER-001; a durable WRITE — one

@@ -15,20 +15,27 @@ parity rule, executable, hermetic (no network, no muster binaries):
       "..."` literals / `path.startswith(...)` prefixes);
   P4  documented POSTs are admitted through the known-POST gate
       (known_post_paths(), the actual admission check in dispatch());
-  P5  the UNdocumented surfaces are exactly the named ones (/readyz liveness;
-      the /v1 proxy paths; /mcp is a handler-level intercept outside the
-      OpenAPI contract, parity-guarded live by scripts/muster_battery.sh
-      probe 6 until open decision #1 rules on its retirement);
+  P5  the UNdocumented surfaces within dispatch()'s own branches are NONE
+      since TR-275 (the /v1 proxy paths and /readyz joined the contract);
+      /mcp remains a handler-level intercept outside the OpenAPI contract,
+      parity-guarded live by scripts/muster_battery.sh probe 6 until open
+      decision #1 rules on its retirement — the full-surface bidirectional
+      diff (handler intercepts included) lives in
+      tests/test_openapi_dispatch_conformance.py;
   P6  the read/mutation security boundary: exactly the POST operations carry
       op-level EditApiKey security, no read does, and there is no global
       security block (loopback binding is the reads' entire access control);
   P7  behaviorally, a read-only app refuses a mutation with 403 before any
       handler runs (the server-side gate probe 5 asserts through muster).
 
-Live surface note (2026-10-14): the API has grown past the muster-scope doc's
-19 operations — 30 today (22 reads, 8 mutations; postUiRegistryEdit landed
-with TR-155). The boundary RULE is unchanged; these tests pin the live truth,
-and any count change must be a deliberate spec revision, not drift.
+Live surface note (TR-275, 2026-11): the API has grown past the muster-scope
+doc's 19 operations — 41 today (30 reads, 11 mutations; TR-275 brought the
+/v1 interop surface (GET /v1/models, GET /models, POST /v1/chat/completions,
+POST /v1/responses) and GET /readyz INTO the contract, typed the operator
+honesty fields, and moved the full-surface bidirectional diff to
+tests/test_openapi_dispatch_conformance.py). The boundary RULE is unchanged;
+these tests pin the live truth, and any count change must be a deliberate
+spec revision, not drift.
 """
 import ast
 import inspect
@@ -71,6 +78,12 @@ MUTATION_OPS = {
     # so the decision endpoint is a MUTATION, not the read the old
     # `security: []` label claimed. Deliberate spec revision, not drift.
     "postExecutionDecision",
+    # TR-275 (2026-11): the /v1 proxy calls append outcome/ledger rows per
+    # hop and are auth-gated exactly like the other mutations (read-only
+    # 403, edit mode X-API-Key; ROUTER_PROXY_AUTH=passthrough is the
+    # documented delegation). Deliberate spec revision, not drift.
+    "proxyChatCompletions",
+    "proxyResponses",
 }
 
 
@@ -86,14 +99,30 @@ def _spec_operations(spec=None):
 
 
 def _path_literals(nodes):
-    """`path == "..."` / `parsed.path == "..."` literals and
-    `path.startswith(...)` prefixes in a dispatch branch body."""
+    """`path == "..."` / `parsed.path == "..."` literals,
+    `path.startswith(...)` prefixes, and membership tests over module-level
+    string constants (`path in PROXY_PATHS` — TR-275: the /v1 proxy surface
+    routes through that membership, so the scan must resolve it) in a
+    dispatch branch body."""
     def _is_path_target(node):
         if isinstance(node, ast.Name) and node.id == "path":
             return True
         return (isinstance(node, ast.Attribute) and node.attr == "path"
                 and isinstance(node.value, ast.Name)
                 and node.value.id == "parsed")
+
+    def _constants(node):
+        out = set()
+        if isinstance(node, ast.Constant) and isinstance(node.value, str):
+            out.add(node.value)
+        elif isinstance(node, (ast.Tuple, ast.List, ast.Set)):
+            for elt in node.elts:
+                out |= _constants(elt)
+        elif isinstance(node, ast.Name):
+            const = getattr(rsrv, node.id, None)
+            if isinstance(const, (tuple, list, set)):
+                out |= {v for v in const if isinstance(v, str)}
+        return out
 
     literals, prefixes = set(), set()
     for node in ast.walk(ast.Module(body=nodes, type_ignores=[])):
@@ -102,6 +131,8 @@ def _path_literals(nodes):
                 if isinstance(op, ast.Eq) and isinstance(comp, ast.Constant) \
                         and isinstance(comp.value, str):
                     literals.add(comp.value)
+                elif isinstance(op, ast.In):
+                    literals |= _constants(comp)
         if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) \
                 and node.func.attr == "startswith" \
                 and _is_path_target(node.func.value) and node.args:
@@ -203,22 +234,26 @@ def test_documented_post_paths_are_admitted_through_known_post_gate():
 
 
 def test_undocumented_surfaces_are_exactly_the_named_ones():
+    """TR-275 revision: the /v1 proxy paths and /readyz are now DOCUMENTED
+    (they are real served routes), so within dispatch()'s own branch set
+    there is NO served-but-undocumented route left in either direction. The
+    handler-level truth (GET /ui/, GET /v1/models, GET /models, POST /mcp
+    intercepts) is enumerated and diffed bidirectionally by
+    tests/test_openapi_dispatch_conformance.py, which pins the two
+    deliberately-undocumented surfaces (POST /mcp, GET /ui/) with reasons."""
     (get_lits, _p), (post_lits, _q) = _dispatch_branch_literals()
     spec_paths = {path for _m, path, _op in _spec_operations()}
-    # GET branches without a spec entry: /readyz only (liveness probe,
-    # dispatched but deliberately outside the public contract).
     get_extras = get_lits - spec_paths
-    assert get_extras == {"/readyz"}, sorted(get_extras)
-    # POST admission beyond the spec: the /v1 proxy paths only. /mcp is a
-    # handler-level intercept (RouterHandler.do_POST), NOT in
-    # known_post_paths() — it is a compatibility surface whose retirement is
-    # open decision #1, parity-guarded live by scripts/muster_battery.sh
-    # probe 6.
+    assert get_extras == set(), sorted(get_extras)
     admitted = set(rsrv.known_post_paths())
     post_extras = admitted - spec_paths
-    assert post_extras == {"/v1/chat/completions", "/v1/responses"}, \
-        sorted(post_extras)
+    assert post_extras == set(), sorted(post_extras)
+    # /mcp is a handler-level intercept (RouterHandler.do_POST), NOT in
+    # known_post_paths() and NOT in the contract — a compatibility surface
+    # whose retirement is open decision #1, parity-guarded live by
+    # scripts/muster_battery.sh probe 6.
     assert "/mcp" not in admitted
+    assert "/mcp" not in spec_paths
 
 
 # ---------------------------------------------------------------------------
