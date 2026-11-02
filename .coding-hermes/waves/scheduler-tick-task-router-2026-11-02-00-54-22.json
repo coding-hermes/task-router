@@ -13,5 +13,7 @@
   "evidence": ".coding-hermes/evidence/tr355-verify-task-router-2026-11-02-00-54-22.txt",
   "off_by_one": "none:verification-only no debugging",
   "finished_at": "2026-11-02T01:09:38Z",
+  "status": "closed",
+  "closeout_sha": "f7c8256b9a089447e997688d9035d8550ef376aa",
   "disposition": "pending-owner-cutover"
 }
