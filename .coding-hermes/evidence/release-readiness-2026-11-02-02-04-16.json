@@ -1,0 +1,42 @@
+{
+  "tick": "scheduler-tick-task-router-2026-11-02-02-04-16",
+  "observed_at": "2026-11-02T02:13:24Z",
+  "target": "RELEASE-2026-10-22-001",
+  "target_sha": "a4685fff7666a66b37fb71e8fa36fefe3e6e4a31",
+  "decision": "NO-GO / NOT AUTHORIZED",
+  "owner_gate": "No explicit owner authorization naming task-router, release version, and baseline SHA was present.",
+  "release_surface": {
+    "local_numeric_tags": 0,
+    "remote_numeric_tags": 0,
+    "github_releases": 0,
+    "package_version_pyproject": "0.2.0",
+    "package_version_module": "0.2.0",
+    "changelog_headings": ["Unreleased", "0.2.0", "0.1.0"],
+    "candidate_version": "none-authorized",
+    "release_workflow": "manual workflow_dispatch; no tag trigger",
+    "release_make_target": "absent"
+  },
+  "parity": {
+    "head": "a4685fff7666a66b37fb71e8fa36fefe3e6e4a31",
+    "origin_main": "a4685fff7666a66b37fb71e8fa36fefe3e6e4a31",
+    "ahead": 0,
+    "behind": 0,
+    "worktree": "clean"
+  },
+  "ci_latest_three": {
+    "repository": "coding-hermes/task-router",
+    "runs": [
+      {"run": 41357284997, "sha": "a4685fff7666a66b37fb71e8fa36fefe3e6e4a31", "status": "completed", "conclusion": "failure"},
+      {"run": 41357071775, "sha": "8d1ffe1125fe8161f964d72aebc9cb6fcec85e40", "status": "completed", "conclusion": "failure"},
+      {"run": 41342638535, "sha": "bf227be55943d01ff1fb82abb1349bc13a218dd8", "status": "completed", "conclusion": "failure"}
+    ],
+    "classification": "RED; existing open INT-CI-16 owns the current full-suite failure recurrence"
+  },
+  "wave": "none:verification-only",
+  "workers": [],
+  "gitreins": "none:verification-only-no-task",
+  "artifacts": {
+    "evidence": ".coding-hermes/evidence/release-readiness-2026-11-02-02-04-16.json",
+    "manifest": ".coding-hermes/waves/scheduler-tick-task-router-2026-11-02-02-04-16.json"
+  }
+}
