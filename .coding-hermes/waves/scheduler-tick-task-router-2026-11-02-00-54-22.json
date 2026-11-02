@@ -1,0 +1,17 @@
+{
+  "tick": "scheduler-tick-task-router-2026-11-02-00-54-22",
+  "project": "task-router",
+  "base_sha": "a4685fff7666a66b37fb71e8fa36fefe3e6e4a31",
+  "selected": ["TR-355"],
+  "selection": "highest-priority pending row; owner-gated verification-only",
+  "wave_size": 0,
+  "workers": [],
+  "worktrees": [],
+  "dispatch": "none:owner-gated-live-cutover",
+  "owner_gate": "Production restart/cutover of router-proxy services on :9092 and :9391, then one live tick under ROUTER_DEGRADED_WALL_S.",
+  "verification_command": "curl -sS --max-time 10 http://127.0.0.1:9092/health; curl -sS --max-time 10 http://127.0.0.1:9391/health; ps -eo pid,lstart,args | grep -E '[r]outer_server.py.*(--port 9092|--port 9391)'; uptime; free -h; ss -ltnp '( sport = :9092 or sport = :9391 )'",
+  "evidence": ".coding-hermes/evidence/tr355-verify-task-router-2026-11-02-00-54-22.txt",
+  "off_by_one": "none:verification-only no debugging",
+  "finished_at": "2026-11-02T01:09:38Z",
+  "disposition": "pending-owner-cutover"
+}
