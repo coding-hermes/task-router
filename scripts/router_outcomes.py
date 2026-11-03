@@ -18,6 +18,7 @@ Subcommands:
   averages        recompute outcomes-averages.jsonl from the outcome store
   query           print the average for a lane (optionally merged)
   deadline-report narrowest-link census (TR-265): binding vs guess, by layer
+  apply-verdicts  stamp tick-derived success verdicts onto hermes rows (TR-357)
 """
 from __future__ import annotations
 import argparse
@@ -933,7 +934,7 @@ def _merge_task_rows(prev: Any, incoming: Any):
             out['success'] = bool(incoming['success'])
     for field in ('ts', 'task_label', 'complexity', 'profile_id', 'required_categories',
                   'complexity_sig', 'provider', 'model', 'session_id', 'source_system',
-                  'hermes_session'):
+                  'hermes_session', 'success_reason'):
         value = incoming.get(field)
         if value not in (None, '', {}, []):
             out[field] = value
@@ -1160,6 +1161,16 @@ def normalize_row(body: Any, now_s: Any=None):
         problems.append('success must be true, false, or null')
         success = None
     row['success'] = success
+    # TR-357: the tick-verdict pass stamps success_reason on store rows (why a
+    # success stayed null, or the derivation behind true/false). Optional
+    # PRESENCE — absent stays absent — so pre-TR-357 rows keep round-tripping
+    # byte-shape-identical through the validator.
+    sr = body.get('success_reason')
+    if sr is not None:
+        if isinstance(sr, str) and sr.strip():
+            row['success_reason'] = sr
+        else:
+            problems.append('success_reason must be a non-empty string or null')
     ts = body.get('ts')
     if ts is None:
         ts = now_s if now_s is not None else time.time()
@@ -1491,11 +1502,264 @@ def backfill_hermes_profiles(store_path: Any=None, db_path:
         return {'changed': 0, 'error': str(exc)}
 
 
+# ---------- TR-357 M1: tick-derived success verdicts ----------
+
+#: Statuses the scheduler never returns to: 'running' is the only live state,
+#: everything else has left the queue (live census 2026-11-02: completed,
+#: failed, timeout, deferred — every 'deferred' tick already carries
+#: completed_at). A tick is CONCLUDED when completed_at is set OR its status
+#: is terminal; the completed_at check keeps a future NEW terminal status
+#: honest (it degrades to a reasoned 'not concluded' null, never a fabricated
+#: verdict).
+_TICK_TERMINAL_STATUSES = frozenset({'completed', 'failed', 'timeout',
+                                     'deferred'})
+
+
+def _hermes_db_path() -> str:
+    """The hermes gateway DB (HERMES_STATE_DB override — the same env the
+    other gateway readers use: verified_outcomes.DEFAULT_DB,
+    drivers/hermes.STATE_DB — resolved at CALL time like _sched_db_path so a
+    long-lived importer follows an env change and tests stay hermetic)."""
+    return os.environ.get('HERMES_STATE_DB', '~/.hermes/state.db')
+
+
+def _tick_verdicts(db_path: str = None) -> tuple:
+    """{session_identity: (success, reason)} from CONCLUDED scheduler ticks.
+
+    TR-357 M1 contract (board acceptance):
+      concluded tick, commits > 0  -> (True,  'tick_commits_observed')
+      concluded tick, commits == 0 -> (False, 'tick_concluded_no_commits')
+      tick not yet concluded       -> (None,  'tick_not_concluded')
+
+    The join reuses _session_profiles' bridge: ticks.session_id is the gateway
+    session KEY; the hermes sessions table maps session_key <-> the UUID the
+    store's hermes rows carry, so both identities resolve to the verdict.
+    When a session key owns several ticks the latest CONCLUDED one wins (rows
+    are read in spawned_at order; an unconcluded tick never erases an already
+    derived verdict — the session's work landed regardless of a later
+    respawn).
+
+    `commits` is the literal ticks.commits column (the board contract's
+    "commit observed"), COALESCEd defensively — measured 2026-11-02 the
+    column is never NULL on live rows.
+
+    Read-only + fail-open like _session_profiles: any unreadable scheduler DB
+    is one stderr line and an empty map — the import must never block on
+    verdicts. Returns (mapping, status), status in ('ok', 'ok-no-bridge',
+    'missing', 'unreadable'): 'ok-no-bridge' means ticks were read but the
+    gateway sessions bridge was not (UUID-keyed store rows can then not be
+    attributed — the store pass stamps that precise reason instead of a bare
+    null or a misattributed one).
+    """
+    db_path = db_path or _hermes_db_path()
+    sched = os.path.expanduser(_sched_db_path())
+    if not os.path.exists(sched):
+        return {}, 'missing'
+    try:
+        sched_db = sqlite3.connect(f'file:{sched}?mode=ro', uri=True,
+                                   timeout=5.0)
+    except sqlite3.Error as exc:
+        print(f'tick verdicts: scheduler DB unreadable: {exc}',
+              file=sys.stderr)
+        return {}, 'unreadable'
+    by_session = {}
+    try:
+        try:
+            rows = sched_db.execute(
+                'SELECT session_id, commits, status, completed_at FROM ticks'
+                ' WHERE session_id IS NOT NULL AND session_id != ""'
+                ' ORDER BY spawned_at, rowid').fetchall()
+        except sqlite3.Error as exc:
+            print(f'tick verdicts: ticks unreadable: {exc}',
+                  file=sys.stderr)
+            return {}, 'unreadable'
+        for key, commits, status, completed_at in rows:
+            if isinstance(key, bytes):
+                key = key.decode('utf-8', errors='replace')
+            if not key:
+                continue
+            concluded = (completed_at is not None
+                         or (status or '') in _TICK_TERMINAL_STATUSES)
+            if concluded:
+                landed = (commits or 0) > 0
+                # latest CONCLUDED tick for the key wins (spawned_at order);
+                # setdefault keeps it against a later unconcluded respawn.
+                by_session[str(key)] = (
+                    landed,
+                    'tick_commits_observed' if landed
+                    else 'tick_concluded_no_commits')
+            else:
+                by_session.setdefault(str(key), (None, 'tick_not_concluded'))
+        # Gateway bridge (same as _session_profiles row 2): the usage table
+        # keys by sessions.id, so historical store rows carry the UUID —
+        # map UUID -> the tick verdict of the session key it served. A
+        # bridge that cannot be read must not misattribute the misses: the
+        # caller needs to know attribution is PARTIAL ('ok-no-bridge').
+        bridge_ok = os.path.exists(os.path.expanduser(db_path))
+        if bridge_ok:
+            try:
+                hermes = sqlite3.connect(
+                    f'file:{os.path.expanduser(db_path)}?mode=ro', uri=True,
+                    timeout=5.0)
+                try:
+                    for uid, key in hermes.execute(
+                            'SELECT id, session_key FROM sessions'
+                            ' WHERE session_key IS NOT NULL'):
+                        verdict = by_session.get(str(key))
+                        if verdict is not None:
+                            by_session.setdefault(str(uid), verdict)
+                finally:
+                    hermes.close()
+            except sqlite3.Error:
+                bridge_ok = False
+    except Exception as exc:  # noqa: BLE001 — fail-open, verdicts are optional
+        print(f'tick verdicts failed (rows stay unverified): '
+              f'{type(exc).__name__}: {exc}', file=sys.stderr)
+        return {}, 'unreadable'
+    finally:
+        try:
+            sched_db.close()
+        except sqlite3.Error:
+            pass
+    return by_session, ('ok' if bridge_ok else 'ok-no-bridge')
+
+
+def apply_tick_verdicts(store_path: Any = None, db_path: str = None) -> dict:
+    """Stamp a success verdict onto every hermes row whose tick CONCLUDED.
+
+    TR-357 M1: the outcome store records success=null for essentially every
+    tick (measured 2026-10-29: qwen3.7-plus:free 7023/7023, gpt-6-luna
+    916/916, omni-plus 10/10 unverified), so TR-174's completion term
+    (cost/max(rate,0.1)) and TR-354's outcome floor (min_known=8) never see
+    the failures and the routing loop cannot learn. This pass derives the
+    verdict from the scheduler's OWN record (_tick_verdicts: commits observed
+    => true, concluded with zero commits => false) and writes it into the
+    store in place.
+
+    Merge integration (TR-299 semantics, kept deliberately): SETTLED rows
+    (success already true/false) are never touched — success is sticky and
+    the first independent verdict wins; only a row carrying acceptance
+    evidence may overwrite, exactly as _merge_task_rows rules step merges. A
+    null row whose tick is not concluded yet KEEPS null but gains the reason
+    ('tick_not_concluded'); so does a row with no tick at all
+    ('no_scheduler_tick_for_session') and one read during a scheduler-DB
+    outage ('scheduler_db_missing' / 'scheduler_db_unreadable') — DATA >
+    CODE: no bare unexplained null on a concluded row.
+
+    Streaming rewrite (tmp+rename, backup, mtime-guard — the
+    backfill_hermes_profiles pattern): the live proxy may append mid-pass, so
+    the store's mtime is checked before and after and a changed mtime aborts
+    without touching anything. Rows from sources other than 'hermes' have no
+    scheduler tick and are left verbatim. Returns a summary dict, never
+    raises. Idempotent: a second run finds every row already current and
+    skips the replace AND the backup entirely (an hourly import must not
+    pile up snapshot files for no-op runs).
+    """
+    store = store_path or outcomes_path()
+    try:
+        verdicts, status = _tick_verdicts(db_path)
+    except Exception as exc:  # noqa: BLE001 — fail-open
+        verdicts, status = {}, 'unreadable'
+        print(f'tick verdicts unavailable: {type(exc).__name__}: {exc}',
+              file=sys.stderr)
+    if status == 'missing':
+        fallback_reason = 'scheduler_db_missing'
+    elif status == 'unreadable':
+        fallback_reason = 'scheduler_db_unreadable'
+    else:
+        fallback_reason = None
+    # a miss with healthy sources means the session truly has no tick; a miss
+    # with the gateway bridge down means we CANNOT TELL — name that, never
+    # misattribute (DATA > CODE: every null carries a TRUE reason)
+    miss_reason = ('gateway_bridge_unreadable' if status == 'ok-no-bridge'
+                   else 'no_scheduler_tick_for_session')
+    if not os.path.exists(store):
+        return {'changed': 0, 'reason': 'store missing',
+                'verdict_status': status}
+    try:
+        m0 = os.path.getmtime(store)
+    except OSError as exc:
+        return {'changed': 0, 'error': str(exc), 'verdict_status': status}
+    changed = reasons = current = settled = 0
+    mutated = False
+    tmp = store + '.verdicts.tmp'
+    backup = f'{store}.bak-verdicts-{datetime.datetime.now():%Y%m%d-%H%M%S}'
+    try:
+        with open(store, encoding='utf-8', errors='replace') as fin, \
+                open(tmp, 'w', encoding='utf-8') as fout:
+            for line in fin:
+                if not line.strip():
+                    fout.write(line)
+                    continue
+                try:
+                    row = json.loads(line)
+                except ValueError:
+                    fout.write(line)     # torn line: preserve verbatim
+                    continue
+                if (not isinstance(row, dict)
+                        or row.get('source_system') != 'hermes'):
+                    fout.write(line)     # foreign row: preserve verbatim
+                    continue
+                if row.get('success') is not None:
+                    settled += 1         # sticky TR-299: never touch a verdict
+                    fout.write(line)
+                    continue
+                verdict = verdicts.get(str(row.get('session_id')))
+                if verdict is not None:
+                    success, reason = verdict
+                elif fallback_reason:
+                    success, reason = None, fallback_reason
+                else:
+                    success, reason = None, miss_reason
+                if success is None:
+                    if row.get('success_reason') == reason:
+                        current += 1     # already the honest null: byte-same
+                        fout.write(line)
+                        continue
+                    row['success_reason'] = reason
+                    reasons += 1
+                else:
+                    row['success'] = success
+                    row['success_reason'] = reason
+                    changed += 1
+                mutated = True
+                fout.write(json.dumps(row, ensure_ascii=False) + '\n')
+        if not mutated:
+            # steady state: nothing to settle and no reason moved — the store
+            # is already byte-identical to the output. Skip the replace AND
+            # the backup: an hourly import must not pile up snapshot files
+            # for no-op runs.
+            os.remove(tmp)
+            return {'changed': 0, 'reasons_stamped': 0,
+                    'already_current': current, 'settled_kept': settled,
+                    'verdict_status': status, 'backup': None}
+        if os.path.getmtime(store) != m0:
+            os.remove(tmp)
+            return {'changed': 0,
+                    'aborted': 'store changed under the verdict pass (live '
+                               'append) — re-run when the store is quiet',
+                    'verdict_status': status}
+        os.replace(store, backup)
+        os.replace(tmp, store)
+        return {'changed': changed, 'reasons_stamped': reasons,
+                'already_current': current, 'settled_kept': settled,
+                'verdict_status': status, 'backup': backup}
+    except OSError as exc:
+        try:
+            os.remove(tmp)
+        except OSError:
+            pass
+        return {'changed': 0, 'error': str(exc), 'verdict_status': status}
+
+
 def import_hermes(db_path: str='~/.hermes/state.db'):
     """Hermes driver: session_model_usage -> outcome rows.
     complexity stays NULL (no declared profile at the gateway yet — TR-050's
     classifier will supply it later; DATA > CODE, missing = NULL).
-    success: NULL (the gateway does not report completion; do not infer)."""
+    success: NULL at row build (the gateway does not report completion; do
+    not infer HERE) — apply_tick_verdicts() stamps the tick-derived verdict
+    right after the append, so one `import-hermes` command leaves the store
+    fully verdicted for concluded ticks (TR-357 M1)."""
     db = sqlite3.connect(os.path.expanduser(db_path))
     # TR-115: the declared profile joins in from the scheduler ticks via
     # _session_profiles() (HERMES_SCHEDULER_DB + registry, env-overridable,
@@ -2014,6 +2278,11 @@ def main(argv: Any=None) -> int:
                                'whose session the scheduler '
                                'attributed to a project (one-off; '
                                'idempotent, mtime-guarded)')
+    sub.add_parser('apply-verdicts',
+                   help='TR-357 M1: stamp success verdicts from CONCLUDED '
+                        'scheduler ticks onto hermes rows (commit observed '
+                        '=> true, zero commits => false; idempotent, '
+                        'mtime-guarded)')
     sub.add_parser('import-pi')
     sub.add_parser('import-opencode')
     sub.add_parser('import-openclaw')
@@ -2032,8 +2301,13 @@ def main(argv: Any=None) -> int:
     args = ap.parse_args(argv)
 
     if args.cmd == 'import-hermes':
-        n = append_rows(OUTCOMES, import_hermes())
+        n = append_rows(OUTCOMES, import_hermes(_hermes_db_path()))
         print(f'outcomes: +{n} new rows (idempotent)')
+        # TR-357 M1: one command leaves the store fully verdicted — new rows
+        # land with success=NULL (the row builder must not infer), then this
+        # pass stamps the tick-derived verdict for every concluded tick.
+        print('tick verdicts: '
+              + json.dumps(apply_tick_verdicts(), ensure_ascii=False))
         if getattr(args, 'backfill_profiles', False):
             # TR-115 retry: the historical store predates profile
             # attribution; this one-off pass makes the AVERAGES (rebuilt
@@ -2041,6 +2315,8 @@ def main(argv: Any=None) -> int:
             summary = backfill_hermes_profiles()
             print('profile backfill: '
                   + json.dumps(summary, ensure_ascii=False))
+    elif args.cmd == 'apply-verdicts':
+        print(json.dumps(apply_tick_verdicts(), ensure_ascii=False))
     elif args.cmd == 'import-pi':
         n = append_rows(OUTCOMES, import_pi())
         print(f'outcomes: +{n} new rows (idempotent)')

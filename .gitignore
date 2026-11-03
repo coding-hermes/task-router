@@ -34,6 +34,12 @@ data/state/intake-resolves.jsonl
 # unservable rating (never committed: it grows with traffic, and trackers would
 # dirty the tree on every starved resolve).
 data/state/unservable-counters.jsonl
+# TR-357 outcome demotion log — append-only runtime state, one record per
+# demote/clear transition (never committed: it grows with observed outcomes,
+# and a tracked copy would dirty the tree on every resolve). The .lock sidecar
+# is the evaluator's flock (the router_circuit pattern).
+data/state/demotions.jsonl
+data/state/demotions.jsonl.lock
 
 # guard logs are rotational run output (TR-089/TR-105): the countable metric
 # lives in the per-run logs themselves; keep the tree clean, compress old logs.
