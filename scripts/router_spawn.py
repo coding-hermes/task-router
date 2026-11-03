@@ -2107,6 +2107,43 @@ def _quota_order_ctx() -> dict:
         return ctx
 
 
+def _version_key(model: Any) -> tuple:
+    """TR-369: the version-aware tie-break for otherwise-identical lanes.
+
+    The historical tie-break was the literal `(model, provider)` string, which
+    is ASCII order — and ASCII order is actively wrong for model families,
+    because an older release is usually a PREFIX of its newer sibling:
+    'deepseek-v4.1-flash' < 'deepseek-v4.1-flash-1017', 'minimax-m2' <
+    'minimax-m2.1', 'gpt-6-sol' < 'gpt-6.1-sol'. In every one of those pairs
+    the newer model is at least as good and identically priced, so the older
+    one headed the chain forever and the newer release was reachable only as a
+    fallback hop.
+
+    This key keeps the string comparison as the FINAL arbiter (so unrelated
+    families still order deterministically and reproducibly) but inserts a
+    version vector ahead of it: the numeric components of the model name,
+    compared position by position, DESCENDING — newer wins. A name with more
+    components ('-1017' suffix, or an extra '.' segment) sorts ahead of the
+    shorter prefix at the same shared prefix, which is what makes a dated
+    release beat its undated parent.
+
+    It deliberately does NOT know about prices: this key is only ever reached
+    after every price/quality slot has tied, so it can never re-rank lanes of
+    different prices.
+    """
+    name = str(model or '')
+    nums = []
+    for tok in re.split(r'[^0-9]+', name):
+        if tok:
+            try:
+                nums.append(int(tok))
+            except ValueError:
+                pass
+    # descending numeric vector; pad so a shorter vector loses to a longer one
+    # ONLY when the extra component is at the end (the dated-release case).
+    return tuple(-n for n in nums) + (0, len(nums))
+
+
 def _legacy_sort_key(m: Any) -> tuple:
     """The historical chain order: (plan_tier, effective price, larger context
     first, model, provider) — unchanged since TR-015.
@@ -2145,7 +2182,8 @@ def _legacy_sort_key(m: Any) -> tuple:
     _unprobed = 1 if m.get('_probe_unprobed') else 0
     if m.get('_payg'):
         return (1, 1 << 30, priced, _effective_price(m), demote, _unprobed,
-                _context_sort_key(m), m.get('model') or '', m.get('provider') or '')
+                _context_sort_key(m), _version_key(m.get('model')),
+                m.get('model') or '', m.get('provider') or '')
     return (0,
             m.get('plan_tier') if m.get('plan_tier') is not None else 1 << 30,
             # TR-176: the 3rd slot was an unused literal 0. It now separates PRICED lanes from
@@ -2153,6 +2191,10 @@ def _legacy_sort_key(m: Any) -> tuple:
             # of the chain (the fake-cheap burn trap). Unknown sinks; it is never the cheapest.
             priced,
             _effective_price(m), demote, _unprobed, _context_sort_key(m),
+            # TR-369: version vector before the ASCII string tie-break, so a newer
+            # release of the same family heads its older prefix sibling instead of
+            # being permanently stuck behind it. Only ever reached after price ties.
+            _version_key(m.get('model')),
             m.get('model') or '', m.get('provider') or '')
 
 
