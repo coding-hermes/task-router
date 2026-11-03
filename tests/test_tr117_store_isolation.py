@@ -40,8 +40,11 @@ LIVE_AVERAGES = os.path.join(ro.REPO, 'data', 'state', 'outcomes-averages.jsonl'
 
 def _live_fingerprint(path):
     """(size, mtime_ns, tail sha256) — an append changes size, mtime and the
-    tail bytes; a clobber changes all three. Cheap enough to bracket every
-    write-path test, strong enough to catch every leak arm."""
+    tail bytes; a clobber changes all three. ABSENT fingerprints as None: a
+    fresh clone carries no gitignored runtime store, and a test that CREATES
+    it is the leak (same doctrine as the TR-191 absent-file arms)."""
+    if not os.path.exists(path):
+        return None
     st = os.stat(path)
     h = hashlib.sha256()
     with open(path, 'rb') as f:
@@ -59,6 +62,10 @@ def _gate_fingerprint(path):
     with open(path, 'rb') as f:
         h.update(f.read())
     return os.path.getsize(path), os.stat(path).st_mtime_ns, h.hexdigest()
+
+
+def _describe(fp):
+    return 'ABSENT' if fp is None else f'size={fp[0]} tail={fp[2][:12]}'
 
 
 def test_conftest_defaults_resolve_away_from_the_live_tree():
@@ -87,7 +94,7 @@ def test_the_no_env_write_path_lands_in_the_throwaway_not_the_tree(
     after = _live_fingerprint(LIVE_LEDGER)
     assert after == before, (
         'TR-117: a default-env ingest appended to the LIVE ledger '
-        f'({before[:2]} -> {after[:2]})')
+        f'({_describe(before)} -> {_describe(after)})')
     landed = [json.loads(line) for line in open(ro.outcomes_path()) if line.strip()]
     assert any(r.get('session_id') == 'tr117-default-path' for r in landed)
 
@@ -96,8 +103,8 @@ def _live_untouched_around(before):
     after = _live_fingerprint(LIVE_LEDGER)
     assert after == before, (
         'TR-117: the real proxy write path appended to the LIVE ledger '
-        f'(size {before[0]} -> {after[0]}, tail {before[2][:12]} -> '
-        f'{after[2][:12]}) — the conftest throwaway default did not hold')
+        f'({_describe(before)} -> {_describe(after)}) — the conftest '
+        'throwaway default did not hold')
 
 
 def test_proxy_write_path_with_fixture_shape_lands_in_the_throwaway(
