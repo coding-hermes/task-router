@@ -4537,4 +4537,14 @@ def main() -> None:
         print(f'  EXCLUDED: {g}')
 
 if __name__ == '__main__':
+    # TR-065/TR-116 owner fix (Bane 2026-11-03): the outcome store and the
+    # rolling averages are refreshed HERE, on the way into a resolve, when they
+    # are older than the TTL — not by an hourly cron that can silently stop.
+    # Two nested fail-opens: the hook itself cannot raise, and every resolve
+    # still runs with whatever data the store already holds.
+    try:
+        import router_store_sync as _rss
+        _rss.sync_if_due()
+    except Exception:  # noqa: BLE001 — bookkeeping must never block a resolve
+        pass
     main()

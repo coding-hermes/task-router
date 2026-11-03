@@ -1191,10 +1191,21 @@ class RouterApplication:
             # every problem named; a STORE problem is fail-open -> 200 with
             # appended=false + the reason (the reporter must never be blocked
             # by our disk, and the caller retries on the next tick).
+            #
+            # TR-065 owner fix (Bane 2026-11-03): a report landing in the store
+            # is exactly the moment the rolling averages went stale, so refresh
+            # them here (TTL-gated, fail-open) instead of leaving it to a cron.
             try:
-                return 200, router_outcomes.ingest(body)
+                result = router_outcomes.ingest(body)
             except ValueError as exc:
                 return 400, {"error": str(exc)}
+            try:
+                if result.get("appended"):
+                    import router_store_sync as _rss
+                    _rss.sync_if_due()
+            except Exception:  # noqa: BLE001 — never fail an ingest over stats
+                pass
+            return 200, result
         if path in PROXY_PATHS:
             # TR-067 Path B: mirror endpoint — classify (or take the declared
             # profile), build the chain internally, call the upstream gateway
@@ -1320,6 +1331,16 @@ PROXY_PATHS = ("/v1/chat/completions", "/v1/responses")
 #: therefore answer in read-only mode WITHOUT the edit key — the same trust
 #: model as GET /resolve. Everything else stays behind _authorize.
 #:
+#: TR-049 REPORTING SURFACE (Bane 2026-11-03): `/api/v1/outcomes` is here BY
+#: DESIGN, not by oversight. It does not touch router config, the registry or
+#: any execution decision: it appends to the local measured-outcome store that
+#: only READERS consume (the averages and the chain sort). Requiring the edit
+#: key would mean a finished session could not report its own cost back — the
+#: whole point of the self-report path — while the hourly importer wrote the
+#: very same rows from cron. Keep it open; keep everything that mutates config
+#: or issues decisions closed. (TR-361; superseded contract asserted in
+#: tests/test_server.py::test_outcome_ingest_is_key_gated_like_every_mutation.)
+#:
 #: H1-F4: `/api/v1/execution-decision` is deliberately NOT here. It appends an
 #: issuance record on every successful call, and an unauthenticated durable
 #: write into the router state dir is exactly what the "read-only" label used
@@ -1328,6 +1349,7 @@ PROXY_PATHS = ("/v1/chat/completions", "/v1/responses")
 #: nothing.
 READ_ONLY_POST_PATHS = (
     "/api/v1/execution-decision/verify",
+    "/api/v1/outcomes",
 )
 
 #: POST paths that are NOT in the OpenAPI contract because they are dynamic.

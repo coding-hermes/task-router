@@ -32,6 +32,8 @@ This document supplements the Configuration table in [README.md](../README.md#co
 |---|---|---|---|
 | `ROUTER_ENV_FILE` | `router_probefix.py` | Path to the router environment file (`.env`) containing provider credentials | `~/.hermes/.env` |
 | `ROUTER_OUTCOMES` | `router_tier_coverage.py` | Path to the outcomes ledger (JSONL) recording spawn outcomes | `data/state/outcomes.jsonl` (repo-relative) |
+| `ROUTER_STORE_SYNC_TTL_S` | `router_store_sync.py` | Freshness budget, in seconds, for the outcome-store sync (import every source + recompute the rolling averages). `sync_if_due()` returns immediately while the last COMPLETED sync is younger than this; `0` syncs on every call; used through the fail-open hooks in `router_spawn.py` and the `POST /api/v1/outcomes` handler | `1800` (30 minutes) |
+| `ROUTER_STORE_SYNC_GAP_S` | `router_store_sync.py` | Minimum seconds between background sync LAUNCHES, so a burst of resolves or outcome POSTs spawns at most one detached sync child. Independent of the TTL: this throttles the request, `ROUTER_STORE_SYNC_TTL_S` decides whether the work is needed at all | `60` |
 | `ROUTER_MODELSDEV_CACHE` | `router_lifecycle.py` | Path to the models.dev cache file | `data/modelsdev_cache.json` (repo-relative) |
 | `ROUTERMODEL_ROUTER_DIR` | (unused) | Legacy variable, not referenced in current code | — |
 

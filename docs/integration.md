@@ -172,10 +172,18 @@ python3 scripts/router_chain_run.py <project|--profile P|--profile-req '...'> \
   executions and zero writes.
 
 **3. Write back the outcome** (closes the loop; required for the averages to
-learn). Either the CLI or the API — same validation:
+learn). The normal path is the session REPORTING ITSELF — one command, no
+cron: `scripts/record_outcome.py` reads the session's own meter and posts it
+(safe to re-run; rows are keyed, so a duplicate is skipped):
 
 ```bash
-python3 scripts/router_outcomes.py ...
+# the session reports itself when it ends
+python3 scripts/record_outcome.py --from-state-db <session_id> --profile-id P1_CODING
+```
+
+The wire path is the same endpoint if a host wants to post its own numbers:
+
+```bash
 curl -X POST localhost:9092/api/v1/outcomes -H 'Content-Type: application/json' -d '{
   "source_system":"hermes","session_id":"s-123","profile_id":"P1_CODING",
   "required_categories":{"code_gen":2,"test":1},
@@ -184,14 +192,50 @@ curl -X POST localhost:9092/api/v1/outcomes -H 'Content-Type: application/json' 
   "wall_time_s":184.5,"success":true}'
 ```
 
+`POST /api/v1/outcomes` is deliberately served in read-only mode without the
+edit key: it appends to the local measured-outcome store that only readers
+consume, and requiring a key would mean a finished session could not report its
+own cost. It answers 200 with `appended:false` + a reason when the store cannot
+take the row — never a 500, never a blocked session.
+
 Rows are keyed `(source_system, session_id, model)` — a retried POST never
 double-counts. `router_chain_run.py` writes one row per attempt automatically
 (source_system `chain-run`) and forwards breaker evidence to the circuit store.
 
-**4. Refresh the averages** (hourly, already wired): cron job
-`task-router averages refresh` runs `~/.hermes/scripts/router-averages-refresh.sh`
-(silent on success, alerts on failure) — newly reported outcomes are in the
-stats within the hour.
+**4. The averages refresh themselves** (Bane 2026-11-03 — owner moved from cron
+to the router). `scripts/router_store_sync.py` owns both halves: import every
+source (`import-hermes`, pi, opencode, openclaw) and recompute the rolling
+averages. It runs when the data is older than `ROUTER_STORE_SYNC_TTL_S`
+(default 1800 s) and is called from the router itself:
+
+- on the way into a resolve (`router_spawn.py __main__`) — the path the fleet
+  uses constantly, so data cannot go stale for long;
+- right after an outcome POST lands in the API server;
+- and `python3 scripts/router_store_sync.py sync` by hand at any time.
+
+A single flock makes concurrent callers cheap rather than duplicated, and the
+whole hook is fail-open: a bookkeeping problem never blocks a resolve, and a
+resolve still runs on whatever the store already holds.
+
+**The hook never makes a caller wait.** A cold sync measured 70 s across the
+four drivers, which is a 70 s resolve if it runs inline and it parked an ingest
+handler long enough to break later assertions in the same test file. So the
+hooks only *request* the work: `sync_if_due()` launches
+
+```
+python3 scripts/router_store_sync.py sync-now --quiet
+```
+
+as a detached child (its own session, stdio closed), records `last_launch_epoch`
+so a burst of resolves inside `ROUTER_STORE_SYNC_GAP_S` (default 60 s) spawns at
+most one child, and returns in single-digit milliseconds. The child does the
+real work under the flock and stamps `last_sync_epoch`, which is what the TTL
+actually reads — a launch never makes the store look fresh. `sync --force` /
+`sync-now` remain available to run the work inline and see the result.
+
+The hourly cron jobs that used to own this (`router-outcomes-import.sh`,
+`router-averages-refresh.sh`) are retired; a router that learns its own costs
+should not depend on a foreign scheduler firing on time.
 
 ## JEV — the cheap second scorer (TR-101, Bane 2026-09-20)
 

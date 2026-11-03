@@ -40,6 +40,13 @@ data/state/unservable-counters.jsonl
 # is the evaluator's flock (the router_circuit pattern).
 data/state/demotions.jsonl
 data/state/demotions.jsonl.lock
+# TR-361 store-sync stamp + flock sidecar — per-host runtime state. The stamp is
+# how the TTL knows when the store was last refreshed; committing it would make
+# one host's freshness budget look like every host's, and the lock is a file
+# descriptor target, never content.
+data/state/store-sync.json
+data/state/store-sync.json.tmp
+data/state/.store-sync.lock
 
 # guard logs are rotational run output (TR-089/TR-105): the countable metric
 # lives in the per-run logs themselves; keep the tree clean, compress old logs.

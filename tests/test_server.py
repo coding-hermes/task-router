@@ -337,16 +337,44 @@ def test_outcome_ingest_rejects_a_malformed_payload(server_env):
 
 
 def test_outcome_ingest_is_key_gated_like_every_mutation(server_env):
-    """Read-only mode has no mutations (fail-closed at the mode gate, exactly
-    like /listings/* and /ledger/*); edit mode without the key is 401."""
+    """SUPERSEDED CONTRACT (TR-361, Bane 2026-11-03): outcome ingest is the ONE
+    durable write deliberately open in read-only mode.
+
+    The old contract made POST /api/v1/outcomes 403 in read-only mode "like every
+    other mutation". That made the self-report path (scripts/record_outcome.py)
+    and any host reporting its own cost impossible against the deployed
+    read-only server, while the hourly cron importer wrote the very same rows —
+    so the gate protected nothing and only blocked the intended owner. Ingest
+    touches no config, no registry and no execution decision: it appends to the
+    local measured-outcome store that readers consume.
+
+    What must still hold, and is asserted here instead:
+      * read-only mode ACCEPTS a valid outcome (200, appended true);
+      * a MALFORMED outcome is still rejected (400), so the open path is not a
+        free-for-all;
+      * the mode gate itself was not weakened — a genuine mutation stays closed
+        in read-only mode and still needs the key in edit mode.
+    """
     with _server(server_env) as port:
-        code, _ = _request(port, "/api/v1/outcomes", method="POST",
-                           body=_OUTCOME_PAYLOAD)
-        assert code == 403
+        code, body = _request(port, "/api/v1/outcomes", method="POST",
+                              body=_OUTCOME_PAYLOAD)
+        assert code == 200, body
+        assert body.get("appended") is True
+        bad, _ = _request(port, "/api/v1/outcomes", method="POST",
+                          body={"session_id": "missing-required-fields"})
+        assert bad == 400
+        # a real mutation is still fail-closed in this mode
+        assert _request(port, "/circuit/record", method="POST",
+                        body={"provider": "tr361", "model": "m1",
+                              "outcome": "failure"})[0] == 403
     with _server(server_env, mode="edit", key="secret123") as port:
-        code, _ = _request(port, "/api/v1/outcomes", method="POST",
-                           body=_OUTCOME_PAYLOAD)
-        assert code == 401
+        code, body = _request(port, "/api/v1/outcomes", method="POST",
+                              body=_OUTCOME_PAYLOAD)
+        assert code == 200, body
+        # ... and still needs the key in edit mode
+        assert _request(port, "/circuit/record", method="POST",
+                        body={"provider": "tr361", "model": "m1",
+                              "outcome": "failure"})[0] == 401
 
 
 def test_outcome_ingest_is_listed_as_an_mcp_tool(server_env):
