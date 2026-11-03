@@ -1840,6 +1840,124 @@ def _hop0_displace(out_chain: Any, sort_ctx: Any) -> dict:
     return block
 
 
+#: TR-357 M3 (2026-11-02): the outcome demotion rule. A lane with >=
+#: ROUTER_DEMOTE_AFTER_FAILURES (default 3) CONSECUTIVE OBSERVED task failures
+#: — success=false tick verdicts, exactly what M1 stamps — is DEMOTED: it may
+#: not hold chain position 0 until an observed success clears it. Every
+#: demotion and every clearance is a durable record in the demotions log
+#: (data/state/demotions.jsonl, ROUTING_DEMOTIONS_FILE override), written by
+#: scripts/router_demotions.py's evaluate() pass — transitions only, so a
+#: re-run can never duplicate one. Distinct from TR-288: that is the
+#: provider-level TRANSPORT breaker (router_circuit.py, untouched); this is
+#: lane-level, OUTCOME-EVIDENCE-driven, and displaces exactly like M2 (never
+#: excludes, no price moves, no other position moves).
+ROUTER_DEMOTE_RULE = ('a lane with >= ROUTER_DEMOTE_AFTER_FAILURES consecutive '
+                      'observed task failures (success=false tick verdicts) is '
+                      'demoted — it may not hold chain position 0 until an '
+                      'observed success clears it; every transition is recorded '
+                      'in the demotions log (TR-357)')
+
+
+def _demotion_marker_reason(rec: Any, note: str = '') -> str:
+    """The per-entry marker text: the rule, the numbers and the evidence the
+    demotion was recorded on — never silent, same discipline as hop0's."""
+    count = rec.get('consecutive_failure_count')
+    reasons = ', '.join(rec.get('verdict_reasons') or []) or 'tick verdicts'
+    last = ((rec.get('verdicts') or ['unknown'])[-1])
+    at = rec.get('ts_iso') or rec.get('ts')
+    return ('outcome-demoted: {n} consecutive observed task failures '
+            '(success=false tick verdicts: {rs}; last verdict session {last}, '
+            'recorded {at}) — may not hold hop 0 until an observed success '
+            'clears it (TR-357){note}'
+            .format(n=count, rs=reasons, last=last, at=at, note=note))
+
+
+def _outcome_demotion_displace(out_chain: Any,
+                               hop0_ineligible: Any = None) -> dict:
+    """TR-357 M3: keep a demoted lane off hop 0 — minimal, visible, recorded.
+
+    Reads the demotion LOG (router_demotions.active_demotions — the log IS
+    the state); resolve is a lock-free READER and never writes demotion
+    state. Every demoted lane in the chain carries the outcome_demoted
+    marker + the evidence its record names; a demoted HEAD is swapped with
+    the first survivor that is neither demoted nor judged hop-0-ineligible
+    (`hop0_ineligible` = the M2 rule's judged set, so the two head rules can
+    never fight over the head), one swap, hop numbers untouched, never an
+    exclusion. No eligible alternative: the head is HELD and says so.
+    Fail-open: an unreadable log demotes NOTHING, with the reason on the
+    audit block.
+    """
+    block: dict = {'judged': False, 'active': [], 'displaced': [],
+                   'rule': ROUTER_DEMOTE_RULE}
+    _hop0_pairs = {(v.get('provider'), v.get('model'))
+                   for v in (hop0_ineligible or [])
+                   if isinstance(v, dict)}
+    if not out_chain:
+        block['reason'] = 'no chain — nothing to judge'
+        return block
+    try:
+        import router_demotions as _rd
+    except ImportError as exc:
+        block['reason'] = f'demotion module unavailable: {exc}'
+        return block
+    try:
+        active = _rd.active_demotions()
+        block['state_path'] = _rd.demotions_path()
+        block['threshold'] = _rd.threshold()
+    except Exception as exc:  # noqa: BLE001 — fail-open: ordering unchanged
+        block['reason'] = f'demotion state unreadable: {exc}'
+        return block
+    block['judged'] = True
+    if not active:
+        block['reason'] = 'no lane demoted'
+        return block
+    block['active'] = [
+        {'provider': p, 'model': m,
+         'consecutive_failure_count': rec.get('consecutive_failure_count'),
+         'demoted_at': rec.get('ts_iso') or rec.get('ts'),
+         'verdict_reasons': rec.get('verdict_reasons')}
+        for (p, m), rec in sorted(active.items())]
+    for ent in out_chain:
+        rec = active.get((ent.get('provider'), ent.get('model')))
+        if rec is None:
+            continue
+        ent['outcome_demoted'] = True
+        ent['outcome_demoted_reason'] = _demotion_marker_reason(rec)
+    head = out_chain[0]
+    if (head.get('provider'), head.get('model')) not in active:
+        block['reason'] = 'head not demoted — no displacement'
+        return block
+    alt = next((i for i in range(1, len(out_chain))
+                if (out_chain[i].get('provider'), out_chain[i].get('model'))
+                not in active
+                and (out_chain[i].get('provider'), out_chain[i].get('model'))
+                not in _hop0_pairs), None)
+    head_rec = active[(head.get('provider'), head.get('model'))]
+    if alt is None:
+        # Nowhere to move the head: every survivor is demoted or judged
+        # hop-0-ineligible — hold, but SAY so.
+        head['outcome_demoted_reason'] = _demotion_marker_reason(
+            head_rec, ' — HELD at hop 0: no eligible alternative remains '
+            '(every other lane is demoted or hop-0-ineligible)')
+        block['held_no_alternative'] = {
+            'provider': head.get('provider'), 'model': head.get('model')}
+        return block
+    out_chain[0], out_chain[alt] = out_chain[alt], out_chain[0]
+    displaced = out_chain[alt]
+    displaced['outcome_demoted_reason'] = _demotion_marker_reason(
+        head_rec, f' — displaced from hop 0 to chain position {alt} '
+        f'(hop number unchanged); '
+        f'{out_chain[0].get("provider")}/{out_chain[0].get("model")} takes hop 0')
+    block['displaced'] = [{'provider': displaced.get('provider'),
+                           'model': displaced.get('model'),
+                           'consecutive_failure_count':
+                               head_rec.get('consecutive_failure_count'),
+                           'now_at_chain_position': alt,
+                           'passed_by': f'{out_chain[0].get("provider")}'
+                                        f'/{out_chain[0].get("model")}'}]
+    return block
+
+
 def _lane_price_basis(m: Any) -> str | None:
     """TR-291 (2026-10-03): WHY the lane sits where the price sort put it.
 
@@ -3627,6 +3745,25 @@ def resolve(project: Any=None, profile_id: Any=None, adhoc: Any=None, use_health
                  'reason': f'hop0-rule-error: {_exc}'}
     head = out_chain[0] if out_chain else None
 
+    # --- 4.4 TR-357 M3: the outcome demotion ----------------------------------
+    # A lane with >= ROUTER_DEMOTE_AFTER_FAILURES consecutive OBSERVED task
+    # failures (the success=false tick verdicts M1 stamps) is DEMOTED — it
+    # may not hold hop 0 until an observed success clears it. State comes
+    # from the demotions LOG (router_demotions; the log IS the state,
+    # transitions recorded by the evaluate() pass — resolve is a read-only
+    # consumer). Displaces exactly like the hop-0 rule: one swap, the lane
+    # stays in the chain, every affected entry carries the marker, and the
+    # payload names the active demotions and what moved. Runs AFTER the
+    # hop-0 rule so the final head satisfies BOTH head rules.
+    try:
+        _dem = _outcome_demotion_displace(
+            out_chain, (_hop0 or {}).get('ineligible'))
+    except Exception as _exc:  # noqa: BLE001 — fail-open: ordering unchanged
+        _dem = {'judged': False, 'active': [], 'displaced': [],
+                'rule': ROUTER_DEMOTE_RULE,
+                'reason': f'demotion-rule-error: {_exc}'}
+    head = out_chain[0] if out_chain else None
+
     # --- 4.5 FALLBACK LANES (Bane 2026-08-27): crons must ALWAYS run ---------
     # When every eligible hop is gated/down, fall back to the designated
     # always-available lanes (deepseek-v4 + cron key). Cheap subs first,
@@ -3772,6 +3909,11 @@ def resolve(project: Any=None, profile_id: Any=None, adhoc: Any=None, use_health
             # made. Always present (judged False carries the reason) — the
             # displacement is visible in the payload, never silent.
             'hop0_eligibility': _hop0,
+            # TR-357 M3: the outcome demotion's audit block — the active
+            # demotions (from the recorded log), who was displaced off hop 0,
+            # and the reason it was inert when it was. Always present — the
+            # demotion is visible in the payload, never silent.
+            'outcome_demotions': _dem,
             # TR-025 runtime visibility: WHERE the data came from + which
             # gate-state files were actually present. Additive only — gate
             # behavior and fail-open are untouched.

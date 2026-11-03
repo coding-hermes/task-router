@@ -70,6 +70,9 @@ EXPECTED_SPAWN_KEYS = {
     # TR-357 M2: the hop-0 eligibility rule's audit block (additive; the rule
     # itself is pinned by tests/test_hop0_eligibility.py).
     "hop0_eligibility",
+    # TR-357 M3: the outcome demotion's audit block (additive; pinned by
+    # tests/test_lane_demotion.py).
+    "outcome_demotions",
 }
 
 #: requirements no lane in the committed tables clears (tiers max out per

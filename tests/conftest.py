@@ -41,6 +41,18 @@ os.environ.setdefault(
                  'tr344-census-%d' % os.getpid(),
                  'unservable-counters.jsonl'))
 
+# TR-357 M3: resolve() now READS the demotion log (data/state/demotions.jsonl
+# by default — the lane-level outcome demotion). Same TR-344 rule as the
+# census above: the suite must grade the tree, not inherit its runtime state —
+# a log a developer's live run created in the checkout would otherwise leak
+# markers into every resolve-pinning test. Default to a throwaway session
+# path; tests that exercise demotions set their own ROUTING_DEMOTIONS_FILE.
+os.environ.setdefault(
+    'ROUTING_DEMOTIONS_FILE',
+    os.path.join(os.environ.get('TMPDIR') or '/tmp',
+                 'tr357-demotions-%d' % os.getpid(),
+                 'demotions.jsonl'))
+
 
 #: duckdb seed budget. 11s idle measured -> ~55x margin even at heavy load.
 SEED_TIMEOUT = 600
