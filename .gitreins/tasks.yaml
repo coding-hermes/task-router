@@ -1367,12 +1367,14 @@ tasks:
   created_at: '2026-11-02T10:16:08.385054+00:00'
   completed_at: '2026-11-02T10:17:05.411910+00:00'
 - id: TR-357
-  title: Outcome verdicts + hop-0 eligibility + recorded demotion
+  title: A price-0 lane sits at hop 0 of every foreman chain at 92% dry, and the outcome
+    store records success=null so nothing can demote it
   criteria:
-  - 1) Every concluded tick writes an outcome verdict (commit observed => success=true;
-    commits=0 with a session => success=false) so known-n grows. 2) A lane whose observed
-    dry rate exceeds the floor over n>=min_known cannot hold hop 0 regardless of price.
-    3) Demotions on consecutive observed failures are recorded, not silent. Regression
-    test + full suite green.
-  status: in_progress
-  created_at: '2026-11-02T23:31:04.184218+00:00'
+  - '1) Every concluded tick writes an outcome verdict (commit observed => success,
+    commits=0 with a session => failure) so known-n grows; 2) A hop-0 eligibility
+    rule: a lane whose observed dry rate exceeds the floor over n>=min_known cannot
+    hold hop 0 regardless of price; 3) Demotions on consecutive observed failures
+    are recorded, not silent. Regression test + full suite green.'
+  status: complete
+  created_at: '2026-11-03T03:26:00.609290+00:00'
+  completed_at: '2026-11-03T03:27:36.729629+00:00'
