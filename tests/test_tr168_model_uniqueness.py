@@ -153,6 +153,8 @@ POST_DEDUPE_ADDITIONS = {
     ("clinepass", "extract"): "clinepass API sync 2026-10-14 (carrier arrivals, engine-priced)",
     # 2026-11-01 (model-router-refresh tick): two research filings
     ("commandcode", "inclusionai/ling-3.1-flash-1019:free"): "filed 2026-11-01 — carrier-arrival :free dated leaf, $0 window-cost-pending (TR-070), census-stamped",
+    ("openrouter", "z-ai/glm-5.3-flashx-legal"): "models.dev sync 2026-11-03 — new catalog lane, sticker-priced 0.37 (normalized:payg-sticker)",
+    ("clinepass", "glm-5.3-flashx-legal"): "clinepass API sync 2026-11-03 — carrier mirror of the new glm-5.3-flashx-legal arrival, price null pending sticker",
     ("openrouter", "nvidia/switchyard"): "filed 2026-11-01 — router meta-model, active NULL by design (10-14 hold superseded; unblocked the openrouter preset apply)",
     ("clinepass", "gemini-4-argon"): "clinepass API sync 2026-10-14 (carrier arrivals, engine-priced)",
     ("clinepass", "gemini-4-argon:batch"): "clinepass API sync 2026-10-14 (carrier arrivals, engine-priced)",

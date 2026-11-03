@@ -166,7 +166,6 @@
 {"model": "accounts/fireworks/models/deepseek-v4-pro", "category": "refactor", "perf": 0.5, "source": "family", "source_ref": "alias:deepseek-v4-pro"}
 {"model": "accounts/fireworks/models/deepseek-v4-pro", "category": "review", "perf": 0.8, "source": "family", "source_ref": "alias:deepseek-v4-pro"}
 {"model": "accounts/fireworks/models/deepseek-v4-pro", "category": "schema", "perf": 0.5, "source": "family", "source_ref": "alias:deepseek-v4-pro"}
-{"model": "accounts/fireworks/models/deepseek-v4-pro", "category": "spec_docs", "perf": 0.664, "source": "family", "source_ref": "alias:deepseek-v4-pro"}
 {"model": "accounts/fireworks/models/deepseek-v4-pro", "category": "terminal", "perf": 0.721, "source": "family", "source_ref": "alias:deepseek-v4-pro"}
 {"model": "accounts/fireworks/models/deepseek-v4-pro", "category": "test", "perf": 0.72, "source": "estimate", "source_ref": "CATEGORY_ESTIMATES"}
 {"model": "accounts/fireworks/models/deepseek-v4-pro", "category": "tool_use", "perf": 0.5, "source": "family", "source_ref": "alias:deepseek-v4-pro"}
@@ -233,7 +232,7 @@
 {"model": "accounts/fireworks/models/glm-5p2", "category": "refactor", "perf": 0.5, "source": "family", "source_ref": "alias:glm-5.2"}
 {"model": "accounts/fireworks/models/glm-5p2", "category": "schema", "perf": 0.5, "source": "family", "source_ref": "alias:glm-5.2"}
 {"model": "accounts/fireworks/models/glm-5p2", "category": "security", "perf": 0.85, "source": "family", "source_ref": "alias:glm-5.2"}
-{"model": "accounts/fireworks/models/glm-5p2", "category": "spec_docs", "perf": 0.6809999999999999, "source": "family", "source_ref": "alias:glm-5.2"}
+{"model": "accounts/fireworks/models/glm-5p2", "category": "spec_docs", "perf": 0.72, "source": "family", "source_ref": "alias:glm-5.2"}
 {"model": "accounts/fireworks/models/glm-5p2", "category": "terminal", "perf": 0.81, "source": "family", "source_ref": "alias:glm-5.2"}
 {"model": "accounts/fireworks/models/glm-5p2", "category": "test", "perf": 0.72, "source": "family", "source_ref": "alias:glm-5.2"}
 {"model": "accounts/fireworks/models/glm-5p2", "category": "tool_use", "perf": 0.75, "source": "family", "source_ref": "alias:glm-5.2"}
@@ -329,7 +328,6 @@
 {"model": "accounts/fireworks/models/kimi-k3", "category": "refactor", "perf": 0.5, "source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/models/kimi-k3", "category": "review", "perf": 0.85, "source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/models/kimi-k3", "category": "schema", "perf": 0.5, "source": "family", "source_ref": "alias:kimi-k3"}
-{"model": "accounts/fireworks/models/kimi-k3", "category": "spec_docs", "perf": 0.93, "source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/models/kimi-k3", "category": "terminal", "perf": 0.921590909090909, "source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/models/kimi-k3", "category": "test", "perf": 0.72, "source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/models/kimi-k3", "category": "tool_use", "perf": 0.75, "source": "family", "source_ref": "alias:kimi-k3"}
@@ -360,7 +358,7 @@
 {"model": "accounts/fireworks/models/minimax-m3", "category": "refactor", "perf": 0.75, "source": "family", "source_ref": "alias:minimax-m3"}
 {"model": "accounts/fireworks/models/minimax-m3", "category": "review", "perf": 0.72, "source": "family", "source_ref": "alias:minimax-m3"}
 {"model": "accounts/fireworks/models/minimax-m3", "category": "schema", "perf": 0.75, "source": "family", "source_ref": "alias:minimax-m3"}
-{"model": "accounts/fireworks/models/minimax-m3", "category": "spec_docs", "perf": 0.75, "source": "family", "source_ref": "alias:minimax-m3"}
+{"model": "accounts/fireworks/models/minimax-m3", "category": "spec_docs", "perf": 0.421, "source": "family", "source_ref": "alias:minimax-m3"}
 {"model": "accounts/fireworks/models/minimax-m3", "category": "terminal", "perf": 0.66, "source": "family", "source_ref": "alias:minimax-m3"}
 {"model": "accounts/fireworks/models/minimax-m3", "category": "test", "perf": 0.72, "source": "family", "source_ref": "alias:minimax-m3"}
 {"model": "accounts/fireworks/models/minimax-m3", "category": "tool_use", "perf": 0.742, "source": "family", "source_ref": "alias:minimax-m3"}
@@ -460,7 +458,6 @@
 {"model": "accounts/fireworks/routers/deepseek-pro-latest", "category": "refactor", "perf": 0.5, "source": "family", "source_ref": "alias:deepseek-v4-pro"}
 {"model": "accounts/fireworks/routers/deepseek-pro-latest", "category": "review", "perf": 0.8, "source": "family", "source_ref": "alias:deepseek-v4-pro"}
 {"model": "accounts/fireworks/routers/deepseek-pro-latest", "category": "schema", "perf": 0.5, "source": "family", "source_ref": "alias:deepseek-v4-pro"}
-{"model": "accounts/fireworks/routers/deepseek-pro-latest", "category": "spec_docs", "perf": 0.664, "source": "family", "source_ref": "alias:deepseek-v4-pro"}
 {"model": "accounts/fireworks/routers/deepseek-pro-latest", "category": "terminal", "perf": 0.721, "source": "family", "source_ref": "alias:deepseek-v4-pro"}
 {"model": "accounts/fireworks/routers/deepseek-pro-latest", "category": "test", "perf": 0.72, "source": "estimate", "source_ref": "CATEGORY_ESTIMATES"}
 {"model": "accounts/fireworks/routers/deepseek-pro-latest", "category": "tool_use", "perf": 0.5, "source": "family", "source_ref": "alias:deepseek-v4-pro"}
@@ -479,7 +476,7 @@
 {"model": "accounts/fireworks/routers/glm-5p2-fast", "category": "refactor", "perf": 0.5, "source": "family", "source_ref": "alias:glm-5.2"}
 {"model": "accounts/fireworks/routers/glm-5p2-fast", "category": "schema", "perf": 0.5, "source": "family", "source_ref": "alias:glm-5.2"}
 {"model": "accounts/fireworks/routers/glm-5p2-fast", "category": "security", "perf": 0.85, "source": "family", "source_ref": "alias:glm-5.2"}
-{"model": "accounts/fireworks/routers/glm-5p2-fast", "category": "spec_docs", "perf": 0.6809999999999999, "source": "family", "source_ref": "alias:glm-5.2"}
+{"model": "accounts/fireworks/routers/glm-5p2-fast", "category": "spec_docs", "perf": 0.72, "source": "family", "source_ref": "alias:glm-5.2"}
 {"model": "accounts/fireworks/routers/glm-5p2-fast", "category": "terminal", "perf": 0.81, "source": "family", "source_ref": "alias:glm-5.2"}
 {"model": "accounts/fireworks/routers/glm-5p2-fast", "category": "test", "perf": 0.72, "source": "family", "source_ref": "alias:glm-5.2"}
 {"model": "accounts/fireworks/routers/glm-5p2-fast", "category": "tool_use", "perf": 0.75, "source": "family", "source_ref": "alias:glm-5.2"}
@@ -577,7 +574,6 @@
 {"model": "accounts/fireworks/routers/kimi-fast-latest", "category": "refactor", "perf": 0.5, "source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/routers/kimi-fast-latest", "category": "review", "perf": 0.85, "source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/routers/kimi-fast-latest", "category": "schema", "perf": 0.5, "source": "family", "source_ref": "alias:kimi-k3"}
-{"model": "accounts/fireworks/routers/kimi-fast-latest", "category": "spec_docs", "perf": 0.93, "source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/routers/kimi-fast-latest", "category": "terminal", "perf": 0.921590909090909, "source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/routers/kimi-fast-latest", "category": "test", "perf": 0.72, "source": "estimate", "source_ref": "CATEGORY_ESTIMATES"}
 {"model": "accounts/fireworks/routers/kimi-fast-latest", "category": "tool_use", "perf": 0.75, "source": "family", "source_ref": "alias:kimi-k3"}
@@ -597,7 +593,6 @@
 {"model": "accounts/fireworks/routers/kimi-k3-fast", "category": "refactor", "perf": 0.5, "source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/routers/kimi-k3-fast", "category": "review", "perf": 0.85, "source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/routers/kimi-k3-fast", "category": "schema", "perf": 0.5, "source": "family", "source_ref": "alias:kimi-k3"}
-{"model": "accounts/fireworks/routers/kimi-k3-fast", "category": "spec_docs", "perf": 0.93, "source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/routers/kimi-k3-fast", "category": "terminal", "perf": 0.921590909090909, "source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/routers/kimi-k3-fast", "category": "test", "perf": 0.72, "source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/routers/kimi-k3-fast", "category": "tool_use", "perf": 0.75, "source": "family", "source_ref": "alias:kimi-k3"}
@@ -617,7 +612,6 @@
 {"model": "accounts/fireworks/routers/kimi-latest", "category": "refactor", "perf": 0.5, "source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/routers/kimi-latest", "category": "review", "perf": 0.85, "source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/routers/kimi-latest", "category": "schema", "perf": 0.5, "source": "family", "source_ref": "alias:kimi-k3"}
-{"model": "accounts/fireworks/routers/kimi-latest", "category": "spec_docs", "perf": 0.93, "source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/routers/kimi-latest", "category": "terminal", "perf": 0.921590909090909, "source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/routers/kimi-latest", "category": "test", "perf": 0.72, "source": "estimate", "source_ref": "CATEGORY_ESTIMATES"}
 {"model": "accounts/fireworks/routers/kimi-latest", "category": "tool_use", "perf": 0.75, "source": "family", "source_ref": "alias:kimi-k3"}
@@ -637,7 +631,7 @@
 {"model": "accounts/fireworks/routers/minimax-latest", "category": "refactor", "perf": 0.75, "source": "family", "source_ref": "alias:minimax-m3"}
 {"model": "accounts/fireworks/routers/minimax-latest", "category": "review", "perf": 0.72, "source": "family", "source_ref": "alias:minimax-m3"}
 {"model": "accounts/fireworks/routers/minimax-latest", "category": "schema", "perf": 0.75, "source": "family", "source_ref": "alias:minimax-m3"}
-{"model": "accounts/fireworks/routers/minimax-latest", "category": "spec_docs", "perf": 0.75, "source": "family", "source_ref": "alias:minimax-m3"}
+{"model": "accounts/fireworks/routers/minimax-latest", "category": "spec_docs", "perf": 0.421, "source": "family", "source_ref": "alias:minimax-m3"}
 {"model": "accounts/fireworks/routers/minimax-latest", "category": "terminal", "perf": 0.66, "source": "family", "source_ref": "alias:minimax-m3"}
 {"model": "accounts/fireworks/routers/minimax-latest", "category": "test", "perf": 0.72, "source": "estimate", "source_ref": "CATEGORY_ESTIMATES"}
 {"model": "accounts/fireworks/routers/minimax-latest", "category": "tool_use", "perf": 0.742, "source": "family", "source_ref": "alias:minimax-m3"}
@@ -1034,7 +1028,6 @@
 {"model": "deepseek-v4-pro", "category": "refactor", "perf": 0.5, "source": "bench", "source_ref": "bench:battery-T2-CODE"}
 {"model": "deepseek-v4-pro", "category": "review", "perf": 0.8, "source": "measured", "source_ref": "models.jsonl:perf_review"}
 {"model": "deepseek-v4-pro", "category": "schema", "perf": 0.5, "source": "measured", "source_ref": "models.jsonl:perf_schema"}
-{"model": "deepseek-v4-pro", "category": "spec_docs", "perf": 0.664, "source": "bench", "source_ref": "bench:BenchLM"}
 {"model": "deepseek-v4-pro", "category": "terminal", "perf": 0.721, "source": "bench", "source_ref": "bench:Terminal-Bench"}
 {"model": "deepseek-v4-pro", "category": "test", "perf": 0.72, "source": "estimate", "source_ref": "PROFILE_TAGS:deepseek v4 pro"}
 {"model": "deepseek-v4-pro", "category": "tool_use", "perf": 0.5, "source": "bench", "source_ref": "bench:T1-TOOL"}
@@ -1151,7 +1144,6 @@
 {"model": "deepseek/deepseek-v4-pro", "category": "refactor", "perf": 0.5, "source": "family", "source_ref": "alias:deepseek-v4-pro"}
 {"model": "deepseek/deepseek-v4-pro", "category": "review", "perf": 1.0, "source": "bench", "source_ref": "bench:REVIEW"}
 {"model": "deepseek/deepseek-v4-pro", "category": "schema", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/SCHEMA"}
-{"model": "deepseek/deepseek-v4-pro", "category": "spec_docs", "perf": 0.664, "source": "family", "source_ref": "alias:deepseek-v4-pro"}
 {"model": "deepseek/deepseek-v4-pro", "category": "terminal", "perf": 0.721, "source": "family", "source_ref": "alias:deepseek-v4-pro"}
 {"model": "deepseek/deepseek-v4-pro", "category": "test", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/TEST"}
 {"model": "deepseek/deepseek-v4-pro", "category": "tool_use", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/T1-TOOL"}
@@ -1249,7 +1241,7 @@
 {"model": "glm-5-2", "category": "refactor", "perf": 0.5, "source": "family", "source_ref": "alias:glm-5.2"}
 {"model": "glm-5-2", "category": "schema", "perf": 0.5, "source": "family", "source_ref": "alias:glm-5.2"}
 {"model": "glm-5-2", "category": "security", "perf": 0.85, "source": "family", "source_ref": "alias:glm-5.2"}
-{"model": "glm-5-2", "category": "spec_docs", "perf": 0.6809999999999999, "source": "family", "source_ref": "alias:glm-5.2"}
+{"model": "glm-5-2", "category": "spec_docs", "perf": 0.72, "source": "family", "source_ref": "alias:glm-5.2"}
 {"model": "glm-5-2", "category": "terminal", "perf": 0.81, "source": "family", "source_ref": "alias:glm-5.2"}
 {"model": "glm-5-2", "category": "test", "perf": 0.72, "source": "family", "source_ref": "alias:glm-5.2"}
 {"model": "glm-5-2", "category": "tool_use", "perf": 0.75, "source": "family", "source_ref": "alias:glm-5.2"}
@@ -1326,7 +1318,7 @@
 {"model": "glm-5.2", "category": "refactor", "perf": 0.5, "source": "bench", "source_ref": "bench:battery-T2-CODE"}
 {"model": "glm-5.2", "category": "schema", "perf": 0.5, "source": "bench", "source_ref": "bench:battery-T2-CODE"}
 {"model": "glm-5.2", "category": "security", "perf": 0.85, "source": "estimate", "source_ref": "PROFILE_TAGS:glm-5.2"}
-{"model": "glm-5.2", "category": "spec_docs", "perf": 0.6809999999999999, "source": "bench", "source_ref": "bench:BenchLM"}
+{"model": "glm-5.2", "category": "spec_docs", "perf": 0.72, "source": "estimate", "source_ref": "PROFILE_TAGS:glm-5.2"}
 {"model": "glm-5.2", "category": "terminal", "perf": 0.81, "source": "bench", "source_ref": "bench:Terminal-Bench"}
 {"model": "glm-5.2", "category": "test", "perf": 0.72, "source": "estimate", "source_ref": "PROFILE_TAGS:glm-5.2"}
 {"model": "glm-5.2", "category": "tool_use", "perf": 0.75, "source": "bench", "source_ref": "bench:battery-T1-TOOL"}
@@ -1348,7 +1340,7 @@
 {"model": "glm-5.2-fast", "category": "review", "perf": 1.0, "source": "bench", "source_ref": "bench:REVIEW"}
 {"model": "glm-5.2-fast", "category": "schema", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/SCHEMA"}
 {"model": "glm-5.2-fast", "category": "security", "perf": 0.85, "source": "family", "source_ref": "alias:glm-5.2"}
-{"model": "glm-5.2-fast", "category": "spec_docs", "perf": 0.6809999999999999, "source": "family", "source_ref": "alias:glm-5.2"}
+{"model": "glm-5.2-fast", "category": "spec_docs", "perf": 0.72, "source": "family", "source_ref": "alias:glm-5.2"}
 {"model": "glm-5.2-fast", "category": "terminal", "perf": 0.81, "source": "family", "source_ref": "alias:glm-5.2"}
 {"model": "glm-5.2-fast", "category": "test", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/TEST"}
 {"model": "glm-5.2-fast", "category": "tool_use", "perf": 0.75, "source": "family", "source_ref": "alias:glm-5.2"}
@@ -1367,7 +1359,7 @@
 {"model": "glm-5.2-flex", "category": "refactor", "perf": 0.5, "source": "family", "source_ref": "alias:glm-5.2"}
 {"model": "glm-5.2-flex", "category": "schema", "perf": 0.5, "source": "family", "source_ref": "alias:glm-5.2"}
 {"model": "glm-5.2-flex", "category": "security", "perf": 0.85, "source": "family", "source_ref": "alias:glm-5.2"}
-{"model": "glm-5.2-flex", "category": "spec_docs", "perf": 0.6809999999999999, "source": "family", "source_ref": "alias:glm-5.2"}
+{"model": "glm-5.2-flex", "category": "spec_docs", "perf": 0.72, "source": "family", "source_ref": "alias:glm-5.2"}
 {"model": "glm-5.2-flex", "category": "terminal", "perf": 0.81, "source": "family", "source_ref": "alias:glm-5.2"}
 {"model": "glm-5.2-flex", "category": "test", "perf": 0.72, "source": "family", "source_ref": "alias:glm-5.2"}
 {"model": "glm-5.2-flex", "category": "tool_use", "perf": 0.75, "source": "family", "source_ref": "alias:glm-5.2"}
@@ -1388,7 +1380,7 @@
 {"model": "glm-5.2-short", "category": "refactor", "perf": 0.5, "source": "family", "source_ref": "alias:glm-5.2"}
 {"model": "glm-5.2-short", "category": "schema", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/SCHEMA"}
 {"model": "glm-5.2-short", "category": "security", "perf": 0.85, "source": "family", "source_ref": "alias:glm-5.2"}
-{"model": "glm-5.2-short", "category": "spec_docs", "perf": 0.6809999999999999, "source": "family", "source_ref": "alias:glm-5.2"}
+{"model": "glm-5.2-short", "category": "spec_docs", "perf": 0.72, "source": "family", "source_ref": "alias:glm-5.2"}
 {"model": "glm-5.2-short", "category": "terminal", "perf": 0.81, "source": "family", "source_ref": "alias:glm-5.2"}
 {"model": "glm-5.2-short", "category": "test", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/TEST"}
 {"model": "glm-5.2-short", "category": "tool_use", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/T1-TOOL"}
@@ -1410,7 +1402,7 @@
 {"model": "glm-5.2-short-fast", "category": "review", "perf": 0.0, "source": "measured", "source_ref": "models.jsonl:perf_review"}
 {"model": "glm-5.2-short-fast", "category": "schema", "perf": 0.5, "source": "measured", "source_ref": "models.jsonl:perf_schema"}
 {"model": "glm-5.2-short-fast", "category": "security", "perf": 0.85, "source": "family", "source_ref": "alias:glm-5.2"}
-{"model": "glm-5.2-short-fast", "category": "spec_docs", "perf": 0.6809999999999999, "source": "family", "source_ref": "alias:glm-5.2"}
+{"model": "glm-5.2-short-fast", "category": "spec_docs", "perf": 0.72, "source": "family", "source_ref": "alias:glm-5.2"}
 {"model": "glm-5.2-short-fast", "category": "terminal", "perf": 0.81, "source": "family", "source_ref": "alias:glm-5.2"}
 {"model": "glm-5.2-short-fast", "category": "test", "perf": 0.72, "source": "family", "source_ref": "alias:glm-5.2"}
 {"model": "glm-5.2-short-fast", "category": "tool_use", "perf": 0.5, "source": "bench", "source_ref": "bench:T1-TOOL"}
@@ -1431,7 +1423,7 @@
 {"model": "glm-5.2-short-fast-flex", "category": "refactor", "perf": 0.5, "source": "family", "source_ref": "alias:glm-5.2"}
 {"model": "glm-5.2-short-fast-flex", "category": "schema", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/SCHEMA"}
 {"model": "glm-5.2-short-fast-flex", "category": "security", "perf": 0.85, "source": "family", "source_ref": "alias:glm-5.2"}
-{"model": "glm-5.2-short-fast-flex", "category": "spec_docs", "perf": 0.6809999999999999, "source": "family", "source_ref": "alias:glm-5.2"}
+{"model": "glm-5.2-short-fast-flex", "category": "spec_docs", "perf": 0.72, "source": "family", "source_ref": "alias:glm-5.2"}
 {"model": "glm-5.2-short-fast-flex", "category": "terminal", "perf": 0.81, "source": "family", "source_ref": "alias:glm-5.2"}
 {"model": "glm-5.2-short-fast-flex", "category": "test", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/TEST"}
 {"model": "glm-5.2-short-fast-flex", "category": "tool_use", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/T1-TOOL"}
@@ -1453,7 +1445,7 @@
 {"model": "glm-5.2-short-flex", "category": "review", "perf": 1.0, "source": "bench", "source_ref": "bench:REVIEW"}
 {"model": "glm-5.2-short-flex", "category": "schema", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/SCHEMA"}
 {"model": "glm-5.2-short-flex", "category": "security", "perf": 0.85, "source": "family", "source_ref": "alias:glm-5.2"}
-{"model": "glm-5.2-short-flex", "category": "spec_docs", "perf": 0.6809999999999999, "source": "family", "source_ref": "alias:glm-5.2"}
+{"model": "glm-5.2-short-flex", "category": "spec_docs", "perf": 0.72, "source": "family", "source_ref": "alias:glm-5.2"}
 {"model": "glm-5.2-short-flex", "category": "terminal", "perf": 0.81, "source": "family", "source_ref": "alias:glm-5.2"}
 {"model": "glm-5.2-short-flex", "category": "test", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/TEST"}
 {"model": "glm-5.2-short-flex", "category": "tool_use", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/T1-TOOL"}
@@ -1625,7 +1617,7 @@
 {"model": "gpt-5.6-terra", "category": "multilingual", "perf": 0.82, "source": "estimate", "source_ref": "QUALITY_ESTIMATES"}
 {"model": "gpt-5.6-terra", "category": "refactor", "perf": 0.5, "source": "bench", "source_ref": "bench:battery-T2-CODE"}
 {"model": "gpt-5.6-terra", "category": "schema", "perf": 0.5, "source": "bench", "source_ref": "bench:battery-T2-CODE"}
-{"model": "gpt-5.6-terra", "category": "spec_docs", "perf": 0.933, "source": "bench", "source_ref": "bench:BenchLM"}
+{"model": "gpt-5.6-terra", "category": "spec_docs", "perf": 0.95, "source": "estimate", "source_ref": "PROFILE_TAGS:gpt-5.6 terra"}
 {"model": "gpt-5.6-terra", "category": "terminal", "perf": 0.8740000000000001, "source": "bench", "source_ref": "bench:Terminal-Bench"}
 {"model": "gpt-5.6-terra", "category": "test", "perf": 0.85, "source": "estimate", "source_ref": "PROFILE_TAGS:gpt-5.6 terra"}
 {"model": "gpt-5.6-terra", "category": "tool_use", "perf": 0.25, "source": "bench", "source_ref": "bench:battery-T1-TOOL"}
@@ -1753,7 +1745,6 @@
 {"model": "grok-4.5", "category": "mock", "perf": 1.0, "source": "measured", "source_ref": "models.jsonl:perf_mock"}
 {"model": "grok-4.5", "category": "refactor", "perf": 0.75, "source": "bench", "source_ref": "bench:battery-T2-CODE"}
 {"model": "grok-4.5", "category": "schema", "perf": 0.75, "source": "measured", "source_ref": "models.jsonl:perf_schema"}
-{"model": "grok-4.5", "category": "spec_docs", "perf": 0.6809999999999999, "source": "bench", "source_ref": "bench:BenchLM"}
 {"model": "grok-4.5", "category": "terminal", "perf": 0.833, "source": "bench", "source_ref": "bench:Terminal-Bench"}
 {"model": "grok-4.5", "category": "test", "perf": 0.72, "source": "estimate", "source_ref": "CATEGORY_ESTIMATES"}
 {"model": "grok-4.5", "category": "tool_use", "perf": 0.75, "source": "bench", "source_ref": "bench:battery-T1-TOOL"}
@@ -1810,7 +1801,6 @@
 {"model": "hf:moonshotai/Kimi-K3", "category": "refactor", "perf": 0.5, "source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "hf:moonshotai/Kimi-K3", "category": "review", "perf": 0.85, "source": "measured", "source_ref": "models.jsonl:perf_review"}
 {"model": "hf:moonshotai/Kimi-K3", "category": "schema", "perf": 0.5, "source": "measured", "source_ref": "models.jsonl:perf_schema"}
-{"model": "hf:moonshotai/Kimi-K3", "category": "spec_docs", "perf": 0.93, "source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "hf:moonshotai/Kimi-K3", "category": "terminal", "perf": 0.921590909090909, "source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "hf:moonshotai/Kimi-K3", "category": "test", "perf": 0.72, "source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "hf:moonshotai/Kimi-K3", "category": "tool_use", "perf": 0.75, "source": "family", "source_ref": "alias:kimi-k3"}
@@ -1865,7 +1855,7 @@
 {"model": "hf:zai-org/GLM-5.2", "category": "refactor", "perf": 0.5, "source": "family", "source_ref": "alias:glm-5.2"}
 {"model": "hf:zai-org/GLM-5.2", "category": "schema", "perf": 0.5, "source": "family", "source_ref": "alias:glm-5.2"}
 {"model": "hf:zai-org/GLM-5.2", "category": "security", "perf": 0.85, "source": "family", "source_ref": "alias:glm-5.2"}
-{"model": "hf:zai-org/GLM-5.2", "category": "spec_docs", "perf": 0.6809999999999999, "source": "family", "source_ref": "alias:glm-5.2"}
+{"model": "hf:zai-org/GLM-5.2", "category": "spec_docs", "perf": 0.72, "source": "family", "source_ref": "alias:glm-5.2"}
 {"model": "hf:zai-org/GLM-5.2", "category": "terminal", "perf": 0.81, "source": "family", "source_ref": "alias:glm-5.2"}
 {"model": "hf:zai-org/GLM-5.2", "category": "test", "perf": 0.72, "source": "family", "source_ref": "alias:glm-5.2"}
 {"model": "hf:zai-org/GLM-5.2", "category": "tool_use", "perf": 0.75, "source": "family", "source_ref": "alias:glm-5.2"}
@@ -1915,7 +1905,6 @@
 {"model": "hy4-preview", "category": "long_horizon", "perf": 0.85, "source": "estimate", "source_ref": "PROFILE_TAGS:hy4-preview"}
 {"model": "hy4-preview", "category": "reasoning", "perf": 0.923, "source": "bench", "source_ref": "bench:GPQA"}
 {"model": "hy4-preview", "category": "refactor", "perf": 0.72, "source": "estimate", "source_ref": "PROFILE_TAGS:hy4-preview"}
-{"model": "hy4-preview", "category": "spec_docs", "perf": 0.612, "source": "bench", "source_ref": "bench:BenchLM"}
 {"model": "hy4-preview", "category": "terminal", "perf": 0.854, "source": "bench", "source_ref": "bench:Terminal-Bench"}
 {"model": "hy4-preview", "category": "test", "perf": 0.72, "source": "estimate", "source_ref": "PROFILE_TAGS:hy4-preview"}
 {"model": "inclusionai/ling-3.0-flash-sante:free", "category": "test", "perf": 0.72, "source": "estimate", "source_ref": "CATEGORY_ESTIMATES"}
@@ -2101,7 +2090,6 @@
 {"model": "kimi-k3", "category": "refactor", "perf": 0.5, "source": "bench", "source_ref": "bench:battery-T2-CODE"}
 {"model": "kimi-k3", "category": "review", "perf": 0.85, "source": "measured", "source_ref": "models.jsonl:perf_review"}
 {"model": "kimi-k3", "category": "schema", "perf": 0.5, "source": "measured", "source_ref": "models.jsonl:perf_schema"}
-{"model": "kimi-k3", "category": "spec_docs", "perf": 0.93, "source": "bench", "source_ref": "bench:BenchLM"}
 {"model": "kimi-k3", "category": "terminal", "perf": 0.921590909090909, "source": "bench", "source_ref": "bench:Terminal-Bench"}
 {"model": "kimi-k3", "category": "test", "perf": 0.72, "source": "estimate", "source_ref": "PROFILE_TAGS:kimi k3"}
 {"model": "kimi-k3", "category": "tool_use", "perf": 0.75, "source": "bench", "source_ref": "bench:battery-T1-TOOL"}
@@ -2121,7 +2109,6 @@
 {"model": "kimi-k3-fast", "category": "refactor", "perf": 0.5, "source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "kimi-k3-fast", "category": "review", "perf": 0.85, "source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "kimi-k3-fast", "category": "schema", "perf": 0.5, "source": "family", "source_ref": "alias:kimi-k3"}
-{"model": "kimi-k3-fast", "category": "spec_docs", "perf": 0.93, "source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "kimi-k3-fast", "category": "terminal", "perf": 0.921590909090909, "source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "kimi-k3-fast", "category": "test", "perf": 0.72, "source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "kimi-k3-fast", "category": "tool_use", "perf": 0.75, "source": "family", "source_ref": "alias:kimi-k3"}
@@ -2141,7 +2128,6 @@
 {"model": "kimi-k3-flex", "category": "refactor", "perf": 0.5, "source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "kimi-k3-flex", "category": "review", "perf": 0.85, "source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "kimi-k3-flex", "category": "schema", "perf": 0.5, "source": "family", "source_ref": "alias:kimi-k3"}
-{"model": "kimi-k3-flex", "category": "spec_docs", "perf": 0.93, "source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "kimi-k3-flex", "category": "terminal", "perf": 0.921590909090909, "source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "kimi-k3-flex", "category": "test", "perf": 0.72, "source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "kimi-k3-flex", "category": "tool_use", "perf": 0.75, "source": "family", "source_ref": "alias:kimi-k3"}
@@ -2413,7 +2399,7 @@
 {"model": "minimax-m3", "category": "refactor", "perf": 0.75, "source": "bench", "source_ref": "bench:battery-T2-CODE"}
 {"model": "minimax-m3", "category": "review", "perf": 0.72, "source": "measured", "source_ref": "models.jsonl:perf_review"}
 {"model": "minimax-m3", "category": "schema", "perf": 0.75, "source": "measured", "source_ref": "models.jsonl:perf_schema"}
-{"model": "minimax-m3", "category": "spec_docs", "perf": 0.75, "source": "bench", "source_ref": "bench:BenchLM"}
+{"model": "minimax-m3", "category": "spec_docs", "perf": 0.421, "source": "bench", "source_ref": "bench:BenchLM"}
 {"model": "minimax-m3", "category": "terminal", "perf": 0.66, "source": "bench", "source_ref": "bench:Terminal-Bench"}
 {"model": "minimax-m3", "category": "test", "perf": 0.72, "source": "estimate", "source_ref": "PROFILE_TAGS:minimax m3"}
 {"model": "minimax-m3", "category": "tool_use", "perf": 0.742, "source": "bench", "source_ref": "bench:MCP Atlas"}
@@ -2866,7 +2852,7 @@
 {"model": "openai/gpt-5.6-terra", "category": "reasoning", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/T3-REASON"}
 {"model": "openai/gpt-5.6-terra", "category": "refactor", "perf": 0.5, "source": "family", "source_ref": "alias:gpt-5.6-terra"}
 {"model": "openai/gpt-5.6-terra", "category": "schema", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/SCHEMA"}
-{"model": "openai/gpt-5.6-terra", "category": "spec_docs", "perf": 0.933, "source": "family", "source_ref": "alias:gpt-5.6-terra"}
+{"model": "openai/gpt-5.6-terra", "category": "spec_docs", "perf": 0.95, "source": "family", "source_ref": "alias:gpt-5.6-terra"}
 {"model": "openai/gpt-5.6-terra", "category": "terminal", "perf": 0.8740000000000001, "source": "family", "source_ref": "alias:gpt-5.6-terra"}
 {"model": "openai/gpt-5.6-terra", "category": "test", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/TEST"}
 {"model": "openai/gpt-5.6-terra", "category": "tool_use", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/T1-TOOL"}
@@ -3331,7 +3317,6 @@
 {"model": "step-3.7-flash", "category": "refactor", "perf": 0.5, "source": "bench", "source_ref": "bench:battery-T2-CODE"}
 {"model": "step-3.7-flash", "category": "review", "perf": 0.68, "source": "measured", "source_ref": "models.jsonl:perf_review"}
 {"model": "step-3.7-flash", "category": "schema", "perf": 0.5, "source": "measured", "source_ref": "models.jsonl:perf_schema"}
-{"model": "step-3.7-flash", "category": "spec_docs", "perf": 0.559, "source": "bench", "source_ref": "bench:BenchLM"}
 {"model": "step-3.7-flash", "category": "terminal", "perf": 0.5954999999999999, "source": "bench", "source_ref": "bench:Terminal-Bench"}
 {"model": "step-3.7-flash", "category": "test", "perf": 0.95, "source": "estimate", "source_ref": "PROFILE_TAGS:step 3"}
 {"model": "step-3.7-flash", "category": "tool_use", "perf": 0.25, "source": "bench", "source_ref": "bench:battery-T1-TOOL"}
@@ -3792,7 +3777,7 @@
 {"model": "zai-org/GLM-5.2", "category": "refactor", "perf": 0.5, "source": "family", "source_ref": "alias:glm-5.2"}
 {"model": "zai-org/GLM-5.2", "category": "schema", "perf": 0.5, "source": "family", "source_ref": "alias:glm-5.2"}
 {"model": "zai-org/GLM-5.2", "category": "security", "perf": 0.85, "source": "family", "source_ref": "alias:glm-5.2"}
-{"model": "zai-org/GLM-5.2", "category": "spec_docs", "perf": 0.6809999999999999, "source": "family", "source_ref": "alias:glm-5.2"}
+{"model": "zai-org/GLM-5.2", "category": "spec_docs", "perf": 0.72, "source": "family", "source_ref": "alias:glm-5.2"}
 {"model": "zai-org/GLM-5.2", "category": "terminal", "perf": 0.81, "source": "family", "source_ref": "alias:glm-5.2"}
 {"model": "zai-org/GLM-5.2", "category": "test", "perf": 0.72, "source": "family", "source_ref": "alias:glm-5.2"}
 {"model": "zai-org/GLM-5.2", "category": "tool_use", "perf": 0.75, "source": "family", "source_ref": "alias:glm-5.2"}
@@ -3893,7 +3878,6 @@
 {"model": "~deepseek/deepseek-pro-latest", "category": "refactor", "perf": 0.5, "source": "family", "source_ref": "alias:accounts/fireworks/routers/deepseek-pro-latest"}
 {"model": "~deepseek/deepseek-pro-latest", "category": "review", "perf": 0.8, "source": "family", "source_ref": "alias:accounts/fireworks/routers/deepseek-pro-latest"}
 {"model": "~deepseek/deepseek-pro-latest", "category": "schema", "perf": 0.5, "source": "family", "source_ref": "alias:accounts/fireworks/routers/deepseek-pro-latest"}
-{"model": "~deepseek/deepseek-pro-latest", "category": "spec_docs", "perf": 0.664, "source": "family", "source_ref": "alias:accounts/fireworks/routers/deepseek-pro-latest"}
 {"model": "~deepseek/deepseek-pro-latest", "category": "terminal", "perf": 0.721, "source": "family", "source_ref": "alias:accounts/fireworks/routers/deepseek-pro-latest"}
 {"model": "~deepseek/deepseek-pro-latest", "category": "test", "perf": 0.72, "source": "family", "source_ref": "alias:accounts/fireworks/routers/deepseek-pro-latest"}
 {"model": "~deepseek/deepseek-pro-latest", "category": "tool_use", "perf": 0.5, "source": "family", "source_ref": "alias:accounts/fireworks/routers/deepseek-pro-latest"}
@@ -3913,7 +3897,6 @@
 {"model": "~moonshotai/kimi-latest", "category": "refactor", "perf": 0.5, "source": "family", "source_ref": "alias:accounts/fireworks/routers/kimi-latest"}
 {"model": "~moonshotai/kimi-latest", "category": "review", "perf": 0.85, "source": "family", "source_ref": "alias:accounts/fireworks/routers/kimi-latest"}
 {"model": "~moonshotai/kimi-latest", "category": "schema", "perf": 0.5, "source": "family", "source_ref": "alias:accounts/fireworks/routers/kimi-latest"}
-{"model": "~moonshotai/kimi-latest", "category": "spec_docs", "perf": 0.93, "source": "family", "source_ref": "alias:accounts/fireworks/routers/kimi-latest"}
 {"model": "~moonshotai/kimi-latest", "category": "terminal", "perf": 0.921590909090909, "source": "family", "source_ref": "alias:accounts/fireworks/routers/kimi-latest"}
 {"model": "~moonshotai/kimi-latest", "category": "test", "perf": 0.72, "source": "family", "source_ref": "alias:accounts/fireworks/routers/kimi-latest"}
 {"model": "~moonshotai/kimi-latest", "category": "tool_use", "perf": 0.75, "source": "family", "source_ref": "alias:accounts/fireworks/routers/kimi-latest"}

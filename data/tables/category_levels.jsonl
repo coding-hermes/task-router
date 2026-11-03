@@ -196,11 +196,11 @@
 {"category": "security", "level": 3, "label": "+++", "min_perf": 0.88}
 {"category": "security", "level": 4, "label": "++++", "min_perf": 0.94}
 {"category": "security", "level": 5, "label": "+++++", "min_perf": 0.988}
-{"category": "spec_docs", "level": -5, "label": "-----", "min_perf": 0.664}
+{"category": "spec_docs", "level": -5, "label": "-----", "min_perf": 0.667}
 {"category": "spec_docs", "level": -4, "label": "----", "min_perf": 0.667}
 {"category": "spec_docs", "level": -3, "label": "---", "min_perf": 0.667}
 {"category": "spec_docs", "level": -2, "label": "--", "min_perf": 0.72}
-{"category": "spec_docs", "level": -1, "label": "-", "min_perf": 0.9765499999999999}
+{"category": "spec_docs", "level": -1, "label": "-", "min_perf": 1.0}
 {"category": "spec_docs", "level": 0, "label": "0", "min_perf": 1.0}
 {"category": "spec_docs", "level": 1, "label": "+", "min_perf": 1.0}
 {"category": "spec_docs", "level": 2, "label": "++", "min_perf": 1.0}

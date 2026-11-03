@@ -380,7 +380,9 @@ CASES = [
                              ['deepseek', 'deepseek-flash']],
             'must_exclude': [['opencode-go', 'space-bunny-free'],
                              ['xkiro', 'qwen/qwen3.5-397b-a17b:free']],
-            'min_chain': 592,
+            # 2026-11-03: floor 592->591 — the live openrouter hermes-3-llama row
+            # left the pool when its vanished carrier id was archived (XK-404-001-R2).
+            'min_chain': 591,
         },
     },
     # --- ad-hoc capability bands (the classifier's output space) ------------
@@ -504,7 +506,8 @@ CASES = [
             'must_include': [['aws-bedrock', 'amazon.nova-micro-v1:0'],
                              ['deepseek', 'deepseek-flash']],
             'must_exclude': [],
-            'min_chain': 780,
+            # 2026-11-03: floor 780->779 — vanished openrouter hermes-3 archived.
+            'min_chain': 779,
         },
     },
     {

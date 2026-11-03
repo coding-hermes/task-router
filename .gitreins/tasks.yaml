@@ -1402,3 +1402,13 @@ tasks:
   status: complete
   created_at: '2026-11-03T05:46:21.490647+00:00'
   completed_at: '2026-11-03T05:52:23.386228+00:00'
+- id: TR-REV2-20261027-01
+  title: Unify quota-state.json path between router quota and router spawn
+  criteria:
+  - Both router quota set and router spawn resolve the same quota-state.json path;
+    a gate written by router quota set changes the head returned by router spawn;
+    when paths cannot be unified, router spawn prints a warning naming both files
+    and staleness.
+  status: complete
+  created_at: '2026-11-03T09:01:55.768629+00:00'
+  completed_at: '2026-11-03T09:49:20.124828+00:00'
