@@ -1,0 +1,41 @@
+{
+  "tick": "task-router-foreman-2026-11-02-14-27-04",
+  "timestamp": "2026-11-02T14:33:18Z",
+  "project": "task-router",
+  "row": "RELEASE-2026-10-22-001",
+  "status": "PENDING",
+  "tier": "T3",
+  "decision": "NO DISPATCH / KEEP PENDING",
+  "owner_authorization": "absent: no explicit authorization naming task-router, release version, and baseline SHA",
+  "tested_commit": "7c4231a43becb07a65a347515dfc686e9306b010",
+  "origin_main": "7c4231a43becb07a65a347515dfc686e9306b010",
+  "ahead": 0,
+  "behind": 0,
+  "release_surface": {
+    "pyproject_version": "0.2.0",
+    "package_version": "0.2.0",
+    "changelog_v0.3.0_count": 0,
+    "local_numeric_tags": 0,
+    "remote_numeric_tags": 0,
+    "github_releases": 0
+  },
+  "dependencies": "TR-341, TR-344, QA-TASKROUTER-2, XK-404-001-R2 all complete",
+  "ci": {
+    "latest_three": [
+      {"run_id": 41433804045, "status": "completed", "conclusion": "success", "head_sha": "7c4231a43becb07a65a347515dfc686e9306b010"},
+      {"run_id": 41428641322, "status": "completed", "conclusion": "success", "head_sha": "327ca8b916ecfc90e1cb42091cff40a9431c94a9"},
+      {"run_id": 41428565643, "status": "completed", "conclusion": "success", "head_sha": "0a5da3b85cf2a1b6c640ec5f49d4719875e70cc9"}
+    ],
+    "classification": "green: latest three completed successfully; no new failure"
+  },
+  "dispatch": "none:owner-gated-release-authorization",
+  "worker": "none:owner-block",
+  "wave": "none:owner-gated-release-authorization",
+  "gitreins": "none:verification-only-owner-gated",
+  "evidence": "release surface probes and required CI-health query",
+  "witness": "live:git-parity+tags+gh-release-list+version-pins+gh-run-list",
+  "verdict": "none:verification-only-owner-gated",
+  "commit": "none:owner-block",
+  "memory": "none:read-status-stale-unrelated-record",
+  "next_owner_action": "Explicitly authorize task-router, target release version, and baseline SHA; then prepare the version/changelog commit."
+}
