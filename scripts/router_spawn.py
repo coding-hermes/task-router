@@ -1689,6 +1689,157 @@ def _outcome_floor_scan(lanes: Any, ctx: Any, min_known: Any, rate_floor: Any) -
     return excluded
 
 
+#: TR-357 M2 (2026-11-02): the hop-0 eligibility rule. A lane whose OBSERVED
+#: DRY RATE — the fraction of its CONCLUDED outcomes that are failures,
+#: (n_success_known - n_completed) / n_success_known over the verdicts M1
+#: stamps — EXCEEDS ROUTER_HOP0_MAX_DRY across >= ROUTER_HOP0_MIN_KNOWN known
+#: outcomes may not hold hop 0 (the chain head) REGARDLESS of its price.
+#: The lane is displaced only: it keeps its place later in the chain, is
+#: never excluded, and no position changes but the one head swap. Distinct
+#: from TR-354: that gate EXCLUDES a catastrophic record outright
+#: (completion <= 0.35 over 8+ known); this rule is a HEAD-eligibility floor
+#: layered after the gates — it also catches the band a tightened TR-354
+#: spec or a kill-switched gate leaves in the chain. Below the known floor a
+#: dry record is thin evidence, not a verdict — the same doctrine as the
+#: TR-183 sample floor. ROUTER_HOP0=0 (or a min_known of 0) disables the
+#: rule; the env is re-read per resolve; malformed values fall back to the
+#: defaults, never crash a resolve.
+ROUTER_HOP0_RULE = ('a lane whose observed dry rate (failures / known outcomes) '
+                    'exceeds ROUTER_HOP0_MAX_DRY over >= ROUTER_HOP0_MIN_KNOWN '
+                    'known outcomes may not hold hop 0 regardless of price (TR-357)')
+
+
+def _hop0_cfg() -> tuple:
+    """(max_dry, min_known) — the TR-357 hop-0 floors in force right now.
+
+    ROUTER_HOP0=0 (or a min_known of 0) disables the rule entirely;
+    malformed env values fall back to the defaults, never crash a resolve.
+    """
+    try:
+        min_known = max(0, int(os.environ.get('ROUTER_HOP0_MIN_KNOWN') or 8))
+    except ValueError:
+        min_known = 8
+    if str(os.environ.get('ROUTER_HOP0') or '') == '0':
+        min_known = 0
+    try:
+        max_dry = max(0.0, float(os.environ.get('ROUTER_HOP0_MAX_DRY') or 0.65))
+    except ValueError:
+        max_dry = 0.65
+    return max_dry, min_known
+
+
+def _hop0_verdicts(out_chain: Any, ctx: Any, max_dry: Any, min_known: Any) -> dict:
+    """Which survivor lanes are INELIGIBLE for hop 0, and on what record.
+
+    The judged record is the SAME one the ordering and the TR-354 gate use
+    (_lane_outcomes_record: the lane's own summed rows, else the model
+    family's aggregate), so the ordering, the gates and this rule can never
+    tell different stories. Dry rate = failures / known over CONCLUDED
+    outcomes only; a lane with fewer known outcomes than min_known stays
+    eligible (thin evidence is not a verdict). Fail-open: a malformed record
+    judges nothing and never raises.
+    """
+    verdicts = {}
+    for ent in out_chain or []:
+        pair = (ent.get('provider'), ent.get('model'))
+        if pair in verdicts:
+            continue
+        rec = _lane_outcomes_record(ent, ctx)
+        if rec is None:
+            continue
+        row = rec.get('row') or {}
+        known = row.get('n_success_known')
+        known = known if isinstance(known, int) and not isinstance(known, bool) else 0
+        completed = row.get('n_completed')
+        completed = completed if isinstance(completed, int) \
+            and not isinstance(completed, bool) else 0
+        if known < min_known:
+            continue
+        dry = ((known - completed) / known) if known else None
+        if not isinstance(dry, (int, float)) or isinstance(dry, bool):
+            continue
+        if dry > max_dry:
+            verdicts[pair] = {'provider': pair[0], 'model': pair[1],
+                              'dry_rate': dry, 'n_success_known': known,
+                              'n_completed': completed,
+                              'source': rec.get('source')}
+    return verdicts
+
+
+def _hop0_displace(out_chain: Any, sort_ctx: Any) -> dict:
+    """TR-357 M2: keep a dry lane off hop 0 — minimal, visible, never silent.
+
+    Swaps the head with the FIRST hop-0-eligible survivor when the head's
+    observed dry rate exceeds the floor over min_known+ known outcomes; no
+    other position moves, the displaced lane STAYS in the chain, and the
+    marker ('hop0_ineligible' + reason naming the rule, the numbers and the
+    record it was judged on) rides on its entry. When no eligible
+    alternative exists the head keeps its place but SAYS SO. The rule needs
+    the outcome stats: absent on a price-sort resolve it is inert WITH the
+    reason (judged False), never a silent pass. Fail-open: an error inside
+    the caller's try leaves the chain untouched and names itself.
+    """
+    block = {'judged': False, 'displaced': [], 'rule': ROUTER_HOP0_RULE}
+    if not out_chain:
+        block['reason'] = 'no chain — nothing to judge'
+        return block
+    if not isinstance(sort_ctx, dict):
+        block['reason'] = 'outcome stats not loaded (price sort) — rule inert'
+        return block
+    max_dry, min_known = _hop0_cfg()
+    block.update({'max_dry': max_dry, 'min_known': min_known})
+    if min_known <= 0:
+        block['reason'] = 'disabled (min_known 0)'
+        return block
+    block['judged'] = True
+    verdicts = _hop0_verdicts(out_chain, sort_ctx, max_dry, min_known)
+    block['ineligible'] = [dict(v) for v in verdicts.values()]
+    head = out_chain[0]
+    head_v = verdicts.get((head.get('provider'), head.get('model')))
+    if head_v is None:
+        block['reason'] = 'head eligible — no displacement'
+        return block
+    why = ('hop0-ineligible: observed dry rate {dry:.2f} ({fails}/{known} known '
+           'outcomes failed, {src}) exceeds the {max_dry} floor over {mk}+ '
+           'known outcomes — may not hold hop 0 regardless of price (TR-357)'
+           .format(dry=head_v['dry_rate'],
+                   fails=head_v['n_success_known'] - head_v['n_completed'],
+                   known=head_v['n_success_known'],
+                   src=('its own record' if head_v['source'] == 'lane'
+                        else 'the model-family record'),
+                   max_dry=max_dry, mk=min_known))
+    alt = next((i for i in range(1, len(out_chain))
+                if (out_chain[i].get('provider'), out_chain[i].get('model'))
+                not in verdicts), None)
+    if alt is None:
+        # Nowhere to move the head: every survivor fails the same bar.
+        head['hop0_ineligible'] = True
+        head['hop0_ineligible_reason'] = \
+            why + ' — HELD at hop 0: no eligible alternative remains'
+        block['held_no_alternative'] = {
+            'provider': head_v['provider'], 'model': head_v['model'],
+            'dry_rate': head_v['dry_rate'],
+            'n_success_known': head_v['n_success_known']}
+        return block
+    out_chain[0], out_chain[alt] = out_chain[alt], out_chain[0]
+    displaced = out_chain[alt]
+    displaced['hop0_ineligible'] = True
+    displaced['hop0_ineligible_reason'] = (
+        why + ' — displaced from hop 0 to chain position '
+        f'{alt} (hop number unchanged); '
+        f'{out_chain[0].get("provider")}/{out_chain[0].get("model")} takes hop 0')
+    block['displaced'] = [{'provider': head_v['provider'],
+                           'model': head_v['model'],
+                           'dry_rate': head_v['dry_rate'],
+                           'n_success_known': head_v['n_success_known'],
+                           'n_completed': head_v['n_completed'],
+                           'source': head_v['source'],
+                           'now_at_chain_position': alt,
+                           'passed_by': f'{out_chain[0].get("provider")}'
+                                        f'/{out_chain[0].get("model")}'}]
+    return block
+
+
 def _lane_price_basis(m: Any) -> str | None:
     """TR-291 (2026-10-03): WHY the lane sits where the price sort put it.
 
@@ -3461,6 +3612,21 @@ def resolve(project: Any=None, profile_id: Any=None, adhoc: Any=None, use_health
                 f'{_quota_order_guard():.2e} USD/s order guard — passed by '
                 f'{", ".join(_d["passed_by"])}')
 
+    # --- 4.3 TR-357 M2: the hop-0 eligibility rule -----------------------------
+    # A lane whose observed DRY rate (failures / known outcomes, the verdicts
+    # M1 stamps) exceeds ROUTER_HOP0_MAX_DRY over >= ROUTER_HOP0_MIN_KNOWN
+    # known outcomes may not HOLD hop 0 — REGARDLESS of price. Displaced,
+    # never excluded: one head swap, no other position moves, and the resolve
+    # names the rule, the lane and the numbers both on the entry and in the
+    # payload. Runs AFTER the TR-213 demotion read (which compares against
+    # the pre-rule order) and BEFORE the head is final for the fallback arm.
+    try:
+        _hop0 = _hop0_displace(out_chain, sort_ctx)
+    except Exception as _exc:  # noqa: BLE001 — fail-open: ordering unchanged
+        _hop0 = {'judged': False, 'displaced': [], 'rule': ROUTER_HOP0_RULE,
+                 'reason': f'hop0-rule-error: {_exc}'}
+    head = out_chain[0] if out_chain else None
+
     # --- 4.5 FALLBACK LANES (Bane 2026-08-27): crons must ALWAYS run ---------
     # When every eligible hop is gated/down, fall back to the designated
     # always-available lanes (deepseek-v4 + cron key). Cheap subs first,
@@ -3601,6 +3767,11 @@ def resolve(project: Any=None, profile_id: Any=None, adhoc: Any=None, use_health
                 'ledger_path': _quota_ctx.get('ledger_path'),
                 'providers_with_limits': _quota_ctx.get('n_limits', 0),
             },
+            # TR-357 M2: the hop-0 eligibility rule's own audit block — the
+            # floors in force, who was judged ineligible, and the one swap it
+            # made. Always present (judged False carries the reason) — the
+            # displacement is visible in the payload, never silent.
+            'hop0_eligibility': _hop0,
             # TR-025 runtime visibility: WHERE the data came from + which
             # gate-state files were actually present. Additive only — gate
             # behavior and fail-open are untouched.
