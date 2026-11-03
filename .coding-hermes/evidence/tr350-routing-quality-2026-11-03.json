@@ -1,0 +1,31 @@
+{
+  "task_id": "TR-350",
+  "tick": "task-router-foreman-2026-11-03-04-13-41",
+  "tested_commit": "05070db5600e406120fe4773008817bb67efb459",
+  "commands": [
+    {
+      "command": "PATH=\"$PWD/.venv/bin:$PATH\" pytest tests/test_routing_quality_corpus.py -q",
+      "exit_code": 0,
+      "result": "26 passed in 21.38s"
+    }
+  ],
+  "corpus": {
+    "cases": 25,
+    "pass_rate": "25/25 corpus cases matched their pinned routing decisions",
+    "pytest_items": 26
+  },
+  "gitreins": {
+    "task_id": "TR-350",
+    "verdict_id": "9c458449",
+    "verdict_path": ".gitreins/history/2026-11-03/9c458449/verdict.json",
+    "judged_commit": "05070db5600e406120fe4773008817bb67efb459",
+    "passed": true,
+    "tier2": "skipped by --force --skip-tier2; focused acceptance and exact artifact readback supplied"
+  },
+  "trace": "ch:trace row=TR-350 spec=board-row-TR-350 test=tests/test_routing_quality_corpus.py evidence=pytest-pass witness=foreman-verify verdict=gitreins-TR-350",
+  "ci": {
+    "head": "05070db5600e406120fe4773008817bb67efb459",
+    "status": "in_progress",
+    "created_at": "2026-11-03T04:46:00Z"
+  }
+}

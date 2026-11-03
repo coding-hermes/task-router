@@ -1,0 +1,18 @@
+{
+  "scheduler_tick": "task-router-foreman-2026-11-03-04-13-41",
+  "project": "task-router",
+  "selected_task": "TR-350",
+  "wave_size": 1,
+  "workers": [],
+  "worktrees": [],
+  "landed": [
+    "05070db5600e406120fe4773008817bb67efb459"
+  ],
+  "status": "closed",
+  "sha_roles": {
+    "source_sha": "6b408eb57839829b83a678be95893ddf34670fde",
+    "verified_code_commit": "05070db5600e406120fe4773008817bb67efb459",
+    "gitreins_judged_commit": "05070db5600e406120fe4773008817bb67efb459"
+  },
+  "ci": "pending: exact-head main workflow run created 2026-11-03T04:46:00Z"
+}
