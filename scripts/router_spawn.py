@@ -180,6 +180,54 @@ if _state_dir_mod is not None:
 else:
     MR = os.environ.get('ROUTER_STATE_DIR', os.path.expanduser('~/.hermes/model-router'))
 
+
+def _canonical_quota_state_path():
+    """Return the CLI data-home spelling of quota-state.json."""
+    home = os.environ.get('TASK_ROUTER_HOME')
+    if home:
+        data_home = os.path.abspath(os.path.expanduser(home))
+    else:
+        xdg = os.environ.get('XDG_DATA_HOME')
+        if xdg:
+            data_home = os.path.join(os.path.abspath(os.path.expanduser(xdg)),
+                                     'task-router')
+        else:
+            data_home = os.path.join(os.path.expanduser('~'), '.local',
+                                     'share', 'task-router')
+    return os.path.join(data_home, 'quota-state.json')
+
+
+_QUOTA_DIVERGENCE_WARNED = False
+
+
+def _warn_if_quota_paths_diverge():
+    """Warn once when spawn reads a stale policy from a non-canonical path."""
+    global _QUOTA_DIVERGENCE_WARNED
+    if _QUOTA_DIVERGENCE_WARNED:
+        return False
+    read_path = os.path.join(MR, 'quota-state.json')
+    canonical_path = _canonical_quota_state_path()
+    if os.path.abspath(read_path) == os.path.abspath(canonical_path):
+        return False
+    try:
+        stat = os.stat(read_path)
+        age_days = max(0.0, time.time() - stat.st_mtime) / 86400.0
+    except OSError:
+        return False
+    if age_days <= 7.0:
+        return False
+    _QUOTA_DIVERGENCE_WARNED = True
+    _err(
+        'WARNING: quota-state paths diverge: spawn read '
+        f'{read_path} (mtime={datetime.datetime.fromtimestamp(stat.st_mtime, datetime.timezone.utc).isoformat()}, '
+        f'age_days={age_days:.2f}) while the canonical CLI path is '
+        f'{canonical_path}; unify ROUTER_STATE_DIR before changing gates.',
+        force=True)
+    return True
+
+
+_warn_if_quota_paths_diverge()
+
 # ---------------------------------------------------------------------------
 # TR-277: the runtime data cache. Registry + tables are parsed ONCE per file
 # identity (mtime_ns, size, inode) and re-parsed only after a real change —

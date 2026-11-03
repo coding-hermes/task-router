@@ -319,18 +319,13 @@ def _home_env_exports() -> dict:
             "ROUTER_STATE_DIR": state_dir,
         },
         "quota": {
-            # DELIBERATELY EMPTY (TR-060). router_quota.py is the WRITER that
-            # puts a plan-window gate where the RESOLVER reads it, and the
-            # fleet's spawn path invokes scripts/router_spawn.py directly
-            # (~/.hermes/scripts/router_spawn.py, no ROUTER_STATE_DIR in the
-            # tick env) — so it reads the SCRIPT default
-            # (~/.hermes/model-router/quota-state.json). Exporting the data
-            # home here (as `circuit` does) would make `router quota set`
-            # write a gate into the data-home bootstrap sample that the
-            # scheduler never consults: a silent no-op for the exact feature
-            # it implements. `router quota` therefore resolves the same file
-            # as the spawn path by default; --state-file/--state-dir target
-            # anything else explicitly.
+            # TR-REV2-20261027-01: quota and spawn must share the same
+            # quota-state.json by default. Previously quota used the script
+            # default (~/.hermes/model-router) while spawn received the CLI
+            # data-home override (~/.local/share/task-router), so quota gates
+            # were silently ignored by spawn. Honor an explicit operator
+            # ROUTER_STATE_DIR via the already-resolved state_dir.
+            "ROUTER_STATE_DIR": state_dir,
         },
         "ledger": {
             "LEDGER_FILE": paths.ledger_path(),

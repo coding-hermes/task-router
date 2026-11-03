@@ -79,12 +79,9 @@ def health_state_path():
 def quota_state_path():
     """Path to quota-state.json inside the data home (TR-060).
 
-    The LIVE plan-window gate file is read/written by scripts/router_spawn.py
-    and scripts/router_quota.py, which resolve ``ROUTER_STATE_DIR`` with the
-    SCRIPT default ``~/.hermes/model-router`` (that is what the scheduler's
-    direct spawn invocation reads). This helper is the data-home spelling of
-    the same filename, used by the CLI's first-run bootstrap and by callers
-    that deliberately target the data home — see the `quota` comment in
-    task_router.cli for why ``router quota`` does NOT export it.
+    The CLI exports one ``ROUTER_STATE_DIR`` to both scripts/router_spawn.py
+    and scripts/router_quota.py, so the operator-facing commands read and
+    write the same policy file. Direct scheduler script invocations continue
+    to use the shared state-dir resolver in scripts/state_dir.py.
     """
     return os.path.join(resolve_data_home(), "quota-state.json")

@@ -614,13 +614,17 @@ def test_status_shows_the_plan_gate(tmp_path):
         f"stdout:\n{text.stdout[-1200:]}\nstderr:\n{text.stderr[-600:]}")
 
 
-def test_cli_dispatch_does_not_redirect_the_quota_state_dir(tmp_path, monkeypatch):
-    """`router quota` must keep the SPAWN default state dir (see cli.py): the
-    scheduler invokes the script directly, so a data-home redirect would write
-    a gate the fleet never reads."""
+def test_cli_dispatch_uses_the_same_quota_state_dir_as_spawn(tmp_path, monkeypatch):
+    """`router quota` and `router spawn` must share the CLI state directory.
+
+    The CLI's direct script path is the operator-facing path for both commands;
+    exporting the same ROUTER_STATE_DIR prevents a gate write from becoming a
+    silent no-op for the resolver.
+    """
     from task_router import cli
     monkeypatch.setenv('TASK_ROUTER_HOME', str(tmp_path / 'dh'))
-    assert cli._home_env_exports()['quota'] == {}
+    assert cli._home_env_exports()['quota']['ROUTER_STATE_DIR'] == str(tmp_path / 'dh')
+
     state = tmp_path / 'sdir'
     state.mkdir()
     monkeypatch.setenv('ROUTER_STATE_DIR', str(state))
@@ -628,10 +632,99 @@ def test_cli_dispatch_does_not_redirect_the_quota_state_dir(tmp_path, monkeypatc
     assert rc == 0
     doc = json.load(open(state / 'quota-state.json'))
     assert doc['quota_exhausted']['zai-glm']['status'] == 'gated'
-    # the data-home bootstrap sample the CLI may have created holds NO gate —
-    # proof the write went to the state dir the RESOLVER reads, not the wrapper's
-    dh_file = tmp_path / 'dh' / 'quota-state.json'
-    assert not dh_file.exists() or 'quota_exhausted' not in json.load(open(dh_file))
+    assert cli._home_env_exports()['quota']['ROUTER_STATE_DIR'] == str(state)
+
+
+def test_cli_default_quota_and_spawn_paths_match(tmp_path):
+    """With no path overrides, quota status and spawn report one policy file."""
+    home = tmp_path / 'home'
+    home.mkdir()
+    stripped = ('TASK_ROUTER_HOME', 'XDG_DATA_HOME', 'ROUTING_REGISTRY',
+                'ROUTING_DATA_DIR', 'ROUTING_DOCS_DIR', 'ROUTER_STATE_DIR',
+                'LEDGER_FILE')
+    env = {k: v for k, v in os.environ.items() if k not in stripped}
+    env['HOME'] = str(home)
+    env['PYTHONPATH'] = REPO + os.pathsep + os.environ.get('PYTHONPATH', '')
+    entry = ("import sys; sys.argv = ['router'] + sys.argv[1:]; "
+             "from task_router.cli import main; sys.exit(main())")
+    def run(args):
+        return subprocess.run([sys.executable, '-c', entry, *args],
+                              capture_output=True, text=True, env=env, timeout=120)
+    quota = run(['quota', 'status', '--json'])
+    spawn = run(['spawn', '9router', '--format', 'json'])
+    assert quota.returncode == 0, quota.stderr
+    assert spawn.returncode == 0, spawn.stderr
+    qpath = json.loads(quota.stdout)['state_file']
+    spath = json.loads(spawn.stdout)['quota_gates']['source']
+    assert qpath == spath
+
+
+def test_cli_quota_set_changes_spawn_head_without_state_dir(tmp_path):
+    """The operator recipe works without repeating the state-dir flag."""
+    home = tmp_path / 'home'
+    home.mkdir()
+    registry = _write_registry(home)
+    (home / 'registry.json').write_text(open(registry).read())
+    env = dict(os.environ)
+    for key in ('TASK_ROUTER_HOME', 'XDG_DATA_HOME', 'ROUTER_STATE_DIR',
+                'ROUTING_REGISTRY', 'ROUTING_DATA_DIR', 'ROUTING_DOCS_DIR',
+                'LEDGER_FILE'):
+        env.pop(key, None)
+    env.update(HOME=str(tmp_path / 'real-home'), TASK_ROUTER_HOME=str(home),
+               PYTHONPATH=REPO)
+    entry = ("import sys; sys.argv = ['router'] + sys.argv[1:]; "
+             "from task_router.cli import main; sys.exit(main())")
+
+    def run(*args):
+        return subprocess.run([sys.executable, '-c', entry, *args],
+                              capture_output=True, text=True, env=env,
+                              timeout=SEED_TIMEOUT)
+
+    before = run('spawn', 'demo', '--format', 'json')
+    assert before.returncode == 0, before.stderr
+    before_doc = json.loads(before.stdout)
+    assert before_doc['head']['provider'] == 'zai-glm'
+
+    gated = run('quota', 'set', 'zai-glm', 'operator test gate',
+                _utc(8), '--json')
+    assert gated.returncode == 0, gated.stderr
+    assert (home / 'quota-state.json').is_file()
+
+    after = run('spawn', 'demo', '--format', 'json')
+    assert after.returncode == 0, after.stderr
+    after_doc = json.loads(after.stdout)
+    assert after_doc['head']['provider'] == 'openai-codex'
+    assert after_doc['quota_gates']['source'] == str(home / 'quota-state.json')
+
+
+def test_spawn_warns_once_when_it_reads_a_stale_divergent_quota_file(tmp_path):
+    """Direct script callers get an actionable warning for the legacy split."""
+    state = tmp_path / 'legacy-state'
+    state.mkdir()
+    quota_path = state / 'quota-state.json'
+    quota_path.write_text(json.dumps({'providers': dict(OPEN_PROVIDERS)}))
+    old = time.time() - (8 * 86400)
+    os.utime(quota_path, (old, old))
+    canonical = tmp_path / 'canonical-home'
+    canonical.mkdir()
+    env = dict(os.environ)
+    for key in ('ROUTER_STATE_DIR', 'TASK_ROUTER_HOME', 'XDG_DATA_HOME',
+                'ROUTING_REGISTRY', 'ROUTING_DATA_DIR'):
+        env.pop(key, None)
+    env.update(ROUTER_STATE_DIR=str(state), TASK_ROUTER_HOME=str(canonical),
+               ROUTING_REGISTRY=_write_registry(tmp_path),
+               ROUTING_DATA_DIR=str(tmp_path / 'data'), PYTHONPATH=REPO)
+    proc = subprocess.run(
+        [sys.executable, os.path.join(SCRIPTS, 'router_spawn.py'),
+         'demo', '--format', 'json'], capture_output=True, text=True,
+        env=env, timeout=SEED_TIMEOUT)
+    assert proc.returncode == 0, proc.stderr
+    warning = [line for line in proc.stderr.splitlines()
+               if 'quota-state paths diverge' in line]
+    assert len(warning) == 1
+    assert str(quota_path) in warning[0]
+    assert str(canonical / 'quota-state.json') in warning[0]
+    assert 'age_days=' in warning[0]
 
 
 # ------------------------------------------------- TR-095: the flake class ---
