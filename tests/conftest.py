@@ -53,6 +53,27 @@ os.environ.setdefault(
                  'tr357-demotions-%d' % os.getpid(),
                  'demotions.jsonl'))
 
+# TR-117: the outcome LEDGER and the rolling-averages table are runtime state
+# too. Measured 2026-11-03: proxy-driving tests that drive proxy_chat without
+# their own store appended fixture rows (provider 'p1'/'m1', profile_id 'P1',
+# complexity_source 'declared') straight into data/state/outcomes.jsonl — 664
+# 'profile:P1' rows and p1/m1 buckets that then feed the live rolling averages
+# the resolve sort consumes. Same TR-344 rule as the two defaults above: the
+# suite must grade the tree, not write into it. Default both files to a
+# throwaway session path; every test that needs a specific store already sets
+# its own ROUTING_OUTCOMES_FILE / ROUTING_AVERAGES_FILE (tmp_path pattern),
+# and the TR-049/TR-191 isolation batteries pin theirs per case.
+os.environ.setdefault(
+    'ROUTING_OUTCOMES_FILE',
+    os.path.join(os.environ.get('TMPDIR') or '/tmp',
+                 'tr117-store-%d' % os.getpid(),
+                 'outcomes.jsonl'))
+os.environ.setdefault(
+    'ROUTING_AVERAGES_FILE',
+    os.path.join(os.environ.get('TMPDIR') or '/tmp',
+                 'tr117-store-%d' % os.getpid(),
+                 'outcomes-averages.jsonl'))
+
 
 #: duckdb seed budget. 11s idle measured -> ~55x margin even at heavy load.
 SEED_TIMEOUT = 600

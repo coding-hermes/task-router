@@ -4344,11 +4344,30 @@ def _demote_on_taxonomy(provider: Any, model: Any, code: Any, detail: str='') ->
                 # reset (the hourly probe's calibration is the authority that
                 # clears it early).
                 import router_quota
+                # TR-117: resolve the state dir at CALL time. The circuit
+                # write above is a SUBPROCESS (it inherits os.environ), but
+                # this quota write is in-process and router_quota snapshots
+                # ROUTER_STATE_DIR at import — so a caller that steered the
+                # env after import (an isolation battery, measured 2026-11-03:
+                # the TR-191 battery gated 'tr191-rl429' into the LIVE
+                # ~/.hermes/model-router/quota-state.json) wrote the live
+                # gate file while its circuit state went to tmp. Resolving
+                # here makes the in-process write steer with the same env
+                # the subprocess inherits; production resolves identically
+                # (the env is set before any import).
+                try:
+                    import state_dir as _sd_mod
+                    _quota_dir = _sd_mod.resolve_state_dir(script_file=__file__)
+                except ImportError:  # live byte-copy not yet synced
+                    _quota_dir = os.environ.get(
+                        'ROUTER_STATE_DIR',
+                        os.path.expanduser('~/.hermes/model-router'))
                 router_quota.quota_set(
                     _p, f'TR-288 in-flight: {code} {detail}'[:200],
                     _stated_reset or
                     (datetime.datetime.now(datetime.UTC)
-                     + datetime.timedelta(seconds=86400)).isoformat(timespec='seconds'))
+                     + datetime.timedelta(seconds=86400)).isoformat(timespec='seconds'),
+                    state_dir_arg=_quota_dir)
         else:
             fclass = {'429-capacity': 'quota_window',
                       '404-405-route': 'api_down'}.get(code, 'overload')

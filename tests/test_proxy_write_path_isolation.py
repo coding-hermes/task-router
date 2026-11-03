@@ -34,8 +34,12 @@ import router_server as rsrv   # noqa: E402
 
 LIVE_DIR = os.path.expanduser('~/.hermes/model-router')
 #: every file the proxy write path could legitimately touch live. Absent files
-#: are reported as absent — never silently skipped.
-LIVE_FILES = ('circuit-state.json', 'health-state.json')
+#: are reported as absent — never silently skipped. quota-state.json joined
+#: after TR-117: the TR-288 in-flight demotion writes it IN-PROCESS (the
+#: circuit arm goes through a subprocess), and the battery was measured
+#: (2026-11-03) gating 'tr191-rl429' into the LIVE file while its circuit
+#: assertions passed — a file the write path can touch but nobody bracketed.
+LIVE_FILES = ('circuit-state.json', 'health-state.json', 'quota-state.json')
 
 PRICE_BLENDED = 'public blended (usd_1m)'
 PRICE_NO_USAGE = 'no usage block; price not applied'
