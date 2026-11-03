@@ -1378,3 +1378,27 @@ tasks:
   status: complete
   created_at: '2026-11-03T03:26:00.609290+00:00'
   completed_at: '2026-11-03T03:27:36.729629+00:00'
+- id: TR-350
+  title: routing-quality regression corpus
+  criteria:
+  - 20+ fixed cases mapping task profile to expected eligible set or refusal; runner
+    exits non-zero on any miss; baseline rate recorded from a live run; every printed
+    rate names its denominator; new test file tests/test_routing_quality_corpus.py
+    (or equivalent) pins the corpus and passes on the merged tree.
+  status: complete
+  created_at: '2026-11-03T04:17:50.789518+00:00'
+  completed_at: '2026-11-03T04:51:37.600903+00:00'
+- id: TR-350-R1
+  title: 'TR-350 closeout verification: replayable evidence binding for the completion
+    flip'
+  criteria:
+  - 'PASS: the TR-350 completion flip in the pushed range carries a CI-run-form evidence
+    binding that resolves in BOTH local and CI-mode replay: python3 scripts/board_commit_boundary_gate.py
+    --base 05070db --head HEAD exits 0; python3 scripts/evidence_replay.py --base
+    05070db --head HEAD exits 0 printing ''0 failure(s)'' or an OK line; TR251_CI_MODE=1
+    python3 scripts/evidence_replay.py --base 05070db --head HEAD exits 0 likewise
+    (verdict-form ids are refused loudly in CI mode, so the row must bind run 41580009272,
+    the completed-success CI run for the graded implementation commit 05070db).'
+  status: complete
+  created_at: '2026-11-03T05:46:21.490647+00:00'
+  completed_at: '2026-11-03T05:52:23.386228+00:00'
