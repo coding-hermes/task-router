@@ -1,14 +1,14 @@
 # SPEC-REDIS-READ-PLANE — a Redis read plane over the JSONL registry
 
-Status: **v0.2 (2026-11-04) — quorum-reviewed. Implementation authority, subject to R55's
-measurement gate.**
+Status: **v0.3 (2026-11-04) — two quorum rounds merged. Implementation authority, subject to the
+R52 measurement gate. v0.3 has NOT yet been re-judged (round 3 owed with implementation).**
 Board row: TR-388 (P1) · Owner directive: Bane, 2026-11-04
-Quorum evidence: `docs/reviews/TR-388-quorum-2026-11-04.md` (4 seats, 4 model families)
-Interacts with: TR-277 (`scripts/router_data_cache.py`), TR-046 (`source` provenance),
-TR-005 (`router_maintain.py`), TR-048/runtime-sync rules, AGENTS.md fail-open rule.
+Quorum: `docs/reviews/TR-388-quorum-2026-11-04.md` (round 1) and §15 below (round 2)
+Interacts with: TR-277 (`router_data_cache.py`), TR-046 (`source` provenance), TR-288
+(runtime-sync copy list), TR-005 (`router_maintain.py`), AGENTS.md fail-open rule.
 
-Normative statements **R1…R64**. Changed-from-v0.1 statements carry a `(FIX Cn)` tag naming the
-quorum claim that forced the change; the disposition appendix (§14) is the receipt.
+Normative statements **R1…R57**. A statement marked `(FIX …)` was forced by a specific quorum
+finding; §14 and §15 are the receipts. Cross-references are into this document only.
 
 ---
 
@@ -16,370 +16,414 @@ quorum claim that forced the change; the disposition appendix (§14) is the rece
 
 | fact | measured 2026-11-04 (coordinator, this host) |
 |---|---|
-| `registry.json` | 4,792 KB, 12 tables |
+| `registry.json` | 4,792 KB, **12** tables (the 12 already include `fallback_lanes`) |
 | biggest tables | models 2,064 · model_perf 3,944 · model_tier 3,896 · benchmarks 2,148 · projects 950 |
-| parse `registry.json`, 100 runs | **mean 49.0 ms, p50 45.1, min 33.3, max 180.2** (the v0.1 "~40 ms" was a single warm sample; a seat's 27.6 ms is not reproducible here) |
+| parse `registry.json`, 100 runs | mean 49.0 ms, p50 45.1, min 33.3, max 180.2 |
 | cold `router_spawn.py <project> --format json` | 0.28–0.39 s wall, ~73 MB RSS |
-| `data/tables/` | **31** JSONL files — only 12 are seed-derived artifact tables (+`fallback_lanes` sidecar) |
+| `data/tables/` | **31** JSONL files; 12 are seed-derived artifact tables, 19 are not |
 | in-process cache | TR-277: read-once per file identity, change-driven, single-flight, no TTL (AC0–AC6) |
-| chain build | `DEFAULT_CHAIN_LIMIT = 1024` lanes (`router_spawn.py:85`), a **scan** with a per-lane price read — not a point lookup |
+| chain build | `DEFAULT_CHAIN_LIMIT = 1024` lanes (`router_spawn.py:85`); filters/sorts on plan_tier, price×token_factor, context_limit, lifecycle |
+| worst-case profile | P0_FORE = 17 required categories (`task_profile_requirements.jsonl`), and P0_FORE is `DEFAULT_FALLBACK_PROFILE` (`router_spawn.py:93`) |
 
-**R1.** TR-277 already removes repeated parsing *inside* a process. It cannot remove the cold
-start: the dominant caller is a fresh `router_spawn.py` process per tick/probe/CLI call.
+**R1.** TR-277 already removes repeated parsing inside a process. It cannot remove the cold start:
+the dominant caller is a fresh `router_spawn.py` process per tick/probe/CLI call.
 
-**R2. (FIX C14) The value claim is bounded and must be measured, not asserted.** The read plane
-can remove at most the registry read+parse from a cold spawn (~45 ms of a ~300 ms wall, ≈15 %)
-and can serve single-fact questions in O(1). It **cannot** make the chain build cheaper by
-naive per-lane reads: a 1,024-lane loop over Redis round trips is a regression against a table
-already resident in memory. Therefore R37 (round-trip budget) and R56 (floor measurement) are
-part of the design, not a footnote.
+**R2.** The value claim is bounded and measured, not asserted: at most the registry read+parse
+(~45 ms of ~300 ms wall) plus O(1) single-fact answers. The chain build cannot be made cheaper by
+per-lane reads against a table already resident in memory — R36 fixes the read shape and R37 pins
+the budget that proves it.
 
-**R3.** The value does not come from caching JSON parsing inside a long-lived process (TR-277
-does that) and must not be sold that way in docs, board events, or memory.
+**R3.** The value does not come from caching JSON parsing inside a long-lived process (TR-277 does
+that) and must not be sold that way in docs, board events, or memory.
 
 ## 2. Boundary
 
 **R4.** `data/tables/*.jsonl` is the only source of truth; `registry.json` is the seed's build
 artifact. Redis holds a derived, disposable projection.
 
-**R5.** No write path, quota/circuit state, outcome stats, ledger, chain snapshot, or derived
-drift ever moves from Redis back to JSONL. `router_spawn.py` gains no write verb against the
-cache or the registry (its existing `data/metrics.jsonl` append is out of scope and stays).
+**R5.** No write path, quota/circuit state, outcome stats, ledger, chain snapshot, or derived drift
+moves from Redis back to JSONL. `router_spawn.py` gains no write verb against the cache or the
+registry (its existing `data/metrics.jsonl` append is out of scope and asserted as the only write).
 
-**R6.** Losing Redis (deleted container, reboot, `FLUSHALL`) is a non-event: the router serves
-from `registry.json`/`data/tables` and the next `load` rebuilds. No Redis key is the only copy
-of any fact.
+**R6.** Losing Redis (deleted container, reboot, `FLUSHALL`) is a non-event: the router serves from
+`registry.json`/`data/tables` and the next `load` rebuilds. No Redis key is the only copy of any fact.
 
-**R7.** No locks, leader election, queueing, or rate limiting in Redis. (One exception, scoped:
-the publish CAS in R25 is a Redis-side compare-and-set on our own meta key — it coordinates
-*publishers of this cache only*, never fleet scheduling.)
+**R7.** No locks, leader election, queueing, or rate limiting in Redis. One scoped exception: the
+publish CAS (R20) coordinates *publishers of this cache*, never fleet scheduling.
 
-**R8. (FIX C5/C16) Namespace by data home.** Every key carries a data-home scope derived from
-the resolved `DATA_DIR` realpath (`<scope>` = first 12 hex of `sha256(realpath(DATA_DIR))`), and
-every stamp records `data_home`, `checkout` (git toplevel + HEAD), and `schema`. Two checkouts,
-a scratch `ROUTING_DATA_DIR`, or a worktree therefore cannot read or publish each other's
-plane: scratch runs get their own scope and are invisible to production.
+**R8. (FIX C16, A3) Data-home scope, its identity, and its lifecycle.**
+
+- `<scope>` = first 12 hex of `sha256(realpath(DATA_DIR) + "|" + realpath(REGISTRY))`. Both paths
+  matter: `ROUTING_REGISTRY` and `ROUTING_DATA_DIR` resolve independently (`registry_path.py:89`),
+  so keying on one of them lets a hermetic run publish into the production plane.
+- Every load/status refreshes `<scope>:meta:heartbeat` with `EXPIRE ROUTING_REDIS_SCOPE_TTL_S`
+  (default 7 d). `load` deletes the keys of scopes whose heartbeat has expired.
+- `status --json` reports `scopes_live`, `dbsize`, `used_memory_human` — capacity drift is a number,
+  not a later `noeviction` surprise.
+- A publisher whose `realpath(DATA_DIR)` is outside the repo git toplevel (scratch dirs, tests, CI)
+  refuses to publish unless `ROUTING_REDIS_ALLOW_SCRATCH=1`.
+- A reader whose scope has no keys gets `EMPTY` and serves from file; it can never see another
+  scope's plane.
 
 ## 3. Version identity
 
-**R9. (FIX C4) Hash with multiplicity, over an explicit table set.**
+**R9. (FIX C4, A8) Hash with multiplicity over an explicitly enumerated table set.**
 
-- Cached table set = the 12 artifact tables + `fallback_lanes` = **13** named tables. The other
-  18 JSONL files in `data/tables` are out of scope and MUST be listed as out of scope in the
-  stamp (`not_cached: [...]`) so nobody assumes the hash covers them.
-- Per table: read the file, drop blank lines, strip trailing whitespace, then take the **sorted
-  list** of line strings *preserving duplicates* and `sha256("\n".join(sorted_lines))`. A set
-  would collapse duplicates; `model_notes.jsonl` already carries 3 duplicate raw lines today,
-  so a multiplicity-blind hash is a demonstrated silent-miss class.
-- Aggregate: `sha256("\n".join(f"{name}:{hash}:{count}" for name in sorted(tables)))` — the row
-  count is an input, so a duplicate add/remove moves the hash twice over.
-- Stamps: same object written in three places — computed from JSONL (`status`, `load`), inside
-  `registry.json` as `stamp` (seed), and in Redis at `<scope>:meta:version`.
+- **Cached table set = exactly these 12 tables:** `providers`, `models`, `archetypes`,
+  `benchmarks`, `projects`, `level_defs`, `category_levels`, `model_perf`, `model_tier`,
+  `task_profiles`, `task_profile_requirements`, `fallback_lanes`. (The seed writes exactly these
+  twelve files; `fallback_lanes` is folded into `doc['tables']` as a sidecar, so "12 + sidecar = 13"
+  double-counted it. v0.2's arithmetic was wrong; this is the list.)
+- `not_cached` = every other `data/tables/*.jsonl` file (19 today), **computed from the directory
+  listing minus the 12 names at every run** — never hand-maintained.
+- Per table: drop blank lines, strip trailing whitespace, take the sorted **list** of line strings
+  *preserving duplicates*, `sha256("\n".join(sorted_lines))`. A set would collapse duplicates;
+  `model_notes.jsonl` already carries 3 duplicate raw lines, so a multiplicity-blind hash is a
+  demonstrated miss class.
+- Aggregate: `sha256("\n".join(f"{name}:{hash}:{count}" for name in sorted(tables)))`.
+- Stamp fields: `{jsonl_hash, tables, row_counts, not_cached, schema, generation, created_at,
+  data_home, registry_path, checkout}` where `created_at` is unix seconds and `generation` is the
+  Redis generation it describes (`created_at` is what R13 reports and R30 compares — v0.2 specified
+  neither field and its age check was therefore unimplementable).
+- **Stamp equality compares `{tables, row_counts, schema}` only.** `not_cached` is *reported*, not
+  compared — dropping an unrelated 32nd file into `data/tables` must not force a republish.
 
-**R10. (FIX C5/C8) Publish reads ONCE.** `load` parses the JSONL into memory, hashes *that
-in-memory set*, and publishes *that same in-memory set*. There is no re-read window, so the
-v0.1 before/after-hash TOCTOU dance (and its A→B→A blind spot) is deleted outright. If a seed
-rewrites the tables mid-publish, the publish is internally consistent and simply carries an
-older stamp — the next `load --if-stale` corrects it.
+**R10.** Publish reads ONCE: `load` parses the JSONL into memory, hashes *that in-memory set*, and
+publishes *that same set*. No re-read window, therefore no TOCTOU (and no A→B→A blind spot).
 
-**R11. (FIX C5) States are exhaustive and machine-readable.** `status` prints exactly one:
+## 4. States
+
+**R11. (FIX C5, A5)** `status` prints exactly one state:
 
 | state | condition | exit |
 |---|---|---|
-| `MATCH` | JSONL stamp == artifact stamp == cache stamp, and the pointer's generation is present | 0 |
-| `STALE` | stamps disagree; message names the drift class (`artifact-behind`, `cache-behind`, `cache-ahead` — a git rollback is a real case) and the drifted tables | 1 |
-| `EMPTY` | pointer absent (never loaded, flushed, restarted empty) | 2 |
+| `MATCH` | stamp equality (R9) + pointer's generation present | 0 |
+| `STALE` | stamps disagree; names the drift class (`artifact-behind`, `cache-behind`, `cache-ahead`) and the drifted tables | 1 |
+| `EMPTY` | pointer absent (never loaded / flushed / restarted empty) | 2 |
 | `UNREACHABLE` | connect/auth/protocol failure | 3 |
-| `GHOST` | pointer present but its generation's keys are gone (partial GC, manual `DEL`, `maxmemory`) | 4 |
-| `FOREIGN` | reachable instance whose `run_id` differs **and** which holds keys without our owner key | 5 |
-| `SCHEMA-AHEAD` | cache stamp `schema` > this reader's schema | 6 |
-| `UNSTAMPED` | `registry.json` carries no `stamp` (today's artifact — measured: no `stamp` key); compare JSONL↔cache only and report the artifact leg as degraded | 0 if JSONL↔cache agree, else 1 |
+| `GHOST` | pointer present, its generation's keys gone (partial GC, manual `DEL`, eviction) | 4 |
+| `FOREIGN` | reachable, `run_id` differs, keys present without our owner key | 5 |
+| `SCHEMA-AHEAD` | cache `schema` > reader's schema | 6 |
+| `UNSTAMPED` | `registry.json` carries no `stamp` (today's artifact); compare JSONL↔cache only and report the artifact leg degraded; `cache_verified=false` | 0 if JSONL↔cache agree, else 1 |
 
-**R12.** `status` never mutates, and is safe to run during a publish: a publish-in-progress is
-reported as `STALE (cache-behind, in-flight)` with exit 1 only when the publish is older than
-`ROUTING_REDIS_PUBLISH_STALE_S` (default 120). A live publish must not alarm.
+`cache-ahead` is undetectable while `UNSTAMPED` — stated, not hidden. After **7 consecutive days**
+in `UNSTAMPED`, `status` prints one line naming the missing artifact stamp so the degraded leg
+cannot persist silently forever.
+
+**R12. (FIX F2) In-flight is a real fact, not a guess.** The publisher writes
+`<scope>:meta:publishing` = `{gen, started_at, pid, host}` before its write pass and deletes it after
+the CAS. `status` reports `STALE (cache-behind, in-flight)` — quiet, exit 1 only when the intent key
+is older than `ROUTING_REDIS_PUBLISH_STALE_S` (default 120 s) or its pid is gone on this host.
+`status` itself never mutates.
 
 **R13.** `status --json` carries all three stamps, `state`, `drift_class`, `drifted_tables`,
-per-table counts, ages, `data_home`, `checkout`, and `generation`.
+per-table counts, `created_at` ages, `data_home`, `registry_path`, `checkout`, `generation`,
+`orphans`, `scopes_live`, `dbsize`, `used_memory_human`.
 
-**R14.** Exit codes are the cron contract: silent on `MATCH`, one actionable line otherwise
-(the shape of `~/.hermes/scripts/router-averages-refresh.sh`), **plus** a post-success age gate
-— a cache whose stamp has not advanced in 7 days prints a line even while `MATCH`.
+**R14. (FIX A6) The cron contract has teeth.** Silent on `MATCH`; one actionable line otherwise
+(the `router-averages-refresh.sh` shape). Additionally: an alarm line when the cache `created_at`
+is older than **2 × `ROUTING_REDIS_MAX_AGE_S`** (30 min) and when `redis-health.json` has not been
+refreshed for 10 minutes while `ROUTING_REDIS != 0` — a correct-but-stale cache and a dead recovery
+agent are both loud.
 
-## 4. Diff reporting
+## 5. Diff reporting
 
-**R15. (FIX C6) Diff keys are the real columns.** Declared once, in code and here:
+**R15. (FIX C6, F3) Diff keys are the real columns, for every cached table.**
 
 | table | key |
 |---|---|
 | models | `(provider, model)` |
-| providers | `(id)` |
-| model_perf | `(model, category)` — **there is no `provider` column** (measured: 5 cols) |
-| model_tier | `(model, category)` — measured: 6 cols, no `provider` |
+| providers | `id` |
+| archetypes | `id` |
+| benchmarks | `(model, category, source)` |
+| level_defs | `level` |
+| model_perf | `(model, category)` — there is no `provider` column |
+| model_tier | `(model, category)` — no `provider` column |
 | category_levels | `(category, level)` |
 | task_profiles | `id` |
 | task_profile_requirements | `(task_id, category)` |
 | projects | `id` |
-| fallback_lanes | `(order)` — measured cols `{key_env, model, note, order, provider}`; no `project`/`position` |
+| fallback_lanes | `order` |
 
-**R16. (FIX C6) The diff compares like with like.** Redis stores the **full row** (models: all
-39 columns), so the diff compares full rows and never reports "every row changed" because of a
-projection mismatch.
+Uniqueness of every key was measured against the committed tables (0 duplicates for all twelve);
+a test re-asserts it, because a key that stops being unique silently mis-reports the diff.
+
+**R16.** The diff compares full rows (models: all 39 columns) against full rows — never a
+projection against a full row.
 
 **R17.** `status --diff` = `+added −removed ~changed` per table; `--detail N --table T` prints
-field-level deltas for up to N keys. Default `--diff` stays under one second.
+field-level deltas; default `--diff` under one second.
 
-**R18.** The diff never mutates and never decides reload: the hash decides (R9). The diff needs
-a comparable resident set, so it cannot be the trigger.
+**R18.** The diff never mutates and never decides reload — the hash decides (R9).
 
-## 5. Publish protocol
+## 6. Publish protocol
 
-**R19.** All data keys live under `<scope>:g<N>:…`; readers reach data only through the
-pointer `<scope>:meta:version`.
+**R19.** All data keys live under `<scope>:g<N>:…`; readers reach data only through
+`<scope>:meta:version`.
 
-**R20. (FIX C7) Publish is a compare-and-set, not a blind SET.**
+**R20. (FIX C7, A1) One connection, a fenced pointer, and orphan reclamation.**
 
-1. `gen = INCR <scope>:meta:generation`
-2. write every `<scope>:g<gen>:` key
-3. **`WATCH <scope>:meta:version` → if current generation > gen, abort (exit 4, GC own keys) →
-   `MULTI; SET <scope>:meta:version <stamp>; EXEC`** — the pointer can never regress, so two
-   publishers (seed + timer, or two checkouts in the same scope) cannot ping-pong.
-4. GC generations older than `gen-2` (keep the previous two).
+1. open **one dedicated connection** owned by the publisher for the whole publish (WATCH is
+   per-connection; a pooled or second connection makes the CAS vacuous);
+2. `gen = INCR <scope>:meta:generation`; write `<scope>:meta:publishing` (R12);
+3. write every `<scope>:g<gen>:…` key, including `<scope>:g<gen>:__ts` (unix seconds);
+4. `WATCH <scope>:meta:version` → read it → if its generation > `gen`, `UNWATCH` + `DISCARD`, delete
+   own keys, exit 4 → otherwise `MULTI; SET <scope>:meta:version <stamp>; EXEC` (the pointer can
+   never regress);
+5. delete `<scope>:meta:publishing`;
+6. reap: generations with `M ≤ pointer_generation - 2`, **and** orphans `M > pointer_generation`
+   whose `__ts` is older than `ROUTING_REDIS_PUBLISH_STALE_S` (a crashed publish's leftovers), are
+   deleted. Reaping runs in `load` — never in `status` — and its count is reported as `orphans`
+   in `status --json` and carried in the R23 record when nonzero.
 
-**R21. (FIX C7/C8) A reader that misses falls back for the WHOLE resolve.** If any key of the
-pinned generation is missing (GC'd under a pinned reader, restart, eviction), the reader
-**discards the Redis answer entirely** and re-resolves from the file backend. A resolve is
-never assembled from mixed generations.
+A publish whose process dies before step 4 leaves an orphan that the next `load` reaps; a quiescent
+system therefore cannot accumulate full-generation key sets inside a `noeviction` instance.
 
-**R22. (FIX C7) Idempotence.** `load --if-stale` hashes, compares with the cache stamp, and
-returns 0 without writing when they match. Safe to run every minute.
+**R21.** If any key of the pinned generation is missing, the reader discards the Redis answer **for
+the whole resolve** and re-resolves from the file backend. A resolve never mixes generations.
 
-**R23. (FIX C8) Failure is representable.** A failed or aborted publish appends one JSONL record
-to `data/state/redis-publish-errors.jsonl` (`ts`, `scope`, `gen`, `reason`, `tables`) and exits
-non-zero (4 = aborted by CAS, 5 = publish error). The seed stays fail-open (R24) but the failure
-is a record, not a log line: `status` reports `STALE`, and the record is how a repeated abort is
-counted.
+**R22. (FIX A6) Idempotence, refresh, and reap in one verb.** `load --if-stale`:
 
-**R24. Reload triggers.** (1) `router_seed.py` publishes in the same run after its write pass and
-prints the stamp; a publish failure leaves the seed exit 0 **and** writes the R23 record.
-(2) `router-redis-sync.timer` (5 min) runs `load --if-stale` as the drift-catcher. (3) Manual
-`router redis load [--force]`; `--force` refuses if the JSONL is unreadable.
+1. computes the JSONL stamp; if it differs from the cache stamp → full publish (R20);
+2. if it matches and `created_at` is older than `ROUTING_REDIS_MAX_AGE_S / 2` → republish the
+   *identical* data under a new generation solely to refresh `created_at`, so a living timer keeps a
+   correct-but-unchanged cache inside the reader's window instead of driving every reader to the
+   file arm at 900 s;
+3. if it matches and is fresh → reap orphans (step 6 of R20) and return 0 without publishing.
+
+**R23.** A failed or aborted publish appends one record to
+`data/state/redis-publish-errors.jsonl` (`ts`, `scope`, `gen`, `reason`, `tables`, `orphans`) and
+exits non-zero (4 = aborted by CAS, 5 = publish error). The seed stays fail-open (R24) but the
+failure is a record, never only a log line.
+
+**R24.** Triggers: (1) `router_seed.py` publishes in the same run and prints the stamp; a publish
+failure leaves the seed exit 0 **and** writes the R23 record. (2) `router-redis-sync.timer`
+(5 min) runs `load --if-stale` — it is also the recovery agent for R28. (3) `router redis load
+[--force]`; `--force` refuses if the JSONL is unreadable.
 
 **R25.** `flush --yes` requires the owner key to match this spec's owner id and touches only
-`<scope>:*` keys.
+`<scope>:*`.
 
-## 6. Read path and fail-open
+## 7. Read path and fail-open
 
-**R26. (FIX C3/C9) No process-lifetime TTL memo.** The pointer is resolved once per process and
-the generation pinned for that process's lifetime; freshness is not re-checked mid-process by a
-timer. A new generation is picked up by the next process (which is the dominant caller) and by
-the server on its next cache-generation boundary. This respects TR-277 AC1 ("no TTL in this
-module") instead of inventing a parallel TTL.
+**R26.** No process-lifetime TTL memo: the pointer is resolved once per process and pinned for that
+process's lifetime (TR-277 AC1 forbids a TTL in that module, and a parallel TTL here would be the
+same defect with a different name). New generations are picked up by the next process, which is the
+dominant caller.
 
-**R27.** Every Redis call carries a connect/read timeout (`ROUTING_REDIS_TIMEOUT_MS`,
-default **20 ms** — v0.1's 50 ms was never justified and this host is documented I/O-starved).
-A timeout is a miss, not an error.
+**R27.** Every Redis call carries `ROUTING_REDIS_TIMEOUT_MS` (default **20 ms**) connect/read; a
+timeout is a miss, never a surfaced error.
 
-**R28. (FIX C9) Health is cached out-of-process, so the latch problem disappears.** The read
-path consults `data/state/redis-health.json` (written by `status`/`load`/the timer:
-`{ok, checked_at, run_id}`). If `checked_at` is older than `ROUTING_REDIS_HEALTH_TTL_S` (60) or
-`ok` is false, the process goes straight to the file backend **without attempting a connection**.
-A cold process therefore pays zero extra latency while the cache is down — the v0.1 per-process
-latch could not do that.
+**R28. (FIX A2) The health file is written atomically, by writers only.** `data/state/redis-health.json`
+(`{ok, checked_at, run_id, scope}`):
 
-**R29.** Fallback order: Redis (healthy, fresh) → TR-277 cache / `registry.json` → `data/tables`
-→ empty tables + warning. `router_spawn.py` exits 0 with one warning line; never a traceback,
-never a non-zero exit, never a blocked spawn.
+- written **only** by `status`, `load`, and the timer — never by the read path (a read-path `-ERR`
+  must not take the plane down fleet-wide; that shared-fate failure was v0.2's);
+- written atomically (tmp + `os.replace`); a missing or unparseable file is `UNKNOWN`, and an
+  `UNKNOWN` reader makes **one** attempt under the R27 timeout rather than guessing;
+- `ok:false` means a cold process makes zero connection attempts;
+- recovery is owned: `status --json` (R14) alarms when the file has not been refreshed for 10 min
+  while `ROUTING_REDIS != 0`, so a dead timer cannot silently disable the plane forever.
 
-**R30. (FIX C9) Stale is bounded, not served indefinitely.** The reader compares the cache
-stamp's age to `ROUTING_REDIS_MAX_AGE_S` (default 900): within the window the cache is served
-(correctness is asserted by hash equality at load time); past it, the file backend wins and the
-warning names the age. Serving a 5-minute-old cache is a deliberate availability choice;
-serving an hour-old one is not.
+**R29.** Fallback order: Redis (healthy, fresh) → TR-277 cache / `registry.json` → `data/tables` →
+empty tables + warning. `router_spawn.py` exits 0 with one warning line: never a traceback, never a
+non-zero exit, never a blocked spawn.
 
-**R31.** Redis results equal file results by construction: one row-shaping code path publishes
-and reads, and the models hash carries all 39 columns (R16). No routing rule is re-implemented
-against Redis.
+**R30. (FIX A6) Stale is bounded.** The reader compares the cache stamp's `created_at` age with
+`ROUTING_REDIS_MAX_AGE_S` (900): inside the window the cache is served; past it the file backend
+wins and the warning names the age. R22's refresh keeps a live timer's cache inside the window
+without a content change.
 
-**R32. (FIX C9) The disable switch is the existing one:** `ROUTER_CACHE=0` (`false/no/off`
-alike) restores the pre-TR-277 read-per-call path; `ROUTING_REDIS=0` disables only the Redis arm.
-Parity is asserted functionally, not "byte-identically" — every resolve carries `resolved_at`
-and appends metrics, so byte-identity was never achievable (v0.1 was wrong).
+**R31.** Redis results equal file results by construction: one row-shaping path publishes and reads,
+the models hash carries all 39 columns, and the category hashes carry every column the chain build
+filters or sorts on (R34). No routing rule is re-implemented against Redis.
 
-## 7. Key schema and access patterns
+**R32.** Disable switches: `ROUTER_CACHE=0` (`false/no/off`) restores the pre-TR-277 read-per-call
+path; `ROUTING_REDIS=0` disables only the Redis arm. `ROUTING_REDIS=redis` is the shipped default
+**only if the R52 gate passes**; otherwise `file` is the default and the row says why. Parity is
+functional, not byte-identical (every resolve carries `resolved_at` and appends metrics).
 
-**R33. (FIX C14) Two shapes, two access patterns, explicit.**
+## 8. Key schema and access patterns
 
-*Point lookups* (single-fact questions, `/v1` one-model queries):
+**R33. Point lookups** (single-fact questions):
 
 | key | type | contents |
 |---|---|---|
-| `<scope>:g<N>:model:<provider>/<model>` | hash | **all 39 model columns** |
-| `<scope>:g<N>:provider:<id>` | hash | all provider columns (incl. `plan`, the PAYG marker `_stamp_payg_providers` needs) |
+| `<scope>:g<N>:model:<provider>/<model>` | hash | all 39 model columns |
+| `<scope>:g<N>:provider:<id>` | hash | all provider columns (incl. `plan`) |
 | `<scope>:g<N>:project:<id>` | hash | `profile`, `sensitivity`, `board_type` |
 | `<scope>:g<N>:profile:<id>` | hash | title/tag/version/caps |
 | `<scope>:g<N>:profile:<id>:req` | hash | `category → level` |
-| `<scope>:g<N>:leveldef:<level>` | hash | `lo`, `hi` (the `level_defs` rows the tier math reads) |
-
-*Category scans* (the chain build and eligibility):
-
-| key | type | contents |
-|---|---|---|
-| `<scope>:g<N>:cat:<category>` | hash | `<provider>/<model> → level` (3,896 fields total across 24 categories) |
-| `<scope>:g<N>:levels:<category>` | string (JSON) | the 11 percentile thresholds |
-| `<scope>:g<N>:tiers:<provider>/<model>` | hash | `category → level` (reverse index; optional, dropped if R55's memory leg says so) |
+| `<scope>:g<N>:leveldef:<level>` | hash | `lo`, `hi` |
+| `<scope>:g<N>:levels:<category>` | string (JSON) | the 11 thresholds |
 | `<scope>:g<N>:fallback` | hash | `order → provider/model` |
 
-**R34.** The models hash duplicates model facts already reachable through `cat:<category>`'s
-members. That duplication is measured (R57) and is the first thing to drop if memory binds.
+**R34. (FIX A4) Category scans carry the whole decision tuple.** `<scope>:g<N>:cat:<category>` is a
+hash whose value is **not** the level alone but
+`{level, plan_tier, normalized_price, token_factor, context_limit, archive, valid_to}` — every column
+`_build_chain` filters or sorts on (`router_spawn.py:2800-2815`). One `HGETALL` per required category
+therefore feeds the entire chain build and the reader never issues a per-model read.
 
-**R35.** No price-derived ordering in Redis: the chain sort stays in the reader, from prices it
-just read. A price-sorted zset would make two components responsible for ordering and would
-need rebuilding on every price change.
+**R35.** The models hash duplicates facts reachable through the category hashes; that duplication is
+measured (R51) and is the first thing dropped if memory binds.
 
-**R36. (FIX C14)** The Redis plane serves the **whole chain build** as category scans: at most
-`(#required categories × 1) + 1` bulk reads per resolve, never one read per candidate lane.
+**R36. (FIX A4) Fixed read order, batched, count-independent.**
 
-**R37. (FIX C14) Round-trip budget, pinned by test.** A resolve issues ≤ 8 Redis round trips for
-a single-profile chain and ≤ 2 for a point lookup. A test counts them; exceeding the budget is
-a contract failure, not a performance curiosity.
+1 pointer, 1 `project:<id>`, 1 pipelined `{profile:<id>, profile:<id>:req}`, **1 pipelined batch of
+all `cat:<category>` HGETALLs for the required categories (one round trip regardless of how many
+categories the profile requires)**, 1 batch of `levels:*`/`fallback`. Total ≤ 6 round trips for any
+profile, including P0_FORE's 17 categories.
 
-## 8. Client
+**R37.** Round-trip budget pinned by test **against every live profile**, enumerated from
+`task_profile_requirements.jsonl` at test time: ≤ 6 batch round trips per chain resolve, ≤ 2 per
+point lookup. Exceeding the budget is a contract failure, not a performance curiosity.
 
-**R38.** Minimal **stdlib RESP2** client inside `scripts/router_redis.py` (socket + parser):
-`AUTH`, `SELECT`, `PING`, `GET`, `SET`, `MGET`, `HSET`, `HGET`, `HMGET`, `HGETALL`, `INCR`, `DEL`,
-`EXISTS`, `SCAN`, `INFO`, `MULTI`/`EXEC`/`WATCH`/`UNWATCH`, pipelining. No third-party `redis`
-package: `pyproject.toml` declares scripts/ stdlib-only.
+**R38.** No price-derived ordering in Redis: the chain sort stays in the reader, from the columns it
+just read. A price-sorted zset would make two components responsible for ordering.
 
-**R39.** A test asserts no third-party imports (AST vs `sys.stdlib_module_names`).
+## 9. Client
 
-**R40. (FIX C10) Registration is part of the deliverable.** `scripts/sync_runtime.sh` carries a
-hard-coded file list (two `for f in` loops); `router_redis.py` must be added there, and a test
-asserts the list contains it — an unregistered module silently fails open in live installs and
-the plane never activates.
+**R39.** Minimal **stdlib RESP2** client in `scripts/router_redis.py`: `AUTH`, `SELECT`, `PING`,
+`GET`, `MGET`, `SET`, `HSET`, `HGET`, `HMGET`, `HGETALL`, `INCR`, `DEL`, `EXISTS`, `SCAN`, `INFO`,
+`MULTI`/`EXEC`/`DISCARD`/`WATCH`/`UNWATCH`, pipelining, plus `EXPIRE`. No third-party `redis`
+package (`pyproject.toml` declares `scripts/` stdlib-only).
 
-**R41.** `-ERR` replies are a miss + health-file flip in the read path; strict (surfaced) in
+**R40.** A check asserts no third-party imports (AST vs `sys.stdlib_module_names`).
+
+**R41. (FIX F12) Registration goes in the COPY loop.** `router_redis.py` is added to
+`scripts/sync_runtime.sh:65` — the byte-identical **copy** list where `router_data_cache.py` lives —
+not the symlink list at `:28`; the TR-288 rule is that imported modules must ride the copy path or
+cron invocations die on `ImportError` while the check "the file name appears in the script" still
+passes. The check therefore asserts the file appears **in the copy loop specifically**.
+
+**R42.** `-ERR` replies are a miss in the read path (no shared-file write, R28) and surfaced in
 `load`/`status`.
 
-## 9. Topology and security
+## 10. Topology and security
 
-**R42. (FIX C11) Dedicated instance, explicit URL, no discovery.** `ROUTING_REDIS_URL`
-(default `redis://127.0.0.1:6391/0`), bound to loopback, `protected-mode yes`, `requirepass`
-read from a local secret file (`~/.hermes/secrets/router-redis.pass`, mode 600), persistence
+**R43.** `ROUTING_REDIS_URL` (default `redis://127.0.0.1:6391/0`), loopback-bound,
+`protected-mode yes`, `requirepass` from `~/.hermes/secrets/router-redis.pass` (mode 600), persistence
 off (`save ""`, `appendonly no`), `maxmemory 256mb`, `maxmemory-policy noeviction` (a silently
 evicted key is a correctness bug, not a capacity event).
 
-**R43. (FIX C11) Guards, in order, all hard:**
+**R44. (FIX C11, A8v) Guards are an allowlist, not a denylist.** Refuse any resolved port that is not
+`ROUTING_REDIS_PORT` (6391) unless it is explicitly listed in `ROUTING_REDIS_ALLOW_PORT`; the known
+product instances `{6379 dexdat-core-redis-1, 6380 asce-redis-1, 16379 helios-redis}` are documented
+as the reason. Refuse if `AUTH` is not configured. On first connect record `INFO server.run_id` +
+`DBSIZE` in `data/state/redis-instance.json`; later: same `run_id` → proceed; different `run_id` with
+our owner key present → restart → reload; different `run_id` with keys but no owner key → `FOREIGN`,
+exit 5, touch nothing.
 
-1. refuse any port in the denylist `{6379, 6380, 16379}` — this host runs four product Redises
-   (`dexdat-core-redis-1` 6379, `asce-redis-1` 6380, `helios-redis` 16379, `trouble-redis`
-   internal) and v0.1 blocked exactly one of them;
-2. refuse if `AUTH` is not configured;
-3. on first connect record `INFO server.run_id` + `DBSIZE` in `data/state/redis-instance.json`;
-4. on later connects: same `run_id` → proceed; different `run_id` **and** our owner key present
-   → restart (keys may be gone) → reload path; different `run_id` **and** keys without our owner
-   key → `FOREIGN`, refuse with exit 5 and touch nothing. (v0.1's single rule fired both ways
-   and made exit 5 unreachable.)
+**R45.** Provisioning is repo-tracked, idempotent (`scripts/router_redis_up.sh`), and names the owner
+of the container/unit so a fresh or bunker host has an answer. The instance is disposable: no
+backups, no volume; restore is `router redis load --force`.
 
-**R44.** Provisioning is repo-tracked and idempotent (`scripts/router_redis_up.sh`), naming the
-owner of the container/unit so a fresh or bunker host has an answer.
+## 11. Observability
 
-**R45.** The instance is disposable: no backups, no volume; restore is `router redis load --force`.
-
-## 10. Observability
-
-**R46. (FIX C12) Provenance is ADDITIVE.** The resolve payload gains `cache: {status, generation,
-stamp_age_s, scope}` and keeps `source` untouched — TR-046's "seeded registry.json vs
-data/tables" answer must not be redefined.
+**R46. (FIX C12, A5) Provenance is additive.** The resolve payload gains
+`cache: {status, generation, created_at_age_s, scope, verified}` and keeps `source` untouched
+(TR-046's answer must not be redefined). `verified=false` whenever the artifact leg is `UNSTAMPED`.
 
 **R47.** `router redis status --json` is the machine contract; the `no_agent` cron runs it bare.
 
-**R48.** The seed prints one line: `cache: <scope> g<N> jsonl=<hash12> tables=13` or
+**R48.** The seed prints one line: `cache: <scope> g<N> jsonl=<hash12> tables=12` or
 `cache: NOT PUBLISHED (<reason>)` plus the R23 record.
 
-## 11. Test plan — one row per normative statement
+## 12. Verification plan
 
-**R49.** Every normative R# in R1–R64 has at least one named assertion in `tests/`; the suite
-fails if a statement is added without one (the spec's own rule, now enforced: a table of
-`R# → test` lives in `tests/test_redis_read_plane.py` and a checker asserts coverage).
+**R49. (FIX C13, A7) Two kinds of assertion, one per statement.** Every normative R# carries exactly
+one named assertion:
 
-| test | proves |
+- `test:` — a pytest in `tests/test_redis_read_plane.py` for behaviour;
+- `check:` — a script (`tests/check_spec_norms.py`) for prohibitions and prose claims: R3/R53
+  (docs-grep over `docs/` and the board), R7/R54 (no lock/queue/pubsub verbs in the RESP allowlist),
+  R56 (no key outside `<scope>:`), R57 (no per-lane `model:` reads in the chain path).
+
+The checker derives its range by parsing this document's largest R# (57 today), never a hard-coded
+count; R55 is asserted by cross-reference to R31's parity test. The table below is the coverage map.
+
+| test / check | proves |
 |---|---|
-| hash determinism + multiplicity (add/remove a duplicate line moves the hash); 13-table set; `not_cached` list | R9 |
-| two consecutive seeds → identical stamp; one-field edit → STALE naming the table | R9, R11 |
-| state matrix: MATCH / STALE (3 drift classes) / EMPTY / UNREACHABLE / GHOST / FOREIGN / SCHEMA-AHEAD / UNSTAMPED | R11, R12 |
-| `status` exit codes 0–6; silence on MATCH; 7-day age gate | R14 |
-| diff: +1 −1 ~0 after a row add/remove; full-row compare (no false `~changed`); real keys per R15 | R15–R18 |
-| publish: two concurrent publishers, pointer monotonic, loser aborts + records R23 | R20, R23 |
-| publish reads once: rewrite the file between hash and publish is impossible by construction (no re-read; assert single read via a counting loader) | R10 |
-| reader pinned to a GC'd generation → whole resolve falls back to file (never mixed) | R21 |
-| identity: two `ROUTING_DATA_DIR` scopes cannot see each other; scratch publish never visible to production | R8 |
-| fail-open: instance down / stale-within-window / beyond `MAX_AGE` / health-file miss → resolve, exit 0, one warning | R27–R30, R32 |
-| health file: a cold process with `ok:false` makes **zero** connection attempts (socket-level counter) | R28 |
-| round-trip budget: ≤8 for a chain, ≤2 for a point lookup (counting client) | R36, R37 |
-| parity: full-table parity for models/providers/projects/profiles/tiers (not a 50-row sample) + chain resolves for `coding-hermes-scheduler` and `hivemind-work` | R31 |
-| guards: denylist ports, no-AUTH refusal, FOREIGN vs restart, flush owner guard | R43, R25 |
-| registration: `sync_runtime.sh` contains `router_redis.py`; no third-party import | R39, R40 |
-| no-write: no write verb in `router_spawn.py` against cache/registry (`metrics.jsonl` append excluded and asserted as the only write) | R5 |
-| seed wiring: a seed run publishes and prints the stamp; a forced publish failure still exits 0 **and** writes the R23 record | R24, R48 |
+| hash: multiplicity (duplicate add/remove moves it), explicit 12-name set, `not_cached` computed, equality excludes `not_cached` | R9 |
+| two seeds → identical stamp; one-field edit → STALE naming the table; `generation`/`created_at` present | R9, R11 |
+| state matrix ×8 incl. GHOST, FOREIGN, SCHEMA-AHEAD, UNSTAMPED (+7-day line) | R11 |
+| in-flight: intent key aged by pid/age; `status` read-only | R12 |
+| `status --json` field contract; exit codes 0–6; silence on MATCH; 30-min `created_at` alarm; 10-min health alarm | R13, R14 |
+| diff: +1 −1 ~0; full-row compare; key uniqueness re-measured for all 12 tables | R15–R18 |
+| publish: two concurrent publishers on one connection each; pointer monotonic; loser exits 4 + R23 record; orphan reaped by the next `load` after a simulated crash | R20, R23 |
+| publish reads once (counting loader sees exactly one read per table) | R10 |
+| pinned generation GC'd → whole resolve falls back (never mixed) | R21 |
+| `--if-stale`: no-op when fresh; refresh-republish when age > MAX_AGE/2; reap-only path | R22 |
+| scope: two data homes isolated; scratch publish refused without opt-in; expired-heartbeat scope swept; `scopes_live`/`dbsize` reported | R8 |
+| fail-open: down / stale-within-window / beyond MAX_AGE / health UNKNOWN → resolve, exit 0, one warning | R27–R30, R32 |
+| health: cold process with `ok:false` makes zero attempts; corrupt file → UNKNOWN → one attempt; read path never writes it | R28 |
+| budget: ≤6 chain / ≤2 point round trips for **all 11 profiles** (counting client) | R36, R37 |
+| parity: full-table + full-column parity for all 12 tables; chain resolves for `coding-hermes-scheduler` and `hivemind-work` (head + ordered members); `cat:<category>` values carry every sort/filter column | R31, R34 |
+| guards: port allowlist, AUTH refusal, restart vs FOREIGN, flush owner guard | R44, R25 |
+| registration: `router_redis.py` in the **copy** loop of `sync_runtime.sh`; no third-party import | R40, R41 |
+| no-write: `router_spawn.py` writes only `data/metrics.jsonl` | R5 |
+| seed wiring: publishes + prints the stamp; forced publish failure exits 0 **and** writes R23 | R24, R48 |
 
-**R50. Perf gate.** Report: point-lookup p50/p95 (1,000 iterations), full `router_spawn.py` wall,
-peak RSS, Redis `used_memory_human`, and **round trips per resolve** — file vs Redis, before and
-after, in the row's evidence.
+**R50. Perf gate.** Point-lookup p50/p95 over 200 distinct (model, category) queries, full
+`router_spawn.py` wall, peak RSS, Redis `used_memory_human`, and round trips per resolve — file vs
+Redis, before and after, recorded in the row's evidence.
 
-**R51. Memory gate.** `used_memory_human` after load; the R34 duplication cost; the R33 reverse
-index's cost if kept.
+**R51. Memory gate.** `used_memory_human` after load; the R35 duplication cost; the reverse index's
+cost if kept.
 
-**R52. (FIX C14) The falsifier is a floor, not an AND of three guesses.** Measure a **stub
-resolve** that returns a canned chain with no registry read: that is the absolute floor any read
-plane can reach. If `(cold_spawn_wall − floor) < 10 %` **and** point lookups do not improve by
-≥5×, publish that finding in the row and the Status line, keep the file path as the default
-(`ROUTING_REDIS=0` remains the shipped default), and stop building. A falsifier whose conditions
-cannot all fire is not a falsifier.
+**R52. (FIX C14, F9) The falsifier is a floor with defined legs.** Measure a **stub resolve** that
+returns a canned chain with no registry read (the absolute floor any read plane can reach). The
+stop rule: if `(cold_spawn_wall − floor) < 10 %` **and** `point_lookup_p95_redis` does not improve on
+`point_lookup_p95_file` by ≥5× (file = cold parse + a full scan for the same fact, 200 distinct
+queries, same process model), then publish that finding in the row and the Status line, ship
+`ROUTING_REDIS=file` as the default, and stop. In practice the point-lookup leg is expected to pass
+trivially on loopback, so **the stop decision hangs on the spawn-floor leg** — say so, do not imply
+two live legs.
 
-**R53. (FIX C11/C14)** Any remote/bunker caller benefit is **out of scope** for this topology
-(loopback instance): no claim about it may appear in docs, evidence, or memory until a follow-up
-row defines the topology that would serve it.
+**R53. (FIX C14)** Any remote/bunker caller benefit is out of scope for this loopback topology: no
+claim about it may appear in docs, evidence, or memory until a follow-up row defines that topology.
 
-## 12. Non-goals
+## 13. Non-goals
 
 **R54.** Not a write plane, message bus, distributed lock, or quota store.
-**R55.** No change to routing decisions, prices, tiers, ordering, or the seed's derivations.
+**R55.** No change to routing decisions, prices, tiers, ordering, or the seed's derivations (asserted
+by R31's parity test; no second test).
 **R56.** No new runtime dependency; no reuse of another product's Redis; no second canonical copy.
-**R57.** No per-lane round trips; no JSON blob of the whole registry (that would keep the parse
-cost and add a network cost).
+**R57.** No per-lane round trips; no JSON blob of the whole registry (it would keep the parse cost and
+add a network cost).
 
-## 13. Open questions this spec deliberately leaves to measurement
+## 14. Round-1 disposition (receipt)
 
-- Q1: does the category-scan shape (R33/R36) actually beat the in-memory file path on this box?
-  R52's floor measurement answers it; no document may claim it before then.
-- Q2: is the `tiers:<model>` reverse index worth its memory once R36's scans exist?
-- Q3: once `status` is a cron, is the 5-minute timer still needed, or does the alarm subsume it?
+Four seats, four families, identity proven from `session_model_usage`: `glm-5.3 @ api.z.ai`,
+`kimi-k3 @ api.neuralwatt`, `deepseek-v4.1-flash @ api.neuralwatt`, `qwen3.6-35b @ api.neuralwatt`.
+Two lanes were rejected on identity (Qwen3.8-Max @ commandcode → silently served by
+`fireworks/deepseek-v4p1-flash-1017`; Qwen3.8-Max @ ollama-cloud → never served) and are recorded,
+not counted. Nine claims at 4/4 CONTRADICTED: hash multiplicity, state table, diff columns, publish
+atomicity, TOCTOU/exit codes, fail-open/switch name, instance guards, test coverage, missing risks
+(multi-checkout + override poisoning). All merged. Full record:
+`docs/reviews/TR-388-quorum-2026-11-04.md`.
 
-## 14. Quorum disposition (receipt)
+## 15. Round-2 disposition (receipt)
 
-Four seats, four families, identity proven via `session_model_usage` (not labels):
-`glm-5.3 @ api.z.ai`, `kimi-k3 @ api.neuralwatt`, `deepseek-v4.1-flash @ api.neuralwatt`,
-`qwen3.6-35b @ api.neuralwatt`. (A 5th intended family, Qwen3.8-Max @ commandcode, was
-**misrouted** to `fireworks/deepseek-v4p1-flash-1017` and was not counted; Qwen3.8-Max @
-ollama-cloud served no matching row and was not counted. qwen3.6-35b replaced it as the Qwen
-family seat.)
+Same four seats re-judged v0.2. Fix verdicts: 11 FIXED, 3 PARTIAL → all PARTIALs merged in v0.3.
+The round found **five spec-breaking defects that v0.2 introduced**, each now fixed:
 
-| claim | verdict (4 seats) | disposition |
+| id | defect (all 4 seats agreed unless noted) | v0.3 fix |
 |---|---|---|
-| C1 boundary | 4× CONFIRMED | kept, R4–R7 |
-| C2 baseline | 3 CONFIRMED, 1 CONTRADICTED | **coordinator re-measured**: p50 45.1 ms / mean 49.0 (100 runs); the seat's 27.6 ms did not reproduce. §1 now states the range and method |
-| C3 TR-277 composition | 2 CONFIRMED, 2 CONTRADICTED | fixed: R26 (no TTL memo, AC1 respected), R31/R33 (one row-shaping path), R16 (39-column parity) |
-| C4 hash set-collapse | **4× CONTRADICTED** | fixed: R9 sorted list with multiplicity + count in the aggregate + explicit 13-table set (evidence: `model_notes.jsonl` has 3 duplicate lines) |
-| C5 state table | **4× CONTRADICTED** | fixed: R11 adds GHOST / FOREIGN / SCHEMA-AHEAD / UNSTAMPED and `cache-ahead`; R12 in-flight rule |
-| C6 diff keys | 3 CONTRADICTED, 1 measured | fixed: R15 real columns (measured: `model_perf`/`model_tier` have **no** `provider`; `fallback_lanes` has `order`), R16 full-row compare |
-| C7 publish atomicity | 4 CONTRADICTED | fixed: R20 INCR+WATCH/CAS (pointer can't regress), R21 whole-resolve fallback, GC keeps two generations |
-| C8 TOCTOU/exit codes | **4× CONTRADICTED** | fixed: R10 single-read publish (window deleted), R23 representable failure + exit 4/5, R24 seed fail-open with a record |
-| C9 fail-open | **4× CONTRADICTED** | fixed: R32 real switch `ROUTER_CACHE=0` (verified `router_spawn.py:249-254`), R27 20 ms, R28 out-of-process health file, R30 `MAX_AGE` bound |
-| C10 client | 4 CONFIRMED (with a deployment gap) | fixed: R40 sync_runtime registration + test |
-| C11 topology/guards | **4× CONTRADICTED** | fixed: R42 AUTH+explicit URL, R43 ordered guards (denylist, AUTH, restart-vs-FOREIGN distinction), R44 ownership |
-| C12 observability | 3 CONFIRMED, 1 UNRESOLVED | fixed: R46 additive `cache` field (TR-046 untouched), R14 age gate |
-| C13 test coverage | **4× CONTRADICTED** (13 / 28 / 31 untested R#s) | fixed: R49 one-assertion-per-R table + coverage checker; §11 rewritten |
-| C14 value/falsifier | 2 CONTRADICTED, 1 CONFIRMED, 1 UNRESOLVED | fixed: R2 honest bound, R36/R37 category scans + round-trip budget, R52 floor-based falsifier, R53 bunker claim withdrawn |
-| C15 repeat-offense | 4× "yes, here is where" | each cited line is addressed by the fixes above; no item was waved through |
-| C16 missing risks | **4× CONTRADICTED** | fixed: R8 data-home scope (multi-checkout + override poisoning), R11 SCHEMA-AHEAD, R21 restart-mid-resolve, R43/R44 instance identity + ownership |
+| A6 | age deadlock: `--if-stale` never advanced the stamp on unchanged content, so after 900 s every reader fell back forever while Redis was healthy and correct | R9 (`created_at` as a stamp field), R22 (refresh-republish at MAX_AGE/2), R14 (30-min alarm) |
+| A4 | round-trip budget contradicted its own formula (P0_FORE = 17 categories ⇒ 18+ trips ≫ 8) **and** `cat:<category>` carried only the level, forcing per-lane reads for price/plan_tier/context/lifecycle | R34 (decision-tuple values), R36 (pipelined category batch = 1 trip), R37 (budget tested against all 11 profiles) |
+| A1 | WATCH is per-connection (a pooled CAS is vacuous); a crash between the write pass and the CAS orphaned a full generation that no path ever collected inside a `noeviction` instance | R20 (one dedicated connection, UNWATCH/DISCARD on abort, `__ts`, orphan reap in `load`, `orphans` reported) |
+| A2 | health file was text-as-state: non-atomic write, two writers, one read-path `-ERR` flipping `ok:false` fleet-wide, no owner of recovery | R28 (atomic write, writers-only, UNKNOWN semantics) + R14 (10-min alarm) |
+| A3 | scope identity keyed on `DATA_DIR` alone while `REGISTRY` resolves separately (poisoning), and dead scopes accumulated with no GC (capacity) | R8 (both paths hashed, heartbeat + TTL, dead-scope sweep, scratch publish opt-in, `scopes_live`) |
+
+Plus smaller merges: the 12-vs-13 table arithmetic and the explicit table list (F1/A8i); the
+in-flight key that made R12 unimplementable (F2); missing diff keys for archetypes/benchmarks/
+level_defs (F3); the phantom `R1–R64` range and the vacuous one-test-per-R rule (F10/A7 → R49);
+`sync_runtime.sh` copy-loop vs symlink-loop (F12/R41); three wrong cross-references (R2→R52,
+R33→R51, R34→R51); the undefined 5× metric and the "two live legs" implication (F9/R52); the
+`UNSTAMPED`-forever silence (A5/R11/R14/R46); stamp equality excluding `not_cached` (A8iv);
+port denylist → allowlist (A8v).
+
+**v0.3 has not been re-judged.** Round 3 should run with the first implementation commit, against
+the tests rather than the prose — the five defects above were all found by attacking a *fix*, which
+is the class a third round of prose review stops catching.
