@@ -314,12 +314,15 @@ The bus→router door: `scripts/router_ingress.py`. Contract and evidence in
 
 ## Internal constants (not env vars)
 
-These `ROUTER_*` module-level constants in `scripts/router_server.py` are part of the timeout ladder but are not environment-tunable; they exist so the ladder math names its parts (TR-241).
+These `ROUTER_*` module-level constants are part of shipped contracts but are not
+environment-tunable; they exist so the behaviour names its parts (TR-241), and the
+doc-parity gate (`tests/test_doc_parity.py`) reads them like any other `ROUTER_*` key.
 
-| Constant | Value | Role |
+| Constant | File | Role |
 |---|---|---|
-| `ROUTER_CALLER_PATIENCE_S` | `1800.0` | The caller's per-turn tolerance (scheduler's 30m default); every inner wall budget must stay strictly below it |
-| `ROUTER_HOP_LADDER_MARGIN_S` | `60.0` | Headroom below the caller patience that a clamped buffered hop budget must keep (not tunable) |
+| `ROUTER_CALLER_PATIENCE_S` | `scripts/router_server.py` | `1800.0` — the caller's per-turn tolerance (scheduler's 30m default); every inner wall budget must stay strictly below it |
+| `ROUTER_HOP_LADDER_MARGIN_S` | `scripts/router_server.py` | `60.0` — headroom below the caller patience that a clamped buffered hop budget must keep (not tunable) |
+| `ROUTER_SIDE_FAILURE_REASONS` | `scripts/router_outcomes.py` | `frozenset({'hop-wall-timeout', 'no-hops', 'unservable-rating', 'gateway-draining'})` — failure reasons the ROUTER itself produced. A row carrying one is a statement about the proxy's own decision, never about model quality, so it is excluded from the completion rate that the TR-354 outcome floor reads. Any other reason — including no reason at all — stays in the denominator |
 
 ---
 
