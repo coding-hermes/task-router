@@ -156,6 +156,13 @@ POST_DEDUPE_ADDITIONS = {
     ("openrouter", "z-ai/glm-5.3-flashx-legal"): "models.dev sync 2026-11-03 — new catalog lane, sticker-priced 0.37 (normalized:payg-sticker)",
     ("clinepass", "glm-5.3-flashx-legal"): "clinepass API sync 2026-11-03 — carrier mirror of the new glm-5.3-flashx-legal arrival, price null pending sticker",
     ("openrouter", "nvidia/switchyard"): "filed 2026-11-01 — router meta-model, active NULL by design (10-14 hold superseded; unblocked the openrouter preset apply)",
+    # 2026-11-04 (model-router-refresh tick): openrouter carrier-refresh arrivals,
+    # applied-with-probe rows; data_class/api_type filled from sibling convention
+    # (zdr / openai-chat) same day, census-stamped nulls cleared
+    ("openrouter", "stealth/crouton-alpha"): "openrouter carrier refresh 2026-11-04 — stealth free-teaser arrival, $0 verified live with revoke discount row",
+    ("openrouter", "tencent/hy4"): "openrouter carrier refresh 2026-11-04 — carrier-arrival lane, sticker-priced",
+    ("openrouter", "x-ai/grok-4.6:batch"): "openrouter carrier refresh 2026-11-04 — batch-twin arrival, sticker-priced",
+    ("openrouter", "x-ai/grok-4.7:batch"): "openrouter carrier refresh 2026-11-04 — batch-twin arrival, sticker-priced",
     ("clinepass", "gemini-4-argon"): "clinepass API sync 2026-10-14 (carrier arrivals, engine-priced)",
     ("clinepass", "gemini-4-argon:batch"): "clinepass API sync 2026-10-14 (carrier arrivals, engine-priced)",
     ("clinepass", "lfm-2.5-24b-a2b"): "clinepass API sync 2026-10-14 (carrier arrivals, engine-priced)",
