@@ -49,7 +49,10 @@ def lane(model, provider, price=0.15, context=200000, plan_tier=1, **extra):
 
 
 def order(lanes):
-    return [m['model'] for m in sorted(lanes, key=spawn._legacy_sort_key)]
+    """Sort exactly as the resolver does, then apply the TR-369 promotion."""
+    lanes = sorted(lanes, key=spawn._legacy_sort_key)
+    spawn._promote_newer_same_line(lanes)
+    return [m['model'] for m in lanes]
 
 
 def test_newer_dated_sibling_beats_prefix_older():

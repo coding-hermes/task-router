@@ -2107,41 +2107,104 @@ def _quota_order_ctx() -> dict:
         return ctx
 
 
-def _version_key(model: Any) -> tuple:
-    """TR-369: the version-aware tie-break for otherwise-identical lanes.
+def _same_line_stem(model: Any) -> str:
+    """The alphabetic skeleton of a model name, used to decide whether two
+    lanes are the SAME LINE of the same family. 'gpt-6-sol' and 'gpt-6.1-sol'
+    both reduce to 'gpt.sol'; 'alt-model' reduces to 'alt.model'."""
+    return '.'.join(re.findall(r'[A-Za-z]+', str(model or ''))).lower()
 
-    The historical tie-break was the literal `(model, provider)` string, which
-    is ASCII order — and ASCII order is actively wrong for model families,
-    because an older release is usually a PREFIX of its newer sibling:
-    'deepseek-v4.1-flash' < 'deepseek-v4.1-flash-1017', 'minimax-m2' <
-    'minimax-m2.1', 'gpt-6-sol' < 'gpt-6.1-sol'. In every one of those pairs
-    the newer model is at least as good and identically priced, so the older
-    one headed the chain forever and the newer release was reachable only as a
-    fallback hop.
 
-    This key keeps the string comparison as the FINAL arbiter (so unrelated
-    families still order deterministically and reproducibly) but inserts a
-    version vector ahead of it: the numeric components of the model name,
-    compared position by position, DESCENDING — newer wins. A name with more
-    components ('-1017' suffix, or an extra '.' segment) sorts ahead of the
-    shorter prefix at the same shared prefix, which is what makes a dated
-    release beat its undated parent.
+def _version_vector(model: Any) -> list:
+    return [int(tok) for tok in re.findall(r'\d+', str(model or ''))]
 
-    It deliberately does NOT know about prices: this key is only ever reached
-    after every price/quality slot has tied, so it can never re-rank lanes of
-    different prices.
+
+def _promote_newer_same_line(eligible: Any) -> list:
+    """TR-369: within one PRICE TIE, a newer release of the same line heads it.
+
+    The historical tie-break ends in the literal `(model, provider)` string,
+    which is ASCII order, and ASCII is wrong for model families because an
+    older release is usually a PREFIX of its newer sibling:
+    'gpt-6-sol' < 'gpt-6.1-sol', 'minimax-m2' < 'minimax-m2.1',
+    'deepseek-v4.1-flash' < 'deepseek-v4.1-flash-1017'. The older one therefore
+    heads the chain forever and the newer release is only ever a fallback hop.
+
+    Doing this INSIDE the sort key was tried and reverted: a version vector
+    compared across families reorders lanes nobody asked to reorder — a first
+    attempt promoted the DRY-RUN lane 'gpt-5.6-dry' above 'alt-model' purely
+    for having digits, which is how a dry-run lane ends up serving traffic.
+
+    So this runs AFTER the sort and permutes only INSIDE a run of lanes that
+    already tie on (bucket, plan_tier, priced-ness, effective price). Two lanes
+    are considered the same line only when their alphabetic stems are equal AND
+    one version vector is a strict PREFIX-EXTENSION of the other ([6] -> [6,1],
+    [4,1] -> [4,1,1017]). Within such a pair the longer vector (the newer
+    release) is moved ahead. Same-length vectors (a1 vs a2, qwen3.7 vs qwen3.8)
+    are NOT touched: a bigger number is not evidence of a newer release.
+
+    Returns the promotions it made, for the resolve output — this ordering
+    change is never silent.
     """
-    name = str(model or '')
-    nums = []
-    for tok in re.split(r'[^0-9]+', name):
-        if tok:
-            try:
-                nums.append(int(tok))
-            except ValueError:
-                pass
-    # descending numeric vector; pad so a shorter vector loses to a longer one
-    # ONLY when the extra component is at the end (the dated-release case).
-    return tuple(-n for n in nums) + (0, len(nums))
+    try:
+        rows = list(eligible)
+    except Exception:  # noqa: BLE001 — fail-open: ordering unchanged
+        return []
+    promotions = []
+    i = 0
+    n = len(rows)
+    while i < n:
+        # find the run of lanes that tie on everything the legacy key cares
+        # about ABOVE the version slot: bucket, plan_tier, priced, price,
+        # demote, unprobed, context.
+        def run_sig(m):
+            k = _legacy_sort_key(m)
+            return k[:-3] if len(k) >= 3 else k
+        j = i + 1
+        sig = run_sig(rows[i])
+        while j < n and run_sig(rows[j]) == sig:
+            j += 1
+        run = rows[i:j]
+        if len(run) > 1:
+            changed = False
+            for a in range(len(run)):
+                for b in range(a + 1, len(run)):
+                    sa, sb = _same_line_stem(run[a].get('model')), _same_line_stem(run[b].get('model'))
+                    if not sa or sa != sb:
+                        continue
+                    va, vb = _version_vector(run[a].get('model')), _version_vector(run[b].get('model'))
+                    if len(vb) > len(va) and vb[:len(va)] == va:
+                        # b is a newer release of a's line: b must come first
+                        if b > a:
+                            promoted = run.pop(b)
+                            run.insert(a, promoted)
+                            promotions.append({
+                                'newer': promoted.get('model'),
+                                'provider': promoted.get('provider'),
+                                'over': [x.get('model') for x in run[a + 1:] if
+                                         _same_line_stem(x.get('model')) == sa],
+                                'why': 'TR-369 same-line newer release wins a price tie',
+                                'price': promoted.get('normalized_price'),
+                            })
+                            changed = True
+                    elif len(va) > len(vb) and va[:len(vb)] == vb:
+                        if a > b:
+                            promoted = run.pop(a)
+                            run.insert(b, promoted)
+                            promotions.append({
+                                'newer': promoted.get('model'),
+                                'provider': promoted.get('provider'),
+                                'why': 'TR-369 same-line newer release wins a price tie',
+                                'price': promoted.get('normalized_price'),
+                            })
+                            changed = True
+            if changed:
+                rows[i:j] = run
+        i = j
+    if promotions:
+        try:
+            eligible[:] = rows
+        except Exception:  # noqa: BLE001 — read-only input: report, do not crash
+            pass
+    return promotions
 
 
 def _legacy_sort_key(m: Any) -> tuple:
@@ -2182,8 +2245,7 @@ def _legacy_sort_key(m: Any) -> tuple:
     _unprobed = 1 if m.get('_probe_unprobed') else 0
     if m.get('_payg'):
         return (1, 1 << 30, priced, _effective_price(m), demote, _unprobed,
-                _context_sort_key(m), _version_key(m.get('model')),
-                m.get('model') or '', m.get('provider') or '')
+                _context_sort_key(m), m.get('model') or '', m.get('provider') or '')
     return (0,
             m.get('plan_tier') if m.get('plan_tier') is not None else 1 << 30,
             # TR-176: the 3rd slot was an unused literal 0. It now separates PRICED lanes from
@@ -2191,10 +2253,6 @@ def _legacy_sort_key(m: Any) -> tuple:
             # of the chain (the fake-cheap burn trap). Unknown sinks; it is never the cheapest.
             priced,
             _effective_price(m), demote, _unprobed, _context_sort_key(m),
-            # TR-369: version vector before the ASCII string tie-break, so a newer
-            # release of the same family heads its older prefix sibling instead of
-            # being permanently stuck behind it. Only ever reached after price ties.
-            _version_key(m.get('model')),
             m.get('model') or '', m.get('provider') or '')
 
 
@@ -2852,6 +2910,13 @@ def _build_chain(tables: Any, reqs: Any, limit: Any=DEFAULT_CHAIN_LIMIT, sort_sp
     except Exception:  # noqa: BLE001, S110 — fail-open: ordering unchanged on error
         pass
     eligible.sort(key=_legacy_sort_key)
+    # TR-369: promote a newer release of the SAME line within a price tie. Runs
+    # after the sort and only permutes inside an equal-price run, so it can never
+    # re-rank lanes of different prices and never moves an unrelated family.
+    try:
+        _tr369_promotions = _promote_newer_same_line(eligible)
+    except Exception:  # noqa: BLE001 — fail-open: ordering unchanged on error
+        _tr369_promotions = []
     sort_used, sort_warning = 'price', None
     if sort_spec and sort_spec != 'price':
         try:
