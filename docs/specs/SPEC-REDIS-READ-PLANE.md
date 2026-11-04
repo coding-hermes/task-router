@@ -1,13 +1,14 @@
 # SPEC-REDIS-READ-PLANE — a Redis read plane over the JSONL registry
 
-Status: **v0.4 (2026-11-04) — two quorum rounds merged + infrastructure deliverables added. Implementation authority, subject to the
+Status: **v0.5 (2026-11-04) — two quorum rounds merged, infrastructure deliverables (§11.5) and the
+hot-path wiring inventory (§11.6) added. Implementation authority, subject to the
 R52 measurement gate. v0.3 has NOT yet been re-judged (round 3 owed with implementation).**
 Board row: TR-388 (P1) · Owner directive: Bane, 2026-11-04
 Quorum: `docs/reviews/TR-388-quorum-2026-11-04.md` (round 1) and §15 below (round 2)
 Interacts with: TR-277 (`router_data_cache.py`), TR-046 (`source` provenance), TR-288
 (runtime-sync copy list), TR-005 (`router_maintain.py`), AGENTS.md fail-open rule.
 
-Normative statements **R1…R68** (R58–R68 are the infrastructure deliverables, §11.5). A statement marked `(FIX …)` was forced by a specific quorum
+Normative statements **R1…R80** (R58–R68 infrastructure, §11.5; R69–R80 hot-path wiring, §11.6). A statement marked `(FIX …)` was forced by a specific quorum
 finding; §14 and §15 are the receipts. Cross-references are into this document only.
 
 ---
@@ -404,6 +405,80 @@ files + status script are reviewed and committed with the code (not "later"), th
 wired until `status` reports `MATCH` against a live instance, and the default is not flipped until
 R50/R51 are recorded and R52's gate has run.
 
+## 11.6 Hot-path wiring inventory (added after the hardening question "is this actually in the hot path?")
+
+The v0.4 text wired **one** consumer (`router_spawn.py`) and mentioned `router_server.py` in a
+single clause. That is not wiring. Measured inventory, 2026-11-04:
+
+| consumer | process shape | executes | how it reads | in the hot path? |
+|---|---|---|---|---|
+| `router_spawn.py` (CLI) | short-lived, one per tick/probe | repo copy | `registry.json` + tables through TR-277 | **YES — every task resolve** |
+| HTTP API `:9092` | long-lived (pid 1602237, `/usr/bin/python3`, cwd `/home/kara`) | **repo copy** | per-request table reads via `_read_jsonl` → TR-277; registry for resolve endpoints | **YES** |
+| web UI `:9093` | long-lived (pid 7564) | **live byte-copy** `~/.hermes/scripts/router_web.py` | tables per request | warm (dashboards) |
+| proxy `:9391` | long-lived (TR-067 recipe) | — | no registry reads found in the proxy path | unchanged |
+| `router_classify.py` | per call | repo copy | carries its **own second registry-path candidate** (`data/registry.json`) | warm |
+| `estimate` / `status` / `validate` / `health` / `metrics` / `diff` | short-lived CLI | repo copy | registry via spawn's loader | cold |
+
+**R69. Every consumer above is marked `covered` / `unchanged-with-reason` / `out-of-scope-with-row`
+in the implementation's own checklist.** A consumer may not be silently skipped; the checklist is
+part of the row's evidence, not a comment.
+
+**R70. `router_spawn.py` keeps the pin-per-process semantics (R26).** It is short-lived by
+construction, which is exactly why R26 was written that way.
+
+**R71. Long-lived services MUST NOT pin for the process lifetime.** `router_server.py` (`:9092`) and
+`router_web.py` (`:9093`) refresh the pointer **off the request path** — a watcher on the stamp
+file or a poll of `<scope>:meta:version` at ≤30 s — swap generations atomically under a lock, and
+keep serving the previous generation until the swap completes. A daemon that pins at boot and never
+re-reads would serve one generation until someone restarts it, which is the v0.3 text's hole.
+
+**R72. Table streams stay on TR-277; Redis serves resolved lookups and category scans only.**
+`router_server._read_jsonl` and the web UI keep reading tables through the runtime cache. R57 forbids
+a bulk JSON blob, so a "whole table" key does not exist: those endpoints keep their current path and
+the Redis gain appears only where they call a resolve. This is the honest split and it must be stated
+in the docs, not discovered later.
+
+**R73. Warning discipline is per consumer.** One warning per process per generation change in the
+CLI; the daemons log at most one warning per 5 minutes, never once per request.
+
+**R74. CLI plumbing is part of the deliverable.** `task_router/cli.py` gains the `redis` verb in its
+script table, an entry in `_home_env_exports` (`ROUTING_DATA_DIR` + the data home, matching its
+siblings), and help text; the repo's CLI tests that assert every verb maps to an existing script must
+pass unchanged, and a new test asserts `router redis …` dispatches through the real entry point
+rather than a direct `python scripts/…` call.
+
+**R75. Deploy has two topologies and both must be handled.** The API server runs the **repo** copy;
+the web UI runs the **live byte-copy** under `~/.hermes/scripts`. Therefore landing the module means
+(a) `sync_runtime.sh` copy-loop registration (R41) **and** (b) restarting the three services, because
+a long-lived process keeps the module it imported. `/health` reports the loaded module's SHA-256, and
+a `check:` compares it with the installed file so a process running yesterday's code is visible
+instead of being guessed at.
+
+**R76. Generation retention must exceed the refresh window.** GC keeps every generation younger than
+`ROUTING_REDIS_GEN_KEEP_S` (900) **or** the last two, whichever is larger. With publishes from the
+seed and the timer able to arrive seconds apart, a 30 s-refreshing daemon would otherwise be collected
+out from under itself and fall back mid-request.
+
+**R77. One provenance shape, two surfaces.** The spawn payload's `cache{}` (R46) and the server's
+`/health` + `/status` `runtime_cache.redis{}` carry identical keys (`status`, `generation`,
+`created_at_age_s`, `scope`, `verified`), so an operator reads one vocabulary everywhere.
+
+**R78. The shipped default must be code-level, not environment-level.** The scheduler invokes
+`router_spawn.py` with its daemon environment; a default that exists only in a systemd unit file has
+already gone missing once on this fleet (the load-gate threshold lived only in
+`SCHEDULER_LOAD_GATE_THRESHOLD`). Unset `ROUTING_REDIS` must therefore resolve to `file` in code
+until R52's gate says otherwise.
+
+**R79. End-to-end wiring tests, not library tests.** (a) parity through the **live daemons**:
+`ROUTING_REDIS=0` vs `1` return identical answers for a fixture set of projects and ≥50 lanes;
+(b) after a publish, the running server serves the new generation within one refresh window;
+(c) `router redis status` dispatches through the real CLI entry point; (d) the loaded-module hash check
+(R75) fails when the process is stale.
+
+**R80. "Wired" is a checklist, not a claim.** The implementation is not complete until R69's table is
+fully marked, R79's four tests pass, and the row's evidence names which consumer surfaces were
+exercised live versus unit-tested.
+
 ## 12. Verification plan
 
 **R49. (FIX C13, A7) Two kinds of assertion, one per statement.** Every normative R# carries exactly
@@ -449,6 +524,13 @@ are all `check:`-kind — infra shape, not behaviour) R55 is asserted by cross-r
 | check: no `apt`/package-install path in the provisioning (container only) | R65 |
 | check: `docs/registry-maintenance.md` carries the one-command fresh-host path | R66 |
 | check: provision → `status` MATCH gate precedes read-path wiring; default flip blocked before R50/R51/R52 | R68 |
+
+| wiring: parity through the LIVE daemons (`ROUTING_REDIS=0` vs `1`, fixture projects + >=50 lanes), server picks up a new generation within one refresh window, `router redis` dispatches through the real CLI entry point, loaded-module hash check fails on a stale process | R71, R74, R75, R79 |
+| wiring: daemons refresh off-request and serve the previous generation until the swap; no per-request warnings | R71, R73 |
+| wiring: generation retention (`GEN_KEEP_S` 900 or last two, whichever larger) survives seed+timer publishing seconds apart | R76 |
+| wiring: provenance shape identical on spawn `cache{}` and server `/health`+`/status` `runtime_cache.redis{}` | R77 |
+| check: unset `ROUTING_REDIS` resolves to `file` in code (no unit-file default) | R78 |
+| check: R69's consumer table fully marked covered / unchanged-with-reason / out-of-scope-with-row | R69, R80 |
 
 **R50. Perf gate.** Point-lookup p50/p95 over 200 distinct (model, category) queries, full
 `router_spawn.py` wall, peak RSS, Redis `used_memory_human`, and round trips per resolve — file vs
