@@ -314,6 +314,18 @@ def row_complexity_sig(row: Any):
     return None
 
 
+#: Failure reasons the ROUTER itself produced. A row carrying one of these is a statement about
+#: the proxy's own decision (deadline, ladder emptiness, unsatisfiable rating), never about the
+#: model's quality, so it must not move the completion rate that the TR-354 outcome-floor reads.
+#: Anything else — including a failure with no reason at all — stays in the denominator.
+ROUTER_SIDE_FAILURE_REASONS = frozenset({
+    'hop-wall-timeout',
+    'no-hops',
+    'unservable-rating',
+    'gateway-draining',
+})
+
+
 def compute_averages(rows: Any, scales_h: Any=DEFAULT_SCALES_H, merge_backends: bool=False, now_s: Any=None):
     """Bucket = (source_system, provider, model, complexity_sig) — the signature
     of the declared requirement SET (TR-065 R1/R3), not a single scalar. Rows
@@ -355,6 +367,21 @@ def compute_averages(rows: Any, scales_h: Any=DEFAULT_SCALES_H, merge_backends: 
         # holds zero passed samples — never a fabricated 0, never "infinite".
         passed = [r for r in brows if r.get('success') is True]
         unknown = [r for r in brows if r.get('success') is None]
+        # TR-354 CORRECTION (2026-11-04): the completion rate must not charge a model for the
+        # router's own refusals. A hop the proxy killed at its wall ceiling, a request that found
+        # no open hop, and a rating nothing could serve are all decisions the ROUTER made — yet
+        # each is written with success=False and was counted against the model. Agents that were
+        # merely slow on fleet-sized ticks fell below the 0.35 floor and were then excluded from
+        # every ladder, which produced the 503 "no open hop" spiral. Measured on the live ledger:
+        # 12,759 of ~57k counted failures were router-side, and reclassifying them rescued 16 of
+        # the 60 floored models (deepseek-flash 0.27 -> 0.78, gpt-6.1-sol 0.36 -> 0.97).
+        # Router-side failures are counted in n_router_side and kept OUT of the denominator.
+        # A failure with NO recorded reason stays IN the denominator — a failure nobody can
+        # explain is still a failure — but is counted in n_unattributed so the gap is visible.
+        router_side = [r for r in brows if r.get('success') is False
+                       and str(r.get('failure_reason') or '') in ROUTER_SIDE_FAILURE_REASONS]
+        unattributed = [r for r in brows if r.get('success') is False
+                        and not r.get('failure_reason')]
         if passed:
             entry['cost_per_passed_task_basis'] = f'n_passed={len(passed)}'
         elif unknown:
@@ -380,9 +407,13 @@ def compute_averages(rows: Any, scales_h: Any=DEFAULT_SCALES_H, merge_backends: 
         entry['n_samples'] = len(brows)
         entry['n_passed'] = len(passed)
         entry['n_completed'] = sum(1 for r in brows if r.get('success'))
+        entry['n_router_side'] = len(router_side)
+        entry['n_unattributed'] = len(unattributed)
         known = sum(1 for r in brows if r.get('success') is not None)
-        entry['n_success_known'] = known
-        entry['success_rate'] = (entry['n_completed'] / known) if known else None
+        entry['n_verdicts_raw'] = known
+        attributable = known - len(router_side)
+        entry['n_success_known'] = attributable
+        entry['success_rate'] = (entry['n_completed'] / attributable) if attributable else None
         out.append(entry)
     return out
 
@@ -445,6 +476,9 @@ def merge_average_rows(rows: Any):
             entry[f] = (xsum / wsum) if wsum else None
         entry['n_samples'] = sum((r.get('n_samples') or 0) for r in grows)
         entry['n_completed'] = sum((r.get('n_completed') or 0) for r in grows)
+        entry['n_router_side'] = sum((r.get('n_router_side') or 0) for r in grows)
+        entry['n_unattributed'] = sum((r.get('n_unattributed') or 0) for r in grows)
+        entry['n_verdicts_raw'] = sum((r.get('n_verdicts_raw') or 0) for r in grows)
         known = sum((r.get('n_success_known') or 0) for r in grows)
         entry['n_success_known'] = known
         entry['success_rate'] = (entry['n_completed'] / known) if known else None
