@@ -81,6 +81,14 @@ SEED_TIMEOUT = 600
 #: Pipeline scripts that load the registry through duckdb.
 SEED_PIPELINES = ("router_seed.py", "router_pricing.py")
 
+# TR-383: the seed refuses to write a registry when a rating the classifier can
+# emit has no routable lane. The committed tables have one such gap (`math`
+# 0..5 — the only lane with a math tier is disabled and unpriced), and the suite
+# needs a registry to test everything else, so the opt-out is set here ONCE for
+# every subprocess this process spawns. tests/test_tr383_satisfiability.py clears
+# it to prove the default is still fatal.
+os.environ.setdefault("ROUTING_ALLOW_UNSATISFIABLE", "1")
+
 # ---------------------------------------------------------------------------
 # TR-077 (Bane 2026-09-19): shared session seed for READ-ONLY consumers.
 #

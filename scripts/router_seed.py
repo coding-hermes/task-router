@@ -1884,7 +1884,78 @@ if __name__ == '__main__':
     # minimal argparse wrapper so -h / --help exits before any file writes.
     # The top-level module already intercepts --help / -h before imports run,
     # so this block is effectively a no-op placeholder for future CLI args.
-    ap.parse_args()
+    ap.add_argument(
+        '--allow-unsatisfiable', action='store_true',
+        help='TR-383: exit 0 even when a rating in the emit domain has no '
+             'routable lane (the finding is still printed loudly)')
+    _seed_args = ap.parse_args()
+    # The same opt-out as an env var, because the suite and CI invoke the seed
+    # without argv control (CI: `python3 -m scripts.router_seed`). Both are
+    # LOUD: the findings print either way, and the opt-out line says seeding
+    # continued anyway. The default stays fatal — a check that can only warn is
+    # how the fleet.toml parity tripwire became permanent background noise.
+    _allow_unsat = _seed_args.allow_unsatisfiable or \
+        os.environ.get('ROUTING_ALLOW_UNSATISFIABLE') == '1'
+
+    # ── TR-383: rating satisfiability, at SEED time ──────────────────────
+    # A rating the classifier can emit but no routable lane can serve is a
+    # ticking 503. Measured 2026-11-03: the only model in the registry with any
+    # `math` tier was ollama-cloud/qwen3.5:397b (tier 5, bench AIME26) and its
+    # row is `disabled: true` with `normalized_price: null`, so all eleven math
+    # levels were unservable and P0_FORE — which requires math >= -5 — could not
+    # be served by ANY lane. Seeding exited 0 through all of it.
+    #
+    # The check runs against the tables this run just wrote (data/tables), so it
+    # grades the registry the fleet is about to use, not a stale copy.
+    try:
+        # TR-202: realpath, never the abspath-of-file idiom — this script ships
+        # to ~/.hermes/scripts through a symlink topology where that idiom lands
+        # on the wrong root. (The literal spelling is banned in this file by
+        # tests/test_symlink_path_resolution.py, comments included.)
+        sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+        import router_satisfiability as _sat
+        # DATA_DIR is the resolver's own table directory (env-overridable via
+        # ROUTING_DATA_DIR) — hand it over verbatim instead of reconstructing a
+        # "home" from it, which is one level off whenever a caller points
+        # ROUTING_DATA_DIR at a bare .../data.
+        _tables = _sat.load_tables(table_dir=DATA_DIR)
+        _missing = [k for k, v in _tables.items()
+                    if v is None and k in ('models', 'tiers', 'domain')]
+        if _missing:
+            print(f'SATISFIABILITY: cannot read table(s) {_missing} under {DATA_DIR}',
+                  file=sys.stderr)
+            sys.exit(2)
+        _findings = _sat.satisfiability_findings(_tables)
+        if _findings:
+            _groups = _sat.summarise(_findings)
+            print(f'\nSATISFIABILITY FAIL: {len(_findings)} of '
+                  f'{len(_tables.get("domain") or [])} rating(s) in the emit '
+                  f'domain have NO routable lane, across {len(_groups)} '
+                  f'categor{"y" if len(_groups) == 1 else "ies"}')
+            for _g in _groups:
+                _lv = _g['levels']
+                _span = (f'levels {_lv[0]}..{_lv[-1]}' if len(_lv) > 1
+                         else f'level {_lv[0]}')
+                print(f'  {_g["category"]}: {_span} — {_g["reason"]}')
+                if _g['required_by']:
+                    print(f'     required by profile(s): '
+                          f'{", ".join(_g["required_by"])}')
+            if _allow_unsat:
+                print('\n--allow-unsatisfiable: seeding anyway — these ratings '
+                      'will 503 at tick time until a routable lane holds them')
+            else:
+                print('\nSeeding REFUSED: add a routable lane for the '
+                      'categories above, or re-run with --allow-unsatisfiable '
+                      'to seed a knowingly-starved registry')
+                sys.exit(1)
+        else:
+            print(f'\nSATISFIABILITY OK: all '
+                  f'{len(_tables.get("domain") or [])} rating(s) in the emit '
+                  f'domain are servable by at least one routable lane')
+    except SystemExit:
+        raise
+    except Exception as _e:  # noqa: BLE001 — never mask a seed with this check
+        print(f'SATISFIABILITY: check could not run ({_e})', file=sys.stderr)
 
 
 # The previous bottom-of-module "print('seed complete')" was removed when the

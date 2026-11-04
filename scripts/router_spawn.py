@@ -3910,8 +3910,28 @@ def resolve(project: Any=None, profile_id: Any=None, adhoc: Any=None, use_health
                 reason='no chain — no eligible model and no fallback lane could serve')
         except Exception:  # noqa: BLE001 — the census is never fatal
             _row = None
+        # TR-383: an unsatisfiable rating must be DIAGNOSABLE, not just detected.
+        # "no chain — no eligible model and no fallback lane could serve" names
+        # nothing an operator can act on: not the capability nobody holds, not the
+        # lane that came closest. Measured 2026-11-03 19:18:49, four code-factory
+        # satellite ticks died with exactly that body (chain_length 0, ladder [])
+        # and the only clue in the payload was a clamp note.
+        #
+        # The diagnosis rides BOTH as its own key (machine) and as the first
+        # reason (human). It is computed from the same tables the resolver used.
+        try:
+            import router_satisfiability as _sat
+            _diag = _sat.diagnose_request(reqs, tables)
+        except Exception:  # noqa: BLE001 — a diagnosis must never change the refusal
+            _diag = None
+        if _diag and _diag.get('summary'):
+            reasons.insert(0, f'UNSERVABLE RATING: {_diag["summary"]}')
+            _err(f'UNSERVABLE RATING (profile={pid}, project={project or "adhoc"}): '
+                 f'{_diag["summary"]}')
         return {'error': 'no chain — no eligible model and no fallback lane could serve',
                 'profile': pid,
+                # TR-383: why, in one line, plus the structured form.
+                'diagnosis': _diag,
                 'reasons': reasons[:12],
                 'exclusions': exclusions[:20],
                 # TR-345: same policy-plane identity as the success payload, so

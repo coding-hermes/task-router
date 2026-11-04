@@ -100,6 +100,16 @@ jobs:
         run: pip install --quiet pytest pytest-timeout duckdb pyyaml  # seed subprocess + several tests use the duckdb engine; router_probe_run.py loads config.yaml; pytest-timeout = INT-CI-20261015-01 stall naming
 
       - name: Seed registry (registry.json is gitignored — CI must generate it)
+        # TR-383: the seed now refuses (exit 1) when a rating the classifier can
+        # emit has no routable lane, and the committed registry has exactly one
+        # such gap: `math` levels 0..5 — the ONLY model with any math tier is
+        # ollama-cloud/qwen3.5:397b (tier 5, bench AIME26) and its row is
+        # disabled and unpriced. CI must still build a registry to test against,
+        # so it opts out EXPLICITLY; the findings print in this step's log, and
+        # the gap is tracked on the board. Removing this env var is the signal
+        # that the gap is closed.
+        env:
+          ROUTING_ALLOW_UNSATISFIABLE: "1"
         run: python3 -m scripts.router_seed
 
       - name: Full test suite (pure JSON — no duckdb needed)
