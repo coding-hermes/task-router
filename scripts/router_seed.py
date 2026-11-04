@@ -558,52 +558,6 @@ FROM (
 )
 """)
 
-# ---------- 2b. TR-370: the OTHER 14 categories ------------------------------
-# The UNPIVOT above can only see the 10 legacy perf_* columns on models.jsonl,
-# so a measurement of any of the 14 newer categories (code_gen, refactor,
-# terminal, mechanical, test, math, tool_use, long_horizon, vision,
-# ui_frontend, spec_docs, creative, multilingual, security) could never reach
-# this table through the seed path — data/tables/model_perf.jsonl held 3,944
-# rows across all 24 and none of them were loaded. Measured 2026-11-04: 2,064
-# registry rows, 863 live lanes, and only 59 (6.8%) had lane-level evidence,
-# while 457 (53%) of those same lanes had a model_perf sidecar row.
-#
-# The sidecar is MODEL-level exactly like this table (no provider column), so
-# it appends straight in. The UNPIVOT rows keep precedence (inserted first);
-# a (model, category) the sidecar and the legacy column both name resolves to
-# the legacy value, so the numbers that already worked cannot move.
-_perf_sidecar = os.path.join(DATA_DIR, 'model_perf.jsonl')
-if os.path.exists(_perf_sidecar):
-    try:
-        _side_rows = []
-        with open(_perf_sidecar) as _fh:
-            for _line in _fh:
-                _line = _line.strip()
-                if not _line:
-                    continue
-                _r = json.loads(_line)
-                _m, _c, _p = _r.get('model'), _r.get('category'), _r.get('perf')
-                if _m is None or _c is None or _p is None:
-                    continue
-                if _c not in CATS:
-                    # an unknown category is a data defect, not a silent drop
-                    print(f'WARNING: model_perf.jsonl names unknown category {_c!r} '
-                          f'for model {_m!r} — not loaded')
-                    continue
-                _side_rows.append((str(_m), str(_c), float(_p),
-                                   _r.get('source') or 'measured',
-                                   _r.get('source_ref') or 'model_perf.jsonl'))
-        if _side_rows:
-            con.executemany(
-                "INSERT INTO model_perf (model, category, perf, source, source_ref) "
-                "SELECT ?,?,?,?,? WHERE NOT EXISTS ("
-                "  SELECT 1 FROM model_perf mp WHERE mp.model=? AND mp.category=?)",
-                [(m, c, p, s, sr, m, c) for (m, c, p, s, sr) in _side_rows])
-            print(f'loaded {len(_side_rows)} model_perf sidecar rows '
-                  f'({len({r[1] for r in _side_rows})} categories)')
-    except Exception as _exc:  # noqa: BLE001 — a broken sidecar must not stop a seed
-        print(f'WARNING: model_perf.jsonl not applied: {type(_exc).__name__}: {_exc}')
-
 # ---- placeholder zeros are not measurements --------------------------------
 # `WHERE perf IS NOT NULL` above treats a literal 0.0 as MEASURED, and the tier
 # scale reads that as "scored zero on everything" — which floors the lane. Ten
@@ -1616,21 +1570,7 @@ else:
 con.execute("""
 CREATE TABLE cat_q AS
 SELECT category,
-       -- TR-370a: the BOTTOM level is the worst MEASURED performer, not the 1st
-       -- percentile. quantile_cont(perf, 0.01) sits strictly above the minimum
-       -- whenever the sample is small or the evidence is nearly unanimous, and
-       -- then every model AT that modal value falls below even level -5 —
-       -- `max(level) WHERE min_perf <= perf` returns NULL and the model gets NO
-       -- tier row, silently discarding its measurement. Live proof (2026-11-04):
-       -- math held 14 measurements, 13 of them glm-* at exactly 0.992 and one at
-       -- 1.0; q01 interpolated to 0.99208, so 13 of 14 math measurements
-       -- produced no tier at all and satisfiability reported "no lane MEASURES
-       -- this capability". least(q01, min(perf)) only ever LOWERS the floor, so
-       -- for a healthy spread the scale is byte-identical (fusion of the two
-       -- inputs changes nothing when min is already below q01) and for a
-       -- degenerate one the measured models become rankable instead of invisible.
-       least(quantile_cont(perf, 0.01), min(perf)) AS q01,
-       quantile_cont(perf, 0.05) AS q05,
+       quantile_cont(perf, 0.01) AS q01, quantile_cont(perf, 0.05) AS q05,
        quantile_cont(perf, 0.10) AS q10, quantile_cont(perf, 0.20) AS q20,
        quantile_cont(perf, 0.35) AS q35, quantile_cont(perf, 0.50) AS q50,
        quantile_cont(perf, 0.65) AS q65, quantile_cont(perf, 0.80) AS q80,
