@@ -285,36 +285,43 @@ def tier_index(rows: list) -> dict:
 
 
 def build_category_values(tables: dict) -> dict:
-    """R34: cat:<category> field value = the whole decision tuple for a model.
+    """R34: cat:<category> field value = the whole decision tuple for a LANE.
 
-    Joins model_tier's tier with the models row columns the chain build filters or
-    sorts on, so one HGETALL per required category feeds the entire chain build and
-    the reader never issues a per-model read.
+    A lane is `provider/model`: price, plan tier, context and lifecycle are
+    properties of the provider serving a model, not of the model id. The tier row
+    carries only the model id, so it is joined to EVERY models row that serves that
+    id — one entry per lane.
+
+    The first cut keyed by the bare model id and looked the model row up by
+    `provider/model`, so (a) the join always missed and every tuple field came back
+    null, and (b) a model served by three providers collapsed into one entry.
+    Measured by scripts/router_redis_parity.py on the live instance: 8,960 lanes
+    missing, 3,850 extra, 9 level collisions on the same key.
     """
-    models = {}
+    lanes_by_model: dict = {}
     for row in tables.get('models') or []:
         prov, model = row.get('provider'), row.get('model')
         if prov is None or model is None:
             continue
-        models[f'{prov}/{model}'] = row
+        lanes_by_model.setdefault(str(model), []).append((f'{prov}/{model}', row))
     out: dict = {}
     for row in tables.get('model_tier') or []:
         model, cat = row.get('model'), row.get('category')
         if model is None or cat is None:
             continue
-        mrow = models.get(model) or {}
-        out.setdefault(cat, {})[model] = {
-            'level': row.get('tier'),
-            'perf': row.get('perf'),
-            'tier_source': row.get('tier_source'),
-            'plan_tier': mrow.get('plan_tier'),
-            'normalized_price': mrow.get('normalized_price'),
-            'token_factor': mrow.get('token_factor'),
-            'context_limit': mrow.get('context_limit'),
-            'archive': mrow.get('archive'),
-            'valid_to': mrow.get('valid_to'),
-            'disabled': mrow.get('disabled'),
-        }
+        for lane, mrow in lanes_by_model.get(str(model), []):
+            out.setdefault(cat, {})[lane] = {
+                'level': row.get('tier'),
+                'perf': row.get('perf'),
+                'tier_source': row.get('tier_source'),
+                'plan_tier': mrow.get('plan_tier'),
+                'normalized_price': mrow.get('normalized_price'),
+                'token_factor': mrow.get('token_factor'),
+                'context_limit': mrow.get('context_limit'),
+                'archive': mrow.get('archive'),
+                'valid_to': mrow.get('valid_to'),
+                'disabled': mrow.get('disabled'),
+            }
     return out
 
 

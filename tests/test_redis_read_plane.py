@@ -394,3 +394,36 @@ def test_sweep_drops_a_dead_scope_and_spares_the_current_one(scratch_home):
         assert conn.cmd('EXISTS', f'{scope}:meta:version') == 1, 'never sweep the current scope'
     finally:
         conn.close()
+
+
+def test_category_values_are_lane_scoped_not_model_scoped():
+    """R34: cat:<category> is keyed by provider/model and the tuple comes from the
+    SERVING row. The stage-1 join looked the model row up by bare model id inside a
+    provider/model-keyed dict, so every price/plan/context field was null and a model
+    served by several providers collapsed into one entry — measured as 8,960 missing
+    lanes and 3,850 extra on the live instance (scripts/router_redis_parity.py)."""
+    tables = {
+        'models': [
+            {'provider': 'p1', 'model': 'm1', 'plan_tier': 0, 'normalized_price': 1.0,
+             'token_factor': 1.0, 'context_limit': 1000, 'archive': None,
+             'valid_to': None, 'disabled': None},
+            {'provider': 'p2', 'model': 'm1', 'plan_tier': 1, 'normalized_price': 2.0,
+             'token_factor': 2.0, 'context_limit': 2000, 'archive': True,
+             'valid_to': '2026-12-01', 'disabled': None},
+        ],
+        'model_tier': [
+            {'model': 'm1', 'category': 'code_gen', 'tier': -2, 'perf': 0.5,
+             'tier_source': 'bench'},
+        ],
+    }
+    values = rr.build_category_values(tables)['code_gen']
+    assert set(values) == {'p1/m1', 'p2/m1'}, values.keys()
+    assert values['p1/m1']['level'] == -2
+    assert values['p2/m1']['level'] == -2
+    # the serving row decides the sort/filter columns — not a missing lookup
+    assert values['p1/m1']['plan_tier'] == 0
+    assert values['p1/m1']['normalized_price'] == 1.0
+    assert values['p2/m1']['plan_tier'] == 1
+    assert values['p2/m1']['normalized_price'] == 2.0
+    assert values['p2/m1']['context_limit'] == 2000
+    assert values['p2/m1']['archive'] is True
