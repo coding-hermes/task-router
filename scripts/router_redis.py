@@ -64,12 +64,17 @@ else:  # pragma: no cover
 STATE_DIR = os.path.join(os.path.dirname(DATA_DIR), 'state')
 INSTANCE_FILE = os.path.join(STATE_DIR, 'redis-instance.json')
 
-# R9: the cached table set is EXACTLY these twelve. fallback_lanes is a sidecar
-# the seed folds into the artifact's tables dict — it is inside the twelve and
-# must not be counted twice.
+# The cached table set is the RESOLVER'S READ CLOSURE, not "what the seed
+# derives". `_build_chain` -> `_alias_tiers` -> `_load_aliases` reads
+# data/tables/model_aliases.jsonl DIRECTLY (router_spawn.py:440), and the seed
+# never writes that file (it is hand-maintained) — so a set derived from the
+# seed's output omitted it, and any cache-fed resolve would have silently dropped
+# every variant's inherited tier evidence and quietly shrunk chains.
+# fallback_lanes is a sidecar the seed folds into the artifact's tables dict — it
+# is inside this set and must not be counted twice.
 CACHED_TABLES = (
     'providers', 'models', 'archetypes', 'benchmarks', 'projects', 'level_defs',
-    'category_levels', 'model_perf', 'model_tier', 'task_profiles',
+    'category_levels', 'model_aliases', 'model_perf', 'model_tier', 'task_profiles',
     'task_profile_requirements', 'fallback_lanes',
 )
 
@@ -330,6 +335,9 @@ def build_category_values(tables: dict) -> dict:
 # like with like and never reports a projection mismatch as "changed").
 ROW_KEYS = {
     'models': ('provider', 'model'), 'providers': ('id',), 'archetypes': ('id',),
+    # TR-388: the alias table's natural key is the VARIANT id (its `inherits`
+    # column is the base) — the resolver's `_load_aliases` keys on the variant.
+    'model_aliases': ('model',),
     'benchmarks': ('model', 'category', 'source'), 'level_defs': ('level',),
     'model_perf': ('model', 'category'), 'model_tier': ('model', 'category'),
     'category_levels': ('category', 'level'), 'task_profiles': ('id',),
@@ -605,6 +613,21 @@ def publish(tables: dict, stamp: dict, scope: str, conn: RedisConn,
         {'provider': row.get('provider'), 'model': row.get('model'),
          'key_env': row.get('key_env')})]
         for row in (tables.get('fallback_lanes') or [])])
+
+    # Alias inheritance (R33): `_build_chain` -> `_alias_tiers` -> `_load_aliases`
+    # reads model_aliases.jsonl directly, so the plane must carry the same map as a
+    # point lookup (variant_lower -> base_lower) or a cache-fed resolve silently
+    # loses every variant's inherited tier evidence.
+    alias_cmds = []
+    for row in tables.get('model_aliases') or []:
+        variant = row.get('model') or row.get('variant')
+        base = row.get('inherits') or row.get('base')
+        if variant and base and str(variant).lower() != str(base).lower():
+            alias_cmds.append(['HSET', f'{prefix}:alias:{str(variant).lower()}',
+                               'base', str(base).lower()])
+    if alias_cmds:
+        stage(alias_cmds)
+        conn.cmd('HSET', f'{prefix}:alias:__count', 'rows', len(alias_cmds))
 
     # R16/R49: a full-row audit copy per table, so --diff and the parity test
     # compare full rows for ALL twelve tables (not just the ones with a fast

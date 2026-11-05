@@ -87,13 +87,16 @@ def test_hash_is_order_insensitive(tmp_path):
     assert rr.table_fingerprint(str(a)) == rr.table_fingerprint(str(b))
 
 
-def test_table_set_is_exactly_the_twelve_and_not_cached_is_computed(tmp_path):
+def test_table_set_is_the_resolver_closure_and_not_cached_is_computed(tmp_path):
     for name in rr.CACHED_TABLES:
         (tmp_path / f'{name}.jsonl').write_text('{"k":1}\n')
     (tmp_path / 'model_notes.jsonl').write_text('{"n":1}\n')       # not cached
     (tmp_path / 'probe_gaps.jsonl').write_text('{"g":1}\n')        # not cached
     stamp = rr.jsonl_stamp(str(tmp_path), str(tmp_path / 'registry.json'))
-    assert len(rr.CACHED_TABLES) == 12
+    # 13 = the 12 seed-derived tables + model_aliases, which the seed never writes
+    # but the resolver reads directly (_load_aliases). See the closure test below.
+    assert len(rr.CACHED_TABLES) == 13
+    assert 'model_aliases' in rr.CACHED_TABLES
     assert set(stamp['tables']) == set(rr.CACHED_TABLES)
     assert stamp['not_cached'] == ['model_notes', 'probe_gaps']
 
@@ -427,3 +430,43 @@ def test_category_values_are_lane_scoped_not_model_scoped():
     assert values['p2/m1']['normalized_price'] == 2.0
     assert values['p2/m1']['context_limit'] == 2000
     assert values['p2/m1']['archive'] is True
+
+
+def test_cached_set_covers_the_resolver_read_closure():
+    """R9: the cached set must be the RESOLVER's read closure, not the seed's output.
+
+    Derived from router_spawn's own source so it cannot go stale: every
+    `tables.get('<name>')` and every `DATA_DIR, '<name>.jsonl'` is a table the
+    resolver reads. model_aliases was missing from the first cut (the seed never
+    writes it), which would have silently dropped variant tier inheritance.
+    """
+    import re
+    src = (REPO / 'scripts' / 'router_spawn.py').read_text()
+    reads = set(re.findall(r"tables\.get\('([a-z_]+)'\)", src))
+    reads |= set(re.findall(r"DATA_DIR,\s*'([a-z_]+)\.jsonl'", src))
+    # state/log files the resolver touches are not registry tables
+    reads -= {'metrics', 'ledger', 'outcomes', 'outcomes-averages'}
+    assert reads, 'the derivation found no table reads — the guard would be vacuous'
+    missing = sorted(reads - set(rr.CACHED_TABLES))
+    assert not missing, f'the resolver reads tables the cache does not carry: {missing}'
+
+
+@live
+def test_aliases_are_published_as_point_lookups(scratch_home):
+    """R33: variant -> base must be a single-key lookup for alias inheritance."""
+    assert rr.verb_load() == 0
+    scope = rr.scope_id(str(scratch_home), rr.REGISTRY)
+    conn = rr.RedisConn(timeout_ms=5000).connect()
+    try:
+        gen = int(json.loads(conn.cmd('GET', f'{scope}:meta:version'))['generation'])
+        rows = rr.read_table('model_aliases', str(scratch_home))
+        assert rows, 'fixture has no alias rows'
+        sample = rows[0]
+        variant = str(sample.get('model') or sample.get('variant')).lower()
+        base = str(sample.get('inherits') or sample.get('base')).lower()
+        got = conn.cmd('HGET', f'{scope}:g{gen}:alias:{variant}', 'base')
+        assert got == base, f'alias lookup returned {got!r}, expected {base!r}'
+        count = conn.cmd('HGET', f'{scope}:g{gen}:alias:__count', 'rows')
+        assert int(count) > 0
+    finally:
+        conn.close()

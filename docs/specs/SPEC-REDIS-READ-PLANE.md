@@ -21,7 +21,7 @@ finding; §14 and §15 are the receipts. Cross-references are into this document
 | biggest tables | models 2,064 · model_perf 3,944 · model_tier 3,896 · benchmarks 2,148 · projects 950 |
 | parse `registry.json`, 100 runs | mean 49.0 ms, p50 45.1, min 33.3, max 180.2 |
 | cold `router_spawn.py <project> --format json` | 0.28–0.39 s wall, ~73 MB RSS |
-| `data/tables/` | **31** JSONL files; 12 are seed-derived artifact tables, 19 are not |
+| `data/tables/` | **31** JSONL files; 13 are in the cache's read closure, 18 are not |
 | in-process cache | TR-277: read-once per file identity, change-driven, single-flight, no TTL (AC0–AC6) |
 | chain build | `DEFAULT_CHAIN_LIMIT = 1024` lanes (`router_spawn.py:85`); filters/sorts on plan_tier, price×token_factor, context_limit, lifecycle |
 | worst-case profile | P0_FORE = 17 required categories (`task_profile_requirements.jsonl`), and P0_FORE is `DEFAULT_FALLBACK_PROFILE` (`router_spawn.py:93`) |
@@ -70,13 +70,17 @@ publish CAS (R20) coordinates *publishers of this cache*, never fleet scheduling
 
 **R9. (FIX C4, A8) Hash with multiplicity over an explicitly enumerated table set.**
 
-- **Cached table set = exactly these 12 tables:** `providers`, `models`, `archetypes`,
-  `benchmarks`, `projects`, `level_defs`, `category_levels`, `model_perf`, `model_tier`,
-  `task_profiles`, `task_profile_requirements`, `fallback_lanes`. (The seed writes exactly these
-  twelve files; `fallback_lanes` is folded into `doc['tables']` as a sidecar, so "12 + sidecar = 13"
-  double-counted it. v0.2's arithmetic was wrong; this is the list.)
-- `not_cached` = every other `data/tables/*.jsonl` file (19 today), **computed from the directory
-  listing minus the 12 names at every run** — never hand-maintained.
+- **Cached table set = these 13 tables:** `providers`, `models`, `archetypes`, `benchmarks`,
+  `projects`, `level_defs`, `category_levels`, `model_aliases`, `model_perf`, `model_tier`,
+  `task_profiles`, `task_profile_requirements`, `fallback_lanes`.
+  **The set is the RESOLVER'S READ CLOSURE, not "what the seed derives"** — the seed never writes
+  `model_aliases.jsonl`, yet `_build_chain → _alias_tiers → _load_aliases` reads it directly
+  (`router_spawn.py:440`), so a seed-derived set silently dropped every variant's inherited tier
+  evidence. (v0.2's "12 + sidecar = 13" was arithmetic on the wrong question; v0.3 fixed the count
+  and this version fixes the derivation. `not_cached` is now the other 18 files, still computed
+  from the directory.)
+- `not_cached` = every other `data/tables/*.jsonl` file (18 today), **computed from the directory
+  listing minus the 13 names at every run** — never hand-maintained.
 - Per table: drop blank lines, strip trailing whitespace, take the sorted **list** of line strings
   *preserving duplicates*, `sha256("\n".join(sorted_lines))`. A set would collapse duplicates;
   `model_notes.jsonl` already carries 3 duplicate raw lines, so a multiplicity-blind hash is a
