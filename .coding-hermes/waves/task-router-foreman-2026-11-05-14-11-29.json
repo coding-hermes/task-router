@@ -1,0 +1,30 @@
+{
+  "tick": "task-router-foreman-2026-11-05-14-11-29",
+  "project": "task-router",
+  "mode": "serial",
+  "wave_size": 1,
+  "wave_budget": 10,
+  "why_not_a_wave": "No two of the dispatchable P0 rows are mutually independent. TR-363 and TR-369 both rewrite the capability/profile read path (router_seed.py model_perf unpivot + /v1/models publish + requirement acceptance); TR-364 and TR-365 both rewrite gate/provider-health classification and TR-365 requires live quota-state mutation. TR-362 (null-debt commit gate) is the only row that is file-disjoint and purely local. Additionally the host was at loadavg 16.02 on 16 cores with a foreign 11-module pytest battery in flight at 14:12, so two worker suites would manufacture run-interference reds (documented failure mode for this repo's 17-minute suite).",
+  "workers": [
+    {
+      "row": "TR-362",
+      "worktree": "/home/kara/worktrees/task-router-TR-362",
+      "branch": "wt/TR-362",
+      "base": "origin/main",
+      "base_sha": "48b7017",
+      "model": "glm-5.3-flash",
+      "provider": "zai-glm",
+      "skill": "coding-hermes-worker",
+      "brief": "/home/kara/.hermes/cache/scratch/tr-tick-20261105-1411/TR-362-brief.txt",
+      "attempt": 1,
+      "inherited_failure_mode": null
+    }
+  ],
+  "worktrees": ["/home/kara/worktrees/task-router-TR-362"],
+  "owner_gated_not_selected": [
+    {"row": "RELEASE-2026-10-22-001", "gate": "owner release authorization; deps TR-341/TR-344/QA-TASKROUTER-2/XK-404-001-R2"},
+    {"row": "TR-355", "gate": "live serving-unit restart (owner); evidence precondition MET at 35e289a"}
+  ],
+  "deferred_p0_batch": ["TR-363", "TR-364", "TR-365", "TR-369"],
+  "created_at": "2026-11-05T14:20:00Z"
+}
