@@ -71,3 +71,8 @@ data/state/outcomes.jsonl.bak-*
 gap_findings.txt
 reports/*.html
 .coding-hermes/waves/*.json
+
+# TR-388 Redis read plane: runtime state (per-host, never committed)
+data/state/redis-health.json
+data/state/redis-instance.json
+data/state/redis-publish-errors.jsonl

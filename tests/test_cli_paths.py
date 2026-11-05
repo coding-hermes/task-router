@@ -118,6 +118,8 @@ EXPECTED_COMMANDS = {
     "probefix", "validate", "metrics", "status", "estimate", "diff",
     "web", "server", "outcomes", "chain-run", "pricing-audit", "lifecycle",
     "ingress", "context-call", "decide",
+    # TR-388 R74: the Redis read plane (status is the cron contract verb).
+    "redis",
 }
 
 

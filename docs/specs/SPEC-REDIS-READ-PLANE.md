@@ -1,13 +1,17 @@
 # SPEC-REDIS-READ-PLANE — a Redis read plane over the JSONL registry
 
-Status: **v0.3 (2026-11-04) — two quorum rounds merged. Implementation authority, subject to the
+Status: **v0.6 (2026-11-04) — two quorum rounds merged, infrastructure (§11.5) and hot-path wiring
+(§11.6) specified, and R52's measurement gate has RUN: it fires AGAINST the hot-path default. The
+category-scan read shape buys ~5–8 % of an in-process resolve (49–57 ms file vs 44–46 ms cache), below
+R52's 10 % threshold, so `ROUTING_REDIS=file` stays the shipped default and the resolver is NOT wired
+(see §16). The plane keeps its built value: verification/status/diff/parity and point lookups. Implementation authority, subject to the
 R52 measurement gate. v0.3 has NOT yet been re-judged (round 3 owed with implementation).**
 Board row: TR-388 (P1) · Owner directive: Bane, 2026-11-04
 Quorum: `docs/reviews/TR-388-quorum-2026-11-04.md` (round 1) and §15 below (round 2)
 Interacts with: TR-277 (`router_data_cache.py`), TR-046 (`source` provenance), TR-288
 (runtime-sync copy list), TR-005 (`router_maintain.py`), AGENTS.md fail-open rule.
 
-Normative statements **R1…R57**. A statement marked `(FIX …)` was forced by a specific quorum
+Normative statements **R1…R80** (R58–R68 infrastructure, §11.5; R69–R80 hot-path wiring, §11.6). A statement marked `(FIX …)` was forced by a specific quorum
 finding; §14 and §15 are the receipts. Cross-references are into this document only.
 
 ---
@@ -20,7 +24,7 @@ finding; §14 and §15 are the receipts. Cross-references are into this document
 | biggest tables | models 2,064 · model_perf 3,944 · model_tier 3,896 · benchmarks 2,148 · projects 950 |
 | parse `registry.json`, 100 runs | mean 49.0 ms, p50 45.1, min 33.3, max 180.2 |
 | cold `router_spawn.py <project> --format json` | 0.28–0.39 s wall, ~73 MB RSS |
-| `data/tables/` | **31** JSONL files; 12 are seed-derived artifact tables, 19 are not |
+| `data/tables/` | **31** JSONL files; 13 are in the cache's read closure, 18 are not |
 | in-process cache | TR-277: read-once per file identity, change-driven, single-flight, no TTL (AC0–AC6) |
 | chain build | `DEFAULT_CHAIN_LIMIT = 1024` lanes (`router_spawn.py:85`); filters/sorts on plan_tier, price×token_factor, context_limit, lifecycle |
 | worst-case profile | P0_FORE = 17 required categories (`task_profile_requirements.jsonl`), and P0_FORE is `DEFAULT_FALLBACK_PROFILE` (`router_spawn.py:93`) |
@@ -69,13 +73,17 @@ publish CAS (R20) coordinates *publishers of this cache*, never fleet scheduling
 
 **R9. (FIX C4, A8) Hash with multiplicity over an explicitly enumerated table set.**
 
-- **Cached table set = exactly these 12 tables:** `providers`, `models`, `archetypes`,
-  `benchmarks`, `projects`, `level_defs`, `category_levels`, `model_perf`, `model_tier`,
-  `task_profiles`, `task_profile_requirements`, `fallback_lanes`. (The seed writes exactly these
-  twelve files; `fallback_lanes` is folded into `doc['tables']` as a sidecar, so "12 + sidecar = 13"
-  double-counted it. v0.2's arithmetic was wrong; this is the list.)
-- `not_cached` = every other `data/tables/*.jsonl` file (19 today), **computed from the directory
-  listing minus the 12 names at every run** — never hand-maintained.
+- **Cached table set = these 13 tables:** `providers`, `models`, `archetypes`, `benchmarks`,
+  `projects`, `level_defs`, `category_levels`, `model_aliases`, `model_perf`, `model_tier`,
+  `task_profiles`, `task_profile_requirements`, `fallback_lanes`.
+  **The set is the RESOLVER'S READ CLOSURE, not "what the seed derives"** — the seed never writes
+  `model_aliases.jsonl`, yet `_build_chain → _alias_tiers → _load_aliases` reads it directly
+  (`router_spawn.py:440`), so a seed-derived set silently dropped every variant's inherited tier
+  evidence. (v0.2's "12 + sidecar = 13" was arithmetic on the wrong question; v0.3 fixed the count
+  and this version fixes the derivation. `not_cached` is now the other 18 files, still computed
+  from the directory.)
+- `not_cached` = every other `data/tables/*.jsonl` file (18 today), **computed from the directory
+  listing minus the 13 names at every run** — never hand-maintained.
 - Per table: drop blank lines, strip trailing whitespace, take the sorted **list** of line strings
   *preserving duplicates*, `sha256("\n".join(sorted_lines))`. A set would collapse duplicates;
   `model_notes.jsonl` already carries 3 duplicate raw lines, so a multiplicity-blind hash is a
@@ -329,6 +337,155 @@ backups, no volume; restore is `router redis load --force`.
 **R48.** The seed prints one line: `cache: <scope> g<N> jsonl=<hash12> tables=12` or
 `cache: NOT PUBLISHED (<reason>)` plus the R23 record.
 
+## 11.5 Infrastructure deliverables (added after the build-plan review asked "does this include the docker and infra work?")
+
+R43–R45 state the *requirements*; these statements name the *artifacts and on-host changes* that
+satisfy them. Every one is a deliverable of this row, not a follow-up, because a read plane that
+only exists as a hand-typed `docker run` on one box is a demo.
+
+**R58. Container definition lives in the repo.** `scripts/router_redis_up.sh` creates the instance
+idempotently from an explicit spec (create if absent; verify + fix drift if present; never
+`docker rm` a healthy instance, never touch any other container). It pins the **image digest**
+(`redis@sha256:…`), publishes `127.0.0.1:6391:6379` only, and sets:
+
+| flag | value | why |
+|---|---|---|
+| `--memory` / `--memory-swap` | `320m` / `320m` (equal) | `maxmemory 256mb` governs Redis's own accounting; RSS can exceed it via fragmentation and copy-on-write, and the host is the fleet's shared box. Equal swap disables swap rather than allowing a silent overcommit |
+| `--restart` | `unless-stopped` | survives a reboot without a systemd unit for the container itself |
+| `--health-cmd` | `redis-cli -a "$REDIS_PASSWORD" ping` | `redis:7-alpine` ships `redis-cli`; a process that is up but refusing writes must show `unhealthy` |
+| `--log-opt max-size/max-file` | `10m` / `3` | `data/metrics.jsonl` already proved what unbounded logs do to this box (TR-372) |
+| `--label` | `task-router.component=redis-read-plane`, `task-router.spec=SPEC-REDIS-READ-PLANE` | ownership is discoverable by `docker ps --filter label=…`, so "who owns this container" is answerable on a fresh host |
+
+**R59. Secret lifecycle.** `requirepass` is generated by the provisioning script when
+`~/.hermes/secrets/router-redis.pass` is absent (mode 600, dir 700), never logged, never in git, and
+never printed by `status`. Rotation is: write the new secret file → recreate the container → the
+next `status` reports `UNREACHABLE` until a `load --force` succeeds, which is the documented
+observable sequence rather than a silent hang.
+
+**R60. Reload timer ships as unit files in the repo.** `scripts/router-redis-sync.service` +
+`.timer` (the `OnBootSec=2min` / `OnUnitActiveSec=5min` / `AccuracySec=30s` shape already used by
+`worker-scope-reaper.timer`), installed to `~/.config/systemd/user/` by the provisioning script,
+with `loginctl enable-linger` asserted because a user timer without linger does not run after a
+reboot. The service runs `load --if-stale` and nothing else.
+
+**R61. Alerting cron is registered, and *armed* is verified.** The `no_agent` cron job
+(`router-redis-status.sh`, the `router-averages-refresh.sh` shape: silence on `MATCH`, one line
+otherwise; `deliver` to the owner's channel) is created through the cron API, not hand-edited into
+`jobs.json`. Arming is asserted: the provisioning script prints the job id, its `enabled` flag and
+its `last_status`, because this fleet already has hourly router jobs sitting `enabled: false` — an
+alerting cron that is quietly paused is worse than none.
+
+**R62. Arming is a gated sequence, and every stage is reversible.**
+`provision → load → status MATCH → read-path wiring (default still file) → timer → cron → measure →
+(default flips only if R52 passes)`.
+`scripts/router_redis_down.sh` reverses the *host* side in order: disable + remove the user timer and
+the cron job, then stop the container (`docker rm -f tr388-redis`), then print the one-line
+instruction (`ROUTING_REDIS=0`) that returns the code path to the file. Data loss is defined as a
+non-event (R6), so teardown needs no backup step — and the teardown is tested, not described.
+
+**R63. Metrics are opted into deliberately, never accidentally shared.** This host already runs
+`svc-redis-exporter` against the product instance. Our instance is **not** added to that exporter's
+target set unless a follow-up row says so; `status --json` + the cron line are the primary signal.
+If an exporter is added later it must be a separate target with a `component` label, so a Redis
+outage cannot be misread as a product outage.
+
+**R64. CI stays honest about infrastructure.** Hosted runners have no Docker daemon and no Redis:
+every infra-backed test skips with an explicit reason, and the `check:`-kind assertions (script
+presence, digest pinning, flag set, unit-file shape, cron registration code path) run everywhere. A
+skipped infra test must never be counted as a pass — the row reports the skip counts separately.
+
+**R65. No host package install is required or performed.** The instance is a container on every
+host, because `redis-server`/`redis-cli` are absent here (measured) and a per-host package would make
+the plane's presence a property of the OS image rather than of this repo.
+
+**R66. Fresh-host path is one command and is documented in `docs/registry-maintenance.md`.** The same
+script provisions, loads, installs the units, registers the cron and prints the verification line;
+a second host is a copy-run, not a runbook conversation.
+
+**R67. Ownership and capacity are observable.** `docker ps --filter label=task-router.component=…`,
+`status --json`'s `scopes_live`/`dbsize`/`used_memory_human`, and the container's health status are
+the three answers; the provisioning script refuses to proceed if another container already publishes
+loopback `:6391` (it is not "our" instance just because the port answers).
+
+**R68. The infra work is part of the row's acceptance, in this order.** Provisioning script + unit
+files + status script are reviewed and committed with the code (not "later"), the read path is not
+wired until `status` reports `MATCH` against a live instance, and the default is not flipped until
+R50/R51 are recorded and R52's gate has run.
+
+## 11.6 Hot-path wiring inventory (added after the hardening question "is this actually in the hot path?")
+
+The v0.4 text wired **one** consumer (`router_spawn.py`) and mentioned `router_server.py` in a
+single clause. That is not wiring. Measured inventory, 2026-11-04:
+
+| consumer | process shape | executes | how it reads | in the hot path? |
+|---|---|---|---|---|
+| `router_spawn.py` (CLI) | short-lived, one per tick/probe | repo copy | `registry.json` + tables through TR-277 | **YES — every task resolve** |
+| HTTP API `:9092` | long-lived (pid 1602237, `/usr/bin/python3`, cwd `/home/kara`) | **repo copy** | per-request table reads via `_read_jsonl` → TR-277; registry for resolve endpoints | **YES** |
+| web UI `:9093` | long-lived (pid 7564) | **live byte-copy** `~/.hermes/scripts/router_web.py` | tables per request | warm (dashboards) |
+| proxy `:9391` | long-lived (TR-067 recipe) | — | no registry reads found in the proxy path | unchanged |
+| `router_classify.py` | per call | repo copy | carries its **own second registry-path candidate** (`data/registry.json`) | warm |
+| `estimate` / `status` / `validate` / `health` / `metrics` / `diff` | short-lived CLI | repo copy | registry via spawn's loader | cold |
+
+**R69. Every consumer above is marked `covered` / `unchanged-with-reason` / `out-of-scope-with-row`
+in the implementation's own checklist.** A consumer may not be silently skipped; the checklist is
+part of the row's evidence, not a comment.
+
+**R70. `router_spawn.py` keeps the pin-per-process semantics (R26).** It is short-lived by
+construction, which is exactly why R26 was written that way.
+
+**R71. Long-lived services MUST NOT pin for the process lifetime.** `router_server.py` (`:9092`) and
+`router_web.py` (`:9093`) refresh the pointer **off the request path** — a watcher on the stamp
+file or a poll of `<scope>:meta:version` at ≤30 s — swap generations atomically under a lock, and
+keep serving the previous generation until the swap completes. A daemon that pins at boot and never
+re-reads would serve one generation until someone restarts it, which is the v0.3 text's hole.
+
+**R72. Table streams stay on TR-277; Redis serves resolved lookups and category scans only.**
+`router_server._read_jsonl` and the web UI keep reading tables through the runtime cache. R57 forbids
+a bulk JSON blob, so a "whole table" key does not exist: those endpoints keep their current path and
+the Redis gain appears only where they call a resolve. This is the honest split and it must be stated
+in the docs, not discovered later.
+
+**R73. Warning discipline is per consumer.** One warning per process per generation change in the
+CLI; the daemons log at most one warning per 5 minutes, never once per request.
+
+**R74. CLI plumbing is part of the deliverable.** `task_router/cli.py` gains the `redis` verb in its
+script table, an entry in `_home_env_exports` (`ROUTING_DATA_DIR` + the data home, matching its
+siblings), and help text; the repo's CLI tests that assert every verb maps to an existing script must
+pass unchanged, and a new test asserts `router redis …` dispatches through the real entry point
+rather than a direct `python scripts/…` call.
+
+**R75. Deploy has two topologies and both must be handled.** The API server runs the **repo** copy;
+the web UI runs the **live byte-copy** under `~/.hermes/scripts`. Therefore landing the module means
+(a) `sync_runtime.sh` copy-loop registration (R41) **and** (b) restarting the three services, because
+a long-lived process keeps the module it imported. `/health` reports the loaded module's SHA-256, and
+a `check:` compares it with the installed file so a process running yesterday's code is visible
+instead of being guessed at.
+
+**R76. Generation retention must exceed the refresh window.** GC keeps every generation younger than
+`ROUTING_REDIS_GEN_KEEP_S` (900) **or** the last two, whichever is larger. With publishes from the
+seed and the timer able to arrive seconds apart, a 30 s-refreshing daemon would otherwise be collected
+out from under itself and fall back mid-request.
+
+**R77. One provenance shape, two surfaces.** The spawn payload's `cache{}` (R46) and the server's
+`/health` + `/status` `runtime_cache.redis{}` carry identical keys (`status`, `generation`,
+`created_at_age_s`, `scope`, `verified`), so an operator reads one vocabulary everywhere.
+
+**R78. The shipped default must be code-level, not environment-level.** The scheduler invokes
+`router_spawn.py` with its daemon environment; a default that exists only in a systemd unit file has
+already gone missing once on this fleet (the load-gate threshold lived only in
+`SCHEDULER_LOAD_GATE_THRESHOLD`). Unset `ROUTING_REDIS` must therefore resolve to `file` in code
+until R52's gate says otherwise.
+
+**R79. End-to-end wiring tests, not library tests.** (a) parity through the **live daemons**:
+`ROUTING_REDIS=0` vs `1` return identical answers for a fixture set of projects and ≥50 lanes;
+(b) after a publish, the running server serves the new generation within one refresh window;
+(c) `router redis status` dispatches through the real CLI entry point; (d) the loaded-module hash check
+(R75) fails when the process is stale.
+
+**R80. "Wired" is a checklist, not a claim.** The implementation is not complete until R69's table is
+fully marked, R79's four tests pass, and the row's evidence names which consumer surfaces were
+exercised live versus unit-tested.
+
 ## 12. Verification plan
 
 **R49. (FIX C13, A7) Two kinds of assertion, one per statement.** Every normative R# carries exactly
@@ -339,8 +496,8 @@ one named assertion:
   (docs-grep over `docs/` and the board), R7/R54 (no lock/queue/pubsub verbs in the RESP allowlist),
   R56 (no key outside `<scope>:`), R57 (no per-lane `model:` reads in the chain path).
 
-The checker derives its range by parsing this document's largest R# (57 today), never a hard-coded
-count; R55 is asserted by cross-reference to R31's parity test. The table below is the coverage map.
+(the checker derives its range by parsing this document's largest R#, never a hard-coded count; R58–R68
+are all `check:`-kind — infra shape, not behaviour) R55 is asserted by cross-reference to R31's parity test. The table below is the coverage map.
 
 | test / check | proves |
 |---|---|
@@ -363,6 +520,24 @@ count; R55 is asserted by cross-reference to R31's parity test. The table below 
 | registration: `router_redis.py` in the **copy** loop of `sync_runtime.sh`; no third-party import | R40, R41 |
 | no-write: `router_spawn.py` writes only `data/metrics.jsonl` | R5 |
 | seed wiring: publishes + prints the stamp; forced publish failure exits 0 **and** writes R23 | R24, R48 |
+
+| infra: provisioning script exists, pins an image digest, publishes only `127.0.0.1:6391`, sets the R58 flag set, and refuses when another container owns `:6391` | R58, R67 |
+| infra: secret file created 600 / dir 700, never printed by `status`, rotation sequence observable (`UNREACHABLE` → `load --force` → `MATCH`) | R59 |
+| infra: unit files parse (`systemd-analyze verify` when available), linger asserted, the service runs only `load --if-stale` | R60 |
+| infra: cron job registered through the API, `enabled` + `last_status` asserted at arm time, silence-on-MATCH shape | R61 |
+| infra: teardown script disarms timer + cron before stopping the container, and the file path is proven after (`ROUTING_REDIS=0` resolve equals the pre-change tree) | R62 |
+| infra: no new exporter target without a `component` label; `status --json` is the primary signal | R63 |
+| infra: infra-backed tests skip with a reason and skip counts are reported separately; `check:` legs run on a bare runner | R64 |
+| check: no `apt`/package-install path in the provisioning (container only) | R65 |
+| check: `docs/registry-maintenance.md` carries the one-command fresh-host path | R66 |
+| check: provision → `status` MATCH gate precedes read-path wiring; default flip blocked before R50/R51/R52 | R68 |
+
+| wiring: parity through the LIVE daemons (`ROUTING_REDIS=0` vs `1`, fixture projects + >=50 lanes), server picks up a new generation within one refresh window, `router redis` dispatches through the real CLI entry point, loaded-module hash check fails on a stale process | R71, R74, R75, R79 |
+| wiring: daemons refresh off-request and serve the previous generation until the swap; no per-request warnings | R71, R73 |
+| wiring: generation retention (`GEN_KEEP_S` 900 or last two, whichever larger) survives seed+timer publishing seconds apart | R76 |
+| wiring: provenance shape identical on spawn `cache{}` and server `/health`+`/status` `runtime_cache.redis{}` | R77 |
+| check: unset `ROUTING_REDIS` resolves to `file` in code (no unit-file default) | R78 |
+| check: R69's consumer table fully marked covered / unchanged-with-reason / out-of-scope-with-row | R69, R80 |
 
 **R50. Perf gate.** Point-lookup p50/p95 over 200 distinct (model, category) queries, full
 `router_spawn.py` wall, peak RSS, Redis `used_memory_human`, and round trips per resolve — file vs
@@ -427,3 +602,43 @@ port denylist → allowlist (A8v).
 **v0.3 has not been re-judged.** Round 3 should run with the first implementation commit, against
 the tests rather than the prose — the five defects above were all found by attacking a *fix*, which
 is the class a third round of prose review stops catching.
+
+## 16. R52 outcome — measured, and it says "do not ship redis on the hot path"
+
+Measured 2026-11-04 on this host with `scripts/router_redis_bench.py` (each arm in its own
+interpreter, cold and warm reported separately; a worktree without `registry.json` measures the
+fallback path and is not a valid sample — both runs below are with the real 4.8 MB artifact):
+
+| run | file arm (cold / warm) | redis arm (cold / warm) | saving | verdict |
+|---|---|---|---|---|
+| 1 | 57.7 / 54.5 ms | 45.7 / 46.6 ms | 12.0 ms = 7.6 % | below the 10 % gate |
+| 2 | 46.7 / 40.9 ms | — (same shape) | 4.9 ms = 5.7 % | below the 10 % gate |
+
+The redis arm is dominated by the 17 category scans a P0_FORE resolve needs: **43.4 ms of its
+44.8 ms**, for 6,299 lane tuples. That is the same order as parsing the whole 4.8 MB registry
+(~41–58 ms), which is the finding: a category scan is not cheaper than the artifact it replaces,
+because P0_FORE's requirement set is most of the registry anyway. Round trips were never the
+problem — 3 round trips, exactly as R36 designed. The bytes are.
+
+**Consequence (R52's own rule, applied):** `ROUTING_REDIS=file` remains the shipped default and the
+resolver is **not** wired to the cache. Nothing in this spec authorises a hot-path default without a
+measurement that clears the gate, and none exists.
+
+What the plane still earns its keep for, independent of the hot path:
+status/MATCH-STALE/`--diff` (drift detection between JSONL and a derived store), the parity gate
+(`scripts/router_redis_parity.py`), point lookups (0906 s-class single-fact reads), alias inheritance
+as one key, and a future multi-host/remote-registry topology where the artifact is not on local disk.
+
+**Options for the owner (this is a decision, not an implementation detail):**
+1. **Stop the hot-path work here.** Keep the plane as the verification/point-lookup surface it
+   already is; land the seed hook + timer only if drift monitoring is wanted; close the row as
+   "built, measured, deliberately not defaulted".
+2. **Publish profile-shaped chain payloads instead of category scans.** The seed already computes
+   `v_task_chain`; one key per profile (11 keys, ~350 KB each, ~5 ms parse) would replace both the
+   45 ms parse and the 43 ms scan → est. 30–35 ms saved (~22 % of an in-process resolve), which would
+   clear R52. Cost: the eligibility derivation moves into the publish step and must stay byte-equal
+   to the resolver's runtime gates (lifecycle/quota/probe are still applied at read time).
+3. **Wire the category scans anyway.** Measured 5–8 %: below the gate this spec exists to enforce.
+
+Recommendation: (1) now, (2) only if the hot path is wanted for its own sake (multi-host/remote
+callers) — not on the strength of the performance claim, which did not survive measurement.
