@@ -1,0 +1,199 @@
+TR-378 — scrape job for task-router in fleet-monitoring + expose listeners beyond loopback
+Evidence for tick task-router-foreman-2026-11-05-13-48-06
+Captured 2026-11-05 (local, UTC-05). Foreman-executed; every line below is a command run.
+
+RESULT: criteria met IN CONFIG + LIVE PROMETHEUS JOB LOADED; the health=up arm is
+owner-gated behind the serving-unit restart. Row closes blocked-with-criteria-
+met-in-config per its own acceptance text.
+
+===========================================================================
+0. Identity / precondition (canonical checkout, shared with the live units)
+===========================================================================
+$ git -C /home/kara/task-router rev-parse --show-toplevel        -> /home/kara/task-router
+$ git -C /home/kara/task-router rev-parse --abbrev-ref HEAD      -> main
+$ git -C /home/kara/task-router rev-parse --short HEAD           -> 8a735f5
+$ git -C /home/kara/task-router status --porcelain=v1 -uall | wc -l -> 0
+$ git -C /home/kara/task-router rev-list --left-right --count main...origin/main -> 0	4
+  (checkout is 4 commits BEHIND origin/main = b667506; the units execute this tree)
+
+Canonical-root writers at tick time (no test suite; only the two serving processes):
+  514260 /home/kara/task-router :: python3 .../scripts/router_server.py --host 127.0.0.1 --port 9391
+  7564   /home/kara/task-router :: .../router_web.py --host 127.0.0.1 --port 9093
+
+===========================================================================
+1. The premise: /metrics exists in code, is 404 on the LIVE listeners
+===========================================================================
+$ for p in 9092 9391 9093; do curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:$p/metrics; done
+  9092 -> 404   9391 -> 404   9093 -> 404
+$ systemctl --user show task-router-server.service -p ActiveEnterTimestamp
+  ActiveEnterTimestamp=Wed 2026-11-04 22:18:30 -05   (predates TR-377's /metrics, landed 2026-11-05)
+$ curl -s 127.0.0.1:9391/health | jq -r .code.loaded_source_sha
+  35182a6ce5763fae
+
+Source-identity three-way (recipe: sha256("router_server.py:<16>|router_health.py:<16>")[:16]):
+  live loaded_source_sha ............ 35182a6ce5763fae
+  canonical checkout (8a735f5) ...... 02f4efd01eda042f
+  origin/main worktree (b667506) .... ab821c81454dd93f   <-- EXPECTED post-cutover value
+$ git -C /home/kara/proj-wt-tr378 rev-parse --short HEAD       -> b667506
+
+===========================================================================
+2. Reachability leg — tailnet relays on the work box (IMPLEMENTED, ACTIVE)
+===========================================================================
+Both router listeners bind 127.0.0.1, so they are unreachable from fleet-monitor.
+Two systemd --user socat units mirror each port onto the work box's tailnet
+address, the same shape as the existing sched-ui-tailnet (:9090 -> 127.0.0.1:9090):
+
+  ~/.config/systemd/user/task-router-api-tailnet.service    tailnet :9092 -> 127.0.0.1:9092
+  ~/.config/systemd/user/task-router-proxy-tailnet.service  tailnet :9391 -> 127.0.0.1:9391
+  (bind IP resolved at start via `tailscale ip -4`; Restart=always; enabled into default.target)
+
+$ systemctl --user is-active task-router-api-tailnet.service task-router-proxy-tailnet.service
+  active
+  active
+$ ss -ltnp | grep '100.97.236.14:\(9092\|9391\)'
+  LISTEN 0 5 100.97.236.14:9092 users:(("socat",pid=2137000))
+  LISTEN 0 5 100.97.236.14:9391 users:(("socat",pid=2137001))
+
+Reachability proven FROM THE SCRAPING HOST (fleet-monitor), not from the work box:
+$ ssh fleet-monitor 'curl -o /dev/null -w %{http_code} http://100.97.236.14:9092/metrics' -> 404
+$ ssh fleet-monitor 'curl -o /dev/null -w %{http_code} http://100.97.236.14:9391/metrics' -> 404
+$ ssh fleet-monitor 'curl -o /dev/null -w %{http_code} http://100.97.236.14:9092/readyz'  -> 200
+$ ssh fleet-monitor 'curl -s http://100.97.236.14:9391/health'
+  {"status": "ok", "service": "task-router/1.0", "commit": "04fdeb242793", "stale": true, ...}
+  => TCP + HTTP path works end-to-end; only the /metrics ROUTE is absent from the
+     code the live processes booted with. This is a deployment gap, not a network one.
+
+Loopback gate unchanged: the relay dials 127.0.0.1, so TR-377's _peer_is_loopback
+still refuses every direct non-loopback peer (403). Exposure is tailnet-only.
+
+===========================================================================
+3. The endpoint's post-activation shape — measured on the shipped tree
+===========================================================================
+A scratch instance of the origin/main worktree (the exact post-cutover tree) was
+booted on a spare port and scraped:
+$ cd /home/kara/proj-wt-tr378 && python3 scripts/router_server.py --mode read-only --host 127.0.0.1 --port 9398
+$ curl -D- http://127.0.0.1:9398/metrics
+  HTTP/1.0 200 OK
+  Content-Type: text/plain; version=0.0.4; charset=utf-8
+$ grep -c '^task_router_' /tmp/tr378-metrics.txt   -> 55      (spec V1 floor: >= 20)
+$ grep -c '^router_'     /tmp/tr378-metrics.txt   -> 55      (unprefixed originals)
+families: router_resolve_total, router_chain_hops, router_lane_excluded_total,
+          router_resolve_duration_seconds, router_resolve_errors_total,
+          router_resolve_nohops_total (+ task_router_* aliases)
+=> once the units are restarted onto this tree the first scrape is 200 and the
+   targets flip to up with no further Prometheus change.
+
+===========================================================================
+4. Config leg — scrape job added, linted with the DEPLOYED promtool, reloaded
+===========================================================================
+Repo (canonical, pushed): totalwindupflightsystems/fleet-monitoring
+  stack/prometheus/prometheus.yml  commit 5829a3bbbd4fbfae42005bcbf301b292068c8d4c
+  $ git push origin main -> bac71ee..5829a3b main -> main ; rev-list --left-right --count main...origin/main -> 0 0
+
+Job as landed (job-level `labels:` is NOT valid in promtool v3.15 — field labels
+not found in type config.ScrapeConfig; `make lint` caught it on the first cut, so
+`product` rides on each static target):
+
+  - job_name: task-router
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["100.97.236.14:9092"]
+        labels: { product: task-router, host: karahermes-mde-7840hs, service: api }
+      - targets: ["100.97.236.14:9391"]
+        labels: { product: task-router, host: karahermes-mde-7840hs, service: proxy }
+
+Deviation from the spec's named target: `karaHermes-mde-7840hs-2` does NOT resolve
+from the monitoring host —
+$ ssh fleet-monitor 'getent hosts karaHermes-mde-7840hs-2'  -> rc=2 (no record)
+$ ssh fleet-monitor 'getent hosts karahermes-mde-7840hs'    -> rc=2
+so the job uses the work box's tailnet address, exactly as the three existing
+work-box jobs do (hermes-cost :19109, services-postgres :9187, services-redis :9121).
+Host label uses the live convention `karahermes-mde-7840hs` (present in
+/api/v1/label/host/values) rather than the spec's `...-2`, so the series aggregate
+with that host's existing data instead of forking a second host id.
+
+Lint (pinned promtool = the running image):
+$ cd ~/fleet-monitoring && make lint        -> exit 0, "LINT: PASS"
+Deployed config validation, inside the live container:
+$ ssh fleet-monitor 'docker exec mon-prometheus promtool check config /etc/prometheus/prometheus.yml'
+  SUCCESS: /etc/prometheus/prometheus.yml is valid prometheus config file syntax
+Deploy: surgical append of exactly this block (25 lines) to
+  /root/fleet-monitoring/prometheus/prometheus.yml
+  backup: /root/fleet-monitoring/prometheus/prometheus.yml.bak-tr378-20261105-1400
+  (the live copy is 1 commit behind the repo — the duckbrain job is NOT deployed —
+   so only this block was inserted; no other lane's config was adopted)
+$ ssh fleet-monitor 'curl -X POST http://127.0.0.1:9090/-/reload' -> reload_http=200
+Alert safety checked before reloading: no `up == 0` / target-down rule exists in
+the live rules set (capacity.yml, host-health.yml, probes.yml), alert-router has no
+task-router reference and runs ALERT_ROUTER_NOTIFY=0.
+
+===========================================================================
+5. Acceptance arms — as executed
+===========================================================================
+AC "job appears in /api/v1/targets as health=up":
+$ curl -s http://fleet-monitor:9090/api/v1/targets | jq -c '[.data.activeTargets[]
+    | select(.labels.product=="task-router") | .health]'
+  ["down","down"]
+  per target: api   http://100.97.236.14:9092/metrics  lastScrape 2026-11-05T13:55:03
+              proxy http://100.97.236.14:9391/metrics  lastScrape 2026-11-05T13:54:53
+              lastError = "server returned HTTP status 404 Not Found"   (both)
+  => NOT MET. Requires the owner-gated restart (§6). The job is live and scraping;
+     the endpoint answers 404 because the process predates TR-377.
+
+AC "count(up{product=\"task-router\"}) returns 2":
+$ curl -s --data-urlencode 'query=count(up{product="task-router"})' http://fleet-monitor:9090/api/v1/query
+  [{"metric":{},"value":[1793886906.842,"2"]}]                    => MET (2)
+
+AC "one graph-able range query returning datapoints across two scrape intervals":
+$ END=$(date +%s); START=$((END-300)); curl -s --get --data-urlencode 'query=up{product="task-router"}' \
+     --data-urlencode "start=$START" --data-urlencode "end=$END" --data-urlencode 'step=30' \
+     http://fleet-monitor:9090/api/v1/query_range
+  status=success
+  api   datapoints=2 values=0
+  proxy datapoints=2 values=0                                     => MET (series graphable;
+     value 0 is the honest "metrics not deployed" state, not an outage)
+
+AC "if activation is not granted, close as blocked-with-criteria-met-in-config and
+name the activation command":
+  Reachability     MET  (two relays active; both ports answer from fleet-monitor)
+  Scrape job       MET  (loaded in live Prometheus; 2 series; range-query graphable)
+  health=up        NOT MET — owner-gated activation, command below.
+
+===========================================================================
+6. Owner-gated activation (the only remaining step)
+===========================================================================
+The units execute /home/kara/task-router directly and that checkout is 4 commits
+behind origin/main, so a restart alone would reload the pre-/metrics code. The
+documented deploy sequence (docs/graceful-restart.md, scripts/router_deploy.py):
+
+  cd /home/kara/task-router
+  git status --porcelain -- scripts     # must be empty (empty at gate time)
+  git pull --ff-only                    # 8a735f5 -> b667506
+  python3 scripts/router_deploy.py      # dry run, then:
+  python3 scripts/router_deploy.py --apply
+  # expect: curl -s 127.0.0.1:9391/health | jq -r .code.loaded_source_sha == ab821c81454dd93f
+
+NO PROMETHEUS ACTION IS NEEDED AFTER THE RESTART: the job is already loaded and
+will flip to up on the next 30s scrape. Verify with:
+  curl -s http://fleet-monitor:9090/api/v1/targets | jq -c '[.data.activeTargets[]
+    | select(.labels.product=="task-router") | .health]'      # expect ["up","up"]
+  curl -s --data-urlencode 'query=count(up{product="task-router"}==1)' http://fleet-monitor:9090/api/v1/query
+
+Why the fast-forward was NOT done by this tick: the units' modules are imported
+at boot but router_server shells out to scripts on every request (_proxy_chain ->
+router_spawn.py), so swapping the tree under the running processes produces a
+mixed-version LIVE serving state for an unbounded window. The documented sequence
+is ff + apply together; the apply half is owner-gated, so the ff is deferred with
+it rather than creating that window.
+
+===========================================================================
+7. Artifacts
+===========================================================================
+repo change ......... fleet-monitoring 5829a3b (pushed, 0/0 vs origin/main)
+live change ......... /root/fleet-monitoring/prometheus/prometheus.yml (+25 lines,
+                      backup .bak-tr378-20261105-1400), Prometheus reloaded 200
+host change ......... task-router-{api,proxy}-tailnet.service (enabled, active)
+evidence ............ .coding-hermes/evidence/tr378-scrape-job-20261105.txt (this file)
+raw captures ........ /tmp/tr378-targets.json, /tmp/tr378-range.json,
+                      /tmp/tr378-metrics.txt, /tmp/tr378-promtool-deployed.log,
+                      /tmp/tr378-make-lint.log
