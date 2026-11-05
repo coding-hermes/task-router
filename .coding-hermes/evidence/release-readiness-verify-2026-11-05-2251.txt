@@ -119,3 +119,13 @@ the owner statement required by criterion 1.
 .gitreins/rescued-*/ is now ignored (.gitignore; commit f7284a5). worktree-hygiene.py:194 writes
 dated preservation dirs into the canonical checkout; 25 entries / 1.6 MB were untracked residue and
 dirtied the ownership gate of every later task-router tick.
+
+=== exact-head CI run identifiers (databaseId, from gh run list --repo coding-hermes/task-router) ===
+head_sha_full: 4d44b1ee0558c6e9f2855cd45318220ce8a0ce85
+run 42120424541  head 4d44b1ee0558c6e9f2855cd45318220ce8a0ce85  completed success  event=push  branch=main  job=test 29m17s  title='board: bind header last_commit to the INT-CI-18 filing commit c43879f'
+run 42120408989  head c43879fe565f5edabe05a1186075dbd95f7a491a  completed success
+run 42119351460  head 29ce445e48a89f88a4d00f5fa49fb8ffa3f843ee  completed success
+run 42119300927  head 77317390e664a3c40f217487313e93fa5bfe2510  completed success
+run 42119215791  head 0ecb7f24318c5560bfd6a59d8d673d8e00c4d7da  completed success
+verdict: the release candidate head 4d44b1e is CI-GREEN (run 42120424541, conclusion success),
+and no failure run at this head is unowned.
