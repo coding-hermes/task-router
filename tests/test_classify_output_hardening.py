@@ -40,9 +40,9 @@ def test_garbage_answer_degrades_with_a_problem():
 def test_the_schema_states_the_prompt_contract_not_a_flat_matrix():
     """The response_format schema must describe the envelope prompt-v3 asks for.
 
-    A flat {category: level} schema is what produced matrix={} AND the
-    "ranking": 3 crash: a schema-compliant answer has no "ratings" key, and the
-    flat additionalProperties coerced every envelope field to an integer.
+    A flat {category: level} schema produced matrix={} AND the "ranking": 3 crash:
+    a schema-compliant flat answer has no "ratings" key, and the flat
+    additionalProperties coerced every envelope field to an integer.
     """
     import router_classify as rc
     schema = rc._matrix_schema(['code_gen', 'debug'])
@@ -50,14 +50,29 @@ def test_the_schema_states_the_prompt_contract_not_a_flat_matrix():
     props = schema['properties']
     assert 'ratings' in props, 'the prompt returns ratings; the schema must declare it'
     assert props['ratings']['type'] == 'object'
-    assert props['ratings']['additionalProperties']['type'] == 'integer'
-    assert props['ratings']['properties']['code_gen'] == {'type': 'integer', 'minimum': -5, 'maximum': 5}
+    assert props['ratings']['additionalProperties'] == {'type': 'integer', 'minimum': -5, 'maximum': 5}
     assert props['ranking']['type'] == 'array'
     assert props['ranking']['items'] == {'type': 'string'}, 'ranking is a list, never an integer'
     assert props['confidence']['type'] == 'number'
     assert schema['required'] == ['ratings']
     # the envelope must NOT be described as "all values are integers"
-    assert set(schema.get('additionalProperties') or {}) != {'type'}, schema.get('additionalProperties')
+    assert 'additionalProperties' not in schema
+
+
+def test_the_schema_does_not_enumerate_categories():
+    """Naming the registry's categories in the schema corrupts the answer.
+
+    Measured live 2026-11-04 (same prompt, same lane, only the schema differing):
+      24 named categories  44,091 ms  '{"debug": 2, "code_gen: 1, "  : 0, ...' (padded junk)
+      open ratings object     776 ms  '{"debug": 1, "code_gen": 1, "test": 1}'
+    The prompt lists the vocabulary; validate_matrix() gates what is admissible.
+    """
+    import router_classify as rc
+    cats = ['agent_tick', 'code_gen', 'creative', 'debug', 'delegation', 'review']
+    schema = rc._matrix_schema(cats)
+    assert 'properties' not in schema['properties']['ratings'], \
+        'a named category property makes the model pad the object'
+    assert schema['properties']['ratings']['additionalProperties']['maximum'] == 5
 
 
 def test_a_schema_conforming_answer_yields_a_populated_matrix():

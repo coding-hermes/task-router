@@ -56,12 +56,11 @@ def test_matrix_schema_restricts_levels_to_the_signed_scale():
     """
     schema = rc._matrix_schema(['code_gen', 'reasoning'])
     ratings = schema['properties']['ratings']
-    assert ratings['properties']['code_gen'] == {'type': 'integer', 'minimum': -5, 'maximum': 5}
-    assert ratings['properties']['reasoning']['maximum'] == 5
-    assert ratings['additionalProperties']['maximum'] == 5
+    # categories are NEVER named in the schema: enumerating them made the model pad
+    # the object (44,091 ms and '{"debug": 2, "code_gen: 1, "  : 0, ...' live)
+    assert 'properties' not in ratings
+    assert ratings['additionalProperties'] == {'type': 'integer', 'minimum': -5, 'maximum': 5}
     assert schema['properties']['ranking']['items'] == {'type': 'string'}
-    # no vocabulary known: stay open rather than invent one
-    assert rc._matrix_schema([])['properties']['ratings']['properties'] == {}
 
 
 def test_raw_marks_an_empty_completion_instead_of_returning_a_silent_blank():

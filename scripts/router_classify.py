@@ -235,30 +235,30 @@ def _matrix_schema(categories: Any=None) -> dict:
          "confidence": 0.0, "reason": "one short sentence"}
     and router_classify.classify() parses exactly that (`if 'ratings' in obj`).
 
-    This schema used to declare a FLAT {category: level} object with
-    `additionalProperties: <integer>`. That disagreed with both the prompt and
-    the parser, and it produced two live failures on 2026-11-04:
+    Two defects were measured live on 2026-11-04, both in this function:
 
-      (1) matrix={} — a schema-compliant flat answer carries no "ratings" key, so
-          classify() took its dimensions branch, found nothing, and returned an
-          EMPTY grouping. Every prompt classified through this rung landed on the
-          unrated cheap floor.
-      (2) "ranking": 3 — the flat `additionalProperties: integer` told the model
-          that every property value must be an integer, so an envelope-shaped
-          answer coerced ranking into an int, and classify() died with
-          TypeError: 'int' object is not iterable.
+      (1) It declared a FLAT {category: level} object, so a schema-compliant answer
+          carried no "ratings" key and classify() returned an EMPTY matrix — every
+          prompt classified through that rung fell to the unrated cheap floor. The
+          flat `additionalProperties: integer` also coerced the envelope's ranking
+          into an int (TypeError: 'int' object is not iterable).
+      (2) Fixing (1) while still ENUMERATING the registry's category names made the
+          model pad the object to satisfy every named property. Same prompt, same
+          lane, only the schema differing:
+             24 named categories   44,091 ms   {"debug": 2, "code_gen: 1, "  : 0, ...
+             open ratings object      776 ms   {"debug": 1, "code_gen": 1, "test": 1}
+          — 57x the latency and a corrupt answer. The prompt already lists the
+          vocabulary, and validate_matrix() is the gate that decides what is
+          admissible, so the schema keeps `ratings` OPEN and names nothing.
 
-    Keys inside `ratings` stay open until the registry's category list is known
-    (the registry is the authority for the list, not this file), and
-    validate_matrix() remains the gate that decides what is admissible.
+    `categories` stays in the signature because callers pass it; it deliberately no
+    longer shapes the answer.
     """
     lvl = {'type': 'integer', 'minimum': -5, 'maximum': 5}
-    rating_props = {c: dict(lvl) for c in (categories or [])}
     return {
         'type': 'object',
         'properties': {
-            'ratings': {'type': 'object', 'properties': rating_props,
-                        'additionalProperties': lvl},
+            'ratings': {'type': 'object', 'additionalProperties': lvl},
             'ranking': {'type': 'array', 'items': {'type': 'string'}},
             'confidence': {'type': 'number', 'minimum': 0, 'maximum': 1},
             'reason': {'type': 'string'},
