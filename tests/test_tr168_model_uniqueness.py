@@ -156,6 +156,20 @@ POST_DEDUPE_ADDITIONS = {
     ("openrouter", "z-ai/glm-5.3-flashx-legal"): "models.dev sync 2026-11-03 — new catalog lane, sticker-priced 0.37 (normalized:payg-sticker)",
     ("clinepass", "glm-5.3-flashx-legal"): "clinepass API sync 2026-11-03 — carrier mirror of the new glm-5.3-flashx-legal arrival, price null pending sticker",
     ("openrouter", "nvidia/switchyard"): "filed 2026-11-01 — router meta-model, active NULL by design (10-14 hold superseded; unblocked the openrouter preset apply)",
+    # 2026-11-05 (model-router-refresh tick): models.dev sync arrivals (3) +
+    # clinepass API-sync arrivals auto-disabled by the plan sweep (6) + two
+    # mirror-priced filings from the VANISHED/removal slice
+    ("opencode-go", "hy4"): "models.dev sync 2026-11-05 — new catalog lane, priced sub-bucket blended est 0.9007",
+    ("openrouter", "inclusionai/ling-3.0-tiny"): "models.dev sync 2026-11-05 — new catalog lane, sticker-priced 0.015 (normalized:payg-sticker)",
+    ("openrouter", "ricursiveai/ripple-65b-preview"): "models.dev sync 2026-11-05 — new catalog lane, sticker-priced 0.2 (normalized:payg-sticker)",
+    ("clinepass", "ling-3.0-tiny"): "clinepass API sync 2026-11-05 — carrier arrival, plan-sweep disabled (PAYG outside flat plan)",
+    ("clinepass", "ripple-65b-preview"): "clinepass API sync 2026-11-05 — carrier arrival, plan-sweep disabled (PAYG outside flat plan)",
+    ("clinepass", "crouton-alpha"): "clinepass API sync 2026-11-05 — carrier arrival, plan-sweep disabled (PAYG outside flat plan)",
+    ("clinepass", "hy4"): "clinepass API sync 2026-11-05 — carrier arrival, plan-sweep disabled (PAYG outside flat plan)",
+    ("clinepass", "grok-4.6:batch"): "clinepass API sync 2026-11-05 — carrier arrival, plan-sweep disabled (PAYG outside flat plan)",
+    ("clinepass", "grok-4.7:batch"): "clinepass API sync 2026-11-05 — carrier arrival, plan-sweep disabled (PAYG outside flat plan)",
+    ("commandcode", "inclusionai/ling-3.1-flash-1019"): "filed 2026-11-05 — paid dated-snapshot leaf, priced at the gateway twin's rate 0.075 (mirror evidence, model_note filed)",
+    ("opencode-go-2", "hy4"): "filed 2026-11-05 — seat-2 mirror of opencode-go/hy4, sticker parity 0.834/2.501 -> blended 0.9007",
     # 2026-11-04 (model-router-refresh tick): openrouter carrier-refresh arrivals,
     # applied-with-probe rows; data_class/api_type filled from sibling convention
     # (zdr / openai-chat) same day, census-stamped nulls cleared

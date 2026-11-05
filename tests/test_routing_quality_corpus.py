@@ -349,7 +349,10 @@ CASES = [
             'must_include': [['commandcode', 'Qwen/Qwen3.8-27B'],
                              ['deepseek', 'deepseek-flash']],
             'must_exclude': [['clinepass', 'dots-3-note-preview:free']],
-            'min_chain': 91,
+            # 2026-11-05: floor 91->90 — the five removed clinepass :free SKUs
+            # left GET /models (3 dead at every form, 2 catalog-removed-
+            # passthrough-alive); one mock-pool lane disabled.
+            'min_chain': 90,
         },
     },
     {
@@ -465,7 +468,9 @@ CASES = [
             'must_include': [['commandcode', 'Qwen/Qwen3.8-Max-0902'],
                              ['deepseek', 'deepseek-flash']],
             'must_exclude': [['clinepass', 'dots-3-note-preview:free']],
-            'min_chain': 108,
+            # 2026-11-05: floor 108->107 — same clinepass :free removal wave
+            # (5 SKUs left GET /models); one mechanical-pool lane disabled.
+            'min_chain': 107,
         },
     },
     {
