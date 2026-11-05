@@ -27,11 +27,11 @@ SCRIPTS = os.path.join(REPO, "scripts")
 TABLES = os.path.join(REPO, "data", "tables")
 PY = sys.executable
 
-# Isolate the spawn/server module-level state dir BEFORE importing them (the
-# modules resolve ROUTER_STATE_DIR at import; without this a bare test run
-# warns about the shared production state dir). Outside the repo — tests must
-# not leave state in the tree.
-os.environ.setdefault("ROUTER_STATE_DIR", tempfile.mkdtemp(prefix="tr369-state-"))
+# NOTE: never mutate ambient env at import/collection time. Importing this
+# module happens BEFORE any test runs, so an os.environ assignment here leaks
+# into every other module's tests (it did: test_cli_paths and test_quota_gate
+# saw /tmp/tr369-state-* instead of their own tmp home in hosted CI).
+# ROUTER_STATE_DIR is set per-subprocess where it is actually needed, below.
 sys.path.insert(0, SCRIPTS)
 
 import capability_vocab as cv  # noqa: E402
