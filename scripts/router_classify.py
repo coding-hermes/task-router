@@ -505,6 +505,25 @@ class Raw(str):
         return o
 
 
+def _as_str_list(value: Any) -> list:
+    """Coerce untrusted model output to a list of strings. NEVER raises.
+
+    Live 2026-11-04: a classifier lane answered with `"ranking": 3` (an int) and
+    `classify()` died on `for c in (obj.get('ranking') or [])` with
+    `TypeError: 'int' object is not iterable`. The caller caught it as
+    "classifier unavailable", which discarded the ratings the model DID return and
+    sent the whole fleet to the unrated cheap floor for that prompt. A type
+    surprise in one optional field must cost that field, not the answer.
+    """
+    if value is None:
+        return []
+    if isinstance(value, str):
+        return [value]
+    if isinstance(value, (list, tuple)):
+        return [v for v in value if isinstance(v, str)]
+    return []
+
+
 def _is_rejection(exc: Any) -> bool:
     """True when the endpoint refused the PARAM (4xx), not when the lane failed.
 
@@ -609,7 +628,11 @@ def classify(text: Any, llm: Any=None, version: Any=DEFAULT_PROMPT_VERSION, cate
         # The owner's contract: the model rates the SUPPORTED categories and ranks
         # them; the router looks up models from exactly those ratings.
         ratings = obj.get('ratings') if isinstance(obj.get('ratings'), dict) else {}
-        out['ranking'] = [str(c) for c in (obj.get('ranking') or []) if isinstance(c, (str,))]
+        _ranking_raw = obj.get('ranking')
+        out['ranking'] = [c for c in _as_str_list(_ranking_raw) if c]
+        if _ranking_raw is not None and not isinstance(_ranking_raw, (list, tuple, str)):
+            out['problems'].append(
+                f"ranking had unexpected type {type(_ranking_raw).__name__} — ignored")
         matrix, conf, problems = validate_matrix({'categories': ratings}, cats)
         out['problems'].extend(problems)
         out['confidence'] = obj.get('confidence') or conf
