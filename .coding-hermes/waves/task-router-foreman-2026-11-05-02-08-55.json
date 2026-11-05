@@ -1,0 +1,13 @@
+{
+  "tick": "task-router-foreman-2026-11-05-02-08-55",
+  "tick_number": 20261105020855,
+  "wave_size": 0,
+  "workers": [],
+  "worktrees": [],
+  "dispatch": [],
+  "decision": "zero-dispatch premise-verification tick on TR-370 (P0). The row asks the seed to ingest data/tables/model_perf.jsonl as a base table to recover 14 non-legacy categories; a hermetic seed on origin/main reproduces both sidecars byte-for-byte (24 categories, 3,944 perf rows, 3,896 tier rows), so the premise is falsified and no worker is warranted. TR-355 (P0) remains owner-gated on the :9092/:9391 cutover and was not substituted.",
+  "owner_gate": "TR-355 live cutover (restart of the :9092/:9391 serving units) stays owner-controlled; TR-388 hot-path wiring stays owner-decision-gated after the R52 measurement.",
+  "evidence": ".coding-hermes/evidence/tr370-premise-2026-11-05.txt",
+  "base_commit": "922f634fa5405982bebde94eac51a8f1e678f213",
+  "disposition": "TR-370 closed as premise-falsified with the measured parity evidence; no implementation change"
+}
