@@ -1412,3 +1412,50 @@ tasks:
   status: complete
   created_at: '2026-11-03T09:01:55.768629+00:00'
   completed_at: '2026-11-03T09:49:20.124828+00:00'
+- id: RELEASE-2026-10-22-001-R4
+  title: Release-readiness verification at 4d44b1e (owner gate absent)
+  criteria:
+  - The committed evidence artifact .coding-hermes/evidence/release-readiness-verify-2026-11-05-2251.txt
+    in this worktree records a release surface of zero local tags, zero remote tags
+    and zero GitHub Releases at head 4d44b1ee0558c6e9f2855cd45318220ce8a0ce85, version
+    pins of 0.2.0 in both pyproject.toml and task_router/__init__.py, 37 commits landed
+    since the prior probe head 88a83eb with zero breaking-change footers, and a green
+    exact-head CI run 42120424541; the artifact states the decision NO CUT because
+    no explicit owner authorization naming task-router, a release version and a baseline
+    SHA is on record.
+  status: complete
+  created_at: '2026-11-05T23:10:59.726957+00:00'
+  completed_at: '2026-11-05T23:11:03.460741+00:00'
+- id: RELEASE-2026-10-22-001-R5
+  title: 'Re-verification: readiness artifact now carries the OWNER GATE rationale
+    (supersedes R4 verdict e9274ede)'
+  criteria:
+  - The committed evidence artifact .coding-hermes/evidence/release-readiness-verify-2026-11-05-2251.txt
+    at the current HEAD of this worktree carries an OWNER GATE section stating in
+    terms that no owner authorization naming task-router, a release version and a
+    baseline SHA exists in the board, the events tail, or the tick's dispatch text,
+    and that a scheduler tick is not authorization; it also still records zero local
+    tags, zero remote tags, zero GitHub Releases, version pins 0.2.0 in pyproject.toml
+    and task_router/__init__.py, 37 commits since 88a83eb with zero breaking-change
+    footers, and green CI run 42120424541 at head 4d44b1ee0558c6e9f2855cd45318220ce8a0ce85.
+    The R4 tier2 finding was that the rationale was absent; it must be present without
+    weakening any data claim.
+  status: complete
+  created_at: '2026-11-05T23:12:19.290126+00:00'
+  completed_at: '2026-11-05T23:12:20.412588+00:00'
+- id: RELEASE-2026-10-22-001-R6
+  title: 'Re-verification: readiness artifact carries the CI run id (supersedes R5
+    verdict c39df363)'
+  criteria:
+  - The committed evidence artifact .coding-hermes/evidence/release-readiness-verify-2026-11-05-2251.txt
+    at the current HEAD of this worktree states that no owner authorization naming
+    task-router, a release version and a baseline SHA exists and that a scheduler
+    tick is not authorization, records zero local tags, zero remote tags, zero GitHub
+    Releases, version pins 0.2.0 in pyproject.toml and task_router/__init__.py, 37
+    commits since 88a83eb with zero breaking-change footers, and explicitly records
+    exact-head CI run identifier 42120424541 as completed success at head 4d44b1ee0558c6e9f2855cd45318220ce8a0ce85.
+    The R5 tier2 finding was that the run identifier was absent; it must now be present
+    while every prior data claim still holds.
+  status: complete
+  created_at: '2026-11-05T23:13:20.573909+00:00'
+  completed_at: '2026-11-05T23:13:21.609573+00:00'
