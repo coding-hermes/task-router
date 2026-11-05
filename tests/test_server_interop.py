@@ -65,7 +65,19 @@ def test_models_list_has_the_openai_shape(tmp_path):
     payload = rsrv.openai_models_payload(data_dir=d, max_age_s=0)
     assert payload['object'] == 'list'
     entry = payload['data'][0]
-    assert entry == {'id': 'glm-5.3-flash', 'object': 'model', 'created': 0, 'owned_by': 'zai-glm'}
+    # TR-369: the OpenAI-compatible keys keep their exact values and the
+    # capabilities block is purely ADDITIVE — the only extra key on the lane.
+    assert entry['id'] == 'glm-5.3-flash'
+    assert entry['object'] == 'model'
+    assert entry['created'] == 0
+    assert entry['owned_by'] == 'zai-glm'
+    assert set(entry) == {'id', 'object', 'created', 'owned_by', 'capabilities'}
+    assert set(entry['capabilities']) == {
+        'categories', 'context_limit', 'price', 'price_basis',
+        'vision', 'thinking', 'modality', 'tool_call',
+        'image_generation', 'embedding', 'computer_use',
+        'audio', 'web_search', 'video',
+    }
 
 
 def test_models_list_hides_unreachable_lanes(tmp_path):

@@ -150,6 +150,18 @@ except Exception as _rqa_exc:  # noqa: BLE001 — fail-open: quota never blocks 
     _rqa = None
     _err(f'WARNING: TR-213 quota ordering unavailable — '
          f'router_quota_accounting import failed: {_rqa_exc}')
+
+# TR-369: the one capability vocabulary. --profile-req accepts these six
+# families as first-class requirements filtering on the stored cap_* columns;
+# the same tokens are store columns and /v1/models capabilities keys.
+# Fail-open like every other import: a missing module must never block a
+# resolve, so the families degrade to unknown-category (visible error).
+try:
+    import capability_vocab as _cvocab
+except Exception as _cvocab_exc:  # noqa: BLE001
+    _cvocab = None
+    _err(f'WARNING: TR-369 capability families unavailable — '
+         f'capability_vocab import failed: {_cvocab_exc}')
 try:
     import registry_path as _registry_path_mod
 except ImportError:  # live byte-copy not yet synced (sync_runtime.sh) -> old default
@@ -1163,6 +1175,12 @@ def _validate_adhoc(adhoc: Any, tables: Any) -> tuple:
     TR-015: 'min_context' is a synthetic requirement category (int tokens)
     that is NOT part of the tier/category_levels scale; it is accepted here
     and handled specially by _build_chain.
+
+    TR-369: the six capability families (capability_vocab.CAPABILITY_FAMILIES)
+    are first-class requirement capabilities in the boolean form family=1;
+    they filter lane eligibility from the stored cap_<family> columns and are
+    likewise NOT tier categories. Any other unknown category is a visible
+    INVALID_REQUIREMENT error — never silently dropped.
     """
     known = {r.get('category') for r in (tables.get('category_levels') or [])
              if r.get('category')}
@@ -1193,6 +1211,26 @@ def _validate_adhoc(adhoc: Any, tables: Any) -> tuple:
                     level = int(lvl)
                 except ValueError:
                     return None, {'error': f'invalid min_context {lvl!r}: must be integer tokens',
+                                   'code': 'INVALID_REQUIREMENT', 'retryable': False}
+                reqs.append((cat, level))
+                continue
+            # TR-369: capability families are first-class requirement
+            # capabilities — boolean (family=1), filtered from the stored
+            # cap_* columns by _build_chain, never tier-scaled. Accepted
+            # BEFORE the category_levels membership check: they are
+            # deliberately NOT tier categories. An unknown capability is a
+            # visible INVALID_REQUIREMENT error, never silently dropped.
+            if _cvocab is not None and cat in _cvocab.CAPABILITY_FAMILIES:
+                try:
+                    level = int(lvl)
+                except ValueError:
+                    return None, {'error': f'invalid capability requirement {part!r}: '
+                                   f'{cat} accepts only {cat}=1 (capability required)',
+                                   'code': 'INVALID_REQUIREMENT', 'retryable': False}
+                if level != 1:
+                    return None, {'error': f'invalid level {level} for capability {cat!r}: '
+                                   f'capability families are boolean requirements — '
+                                   f'use {cat}=1; tier levels {lo}..{hi} do not apply',
                                    'code': 'INVALID_REQUIREMENT', 'retryable': False}
                 reqs.append((cat, level))
                 continue
@@ -2883,7 +2921,12 @@ def _build_chain(tables: Any, reqs: Any, limit: Any=DEFAULT_CHAIN_LIMIT, sort_sp
     'context_limit N < min_context M'. Lanes with unknown context_limit (NULL)
     are allowed to pass but flagged via a 'context_unknown' note so callers can
     see the gap; they are never silently dropped for a non-strict min_context
-    check."""
+    check.
+
+    TR-369: capability-family requirements (family, 1) filter lanes from the
+    stored cap_<family> columns. Only an EVIDENCED True passes — False fails
+    as unsupported and NULL fails as unknown (unresearched is not support);
+    every failure is a ROUTER-MISS line so nothing vanishes silently."""
     models = tables.get('models') or []
     # Evidence is per MODEL (Bane 2026-08-27): tiers keyed by model name only;
     # every provider lane of the same weights inherits the same tier. A lane
@@ -2896,11 +2939,15 @@ def _build_chain(tables: Any, reqs: Any, limit: Any=DEFAULT_CHAIN_LIMIT, sort_sp
     tiers_folded = _fold_tier_names(tiers)
 
     # TR-015: split out the min_context requirement from tier-based reqs.
+    # TR-369: capability-family reqs split the same way — they are not tiers.
+    cap_reqs = []
     min_context = None
     tier_reqs = []
     for cat, lvl in reqs:
         if cat == 'min_context':
             min_context = lvl
+        elif _cvocab is not None and cat in _cvocab.CAPABILITY_FAMILIES:
+            cap_reqs.append((cat, lvl))
         else:
             tier_reqs.append((cat, lvl))
     reqs = tier_reqs
@@ -2947,6 +2994,26 @@ def _build_chain(tables: Any, reqs: Any, limit: Any=DEFAULT_CHAIN_LIMIT, sort_sp
             except Exception:  # noqa: BLE001, S110 — fail-open contract
                 pass
             continue
+
+        # TR-369: capability-family gating. Only an EVIDENCED True passes:
+        # False = unsupported, NULL = unknown (unresearched is not support —
+        # the same never-guess contract as the store). Each failure is a
+        # ROUTER-MISS line naming why, so narrowing is never silent.
+        if cap_reqs:
+            cap_miss = []
+            for fam, _lvl in cap_reqs:
+                v = m.get(_cvocab.family_column(fam))
+                if v is not True:
+                    why = 'unsupported' if v is False else 'unknown (unresearched)'
+                    cap_miss.append((fam, why))
+            if cap_miss:
+                try:
+                    for fam, why in cap_miss:
+                        _err(f"ROUTER-MISS: {prov}/{model} fails capability "
+                             f"{fam}=1 ({why})")
+                except Exception:  # noqa: BLE001, S110 — fail-open contract
+                    pass
+                continue
 
         # TR-015: min_context gating. NULL passes (with a note); known value
         # below requirement is an exclusion.

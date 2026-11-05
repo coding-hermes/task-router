@@ -87,8 +87,35 @@ STRUCTURAL = {
         "perf_guard": "no sample yet",
         "perf_mock": "no sample yet",
         "perf_reasoning": "no sample yet",
+        # TR-369: the remaining 14 task categories joined the store (the seed
+        # UNPIVOT carries all 24). Same designed absence as the original ten:
+        # null = no sample measured for that category yet; live lanes also
+        # carry per-field no-sample-yet stamps in null_reasons.jsonl.
+        "perf_code_gen": "no sample yet",
+        "perf_refactor": "no sample yet",
+        "perf_terminal": "no sample yet",
+        "perf_mechanical": "no sample yet",
+        "perf_test": "no sample yet",
+        "perf_math": "no sample yet",
+        "perf_tool_use": "no sample yet",
+        "perf_long_horizon": "no sample yet",
+        "perf_vision": "no sample yet",
+        "perf_ui_frontend": "no sample yet",
+        "perf_spec_docs": "no sample yet",
+        "perf_creative": "no sample yet",
+        "perf_multilingual": "no sample yet",
+        "perf_security": "no sample yet",
         "thinking": "capability unresearched (never guessed)",
         "vision": "capability unresearched (never guessed)",
+        # TR-369 capability families: True/False need evidence (catalog
+        # modality / name marker); null = unresearched, never guessed. Same
+        # designed absence as vision/thinking above.
+        "cap_image_generation": "capability unresearched (never guessed)",
+        "cap_embedding": "capability unresearched (never guessed)",
+        "cap_computer_use": "capability unresearched (never guessed)",
+        "cap_audio": "capability unresearched (never guessed)",
+        "cap_web_search": "capability unresearched (never guessed)",
+        "cap_video": "capability unresearched (never guessed)",
         "training_model_level": "training status unresearched (training gate treats "
         "NULL as not-training; never guessed)",
         "training_provider_level": "training status unresearched (training gate "

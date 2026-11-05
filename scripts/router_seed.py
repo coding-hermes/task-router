@@ -40,6 +40,15 @@ try:
 except ImportError:  # live byte-copy not yet synced (sync_runtime.sh) -> old default
     _registry_path_mod = None
 
+# TR-369: the one capability vocabulary (24 perf categories + 6 families).
+# Lives in its own stdlib module so seed/server/spawn/census/tests spell the
+# names ONCE.
+try:
+    import capability_vocab as _cvocab
+except ImportError:
+    sys.path.insert(0, _HERE)
+    import capability_vocab as _cvocab
+
 if _registry_path_mod is not None:
     # TR-REV-1012-1: shared resolver (scripts/registry_path.py) — the seed
     # default stays <repo>/registry.json (the artifact make serve reads);
@@ -158,11 +167,23 @@ BASE_COLUMNS = {
                ('public_cache_read_per_m', 'DOUBLE'),
                ('public_cache_write_per_m', 'DOUBLE'),
                ('data_class', 'VARCHAR'), ('plan_tier', 'INTEGER'),
+               # TR-369: all 24 categories carried as columns (was 10) — a
+               # measurement of ANY category can be stored on the lane row.
+               # The seed UNPIVOTs exactly these columns into model_perf
+               # (capability_vocab.PERF_COLUMNS is the single source; the
+               # on-row nulls are census-explained "no sample yet").
                ('perf_agent_tick', 'DOUBLE'), ('perf_long_doc', 'DOUBLE'),
                ('perf_debug', 'DOUBLE'), ('perf_schema', 'DOUBLE'),
                ('perf_e2e_vision', 'DOUBLE'), ('perf_review', 'DOUBLE'),
                ('perf_delegation', 'DOUBLE'), ('perf_guard', 'DOUBLE'),
                ('perf_mock', 'DOUBLE'), ('perf_reasoning', 'DOUBLE'),
+               ('perf_code_gen', 'DOUBLE'), ('perf_refactor', 'DOUBLE'),
+               ('perf_terminal', 'DOUBLE'), ('perf_mechanical', 'DOUBLE'),
+               ('perf_test', 'DOUBLE'), ('perf_math', 'DOUBLE'),
+               ('perf_tool_use', 'DOUBLE'), ('perf_long_horizon', 'DOUBLE'),
+               ('perf_vision', 'DOUBLE'), ('perf_ui_frontend', 'DOUBLE'),
+               ('perf_spec_docs', 'DOUBLE'), ('perf_creative', 'DOUBLE'),
+               ('perf_multilingual', 'DOUBLE'), ('perf_security', 'DOUBLE'),
                ('valid_from', 'DATE'),
                # TR-200 allowlist decision: available_from STAYS. Readers live
                # (router_spawn.py coming_soon, router_server.py /v1/models,
@@ -185,6 +206,17 @@ BASE_COLUMNS = {
                ('context_limit', 'BIGINT'),
                ('api_type', 'VARCHAR'), ('vision', 'BOOLEAN'),
                ('thinking', 'BOOLEAN'),
+               # TR-369 capability families (capability_vocab.CAPABILITY_FAMILIES):
+               # three-state booleans populated by the seed's derivation from
+               # model_catalog.jsonl modality + model-name markers
+               # (derive_lane_capabilities). True/False = evidence on record;
+               # NULL = unresearched, never guessed (census-explained).
+               ('cap_image_generation', 'BOOLEAN'),
+               ('cap_embedding', 'BOOLEAN'),
+               ('cap_computer_use', 'BOOLEAN'),
+               ('cap_audio', 'BOOLEAN'),
+               ('cap_web_search', 'BOOLEAN'),
+               ('cap_video', 'BOOLEAN'),
                ('training_model_level', 'BOOLEAN'),
                ('training_provider_level', 'BOOLEAN'),
                # TR-168: fold provenance ("deduped from twin row <n> on <date>")
@@ -299,6 +331,46 @@ def _dedupe_models_rows(rows: Any):
     return [r for pos, r in enumerate(out) if pos not in drop]
 
 
+def _attach_lane_capabilities(rows: Any) -> list:
+    """TR-369: derive + attach the six cap_<family> columns to models rows.
+
+    The ONE derivation (capability_vocab.derive_lane_capabilities) reads
+    model_catalog.jsonl next to the tables dir: a published modality string
+    and tight model-name markers are the only evidence classes. True/False
+    need evidence ON record; NULL = unresearched, never guessed — the census
+    explains those nulls (STRUCTURAL) and null_reasons.jsonl stamps them on
+    live lanes. Re-deriving on an already-populated store is idempotent (same
+    inputs -> same values), so seed reruns are stable.
+    """
+    cat_path = os.path.join(DATA_DIR, 'model_catalog.jsonl')
+    cat_rows = []
+    try:
+        with open(cat_path) as f:
+            for line in f:
+                line = line.strip()
+                if line:
+                    try:
+                        cat_rows.append(json.loads(line))
+                    except ValueError:
+                        continue
+    except OSError:
+        cat_rows = []  # no catalog in this data dir -> all families unresearched
+    lookup = _cvocab.catalog_candidates(cat_rows)
+    counts = {f: {True: 0, False: 0, None: 0} for f in _cvocab.CAPABILITY_FAMILIES}
+    for r in rows:
+        if not isinstance(r, dict):
+            continue
+        derived = _cvocab.derive_lane_capabilities(
+            r.get('model'), lookup(r.get('provider'), r.get('model')))
+        for fam, val in derived.items():
+            r[_cvocab.family_column(fam)] = val
+            counts[fam][val] = counts[fam].get(val, 0) + 1
+    print('capabilities derived (evidence=True, absence=False, unresearched=None): '
+          + ', '.join(f"{f} T{counts[f][True]}/F{counts[f][False]}/N{counts[f][None]}"
+                      for f in _cvocab.CAPABILITY_FAMILIES))
+    return rows
+
+
 def _load_base_rows(name: Any):
     """Base-table rows from the in-repo data/tables/*.jsonl (keyed records —
     committed, self-contained), falling back to the ns mirror (array format)
@@ -316,6 +388,7 @@ def _load_base_rows(name: Any):
             cols = [c[0] for c in BASE_COLUMNS[name]]
             if name == 'models':
                 rows = _dedupe_models_rows(rows)   # TR-168: one lane, one row
+                rows = _attach_lane_capabilities(rows)  # TR-369: derive caps
             return [tuple(r.get(c) for c in cols) for r in rows]
     except Exception:
         pass
@@ -326,6 +399,8 @@ def _load_base_rows(name: Any):
         rows = (doc.get('tables') or {}).get(name)
         if rows:
             cols = [c[0] for c in BASE_COLUMNS[name]]
+            if name == 'models':
+                rows = _attach_lane_capabilities(rows)  # TR-369: derive caps
             return [tuple(r.get(c) for c in cols) for r in rows]
     except Exception:
         pass
@@ -519,10 +594,12 @@ for _o in _lc_rows:
 if _lc_rows:
     print(f'applied {len(_lc_rows)} lifecycle overlays from {_LC_PATH}')
 
-CATS = ['agent_tick','long_doc','debug','schema','e2e_vision','review','delegation',
-        'guard','mock','reasoning','code_gen','refactor','terminal','mechanical','test',
-        'math','tool_use','long_horizon','vision','ui_frontend','spec_docs','creative',
-        'multilingual','security']
+# TR-369: CATS is the capability_vocab list (one vocabulary; was spelled here).
+CATS = list(_cvocab.PERF_CATEGORIES)
+# OLD = the ten categories that carried perf_* columns BEFORE TR-369. The
+# UNPIVOT no longer reads this list (it pivots ALL 24 via PERF_COLUMNS); OLD
+# survives only as seed_estimates()' "categories the original import could not
+# store" set, so profile-tag estimates keep landing exactly where they did.
 OLD = ['agent_tick','long_doc','debug','schema','e2e_vision','review','delegation','guard','mock','reasoning']
 
 # ---------- 1. level_defs: the -5..+5 scale (percentiles) ---------------------
@@ -538,20 +615,24 @@ con.executemany("INSERT INTO level_defs VALUES (?,?,?)", lv)
 # tier. Per-provider lane disabling is an explicit opt-in (models.disabled +
 # disabled_reason), never the default.
 con.execute("DROP TABLE IF EXISTS model_perf")
-con.execute("""
+# TR-369: the UNPIVOT carries ALL 24 categories (was the original ten — the
+# other 14 had no store column, so measurements of those categories could not
+# be stored). The column lists are generated from capability_vocab so the
+# store schema and this derivation can never drift apart.
+_perf_cols = list(_cvocab.PERF_COLUMNS)
+_perf_collist = ', '.join(_perf_cols)
+con.execute(f"""
 CREATE TABLE model_perf AS
 SELECT model, category, perf, 'measured' AS source,
        'models.jsonl:perf_' || category AS source_ref
 FROM (
   SELECT model, replace(category, 'perf_', '') AS category, max(perf) AS perf
-  FROM (UNPIVOT (SELECT model, perf_agent_tick, perf_long_doc, perf_debug, perf_schema,
-                        perf_e2e_vision, perf_review, perf_delegation, perf_guard, perf_mock, perf_reasoning
+  FROM (UNPIVOT (SELECT model, {_perf_collist}
                  -- TR-200: available_from filter dropped with the column (was
                  -- never non-null, so the clause selected everything anyway).
                  FROM models WHERE (valid_to IS NULL OR valid_to > CURRENT_DATE) AND archive = false
                               AND (disabled IS NULL OR NOT disabled))
-        ON perf_agent_tick, perf_long_doc, perf_debug, perf_schema,
-           perf_e2e_vision, perf_review, perf_delegation, perf_guard, perf_mock, perf_reasoning
+        ON {_perf_collist}
         INTO NAME category VALUE perf)
   WHERE perf IS NOT NULL
   GROUP BY model, category
