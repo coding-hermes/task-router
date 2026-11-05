@@ -1,0 +1,18 @@
+{
+  "tick": "task-router-foreman-2026-11-05-14-01-32",
+  "project": "task-router",
+  "mode": "verification-only",
+  "wave_size": 0,
+  "wave_budget": 12,
+  "workers": [],
+  "worktrees": [
+    "/home/kara/proj-wt-tr355-armed"
+  ],
+  "selected_row": "TR-355",
+  "selection_reason": "highest-priority pending P0 row; owner-gated live cutover (AC5). No lower-priority implementation row may be dispatched while the top P0 row is owner-gated.",
+  "owner_gate": "AC5 needs a production restart of task-router-server (:9092) and task-router-proxy (:9391) plus one gated-fleet tick. Restart is the row owner's deliberate cutover.",
+  "delta_vs_previous_tick": "Precondition flipped from UNMET to MET: the canonical checkout now holds a6c8839's router_server.py (blob 9517d3ca, dg 02f4efd01eda042f) instead of the pre-fix 820c11cd; the sibling pytest session that blocked the fast-forward is gone.",
+  "evidence": ".coding-hermes/evidence/tr355-cutover-armed-20261105T1403Z.txt",
+  "expected_post_cutover_digest": "ab821c81454dd93f",
+  "mutations": "none: read-only probes; evidence + manifest committed only"
+}

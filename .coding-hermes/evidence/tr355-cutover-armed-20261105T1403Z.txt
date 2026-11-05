@@ -1,0 +1,113 @@
+TR-355 verification-only evidence — the cutover precondition FLIPPED TO MET
+Tick: task-router-foreman-2026-11-05-14-01-32
+Observed at: 2026-11-05T14:03Z..14:10Z (UTC)
+Worktree: /home/kara/proj-wt-tr355-armed (branch verify/tr355-armed-20261105, cut from origin/main d3358e9)
+
+Scope
+-----
+The highest-priority pending P0 row is TR-355 (degraded hop wall). Its implementation (a6c8839) is
+merged and its regression test is green. AC5 is a live acceptance arm that needs a restart of the two
+serving listeners (:9092 task-router-server, :9391 task-router-proxy) plus one gated-fleet tick. The
+restart is the row owner's deliberate cutover. This tick is read-only verification: NO restart, NO
+deploy, NO fast-forward of the canonical checkout, NO service mutation.
+
+Delta versus the previous tick (task-router-foreman-2026-11-05-11-35-44)
+-----------------------------------------------------------------------
+That tick's finding was: "AC5's precondition is unmet — the canonical checkout still holds PRE-FIX
+scripts/router_server.py (820c11cd), so a restart today reloads pre-fix code."
+
+That finding is now STALE. The canonical checkout was fast-forwarded after that tick and now holds
+the fix. Measured this tick:
+
+  $ cd /home/kara/task-router && git rev-list --left-right --count main...origin/main
+  0	7
+  $ git hash-object scripts/router_server.py
+  9517d3cab2af26d2204639dbff72164d359ba6e9
+  $ git rev-parse a6c8839:scripts/router_server.py
+  9517d3cab2af26d2204639dbff72164d359ba6e9      <- identical: the fix is in the canonical tree
+  $ dg /home/kara/task-router                     <- router_health source_sha recipe
+  02f4efd01eda042f                                <- exactly the post-cutover target the 11:35 tick named
+
+The previous tick also recorded that the fast-forward was deferred because a sibling session
+(pid 162741) was running the full suite in that checkout. That writer is gone: a /proc cwd census of
+the canonical checkout now shows only the two serving listeners (514260, 514277) and the web UI
+(7564); no pytest process is running there. `git status --porcelain -- scripts` is EMPTY, so the
+fast-forward is no longer blocked by a live suite.
+
+Live listeners (unchanged PIDs — the restart has NOT happened)
+-------------------------------------------------------------
+  $ ss -ltnp | grep -E ':9092|:9391'
+  127.0.0.1:9391  users:(("python3",pid=514260,fd=3))
+  127.0.0.1:9092  users:(("python3",pid=514277,fd=3))
+  100.97.236.14:9092  users:(("socat",pid=2137000))    <- tailnet bridge
+  100.97.236.14:9391  users:(("socat",pid=2137001))    <- tailnet bridge
+
+  $ ps -eo pid,lstart,cmd | grep router_server.py
+  514260 Wed Nov  4 22:18:29 2026 .../scripts/router_server.py --mode read-only --host 127.0.0.1 --port 9391
+  514277 Wed Nov  4 22:18:29 2026 .../scripts/router_server.py --mode read-only --host 127.0.0.1 --port 9092
+
+  $ curl -s 127.0.0.1:9092/health | jq .code
+  { "loaded_commit": "04fdeb242793", "loaded_source_sha": "35182a6ce5763fae",
+    "loaded_at": "2026-11-05T03:18:31+00:00", "repo_commit": "8a735f5551d9",
+    "live_source_sha": "02f4efd01eda042f", "stale": true }
+  $ curl -s 127.0.0.1:9391/health | jq .code
+  { "loaded_commit": "04fdeb242793", "loaded_source_sha": "35182a6ce5763fae",
+    "loaded_at": "2026-11-05T03:18:30+00:00", "repo_commit": "8a735f5551d9",
+    "live_source_sha": "02f4efd01eda042f", "stale": true }
+
+Reading: `live_source_sha` is the digest the RUNNING process recomputes from the files on disk on
+every request. It is now 02f4efd01eda042f (the post-fix digest) while `loaded_source_sha` is still
+35182a6ce5763fae (pre-fix). That is direct proof that the fix is on disk and the ONLY remaining gap
+is the process reload. `stale: true` is the commit label only; the digest pair is the real signal.
+
+Armed target for the owner's cutover — compute it AFTER the pull, not before
+---------------------------------------------------------------------------
+The canonical checkout is 7 commits BEHIND origin/main (d3358e9 = TR-377 /metrics + TR-378 scrape-job
+closeouts, both of which touched the serving surface). A restart issued today against the canonical
+checkout as it stands would load 02f4efd01eda042f — the TR-355 fix WITHOUT the metrics surface. The
+owner payload must therefore be pull + deploy as ONE action, with this expected post-cutover digest:
+
+  $ dg /home/kara/proj-wt-tr355-armed     # worktree cut from origin/main d3358e9
+  ab821c81454dd93f                        <- EXPECTED loaded_source_sha after pull+restart
+
+Focused acceptance on the armed tree (not a unit-test claim about the live process):
+  $ ~/.hermes/venvs/board/bin/python3 -m pytest -q tests/test_tr355_degraded_wall.py
+  ........                                             [100%]
+  8 passed in 0.26s
+
+Fix sites present in that exact tree:
+  scripts/router_server.py:2098  _HOP_DEGRADED_HEADER = 'X-Router-Hop-Degraded-Fallback'
+  scripts/router_server.py:1941  timeout = _hop_budget_s(want_stream, degraded=_degraded_hop)   (global 8642 upstream)
+  scripts/router_server.py:2891  req, timeout=_hop_budget_s(False, degraded=degraded)) as resp:  (provider last mile)
+  scripts/router_server.py:2378  ROUTER_DEGRADED_WALL_S default '120'
+
+The defect the row exists for is still being served by the pre-fix process (unchanged finding):
+  today's scheduler.log carries 3 `hop-wall-timeout` lines at ~600s (05:31:09, 05:31:30, 06:01:46
+  local); the most recent DEGRADED last-mile case is 2026-11-05 00:24:07 in scheduler.log.1,
+  code-factory-duckbrain, latency_s=600.017 wall_time_s=611.306 while the same envelope advertised
+  degraded_wall_s=120.0 / fallback_policy=degraded-wall-cap.
+
+Owner payload (exact, one operator action)
+------------------------------------------
+  cd /home/kara/task-router
+  git status --porcelain -- scripts          # must be EMPTY (it is empty at 14:10Z)
+  dg .                                       # BEFORE the pull: 02f4efd01eda042f
+  git pull --ff-only                         # 8a735f5 -> d3358e9
+  dg .                                       # AFTER the pull:  ab821c81454dd93f
+  python3 scripts/router_deploy.py           # dry-run: compiles scripts, prints order
+  python3 scripts/router_deploy.py --apply   # restart :9092 then :9391, requires /readyz 200 + new PID
+  curl -s 127.0.0.1:9092/health | jq -r .code.loaded_source_sha   # expect ab821c81454dd93f
+  curl -s 127.0.0.1:9391/health | jq -r .code.loaded_source_sha   # expect ab821c81454dd93f
+  # then observe ONE gated-fleet tick and quote wall_time_s for a DEGRADED last-mile hop (~120s, not 600s)
+
+Acceptance state after this tick
+--------------------------------
+AC1 reproduce wasted wall        MET (pre-fix 600.38s live; 611.306s post-cutover pre-fix sample)
+AC2 degraded cap enforced        code complete at BOTH egress sites; live envelope stops lying only after restart
+AC3 reason-code distinction      MET live (typed 503 unservable-rating vs 502 hop-wall-timeout)
+AC4 regression test red -> green MET (quoted red 600.0 vs cap 120.0 on the pre-fix tree)
+AC5 live acceptance              NOT MET — listeners still execute 35182a6ce5763fae (pre-fix); restart is the owner cutover
+
+Verdict: row STAYS PENDING. Nothing was mutated: no restart, no deploy, no pull, no board status flip
+beyond the evidence binding. This tick's product is the flipped precondition plus an exact armed
+target digest that the 11:35 tick could not supply (it could only name the deferred sequence).
