@@ -60,6 +60,21 @@ while read -r local_ref local_sha remote_ref remote_sha; do
   if ! "$PY" scripts/board_commit_boundary_gate.py --base "$base" --head "$local_sha" 2>&1; then
     blocked=$((blocked + 1))
   fi
+  # TR-362: INV4 null-debt commit gate. Refuse a push that ADDS or CHANGES a
+  # routable models.jsonl lane carrying no perf_* evidence for any category
+  # without a stated reason — every perf field stamped in
+  # data/null_reasons.jsonl (reason from the AC2 REASONS vocabulary) or
+  # disabled=true with a non-empty disabled_reason. Whole-tree INV4 (the
+  # same script without flags) stays report-only because ~1900 pre-existing
+  # lanes predate the gate; this diff mode is the enforcement. NOTE: this
+  # repo has NO pre-commit hook, so this pre-push hook IS the commit gate.
+  # Escape hatch: ALLOW_NULL_DEBT=1 (prints a warning; no gate bypasses
+  # silently).
+  if [ "${ALLOW_NULL_DEBT:-0}" = "1" ]; then
+    echo "pre-push: WARNING: ALLOW_NULL_DEBT=1 — the TR-362 INV4 null-debt gate is bypassed for this push." >&2
+  elif ! "$PY" scripts/null_debt_invariants.py --inv4-diff --base "$base" --head "$local_sha" 2>&1; then
+    blocked=$((blocked + 1))
+  fi
   checked=$((checked + 1))
 done <<EOF
 $push_lines
@@ -70,9 +85,9 @@ if [ "$checked" -eq 0 ]; then
 fi
 if [ "$blocked" -gt 0 ]; then
   echo ""
-  echo "pre-push: refused ($blocked of $checked push(es) to $GATED_BRANCH had red CI or unbound completions)."
-  echo "pre-push: fix main's CI / bind evidence runs, or re-run with ALLOW_RED_PUSH=1 (CI) or"
-  echo "          ALLOW_UNBOUND_COMPLETION=1 (TR-251) to override loudly."
+  echo "pre-push: refused ($blocked of $checked push(es) to $GATED_BRANCH had red CI, unbound completions, or null-debt INV4 violations)."
+  echo "pre-push: fix main's CI / bind evidence runs / stamp or disable the new perf-less lanes, or re-run with ALLOW_RED_PUSH=1 (CI),"
+  echo "          ALLOW_UNBOUND_COMPLETION=1 (TR-251) or ALLOW_NULL_DEBT=1 (TR-362 INV4) to override loudly."
   exit 1
 fi
 exit 0

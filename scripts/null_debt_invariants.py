@@ -4,7 +4,7 @@
 TR-197 built the census (classify every null MEANINGFUL vs UNEXPLAINED and
 count the debt). TR-198 fixed one wipe. TR-201 adds the PREVENTION side: a
 gate that fails on the SHAPES that indicate null debt is being created,
-before the census ever has to count it. Three invariants over
+before the census ever has to count it. Four invariants over
 data/tables/*.jsonl (liveness reuses data_null_census.is_live: a row is live
 when it is not archive, not disabled, and carries no valid_to):
 
@@ -21,6 +21,20 @@ when it is not archive, not disabled, and carries no valid_to):
         valid_to/available_from without a non-empty lifecycle_source. The
         predicate is lifecycle_gate's (TR-199 R4 "no anonymous dates") —
         this gate DELEGATES to it and does not re-implement it.
+  INV4  (TR-362) no models.jsonl lane is routable (live, per is_live) while
+        carrying NO perf_* evidence for ANY of the ten perf categories,
+        unless the reason is STATED: every perf field stamped for that
+        (provider, model) in null_reasons.jsonl with a reason from the
+        AC2 vocabulary, or disabled=true with a non-empty disabled_reason.
+        INV4 runs in TWO modes over the same predicate:
+          whole-tree (default): count + report only, NEVER fails the gate —
+            ~1900 pre-existing perf-less lanes live in the committed table
+            and the guard/CI suites run this mode on the whole tree.
+          --inv4-diff --base R1 --head R2: the COMMIT gate (wired into
+            .githooks/pre-push — this repo has NO pre-commit hook, so
+            pre-push is the commit gate). Fails when the range adds or
+            changes a violating lane; missing file on either side, or no
+            added/changed lane, exits 0.
 
 Why INV1/INV2 measure over NON-STRUCTURAL columns (the one deliberate
 deviation from a naive reading of the brief): TR-197's STRUCTURAL registry
@@ -40,15 +54,21 @@ gate adds the aggregate-shape checks the census cannot express.
 
 Exit code: 0 when all three invariants hold, 1 on any violation (each
 violation names table, lane, field and measured fraction), 2 on internal
-errors. --json emits {"inv1"|"inv2"|"inv3": {"violations": [...]}}.
+errors. INV4 is EXEMPT from the whole-tree exit code (report-only; the
+diff mode is what fails). --json emits
+{"inv1"|"inv2"|"inv3"|"inv4": {"violations": [...]}} — inv4 is additive
+(TR-362); existing consumers reading inv1/inv2/inv3 are unaffected.
 --publish PATH writes the watch-hook state file (timestamp, git sha, the
 data_null_census.py --json live-UNEXPLAINED count, per-invariant violation
-counts). No cron here — the foreman wires the schedule.
+counts; unchanged shape — inv1/inv2/inv3 only). No cron here — the foreman
+wires the schedule.
 
 Usage:
   python3 scripts/null_debt_invariants.py                 # gate (text)
   python3 scripts/null_debt_invariants.py --json          # machine report
   python3 scripts/null_debt_invariants.py --publish data/state/null-census-latest.json
+  python3 scripts/null_debt_invariants.py --inv4-diff --base R1 --head R2
+                                                          # TR-362 commit gate
 """
 from __future__ import annotations
 
@@ -237,6 +257,142 @@ def check_inv3(tables: Any):
     return out
 
 
+#: TR-362 — the ten perf categories on models.jsonl. A lane "has perf
+#: evidence" when ANY of these carries a non-null, non-empty value; a lane
+#: with none of them measured is INV4's subject.
+PERF_FIELDS = (
+    "perf_agent_tick",
+    "perf_long_doc",
+    "perf_debug",
+    "perf_schema",
+    "perf_e2e_vision",
+    "perf_review",
+    "perf_delegation",
+    "perf_guard",
+    "perf_mock",
+    "perf_reasoning",
+)
+
+#: models.jsonl path inside the repo, as handed to `git show <ref>:<path>`.
+MODELS_TABLE_PATH = os.path.join("data", "tables", "models.jsonl")
+
+
+def _canonical_row(r: Any) -> str:
+    """Stable text form of a parsed row, for base/head equality."""
+    return json.dumps(r, sort_keys=True, ensure_ascii=False)
+
+
+def _git_show_rows(repo: Any, ref: Any, rel_path: Any):
+    """Rows of rel_path AT ref, or None when the path does not exist there.
+    Other git failures (bad ref, not a repo) raise RuntimeError -> exit 2."""
+    p = subprocess.run(
+        ["git", "show", "%s:%s" % (ref, rel_path)],
+        capture_output=True, text=True, cwd=repo, timeout=120,
+    )
+    if p.returncode != 0:
+        err = p.stderr or ""
+        # git wordings for "path absent AT this ref": "does not exist in
+        # '<ref>'" (not on disk either) and "exists on disk, but not in
+        # '<ref>'" (present in the working tree, absent at the ref — the
+        # common pre-push case for a base that predates the table). Both
+        # name the path; anything else (bad ref, not a repo) is an error.
+        if (("does not exist" in err or "exists on disk, but not in" in err)
+                and rel_path in err):
+            return None
+        raise RuntimeError(
+            "git show %s:%s failed (rc=%d): %s"
+            % (ref, rel_path, p.returncode, (p.stderr or p.stdout)[-500:])
+        )
+    rows = []
+    for line in p.stdout.splitlines():
+        if line.strip():
+            try:
+                rows.append(json.loads(line))
+            except Exception:
+                pass
+    return rows
+
+
+def _inv4_lane_violation(r: Any, stamps: Any):
+    """The INV4 predicate for ONE models.jsonl row -> violation dict or None.
+
+    A lane passes when any of:
+      * it is not routable (not live: disabled / archived / valid_to),
+      * it carries perf evidence (any PERF_FIELDS value non-null),
+      * disabled=true WITH a non-empty disabled_reason (stated lane reason),
+      * EVERY perf field is stamped for (provider, model) in
+        null_reasons.jsonl with a reason from the AC2 vocabulary
+        (no-sample-yet and unknown-by-design are legitimate members — the
+        gate's job is that the reason is STATED, not inferred).
+    A partial stamp set is a violation naming the unstamped fields.
+    """
+    if not census.is_live(r):
+        return None  # not routable -> exempt
+    prov, mod = r.get("provider"), r.get("model")
+    if any(not _is_null(r.get(f)) for f in PERF_FIELDS):
+        return None  # measured capability data exists
+    if r.get("disabled") and r.get("disabled_reason"):
+        return None  # stated lane-state reason
+    unstamped = [f for f in PERF_FIELDS if (prov, mod, f) not in stamps]
+    if not unstamped:
+        return None  # fully stamped with meaningful reasons
+    return {
+        "provider": prov,
+        "model": mod,
+        "lane": _lane(r),
+        "missing_fields": unstamped,
+    }
+
+
+def check_inv4(tables: Any, stamps: Any=None):
+    """INV4 whole-tree mode: violating LIVE models lanes, count + report.
+
+    NEVER fatal: the committed table holds ~1900 pre-existing perf-less
+    lanes ("no sample yet" is exempt in the census), and the guard/CI
+    suites run this mode — failing here would red every gate without a
+    single new violation. The per-commit enforcement is check_inv4_diff.
+    """
+    stamps = census.load_stamps() if stamps is None else stamps
+    out = []
+    for r in tables.get("models.jsonl", []):
+        if isinstance(r, dict):
+            v = _inv4_lane_violation(r, stamps)
+            if v:
+                out.append(v)
+    return out
+
+
+def check_inv4_diff(base: Any, head: Any, repo: Any=None,
+                    stamps: Any=None, rel_path: Any=MODELS_TABLE_PATH):
+    """INV4 diff mode (TR-362 commit gate): violations among lanes ADDED or
+    CHANGED between base and head (rows compared canonically by
+    (provider, model)). Missing file on either side, or no added/changed
+    lane, yields no violations (exit 0)."""
+    repo = repo or _REPO
+    stamps = census.load_stamps() if stamps is None else stamps
+    base_rows = _git_show_rows(repo, base, rel_path)
+    head_rows = _git_show_rows(repo, head, rel_path)
+    if base_rows is None and head_rows is None:
+        return []
+    base_map = {
+        (r.get("provider"), r.get("model")): r
+        for r in (base_rows or []) if isinstance(r, dict)
+    }
+    head_map = {
+        (r.get("provider"), r.get("model")): r
+        for r in (head_rows or []) if isinstance(r, dict)
+    }
+    out = []
+    for key, r in head_map.items():
+        if key in base_map and _canonical_row(base_map[key]) == _canonical_row(r):
+            continue  # unchanged lane — not this commit's debt
+        v = _inv4_lane_violation(r, stamps)
+        if v:
+            v["change"] = "added" if key not in base_map else "changed"
+            out.append(v)
+    return out
+
+
 def census_unexplained(tables_dir: Any):
     """Live-lane UNEXPLAINED count, from data_null_census.py --json itself
     (a subprocess, so the published number IS the census's number)."""
@@ -287,18 +443,58 @@ def publish_state(path: Any, tables_dir: Any, v1: Any, v2: Any, v3: Any):
 
 def main(argv: Any=None) -> int:
     ap = argparse.ArgumentParser(
-        description="null-debt PREVENTION invariants (TR-201)")
+        description="null-debt PREVENTION invariants (TR-201; INV4 TR-362)")
     ap.add_argument("--json", action="store_true",
                     help="machine report: {invariant: {violations: [...]}}")
     ap.add_argument("--publish", metavar="PATH",
                     help="write the watch-hook state doc to PATH (AC4)")
+    ap.add_argument("--inv4-diff", action="store_true",
+                    help="TR-362 commit gate: fail (exit 1) when base..head "
+                         "adds or changes a routable models.jsonl lane that "
+                         "carries no perf evidence and no stated reason")
+    ap.add_argument("--base", metavar="REF",
+                    help="base ref for --inv4-diff (required with it)")
+    ap.add_argument("--head", metavar="REF",
+                    help="head ref for --inv4-diff (required with it)")
+    ap.add_argument("--repo", metavar="DIR",
+                    help="git repo to read base/head from "
+                         "(default: this checkout; used by tests)")
     args = ap.parse_args(argv)
+
+    if args.inv4_diff:
+        if not args.base or not args.head:
+            ap.error("--inv4-diff requires --base REF and --head REF")
+        try:
+            v4 = check_inv4_diff(args.base, args.head, repo=args.repo)
+        except Exception as e:
+            print("ERROR: INV4 diff mode failed: %s" % e, file=sys.stderr)
+            return 2
+        if args.json:
+            print(json.dumps({"inv4": {"violations": v4}},
+                             indent=1, ensure_ascii=False))
+        else:
+            print("=== inv4 (TR-362): diff gate %s..%s ==="
+                  % (args.base[:12], args.head[:12]))
+            if not v4:
+                print("  PASS (0 routable perf-less lanes added/changed)")
+            for x in v4:
+                print("  FAIL %s lane %s: no perf evidence for any category; "
+                      "unstamped fields: %s"
+                      % (x["change"], x["lane"], ", ".join(x["missing_fields"])))
+        if v4:
+            print("FAIL: %d routable perf-less lane(s) added/changed; stamp "
+                  "every perf field in null_reasons.jsonl (REASONS vocabulary) "
+                  "or disable the lane with a disabled_reason."
+                  % len(v4), file=sys.stderr)
+            return 1
+        return 0
 
     tables = load(T)
     violations = {
         "inv1": check_inv1(tables),
         "inv2": check_inv2(tables),
         "inv3": check_inv3(tables),
+        "inv4": check_inv4(tables),  # whole-tree INV4 is REPORT-ONLY
     }
 
     if args.publish:
@@ -315,6 +511,7 @@ def main(argv: Any=None) -> int:
             "inv1": "INV1 live-lane >=50% null across measured columns",
             "inv2": "INV2 100%-null column without a NULL_OK reason",
             "inv3": "INV3 lifecycle date without lifecycle_source (R4)",
+            "inv4": "INV4 (TR-362) routable lane, no perf evidence, no stated reason",
         }
         for k in ("inv1", "inv2", "inv3"):
             v = violations[k]
@@ -335,8 +532,17 @@ def main(argv: Any=None) -> int:
                              x["carriers"], x["fraction"]))
                 else:
                     print("  FAIL %s" % x["detail"])
+        v4 = violations["inv4"]
+        print("=== inv4: %s ===" % names["inv4"])
+        print("  REPORT-ONLY: %d routable perf-less lane(s) in the tree "
+              "(TR-362; per-commit enforcement is --inv4-diff, wired into "
+              ".githooks/pre-push — this repo has NO pre-commit hook)."
+              % len(v4))
 
-    bad = sum(1 for v in violations.values() if v)
+    # INV4 is deliberately EXEMPT here: whole-tree counts ~1900 pre-existing
+    # perf-less lanes and must not red the guard/CI suites. Only the diff
+    # mode (above) fails.
+    bad = sum(1 for k in ("inv1", "inv2", "inv3") if violations[k])
     if bad:
         print("FAIL: %d invariant(s) violated" % bad, file=sys.stderr)
         return 1
