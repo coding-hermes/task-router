@@ -1,0 +1,83 @@
+TR-RESIDUE-001 — closeout evidence
+tick: task-router-foreman-2026-11-05-10-13-43
+implementation commit: 20daf433ae358f18ec6acd7d1505fb0cd513423e
+published to: origin/main (ca02ea3..20daf43, fast-forward)
+canonical checkout: /home/kara/task-router
+
+WHY THIS TICK EXISTED
+---------------------
+The canonical checkout dirtied itself on every seed/sync run with an identical
+nine-path set and blocked foreman ticks (receipts 2026-11-04 04-00-08 and
+18-14-32, ticks 18-14-32 / 00-47-50 / 03-50-29). The fix commit was authored by
+tick task-router-foreman-2026-11-05-04-06-48 on branch fix/tr-residue-001 and
+was never merged to main, so the lane kept blocking. This tick landed it.
+
+AC (b) — six ignore rules committed, each named with its writer
+--------------------------------------------------------------
+$ git show 20daf43 -- .gitignore   (additions only, +25 lines)
++data/state/benchmarks.jsonl.bak-*          # scripts/router_seed.py _backup_with_retention()
++data/state/outcomes-averages.jsonl.bak-*   # same writer, bak-prefloor-<ts> shape
++data/state/router-events.jsonl             # scripts/router_nohops.py per-resolve audit trail
++data/router.db                             # zero-byte sqlite debris
++/task-router.db                            # zero-byte sqlite debris
++.vfs/graph/.symbols_cache.json             # vfs/hilo symbol index; was TRACKED, now `git rm --cached`
+
+Resolution proof, run in the closeout worktree at 20daf43:
+  .vfs/graph/.symbols_cache.json      -> .gitignore:97
+  data/router.db                      -> .gitignore:92
+  task-router.db                      -> .gitignore:93
+  data/state/router-events.jsonl      -> .gitignore:89
+  data/state/benchmarks.jsonl.bak-*   -> .gitignore:85
+  data/state/outcomes-averages.jsonl.bak-* -> .gitignore:86
+
+AC (a) — a REAL writer run leaves the canonical checkout clean
+--------------------------------------------------------------
+All nine residue paths materialised in a worktree at 20daf43:
+  data/router.db, task-router.db (0 bytes), data/state/router-events.jsonl,
+  data/state/benchmarks.jsonl.bak-<ts>, data/state/outcomes-averages.jsonl.bak-prefloor-<ts>,
+  .vfs/graph/.symbols_cache.json
+  $ git status --porcelain=v1 --untracked-files=all   -> empty
+
+Then in the CANONICAL checkout /home/kara/task-router:
+  pre-seed  : git status --porcelain=v1 -uall | wc -l  -> 0
+  writer    : .venv/bin/python scripts/router_seed.py   -> rc=1
+              ("synced data/tables -> /home/kara/task-router/data/tables" then
+               SATISFIABILITY FAIL: math levels 0..5 have no routable lane;
+               seeding REFUSED unless --allow-unsatisfiable. That refusal is
+               TR-383's gate and is unrelated to this row.)
+  the run DID write its residue — a new class member appeared:
+              data/state/benchmarks.jsonl.bak-20261105-051649  (493,391 bytes)
+  post-seed : git status --porcelain=v1 --untracked-files=all -> EMPTY (0 lines)
+
+So the writer executed, produced a fresh bak file from the very class that used
+to dirty the tree, and the tree stayed clean. This is the literal AC, not a proxy.
+
+AC (c) — the cited spec is tracked, not swept
+---------------------------------------------
+  docs/observability-spec.md  tracked in 20daf43 (A, 307 lines)
+  sha256 d0ae30ae842dccb0a1a1be10210e8b5d6294d0ff56bbe592d81a14fff35e0b6d
+  The canonical untracked copy moved aside for the fast-forward was byte-identical
+  (cmp OK; backup at
+   ~/.hermes/cache/scratch/tick-tr-20261105-101343/canonical-backup/observability-spec.md),
+  and the committed copy re-verifies at the same hash. TR-371..TR-378 and
+  TR-DISK-001 now resolve their design authority to a tracked file.
+
+AC (d) — the streak path set is gone
+------------------------------------
+Post-landing canonical status, twice (immediately after the merge and again after
+the seed run): 0 dirty paths, HEAD == origin/main == 20daf43.
+
+LOCAL GATES
+-----------
+  ~/.hermes/venvs/board/bin/python3 -m pytest -q \
+    tests/test_repo_hygiene.py tests/test_board_task_intake.py \
+    tests/test_doc_parity.py tests/test_outcomes.py
+  -> 55 passed in 9.59s   (run in the rebased worktree at 20daf43)
+
+  pre-push hook: CI GATE OK (ca02ea3 newest run success, 42002952775)
+                 board_commit_boundary_gate OK (0 completion flips in the diff)
+
+REMOTE
+------
+  git push origin HEAD:main -> ca02ea3..20daf43
+  git rev-parse HEAD origin/main -> 20daf433ae358f18ec6acd7d1505fb0cd513423e (both)
