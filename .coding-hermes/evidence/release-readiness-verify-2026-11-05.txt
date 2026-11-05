@@ -1,0 +1,107 @@
+RELEASE READINESS VERIFICATION — row RELEASE-2026-10-22-001
+tick: task-router-foreman-2026-11-05-10-44-40
+generated: 2026-11-05T05:52:00-05:00 (host clock, America/Chicago offset -05)
+worktree: /home/kara/proj-wt-relver-20261105 (branch chore/relver-20261105, cut from origin/main)
+mode: VERIFICATION-ONLY, ZERO-WORKER (owner gate absent) — no tag, no Release, no version bump, no driver build
+
+DECISION: NO CUT — owner authorization and version-prep absent.
+
+1. IDENTITY
+worktree_root: /home/kara/proj-wt-relver-20261105
+head: 88a83eb1b61195d66c63793c9e5b62e040310f64
+head_subject: board(TR-RESIDUE-001): exact-head CI on 20daf43 is SUCCESS, ci_result GREEN
+head_date: 2026-11-05T05:43:04-05:00
+origin_main: 88a83eb1b61195d66c63793c9e5b62e040310f64
+ahead_of_origin_main: 0
+behind_origin_main: 0
+remote: git@github.com:coding-hermes/task-router.git
+
+2. RELEASE SURFACE (unchanged: still absent)
+local_tags_count: 0
+remote_tags_count: 0
+gh_release_count: 0
+No prior release artifact exists to inventory against; delta is measured from the last
+published releng probe head (7fbd4a02, sweep task-router-releng-2026-11-03-14-24-25).
+
+3. VERSION STATE (version-prep NOT done; not authorized)
+pyproject_version: 0.2.0
+task_router.__version__: 0.2.0
+changelog_headings:
+  7:## [Unreleased]
+  73:## [0.2.0] — 2026-09-24
+  127:## [0.1.0] — 2026-09-21
+unreleased_body_lines: 58
+A cut therefore requires a version-prep commit promoting the populated [Unreleased]
+section and bumping BOTH pins (pyproject.toml + task_router/__init__.py) to one value.
+
+4. DELTA SINCE THE LAST PUBLISHED PROBE (7fbd4a02 -> 88a83eb1)
+commits: 52 (feat 2, fix 7, docs 3, other/chore/board the remainder)
+BREAKING CHANGE footers in range: 0
+total history: 1731 commits, 256 feat subjects, 0 BREAKING footers repo-wide
+=> no major bump is warranted; v0.3.0 remains a PROPOSAL, never an authorization.
+
+5. EXACT-HEAD CI (canonical remote coding-hermes/task-router)
+run sha=88a83eb1 status=in_progress  created 2026-11-05T10:43:09Z (this tick's parent tip)
+run sha=d80457a1 status=in_progress  created 2026-11-05T10:33:22Z
+run sha=20daf433 status=completed conclusion=success at 2026-11-05T10:15:54Z
+run sha=ca02ea3c status=completed conclusion=success at 2026-11-05T09:30:39Z
+run sha=81fb1f1e status=completed conclusion=success at 2026-11-05T05:11:03Z
+No recent run shows conclusion=failure that this tick did not create; the two in_progress
+runs are UNVERIFIED (not green) and belong to the immediately preceding closeout commits.
+
+6. ARTIFACT STRATEGY PROBE (0.2.0 tree only — NOT v0.3.0 assets)
+command: pyproject-build --outdir <scratch>/dist   (python -m build equivalent; the board
+         venv has no `build` module, the pipx shim pyproject-build provides the same builder)
+build_rc: 0
+artifacts: task_router-0.2.0-py3-none-any.whl (32598 B), task_router-0.2.0.tar.gz (778555 B)
+install probe: isolated uv venv + uv pip install <wheel> rc=0, `import task_router` ->
+__version__ 0.2.0
+This proves the packaging path is executable; it is NOT a candidate artifact for a release.
+
+7. OPEN BLOCKERS / FINDINGS THAT A RELEASE DECISION MUST ADDRESS (read from the committed board)
+INT-CI-10  P1 pending  TR-251 evidence replay REFUSES TR-298 completion
+INT-CI-11  P1 pending  TR-251 evidence replay fails on QA-TASKROUTER-6 closeout run 40480018298
+TR-REV-20261027-02  P1 pending  fresh-clone full pytest suite hangs before a verdict
+TR-REV2-20261027-02 P1 pending  serving units stale (:9092 / :9391 answer with 2026-10-19 code, TR-255 recurrence)
+QA-TASK-ROUTER-FOREMAN-1 P1 pending  battery launch timed out without a launch result
+QA-TASK-ROUTER-FOREMAN-2 P1 pending  battery launch refused: bunker-mvp disk at 100%
+RELEASE-2026-11-03-001 P2 pending  release driver absent (docs-only procedure, no executable driver)
+board_pending_total: 69
+
+Dogfood evidence is STALE relative to this head: latest record is 2026-10-29 (run 40),
+verdict PROMISING-BUT-ROUGH with bunker ci-pass FAIL; it names HEAD 46c7308 and cannot be
+used as a waiver for 88a83eb1.
+
+8. OWNER GATE
+No owner authorization naming task-router, a release version and a baseline SHA exists in
+the board, the events tail, or this tick's dispatch text. A scheduler tick is not
+authorization. The gate therefore remains closed and the row stays PENDING.
+
+9. CANONICAL CHECKOUT OBSERVATION (not touched, not staged)
+The canonical checkout /home/kara/task-router is dirty with FIVE TRACKED data-plane tables:
+  data/tables/models.jsonl             2064 -> 2075 row-set, 1819 changed lines
+  data/tables/model_catalog.jsonl      1358 -> 1365 rows
+  data/tables/model_notes.jsonl         258 ->  270 rows
+  data/tables/probe_gaps.jsonl          241 ->  242 rows
+  data/tables/temporary_discounts.jsonl  30 ->   30 rows, prices updated
+Producer: the runtime store-sync loop (data/state/store-sync.json: last_launch
+2026-11-05T05:44:31-0500, last_sync 2026-11-05T05:45:34-0500, ok=true, +36 rows), i.e. a
+short-lived external writer that mutated the tables concurrently with this tick's gate and
+has exited. Classified as ONE foreign data-slice cluster: it is the data plane's own output
+and is left for the data/registry commit lane. It was NOT staged, NOT committed and NOT
+reverted; all work for this tick happened in the dedicated worktree above.
+
+10. WHAT THIS TICK DID NOT DO (explicitly)
+- no version bump, no CHANGELOG promotion, no tag, no `gh release create`, no artifact upload
+- no worker dispatched (wave budget 9 intentionally unused: owner-gated top row forbids
+  dispatching lower-priority implementation rows)
+- no mutation of the canonical checkout and no adoption of its data-plane drift
+
+UNBLOCK PATH (unchanged, needs the owner)
+owner authorizes first cut + version -> version-prep commit (CHANGELOG promote + both pins)
+-> guard suite + workflow_dispatch CI green on the exact prep SHA -> build candidate
+artifacts -> annotated vX.Y.Z without moving any existing tag -> gh release create
+--notes-file -> verify tag, Release object, downloaded assets and exact-tag CI separately,
+with the P1 blockers above either closed with external evidence or explicitly accepted.
+
+probe transcript: /home/kara/.hermes/cache/scratch/tr-relver-20261105/probe-out.txt
