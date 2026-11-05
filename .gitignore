@@ -9,6 +9,9 @@ __pycache__/
 .gitreins/tasks.yaml
 .gitreins/history/
 .gitreins/verdicts/
+# worktree-hygiene preserves reaped worktrees' .gitreins/ evidence here (dated dirs).
+# Without this rule every reaping run re-dirties the canonical checkout forever.
+.gitreins/rescued-*/
 dagger.db*
 data/metrics.jsonl
 
