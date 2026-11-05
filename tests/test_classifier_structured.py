@@ -46,11 +46,22 @@ def test_structured_mode_starts_at_the_best_rung_and_can_be_disabled(monkeypatch
 
 
 def test_matrix_schema_restricts_levels_to_the_signed_scale():
+    """The schema describes the envelope prompt-v3.md asks for.
+
+    Superseded the flat {category: level} shape on 2026-11-04: a schema-compliant
+    flat answer has no "ratings" key, so classify() returned matrix={} on the live
+    lane, and the flat `additionalProperties: integer` coerced the envelope's
+    ranking into an int (TypeError: 'int' object is not iterable). The prompt and
+    the parser both speak the envelope; the schema was the outlier.
+    """
     schema = rc._matrix_schema(['code_gen', 'reasoning'])
-    assert schema['properties']['code_gen'] == {'type': 'integer', 'minimum': -5, 'maximum': 5}
-    assert schema['additionalProperties']['maximum'] == 5
+    ratings = schema['properties']['ratings']
+    assert ratings['properties']['code_gen'] == {'type': 'integer', 'minimum': -5, 'maximum': 5}
+    assert ratings['properties']['reasoning']['maximum'] == 5
+    assert ratings['additionalProperties']['maximum'] == 5
+    assert schema['properties']['ranking']['items'] == {'type': 'string'}
     # no vocabulary known: stay open rather than invent one
-    assert 'properties' not in rc._matrix_schema([])
+    assert rc._matrix_schema([])['properties']['ratings']['properties'] == {}
 
 
 def test_raw_marks_an_empty_completion_instead_of_returning_a_silent_blank():
@@ -86,7 +97,7 @@ def test_a_rejected_rung_steps_down_and_is_remembered(monkeypatch):
     out = rc.default_llm('sys prompt', 'task text')
     assert 'code_gen' in str(out)
     assert seen[0]['type'] == 'json_schema'
-    assert seen[0]['json_schema']['schema']['additionalProperties']['maximum'] == 5
+    assert seen[0]['json_schema']['schema']['properties']['ratings']['additionalProperties']['maximum'] == 5
     assert seen[-1] == {'type': 'json_object'}
     assert os.environ['ROUTER_CLASSIFY_STRUCTURED_MODE'] == 'json_object'
 
