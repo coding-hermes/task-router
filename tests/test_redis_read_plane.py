@@ -354,3 +354,43 @@ def test_cli_exposes_the_redis_verb():
     assert 'ROUTING_DATA_DIR' in (exports.get('redis') or {})
     # ROUTING_REGISTRY deliberately not exported (TR-REV-1012-1, same as siblings)
     assert 'ROUTING_REGISTRY' not in (exports.get('redis') or {})
+
+
+@live
+def test_publish_arms_the_scope_heartbeat(scratch_home):
+    """R8: the heartbeat must be CREATED (SET ... EX), not just EXPIREd.
+
+    The stage-1 code issued EXPIRE on a key that was never set, so scope expiry
+    was inert and dead scopes were immortal (measured: 3 scopes / 120,939 keys /
+    116 MiB with the 256 MiB cap already touched).
+    """
+    assert rr.verb_load() == 0
+    scope = rr.scope_id(str(scratch_home), rr.REGISTRY)
+    conn = rr.RedisConn(timeout_ms=5000).connect()
+    try:
+        ttl = conn.cmd('TTL', f'{scope}:meta:heartbeat')
+        assert isinstance(ttl, int) and ttl > 0, f'heartbeat TTL must be positive, got {ttl}'
+    finally:
+        conn.close()
+
+
+@live
+def test_sweep_drops_a_dead_scope_and_spares_the_current_one(scratch_home):
+    """R8: a scope with no heartbeat and an old pointer is collected; ours is not."""
+    import time
+    assert rr.verb_load() == 0
+    scope = rr.scope_id(str(scratch_home), rr.REGISTRY)
+    conn = rr.RedisConn(timeout_ms=5000).connect()
+    try:
+        dead = 'deadbeef0001'
+        conn.cmd('SET', f'{dead}:meta:owner', rr._j({'owner': rr.OWNER_ID, 'schema': rr.SCHEMA}))
+        conn.cmd('SET', f'{dead}:meta:version',
+                 rr._j({'generation': 1, 'created_at': int(time.time()) - 86400}))
+        conn.cmd('HSET', f'{dead}:g1:model:x/y', 'provider', 'x')
+        dropped, keys = rr.sweep_scopes(conn, keep_scope=scope)
+        assert dropped >= 1, 'the dead scope must be collected'
+        assert keys >= 1
+        assert conn.cmd('EXISTS', f'{dead}:meta:owner') == 0
+        assert conn.cmd('EXISTS', f'{scope}:meta:version') == 1, 'never sweep the current scope'
+    finally:
+        conn.close()

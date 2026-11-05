@@ -620,8 +620,12 @@ def publish(tables: dict, stamp: dict, scope: str, conn: RedisConn,
     stage(row_cmds)
 
     stage([['SET', f'{prefix}:__ts', _now()],
-           ['EXPIRE', _key(scope, 'meta:heartbeat'),
-            _env_int('ROUTING_REDIS_SCOPE_TTL_S', 604800)]])
+           # R8: the heartbeat must be CREATED before it can be aged. The original
+           # code issued EXPIRE on an absent key, which is a no-op — scope expiry
+           # was inert and every scratch/test scope was immortal (measured
+           # 2026-11-04: 3 scopes / 120,939 keys / 116 MiB, peak at the cap).
+           ['SET', _key(scope, 'meta:heartbeat'), _now(),
+            'EX', _env_int('ROUTING_REDIS_SCOPE_TTL_S', 604800)]])
 
     # ---- CAS the pointer: WATCH is per-connection, so this conn must be the one
     pointer = _key(scope, 'meta:version')
@@ -700,6 +704,48 @@ def reap(conn: RedisConn, scope: str, pointer_stamp: dict,
         if too_old or orphan or gen < (current - keep_count):
             removed += _drop_generation(conn, scope, gen)
     return removed
+
+
+def sweep_scopes(conn: RedisConn, keep_scope: str, ttl_s: int | None = None) -> tuple:
+    """R8: collect dead data-home scopes. Returns (scopes_dropped, keys_dropped).
+
+    A scope is mortal by its heartbeat: no heartbeat key, or a pointer older than
+    ROUTING_REDIS_SCOPE_TTL_S, means nothing has published or loaded there inside
+    the window. Without this sweep every scratch/test/removed checkout leaves its
+    whole generation set behind forever and a noeviction instance eventually
+    refuses writes for the LIVE scope too — measured 2026-11-04 within 30 minutes
+    of stage 1 landing: 3 scopes, 120,939 keys, 116 MiB used, peak at the 256 MiB
+    cap. `keep_scope` is never touched.
+    """
+    ttl_s = ttl_s if ttl_s is not None else _env_int('ROUTING_REDIS_SCOPE_TTL_S', 604800)
+    owners: list = []
+    cursor = '0'
+    while True:
+        cursor, keys = conn.cmd('SCAN', cursor, 'MATCH', '*:meta:owner', 'COUNT', 1000)
+        owners.extend(k for k in (keys or []) if isinstance(k, str))
+        if str(cursor) in ('0', ''):
+            break
+    dropped = keys_dropped = 0
+    for key in owners:
+        scope = key[:-len(':meta:owner')]
+        if scope == keep_scope:
+            continue
+        heartbeat = conn.cmd('EXISTS', f'{scope}:meta:heartbeat')
+        created = None
+        raw = conn.cmd('GET', f'{scope}:meta:version')
+        if raw:
+            try:
+                created = int((json.loads(raw) or {}).get('created_at') or 0)
+            except Exception:  # noqa: BLE001
+                created = None
+        dead = (not heartbeat
+                and (created is None or (_now() - created) > _env_int('ROUTING_REDIS_PUBLISH_STALE_S', 120))) \
+            or (created is not None and (_now() - created) > ttl_s)
+        if not dead:
+            continue
+        keys_dropped += _drop_prefix(conn, f'{scope}:g') + _drop_prefix(conn, f'{scope}:meta:')
+        dropped += 1
+    return dropped, keys_dropped
 
 
 def memory_pressure(conn: RedisConn) -> float:
@@ -1082,13 +1128,27 @@ def verb_load(data_dir: str | None = None, registry: str | None = None,
                     half = _env_int('ROUTING_REDIS_MAX_AGE_S', 900) // 2
                     if same and age <= half:
                         reaped = reap(conn, scope, cache)
+                        # A quiescent system must still look alive: refresh the
+                        # heartbeat here too, or a plane that nothing changes
+                        # looks dead after the scope TTL and gets swept.
+                        conn.cmd('SET', _key(scope, 'meta:heartbeat'), _now(), 'EX',
+                                 _env_int('ROUTING_REDIS_SCOPE_TTL_S', 604800))
+                        _dead, _dead_keys = sweep_scopes(conn, scope)
+                        if _dead:
+                            print(f'load: swept {_dead} dead scope(s), {_dead_keys} key(s)',
+                                  file=sys.stderr)
                         write_health(True, scope, fp, note='fresh')
                         print(f'cache: {scope} g{cache.get("generation")} fresh '
                               f'(age {age}s) — nothing to publish; orphans reaped {reaped}')
                         return 0
         receipt = publish(tables, reference, scope, conn)
-        conn.cmd('EXPIRE', _key(scope, 'meta:heartbeat'),
-                 _env_int('ROUTING_REDIS_SCOPE_TTL_S', 604800))
+        _ttl = _env_int('ROUTING_REDIS_SCOPE_TTL_S', 604800)
+        # R8: refresh the heartbeat (SET ... EX is what actually arms it) and
+        # collect scopes that stopped publishing inside the window.
+        conn.cmd('SET', _key(scope, 'meta:heartbeat'), _now(), 'EX', _ttl)
+        _dead, _dead_keys = sweep_scopes(conn, scope, _ttl)
+        if _dead:
+            print(f'load: swept {_dead} dead scope(s), {_dead_keys} key(s)', file=sys.stderr)
         write_health(True, scope, fp, note='published' if receipt.get('published') else 'aborted')
         if not receipt.get('published'):
             record_publish_error(scope, receipt.get('gen'), receipt.get('reason'))
