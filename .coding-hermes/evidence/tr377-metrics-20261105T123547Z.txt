@@ -1,0 +1,876 @@
+# TR-377 evidence — GET /metrics Prometheus exposition on the serving listeners
+
+- Row: TR-377 (`Metrics endpoint: /metrics Prometheus exposition on the serving listeners`)
+- Worker session: coding-hermes fleet worker, worktree `/home/kara/worktrees/task-router-TR-377`
+  (branch `wt/TR-377`, base `origin/main` = `1212fe4`)
+- Proof run: 2026-11-05T12:31:03Z → 12:35Z (UTC stamps inline in the transcript)
+- Design authority: `docs/observability-spec.md` (§2 proven state, §3 catalogue,
+  §4 exposure, §7 deliberately-not-instrumented) — read before implementation.
+
+## What shipped
+
+| File | Change |
+|---|---|
+| `scripts/router_prometheus.py` | NEW — stdlib-only Prometheus text exposition module: registry (counter/gauge/histogram with explicit buckets, cumulative 0.0.4 rendering, label escaping), scrape-time collectors (circuit-state file via `router_circuit`'s own `load()`/`_is_open`, lane coverage via `router_health._store_view`, registry/metrics.jsonl sizes, admission via `register_admission_source`), and the resolve/proxy call-site instrumentation (`record_resolve`, `note_proxy_request`). No runtime dependency; no `prometheus_client` import. |
+| `scripts/router_server.py` | `GET /metrics` branch in `do_GET` BEFORE `self.app.dispatch(...)` (answers on every surface: api / proxy / ui / all); `_peer_is_loopback()` fails CLOSED on unparseable peers, 403 for non-loopback; `_send_metrics()` renders at scrape time; `/resolve` handler instruments the real subprocess call (duration via `time.monotonic`, failure arm records the error payload and re-raises unchanged); `register_admission_source` wired to the live `_ADMISSION` dict. |
+| `tests/test_metrics_endpoint.py` | NEW — 18 tests: route on all four surfaces with the exact content type; five families with labels after a synthetic resolve; histogram `_bucket`/`_sum`/`_count`; failure path moves the error counter (and the no-hops shape its own, NOT the error counter); hostile label values (`"`, `\`, `:`, `-`, newline) cannot break the document; stdlib-only import proof (fresh interpreter, asserts no `prometheus*` module loaded; `pyproject.toml` stays dependency-free); loopback check fails closed; circuit collector reads a fixture state file (cooling history never renders as open); metrics.jsonl byte gauge. |
+| `README.md` | `/metrics` documented in the "Reads (all modes)" API surface list (doc-parity surface), with content type, scoping, and the family list. |
+
+Live-proof transcript follows (verbatim commands + outputs). Scratch instances
+booted from THIS worktree's source on free loopback ports (9398 api-surface =
+the `:9092` unit's surface; 9397 proxy-surface = the `:9391` unit's surface).
+Pre-flight check: `ss -ltn | grep -E '9398|9397'` → no output (both free).
+Read-only use of live state only: `ROUTING_REGISTRY=/home/kara/task-router/registry.json`
+and `ROUTING_AVERAGES_FILE=/home/kara/task-router/data/state/outcomes-averages.jsonl`
+(the rolling store behind /health's coverage block — resolved never writes it).
+The circuit collector read the shared production circuit-state file read-only
+(scratch-boot WARNING about the shared state dir is visible in the boot log
+below and is expected for a scratch boot; nothing was written there by this run).
+
+---
+
+## FULL TRANSCRIPT (verbatim)
+
+$ date -u '+%Y-%m-%dT%H:%M:%SZ'
+2026-11-05T12:31:03Z
+
+$ curl -sS -o /dev/null -w '%{content_type} %{http_code}' 127.0.0.1:9398/metrics
+content_type=text/plain; version=0.0.4; charset=utf-8 status=200
+
+$ curl -sS -o /dev/null -w '%{content_type} %{http_code}' 127.0.0.1:9397/metrics
+content_type=text/plain; version=0.0.4; charset=utf-8 status=200
+
+$ curl -sS 127.0.0.1:9398/metrics | grep -c '^task_router_'   # spec V1
+499
+
+$ curl -sS 127.0.0.1:9397/metrics | grep -c '^task_router_'   # spec V1 (proxy surface)
+499
+
+$ curl -sS 127.0.0.1:9398/metrics | grep -c '^router_'
+499
+
+$ curl -sS '127.0.0.1:9398/resolve?project=coding-hermes-scheduler' | head -c 400   # forced real resolve
+{"project": "coding-hermes-scheduler", "profile": "P1_CODING", "resolved_version": 1, "resolved_at": "2026-11-05T12:32:23+00:00", "lifecycle_counts": {"live": 1529, "retired": 546}, "resolved_as": "project", "hint": null, "board_profile": null, "head": {"hop": 9, "provider": "openrouter", "model": "z-ai/glm-5.3-flash", "usd_1m": 0.164, "in_per_m": 0.15, "out_per_m": 0.5, "price": 0.15, "effective_
+
+$ curl -sS '127.0.0.1:9398/resolve?project=coding-hermes-scheduler' | jq -c '{profile, chain_len: (.chain|length), exclusions: (.exclusions|length), head: .head.provider, error}'
+{"profile":"P1_CODING","chain_len":10,"exclusions":16,"head":"openrouter","error":null}
+
+$ curl -sS 127.0.0.1:9398/metrics | grep -E '^(# (HELP|TYPE) router_(resolve_total|chain_hops|lane_excluded_total|lane_coverage|resolve_duration_seconds)|router_(resolve_total|lane_excluded_total|lane_coverage|resolve_duration_seconds_(bucket|sum|count)|chain_hops_(bucket|sum|count))|task_router_(resolve_total|resolve_errors_total))' | head -60   # five families after one resolve
+# HELP router_resolve_total Resolves served by the /resolve operation, by answered profile and outcome; provider/model label the top-ranked (hop-1) lane of the returned chain, empty on a failed resolve.
+# TYPE router_resolve_total counter
+router_resolve_total{model="z-ai/glm-5.3-flash",outcome="success",profile="P1_CODING",provider="openrouter"} 2
+task_router_resolve_total{model="z-ai/glm-5.3-flash",outcome="success",profile="P1_CODING",provider="openrouter"} 2
+# HELP router_chain_hops Chain length in hops per resolve ({profile, outcome} series); the {provider, model} series observe every chain lane's 1-based hop index (spec §3.4 task_router_resolve_chain_length).
+# TYPE router_chain_hops histogram
+router_chain_hops_bucket{le="1.0",outcome="success",profile="P1_CODING"} 0
+router_chain_hops_bucket{le="2.0",outcome="success",profile="P1_CODING"} 0
+router_chain_hops_bucket{le="3.0",outcome="success",profile="P1_CODING"} 0
+router_chain_hops_bucket{le="5.0",outcome="success",profile="P1_CODING"} 0
+router_chain_hops_bucket{le="8.0",outcome="success",profile="P1_CODING"} 0
+router_chain_hops_bucket{le="13.0",outcome="success",profile="P1_CODING"} 2
+router_chain_hops_bucket{le="21.0",outcome="success",profile="P1_CODING"} 2
+router_chain_hops_bucket{le="50.0",outcome="success",profile="P1_CODING"} 2
+router_chain_hops_bucket{le="100.0",outcome="success",profile="P1_CODING"} 2
+router_chain_hops_bucket{le="350.0",outcome="success",profile="P1_CODING"} 2
+router_chain_hops_bucket{le="+Inf",outcome="success",profile="P1_CODING"} 2
+router_chain_hops_sum{outcome="success",profile="P1_CODING"} 20.0
+router_chain_hops_count{outcome="success",profile="P1_CODING"} 2
+router_chain_hops_bucket{le="1.0",model="glm-5.2-fast",provider="neuralwatt"} 0
+router_chain_hops_bucket{le="2.0",model="glm-5.2-fast",provider="neuralwatt"} 0
+router_chain_hops_bucket{le="3.0",model="glm-5.2-fast",provider="neuralwatt"} 0
+router_chain_hops_bucket{le="5.0",model="glm-5.2-fast",provider="neuralwatt"} 0
+router_chain_hops_bucket{le="8.0",model="glm-5.2-fast",provider="neuralwatt"} 0
+router_chain_hops_bucket{le="13.0",model="glm-5.2-fast",provider="neuralwatt"} 0
+router_chain_hops_bucket{le="21.0",model="glm-5.2-fast",provider="neuralwatt"} 0
+router_chain_hops_bucket{le="50.0",model="glm-5.2-fast",provider="neuralwatt"} 2
+router_chain_hops_bucket{le="100.0",model="glm-5.2-fast",provider="neuralwatt"} 2
+router_chain_hops_bucket{le="350.0",model="glm-5.2-fast",provider="neuralwatt"} 2
+router_chain_hops_bucket{le="+Inf",model="glm-5.2-fast",provider="neuralwatt"} 2
+router_chain_hops_sum{model="glm-5.2-fast",provider="neuralwatt"} 44.0
+router_chain_hops_count{model="glm-5.2-fast",provider="neuralwatt"} 2
+router_chain_hops_bucket{le="1.0",model="glm-5.2-short",provider="neuralwatt"} 0
+router_chain_hops_bucket{le="2.0",model="glm-5.2-short",provider="neuralwatt"} 0
+router_chain_hops_bucket{le="3.0",model="glm-5.2-short",provider="neuralwatt"} 0
+router_chain_hops_bucket{le="5.0",model="glm-5.2-short",provider="neuralwatt"} 0
+router_chain_hops_bucket{le="8.0",model="glm-5.2-short",provider="neuralwatt"} 0
+router_chain_hops_bucket{le="13.0",model="glm-5.2-short",provider="neuralwatt"} 0
+router_chain_hops_bucket{le="21.0",model="glm-5.2-short",provider="neuralwatt"} 0
+router_chain_hops_bucket{le="50.0",model="glm-5.2-short",provider="neuralwatt"} 2
+router_chain_hops_bucket{le="100.0",model="glm-5.2-short",provider="neuralwatt"} 2
+router_chain_hops_bucket{le="350.0",model="glm-5.2-short",provider="neuralwatt"} 2
+router_chain_hops_bucket{le="+Inf",model="glm-5.2-short",provider="neuralwatt"} 2
+router_chain_hops_sum{model="glm-5.2-short",provider="neuralwatt"} 46.0
+router_chain_hops_count{model="glm-5.2-short",provider="neuralwatt"} 2
+router_chain_hops_bucket{le="1.0",model="glm-5.2-short-fast-flex",provider="neuralwatt"} 0
+router_chain_hops_bucket{le="2.0",model="glm-5.2-short-fast-flex",provider="neuralwatt"} 0
+router_chain_hops_bucket{le="3.0",model="glm-5.2-short-fast-flex",provider="neuralwatt"} 0
+router_chain_hops_bucket{le="5.0",model="glm-5.2-short-fast-flex",provider="neuralwatt"} 0
+router_chain_hops_bucket{le="8.0",model="glm-5.2-short-fast-flex",provider="neuralwatt"} 0
+router_chain_hops_bucket{le="13.0",model="glm-5.2-short-fast-flex",provider="neuralwatt"} 0
+router_chain_hops_bucket{le="21.0",model="glm-5.2-short-fast-flex",provider="neuralwatt"} 2
+router_chain_hops_bucket{le="50.0",model="glm-5.2-short-fast-flex",provider="neuralwatt"} 2
+router_chain_hops_bucket{le="100.0",model="glm-5.2-short-fast-flex",provider="neuralwatt"} 2
+router_chain_hops_bucket{le="350.0",model="glm-5.2-short-fast-flex",provider="neuralwatt"} 2
+router_chain_hops_bucket{le="+Inf",model="glm-5.2-short-fast-flex",provider="neuralwatt"} 2
+router_chain_hops_sum{model="glm-5.2-short-fast-flex",provider="neuralwatt"} 34.0
+router_chain_hops_count{model="glm-5.2-short-fast-flex",provider="neuralwatt"} 2
+router_chain_hops_bucket{le="1.0",model="glm-5.2-short-flex",provider="neuralwatt"} 0
+router_chain_hops_bucket{le="2.0",model="glm-5.2-short-flex",provider="neuralwatt"} 0
+
+--- key AC sample lines (post-resolve scrape) ---
+
+$ curl -sS 127.0.0.1:9398/metrics | grep -E '^router_resolve_total'
+router_resolve_total{model="z-ai/glm-5.3-flash",outcome="success",profile="P1_CODING",provider="openrouter"} 2
+
+$ curl -sS 127.0.0.1:9398/metrics | grep -E '^router_lane_excluded_total'
+router_lane_excluded_total{model="moonshotai/Kimi-K2.7-Code",provider="commandcode",reason="health-down"} 2
+router_lane_excluded_total{model="stepfun/Step-3.7-Flash",provider="commandcode",reason="health-down"} 2
+router_lane_excluded_total{model="z-ai/glm-5.3-flash",provider="commandcode",reason="health-down"} 2
+router_lane_excluded_total{model="zai-org/GLM-5.2-Fast",provider="commandcode",reason="health-down"} 2
+router_lane_excluded_total{model="moonshotai/Kimi-K2.7-Code",provider="commandcode-2",reason="health-down"} 2
+router_lane_excluded_total{model="stepfun/Step-3.7-Flash",provider="commandcode-2",reason="health-down"} 2
+router_lane_excluded_total{model="z-ai/glm-5.3-flash",provider="commandcode-2",reason="health-down"} 2
+router_lane_excluded_total{model="zai-org/GLM-5.2-Fast",provider="commandcode-2",reason="health-down"} 2
+router_lane_excluded_total{model="deepseek-flash",provider="deepseek",reason="health-down"} 2
+router_lane_excluded_total{model="deepseek-flash",provider="deepseek-duckbrain-sync",reason="health-down"} 2
+router_lane_excluded_total{model="deepseek-flash",provider="deepseek-foreman",reason="health-down"} 2
+router_lane_excluded_total{model="openai/gpt-5.6-terra",provider="xkiro",reason="health-slow"} 2
+router_lane_excluded_total{model="z-ai/glm-5.3-flash",provider="commandcode",reason="model-down"} 2
+router_lane_excluded_total{model="z-ai/glm-5.3-flash",provider="commandcode-2",reason="model-down"} 2
+router_lane_excluded_total{model="deepseek-flash",provider="deepseek",reason="model-down"} 2
+router_lane_excluded_total{model="deepseek-flash",provider="deepseek-duckbrain-sync",reason="model-down"} 2
+router_lane_excluded_total{model="deepseek-flash",provider="deepseek-foreman",reason="model-down"} 2
+router_lane_excluded_total{model="deepseek-flash",provider="opencode-go",reason="model-down"} 2
+router_lane_excluded_total{model="hf:nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-NVFP4",provider="synthetic",reason="model-down"} 2
+router_lane_excluded_total{model="openai/gpt-5.6-terra",provider="xkiro",reason="model-slow"} 2
+router_lane_excluded_total{model="openai/gpt-5.6-terra",provider="xkiro-2",reason="model-slow"} 2
+router_lane_excluded_total{model="deepseek-flash",provider="deepseek",reason="outcome-floor"} 2
+router_lane_excluded_total{model="hf:zai-org/GLM-5.3-Flash",provider="synthetic",reason="outcome-floor"} 2
+router_lane_excluded_total{model="deepseek-flash",provider="opencode-go",reason="quota-gated"} 2
+
+$ curl -sS 127.0.0.1:9398/metrics | grep -E '^router_lane_coverage'
+router_lane_coverage{category="agent_tick",kind="ratio"} 0.0562
+router_lane_coverage{category="agent_tick",kind="unmeasured"} 437
+router_lane_coverage{category="agent_tick",kind="lane",model="kimi-k2.7-code",provider="clinepass"} 1
+router_lane_coverage{category="agent_tick",kind="lane",model="mimo-v2.5",provider="clinepass"} 1
+router_lane_coverage{category="agent_tick",kind="lane",model="deepseek-flash",provider="deepseek"} 1
+router_lane_coverage{category="agent_tick",kind="lane",model="deepseek-flash",provider="deepseek-duckbrain-sync"} 1
+router_lane_coverage{category="agent_tick",kind="lane",model="deepseek-flash",provider="deepseek-foreman"} 1
+router_lane_coverage{category="agent_tick",kind="lane",model="accounts/fireworks/models/deepseek-v4p1-flash-1017",provider="fireworks-ai"} 1
+router_lane_coverage{category="agent_tick",kind="lane",model="deepseek-v4.1-flash:1017",provider="ollama-cloud"} 1
+router_lane_coverage{category="agent_tick",kind="lane",model="kimi-k3",provider="ollama-cloud"} 1
+router_lane_coverage{category="agent_tick",kind="lane",model="minimax-m2.7",provider="ollama-cloud"} 1
+router_lane_coverage{category="agent_tick",kind="lane",model="deepseek-v4-flash",provider="opencode-go"} 1
+router_lane_coverage{category="agent_tick",kind="lane",model="deepseek-v4-pro",provider="opencode-go"} 1
+router_lane_coverage{category="agent_tick",kind="lane",model="glm-5.3",provider="opencode-go"} 1
+router_lane_coverage{category="agent_tick",kind="lane",model="kimi-k3",provider="opencode-go"} 1
+router_lane_coverage{category="agent_tick",kind="lane",model="mimo-v2.6-pro",provider="opencode-go"} 1
+router_lane_coverage{category="agent_tick",kind="lane",model="qwen3.8-max",provider="opencode-go"} 1
+router_lane_coverage{category="agent_tick",kind="lane",model="deepseek/deepseek-v4-flash",provider="openrouter"} 1
+router_lane_coverage{category="agent_tick",kind="lane",model="meta/muse-spark-1.3",provider="openrouter"} 1
+router_lane_coverage{category="agent_tick",kind="lane",model="tencent/hy4-preview",provider="openrouter"} 1
+router_lane_coverage{category="agent_tick",kind="lane",model="step-5-preview",provider="stepfun"} 1
+router_lane_coverage{category="agent_tick",kind="lane",model="meituan/longcat-2.5-preview:free",provider="xkiro"} 1
+router_lane_coverage{category="agent_tick",kind="lane",model="openai/gpt-5.4-mini",provider="xkiro"} 1
+router_lane_coverage{category="agent_tick",kind="lane",model="openai/gpt-5.6-terra",provider="xkiro"} 1
+router_lane_coverage{category="agent_tick",kind="lane",model="openai/gpt-6-astra",provider="xkiro"} 1
+router_lane_coverage{category="agent_tick",kind="lane",model="meituan/longcat-2.5-preview:free",provider="xkiro-2"} 1
+router_lane_coverage{category="agent_tick",kind="lane",model="openai/gpt-5.6-terra",provider="xkiro-2"} 1
+router_lane_coverage{category="agent_tick",kind="lane",model="glm-5.3-flash",provider="zai-glm"} 1
+router_lane_coverage{category="code_gen",kind="ratio"} 0.0542
+router_lane_coverage{category="code_gen",kind="unmeasured"} 454
+router_lane_coverage{category="code_gen",kind="lane",model="kimi-k2.7-code",provider="clinepass"} 1
+router_lane_coverage{category="code_gen",kind="lane",model="mimo-v2.5",provider="clinepass"} 1
+router_lane_coverage{category="code_gen",kind="lane",model="deepseek-flash",provider="deepseek"} 1
+router_lane_coverage{category="code_gen",kind="lane",model="deepseek-flash",provider="deepseek-duckbrain-sync"} 1
+router_lane_coverage{category="code_gen",kind="lane",model="deepseek-flash",provider="deepseek-foreman"} 1
+router_lane_coverage{category="code_gen",kind="lane",model="accounts/fireworks/models/deepseek-v4p1-flash-1017",provider="fireworks-ai"} 1
+router_lane_coverage{category="code_gen",kind="lane",model="gpt-oss:20b",provider="ollama-cloud"} 1
+router_lane_coverage{category="code_gen",kind="lane",model="kimi-k3",provider="ollama-cloud"} 1
+router_lane_coverage{category="code_gen",kind="lane",model="minimax-m2.7",provider="ollama-cloud"} 1
+router_lane_coverage{category="code_gen",kind="lane",model="deepseek-v4-flash",provider="opencode-go"} 1
+router_lane_coverage{category="code_gen",kind="lane",model="deepseek-v4-pro",provider="opencode-go"} 1
+router_lane_coverage{category="code_gen",kind="lane",model="glm-5.3",provider="opencode-go"} 1
+router_lane_coverage{category="code_gen",kind="lane",model="kimi-k3",provider="opencode-go"} 1
+router_lane_coverage{category="code_gen",kind="lane",model="mimo-v2.6-pro",provider="opencode-go"} 1
+router_lane_coverage{category="code_gen",kind="lane",model="qwen3.8-max",provider="opencode-go"} 1
+router_lane_coverage{category="code_gen",kind="lane",model="deepseek/deepseek-v4-flash",provider="openrouter"} 1
+router_lane_coverage{category="code_gen",kind="lane",model="meta/muse-spark-1.3",provider="openrouter"} 1
+router_lane_coverage{category="code_gen",kind="lane",model="tencent/hy4-preview",provider="openrouter"} 1
+router_lane_coverage{category="code_gen",kind="lane",model="step-5-preview",provider="stepfun"} 1
+router_lane_coverage{category="code_gen",kind="lane",model="meituan/longcat-2.5-preview:free",provider="xkiro"} 1
+router_lane_coverage{category="code_gen",kind="lane",model="openai/gpt-5.4-mini",provider="xkiro"} 1
+router_lane_coverage{category="code_gen",kind="lane",model="openai/gpt-5.6-terra",provider="xkiro"} 1
+router_lane_coverage{category="code_gen",kind="lane",model="openai/gpt-6-astra",provider="xkiro"} 1
+router_lane_coverage{category="code_gen",kind="lane",model="meituan/longcat-2.5-preview:free",provider="xkiro-2"} 1
+router_lane_coverage{category="code_gen",kind="lane",model="openai/gpt-5.6-terra",provider="xkiro-2"} 1
+router_lane_coverage{category="code_gen",kind="lane",model="glm-5.3-flash",provider="zai-glm"} 1
+router_lane_coverage{category="creative",kind="ratio"} 0.0727
+router_lane_coverage{category="creative",kind="unmeasured"} 51
+router_lane_coverage{category="creative",kind="lane",model="glm-5.3",provider="opencode-go"} 1
+router_lane_coverage{category="creative",kind="lane",model="meituan/longcat-2.5-preview:free",provider="xkiro"} 1
+router_lane_coverage{category="creative",kind="lane",model="meituan/longcat-2.5-preview:free",provider="xkiro-2"} 1
+router_lane_coverage{category="creative",kind="lane",model="glm-5.3-flash",provider="zai-glm"} 1
+router_lane_coverage{category="debug",kind="ratio"} 0.0562
+router_lane_coverage{category="debug",kind="unmeasured"} 437
+router_lane_coverage{category="debug",kind="lane",model="kimi-k2.7-code",provider="clinepass"} 1
+router_lane_coverage{category="debug",kind="lane",model="mimo-v2.5",provider="clinepass"} 1
+router_lane_coverage{category="debug",kind="lane",model="deepseek-flash",provider="deepseek"} 1
+router_lane_coverage{category="debug",kind="lane",model="deepseek-flash",provider="deepseek-duckbrain-sync"} 1
+router_lane_coverage{category="debug",kind="lane",model="deepseek-flash",provider="deepseek-foreman"} 1
+router_lane_coverage{category="debug",kind="lane",model="accounts/fireworks/models/deepseek-v4p1-flash-1017",provider="fireworks-ai"} 1
+router_lane_coverage{category="debug",kind="lane",model="gpt-oss:20b",provider="ollama-cloud"} 1
+router_lane_coverage{category="debug",kind="lane",model="kimi-k3",provider="ollama-cloud"} 1
+router_lane_coverage{category="debug",kind="lane",model="minimax-m2.7",provider="ollama-cloud"} 1
+router_lane_coverage{category="debug",kind="lane",model="deepseek-v4-flash",provider="opencode-go"} 1
+router_lane_coverage{category="debug",kind="lane",model="deepseek-v4-pro",provider="opencode-go"} 1
+router_lane_coverage{category="debug",kind="lane",model="glm-5.3",provider="opencode-go"} 1
+router_lane_coverage{category="debug",kind="lane",model="kimi-k3",provider="opencode-go"} 1
+router_lane_coverage{category="debug",kind="lane",model="mimo-v2.6-pro",provider="opencode-go"} 1
+router_lane_coverage{category="debug",kind="lane",model="qwen3.8-max",provider="opencode-go"} 1
+router_lane_coverage{category="debug",kind="lane",model="deepseek/deepseek-v4-flash",provider="openrouter"} 1
+router_lane_coverage{category="debug",kind="lane",model="meta/muse-spark-1.3",provider="openrouter"} 1
+router_lane_coverage{category="debug",kind="lane",model="tencent/hy4-preview",provider="openrouter"} 1
+router_lane_coverage{category="debug",kind="lane",model="step-5-preview",provider="stepfun"} 1
+router_lane_coverage{category="debug",kind="lane",model="meituan/longcat-2.5-preview:free",provider="xkiro"} 1
+router_lane_coverage{category="debug",kind="lane",model="openai/gpt-5.4-mini",provider="xkiro"} 1
+router_lane_coverage{category="debug",kind="lane",model="openai/gpt-5.6-terra",provider="xkiro"} 1
+router_lane_coverage{category="debug",kind="lane",model="openai/gpt-6-astra",provider="xkiro"} 1
+router_lane_coverage{category="debug",kind="lane",model="meituan/longcat-2.5-preview:free",provider="xkiro-2"} 1
+router_lane_coverage{category="debug",kind="lane",model="openai/gpt-5.6-terra",provider="xkiro-2"} 1
+router_lane_coverage{category="debug",kind="lane",model="glm-5.3-flash",provider="zai-glm"} 1
+router_lane_coverage{category="delegation",kind="ratio"} 0.0551
+router_lane_coverage{category="delegation",kind="unmeasured"} 429
+router_lane_coverage{category="delegation",kind="lane",model="kimi-k2.7-code",provider="clinepass"} 1
+router_lane_coverage{category="delegation",kind="lane",model="mimo-v2.5",provider="clinepass"} 1
+router_lane_coverage{category="delegation",kind="lane",model="deepseek-flash",provider="deepseek"} 1
+router_lane_coverage{category="delegation",kind="lane",model="deepseek-flash",provider="deepseek-duckbrain-sync"} 1
+router_lane_coverage{category="delegation",kind="lane",model="deepseek-flash",provider="deepseek-foreman"} 1
+router_lane_coverage{category="delegation",kind="lane",model="accounts/fireworks/models/deepseek-v4p1-flash-1017",provider="fireworks-ai"} 1
+router_lane_coverage{category="delegation",kind="lane",model="kimi-k3",provider="ollama-cloud"} 1
+router_lane_coverage{category="delegation",kind="lane",model="minimax-m2.7",provider="ollama-cloud"} 1
+router_lane_coverage{category="delegation",kind="lane",model="deepseek-v4-flash",provider="opencode-go"} 1
+router_lane_coverage{category="delegation",kind="lane",model="deepseek-v4-pro",provider="opencode-go"} 1
+router_lane_coverage{category="delegation",kind="lane",model="glm-5.3",provider="opencode-go"} 1
+router_lane_coverage{category="delegation",kind="lane",model="kimi-k3",provider="opencode-go"} 1
+router_lane_coverage{category="delegation",kind="lane",model="mimo-v2.6-pro",provider="opencode-go"} 1
+router_lane_coverage{category="delegation",kind="lane",model="qwen3.8-max",provider="opencode-go"} 1
+router_lane_coverage{category="delegation",kind="lane",model="deepseek/deepseek-v4-flash",provider="openrouter"} 1
+router_lane_coverage{category="delegation",kind="lane",model="meta/muse-spark-1.3",provider="openrouter"} 1
+router_lane_coverage{category="delegation",kind="lane",model="tencent/hy4-preview",provider="openrouter"} 1
+router_lane_coverage{category="delegation",kind="lane",model="step-5-preview",provider="stepfun"} 1
+router_lane_coverage{category="delegation",kind="lane",model="meituan/longcat-2.5-preview:free",provider="xkiro"} 1
+router_lane_coverage{category="delegation",kind="lane",model="openai/gpt-5.4-mini",provider="xkiro"} 1
+router_lane_coverage{category="delegation",kind="lane",model="openai/gpt-5.6-terra",provider="xkiro"} 1
+router_lane_coverage{category="delegation",kind="lane",model="openai/gpt-6-astra",provider="xkiro"} 1
+router_lane_coverage{category="delegation",kind="lane",model="meituan/longcat-2.5-preview:free",provider="xkiro-2"} 1
+router_lane_coverage{category="delegation",kind="lane",model="openai/gpt-5.6-terra",provider="xkiro-2"} 1
+router_lane_coverage{category="delegation",kind="lane",model="glm-5.3-flash",provider="zai-glm"} 1
+router_lane_coverage{category="e2e_vision",kind="ratio"} 0.0962
+router_lane_coverage{category="e2e_vision",kind="unmeasured"} 141
+router_lane_coverage{category="e2e_vision",kind="lane",model="kimi-k2.7-code",provider="clinepass"} 1
+router_lane_coverage{category="e2e_vision",kind="lane",model="mimo-v2.5",provider="clinepass"} 1
+router_lane_coverage{category="e2e_vision",kind="lane",model="deepseek-flash",provider="deepseek"} 1
+router_lane_coverage{category="e2e_vision",kind="lane",model="deepseek-flash",provider="deepseek-duckbrain-sync"} 1
+router_lane_coverage{category="e2e_vision",kind="lane",model="deepseek-flash",provider="deepseek-foreman"} 1
+router_lane_coverage{category="e2e_vision",kind="lane",model="accounts/fireworks/models/deepseek-v4p1-flash-1017",provider="fireworks-ai"} 1
+router_lane_coverage{category="e2e_vision",kind="lane",model="gpt-oss:20b",provider="ollama-cloud"} 1
+router_lane_coverage{category="e2e_vision",kind="lane",model="kimi-k3",provider="ollama-cloud"} 1
+router_lane_coverage{category="e2e_vision",kind="lane",model="deepseek-v4-flash",provider="opencode-go"} 1
+router_lane_coverage{category="e2e_vision",kind="lane",model="deepseek-v4-pro",provider="opencode-go"} 1
+router_lane_coverage{category="e2e_vision",kind="lane",model="glm-5.3",provider="opencode-go"} 1
+router_lane_coverage{category="e2e_vision",kind="lane",model="kimi-k3",provider="opencode-go"} 1
+router_lane_coverage{category="e2e_vision",kind="lane",model="qwen3.8-max",provider="opencode-go"} 1
+router_lane_coverage{category="e2e_vision",kind="lane",model="deepseek/deepseek-v4-flash",provider="openrouter"} 1
+router_lane_coverage{category="e2e_vision",kind="lane",model="glm-5.3-flash",provider="zai-glm"} 1
+router_lane_coverage{category="guard",kind="ratio"} 0.0772
+router_lane_coverage{category="guard",kind="unmeasured"} 299
+router_lane_coverage{category="guard",kind="lane",model="kimi-k2.7-code",provider="clinepass"} 1
+router_lane_coverage{category="guard",kind="lane",model="mimo-v2.5",provider="clinepass"} 1
+router_lane_coverage{category="guard",kind="lane",model="Qwen/Qwen3.8-Omni-Flash",provider="commandcode"} 1
+router_lane_coverage{category="guard",kind="lane",model="deepseek-flash",provider="deepseek"} 1
+router_lane_coverage{category="guard",kind="lane",model="deepseek-flash",provider="deepseek-duckbrain-sync"} 1
+router_lane_coverage{category="guard",kind="lane",model="deepseek-flash",provider="deepseek-foreman"} 1
+router_lane_coverage{category="guard",kind="lane",model="accounts/fireworks/models/deepseek-v4p1-flash-1017",provider="fireworks-ai"} 1
+router_lane_coverage{category="guard",kind="lane",model="gpt-oss:20b",provider="ollama-cloud"} 1
+router_lane_coverage{category="guard",kind="lane",model="kimi-k3",provider="ollama-cloud"} 1
+router_lane_coverage{category="guard",kind="lane",model="minimax-m2.7",provider="ollama-cloud"} 1
+router_lane_coverage{category="guard",kind="lane",model="deepseek-v4-flash",provider="opencode-go"} 1
+router_lane_coverage{category="guard",kind="lane",model="deepseek-v4-pro",provider="opencode-go"} 1
+router_lane_coverage{category="guard",kind="lane",model="glm-5.3",provider="opencode-go"} 1
+router_lane_coverage{category="guard",kind="lane",model="kimi-k3",provider="opencode-go"} 1
+router_lane_coverage{category="guard",kind="lane",model="mimo-v2.6-pro",provider="opencode-go"} 1
+router_lane_coverage{category="guard",kind="lane",model="qwen3.8-max",provider="opencode-go"} 1
+router_lane_coverage{category="guard",kind="lane",model="deepseek/deepseek-v4-flash",provider="openrouter"} 1
+router_lane_coverage{category="guard",kind="lane",model="meta/muse-spark-1.3",provider="openrouter"} 1
+router_lane_coverage{category="guard",kind="lane",model="tencent/hy4-preview",provider="openrouter"} 1
+router_lane_coverage{category="guard",kind="lane",model="step-5-preview",provider="stepfun"} 1
+router_lane_coverage{category="guard",kind="lane",model="meituan/longcat-2.5-preview:free",provider="xkiro"} 1
+router_lane_coverage{category="guard",kind="lane",model="openai/gpt-5.6-terra",provider="xkiro"} 1
+router_lane_coverage{category="guard",kind="lane",model="meituan/longcat-2.5-preview:free",provider="xkiro-2"} 1
+router_lane_coverage{category="guard",kind="lane",model="openai/gpt-5.6-terra",provider="xkiro-2"} 1
+router_lane_coverage{category="guard",kind="lane",model="glm-5.3-flash",provider="zai-glm"} 1
+router_lane_coverage{category="long_doc",kind="ratio"} 0.0689
+router_lane_coverage{category="long_doc",kind="unmeasured"} 338
+router_lane_coverage{category="long_doc",kind="lane",model="kimi-k2.7-code",provider="clinepass"} 1
+router_lane_coverage{category="long_doc",kind="lane",model="mimo-v2.5",provider="clinepass"} 1
+router_lane_coverage{category="long_doc",kind="lane",model="deepseek-flash",provider="deepseek"} 1
+router_lane_coverage{category="long_doc",kind="lane",model="deepseek-flash",provider="deepseek-duckbrain-sync"} 1
+router_lane_coverage{category="long_doc",kind="lane",model="deepseek-flash",provider="deepseek-foreman"} 1
+router_lane_coverage{category="long_doc",kind="lane",model="accounts/fireworks/models/deepseek-v4p1-flash-1017",provider="fireworks-ai"} 1
+router_lane_coverage{category="long_doc",kind="lane",model="gpt-oss:20b",provider="ollama-cloud"} 1
+router_lane_coverage{category="long_doc",kind="lane",model="kimi-k3",provider="ollama-cloud"} 1
+router_lane_coverage{category="long_doc",kind="lane",model="deepseek-v4-flash",provider="opencode-go"} 1
+router_lane_coverage{category="long_doc",kind="lane",model="deepseek-v4-pro",provider="opencode-go"} 1
+router_lane_coverage{category="long_doc",kind="lane",model="glm-5.3",provider="opencode-go"} 1
+router_lane_coverage{category="long_doc",kind="lane",model="kimi-k3",provider="opencode-go"} 1
+router_lane_coverage{category="long_doc",kind="lane",model="mimo-v2.6-pro",provider="opencode-go"} 1
+router_lane_coverage{category="long_doc",kind="lane",model="qwen3.8-max",provider="opencode-go"} 1
+router_lane_coverage{category="long_doc",kind="lane",model="deepseek/deepseek-v4-flash",provider="openrouter"} 1
+router_lane_coverage{category="long_doc",kind="lane",model="meta/muse-spark-1.3",provider="openrouter"} 1
+router_lane_coverage{category="long_doc",kind="lane",model="tencent/hy4-preview",provider="openrouter"} 1
+router_lane_coverage{category="long_doc",kind="lane",model="step-5-preview",provider="stepfun"} 1
+router_lane_coverage{category="long_doc",kind="lane",model="meituan/longcat-2.5-preview:free",provider="xkiro"} 1
+router_lane_coverage{category="long_doc",kind="lane",model="openai/gpt-5.4-mini",provider="xkiro"} 1
+router_lane_coverage{category="long_doc",kind="lane",model="openai/gpt-5.6-terra",provider="xkiro"} 1
+router_lane_coverage{category="long_doc",kind="lane",model="openai/gpt-6-astra",provider="xkiro"} 1
+router_lane_coverage{category="long_doc",kind="lane",model="meituan/longcat-2.5-preview:free",provider="xkiro-2"} 1
+router_lane_coverage{category="long_doc",kind="lane",model="openai/gpt-5.6-terra",provider="xkiro-2"} 1
+router_lane_coverage{category="long_doc",kind="lane",model="glm-5.3-flash",provider="zai-glm"} 1
+router_lane_coverage{category="long_horizon",kind="ratio"} 0.064
+router_lane_coverage{category="long_horizon",kind="unmeasured"} 322
+router_lane_coverage{category="long_horizon",kind="lane",model="kimi-k2.7-code",provider="clinepass"} 1
+router_lane_coverage{category="long_horizon",kind="lane",model="deepseek-flash",provider="deepseek"} 1
+router_lane_coverage{category="long_horizon",kind="lane",model="deepseek-flash",provider="deepseek-duckbrain-sync"} 1
+router_lane_coverage{category="long_horizon",kind="lane",model="deepseek-flash",provider="deepseek-foreman"} 1
+router_lane_coverage{category="long_horizon",kind="lane",model="accounts/fireworks/models/deepseek-v4p1-flash-1017",provider="fireworks-ai"} 1
+router_lane_coverage{category="long_horizon",kind="lane",model="kimi-k3",provider="ollama-cloud"} 1
+router_lane_coverage{category="long_horizon",kind="lane",model="deepseek-v4-flash",provider="opencode-go"} 1
+router_lane_coverage{category="long_horizon",kind="lane",model="glm-5.3",provider="opencode-go"} 1
+router_lane_coverage{category="long_horizon",kind="lane",model="kimi-k3",provider="opencode-go"} 1
+router_lane_coverage{category="long_horizon",kind="lane",model="mimo-v2.6-pro",provider="opencode-go"} 1
+router_lane_coverage{category="long_horizon",kind="lane",model="qwen3.8-max",provider="opencode-go"} 1
+router_lane_coverage{category="long_horizon",kind="lane",model="deepseek/deepseek-v4-flash",provider="openrouter"} 1
+router_lane_coverage{category="long_horizon",kind="lane",model="meta/muse-spark-1.3",provider="openrouter"} 1
+router_lane_coverage{category="long_horizon",kind="lane",model="tencent/hy4-preview",provider="openrouter"} 1
+router_lane_coverage{category="long_horizon",kind="lane",model="step-5-preview",provider="stepfun"} 1
+router_lane_coverage{category="long_horizon",kind="lane",model="meituan/longcat-2.5-preview:free",provider="xkiro"} 1
+router_lane_coverage{category="long_horizon",kind="lane",model="openai/gpt-5.4-mini",provider="xkiro"} 1
+router_lane_coverage{category="long_horizon",kind="lane",model="openai/gpt-5.6-terra",provider="xkiro"} 1
+router_lane_coverage{category="long_horizon",kind="lane",model="openai/gpt-6-astra",provider="xkiro"} 1
+router_lane_coverage{category="long_horizon",kind="lane",model="meituan/longcat-2.5-preview:free",provider="xkiro-2"} 1
+router_lane_coverage{category="long_horizon",kind="lane",model="openai/gpt-5.6-terra",provider="xkiro-2"} 1
+router_lane_coverage{category="long_horizon",kind="lane",model="glm-5.3-flash",provider="zai-glm"} 1
+router_lane_coverage{category="mechanical",kind="ratio"} 0.08
+router_lane_coverage{category="mechanical",kind="unmeasured"} 161
+router_lane_coverage{category="mechanical",kind="lane",model="mimo-v2.5",provider="clinepass"} 1
+router_lane_coverage{category="mechanical",kind="lane",model="Qwen/Qwen3.8-Omni-Flash",provider="commandcode"} 1
+router_lane_coverage{category="mechanical",kind="lane",model="deepseek-flash",provider="deepseek"} 1
+router_lane_coverage{category="mechanical",kind="lane",model="deepseek-flash",provider="deepseek-duckbrain-sync"} 1
+router_lane_coverage{category="mechanical",kind="lane",model="deepseek-flash",provider="deepseek-foreman"} 1
+router_lane_coverage{category="mechanical",kind="lane",model="accounts/fireworks/models/deepseek-v4p1-flash-1017",provider="fireworks-ai"} 1
+router_lane_coverage{category="mechanical",kind="lane",model="deepseek-v4-flash",provider="opencode-go"} 1
+router_lane_coverage{category="mechanical",kind="lane",model="mimo-v2.6-pro",provider="opencode-go"} 1
+router_lane_coverage{category="mechanical",kind="lane",model="deepseek/deepseek-v4-flash",provider="openrouter"} 1
+router_lane_coverage{category="mechanical",kind="lane",model="meta/muse-spark-1.3",provider="openrouter"} 1
+router_lane_coverage{category="mechanical",kind="lane",model="tencent/hy4-preview",provider="openrouter"} 1
+router_lane_coverage{category="mechanical",kind="lane",model="step-5-preview",provider="stepfun"} 1
+router_lane_coverage{category="mechanical",kind="lane",model="meituan/longcat-2.5-preview:free",provider="xkiro"} 1
+router_lane_coverage{category="mechanical",kind="lane",model="meituan/longcat-2.5-preview:free",provider="xkiro-2"} 1
+router_lane_coverage{category="mock",kind="ratio"} 0.0769
+router_lane_coverage{category="mock",kind="unmeasured"} 288
+router_lane_coverage{category="mock",kind="lane",model="kimi-k2.7-code",provider="clinepass"} 1
+router_lane_coverage{category="mock",kind="lane",model="mimo-v2.5",provider="clinepass"} 1
+router_lane_coverage{category="mock",kind="lane",model="Qwen/Qwen3.8-Omni-Flash",provider="commandcode"} 1
+router_lane_coverage{category="mock",kind="lane",model="deepseek-flash",provider="deepseek"} 1
+router_lane_coverage{category="mock",kind="lane",model="deepseek-flash",provider="deepseek-duckbrain-sync"} 1
+router_lane_coverage{category="mock",kind="lane",model="deepseek-flash",provider="deepseek-foreman"} 1
+router_lane_coverage{category="mock",kind="lane",model="accounts/fireworks/models/deepseek-v4p1-flash-1017",provider="fireworks-ai"} 1
+router_lane_coverage{category="mock",kind="lane",model="gpt-oss:20b",provider="ollama-cloud"} 1
+router_lane_coverage{category="mock",kind="lane",model="kimi-k3",provider="ollama-cloud"} 1
+router_lane_coverage{category="mock",kind="lane",model="minimax-m2.7",provider="ollama-cloud"} 1
+router_lane_coverage{category="mock",kind="lane",model="deepseek-v4-flash",provider="opencode-go"} 1
+router_lane_coverage{category="mock",kind="lane",model="deepseek-v4-pro",provider="opencode-go"} 1
+router_lane_coverage{category="mock",kind="lane",model="glm-5.3",provider="opencode-go"} 1
+router_lane_coverage{category="mock",kind="lane",model="kimi-k3",provider="opencode-go"} 1
+router_lane_coverage{category="mock",kind="lane",model="mimo-v2.6-pro",provider="opencode-go"} 1
+router_lane_coverage{category="mock",kind="lane",model="qwen3.8-max",provider="opencode-go"} 1
+router_lane_coverage{category="mock",kind="lane",model="deepseek/deepseek-v4-flash",provider="openrouter"} 1
+router_lane_coverage{category="mock",kind="lane",model="meta/muse-spark-1.3",provider="openrouter"} 1
+router_lane_coverage{category="mock",kind="lane",model="tencent/hy4-preview",provider="openrouter"} 1
+router_lane_coverage{category="mock",kind="lane",model="meituan/longcat-2.5-preview:free",provider="xkiro"} 1
+router_lane_coverage{category="mock",kind="lane",model="openai/gpt-5.6-terra",provider="xkiro"} 1
+router_lane_coverage{category="mock",kind="lane",model="meituan/longcat-2.5-preview:free",provider="xkiro-2"} 1
+router_lane_coverage{category="mock",kind="lane",model="openai/gpt-5.6-terra",provider="xkiro-2"} 1
+router_lane_coverage{category="mock",kind="lane",model="glm-5.3-flash",provider="zai-glm"} 1
+router_lane_coverage{category="multilingual",kind="ratio"} 0.0801
+router_lane_coverage{category="multilingual",kind="unmeasured"} 287
+router_lane_coverage{category="multilingual",kind="lane",model="kimi-k2.7-code",provider="clinepass"} 1
+router_lane_coverage{category="multilingual",kind="lane",model="mimo-v2.5",provider="clinepass"} 1
+router_lane_coverage{category="multilingual",kind="lane",model="Qwen/Qwen3.8-Omni-Flash",provider="commandcode"} 1
+router_lane_coverage{category="multilingual",kind="lane",model="deepseek-flash",provider="deepseek"} 1
+router_lane_coverage{category="multilingual",kind="lane",model="deepseek-flash",provider="deepseek-duckbrain-sync"} 1
+router_lane_coverage{category="multilingual",kind="lane",model="deepseek-flash",provider="deepseek-foreman"} 1
+router_lane_coverage{category="multilingual",kind="lane",model="accounts/fireworks/models/deepseek-v4p1-flash-1017",provider="fireworks-ai"} 1
+router_lane_coverage{category="multilingual",kind="lane",model="gpt-oss:20b",provider="ollama-cloud"} 1
+router_lane_coverage{category="multilingual",kind="lane",model="kimi-k3",provider="ollama-cloud"} 1
+router_lane_coverage{category="multilingual",kind="lane",model="minimax-m2.7",provider="ollama-cloud"} 1
+router_lane_coverage{category="multilingual",kind="lane",model="deepseek-v4-flash",provider="opencode-go"} 1
+router_lane_coverage{category="multilingual",kind="lane",model="deepseek-v4-pro",provider="opencode-go"} 1
+router_lane_coverage{category="multilingual",kind="lane",model="glm-5.3",provider="opencode-go"} 1
+router_lane_coverage{category="multilingual",kind="lane",model="kimi-k3",provider="opencode-go"} 1
+router_lane_coverage{category="multilingual",kind="lane",model="mimo-v2.6-pro",provider="opencode-go"} 1
+router_lane_coverage{category="multilingual",kind="lane",model="qwen3.8-max",provider="opencode-go"} 1
+router_lane_coverage{category="multilingual",kind="lane",model="deepseek/deepseek-v4-flash",provider="openrouter"} 1
+router_lane_coverage{category="multilingual",kind="lane",model="meta/muse-spark-1.3",provider="openrouter"} 1
+router_lane_coverage{category="multilingual",kind="lane",model="tencent/hy4-preview",provider="openrouter"} 1
+router_lane_coverage{category="multilingual",kind="lane",model="step-5-preview",provider="stepfun"} 1
+router_lane_coverage{category="multilingual",kind="lane",model="meituan/longcat-2.5-preview:free",provider="xkiro"} 1
+router_lane_coverage{category="multilingual",kind="lane",model="openai/gpt-5.6-terra",provider="xkiro"} 1
+router_lane_coverage{category="multilingual",kind="lane",model="meituan/longcat-2.5-preview:free",provider="xkiro-2"} 1
+router_lane_coverage{category="multilingual",kind="lane",model="openai/gpt-5.6-terra",provider="xkiro-2"} 1
+router_lane_coverage{category="multilingual",kind="lane",model="glm-5.3-flash",provider="zai-glm"} 1
+router_lane_coverage{category="reasoning",kind="ratio"} 0.0633
+router_lane_coverage{category="reasoning",kind="unmeasured"} 370
+router_lane_coverage{category="reasoning",kind="lane",model="kimi-k2.7-code",provider="clinepass"} 1
+router_lane_coverage{category="reasoning",kind="lane",model="mimo-v2.5",provider="clinepass"} 1
+router_lane_coverage{category="reasoning",kind="lane",model="deepseek-flash",provider="deepseek"} 1
+router_lane_coverage{category="reasoning",kind="lane",model="deepseek-flash",provider="deepseek-duckbrain-sync"} 1
+router_lane_coverage{category="reasoning",kind="lane",model="deepseek-flash",provider="deepseek-foreman"} 1
+router_lane_coverage{category="reasoning",kind="lane",model="accounts/fireworks/models/deepseek-v4p1-flash-1017",provider="fireworks-ai"} 1
+router_lane_coverage{category="reasoning",kind="lane",model="gpt-oss:20b",provider="ollama-cloud"} 1
+router_lane_coverage{category="reasoning",kind="lane",model="kimi-k3",provider="ollama-cloud"} 1
+router_lane_coverage{category="reasoning",kind="lane",model="deepseek-v4-flash",provider="opencode-go"} 1
+router_lane_coverage{category="reasoning",kind="lane",model="deepseek-v4-pro",provider="opencode-go"} 1
+router_lane_coverage{category="reasoning",kind="lane",model="glm-5.3",provider="opencode-go"} 1
+router_lane_coverage{category="reasoning",kind="lane",model="kimi-k3",provider="opencode-go"} 1
+router_lane_coverage{category="reasoning",kind="lane",model="mimo-v2.6-pro",provider="opencode-go"} 1
+router_lane_coverage{category="reasoning",kind="lane",model="qwen3.8-max",provider="opencode-go"} 1
+router_lane_coverage{category="reasoning",kind="lane",model="deepseek/deepseek-v4-flash",provider="openrouter"} 1
+router_lane_coverage{category="reasoning",kind="lane",model="meta/muse-spark-1.3",provider="openrouter"} 1
+router_lane_coverage{category="reasoning",kind="lane",model="tencent/hy4-preview",provider="openrouter"} 1
+router_lane_coverage{category="reasoning",kind="lane",model="step-5-preview",provider="stepfun"} 1
+router_lane_coverage{category="reasoning",kind="lane",model="meituan/longcat-2.5-preview:free",provider="xkiro"} 1
+router_lane_coverage{category="reasoning",kind="lane",model="openai/gpt-5.4-mini",provider="xkiro"} 1
+router_lane_coverage{category="reasoning",kind="lane",model="openai/gpt-5.6-terra",provider="xkiro"} 1
+router_lane_coverage{category="reasoning",kind="lane",model="openai/gpt-6-astra",provider="xkiro"} 1
+router_lane_coverage{category="reasoning",kind="lane",model="meituan/longcat-2.5-preview:free",provider="xkiro-2"} 1
+router_lane_coverage{category="reasoning",kind="lane",model="openai/gpt-5.6-terra",provider="xkiro-2"} 1
+router_lane_coverage{category="reasoning",kind="lane",model="glm-5.3-flash",provider="zai-glm"} 1
+router_lane_coverage{category="refactor",kind="ratio"} 0.0638
+router_lane_coverage{category="refactor",kind="unmeasured"} 264
+router_lane_coverage{category="refactor",kind="lane",model="kimi-k2.7-code",provider="clinepass"} 1
+router_lane_coverage{category="refactor",kind="lane",model="mimo-v2.5",provider="clinepass"} 1
+router_lane_coverage{category="refactor",kind="lane",model="deepseek-flash",provider="deepseek"} 1
+router_lane_coverage{category="refactor",kind="lane",model="deepseek-flash",provider="deepseek-duckbrain-sync"} 1
+router_lane_coverage{category="refactor",kind="lane",model="deepseek-flash",provider="deepseek-foreman"} 1
+router_lane_coverage{category="refactor",kind="lane",model="accounts/fireworks/models/deepseek-v4p1-flash-1017",provider="fireworks-ai"} 1
+router_lane_coverage{category="refactor",kind="lane",model="gpt-oss:20b",provider="ollama-cloud"} 1
+router_lane_coverage{category="refactor",kind="lane",model="kimi-k3",provider="ollama-cloud"} 1
+router_lane_coverage{category="refactor",kind="lane",model="minimax-m2.7",provider="ollama-cloud"} 1
+router_lane_coverage{category="refactor",kind="lane",model="deepseek-v4-flash",provider="opencode-go"} 1
+router_lane_coverage{category="refactor",kind="lane",model="deepseek-v4-pro",provider="opencode-go"} 1
+router_lane_coverage{category="refactor",kind="lane",model="glm-5.3",provider="opencode-go"} 1
+router_lane_coverage{category="refactor",kind="lane",model="kimi-k3",provider="opencode-go"} 1
+router_lane_coverage{category="refactor",kind="lane",model="deepseek/deepseek-v4-flash",provider="openrouter"} 1
+router_lane_coverage{category="refactor",kind="lane",model="tencent/hy4-preview",provider="openrouter"} 1
+router_lane_coverage{category="refactor",kind="lane",model="openai/gpt-5.6-terra",provider="xkiro"} 1
+router_lane_coverage{category="refactor",kind="lane",model="openai/gpt-5.6-terra",provider="xkiro-2"} 1
+router_lane_coverage{category="refactor",kind="lane",model="glm-5.3-flash",provider="zai-glm"} 1
+router_lane_coverage{category="review",kind="ratio"} 0.0837
+router_lane_coverage{category="review",kind="unmeasured"} 241
+router_lane_coverage{category="review",kind="lane",model="kimi-k2.7-code",provider="clinepass"} 1
+router_lane_coverage{category="review",kind="lane",model="mimo-v2.5",provider="clinepass"} 1
+router_lane_coverage{category="review",kind="lane",model="Qwen/Qwen3.8-Omni-Flash",provider="commandcode"} 1
+router_lane_coverage{category="review",kind="lane",model="deepseek-flash",provider="deepseek"} 1
+router_lane_coverage{category="review",kind="lane",model="deepseek-flash",provider="deepseek-duckbrain-sync"} 1
+router_lane_coverage{category="review",kind="lane",model="deepseek-flash",provider="deepseek-foreman"} 1
+router_lane_coverage{category="review",kind="lane",model="accounts/fireworks/models/deepseek-v4p1-flash-1017",provider="fireworks-ai"} 1
+router_lane_coverage{category="review",kind="lane",model="gpt-oss:20b",provider="ollama-cloud"} 1
+router_lane_coverage{category="review",kind="lane",model="kimi-k3",provider="ollama-cloud"} 1
+router_lane_coverage{category="review",kind="lane",model="deepseek-v4-flash",provider="opencode-go"} 1
+router_lane_coverage{category="review",kind="lane",model="deepseek-v4-pro",provider="opencode-go"} 1
+router_lane_coverage{category="review",kind="lane",model="glm-5.3",provider="opencode-go"} 1
+router_lane_coverage{category="review",kind="lane",model="kimi-k3",provider="opencode-go"} 1
+router_lane_coverage{category="review",kind="lane",model="mimo-v2.6-pro",provider="opencode-go"} 1
+router_lane_coverage{category="review",kind="lane",model="qwen3.8-max",provider="opencode-go"} 1
+router_lane_coverage{category="review",kind="lane",model="deepseek/deepseek-v4-flash",provider="openrouter"} 1
+router_lane_coverage{category="review",kind="lane",model="meta/muse-spark-1.3",provider="openrouter"} 1
+router_lane_coverage{category="review",kind="lane",model="tencent/hy4-preview",provider="openrouter"} 1
+router_lane_coverage{category="review",kind="lane",model="step-5-preview",provider="stepfun"} 1
+router_lane_coverage{category="review",kind="lane",model="meituan/longcat-2.5-preview:free",provider="xkiro"} 1
+router_lane_coverage{category="review",kind="lane",model="meituan/longcat-2.5-preview:free",provider="xkiro-2"} 1
+router_lane_coverage{category="review",kind="lane",model="glm-5.3-flash",provider="zai-glm"} 1
+router_lane_coverage{category="schema",kind="ratio"} 0.0571
+router_lane_coverage{category="schema",kind="unmeasured"} 429
+router_lane_coverage{category="schema",kind="lane",model="kimi-k2.7-code",provider="clinepass"} 1
+router_lane_coverage{category="schema",kind="lane",model="mimo-v2.5",provider="clinepass"} 1
+router_lane_coverage{category="schema",kind="lane",model="deepseek-flash",provider="deepseek"} 1
+router_lane_coverage{category="schema",kind="lane",model="deepseek-flash",provider="deepseek-duckbrain-sync"} 1
+router_lane_coverage{category="schema",kind="lane",model="deepseek-flash",provider="deepseek-foreman"} 1
+router_lane_coverage{category="schema",kind="lane",model="accounts/fireworks/models/deepseek-v4p1-flash-1017",provider="fireworks-ai"} 1
+router_lane_coverage{category="schema",kind="lane",model="gpt-oss:20b",provider="ollama-cloud"} 1
+router_lane_coverage{category="schema",kind="lane",model="kimi-k3",provider="ollama-cloud"} 1
+router_lane_coverage{category="schema",kind="lane",model="minimax-m2.7",provider="ollama-cloud"} 1
+router_lane_coverage{category="schema",kind="lane",model="deepseek-v4-flash",provider="opencode-go"} 1
+router_lane_coverage{category="schema",kind="lane",model="deepseek-v4-pro",provider="opencode-go"} 1
+router_lane_coverage{category="schema",kind="lane",model="glm-5.3",provider="opencode-go"} 1
+router_lane_coverage{category="schema",kind="lane",model="kimi-k3",provider="opencode-go"} 1
+router_lane_coverage{category="schema",kind="lane",model="mimo-v2.6-pro",provider="opencode-go"} 1
+router_lane_coverage{category="schema",kind="lane",model="qwen3.8-max",provider="opencode-go"} 1
+router_lane_coverage{category="schema",kind="lane",model="deepseek/deepseek-v4-flash",provider="openrouter"} 1
+router_lane_coverage{category="schema",kind="lane",model="meta/muse-spark-1.3",provider="openrouter"} 1
+router_lane_coverage{category="schema",kind="lane",model="tencent/hy4-preview",provider="openrouter"} 1
+router_lane_coverage{category="schema",kind="lane",model="step-5-preview",provider="stepfun"} 1
+router_lane_coverage{category="schema",kind="lane",model="meituan/longcat-2.5-preview:free",provider="xkiro"} 1
+router_lane_coverage{category="schema",kind="lane",model="openai/gpt-5.4-mini",provider="xkiro"} 1
+router_lane_coverage{category="schema",kind="lane",model="openai/gpt-5.6-terra",provider="xkiro"} 1
+router_lane_coverage{category="schema",kind="lane",model="openai/gpt-6-astra",provider="xkiro"} 1
+router_lane_coverage{category="schema",kind="lane",model="meituan/longcat-2.5-preview:free",provider="xkiro-2"} 1
+router_lane_coverage{category="schema",kind="lane",model="openai/gpt-5.6-terra",provider="xkiro-2"} 1
+router_lane_coverage{category="schema",kind="lane",model="glm-5.3-flash",provider="zai-glm"} 1
+router_lane_coverage{category="security",kind="ratio"} 0.0364
+router_lane_coverage{category="security",kind="unmeasured"} 53
+router_lane_coverage{category="security",kind="lane",model="glm-5.3",provider="opencode-go"} 1
+router_lane_coverage{category="security",kind="lane",model="glm-5.3-flash",provider="zai-glm"} 1
+router_lane_coverage{category="spec_docs",kind="ratio"} 0.0796
+router_lane_coverage{category="spec_docs",kind="unmeasured"} 185
+router_lane_coverage{category="spec_docs",kind="lane",model="Qwen/Qwen3.8-Omni-Flash",provider="commandcode"} 1
+router_lane_coverage{category="spec_docs",kind="lane",model="deepseek-flash",provider="deepseek"} 1
+router_lane_coverage{category="spec_docs",kind="lane",model="deepseek-flash",provider="deepseek-duckbrain-sync"} 1
+router_lane_coverage{category="spec_docs",kind="lane",model="deepseek-flash",provider="deepseek-foreman"} 1
+router_lane_coverage{category="spec_docs",kind="lane",model="accounts/fireworks/models/deepseek-v4p1-flash-1017",provider="fireworks-ai"} 1
+router_lane_coverage{category="spec_docs",kind="lane",model="deepseek-v4-flash",provider="opencode-go"} 1
+router_lane_coverage{category="spec_docs",kind="lane",model="mimo-v2.6-pro",provider="opencode-go"} 1
+router_lane_coverage{category="spec_docs",kind="lane",model="deepseek/deepseek-v4-flash",provider="openrouter"} 1
+router_lane_coverage{category="spec_docs",kind="lane",model="meta/muse-spark-1.3",provider="openrouter"} 1
+router_lane_coverage{category="spec_docs",kind="lane",model="tencent/hy4-preview",provider="openrouter"} 1
+router_lane_coverage{category="spec_docs",kind="lane",model="step-5-preview",provider="stepfun"} 1
+router_lane_coverage{category="spec_docs",kind="lane",model="meituan/longcat-2.5-preview:free",provider="xkiro"} 1
+router_lane_coverage{category="spec_docs",kind="lane",model="openai/gpt-5.6-terra",provider="xkiro"} 1
+router_lane_coverage{category="spec_docs",kind="lane",model="meituan/longcat-2.5-preview:free",provider="xkiro-2"} 1
+router_lane_coverage{category="spec_docs",kind="lane",model="openai/gpt-5.6-terra",provider="xkiro-2"} 1
+router_lane_coverage{category="spec_docs",kind="lane",model="glm-5.3-flash",provider="zai-glm"} 1
+router_lane_coverage{category="terminal",kind="ratio"} 0.0942
+router_lane_coverage{category="terminal",kind="unmeasured"} 173
+router_lane_coverage{category="terminal",kind="lane",model="mimo-v2.5",provider="clinepass"} 1
+router_lane_coverage{category="terminal",kind="lane",model="deepseek-flash",provider="deepseek"} 1
+router_lane_coverage{category="terminal",kind="lane",model="deepseek-flash",provider="deepseek-duckbrain-sync"} 1
+router_lane_coverage{category="terminal",kind="lane",model="deepseek-flash",provider="deepseek-foreman"} 1
+router_lane_coverage{category="terminal",kind="lane",model="accounts/fireworks/models/deepseek-v4p1-flash-1017",provider="fireworks-ai"} 1
+router_lane_coverage{category="terminal",kind="lane",model="deepseek-v4.1-flash:1017",provider="ollama-cloud"} 1
+router_lane_coverage{category="terminal",kind="lane",model="kimi-k3",provider="ollama-cloud"} 1
+router_lane_coverage{category="terminal",kind="lane",model="deepseek-v4-flash",provider="opencode-go"} 1
+router_lane_coverage{category="terminal",kind="lane",model="deepseek-v4-pro",provider="opencode-go"} 1
+router_lane_coverage{category="terminal",kind="lane",model="glm-5.3",provider="opencode-go"} 1
+router_lane_coverage{category="terminal",kind="lane",model="kimi-k3",provider="opencode-go"} 1
+router_lane_coverage{category="terminal",kind="lane",model="deepseek/deepseek-v4-flash",provider="openrouter"} 1
+router_lane_coverage{category="terminal",kind="lane",model="tencent/hy4-preview",provider="openrouter"} 1
+router_lane_coverage{category="terminal",kind="lane",model="meituan/longcat-2.5-preview:free",provider="xkiro"} 1
+router_lane_coverage{category="terminal",kind="lane",model="openai/gpt-5.6-terra",provider="xkiro"} 1
+router_lane_coverage{category="terminal",kind="lane",model="meituan/longcat-2.5-preview:free",provider="xkiro-2"} 1
+router_lane_coverage{category="terminal",kind="lane",model="openai/gpt-5.6-terra",provider="xkiro-2"} 1
+router_lane_coverage{category="terminal",kind="lane",model="glm-5.3-flash",provider="zai-glm"} 1
+router_lane_coverage{category="test",kind="ratio"} 0.0414
+router_lane_coverage{category="test",kind="unmeasured"} 532
+router_lane_coverage{category="test",kind="lane",model="kimi-k2.7-code",provider="clinepass"} 1
+router_lane_coverage{category="test",kind="lane",model="mimo-v2.5",provider="clinepass"} 1
+router_lane_coverage{category="test",kind="lane",model="deepseek-flash",provider="deepseek"} 1
+router_lane_coverage{category="test",kind="lane",model="deepseek-flash",provider="deepseek-duckbrain-sync"} 1
+router_lane_coverage{category="test",kind="lane",model="deepseek-flash",provider="deepseek-foreman"} 1
+router_lane_coverage{category="test",kind="lane",model="accounts/fireworks/models/deepseek-v4p1-flash-1017",provider="fireworks-ai"} 1
+router_lane_coverage{category="test",kind="lane",model="kimi-k3",provider="ollama-cloud"} 1
+router_lane_coverage{category="test",kind="lane",model="deepseek-v4-flash",provider="opencode-go"} 1
+router_lane_coverage{category="test",kind="lane",model="deepseek-v4-pro",provider="opencode-go"} 1
+router_lane_coverage{category="test",kind="lane",model="glm-5.3",provider="opencode-go"} 1
+router_lane_coverage{category="test",kind="lane",model="kimi-k3",provider="opencode-go"} 1
+router_lane_coverage{category="test",kind="lane",model="mimo-v2.6-pro",provider="opencode-go"} 1
+router_lane_coverage{category="test",kind="lane",model="deepseek/deepseek-v4-flash",provider="openrouter"} 1
+router_lane_coverage{category="test",kind="lane",model="meta/muse-spark-1.3",provider="openrouter"} 1
+router_lane_coverage{category="test",kind="lane",model="tencent/hy4-preview",provider="openrouter"} 1
+router_lane_coverage{category="test",kind="lane",model="step-5-preview",provider="stepfun"} 1
+router_lane_coverage{category="test",kind="lane",model="meituan/longcat-2.5-preview:free",provider="xkiro"} 1
+router_lane_coverage{category="test",kind="lane",model="openai/gpt-5.4-mini",provider="xkiro"} 1
+router_lane_coverage{category="test",kind="lane",model="openai/gpt-5.6-terra",provider="xkiro"} 1
+router_lane_coverage{category="test",kind="lane",model="openai/gpt-6-astra",provider="xkiro"} 1
+router_lane_coverage{category="test",kind="lane",model="meituan/longcat-2.5-preview:free",provider="xkiro-2"} 1
+router_lane_coverage{category="test",kind="lane",model="openai/gpt-5.6-terra",provider="xkiro-2"} 1
+router_lane_coverage{category="test",kind="lane",model="glm-5.3-flash",provider="zai-glm"} 1
+router_lane_coverage{category="tool_use",kind="ratio"} 0.0519
+router_lane_coverage{category="tool_use",kind="unmeasured"} 420
+router_lane_coverage{category="tool_use",kind="lane",model="kimi-k2.7-code",provider="clinepass"} 1
+router_lane_coverage{category="tool_use",kind="lane",model="mimo-v2.5",provider="clinepass"} 1
+router_lane_coverage{category="tool_use",kind="lane",model="deepseek-flash",provider="deepseek"} 1
+router_lane_coverage{category="tool_use",kind="lane",model="deepseek-flash",provider="deepseek-duckbrain-sync"} 1
+router_lane_coverage{category="tool_use",kind="lane",model="deepseek-flash",provider="deepseek-foreman"} 1
+router_lane_coverage{category="tool_use",kind="lane",model="accounts/fireworks/models/deepseek-v4p1-flash-1017",provider="fireworks-ai"} 1
+router_lane_coverage{category="tool_use",kind="lane",model="kimi-k3",provider="ollama-cloud"} 1
+router_lane_coverage{category="tool_use",kind="lane",model="minimax-m2.7",provider="ollama-cloud"} 1
+router_lane_coverage{category="tool_use",kind="lane",model="deepseek-v4-flash",provider="opencode-go"} 1
+router_lane_coverage{category="tool_use",kind="lane",model="deepseek-v4-pro",provider="opencode-go"} 1
+router_lane_coverage{category="tool_use",kind="lane",model="kimi-k3",provider="opencode-go"} 1
+router_lane_coverage{category="tool_use",kind="lane",model="mimo-v2.6-pro",provider="opencode-go"} 1
+router_lane_coverage{category="tool_use",kind="lane",model="deepseek/deepseek-v4-flash",provider="openrouter"} 1
+router_lane_coverage{category="tool_use",kind="lane",model="meta/muse-spark-1.3",provider="openrouter"} 1
+router_lane_coverage{category="tool_use",kind="lane",model="tencent/hy4-preview",provider="openrouter"} 1
+router_lane_coverage{category="tool_use",kind="lane",model="step-5-preview",provider="stepfun"} 1
+router_lane_coverage{category="tool_use",kind="lane",model="meituan/longcat-2.5-preview:free",provider="xkiro"} 1
+router_lane_coverage{category="tool_use",kind="lane",model="openai/gpt-5.4-mini",provider="xkiro"} 1
+router_lane_coverage{category="tool_use",kind="lane",model="openai/gpt-5.6-terra",provider="xkiro"} 1
+router_lane_coverage{category="tool_use",kind="lane",model="openai/gpt-6-astra",provider="xkiro"} 1
+router_lane_coverage{category="tool_use",kind="lane",model="meituan/longcat-2.5-preview:free",provider="xkiro-2"} 1
+router_lane_coverage{category="tool_use",kind="lane",model="openai/gpt-5.6-terra",provider="xkiro-2"} 1
+router_lane_coverage{category="tool_use",kind="lane",model="glm-5.3-flash",provider="zai-glm"} 1
+router_lane_coverage{category="ui_frontend",kind="ratio"} 0.0469
+router_lane_coverage{category="ui_frontend",kind="unmeasured"} 61
+router_lane_coverage{category="ui_frontend",kind="lane",model="kimi-k3",provider="ollama-cloud"} 1
+router_lane_coverage{category="ui_frontend",kind="lane",model="deepseek-v4-pro",provider="opencode-go"} 1
+router_lane_coverage{category="ui_frontend",kind="lane",model="kimi-k3",provider="opencode-go"} 1
+router_lane_coverage{category="vision",kind="ratio"} 0.0846
+router_lane_coverage{category="vision",kind="unmeasured"} 119
+router_lane_coverage{category="vision",kind="lane",model="deepseek-flash",provider="deepseek"} 1
+router_lane_coverage{category="vision",kind="lane",model="deepseek-flash",provider="deepseek-duckbrain-sync"} 1
+router_lane_coverage{category="vision",kind="lane",model="deepseek-flash",provider="deepseek-foreman"} 1
+router_lane_coverage{category="vision",kind="lane",model="accounts/fireworks/models/deepseek-v4p1-flash-1017",provider="fireworks-ai"} 1
+router_lane_coverage{category="vision",kind="lane",model="kimi-k3",provider="ollama-cloud"} 1
+router_lane_coverage{category="vision",kind="lane",model="deepseek-v4-flash",provider="opencode-go"} 1
+router_lane_coverage{category="vision",kind="lane",model="deepseek-v4-pro",provider="opencode-go"} 1
+router_lane_coverage{category="vision",kind="lane",model="glm-5.3",provider="opencode-go"} 1
+router_lane_coverage{category="vision",kind="lane",model="kimi-k3",provider="opencode-go"} 1
+router_lane_coverage{category="vision",kind="lane",model="deepseek/deepseek-v4-flash",provider="openrouter"} 1
+router_lane_coverage{category="vision",kind="lane",model="glm-5.3-flash",provider="zai-glm"} 1
+
+$ curl -sS 127.0.0.1:9398/metrics | grep -E '^router_resolve_duration_seconds_(count|sum)'
+router_resolve_duration_seconds_sum{outcome="success",profile="P1_CODING"} 0.5180091138463467
+router_resolve_duration_seconds_count{outcome="success",profile="P1_CODING"} 2
+router_resolve_duration_seconds_sum{model="z-ai/glm-5.3-flash",provider="openrouter"} 0.5180091138463467
+router_resolve_duration_seconds_count{model="z-ai/glm-5.3-flash",provider="openrouter"} 2
+
+$ curl -sS 127.0.0.1:9398/metrics | grep -E '^router_(resolve_errors_total|resolve_nohops_total|admission|circuit_open|circuit_provider|metrics_jsonl)'
+router_circuit_open_pairs{class="api_down"} 1
+router_circuit_open_pairs{class="policy_gate"} 1
+router_circuit_provider_breakers 0
+router_admission_inflight 0
+router_admission_queue_depth 0
+router_admission_rejected_total 0
+router_metrics_jsonl_bytes 31196
+
+
+--- failure path ---
+
+$ curl -sS -o /dev/null -w 'status=%{http_code}' '127.0.0.1:9398/resolve?project=tr377-not-a-project'   # forced failure: unknown project
+status=400
+
+$ curl -sS '127.0.0.1:9398/resolve?project=tr377-not-a-project'
+{"error": "project tr377-not-a-project not in registry", "data_home": {"registry": "/home/kara/task-router/registry.json", "data_dir": "/home/kara/worktrees/task-router-TR-377/data/tables", "state_dir
+
+$ curl -sS 127.0.0.1:9398/metrics | grep -E '^router_resolve_(errors|nohops)_total'
+router_resolve_errors_total{profile="unknown"} 2
+
+$ curl -sS 127.0.0.1:9398/metrics | grep -E '^router_resolve_total'
+router_resolve_total{model="z-ai/glm-5.3-flash",outcome="success",profile="P1_CODING",provider="openrouter"} 2
+router_resolve_total{model="",outcome="failure",profile="unknown",provider=""} 2
+
+$ curl -sS 127.0.0.1:9398/metrics | grep -E '^task_router_resolve_errors_total'
+task_router_resolve_errors_total{profile="unknown"} 2
+
+$ curl -sS 127.0.0.1:9398/metrics | grep -E '^router_resolve_duration_seconds_(count|sum)'
+router_resolve_duration_seconds_sum{outcome="success",profile="P1_CODING"} 0.5180091138463467
+router_resolve_duration_seconds_count{outcome="success",profile="P1_CODING"} 2
+router_resolve_duration_seconds_sum{outcome="failure",profile="unknown"} 0.24817725480534136
+router_resolve_duration_seconds_count{outcome="failure",profile="unknown"} 2
+router_resolve_duration_seconds_sum{model="z-ai/glm-5.3-flash",provider="openrouter"} 0.5180091138463467
+router_resolve_duration_seconds_count{model="z-ai/glm-5.3-flash",provider="openrouter"} 2
+
+
+--- proxy-surface instance (:9397, --surface proxy) ---
+
+$ curl -sS 127.0.0.1:9397/metrics | grep -E '^router_(circuit_open_pairs|circuit_provider_breakers|admission|metrics_jsonl|lane_coverage)' | head -12
+router_circuit_open_pairs{class="api_down"} 2
+router_circuit_open_pairs{class="policy_gate"} 1
+router_circuit_provider_breakers 0
+router_admission_inflight 0
+router_admission_queue_depth 0
+router_admission_rejected_total 0
+router_metrics_jsonl_bytes 31954
+router_lane_coverage{category="agent_tick",kind="ratio"} 0.0562
+router_lane_coverage{category="agent_tick",kind="unmeasured"} 437
+router_lane_coverage{category="agent_tick",kind="lane",model="kimi-k2.7-code",provider="clinepass"} 1
+router_lane_coverage{category="agent_tick",kind="lane",model="mimo-v2.5",provider="clinepass"} 1
+router_lane_coverage{category="agent_tick",kind="lane",model="deepseek-flash",provider="deepseek"} 1
+
+$ head -3 /tmp/tr377-live/api-9398.log
+WARNING [router state-dir] ROUTER_STATE_DIR is unset and this process was not started through the canonical live install (/home/kara/.hermes/scripts): using the SHARED production state dir /home/kara/.hermes/model-router — set ROUTER_STATE_DIR=<dir> to isolate.
+router_server: upstream capabilities: hermes_gateway=True responses=POST /v1/responses session_key_header=X-Hermes-Session-Key
+router_server: classifier env not configured — proxy will degrade visibly to default profile
+
+$ head -3 /tmp/tr377-live/proxy-9397.log
+WARNING [router state-dir] ROUTER_STATE_DIR is unset and this process was not started through the canonical live install (/home/kara/.hermes/scripts): using the SHARED production state dir /home/kara/.hermes/model-router — set ROUTER_STATE_DIR=<dir> to isolate.
+router_server: upstream capabilities: hermes_gateway=True responses=POST /v1/responses session_key_header=X-Hermes-Session-Key
+router_server: classifier env not configured — proxy will degrade visibly to default profile
+
+
+---
+
+## END TRANSCRIPT
+
+## The five row-acceptance families as they appear in the scrape
+
+Raw sample lines from the live scrape (after one forced real resolve for
+`project=coding-hermes-scheduler` — profile P1_CODING, chain length 10,
+16 exclusions — plus one forced failure, an unknown project → 400):
+
+```
+router_resolve_total{model="z-ai/glm-5.3-flash",outcome="success",profile="P1_CODING",provider="openrouter"} 2
+router_chain_hops_bucket{le="13.0",outcome="success",profile="P1_CODING"} 2
+router_chain_hops_bucket{le="+Inf",outcome="success",profile="P1_CODING"} 2
+router_chain_hops_sum{outcome="success",profile="P1_CODING"} 20.0
+router_chain_hops_count{outcome="success",profile="P1_CODING"} 2
+router_chain_hops_bucket{le="50.0",model="glm-5.2-fast",provider="neuralwatt"} 2
+router_lane_excluded_total{model="openai/gpt-5.6-terra",provider="xkiro",reason="health-slow"} 2
+router_lane_excluded_total{model="deepseek-flash",provider="deepseek-foreman",reason="health-down"} 2
+router_lane_coverage{category="tool_use",kind="ratio"} 0.0519
+router_lane_coverage{category="tool_use",kind="unmeasured"} 420
+router_lane_coverage{category="tool_use",kind="lane",model="deepseek-flash",provider="deepseek-foreman"} 1
+router_resolve_duration_seconds_sum{outcome="success",profile="P1_CODING"} 0.5180091138463467
+router_resolve_duration_seconds_count{outcome="success",profile="P1_CODING"} 2
+router_resolve_duration_seconds_sum{model="z-ai/glm-5.3-flash",provider="openrouter"} 0.5180091138463467
+
+# the failure path (a success-only exporter is the defect this row names):
+router_resolve_errors_total{profile="unknown"} 2
+task_router_resolve_errors_total{profile="unknown"} 2
+router_resolve_total{model="",outcome="failure",profile="unknown",provider=""} 2
+```
+
+Every family is present AND non-zero after the forced resolve; the failure
+path moves a dedicated error counter under both name rows.
+
+## Alias map (one map; documented here and in the module docstring)
+
+`Registry.render()` emits every family twice — under its own name and under
+the spec's `task_router_` prefix with the row's `router_` prefix stripped
+first (an earlier revision doubled the prefix: `task_router_router_*`; that
+bug is fixed and pinned by `test_spec_alias_prefix_rides_the_same_scrape`):
+
+    router_resolve_total             -> task_router_resolve_total
+    router_resolve_errors_total      -> task_router_resolve_errors_total
+    router_resolve_nohops_total      -> task_router_resolve_nohops_total
+    router_lane_excluded_total       -> task_router_lane_excluded_total
+    router_lane_coverage             -> task_router_lane_coverage
+    router_chain_hops                -> task_router_chain_hops
+    router_resolve_duration_seconds  -> task_router_resolve_duration_seconds
+    (collector families likewise: router_circuit_open_pairs ->
+     task_router_circuit_open_pairs, etc.)
+
+Measured live: `curl -sS 127.0.0.1:9398/metrics | grep -c '^task_router_'` →
+**499** (spec V1 bar is ≥ 20), identical count for `'^router_'` because each
+family renders under both names. NOTE: the spec §3.4 catalogue names the
+chain-length family `task_router_resolve_chain_length`; this row's alias
+scheme (prefix all families uniformly) yields `task_router_chain_hops` for
+it instead — the V1 check counts sample LINES, so either naming satisfies it;
+the difference is deliberate and stated here rather than silently absorbed.
+
+## Label rule compliance (row AC) — and the one provable gap, stated
+
+- `router_resolve_total{profile,outcome}` — carries both, PLUS the served
+  top hop's `provider`/`model` (empty strings when nothing was served).
+- `router_chain_hops` — `{profile, outcome}` chain-length series for every
+  resolve, PLUS a `{provider, model}` sample set per chain lane observing
+  the lane's 1-based hop index (the "provider/model sample set where a hop
+  datum exists" the row asks for; a family's samples may legally carry
+  different SUBSETS of its declared label set — one registry, one writer).
+- `router_lane_excluded_total{reason}` — carries `reason` from the
+  resolver's OWN machine-readable vocabulary (the payload's `codes`,
+  derived from `EXCLUSION_REASON_CODES` — no parallel vocabulary invented),
+  plus the excluded lane's `provider`/`model`. One increment per resolver
+  exclusion code: a lane dropped for N why-reasons increments N times (its
+  HELP text says so).
+- `router_lane_coverage{category}` — the ratio is a per-category population
+  measurement (measured-with-evidence lanes / live lanes). It carries
+  provider/model only in its DECLARED label set (kind="lane" marker series
+  name the measured lanes; ratio/unmeasured series leave them empty) —
+  a per-lane ratio row does not exist as data, and one series per live
+  registry lane (~1205) is exactly the cardinality explosion spec §7
+  forbids. Stated here per the row's "a stated reason, never a silent gap".
+- `router_resolve_duration_seconds` — `{profile, outcome}` series per
+  resolve plus a `{provider, model}` series keyed by the served top lane.
+
+## Exposure decision: loopback-scoped (peer-level), bind unchanged
+
+The servers bind 127.0.0.1 by default and this row does NOT widen any bind
+(that is owner-gated TR-378). The route additionally checks the TCP PEER
+address (`_peer_is_loopback`, `ipaddress.ip_address(...).is_loopback`,
+IPv4-mapped forms accepted) and answers 403 to any non-loopback peer,
+failing CLOSED on an unparseable peer. The document leaks provider mix and
+cost, so a bind-address-only gate was judged insufficient for the row's
+"loopback-scoped or token-gated" requirement; the peer check holds even if a
+later row widens the bind. Chosen over token-gating because the API's
+existing key path (`ROUTER_EDIT_API_KEY`) gates MUTATIONS, not reads —
+retrofitting a key onto a read route would have broken every existing read
+client's contract; the loopback scope matches how :9092/:9391 are actually
+deployed.
+
+## Activation step for the live service (deliberately NOT executed)
+
+```
+systemctl --user restart task-router-server task-router-proxy
+```
+
+Then verify: `curl -s 127.0.0.1:9092/metrics | grep -c '^task_router_'` and
+the same on `:9391` (both should show ≥ 20 immediately — the exposition has
+content before any resolve: circuit, admission, coverage and data-plane
+families all render on boot). The live units were NOT restarted, NOT probed
+beyond two unauthenticated GETs (`/health` 200 on both after the scratch
+cleanup, pids 514260/514277 unchanged throughout), and the canonical checkout
+`/home/kara/task-router` was only ever read (registry.json, outcomes-averages.jsonl).
+
+## Gates measured (this session, this tree)
+
+```
+~/.hermes/venvs/board/bin/python3 -m pytest -q tests/test_metrics_endpoint.py
+  → 18 passed in ~6s
+~/.hermes/venvs/board/bin/python3 -m pytest -q tests/test_server.py tests/test_doc_parity.py tests/test_metrics.py
+  → 35 passed in 36.24s
+PYTHON=~/.hermes/venvs/board/bin/python3 ./scripts/gitreins-guard-tests.sh
+  → see GUARD line appended below (full suite, board venv)
+```
+
+## Deliberately NOT instrumented in this row
+
+- Spec §3.1 proxy per-hop families (`task_router_proxy_hop_attempts_total`,
+  `..._fallbacks_total`, `..._upstream_errors_total`, hop duration) — they
+  need instrumentation inside the ladder walk, not just the request-final
+  `_proxy_record`; left for a follow-up row so this one stays reviewable.
+  `_proxy_record` DOES carry a per-request counter pair
+  (`task_router_proxy_requests_total{route_outcome,source}` and
+  `task_router_proxy_nohops_total{lane_class}`) wired at the real call site.
+- `task_router_outcomes_rows_total` — row-counting means reading a
+  multi-GB append-only file on the scrape path (spec §7 rejects exactly
+  this); only the metrics.jsonl SIZE is exported.
+- Per-session/per-task/prompt labels — spec §7, verbatim.
+- No new `ROUTER_*` env var and no new module-level `ROUTER_[A-Z_]+`
+  constant was introduced (the only env the module reads is the already-
+  documented `ROUTER_STATE_DIR`; doc-parity test stays green without docs
+  changes for envs).
+
+## Concurrent-writer disclosure (worker collision)
+
+An earlier/sibling worker session had produced an uncommitted draft of
+`scripts/router_prometheus.py` in this same worktree while this session was
+live (harness-guarded writes interleaved 12:03–12:17 UTC). The adopted
+module is that draft's architecture (collecting pattern, `router_circuit`
+reuse, scrape-error accounting) with this session's correctness fixes:
+subset-label keying reconciled with the alias rendering (doubled
+`task_router_router_*` prefix fixed), provider-breaker count restricted to
+actually-OPEN breakers, no-hops vs hard-error outcome classification, and a
+dedicated `router_resolve_errors_total` + `router_resolve_nohops_total`
+pair. The server wiring (route, peer gate, admission source, resolve
+instrumentation) and the tests, README and evidence are this session's.
+
+## Runtime writes made during this proof
+
+Scratch-boot resolves appended to THIS WORKTREE's runtime files only
+(`data/metrics.jsonl`, `data/state/unservable-counters.jsonl`) — both
+gitignored, both outside the commit's staged paths. No `data/tables/*.jsonl`
+was touched. The canonical checkout's files were opened read-only twice
+(registry.json per resolve; outcomes-averages.jsonl per coverage scrape).

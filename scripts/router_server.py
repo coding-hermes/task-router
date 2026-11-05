@@ -12,6 +12,7 @@ import datetime
 import errno
 import fcntl
 import hmac
+import ipaddress
 import json
 import math
 import os
@@ -53,6 +54,7 @@ import router_health
 import router_hop_taxonomy
 import router_models_browser
 import router_outcomes
+import router_prometheus
 import router_ui_page
 import router_wire_ids
 
@@ -1045,7 +1047,25 @@ class RouterApplication:
                 # 200-with-error-body — status-based clients must not silently
                 # swallow a failed resolve (they cannot distinguish it from
                 # success the way an error-inspecting client can).
-                resolved = _subprocess_json("router_spawn.py", argv)
+                # TR-377: the resolve operation is instrumented AT the call
+                # site — outcome counters/histograms move for every finish,
+                # error or not (the failure arm records {'error': ...} and
+                # re-raises unchanged). Exclusion codes come from the
+                # resolver's own payload, so the reason vocabulary cannot
+                # drift from EXCLUSION_REASON_CODES.
+                _t0 = time.monotonic()
+                try:
+                    resolved = _subprocess_json("router_spawn.py", argv)
+                except Exception as exc:  # noqa: BLE001 - failed resolve is still a resolve
+                    router_prometheus.record_resolve(
+                        {"error": str(exc)},
+                        duration_s=time.monotonic() - _t0,
+                        profile=profile_q if isinstance(profile_q, str) else None)
+                    raise
+                router_prometheus.record_resolve(
+                    resolved,
+                    duration_s=time.monotonic() - _t0,
+                    profile=profile_q if isinstance(profile_q, str) else None)
                 if isinstance(resolved, dict) and resolved.get("error") \
                         and "not in registry" in str(resolved.get("error")):
                     return 400, resolved
@@ -3029,6 +3049,10 @@ class _ProxyOverloaded(Exception):
 _ADMISSION = {'lock': threading.Lock(), 'waiting': 0, 'accepted': 0,
               'rejected': 0, 'peak_inflight': 0, 'inflight': 0}
 _ADMISSION_SEM = None
+# TR-377: the /metrics admission gauges read THIS dict at scrape time (the
+# collecting pattern — no duplicate of in-process state). Non-numeric keys
+# (the dict carries its own lock) are ignored by the collector.
+router_prometheus.register_admission_source(lambda: dict(_ADMISSION))
 
 
 def _admission_limits():
@@ -4437,6 +4461,10 @@ def _proxy_record(provider: Any, model: Any, ok: Any, requirements: Any, reason:
     time on success (see proxy_chat), so the row means "time to get an answer".
     """
     try:
+        # TR-377: one increment per finished proxy request — the proxy's own
+        # /metrics view (spec §3.1). Same fail-open contract as the row.
+        router_prometheus.note_proxy_request(route_outcome, source,
+                                             lane_class)
         import router_outcomes as ro
         row = {'source_system': source,
                'session_id': session_id or f'proxy-{time.time()}',
@@ -5396,6 +5424,22 @@ def _proxy_chat_inner(path: Any, body: Any, headers: Any, max_hops: Any=None, up
     return (status if isinstance(status, int) and status >= 400 else 502), out
 
 
+def _peer_is_loopback(peer: Any) -> bool:
+    """TR-377: is this TCP peer on loopback?
+
+    /metrics exports provider mix and cost, so it is loopback-scoped at the
+    peer level: the servers bind 127.0.0.1 by default, but the bind address
+    alone is not a gate — if a later row widens the bind (TR-378,
+    owner-gated), this check keeps the endpoint closed to non-loopback
+    callers. An unparseable peer fails CLOSED.
+    """
+    text = str(peer or "")
+    try:
+        return ipaddress.ip_address(text).is_loopback
+    except ValueError:
+        return False
+
+
 class RouterHandler(BaseHTTPRequestHandler):
     server_version = "task-router/1.0"
     @property
@@ -5452,6 +5496,21 @@ class RouterHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(encoded)
 
+    def _send_metrics(self) -> None:
+        # TR-377: Prometheus text exposition. Loopback-scoped (see
+        # _peer_is_loopback); the body is rendered at scrape time from the
+        # registry (call-site counters + collecting callbacks), never cached.
+        peer = self.client_address[0] if self.client_address else ""
+        if not _peer_is_loopback(peer):
+            self._send(403, {"error": "metrics endpoint is loopback-scoped"})
+            return
+        body = router_prometheus.render_metrics()
+        self.send_response(200)
+        self.send_header("Content-Type", router_prometheus.CONTENT_TYPE)
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
     def do_GET(self) -> None:
         try:
             parsed = urlparse(self.path)
@@ -5465,6 +5524,11 @@ class RouterHandler(BaseHTTPRequestHandler):
                 # first, and Hermes does too. A 404 here reads as "provider is
                 # broken" and sends the caller to a fallback lane.
                 self._send(200, openai_models_payload())
+                return
+            if parsed.path == '/metrics':
+                # TR-377: Prometheus exposition, served BEFORE dispatch so it
+                # answers on every surface (api | proxy | ui | all).
+                self._send_metrics()
                 return
             status, payload = self.app.dispatch(
                 "GET",

@@ -207,6 +207,23 @@ ROUTER_EDIT_API_KEY=... router server --mode edit
     a `runtime_cache` TR-277 stats block).
   - **Routing reads** — `/resolve?project=X`, `/profiles`, `/providers`,
     `/circuit/status`, `/gaps`, `/pricing`, `/chains`.
+  - **Metrics** — `GET /metrics`: Prometheus text exposition (TR-377;
+    stdlib-only renderer in `scripts/router_prometheus.py`, no
+    `prometheus_client` dependency), served before dispatch so it answers on
+    every surface (`api | proxy | ui | all`) with
+    `Content-Type: text/plain; version=0.0.4; charset=utf-8`.
+    Loopback-scoped at the peer level (non-loopback callers get 403; the
+    bind address is never widened by this route). Delivery-critical
+    families: `router_resolve_total{profile,outcome}` (+ the served top
+    lane's provider/model), `router_chain_hops`,
+    `router_lane_excluded_total{reason}` (the resolver's own
+    `EXCLUSION_REASON_CODES` vocabulary),
+    `router_lane_coverage{category}` (measured-with-evidence / live lanes
+    per category), `router_resolve_duration_seconds` — each ALSO emitted
+    under the spec's `task_router_` prefix
+    ([docs/observability-spec.md](docs/observability-spec.md)) so the spec's
+    V1 scrape check holds, plus admission, circuit, proxy and data-plane
+    families read fresh at scrape time.
   - **Execution decision** (ACP-ROUTER-001; a durable WRITE — one
     append-only issuance record per issued receipt — so it requires the edit
     key and is unavailable in read-only mode) — `/api/v1/execution-decision`
