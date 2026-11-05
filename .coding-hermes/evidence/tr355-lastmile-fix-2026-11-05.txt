@@ -1,0 +1,91 @@
+TR-355 evidence — round 6 (2026-11-05)
+tick:      task-router-foreman-2026-11-05-10-52-34
+row:       TR-355 (P0) "router-proxy burns the full 600s hop wall on a DEGRADED always-run lane"
+worktree:  /home/kara/proj-wt-tr355-lastmile   branch fix/tr355-degraded-lastmile   commit a6c8839
+base:      8094a8213e4b519d816ea14630ef80b758b9fc97 (origin/main at dispatch)
+landed:    a6c8839c27c2e99baea0d8e7c364b1cafdac8e46 pushed to origin/main (fast-forward 8094a82..a6c8839)
+
+1. THE OWNER-GATED CUTOVER HAS HAPPENED (this row's blocker for six ticks)
+   read-only probes, 2026-11-05T10:53Z:
+     ss -ltnp                 :9391 -> pid 514260, :9092 -> pid 514277
+     ps -eo pid,lstart,cmd    both started "Wed Nov 4 22:18:29 2026"
+                              /usr/bin/python3 /home/kara/task-router/scripts/router_server.py --mode read-only
+     curl /health (5092/9391) loaded_commit=04fdeb242793, loaded_source_sha=35182a6ce5763fae,
+                              live_source_sha=35182a6ce5763fae, loaded_at=2026-11-05T03:18:31Z
+     stat scripts/router_server.py   mtime 2026-11-03 16:58:34
+   The pids that made AC5 unreachable (7563 on :9092 loaded 187bcae from 2026-10-19, 1808674 on :9391
+   loaded 13ef748) are gone. Both listeners now run the TR-355 code path and their loaded source sha
+   equals the sha of the source on disk, so "stale: true" in /health is only the commit label
+   (04fdeb2 vs the board-tip sha), NOT stale code.
+
+2. WHAT THE LIVE FLEET THEN SHOWED — AC2 IS ONLY HALF-BUILT
+   Scheduler journal, window 2026-11-04 22:18:29 -> 2026-11-05 05:53 local
+   (~/.hermes/coding-hermes/scheduler.log + scheduler.log.1, rotated at 00:51):
+     2026-11-05 00:24:07  code-factory-duckbrain tick=code-factory-duckbrain-2026-11-05-05-13-53
+       HTTP 502 {"error":"timed out", _router:{ ... exhausted=true,
+       "FALLBACK: all 0 eligible hops gated - using deepseek-foreman/deepseek-flash
+                   (always-run lane; DEGRADED - requirements_unmet: [(agent_tick,3,2),(delegation,3,1),(terminal,2,0)])",
+       ladder[0] provider=deepseek-foreman model=deepseek-flash latency_s=600.017 reason=hop-wall-timeout,
+       "fallback_policy":"degraded-wall-cap", "degraded_wall_s":120.0, "wall_time_s":611.306 }}
+   Read that envelope twice: it ADVERTISES a 120s leash and then lets the hop run 600.017s. AC2 says the
+   chosen behaviour must appear in the envelope "never be silent" — here the envelope actively lies.
+
+   ROOT CAUSE (single call path):
+     scripts/router_server.py  _provider_upstream_factory()._call()  (~line 2863)
+       urllib.request.urlopen(req, timeout=_hop_budget_s(False))   <-- degraded= never passed
+     The hop loop stamps DEGRADED fallback hops with the internal header
+     X-Router-Hop-Degraded-Fallback (_HOP_DEGRADED_HEADER, line 2078) at ~line 5164. The global-upstream
+     site _hermes_responses_call() reads it at line 1918 and passes degraded= into _hop_budget_s(). The
+     provider LAST-MILE site never read it, so every provider carrying an api_base_url (api.deepseek.com,
+     moonshot, fireworks, ...) rode the full ROUTER_PROXY_HOP_TIMEOUT_S. The cap only ever worked on
+     the 8642 path — which is why the previous ticks' focused tests (that exercise _hop_budget_s and the
+     envelope, not this call site) were green while the fleet kept burning 600s.
+
+3. FIX (a6c8839, 2 files, +58/-1)
+   scripts/router_server.py: read the stamp and leash the last mile, never pop it (retry-same-hop
+   re-uses the dict), outbound provider dict unchanged so the internal header still never leaves:
+       degraded = str(headers.get(_HOP_DEGRADED_HEADER) or '') == '1'
+       with urllib.request.urlopen(req, timeout=_hop_budget_s(False, degraded=degraded)) as resp:
+   tests/test_tr355_degraded_wall.py: +49 lines, test_provider_last_mile_hop_honours_the_degraded_leash
+   (records the timeout kwarg through a stubbed urlopen, asserts 120.0 default and 45.0 configured).
+
+4. VERIFICATION RUN IN THIS TICK (all re-run by the foreman, not taken from the worker)
+   pre-fix tree (a6c8839^:scripts/router_server.py restored, same test file):
+     FAILED test_provider_last_mile_hop_honours_the_degraded_leash
+       AssertionError: degraded last-mile hop rode the full hop wall (600.0s) instead of the 120s cap
+       1 failed, 7 deselected in 0.22s                                    <-- RED, quote kept
+   committed tree:
+     pytest -q tests/test_tr355_degraded_wall.py                 8 passed in 0.21s
+     pytest -q tests/ -k "proxy or degraded"                     336 passed, 2499 deselected in 58.76s
+     ruff check scripts/router_server.py tests/test_tr355_degraded_wall.py   All checks passed
+     git show --name-only a6c8839                                2 files: scripts/router_server.py,
+                                                                 tests/test_tr355_degraded_wall.py
+   GitReins: task TR-355-FIX2 created/started/completed against a6c8839 (task record commit =
+   a6c8839c27c2e99baea0d8e7c364b1cafdac8e46, the pushed HEAD). Tier 1 PASSED.
+   Tier 2 = INCOMPLETE, verdict cbb40ebe, run dir .gitreins/history/2026-11-05/30240454:
+     "gitreins.evaluator: ERROR: LLM call failed on iteration 0: 402 Client Error: Payment Required
+      for url: https://api.deepseek.com/v1/chat/completions (provider=openai model=deepseek-v4-flash)"
+   => INSTRUMENT FAILURE (unfunded evaluator lane), verdict=none:tier2-payment-required. The verdict is
+   preserved verbatim and is NOT bound as acceptance evidence. Mechanical acceptance rests on the direct
+   gates above plus exact-head CI.
+
+5. ACCEPTANCE STATE AFTER THIS TICK
+   AC1 repro the wasted wall ............ DONE (pre-fix measurement 2026-10-29 wall_time_s 600.38, and a
+                                          fresh post-cutover occurrence captured above at 611.306s)
+   AC2 degraded hop must not inherit the full wall ... CODE COMPLETE NOW (was: global upstream only,
+                                          last mile ignored the cap). Tests bind it; the live envelope can
+                                          only stop lying after the next service restart.
+   AC3 reason vocabulary ('no eligible hop' vs 'a hop ran and timed out') ... DONE. Post-cutover the
+                                          no-eligible-hop case returns a TYPED FAST error: HTTP 503
+                                          failure_reason=unservable-rating, requirements_unmet, chain_length=0
+                                          (60 such 503 lines in the window vs 3 hop-wall 600s lines).
+   AC4 regression test fails pre-fix / passes after ... DONE (quoted red + green above)
+   AC5 live acceptance under the fix .... NOT MET. The listeners still run the pre-a6c8839 code; a restart
+                                          of :9092/:9391 is the owner-controlled cutover (this is the live
+                                          proxy every gateway spawn traverses). ROW STAYS PENDING.
+
+6. NEXT OWNER ACTION
+   Deliberate cutover of :9092 and :9391 onto a6c8839+, then one live tick whose gateway POST either
+   returns a typed fast error or completes on a DEGRADED lane in well under the 600s stall budget.
+   Expected observable after the cutover: a DEGRADED last-mile hop fails at ~120s (not 600s) and its
+   envelope's degraded_wall_s matches the latency it reports.

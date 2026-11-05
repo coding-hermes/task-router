@@ -1,0 +1,21 @@
+{
+  "tick": "task-router-foreman-2026-11-05-10-52-34",
+  "project": "task-router",
+  "mode": "serial-single-worker",
+  "row": "TR-355",
+  "wave_size": 1,
+  "workers": [
+    {
+      "task_id": "TR-355",
+      "branch": "fix/tr355-degraded-lastmile",
+      "worktree": "/home/kara/proj-wt-tr355-lastmile",
+      "base_sha": "8094a8213e4b519d816ea14630ef80b758b9fc97",
+      "model": "glm-5.3-flash",
+      "provider": "zai-glm",
+      "scope": ["scripts/router_server.py", "tests/test_tr355_degraded_wall.py"]
+    }
+  ],
+  "worktrees": ["/home/kara/proj-wt-tr355-lastmile"],
+  "why_not_wider": "One P0 row is actionable this tick; board has no second mutually independent dispatchable row with real acceptance criteria (TR-375/TR-376 are duplicate stubs of TR-377/TR-378). Serial path per foreman contract.",
+  "live_finding": "Post-cutover live evidence 2026-11-05 00:24:07 (scheduler.log.1 line 309463, code-factory-duckbrain tick): DEGRADED fallback hop deepseek-foreman/deepseek-flash ran latency_s=600.017 / wall_time_s=611.306 while the same envelope advertised degraded_wall_s=120.0 and fallback_policy=degraded-wall-cap. Root cause: _provider_upstream_factory._call budgets with _hop_budget_s(False) and never reads X-Router-Hop-Degraded-Fallback, so every provider last-mile hop inherits the full 600s wall."
+}
