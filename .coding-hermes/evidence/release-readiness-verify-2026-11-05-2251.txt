@@ -95,3 +95,27 @@ build_rc: 0
 -rw-rw-r-- 1 kara kara  33065 Nov  5 18:10 task_router-0.2.0-py3-none-any.whl
 -rw-rw-r-- 1 kara kara 802701 Nov  5 18:10 task_router-0.2.0.tar.gz
 probe_done: 2026-11-05T18:10:05-05:00
+
+=== OWNER GATE (the reason for NO CUT) ===
+No owner authorization naming task-router, a release version and a baseline SHA exists in the board,
+the events tail, or this tick's dispatch text. A scheduler tick is not authorization.
+task-router row RELEASE-2026-10-22-001 acceptance criterion 1 reads: "Owner authorization explicitly
+names task-router and the release version/baseline SHA before any tag or Release object is created."
+That authorization is ABSENT. Measured on the committed blob at 4d44b1e:
+- board rows mentioning authorization in a release context: 5 — every one is the requirement itself
+  or a statement that the requirement is unmet, never a grant;
+- board events mentioning authorization in a release context: 51 — all audit/closeout prose;
+- events that authorize a release against a named baseline SHA: 0;
+- the row's own reasoning field states verbatim: "a scheduler tick is not authorization, and the
+  gate remains an explicit owner statement or a RELEASE-cut row naming version and baseline SHA";
+- this tick's dispatch text names the lane, the workdir and the row-selection contract; it names no
+  release version and no baseline SHA, so it is not authorization either.
+Consequences held back, deliberately: no version bump, no CHANGELOG promotion, no annotated tag,
+no GitHub Release object and no candidate v0.3.0 artifacts were produced. v0.3.0 remains a PROPOSAL
+(1788-commit lineage at 0 BREAKING footers warrants no major bump). The row stays PENDING pending
+the owner statement required by criterion 1.
+
+=== hygiene fix landed with this tick ===
+.gitreins/rescued-*/ is now ignored (.gitignore; commit f7284a5). worktree-hygiene.py:194 writes
+dated preservation dirs into the canonical checkout; 25 entries / 1.6 MB were untracked residue and
+dirtied the ownership gate of every later task-router tick.
