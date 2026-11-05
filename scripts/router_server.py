@@ -2860,7 +2860,15 @@ def _provider_upstream_factory(provider_id: Any, providers_map: Any):
             # TR-241: the provider last-mile hop serves the same caller as the
             # default upstream, so its buffered wall rides the same ladder
             # (clamped below the caller patience; identical at sane configs).
-            with urllib.request.urlopen(req, timeout=_hop_budget_s(False)) as resp:
+            # TR-355: the hop loop stamps DEGRADED fallback hops on the way
+            # in; read it here (never pop — a retry-same-hop attempt re-uses
+            # this headers dict) and leash the wall exactly like the default
+            # upstream site does. The outbound dict stays unchanged: the
+            # internal stamp is not copied in, so it never reaches the
+            # provider.
+            degraded = str(headers.get(_HOP_DEGRADED_HEADER) or '') == '1'
+            with urllib.request.urlopen(
+                    req, timeout=_hop_budget_s(False, degraded=degraded)) as resp:
                 return resp.status, json.loads(resp.read())
         except urllib.error.HTTPError as exc:
             return exc.code, {'error': exc.read().decode()[:400]}

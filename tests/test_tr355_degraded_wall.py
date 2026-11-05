@@ -74,3 +74,52 @@ def test_failure_envelope_names_degraded_wall_policy(rsrv):
 def test_unparseable_degraded_wall_falls_back_to_default(rsrv, monkeypatch):
     monkeypatch.setenv("ROUTER_DEGRADED_WALL_S", "not-a-number")
     assert rsrv._proxy_degraded_wall_s() == 120.0
+
+
+def test_provider_last_mile_hop_honours_the_degraded_leash(rsrv, monkeypatch):
+    """TR-355 AC2, second half: the provider last-mile hop must leash too.
+
+    Measured live 2026-11-05 00:24:07 (scheduler.log.1:309463): a DEGRADED
+    last-mile hop deepseek-foreman/deepseek-flash ran latency_s=600.017 /
+    wall_time_s=611.306 while its own failure envelope advertised
+    degraded_wall_s=120.0 — _provider_upstream_factory never read the
+    X-Router-Hop-Degraded-Fallback stamp the hop loop set on it.
+    """
+    recorded = {}
+
+    class _FakeResp:
+        status = 200
+
+        def read(self):
+            return b'{"ok": true}'
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+    def _fake_urlopen(req, timeout=None):
+        recorded['timeout'] = timeout
+        return _FakeResp()
+
+    monkeypatch.setattr(rsrv.urllib.request, 'urlopen', _fake_urlopen)
+    call = rsrv._provider_upstream_factory('deepseek-foreman', {
+        'deepseek-foreman': {
+            'api_base_url': 'https://example.invalid/v1',
+            'api_key_env': 'X',
+        }})
+
+    # Degraded stamp present -> the 120s cap, not the 600s ladder hop wall.
+    status, payload = call('/v1/chat/completions', {'model': 'deepseek-flash'},
+                           {'X-Router-Hop-Degraded-Fallback': '1'})
+    assert status == 200 and payload == {'ok': True}
+    assert recorded['timeout'] == 120.0, (
+        'degraded last-mile hop rode the full hop wall '
+        f'({recorded["timeout"]}s) instead of the 120s cap')
+
+    # The cap is configurable and only ever shortens.
+    monkeypatch.setenv("ROUTER_DEGRADED_WALL_S", "45")
+    call('/v1/chat/completions', {'model': 'deepseek-flash'},
+         {'X-Router-Hop-Degraded-Fallback': '1'})
+    assert recorded['timeout'] == 45.0
