@@ -228,20 +228,43 @@ def _structured_mode():
 
 
 def _matrix_schema(categories: Any=None) -> dict:
-    """The complexity matrix as a JSON Schema: {category: signed level}.
+    """The classifier's answer as a JSON Schema — it must match the PROMPT.
 
-    Keys are restricted to the registry's own categories when they are known
-    (the registry is the authority for the list, not this file); levels are the
-    signed -5..+5 scale. `additionalProperties` stays open so an unknown-but-real
-    category is reported rather than rejected - validate_matrix() is the gate
-    that decides what is admissible, and it is not made redundant here.
+    data/classifier/prompt-v3.md asks for an ENVELOPE:
+        {"ratings": {"<category>": <int -5..5>}, "ranking": ["<category>", ...],
+         "confidence": 0.0, "reason": "one short sentence"}
+    and router_classify.classify() parses exactly that (`if 'ratings' in obj`).
+
+    This schema used to declare a FLAT {category: level} object with
+    `additionalProperties: <integer>`. That disagreed with both the prompt and
+    the parser, and it produced two live failures on 2026-11-04:
+
+      (1) matrix={} — a schema-compliant flat answer carries no "ratings" key, so
+          classify() took its dimensions branch, found nothing, and returned an
+          EMPTY grouping. Every prompt classified through this rung landed on the
+          unrated cheap floor.
+      (2) "ranking": 3 — the flat `additionalProperties: integer` told the model
+          that every property value must be an integer, so an envelope-shaped
+          answer coerced ranking into an int, and classify() died with
+          TypeError: 'int' object is not iterable.
+
+    Keys inside `ratings` stay open until the registry's category list is known
+    (the registry is the authority for the list, not this file), and
+    validate_matrix() remains the gate that decides what is admissible.
     """
     lvl = {'type': 'integer', 'minimum': -5, 'maximum': 5}
-    cats = list(categories or [])
-    if cats:
-        return {'type': 'object', 'properties': {c: dict(lvl) for c in cats},
-                'additionalProperties': lvl}
-    return {'type': 'object', 'additionalProperties': lvl}
+    rating_props = {c: dict(lvl) for c in (categories or [])}
+    return {
+        'type': 'object',
+        'properties': {
+            'ratings': {'type': 'object', 'properties': rating_props,
+                        'additionalProperties': lvl},
+            'ranking': {'type': 'array', 'items': {'type': 'string'}},
+            'confidence': {'type': 'number', 'minimum': 0, 'maximum': 1},
+            'reason': {'type': 'string'},
+        },
+        'required': ['ratings'],
+    }
 
 
 #: The classifier is a small structured extraction, so thinking is pure overhead
