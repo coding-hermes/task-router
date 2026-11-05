@@ -1,7 +1,10 @@
 # SPEC-REDIS-READ-PLANE — a Redis read plane over the JSONL registry
 
-Status: **v0.5 (2026-11-04) — two quorum rounds merged, infrastructure deliverables (§11.5) and the
-hot-path wiring inventory (§11.6) added. Implementation authority, subject to the
+Status: **v0.6 (2026-11-04) — two quorum rounds merged, infrastructure (§11.5) and hot-path wiring
+(§11.6) specified, and R52's measurement gate has RUN: it fires AGAINST the hot-path default. The
+category-scan read shape buys ~5–8 % of an in-process resolve (49–57 ms file vs 44–46 ms cache), below
+R52's 10 % threshold, so `ROUTING_REDIS=file` stays the shipped default and the resolver is NOT wired
+(see §16). The plane keeps its built value: verification/status/diff/parity and point lookups. Implementation authority, subject to the
 R52 measurement gate. v0.3 has NOT yet been re-judged (round 3 owed with implementation).**
 Board row: TR-388 (P1) · Owner directive: Bane, 2026-11-04
 Quorum: `docs/reviews/TR-388-quorum-2026-11-04.md` (round 1) and §15 below (round 2)
@@ -599,3 +602,43 @@ port denylist → allowlist (A8v).
 **v0.3 has not been re-judged.** Round 3 should run with the first implementation commit, against
 the tests rather than the prose — the five defects above were all found by attacking a *fix*, which
 is the class a third round of prose review stops catching.
+
+## 16. R52 outcome — measured, and it says "do not ship redis on the hot path"
+
+Measured 2026-11-04 on this host with `scripts/router_redis_bench.py` (each arm in its own
+interpreter, cold and warm reported separately; a worktree without `registry.json` measures the
+fallback path and is not a valid sample — both runs below are with the real 4.8 MB artifact):
+
+| run | file arm (cold / warm) | redis arm (cold / warm) | saving | verdict |
+|---|---|---|---|---|
+| 1 | 57.7 / 54.5 ms | 45.7 / 46.6 ms | 12.0 ms = 7.6 % | below the 10 % gate |
+| 2 | 46.7 / 40.9 ms | — (same shape) | 4.9 ms = 5.7 % | below the 10 % gate |
+
+The redis arm is dominated by the 17 category scans a P0_FORE resolve needs: **43.4 ms of its
+44.8 ms**, for 6,299 lane tuples. That is the same order as parsing the whole 4.8 MB registry
+(~41–58 ms), which is the finding: a category scan is not cheaper than the artifact it replaces,
+because P0_FORE's requirement set is most of the registry anyway. Round trips were never the
+problem — 3 round trips, exactly as R36 designed. The bytes are.
+
+**Consequence (R52's own rule, applied):** `ROUTING_REDIS=file` remains the shipped default and the
+resolver is **not** wired to the cache. Nothing in this spec authorises a hot-path default without a
+measurement that clears the gate, and none exists.
+
+What the plane still earns its keep for, independent of the hot path:
+status/MATCH-STALE/`--diff` (drift detection between JSONL and a derived store), the parity gate
+(`scripts/router_redis_parity.py`), point lookups (0906 s-class single-fact reads), alias inheritance
+as one key, and a future multi-host/remote-registry topology where the artifact is not on local disk.
+
+**Options for the owner (this is a decision, not an implementation detail):**
+1. **Stop the hot-path work here.** Keep the plane as the verification/point-lookup surface it
+   already is; land the seed hook + timer only if drift monitoring is wanted; close the row as
+   "built, measured, deliberately not defaulted".
+2. **Publish profile-shaped chain payloads instead of category scans.** The seed already computes
+   `v_task_chain`; one key per profile (11 keys, ~350 KB each, ~5 ms parse) would replace both the
+   45 ms parse and the 43 ms scan → est. 30–35 ms saved (~22 % of an in-process resolve), which would
+   clear R52. Cost: the eligibility derivation moves into the publish step and must stay byte-equal
+   to the resolver's runtime gates (lifecycle/quota/probe are still applied at read time).
+3. **Wire the category scans anyway.** Measured 5–8 %: below the gate this spec exists to enforce.
+
+Recommendation: (1) now, (2) only if the hot path is wanted for its own sake (multi-host/remote
+callers) — not on the strength of the performance claim, which did not survive measurement.
