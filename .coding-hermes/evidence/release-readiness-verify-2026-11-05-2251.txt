@@ -1,0 +1,97 @@
+RELEASE-READINESS VERIFICATION — task-router first release cut
+row: RELEASE-2026-10-22-001 (P0, owner-gated)
+tick: task-router-foreman-2026-11-05-22-51-09
+worktrees:
+  canonical (shared, left untouched): /home/kara/task-router @ 0afac9b, 8 behind origin/main, residue present
+  dedicated (this evidence):          /home/kara/proj-wt-relver-20261105-2251 @ 4d44b1e
+workers dispatched: 0  (WAVE_BUDGET=1, wave_size=0 — owner-gated row stays workerless)
+decision: NO CUT — the owner authorization required by criterion 1 is absent.
+
+WHY THIS IS A FULL (NOT LIGHT) PASS
+The prior published probe for this row (tick task-router-foreman-2026-11-05-10-44-40,
+head 88a83eb) is 37 commits behind the current tip, and two new P1 CI rows
+(INT-CI-17, INT-CI-18) were filed at this head. The release SURFACE is unchanged
+(0 tags / 0 Releases / pins 0.2.0), but the blocker set a release decision must
+accept or close has changed, so a light receipt would have hidden a real delta.
+
+PROBE TRANSCRIPT (verbatim, script: coding-hermes-foreman-task-router/scripts/release-readiness-probe.sh)
+
+=== owner-authorization probe (events + rows, committed blob) ===
+events mentioning 'authoriz' since 2026-11-03: 53
+--- last 3 events mentioning release authorization ---
+{"id":1000889452787204,"timestamp":"2026-11-05 13:57:00.123138","event_type":"audit","task_id":"TR-378","actor":"foreman","detail":"{\n  \"row\": \"TR-378\",\n  \"status\": \"blocked\",\n  \"priority\": \"P0\",\n  \"tick\": \"task-router-foreman-2026-11-05-13-48-06\",\n  \"tier\": \"T3\",\n  \"selected\": \"highest-priority pending P0 row that is actionable: TR-377 (the /metrics endpoint this row 
+{"id":1000889452787208,"timestamp":"2026-11-05 15:21:55.67615","event_type":"audit","task_id":"TR-362","actor":"foreman","detail":"{\n  \"tick\": \"task-router-foreman-2026-11-05-14-11-29\",\n  \"project\": \"task-router\",\n  \"row\": \"TR-362\",\n  \"status\": \"complete\",\n  \"priority\": \"P0\",\n  \"tier\": \"T3\",\n  \"selected\": \"highest-priority pending P0 row that is dispatchable: the 
+{"id":1000889452787212,"timestamp":"2026-11-05 17:36:55.086604","event_type":"audit","task_id":"TR-365","actor":"foreman","detail":"{\n  \"tick\": \"task-router-foreman-2026-11-05-16-32-14\",\n  \"project\": \"task-router\",\n  \"row\": \"TR-365\",\n  \"status\": \"complete\",\n  \"priority\": \"P0\",\n  \"tier\": \"T3\",\n  \"selected\": \"highest-priority PENDING P0 row that is dispatchable AND 
+
+=== canonical checkout drift (shared, untouched by this tick) ===
+local main vs origin/main (ahead behind): 0	8
+residue paths: 44
+--- .gitreins/tasks.yaml diff (inherited lifecycle record) ---
++- id: TR-365
++  status: complete
++  completed_at: '2026-11-05T17:01:55.866591+00:00'
+--- rescued dir producer ---
+22:Preservation before every removal: .gitreins/ history+tasks.yaml -> canonical .gitreins/rescued-*/
+194:                dst = os.path.join(canon_gr, f"rescued-{DATE}", os.path.basename(tree))
+250:    Verdicts were already rescued into canonical .gitreins/rescued-<date>/ at reap time."""
+=== identity ===
+worktree_root: /home/kara/proj-wt-relver-20261105-2251
+head: 4d44b1ee0558c6e9f2855cd45318220ce8a0ce85
+head_subject: board: bind header last_commit to the INT-CI-18 filing commit c43879f
+head_date: 2026-11-05T17:18:49-05:00
+branch: verify/relver-20261105-2251
+origin_main: 4d44b1ee0558c6e9f2855cd45318220ce8a0ce85
+ahead: 0
+behind: 0
+remote: git@github.com:coding-hermes/task-router.git
+
+=== release surface ===
+local_tags_count: 0  []
+remote_tags_count: 0
+gh_release_count: 0
+
+=== version pins ===
+pyproject_version: 0.2.0
+__version__: 0.2.0
+changelog: 7:## [Unreleased]
+changelog: 73:## [0.2.0] — 2026-09-24
+changelog: 127:## [0.1.0] — 2026-09-21
+unreleased_body_lines: 58
+
+=== delta ===
+since_ref: 88a83eb
+commits: 37
+feat: 2
+fix: 3
+breaking_footers_in_range: 0
+history_commits: 1768
+history_feat_subjects: 258
+history_breaking_footers: 0
+
+=== board pending blockers (committed blob) ===
+pending_total: 68
+  P0 RELEASE-2026-10-22-001 RELEASE READINESS BLOCKED — task-router first release surface absent; candidate 
+  P0 TR-355 router-proxy burns the full 600s hop wall on a DEGRADED always-run lane when eve
+  P0 TR-363 Profiles become capability POINTERS: dynamic selection, no hard-coded qualified 
+  P1 INT-CI-10 CI red on main: TR-251 evidence replay REFUSES TR-298 completion (completion car
+  P1 INT-CI-11 CI red on main: TR-251 evidence replay fails on QA-TASKROUTER-6 closeout run 404
+  P1 INT-CI-17 CI red on main: run 42042040924 step 'Guard test command (gitreins parity)' CANC
+  P1 INT-CI-18 CI red on main: TR-251 evidence replay failed on the TR-365 closeout head (run 4
+  P1 QA-TASK-ROUTER-FOREMAN-1 [P1] Battery launch timed out without a launch result
+  P1 QA-TASK-ROUTER-FOREMAN-2 [P1] Battery launch refused: bunker-mvp host disk at 100%, above 94% preflight t
+  P1 TR-361 unservable-rating hard-fails 157 ticks/day: the TR-194 degrade path is not firin
+  P1 TR-366 Rolling averages, outcome import and probes run INSIDE the router server, not as
+  P1 TR-367 Board-task intake daemon is dead: tasks are no longer auto-resolved on submissio
+
+=== exact-head CI (canonical remote) ===
+4d44b1ee completed success 2026-11-05T22:18:54Z board: bind header last_commit to the INT-CI-18 fi
+c43879fe completed success 2026-11-05T22:18:48Z board(INT-CI-18): file main's TR-251 evidence-repl
+29ce445e completed success 2026-11-05T22:11:33Z board: bind header last_commit to the TR-364/TR-36
+77317390 completed success 2026-11-05T22:11:13Z board(TR-369): close the capability-contract row o
+0ecb7f24 completed success 2026-11-05T22:10:39Z fix(TR-369): do not mutate ROUTER_STATE_DIR at col
+
+=== packaging leg (0.x tree — strategy evidence, never candidate assets) ===
+build_rc: 0
+-rw-rw-r-- 1 kara kara  33065 Nov  5 18:10 task_router-0.2.0-py3-none-any.whl
+-rw-rw-r-- 1 kara kara 802701 Nov  5 18:10 task_router-0.2.0.tar.gz
+probe_done: 2026-11-05T18:10:05-05:00

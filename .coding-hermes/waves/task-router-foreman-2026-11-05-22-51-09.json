@@ -1,0 +1,35 @@
+{
+  "tick": "task-router-foreman-2026-11-05-22-51-09",
+  "project": "task-router",
+  "workdir_canonical": "/home/kara/task-router",
+  "worktree": "/home/kara/proj-wt-relver-20261105-2251",
+  "base_ref": "origin/main",
+  "base_sha": "4d44b1ee0558c6e9f2855cd45318220ce8a0ce85",
+  "wave_size": 0,
+  "workers": [],
+  "worktrees": [],
+  "wave_budget": 1,
+  "selected_row": "RELEASE-2026-10-22-001",
+  "selected_priority": "P0",
+  "selection_reason": "Highest-priority pending P0 row and the row prior ticks kept selected (events tail). Owner-gated: criterion 1 requires explicit owner authorization naming task-router plus release version and baseline SHA before any tag or Release object.",
+  "execution_class": "verification-only",
+  "excluded_from_dispatch": [
+    {
+      "row": "TR-355",
+      "reason": "P0 but restart-gated: acceptance needs a live serving-unit cutover (restart of :9092/:9391) which is an owner/live-host action, not a worker edit."
+    },
+    {
+      "row": "TR-363",
+      "reason": "P0 capability-row: not selected this tick because the owner-gated release row stays selected across ticks; no worker dispatched per the project rule that a workerless owner-gated tick dispatches no lower-priority implementation."
+    }
+  ],
+  "owner_gate": {
+    "statement_required": "explicit owner authorization naming task-router, the release version, and the baseline SHA",
+    "present": false,
+    "probe": "grep of .coding-hermes/board/events.jsonl for release-authorization wording at the probed head: no authorization event; the row's own reasoning field records 'a scheduler tick is not authorization'"
+  },
+  "artifacts": [
+    ".coding-hermes/evidence/release-readiness-verify-2026-11-05-2251.txt"
+  ],
+  "notes": "Cleanup landed in the same tick: .gitreins/rescued-*/ is now ignored (worktree-hygiene.py writes those dated preservation dirs into the canonical checkout and they were untracked residue that dirtied every later tick)."
+}
