@@ -1,0 +1,130 @@
+# TR-377 foreman verification — /metrics on the serving listeners
+
+- Row: TR-377. Branch wt/TR-377, rebased onto origin/main 8a735f5.
+- Judged implementation commit: fd899acff9dcc29b5e4dd91742623da7ead0cf9a
+- Foreman ran every acceptance arm itself; nothing below is a worker self-report.
+
+## AC mapping
+
+| Row acceptance arm | Evidence in this file | Result |
+|---|---|---|
+| /metrics returns Prometheus text exposition | section 1 (content type + status) | PASS |
+| five families present | section 5 (per-family sample counts) | PASS |
+| non-zero after one forced resolve | section 7 (Python sum assertions) | PASS |
+| failure path increments an error counter | section 4 + 7 (400s then router_resolve_errors_total=1, router_resolve_total{outcome="failure"}=1) | PASS |
+| loopback-scoped or token-gated | code: _peer_is_loopback fails CLOSED (ipaddress parse); covered by tests/test_metrics_endpoint.py | PASS |
+| verified against a LIVE process, not a unit test | section 0-9: scratch instance booted from this tree on :9398 | PASS |
+| no restart of a running system | live units :9092/:9391 untouched; activation step named below | NOT EXECUTED (owner-gated) |
+
+Activation step (NOT run by this tick): systemctl --user restart task-router-server task-router-proxy
+
+## 0. Red-proof: the three full-suite failures reproduce on CLEAN origin/main (no TR-377 code)
+
+```
+$ git -C /home/kara/task-router worktree add --detach <scratch>/tr377-baseline origin/main   # 8a735f5
+$ ~/.hermes/venvs/board/bin/python3 -m pytest -q \
+    tests/test_xkiro_catalog_freshness.py::test_non_archived_xkiro_models_are_in_live_catalog \
+    tests/test_tr260_projects_seed.py::test_enabled_fleet_lanes_all_in_committed_table \
+    tests/test_validate.py::test_bare_run_at_repo_root_exits0_on_healthy_checkout
+FAILED tests/test_xkiro_catalog_freshness.py::test_non_archived_xkiro_models_are_in_live_catalog
+FAILED tests/test_tr260_projects_seed.py::test_enabled_fleet_lanes_all_in_committed_table
+FAILED tests/test_validate.py::test_bare_run_at_repo_root_exits0_on_healthy_checkout
+3 failed in 1.23s
+```
+
+Also reproduced at the worker branch base 1212fe4 (xkiro + tr260) with no TR-377 code present.
+Classes: tr260 = the known ROUTER-MISS fleet-lane drift (row TR-381); test_validate = QA-TASKROUTER-3
+(registry.json is gitignored and only CI-seeded, so a bare run in any worktree fails); xkiro =
+live-catalog freshness drift from the data plane. None is caused by this row, and none is fixed by it.
+
+## 1-9. Foreman live acceptance (verbatim transcript)
+
+== preflight: port free? ==
+0
+scratch server pid=1587688 port=9398
+health=200
+
+== 1. content type + status ==
+content_type=text/plain; version=0.0.4; charset=utf-8 status=200
+
+== 2. baseline family presence BEFORE any resolve ==
+490
+
+== 3. forced real resolve ==
+{"profile": "P1_CODING", "chain_len": 10, "exclusions": 16, "error": null}
+
+== 4. forced FAILURE (unknown project) ==
+status=400
+status=400
+
+== 5. scrape AFTER resolve+failure: the five AC families ==
+family=router_resolve_total samples=2
+family=router_chain_hops samples=156
+family=router_lane_excluded_total samples=25
+family=router_lane_coverage samples=490
+family=router_resolve_duration_seconds samples=42
+family=router_resolve_errors_total samples=1
+
+== 6. raw samples (first 3 per AC family) ==
+-- router_resolve_total --
+# HELP router_resolve_total Resolves served by the /resolve operation, by answered profile and outcome; provider/model label the top-ranked (hop-1) lane of the returned chain, empty on a failed resolve.
+# TYPE router_resolve_total counter
+router_resolve_total{model="z-ai/glm-5.3-flash",outcome="success",profile="P1_CODING",provider="openrouter"} 1
+router_resolve_total{model="",outcome="failure",profile="unknown",provider=""} 1
+-- router_chain_hops --
+# HELP router_chain_hops Chain length in hops per resolve ({profile, outcome} series); the {provider, model} series observe every chain lane's 1-based hop index (spec §3.4 task_router_resolve_chain_length).
+# TYPE router_chain_hops histogram
+router_chain_hops_bucket{le="1.0",outcome="success",profile="P1_CODING"} 0
+router_chain_hops_bucket{le="2.0",outcome="success",profile="P1_CODING"} 0
+-- router_lane_excluded_total --
+# HELP router_lane_excluded_total Lane exclusions, one increment per resolver exclusion code (the resolver's own EXCLUSION_REASON_CODES vocabulary — no parallel one).
+# TYPE router_lane_excluded_total counter
+router_lane_excluded_total{model="deepseek-flash",provider="deepseek-foreman",reason="circuit-open"} 1
+router_lane_excluded_total{model="moonshotai/Kimi-K2.7-Code",provider="commandcode",reason="health-down"} 1
+-- router_lane_coverage --
+# HELP router_lane_coverage Measured-with-evidence lanes / live lanes per task category (kind="ratio"), unmeasured live-lane count (kind="unmeasured"), and a 1.0 marker per measured lane (kind="lane" with provider/model). Sources: models.jsonl + model_tier.jsonl live-lane rule (the same one measurement_coverage uses) and the rolling averages store. All-lanes 0/1 series were rejected per spec §7 (scrape-budget warning).
+# TYPE router_lane_coverage gauge
+router_lane_coverage{category="agent_tick",kind="ratio"} 0.0562
+router_lane_coverage{category="agent_tick",kind="unmeasured"} 437
+-- router_resolve_duration_seconds --
+# HELP router_resolve_duration_seconds Resolve wall time ({profile, outcome} series); the {provider, model} series carry the same duration keyed by the top-ranked (hop-1) lane of the returned chain (absent when the resolve served no lane).
+# TYPE router_resolve_duration_seconds histogram
+router_resolve_duration_seconds_bucket{le="0.05",outcome="success",profile="P1_CODING"} 0
+router_resolve_duration_seconds_bucket{le="0.1",outcome="success",profile="P1_CODING"} 0
+
+== 7. non-zero assertions ==
+router_resolve_total sum=2.0 non_zero=True
+router_lane_excluded_total sum=25.0 non_zero=True
+router_lane_coverage sum=6936.5406 non_zero=True
+router_resolve_duration_seconds_count sum=3.0 non_zero=True
+router_chain_hops_count sum=12.0 non_zero=True
+router_resolve_errors_total sum=1.0 non_zero=True
+
+== 8. spec V1 prefixed check ==
+729
+
+== 9. teardown ==
+
+## Focused battery run by the foreman on the rebased tree
+```
+$ python -m pytest -q tests/test_metrics_endpoint.py tests/test_metrics.py tests/test_doc_parity.py
+44 passed in 12.35s
+$ python -m pytest -q tests/test_server.py tests/test_proxy_serving_path.py
+26 passed in 22.52s
+```
+
+## Serialized full-suite result and its two failures
+
+```
+$ ./scripts/gitreins-guard-tests.sh   (single run, no concurrent suite in this worktree)
+FAILED tests/test_tr260_projects_seed.py::test_enabled_fleet_lanes_all_in_committed_table
+FAILED tests/test_xkiro_catalog_freshness.py::test_non_archived_xkiro_models_are_in_live_catalog
+2 failed, 2856 passed, 4 skipped, 2 warnings in 1051.93s (0:17:31)
+```
+
+Both are the pre-existing classes red-proved above.
+
+Provenance note: the worker launched two guard runs concurrently in this one worktree; the
+first reported three failures including a pricing-audit test that passes when run alone
+(12.35s battery above) and on the clean baseline — that third failure was run interference,
+not a code defect. The single serialized run is the one quoted here.
