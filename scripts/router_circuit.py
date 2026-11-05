@@ -27,15 +27,26 @@ State semantics (documented, TR-024):
 
 Circuit breaker v2 (TR-014):
   Failures carry a class: api_down, out_of_credit, quota_window, overload.
-  Provider-level breakers open when a provider records >=3 failures of a
-  HARD class (api_down or out_of_credit) across ANY of its models within the
-  class cooldown window.  A provider-level open excludes ALL lanes of that
-  provider, with a longer cooldown than model-level breakers.
   Model-level breakers for overload/quota_window open only the (provider,
   model) pair with a short cooldown (TR-032 soft-gate support).
   Backward-compatible: old state files without the "v2" section keep working;
   new state adds {"v2": {"provider_breakers": {...}, "classes": {...}}} while
   leaving legacy pair entries untouched.
+
+Provider-level doctrine (TR-364, majority of pairs):
+  An upstream error gates THE PAIR ONLY. The provider-wide breaker opens when
+  a MAJORITY of the provider's pairs fail within the class window —
+  failing_pairs > total_pairs/2 — never on one lane's bad hop. Measured
+  2026-11-03: one openrouter/openai/gpt-6-luna failure (--provider-hard
+  api_down) opened the provider breaker and hid 339 live lanes for 30
+  minutes. The denominator is the provider's offered-lane count in
+  registry.json (same rankability shape the health probe ranks by); when the
+  registry cannot answer, the distinct models recorded in circuit state.
+  --provider-hard (TR-288) keeps the PAIR's immediate gate but no longer
+  bypasses the provider majority. Every provider-level decision records its
+  counts under v2.provider_majority.<provider> (and on the breaker entry when
+  it opens), so a closed decision leaves evidence too. A single pair's
+  success still closes the provider breaker (fail-open recovery).
 
 Concurrency (TR-027 hardening):
   Every read-modify-write (record-failure / record-success / clear) runs under
@@ -131,7 +142,10 @@ if _ENV_OVERRIDE:
                     CLASS_COOLDOWN_S[k] = int(v)
     except Exception:
         pass
-PROVIDER_FAILURE_THRESHOLD = 3
+# TR-364: the old PROVIDER_FAILURE_THRESHOLD = 3 (>=3 hard-class events
+# opened a provider-wide breaker) is superseded by the majority-of-pairs
+# rule — see the module docstring and record_failure. Three events of ONE
+# pair are one failing pair and must never close a provider.
 
 # TR-346: a provider-stated reset further out than this is a PLAN CAP, not a
 # rate window. Inside the threshold the fixed quota_window cooldown (300s) is
@@ -426,6 +440,8 @@ def _ensure_v2(st: Any):
         v2['provider_breakers'] = {}
     if 'classes' not in v2 or not isinstance(v2['classes'], dict):
         v2['classes'] = {}
+    if 'provider_majority' not in v2 or not isinstance(v2['provider_majority'], dict):
+        v2['provider_majority'] = {}
     return v2
 
 
@@ -440,30 +456,99 @@ def _record_class(v2: Any, provider: Any, model: Any, fclass: Any, now: Any) -> 
     prov_classes[model] = mod_classes
 
 
-def _provider_failures_in_window(v2: Any, provider: Any, fclass: Any, now: Any, window_s: Any):
-    """Count recent class events for provider across all models."""
+def _provider_failing_pairs_in_window(v2: Any, provider: Any, fclass: Any, now: Any, window_s: Any):
+    """Count DISTINCT (provider, model) pairs of `provider` with a `fclass`
+    event inside the window (TR-364: the provider decision counts PAIRS, not
+    events — three failures of one lane are one failing pair)."""
     classes = v2.get('classes') or {}
     prov_classes = classes.get(provider) or {}
     if not isinstance(prov_classes, dict):
         return 0
     cutoff = (_parse_utc(now) - datetime.timedelta(seconds=window_s)).isoformat()
-    count = 0
+    failing = set()
     for model, evs in prov_classes.items():
         if not isinstance(evs, list):
             continue
         for ev in evs:
             if isinstance(ev, dict) and ev.get('class') == fclass and ev.get('ts', '') >= cutoff:
-                count += 1
-    return count
+                failing.add(model)
+                break
+    return len(failing)
 
 
-def _open_provider_breaker(st: Any, provider: Any, fclass: Any, now: Any, reset_at: Any=None) -> tuple:
+# TR-364: the majority denominator. The registry is the router's OFFER
+# universe — the same rankability shape provider_health_probe.rankable_lanes
+# uses (not disabled/archived, not past valid_to, priced or plan-tiered) — so
+# "majority of pairs" counts against the lanes the router could actually
+# route (openrouter: ~340 live lanes, the fleet the one-pair breaker hid).
+# Candidate order matches the probe: env override, the repo checkout, then
+# the live home install.
+def _registry_lane_count(provider: Any):
+    """Offered-lane count for `provider` from registry.json, or None.
+
+    None on any failure (file missing, unreadable, provider absent, zero
+    currently-offered lanes) — fail-open: the caller falls back to pairs
+    observed in circuit state."""
+    repo = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+    candidates = (os.environ.get('ROUTING_REGISTRY'),
+                  os.path.join(repo, 'registry.json'),
+                  os.path.expanduser('~/task-router/registry.json'))
+    today = datetime.date.today().isoformat()
+    for path in candidates:
+        if not path or not os.path.exists(path):
+            continue
+        try:
+            with open(path) as f:
+                doc = json.load(f)
+            n = 0
+            for r in ((doc.get('tables') or {}).get('models') or []):
+                if not isinstance(r, dict) or r.get('provider') != provider:
+                    continue
+                if r.get('disabled') or r.get('archive'):
+                    continue
+                vt = r.get('valid_to')
+                if vt and str(vt) < today:
+                    continue
+                if r.get('normalized_price') is None and r.get('plan_tier') is None:
+                    continue
+                n += 1
+            if n:
+                return n
+        except Exception:  # noqa: BLE001 — an unreadable registry never blocks a record
+            continue
+    return None
+
+
+def _provider_total_pairs(provider: Any, v2: Any):
+    """Total KNOWN pairs for `provider` — the TR-364 majority denominator.
+
+    Registry lane count when the registry answers. Otherwise the distinct
+    models recorded for the provider in circuit state, with a FLOOR of 2:
+    one observed pair must never satisfy a majority (the doctrine's red
+    edge — "one pair failure never closes a provider" — holds for a seat the
+    registry does not know too, and a synthetic/single-lane seat is exactly
+    where the old one-pair demotion hid everything else). Two distinct
+    failing pairs of an unknown seat are its whole observed universe and DO
+    close it."""
+    n = _registry_lane_count(provider)
+    if n:
+        return n
+    classes = v2.get('classes') or {}
+    prov = classes.get(provider) or {}
+    models = set(prov) if isinstance(prov, dict) else set()
+    return max(len(models), 2)
+
+
+def _open_provider_breaker(st: Any, provider: Any, fclass: Any, now: Any, reset_at: Any=None,
+                           failing_pairs: Any=None, total_pairs: Any=None) -> tuple:
     """Open (or extend) the provider-level breaker for a hard class.
 
     TR-346: when the failure STATES its own reset (and that reset is a plan
     cap — see record_failure), the breaker's open_until is that instant, not
     now+class-cooldown. A provider that told us when it refills must not be
     probed an hour earlier for a 39h weekly window.
+    TR-364: the breaker entry records the majority evidence (failing_pairs /
+    total_pairs) that justified opening.
     """
     v2 = _ensure_v2(st)
     prov = v2.setdefault('provider_breakers', {})
@@ -484,6 +569,8 @@ def _open_provider_breaker(st: Any, provider: Any, fclass: Any, now: Any, reset_
         'open_until': open_until,
         'opened_at': now,
         'cooldown_s': cd,
+        'failing_pairs': failing_pairs,
+        'total_pairs': total_pairs,
     }
     return cd, open_until
 
@@ -500,21 +587,23 @@ def record_failure(provider: Any, model: Any, reason: str='', fclass: str='api_d
       - an explicit-but-unknown fclass raises the same way (the old behavior
         silently rewrote it to api_down — the 2026-09-25 lockup mechanism).
 
-    TR-288: --provider-hard demotes the PROVIDER IMMEDIATELY — the breaker
-    opens on this one event, no 3-failure threshold. The in-flight request
-    path calls this when a taxonomy code proves an ACCOUNT-WIDE condition
-    (402 no-credit, 401/403 auth, 429 quota window): one hop's response is
-    fresh proof, and waiting for three failures or the next hourly probe
-    burns a failure per hop in the meantime.
+    TR-288: --provider-hard demotes the PAIR IMMEDIATELY — the (provider,
+    model) circuit opens on this one event, no cooldown-counting. The
+    in-flight request path calls this when a taxonomy code proves a lane-down
+    condition (402 no-credit, 401/403 auth, 429 quota window): one hop's
+    response is fresh proof. TR-364: --provider-hard no longer demotes the
+    PROVIDER by itself — the provider breaker obeys the majority rule below.
 
     No-hop ledger rows (TR-182): placeholder identities (provider or model in
     NOT_A_LANE_IDENTITIES, e.g. the proxy's ('none', 'none') no-hops row) are
     declined BEFORE any state write — a router-internal outcome is not a
     provider event and can never open a breaker. Fail-open: exit 0.
 
-    For hard classes (api_down/out_of_credit) the provider-level breaker opens
-    when >=3 failures of the same class occur within the class cooldown window
-    across any model of that provider (or immediately under --provider-hard).
+    Provider-level doctrine (TR-364): a hard class (api_down/out_of_credit)
+    gates THE PAIR ONLY. The provider-wide breaker opens when a MAJORITY of
+    the provider's pairs are failing within the class cooldown window —
+    failing_pairs > total_pairs/2 — and the counts are recorded in the state
+    file (v2.provider_majority.<provider>, plus the breaker entry on open).
     Soft classes (overload/quota_window) only open the specific
     (provider, model) pair with a short cooldown.
 
@@ -585,32 +674,44 @@ def record_failure(provider: Any, model: Any, reason: str='', fclass: str='api_d
             c['reason'] = reason
         _record_class(st['v2'], provider, model, fclass, now)
 
-        # Provider-level breaker for hard classes.
+        # Provider-level doctrine (TR-364): the hard class gates THE PAIR
+        # (done above); the provider-wide breaker opens only when a MAJORITY
+        # of the provider's pairs are failing within the class window.
+        # --provider-hard (TR-288) is pair-scoped since TR-364: one hop's
+        # 403/api_down is pair evidence, never provider evidence (measured
+        # 2026-11-03: one openrouter lane failure hid 339 live lanes for 30
+        # minutes). Every decision records its counts in the state file.
+        majority_note = None
         if fclass in HARD_CLASSES:
-            if provider_hard:
+            window_s = cd
+            failing = _provider_failing_pairs_in_window(st['v2'], provider,
+                                                        fclass, now, window_s)
+            total = _provider_total_pairs(provider, st['v2'])
+            opened = failing * 2 > total
+            st['v2']['provider_majority'][provider] = {
+                'class': fclass, 'failing_pairs': failing,
+                'total_pairs': total, 'opened': opened, 'decided_at': now}
+            if opened:
                 pcd, p_open = _open_provider_breaker(st, provider, fclass, now,
-                                                     reset_at=cap_reset)
+                                                     reset_at=cap_reset,
+                                                     failing_pairs=failing,
+                                                     total_pairs=total)
                 save(st)
                 print(f'OPEN {key} class={fclass} — {c["failures"]} consecutive failures, '
                       f'cooldown {cd}s, open until {c["open_until"]}; '
                       f'PROVIDER BREAKER {provider} class={fclass} open until {p_open} '
-                      f'(--provider-hard: immediate, TR-288)')
+                      f'({failing}/{total} pairs failing — majority)')
                 return 0
-            window_s = cd
-            recent = _provider_failures_in_window(st['v2'], provider, fclass, now, window_s)
-            if recent >= PROVIDER_FAILURE_THRESHOLD:
-                pcd, p_open = _open_provider_breaker(st, provider, fclass, now,
-                                                     reset_at=cap_reset)
-                save(st)
-                print(f'OPEN {key} class={fclass} — {c["failures"]} consecutive failures, '
-                      f'cooldown {cd}s, open until {c["open_until"]}; '
-                      f'PROVIDER BREAKER {provider} class={fclass} open until {p_open}')
-                return 0
+            majority_note = (f'provider breaker withheld: {failing}/{total} '
+                             f'pairs failing — majority not met')
+            if provider_hard:
+                majority_note += ' (--provider-hard is pair-scoped since TR-364)'
         save(st)
     finally:
         lf.close()
     print(f'OPEN {key} class={fclass} — {c["failures"]} consecutive failures, '
-          f'cooldown {cd}s, open until {c["open_until"]}')
+          f'cooldown {cd}s, open until {c["open_until"]}'
+          + (f'; {majority_note}' if majority_note else ''))
     return 0
 
 
@@ -648,9 +749,13 @@ def status(provider: Any=None, as_json: bool=False) -> int:
     pairs = st['pairs']
     v2 = _ensure_v2(st)
     provider_breakers = v2.get('provider_breakers', {})
+    provider_majority = v2.get('provider_majority') or {}
+    if not isinstance(provider_majority, dict):
+        provider_majority = {}
     if provider:
         pairs = {k: v for k, v in pairs.items() if k.startswith(provider + '/')}
         provider_breakers = {k: v for k, v in provider_breakers.items() if k == provider}
+        provider_majority = {k: v for k, v in provider_majority.items() if k == provider}
     if as_json:
         out = {
             'pairs': [{'pair': k, 'state': 'OPEN' if _is_open(v, now) else 'cooling',
@@ -664,8 +769,19 @@ def status(provider: Any=None, as_json: bool=False) -> int:
                                    'class': v.get('class', ''),
                                    'open_until': v.get('open_until'),
                                    'opened_at': v.get('opened_at'),
-                                   'cooldown_s': v.get('cooldown_s')}
+                                   'cooldown_s': v.get('cooldown_s'),
+                                   'failing_pairs': v.get('failing_pairs'),
+                                   'total_pairs': v.get('total_pairs')}
                                   for k, v in sorted(provider_breakers.items())],
+            # TR-364: the majority decision audit — why a provider breaker
+            # opened, and (with opened=false) why it was withheld.
+            'provider_majority': [{'provider': k,
+                                   'class': v.get('class', ''),
+                                   'failing_pairs': v.get('failing_pairs'),
+                                   'total_pairs': v.get('total_pairs'),
+                                   'opened': v.get('opened'),
+                                   'decided_at': v.get('decided_at')}
+                                  for k, v in sorted(provider_majority.items())],
             'class_counts': _class_counts(st, provider),
         }
         print(json.dumps(out, indent=1))
@@ -722,6 +838,7 @@ def clear(provider: Any=None, model: Any=None, all_: bool=False) -> int:
             v2 = _ensure_v2(st)
             v2['provider_breakers'] = {}
             v2['classes'] = {}
+            v2['provider_majority'] = {}
             save(st)
             print('cleared all circuits')
             return 0

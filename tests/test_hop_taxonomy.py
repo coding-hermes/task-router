@@ -222,9 +222,12 @@ def test_provider_wide_402_demotes_the_provider_immediately(tmp_path, monkeypatc
     assert payload['_router']['served_by']['provider'] == 'p2'
     assert demoted == [('p1', 'm1', '402-no-credit')]
 
-    # prove the DEMOTION, not just the call: the same record the demotion
-    # writes opens a provider breaker on ONE event, and the resolver's own
-    # circuit read excludes every p1 model.
+    # prove the DEMOTION, not just the call: the record the demotion writes
+    # gates the PAIR with the hard class. TR-364: ONE event is one failing
+    # pair — the provider breaker stays closed (the immediate one-event
+    # provider demotion was the measured 2026-11-03 openrouter defect that
+    # hid 339 live lanes). The seat's WHOLE observed universe failing (both
+    # pairs, 2-of-2) is what opens it.
     st_dir = os.path.join(str(tmp_path), 'state')
     os.makedirs(st_dir, exist_ok=True)
     open(os.path.join(st_dir, 'circuit-state.json'), 'w').write(json.dumps(
@@ -234,12 +237,14 @@ def test_provider_wide_402_demotes_the_provider_immediately(tmp_path, monkeypatc
     rc.record_failure('p1', 'm1', '402-no-credit insufficient credits',
                       kind='402-no-credit', provider_hard=True)
     st = json.load(open(os.path.join(st_dir, 'circuit-state.json')))
-    assert 'p1' in st['v2']['provider_breakers'], \
-        'one provider-wide event must open the provider breaker immediately'
+    assert 'p1/m1' in st['pairs'], 'the demoted pair must gate immediately'
+    assert 'p1' not in st['v2']['provider_breakers'], \
+        'one event must never open the provider breaker (TR-364 majority)'
     rc.record_failure('p1', 'other-model', '402-no-credit', kind='402-no-credit',
                       provider_hard=True)
     st = json.load(open(os.path.join(st_dir, 'circuit-state.json')))
-    assert 'p1' in st['v2']['provider_breakers']
+    assert 'p1' in st['v2']['provider_breakers'], \
+        'the whole observed universe failing (2-of-2) opens the breaker'
 
 
 def _load_circuit_module_env(state_dir):

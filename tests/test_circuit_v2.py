@@ -15,6 +15,7 @@ Acceptance criteria coverage:
 All tests are hermetic: ROUTER_STATE_DIR points at a tmp dir and no real
 provider calls are made.
 """
+import datetime
 import importlib.util
 import json
 import os
@@ -284,11 +285,30 @@ def test_spawn_excludes_open_provider_lanes(tmp_path):
     """With a provider breaker open, spawn should exclude every lane of that
     provider.  Since this is wave-2 and router_spawn.py is owned by another
     worker, we run the REAL spawn and assert on visible behavior, but the
-    authoritative integration is the documented patch proposal in the summary."""
+    authoritative integration is the documented patch proposal in the summary.
+
+    TR-364: the provider breaker is an INPUT here, not something this test
+    re-derives through the CLI — provider-wide closure now requires a
+    MAJORITY of the provider's pairs failing in the class window (covered by
+    tests/test_tr364_gate_doctrine.py), and ollama-cloud has more live
+    registry lanes than this fixture records failures for, so three CLI
+    records correctly withhold the breaker. The three pair gates are still
+    recorded through the real CLI; the majority-opened breaker is seeded to
+    exercise the spawn-side integration deterministically on every host."""
     env = _env(tmp_path)
     for i in range(3):
         run("record-failure", "ollama-cloud", f"model-{i}", "--class", "api_down",
             "down", env_extra=env)
+    st = _state(tmp_path)
+    now = datetime.datetime.now(datetime.timezone.utc)
+    st.setdefault("v2", {})["provider_breakers"] = {
+        "ollama-cloud": {"class": "api_down",
+                         "open_until": (now + datetime.timedelta(seconds=1800)).isoformat(),
+                         "opened_at": now.isoformat(),
+                         "cooldown_s": 1800,
+                         "failing_pairs": 3, "total_pairs": 3},
+    }
+    _write_state(tmp_path, st)
     # Use an ad-hoc profile so we get a non-empty chain without project drift.
     # We need reasoning=0 so deepseek and PAYG lanes also clear and we can see
     # whether ollama-cloud is excluded.

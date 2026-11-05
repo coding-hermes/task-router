@@ -64,7 +64,14 @@ SPAWN = os.path.join(REPO, "scripts", "router_spawn.py")
 DEPLOY_STATE_DIR = os.environ.get("TR346_DEPLOY_STATE_DIR",
                                   os.path.expanduser("~/.hermes/model-router"))
 
-CAP_PROVIDER = "commandcode"
+#: TR-364: deliberately SYNTHETIC (not a registry provider). The in-flight
+#: demotion fixture asserts stated-reset propagation onto the pair AND the
+#: provider breaker; a single pair's demotion is one failing pair, so on a
+#: host whose live registry lists a real provider with many lanes the
+#: majority rule (correctly) withholds the provider breaker and the fixture
+#: would go host-dependent. A synthetic seat falls back to observed pairs
+#: (one pair IS the majority), keeping the reset-propagation proof hermetic.
+CAP_PROVIDER = "tr346-cap-seat"
 CAP_MODEL = "deepseek-v4-flash"
 CAP_KIND = "429-quota-window"
 #: The reset instant as the provider itself wrote it (verbatim live evidence).
@@ -275,6 +282,14 @@ def test_provider_hard_reset_aware(tmp_path):
             "--class", "out_of_credit", "--reset-at", stated, "402 account-wide",
             env_extra=env)
     assert p.returncode == 0, (p.stdout, p.stderr)
+    # TR-364: one pair's demotion is one failing pair — never a provider
+    # majority, even under --provider-hard. A second lane of the same seat
+    # hitting the same account-wide condition makes the seat's WHOLE observed
+    # universe fail (2-of-2), which is what opens the provider breaker.
+    p = run("record-failure", "prov-hard", "m2", "--provider-hard",
+            "--class", "out_of_credit", "--reset-at", stated, "402 account-wide",
+            env_extra=env)
+    assert p.returncode == 0, (p.stdout, p.stderr)
     st = _state(tmp_path)
     pb = st["v2"]["provider_breakers"]["prov-hard"]
     assert pb["class"] == "out_of_credit", pb
@@ -330,6 +345,13 @@ def test_inflight_demotion_carries_stated_reset(tmp_path):
               'reached your weekly usage limit for your plan. Your limit '
               f'resets at {stated}"}}}}')
     p = _run_demote(tmp_path, CAP_PROVIDER, CAP_MODEL, CAP_KIND, detail)
+    assert p.returncode == 0, (p.stdout, p.stderr)
+    assert "DEMOTE-DONE" in p.stdout, (p.stdout, p.stderr)
+    # TR-364: one pair's in-flight demotion is one failing pair — never a
+    # provider majority. A second lane of the seat hitting the same
+    # account-wide condition is the whole observed universe failing (2-of-2),
+    # which is what opens the provider breaker for the reset assertion below.
+    p = _run_demote(tmp_path, CAP_PROVIDER, CAP_MODEL + "-sibling", CAP_KIND, detail)
     assert p.returncode == 0, (p.stdout, p.stderr)
     assert "DEMOTE-DONE" in p.stdout, (p.stdout, p.stderr)
 

@@ -87,6 +87,24 @@ def test_provider_level_breaker_excludes_all_lanes_of_provider(tmp_path):
                  "--class", "api_down", "down", env_extra=env)
         assert r.returncode == 0, r.stderr
 
+    # TR-364: the provider breaker is an INPUT here, not something this test
+    # re-derives through the CLI — provider-wide closure now requires a
+    # majority of the seat's pairs failing in the class window (covered by
+    # tests/test_tr364_gate_doctrine.py), and ollama-cloud has 15 committed
+    # lanes, so three records correctly withhold the breaker. Seed the
+    # majority-opened breaker to exercise the spawn-side exclusion contract
+    # (the "provider-level ... api_down" reason string) deterministically.
+    cpath = tmp_path / "state" / "circuit-state.json"
+    st = json.load(open(cpath))
+    now = datetime.datetime.now(datetime.timezone.utc)
+    st.setdefault("v2", {})["provider_breakers"] = {
+        "ollama-cloud": {"class": "api_down",
+                         "open_until": (now + datetime.timedelta(seconds=1800)).isoformat(),
+                         "opened_at": now.isoformat(),
+                         "cooldown_s": 1800,
+                         "failing_pairs": 3, "total_pairs": 3}}
+    json.dump(st, open(cpath, "w"))
+
     p = _run(SCRIPT, "--profile-req", "reasoning=0", "--format", "json",
              env_extra=env)
     assert p.returncode == 0, p.stderr

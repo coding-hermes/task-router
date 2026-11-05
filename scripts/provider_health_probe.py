@@ -183,6 +183,49 @@ PROBE_PARAMS = {
 
 UP_LIKE = ('OK', 'SLOW', 'OVERLOADED', 'TIMEOUT')
 
+# TR-364 defect 3: PROBE_DEFECT is a DISTINCT outcome for harness-caused
+# refusals. A Cloudflare-fronted endpoint (groq, opencode.ai) answers a
+# request the HARNESS signed wrongly — missing/default User-Agent — with
+# HTTP 403 "error code: 1010" and cf-* markers. That is bot filtering of the
+# probe itself, never provider evidence: it must not read as provider DOWN,
+# must not gate the provider, and must never open a breaker. Measured
+# 2026-11-03: the groq probe's 403/1010 was recorded as a provider failure
+# while groq /v1/models answers 200 with 11 models once a real UA is sent.
+PROBE_DEFECT = 'PROBE_DEFECT'
+CLOUDFLARE_MARKERS = ('error code: 1010', 'cf-ray', 'cf-chl', '__cf_bm',
+                      'cloudflare')
+
+
+def _probe_headers(extra_headers: Any=None) -> dict:
+    """Headers for a probe request, with the probe's OWN User-Agent forced.
+
+    extra_headers (per-provider contract headers from probe_providers.jsonl)
+    merge on top but can NEVER replace or drop the User-Agent: it is set
+    LAST and wins. Every request this probe sends — chat/completions ping,
+    5xx retry, slow retry, credit check — goes through here, so "sends a
+    real User-Agent" is a structural guarantee, not a per-call habit.
+    """
+    headers = dict(extra_headers or {})
+    headers['User-Agent'] = UA
+    return headers
+
+
+def is_probe_defect(code: Any, body: Any=None) -> bool:
+    """True when an HTTP refusal was caused by the HARNESS, not the provider.
+
+    A 403 whose body carries a Cloudflare signature (error code: 1010, or
+    cf-* markers) is the edge refusing THIS client's signature — the provider
+    behind it may be perfectly healthy. Such a refusal classifies as
+    PROBE_DEFECT, never DOWN."""
+    try:
+        c = int(code or 0)
+    except (TypeError, ValueError):
+        return False
+    if c != 403:
+        return False
+    b = (body or '').lower()
+    return any(m in b for m in CLOUDFLARE_MARKERS)
+
 # TR-233 (2026-09-28): per-provider id-shape transform. clinepass REQUIRES ids
 # in `modelType/model` form ('cline-pass/glm-5.3') and answers every bare
 # registry id with HTTP 400 "invalid model format. Expected format:
@@ -217,11 +260,13 @@ def wire_model_id(provider: Any, model: Any):
 
 
 ICON = {'OK': '✓', 'SLOW': '🐢', 'OVERLOADED': '⚠️', 'DOWN': '✗',
-        'TIMEOUT': '⏳', 'EXCLUDED': '–', 'SKIP': '∅', 'DISABLED': '⏸'}
+        'TIMEOUT': '⏳', 'EXCLUDED': '–', 'SKIP': '∅', 'DISABLED': '⏸',
+        'PROBE_DEFECT': '🛠'}
 
 # Model-bucket order for per-provider listing: up-ish first, problems last,
 # alphabetical inside each bucket.
-MODEL_BUCKET = {'OK': 0, 'SLOW': 0, 'OVERLOADED': 0, 'TIMEOUT': 1, 'DOWN': 1, 'EXCLUDED': 2, 'SKIP': 2}
+MODEL_BUCKET = {'OK': 0, 'SLOW': 0, 'OVERLOADED': 0, 'TIMEOUT': 1, 'DOWN': 1,
+                'PROBE_DEFECT': 1, 'EXCLUDED': 2, 'SKIP': 2}
 
 
 def load_env():
@@ -425,10 +470,12 @@ def _req(base: Any, key: Any, model: Any, params: Any, timeout: Any, extra_heade
             'messages': [{'role': 'user', 'content': 'ping'}],
             'stream': False}
     body.update(params or {'max_tokens': 16})
+    # TR-364 defect 3: the probe's own User-Agent is forced through
+    # _probe_headers — extra contract headers can never shadow it.
     req = urllib.request.Request(base + '/chat/completions', data=json.dumps(body).encode(),
                                  headers={'Content-Type': 'application/json',
                                           'Authorization': f'Bearer {key}',
-                                          'User-Agent': UA, **(extra_headers or {})})
+                                          **_probe_headers(extra_headers)})
     t0 = time.time()
     try:
         with urllib.request.urlopen(req, timeout=timeout) as r:
@@ -470,6 +517,18 @@ def ping(base: Any, key: Any, model: Any, params: Any=None, extra_headers: Any=N
     if r['status'] == 'OK':
         return {'status': 'SLOW' if r['latency_ms'] > SLOW_MS else 'OK', 'latency_ms': r['latency_ms']}
     if r['status'] == 'HTTPERR':
+        # TR-364 defect 3 FIRST: a Cloudflare refusal of the probe HARNESS
+        # itself (403 with a CF signature — "error code: 1010") classifies
+        # as PROBE_DEFECT, never DOWN: it is bot filtering of this client,
+        # not provider evidence, and must never open a breaker. Checked
+        # before the shared taxonomy so a real-traffic 403 keeps its
+        # 401-403-auth meaning on the hop ladder.
+        if is_probe_defect(r['code'], r.get('http_body') or ''):
+            return {'status': PROBE_DEFECT,
+                    'error': _fmt_http_err(r) + ' (probe-defect: harness-caused '
+                             'Cloudflare refusal — not provider evidence)',
+                    'latency_ms': r['latency_ms'],
+                    'failure_code': 'probe-defect'}
         # TR-288: name WHY with the shared taxonomy (router_hop_taxonomy) —
         # the same code the hop ladder and the ledger row will carry — so
         # probe, ladder and ledger answer a failure with one vocabulary.
@@ -486,6 +545,13 @@ def ping(base: Any, key: Any, model: Any, params: Any=None, extra_headers: Any=N
                 return {'status': 'SLOW' if r2['latency_ms'] > SLOW_MS else 'OK',
                         'latency_ms': r2['latency_ms'], 'note': f'ok on 5xx retry (first HTTP {r["code"]})'}
             if r2['status'] == 'HTTPERR' and r2['code'] < 500:
+                # TR-364: the retry may be the hop that trips Cloudflare
+                if is_probe_defect(r2['code'], r2.get('http_body') or ''):
+                    return {'status': PROBE_DEFECT,
+                            'error': _fmt_http_err(r2) + ' (probe-defect: harness-caused '
+                                     'Cloudflare refusal — not provider evidence)',
+                            'latency_ms': r2['latency_ms'], 'failure_code': 'probe-defect',
+                            'note': f'first attempt HTTP {r["code"]}'}
                 return {'status': 'DOWN', 'error': _fmt_http_err(r2) + f' (after HTTP {r["code"]})',
                         'latency_ms': r2['latency_ms'],
                         'failure_code': router_hop_taxonomy.code_from_status(r2['code'], r2.get('http_body') or '')}
@@ -503,6 +569,13 @@ def ping(base: Any, key: Any, model: Any, params: Any=None, extra_headers: Any=N
             return {'status': 'TIMEOUT', 'error': f'no response in {LONG_TIMEOUT_S}s (thinking?)',
                     'latency_ms': None, 'failure_code': 'hop-wall-timeout'}
         if r2['status'] == 'HTTPERR':
+            # TR-364: the slow retry may be the hop that trips Cloudflare
+            if is_probe_defect(r2['code'], r2.get('http_body') or ''):
+                return {'status': PROBE_DEFECT,
+                        'error': _fmt_http_err(r2) + ' (probe-defect: harness-caused '
+                                 'Cloudflare refusal — not provider evidence)',
+                        'latency_ms': r2['latency_ms'], 'failure_code': 'probe-defect',
+                        'note': f'first attempt timed out at {TIMEOUT_S}s'}
             return {'status': 'DOWN', 'error': _fmt_http_err(r2) + ' on slow retry',
                     'latency_ms': r2['latency_ms'],
                     'failure_code': router_hop_taxonomy.code_from_status(
@@ -521,7 +594,7 @@ def check_credits(prov: Any, env: Any) -> dict:
     if not key:
         return {'source': 'none', 'note': f'no key ({key_env})'}
     req = urllib.request.Request(url, headers={'Authorization': f'Bearer {key}',
-                                               'User-Agent': UA})
+                                               **_probe_headers()})
     try:
         with urllib.request.urlopen(req, timeout=6) as r:
             raw = json.loads(r.read().decode(errors='replace'))
@@ -556,10 +629,14 @@ def aggregate(models: Any) -> tuple:
     """models: {model: {status,...}} -> (status, stats). EXCLUDED and DISABLED
     rows don't count toward totals. Provider DOWN only when EVERY probed model
     is down — a single up/overloaded model keeps the provider OK (Bane 08-28);
-    all-timeout (thinking) providers are TIMEOUT, not DOWN (Bane 08-31)."""
+    all-timeout (thinking) providers are TIMEOUT, not DOWN (Bane 08-31).
+    TR-364: all-probe-defect providers are PROBE_DEFECT, never DOWN — a
+    harness-caused refusal carries no provider evidence either way, so it
+    gates nothing and opens no breaker."""
     st = [m['status'] for m in models.values() if m['status'] not in ('EXCLUDED', 'DISABLED')]
     ok = st.count('OK'); slow = st.count('SLOW'); ov = st.count('OVERLOADED')
     timeout = st.count('TIMEOUT'); down = st.count('DOWN')
+    defect = st.count(PROBE_DEFECT)
     total = len(st)
     if total and down == total:
         status = 'DOWN'
@@ -569,10 +646,12 @@ def aggregate(models: Any) -> tuple:
         status = 'SLOW'
     elif timeout:
         status = 'TIMEOUT'
+    elif defect:
+        status = PROBE_DEFECT
     else:
         status = 'SKIP'
     return status, {'ok': ok, 'slow': slow, 'overloaded': ov, 'timeout': timeout,
-                    'down': down, 'total': total}
+                    'down': down, 'probe_defect': defect, 'total': total}
 
 
 def fmt_provider_block(prov: Any, entry: Any):
@@ -591,6 +670,8 @@ def fmt_provider_block(prov: Any, entry: Any):
         extra.append(f"{st['overloaded']} overloaded")
     if st.get('down'):
         extra.append(f"{st['down']} down")
+    if st.get('probe_defect'):
+        extra.append(f"{st['probe_defect']} probe-defect")
     if extra:
         stats += ' · ' + ', '.join(extra)
     lat = entry.get('latency_ms')
@@ -746,9 +827,17 @@ def main(config_path: Any=None, only_providers: Any=None, output_path: Any=None,
             # vendor shutdown is a decision, not an outage to page on.
             p_up, now_up = p_status in UP_LIKE, status in UP_LIKE
             if p_up and not now_up:
-                alerts.append(f'⚠️ {prov} DOWN ({stats["ok"]}/{stats["total"]} models up, '
-                              f'{stats["down"]} down, {stats["timeout"]} timing out): '
-                              f'{dflt.get("error")} — was {p_status}')
+                if status == PROBE_DEFECT:
+                    # TR-364: a usable→probe-defect transition is the HARNESS
+                    # losing reach (Cloudflare bot filter), not an outage —
+                    # page it as its own thing, never as provider DOWN.
+                    alerts.append(f'🛠️ {prov} PROBE-DEFECT ({stats["probe_defect"]}/{stats["total"]} '
+                                  f'lanes refused the probe harness — not provider-down): '
+                                  f'{dflt.get("error")} — was {p_status}')
+                else:
+                    alerts.append(f'⚠️ {prov} DOWN ({stats["ok"]}/{stats["total"]} models up, '
+                                  f'{stats["down"]} down, {stats["timeout"]} timing out): '
+                                  f'{dflt.get("error")} — was {p_status}')
             elif (not p_up) and now_up:
                 alerts.append(f'✅ {prov} back UP ({stats["ok"]} models, '
                               f'{dflt.get("latency_ms")}ms)')
@@ -797,6 +886,7 @@ def main(config_path: Any=None, only_providers: Any=None, output_path: Any=None,
 
     up = group(('OK', 'SLOW', 'OVERLOADED'))
     think = group(('TIMEOUT',))
+    defect = group((PROBE_DEFECT,))
     down = group(('DOWN',))
     unprobed = group(('NO_KEY', 'UNSUPPORTED', 'SKIP', 'DISABLED'))
 
@@ -809,6 +899,13 @@ def main(config_path: Any=None, only_providers: Any=None, output_path: Any=None,
         out.append('')
         out.append(f'🟠 THINKING / TIMEOUT ({len(think)})')
         for p, r in think:
+            out.extend(fmt_provider_block(p, r))
+    if defect:
+        # TR-364: harness-caused refusals — between the timeout and down
+        # sections because they are neither: the provider may be healthy.
+        out.append('')
+        out.append(f'🛠️ PROBE-DEFECT ({len(defect)})')
+        for p, r in defect:
             out.extend(fmt_provider_block(p, r))
     if down:
         out.append('')

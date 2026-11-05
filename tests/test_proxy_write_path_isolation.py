@@ -276,16 +276,22 @@ def _run_case(tmp_path, monkeypatch, case):
         assert st['pairs'][key]['open_until'], f'{case}: breaker must carry open_until'
         v2 = st.get('v2') or {}
         pb = v2.get('provider_breakers') or {}
-        # TR-288 blast radius: provider-wide codes (credit, quota window)
-        # DEMOTE the provider; pair-local codes (overload, transport) must not.
+        # TR-364: ONE pair's failure never opens the provider breaker — any
+        # class, --provider-hard included (the measured 2026-11-03 openrouter
+        # defect: one lane's failure hid 339 live lanes for 30 minutes). The
+        # account-wide blast radius of a provider-level code still lands
+        # immediately, in the QUOTA GATE the resolver already reads (asserted
+        # below for the quota case) — no longer through a one-pair circuit
+        # demotion.
+        assert provider not in pb, (
+            f'{case}: one pair failure must not demote the provider (TR-364)')
         if spec['circuit_class'] == 'quota_window':
-            assert provider in pb, (
-                f'{case}: a quota-window 429 must demote the provider (TR-288)')
-            assert pb[provider]['class'] in ('quota_window', 'out_of_credit'), (
-                f'{case}: provider breaker class = {pb[provider]["class"]}')
-        elif spec['circuit_class'] == 'api_down':
-            assert provider not in pb, (
-                f'{case}: a pair-local 5xx must NOT demote the provider (TR-288)')
+            quota_path = tmp_path / 'state' / 'quota-state.json'
+            assert quota_path.exists(), (
+                f'{case}: the account-wide demotion must write the quota gate')
+            qg = (json.load(open(quota_path)).get('quota_exhausted') or {}).get(provider) or {}
+            assert qg.get('status') == 'gated', (
+                f'{case}: the quota gate must be gated for {provider}: {qg}')
     if os.path.exists(os.path.join(LIVE_DIR, 'circuit-state.json')):
         live_bytes = open(os.path.join(LIVE_DIR, 'circuit-state.json'), 'rb').read()
         assert b'tr191-' not in live_bytes, (

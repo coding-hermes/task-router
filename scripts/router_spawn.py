@@ -585,6 +585,76 @@ QUOTA_GATE_FIELDS = ('provider', 'status', 'reason', 'reset_at', 'detected_at')
 #: lets resolve() gate the SEAT instead of just the probed SKU.
 FREE_POOL_MARKER = 'free-model token quota'
 
+#: TR-364 defect 2: tokens that make a health entry's error field a QUOTA /
+#: LIMIT-EXHAUSTION class. Measured live: xkiro carried aggregate status OK
+#: while its error field said "Plan quota exhausted for the 7-day window
+#: (1400 USD)" — a plan-window exhaustion is account-wide evidence, but the
+#: gate read only the status word and routed onto the seat anyway.
+#: The vocabulary is EXHAUSTION, not bare rate-words: a transient
+#: "(rate limited)" 429 beside OK must NOT gate a seat (the committed
+#: free-pool negative control, tests/test_free_pool_gate.py — a rate limit
+#: is transient, an exhausted pool is not), so bare 'rate'/'limit' are
+#: deliberately absent; the tokens name limits that are REACHED/EXHAUSTED.
+QUOTA_ERROR_TOKENS = ('quota', 'exhausted', 'usage limit', 'plan limit',
+                      'reached your', 'budget exceeded')
+
+#: The probe's "usable" aggregate vocabulary (provider_health_probe.UP_LIKE,
+#: mirrored here because spawn does not import the probe module): a status in
+#: this set claims the seat can serve, which is exactly what contradicts a
+#: quota-class error field.
+HEALTH_USABLE_STATUSES = frozenset(('OK', 'SLOW', 'OVERLOADED', 'TIMEOUT'))
+
+
+def quota_error_gates(hs: Any) -> dict:
+    """{provider: gate} for the TR-364 defect-2 status/error contradiction.
+
+    A health entry whose aggregate status is USABLE (HEALTH_USABLE_STATUSES —
+    the probe's UP_LIKE) while its provider-level error field matches a
+    quota/limit class is a contradiction: a plan-window exhaustion is
+    account-wide, so "OK" is the stale signal. The gate resolves it in favor
+    of the ERROR and records which signal won:
+
+        resolved_by='error'   — usable status + quota-class error: GATED.
+        resolved_by='status'  — the status already gates (DOWN/SLOW/...):
+                                no contradiction, the existing health gate
+                                handles it; recorded for the audit only.
+
+    Providers without a quota-class error field are absent from the map.
+    Fail-open: an unreadable/malformed health map yields {} and gates nothing.
+    """
+    out = {}
+    if not isinstance(hs, dict):
+        return out
+    for prov, entry in hs.items():
+        if not isinstance(entry, dict):
+            continue
+        status = str(entry.get('status') or '')
+        err = entry.get('error')
+        if not isinstance(err, str) or not err.strip():
+            continue
+        low = err.lower()
+        if not any(tok in low for tok in QUOTA_ERROR_TOKENS):
+            continue
+        contradicts = status in HEALTH_USABLE_STATUSES
+        out[str(prov)] = {
+            'provider': str(prov),
+            'status': status,
+            'error': err[:300],
+            'active': contradicts,
+            'resolved_by': 'error' if contradicts else 'status',
+        }
+    return out
+
+
+def quota_error_why(g: Any) -> str:
+    """The exclusion why-row for an active TR-364 quota-error gate.
+
+    Prefix is load-bearing: exclusion_codes() maps 'health quota-error' to
+    the countable 'health-quota-error' code."""
+    return (f'health quota-error gate (status {g.get("status") or "?"} claims '
+            f'usable, quota-class error won — resolved_by='
+            f'{g.get("resolved_by") or "?"}): {(g.get("error") or "")[:160]}')
+
 
 def _next_utc_midnight(now: Any) -> datetime.datetime:
     """The next UTC midnight STRICTLY after `now` — a free daily pool's reset
@@ -897,6 +967,7 @@ _REASON_PREFIXES = (
     ('quota GATED', 'quota-gated'),
     ('health DOWN', 'health-down'),
     ('health SLOW', 'health-slow'),
+    ('health quota-error', 'health-quota-error'),
     ('health DISABLED', 'health-disabled'),
     ('model DOWN', 'model-down'),
     ('model SLOW', 'model-slow'),
@@ -3589,6 +3660,10 @@ def resolve(project: Any=None, profile_id: Any=None, adhoc: Any=None, use_health
     # ':free' lane's 429 means every ':free' SKU on that provider id is spent,
     # until the pool's own reset (next UTC midnight). See _free_pool_seats.
     free_pool_seats = _free_pool_seats(hs) if use_health else {}
+    # TR-364 defect 2: a USABLE aggregate status beside a quota-class error
+    # field resolves to GATED (the error wins — plan exhaustions are
+    # account-wide). See quota_error_gates.
+    quota_err_gates = quota_error_gates(hs) if use_health else {}
     cstate = load_json(f'{MR}/circuit-state.json', {})
     cs = cstate.get('pairs', {})
     # TR-014 provider-level breakers (v2 section; absent = {} = no provider gates)
@@ -3681,6 +3756,12 @@ def resolve(project: Any=None, profile_id: Any=None, adhoc: Any=None, use_health
             why.append(f'health DISABLED ({h.get("error") or h.get("ts", "?")})')
         elif h.get('status') == 'SLOW' and not _allow_slow:
             why.append(f'health SLOW ({h.get("latency_ms")}ms)')
+        # TR-364 defect 2: usable status beside a quota-class error field —
+        # the gate resolves the contradiction in favor of the error (gates
+        # the provider) and the row names which signal won (resolved_by).
+        _qeg = quota_err_gates.get(prov)
+        if _qeg and _qeg.get('active'):
+            why.append(quota_error_why(_qeg))
         # model-level health (probe v2 writes providers.<p>.models.<m>.status;
         # gpt-5.6-sol review 2026-08-27: the router previously ignored it and
         # routed onto 22 DOWN pairs)
