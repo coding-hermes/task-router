@@ -57,6 +57,10 @@ import router_outcomes
 import router_prometheus
 import router_ui_page
 import router_wire_ids
+# TR-369: the one capability vocabulary — /v1/models capabilities blocks are
+# keyed by these exact names (same tokens as the store columns and the
+# --profile-req requirement names).
+import capability_vocab as _cvocab
 
 JSON_RESPONSE = {
     "description": "JSON response",
@@ -5791,6 +5795,52 @@ def _classifier_failure_is_fatal(problem_text: Any) -> bool:
 _OPENAI_MODELS_CACHE = {"at": 0.0, "payload": None}
 
 
+def _lane_capabilities(row: Any, cat_row: Any) -> dict:
+    """TR-369: the per-lane `capabilities` block for GET /v1/models.
+
+    Read from the STORE (models.jsonl columns), never re-derived here: the
+    seed's derivation is the single writer of cap_* values. Categories list
+    the task categories with perf evidence; price prefers the PUBLIC sticker
+    rates (Bane cost law: public-first) and names its basis; modality/tool_call
+    come from the model's models.dev catalog row (model-level facts). The
+    OpenAI-compatible keys of the lane dict are untouched — this block is
+    purely additive.
+    """
+    cats = [c for c in _cvocab.PERF_CATEGORIES
+            if row.get('perf_' + c) is not None]
+    price = None
+    basis = None
+    pin, pout = row.get('public_in_per_m'), row.get('public_out_per_m')
+    evidence = row.get('price_evidence') or ''
+    if pin is not None or pout is not None:
+        price = {'per_m_input': pin, 'per_m_output': pout, 'currency': 'usd'}
+        if row.get('public_cache_read_per_m') is not None:
+            price['per_m_cache_read'] = row['public_cache_read_per_m']
+        if row.get('public_cache_write_per_m') is not None:
+            price['per_m_cache_write'] = row['public_cache_write_per_m']
+        basis = 'public list price' + (f' ({evidence})' if evidence else '')
+    elif row.get('public_price') is not None:
+        price = {'blended_per_m': row['public_price'], 'currency': 'usd'}
+        basis = ('public list price (blended)'
+                 + (f' ({evidence})' if evidence else ''))
+    elif row.get('normalized_price') is not None:
+        price = {'blended_per_m': row['normalized_price'], 'currency': 'usd'}
+        basis = 'normalized internal price (no public sticker on record)'
+    caps = {
+        'categories': cats,
+        'context_limit': row.get('context_limit'),
+        'price': price,
+        'price_basis': basis,
+        'vision': row.get('vision'),
+        'thinking': row.get('thinking'),
+        'modality': (cat_row or {}).get('modality'),
+        'tool_call': (cat_row or {}).get('tool_call'),
+    }
+    for fam in _cvocab.CAPABILITY_FAMILIES:
+        caps[fam] = row.get(_cvocab.family_column(fam))
+    return caps
+
+
 def openai_models_payload(data_dir: Any=None, max_age_s: int=300):
     """GET /v1/models — the OpenAI-compatible model list for this router.
 
@@ -5800,6 +5850,11 @@ def openai_models_payload(data_dir: Any=None, max_age_s: int=300):
     list), filtered to lanes a request could actually reach: not archived, not
     disabled, inside the lifecycle window (available_from <= today < valid_to).
     Cached briefly so a hammering client does not re-scan the table.
+
+    TR-369: every lane additionally carries an additive `capabilities` block
+    (task categories with evidence, the six capability families, vision/
+    thinking flags, catalog modality/tool_call, context_limit, price + basis).
+    The OpenAI-compatible keys {id, object, created, owned_by} are unchanged.
     """
     now = time.time()
     if (_OPENAI_MODELS_CACHE["payload"] is not None
@@ -5808,6 +5863,19 @@ def openai_models_payload(data_dir: Any=None, max_age_s: int=300):
     ddir = Path(data_dir) if data_dir else DATA_DIR
     today = datetime.datetime.now(datetime.UTC).strftime('%Y-%m-%d')
     data = []
+    cat_rows = []
+    try:
+        with open(Path(ddir) / 'model_catalog.jsonl') as cfh:
+            for line in cfh:
+                line = line.strip()
+                if line:
+                    try:
+                        cat_rows.append(json.loads(line))
+                    except ValueError:
+                        continue
+    except OSError:
+        cat_rows = []  # no catalog mirror -> modality/tool_call publish as null
+    cat_lookup = _cvocab.catalog_candidates(cat_rows)
     try:
         with open(Path(ddir) / 'models.jsonl') as fh:
             for line in fh:
@@ -5829,8 +5897,10 @@ def openai_models_payload(data_dir: Any=None, max_age_s: int=300):
                 model = row.get('model')
                 if not model:
                     continue
+                cands = cat_lookup(row.get('provider'), model)
                 data.append({'id': str(model), 'object': 'model', 'created': 0,
-                             'owned_by': str(row.get('provider') or 'unknown')})
+                             'owned_by': str(row.get('provider') or 'unknown'),
+                             'capabilities': _lane_capabilities(row, cands[0] if cands else None)})
     except OSError:
         data = []
     payload = {'object': 'list', 'data': data}
