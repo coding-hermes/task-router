@@ -1,0 +1,16 @@
+{
+  "tick": "task-router-foreman-2026-11-05-11-35-44",
+  "project": "task-router",
+  "kind": "verification-only",
+  "wave_size": 0,
+  "workers": [],
+  "worktrees": [],
+  "selected_row": "TR-355",
+  "selected_priority": "P0",
+  "dispatch": "none:owner-gated-live-cutover",
+  "gate": "TR-355 AC5 requires a production cutover of task-router-server (:9092) and task-router-proxy (:9391) plus one live gated-fleet tick; the cutover is owner-controlled and was not performed.",
+  "finding": "The cutover's precondition is unmet: the canonical checkout /home/kara/task-router is 7 commits behind origin/main and holds the PRE-FIX router_server.py (820c11cd). Both listeners report loaded_source_sha 35182a6ce5763fae == the pre-fix source digest, so a restart today would reload pre-fix code and AC5 would fail unchanged. origin/main's expected post-restart digest is 02f4efd01eda042f.",
+  "evidence": ".coding-hermes/evidence/tr355-verify-2026-11-05-113544.txt",
+  "tick_worktree": "/home/kara/proj-wt-tr355-verify-20261105",
+  "tree_probed": "08d82ff03c5e906475fad762d4f14935b60b8735"
+}

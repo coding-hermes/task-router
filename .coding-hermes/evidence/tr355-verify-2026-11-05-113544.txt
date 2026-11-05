@@ -1,0 +1,114 @@
+TR-355 verification-only probe — task-router-foreman-2026-11-05-11-35-44
+=======================================================================
+Date: 2026-11-05T11:38Z (06:38 local)
+Worktree: /home/kara/proj-wt-tr355-verify-20261105 (branch chore/tr355-verify-20261105)
+Tree probed: origin/main = 08d82ff03c5e906475fad762d4f14935b60b8735
+Selected row: TR-355 (P0, pending) — kept selected; owner-gated live cutover. No worker dispatched
+(wave_size 0) per the project rule that an owner-gated highest-priority row forbids lower-priority
+implementation dispatch.
+
+WHY THIS TICK EXISTS
+--------------------
+The prior tick (cf3d84a, 06:19 today) landed a6c8839 "the degraded wall cap was advertised but not
+applied on the provider last mile" and left TR-355 pending on AC5 alone: "AC5 cannot be satisfied
+until the listeners are restarted onto a6c8839". This tick re-probed the owner gate rather than
+repeating that note, and found the gate's PRECONDITION IS NOT MET: the canonical checkout is 7
+commits behind origin/main and still holds the PRE-FIX router_server.py, so a restart today would
+reload the same pre-fix source and AC5 would fail exactly as before.
+
+1. SOURCE-IDENTITY PROBE (the decisive measurement)
+---------------------------------------------------
+The router's own identity scheme: scripts/router_health.py source_sha() = sha256 of
+"router_server.py:<sha16>|router_health.py:<sha16>", truncated to 16 hex chars.
+
+  canonical checkout /home/kara/task-router (pre-fix file):
+      git hash-object scripts/router_server.py = 820c11cd4d7f1702e76296e10cba42a2d285d4bd
+      computed source digest                  = 35182a6ce5763fae
+  origin/main / this worktree (a6c8839 applied):
+      git hash-object scripts/router_server.py = 9517d3cab2af26d2204639dbff72164d359ba6e9
+      computed source digest                  = 02f4efd01eda042f   <-- expected after ff + restart
+  live listeners (/health .code.loaded_source_sha):
+      :9391 (task-router-proxy.service)  = 35182a6ce5763fae   (PRE-FIX source)
+      :9092 (task-router-server.service) = 35182a6ce5763fae   (PRE-FIX source)
+      both also report live_source_sha == loaded_source_sha, i.e. no drift since load; the
+      staleness they advertise is the commit LABEL (loaded_commit 04fdeb242793 vs repo_commit
+      88a83eb1b611), which on its own is not code staleness. The code staleness is real and is
+      proved by the digest above, not by the label.
+
+  Checkout parity:  git rev-list --left-right --count main...origin/main = 0 7  (7 behind).
+
+  Incoming commits (88a83eb..origin/main) touch:
+      .coding-hermes/board/{board,events,tasks}.jsonl, .coding-hermes/evidence/*,
+      .coding-hermes/waves/*, scripts/router_server.py, tests/test_tr355_degraded_wall.py
+  None of them touches the paths dirty in the canonical checkout (data/tables/*.jsonl from the
+  model-router-refresh data lane; tests/test_routing_quality_corpus.py, tests/test_tr168_model_uniqueness.py),
+  so `git pull --ff-only` would preserve those edits. It was NOT executed: a sibling session
+  (pid 162532/162741, started 06:32:22) is running the full pytest suite IN that checkout
+  (/tmp/pytest-full-1105c.log, 50% at 06:37), and swapping source under a live suite would corrupt
+  its evidence.
+
+2. AC4 RED->GREEN PROOF, RUN IN THIS TREE (independent of the prior tick's claim)
+---------------------------------------------------------------------------------
+  green (origin/main tree):  ~/.hermes/venvs/board/bin/python3 -m pytest -q tests/test_tr355_degraded_wall.py
+                             -> 8 passed in 0.27s
+  red (pre-fix router_server.py, git show a6c8839^:scripts/router_server.py, hash 820c11cd):
+                             -> 1 failed, 7 passed
+                                FAILED test_provider_last_mile_hop_honours_the_degraded_leash
+                                AssertionError: degraded last-mile hop rode the full hop wall
+                                (600.0s) instead of the 120s cap  -> assert 600.0 == 120.0
+  tree restored to 9517d3ca, `git status --porcelain` = 0 dirty paths.
+
+3. AC2 CALL-SITE CENSUS (every hop-timeout site, not just the one the fix touched)
+----------------------------------------------------------------------------------
+  scripts/router_server.py hop egress sites:
+   - default upstream (:8642): opener(req, timeout=timeout) where
+     timeout = _hop_budget_s(want_stream, degraded=_degraded_hop)   -> degraded-aware
+   - provider last mile:       urlopen(req, timeout=_hop_budget_s(False, degraded=degraded)) with
+     degraded = headers.get(_HOP_DEGRADED_HEADER) == '1'            -> degraded-aware (a6c8839)
+  No third un-leashed hop site exists in the file; _hop_budget_s() itself clamps to
+  _proxy_degraded_wall_s() (ROUTER_DEGRADED_WALL_S, default 120) when degraded=True.
+
+4. AC3 REASON VOCABULARY (no-eligible-hop vs a hop that ran and timed out)
+-------------------------------------------------------------------------
+  'hop-wall-timeout'  — transport budget expired (a hop ran); emitted at the ladder.
+  'unservable-rating' — resolver positively reports no eligible hop; carries the typed message
+                        "no eligible model for this rating in the registry and no fallback lane
+                        could serve (requirements_unmet: ...)". route_outcome stays 'no-hops' so the
+                        ledger baseline still counts it.
+  The two are distinct on the failure_reason plane.
+
+5. WHAT REMAINS (AC5 only)
+--------------------------
+AC1-AC4 are independently confirmed on origin/main by this tick. AC5 ("with the same gated fleet, a
+tick's gateway POST either returns a typed fast error or completes on a DEGRADED lane in well under
+the tick's stall budget") needs a production cutover plus one live gated-fleet tick. The cutover is
+owner-controlled and was not performed. The tick's finding is that the cutover REQUIRES the
+fast-forward first, or it is a no-op:
+
+  # after the in-flight full suite in the canonical checkout has exited
+  cd /home/kara/task-router
+  git status --porcelain -- scripts          # must be EMPTY (router_deploy.py refuses a dirty scripts/)
+  git pull --ff-only                          # 88a83eb -> 08d82ff; brings 9517d3ca router_server.py
+  git hash-object scripts/router_server.py    # expect 9517d3cab2af26d2204639dbff72164d359ba6e9
+  python3 scripts/router_deploy.py            # dry-run: compiles, fingerprints, prints ordered services
+  python3 scripts/router_deploy.py --apply    # restarts task-router-server then task-router-proxy,
+                                              # requiring PID change + /readyz 200 + source_digest match
+  curl -s 127.0.0.1:9391/health | jq .code    # expect loaded_source_sha == 02f4efd01eda042f
+  curl -s 127.0.0.1:9092/health | jq .code    # expect loaded_source_sha == 02f4efd01eda042f
+  # then observe one gated-fleet tick and quote wall_time_s in the closing event (AC5)
+
+  If either listener still reports 35182a6ce5763fae after --apply, the cutover did not take and the
+  deploy script's digest proof is the thing to inspect, not the row.
+
+6. CI AT THE PROBED HEAD
+------------------------
+  origin/main 08d82ff: gh run in_progress (created 11:20:05Z) — UNVERIFIED, not green.
+  a6c8839 (the fix): in_progress.  Latest completed run on main: 8094a82 SUCCESS.
+  No red run created by another lane is outstanding at this head.
+
+7. MUTATION LEDGER
+------------------
+  Production probes: read-only (curl /health, ss/ps census, git read commands).
+  Files changed: this evidence artifact + the zero-dispatch wave manifest (ignored, force-added).
+  No board row status change (TR-355 stays pending). No restart, no deploy, no source edit in the
+  canonical checkout, no worker dispatched.
