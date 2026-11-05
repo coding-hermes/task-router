@@ -1197,10 +1197,18 @@ def main(argv: Any = None) -> int:
             print('get: a lookup key is required', file=sys.stderr)
             return 2
         try:
-            print(json.dumps(get(args.kind, args.args), indent=1, sort_keys=True, default=str))
+            value = get(args.kind, args.args)
         except RedisError as exc:
             print(f'get: {exc}', file=sys.stderr)
             return 3
+        # A miss must NOT exit 0: `get` is the proof-verb a CI/cron reads, and a
+        # silent `null` + rc=0 is indistinguishable from a successful hit (the
+        # unrepresentable-failure class). 1 = not found, printed machine-readably.
+        if value is None or (isinstance(value, dict) and not value):
+            print(json.dumps({'kind': args.kind, 'args': list(args.args), 'found': False},
+                             indent=1, sort_keys=True))
+            return 1
+        print(json.dumps(value, indent=1, sort_keys=True, default=str))
         return 0
     return 2
 

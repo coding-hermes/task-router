@@ -331,3 +331,26 @@ def test_load_is_idempotent_when_fresh(scratch_home, capsys):
 def test_cli_verbs_dispatch(capsys):
     rc = rr.main(['status', '--state-only'])
     assert rc in (0, 1, 2, 3, 4, 5, 6)
+
+
+@live
+def test_get_miss_exits_non_zero(scratch_home, capsys):
+    """A lookup that finds nothing must not exit 0 (unrepresentable-failure class).
+
+    `get` is the verb a cron/CI reads to prove the plane answers. Printing `null`
+    with rc=0 makes a miss indistinguishable from a hit.
+    """
+    assert rr.verb_load() == 0
+    assert rr.main(['get', 'model', 'nope/nope']) == 1
+    out = capsys.readouterr().out
+    assert '"found": false' in out, out
+
+
+def test_cli_exposes_the_redis_verb():
+    """R74: `router redis ...` must dispatch through the real CLI entry point."""
+    from task_router import cli
+    assert cli.COMMANDS.get('redis') == 'router_redis.py'
+    exports = cli._home_env_exports()
+    assert 'ROUTING_DATA_DIR' in (exports.get('redis') or {})
+    # ROUTING_REGISTRY deliberately not exported (TR-REV-1012-1, same as siblings)
+    assert 'ROUTING_REGISTRY' not in (exports.get('redis') or {})

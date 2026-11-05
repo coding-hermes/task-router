@@ -191,6 +191,9 @@ COMMANDS = {
     "gaps":       "router_gaps.py",
     "ledger":     "router_ledger.py",
     "maintain":   "router_maintain.py",
+    # TR-388 R74: the Redis read plane is a first-class verb, not a script you
+    # call behind the CLI's back — `router redis status` is the cron contract.
+    "redis":      "router_redis.py",
     "modelsdev":  "router_modelsdev.py",
     "pricing":    "router_pricing.py",
     "plan-sweep": "router_plan_sweep.py",
@@ -329,6 +332,14 @@ def _home_env_exports() -> dict:
         },
         "ledger": {
             "LEDGER_FILE": paths.ledger_path(),
+        },
+        # TR-388 R74: the Redis read plane reads the same registry view spawn
+        # does (the shared resolver) and its runtime state sits in the CLI's
+        # state dir — same shape as its siblings. ROUTING_REGISTRY deliberately
+        # not exported (TR-REV-1012-1).
+        "redis": {
+            "ROUTING_DATA_DIR": data_dir,
+            "ROUTER_STATE_DIR": state_dir,
         },
         "maintain": {
             # ROUTING_REGISTRY deliberately not exported (TR-REV-1012-1):
