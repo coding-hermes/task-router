@@ -1,0 +1,23 @@
+{
+  "tick": "task-router-foreman-2026-11-05-23-19-25",
+  "project": "task-router",
+  "mode": "serial",
+  "wave_budget": 5,
+  "wave_size": 1,
+  "reason_no_wave": "Only one genuinely dispatchable P0 implementation row exists after premise verification at origin/main 9abb254: RELEASE-2026-10-22-001 and TR-355 are owner-gated (release authorization / :9092 cutover), and TR-371/TR-375/TR-376 are stale duplicates whose work already landed as TR-377/TR-378 (TR-377 complete). Below them the block is P1 infrastructure rows whose premises were not verified this tick, so a wave would have been composed of unverified work.",
+  "selected_row": "TR-363",
+  "selection_basis": "highest-priority PENDING row whose artifact is absent from the tree (P4_SECURITY and P5_VISION_E2E resolve to 1 hop / 1 provider, measured at 9abb254)",
+  "worktrees": [
+    {"row": "TR-363", "worktree": "/home/kara/proj-wt-tr363", "branch": "feat/tr363", "base": "origin/main 9abb254"}
+  ],
+  "workers": [
+    {"row": "TR-363", "model": "glm-5.3-flash", "provider": "zai-glm", "pid": 3855985, "brief": "/home/kara/.hermes/cache/scratch/tr363-brief-20261105T231925Z.md"}
+  ],
+  "excluded": [
+    {"row": "RELEASE-2026-10-22-001", "reason": "owner-gated: no owner authorization naming project+version+baseline SHA"},
+    {"row": "TR-355", "reason": "owner-gated: AC5 needs the deliberate :9092/:9391 restart cutover"},
+    {"row": "TR-375", "reason": "stale duplicate of TR-377 (complete): /metrics endpoint already on main"},
+    {"row": "TR-376", "reason": "stale duplicate of TR-378 (blocked on the same owner restart)"},
+    {"row": "TR-371", "reason": "duplicate twin marked superseded by TR-378; premise not verified this tick"}
+  ]
+}
