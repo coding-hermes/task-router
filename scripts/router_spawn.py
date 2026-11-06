@@ -163,6 +163,15 @@ except Exception as _cvocab_exc:  # noqa: BLE001
     _err(f'WARNING: TR-369 capability families unavailable — '
          f'capability_vocab import failed: {_cvocab_exc}')
 
+# TR-372: hop-store rotation (ROUTER_METRICS_MAX_BYTES / GENERATIONS).
+# Deliberately silent (no _err warning): rotation is a retention convenience,
+# not a resolve dependency — a missing module must degrade to today's
+# append-only behaviour without a word on stdout, stderr or the exit code.
+try:
+    import router_metrics_store as _metrics_store
+except Exception:  # noqa: BLE001 — rotation is fail-open by contract
+    _metrics_store = None
+
 # TR-363: requirement names that resolve as CAPABILITY POINTERS to the
 # registry's own boolean lane columns (same three-state contract as the
 # TR-369 families). The columns exist on every models.jsonl row regardless
@@ -1091,12 +1100,26 @@ def _append_metrics(rows: Any, result: Any) -> None:
 
     This function swallows ALL its own errors silently: stdout and exit code of
     router_spawn.py must remain identical to today's.
+
+    TR-372: before appending, the store is size-capped via
+    router_metrics_store.rotate_if_needed (ROUTER_METRICS_MAX_BYTES,
+    ROUTER_METRICS_GENERATIONS). Rotation is covered by the SAME fail-open
+    contract: any exception inside it is swallowed and the resolve's stdout,
+    exit code and appended rows are byte-identical to the pre-TR-372
+    behaviour — a failed rotation only delays retention until the next
+    append (or `router_metrics.py --rotate-now`). It never changes WHAT is
+    written.
     """
     try:
         path = _metrics_path()
         d = os.path.dirname(path)
         if d:
             os.makedirs(d, exist_ok=True)
+        if _metrics_store is not None:
+            # TR-372: size-capped rotation before the append. The module
+            # never raises; this call sits inside the same try so even a
+            # catastrophic store-module failure stays silent.
+            _metrics_store.rotate_if_needed(path)
         ts = datetime.datetime.now(datetime.UTC).isoformat(timespec='seconds')
         project = result.get('project')
         profile = result.get('profile')
