@@ -1,0 +1,52 @@
+Release readiness sweep — task-router-releng-2026-11-06-19-13-01, re-gated at current tip
+
+Measured at the current canonical repository tip after re-fetch.
+
+Identity
+- Repository: coding-hermes/task-router
+- Canonical root: /home/kara/task-router
+- Remote: git@github.com:coding-hermes/task-router.git
+- Default branch: main
+- Current candidate/carrier SHA: 1168dc23831f70c3aa4fe1464f7430c943708bd2
+- origin/main: 1168dc23831f70c3aa4fe1464f7430c943708bd2
+- Working tree: clean
+- Local/remote divergence: 0 ahead / 0 behind
+
+Release surface
+- Numeric local tags: 0
+- Numeric remote tags: 0
+- GitHub Release objects: 0
+- Existing release artifacts: none
+- No tag, Release, package artifact, or external release state was created or changed.
+
+Range and semver
+- No prior numeric release tag exists.
+- The material code candidate from the prior sweep is 553d2cb3270eb91abd1069707f9bd9e3d9d3280d; the commits from 553d2cb to the current tip are board/evidence bookkeeping only.
+- Prior measured range 4d44b1ee0558c6e9f2855cd45318220ce8a0ce85..553d2cb3270eb91abd1069707f9bd9e3d9d3280d: 66 commits, 63 non-merge subjects; feat=5, fix=9, perf=0, breaking footers=0, bang-marked subjects=0. The census reconciles to the 63 non-merge subjects.
+- Natural first-cut proposal remains v0.3.0 on the 0.x minor axis. This is not owner authorization.
+
+CI
+- Current exact-head run 42283117823, SHA 1168dc23831f70c3aa4fe1464f7430c943708bd2, is still in_progress. Job test is in_progress; the full test suite is in_progress and guard/fresh-clone/registry/null-debt/TR-251/outcome-probe/proxy gates are pending. Exact current-tip CI is therefore PENDING, not green.
+- Prior material candidate run 42277410847 on 553d2cb3270eb91abd1069707f9bd9e3d9d3280d completed success, but it does not clear the current carrier SHA. Earlier red/cancelled runs on other SHAs are not inherited.
+- Workflow has no tag trigger; future tag verification requires workflow_dispatch according to the repository release procedure.
+
+Version, tooling, and artifacts
+- pyproject.toml version: 0.2.0
+- task_router/__init__.py version: 0.2.0
+- CHANGELOG.md has populated [Unreleased] and no v0.3.0 heading.
+- Makefile has no release/version/bump/publish/tag target.
+- scripts/release*, GoReleaser config, Dockerfile, and package.json are absent. docs/releases/release-readiness.md is a manual procedure only.
+- Executable release-driver gap is already tracked by RELEASE-2026-11-03-001.
+- Artifact type is Python package; no candidate artifacts were built because version-prep and authorization are absent.
+
+GitReins and dogfood/QA
+- No current-head GitReins verdict is bound to 1168dc23831f70c3aa4fe1464f7430c943708bd2. Latest passing verdicts are bound to earlier SHAs only; they are not current-tip evidence.
+- Latest committed dogfood record is 2026-11-06, PROMISING-BUT-ROUGH. It reports fresh-machine tests FAIL on the ::ffff loopback gate, install isolation UNVERIFIED, and a refused seed that still writes registry/data. Its measured product SHA is stale relative to the current tip and is not a waiver.
+- Board validation returns RESULT: FAIL (422 errors, 518 warnings), a standing legacy baseline dominated by event-id ordering and schema drift; this is recorded as repository evidence, not repaired by this sweep.
+- Open release-relevant blockers include P0 release readiness, the absent release driver, TR-371 ledger/tree divergence, TR-294, TR-375, TR-376, and TR-378, plus multiple P1 CI/QA/routing rows. No owner acceptance is recorded.
+
+Decision
+- NO CUT.
+- Decision-1 gate 2 applies: exact current-tip hosted CI is pending, and open P0 blockers remain. Independent hard invariants also fail: no version-prep commit, version surface still 0.2.0 with populated Unreleased, no executable release driver, no first-release authorization/distribution decision, and no current-tip GitReins/dogfood clearance.
+- No major bump is proposed: no BREAKING CHANGE footer or bang-marked subject was found.
+- Next action: owner must explicitly authorize task-router, version v0.3.0 (or another version), and baseline SHA; then land version/changelog prep, wait for exact-SHA green CI, build wheel/sdist, create an immutable annotated tag, dispatch tag-ref CI, publish the Release once, and verify downloaded installation and assets.
