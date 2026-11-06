@@ -3458,11 +3458,26 @@ def _resolve_fallback(tables: Any, qs: Any, hs: Any, cs: Any, reqs: Any, limit: 
     - fallback lanes may serve a profile they don't fully clear — but that is
       REPORTED, never silent: each hop carries `requirements_unmet` and the
       resolve response sets `degraded_fallback=true` when it fires.
-    - the same gates as the primary chain apply: quota GATED, plan-window
-      quota exhaustion (TR-060, `qgates`), health DOWN/SLOW, circuit OPEN,
-      model-level health, and the lane must exist/be priced. A quota-exhausted
-      provider must not reappear as the FALLBACK head — that is the same
-      oscillation with a different label.
+    - the same FATAL gates as the primary chain apply: quota GATED, plan-window
+      quota exhaustion (TR-060, `qgates`), provider health DOWN or DISABLED
+      (TR-247), model-level DOWN, circuit OPEN, and the lane must exist, be
+      priced and not retired/archived/disabled. A quota-exhausted provider
+      must not reappear as the FALLBACK head — that is the same oscillation
+      with a different label.
+    - HEALTH TIER, not a flat skip (TR-361, 2026-11-06): SLOW is a LATENCY
+      signal, not a failure — the primary chain already treats it as soft
+      (excluded unless --allow-slow). This path used to skip SLOW lanes
+      outright, so under host load every fallback provider went SLOW at once
+      (probe latency), all always-run lanes vanished together, and the
+      resolver returned `no chain` -> gateway HTTP 503 `unservable-rating` ->
+      the tick lost its whole window (157 deaths in the 24h to 2026-11-03).
+      Candidates are now health-tiered over the existing order: tier 0 =
+      provider and model both OK (served first; ordering and price sorting
+      unchanged); tier 1 = provider and/or model probe-marked SLOW, admitted
+      ONLY when no tier-0 lane exists in any stage. Every tier-1 hop carries
+      `slow: true` + `slow_detail`, and the resolve payload adds a
+      gate_reason naming the trade: a slow lane answers; a 503 loses the
+      tick's whole window.
     - `profiles` field (optional) restricts a lane to specific profiles (e.g.
       the vision-exp lane serves only P5_VISION_E2E so a text model never
       handles vision E2E); absent = generic lane for all profiles.
@@ -3475,7 +3490,9 @@ def _resolve_fallback(tables: Any, qs: Any, hs: Any, cs: Any, reqs: Any, limit: 
       are considered ONLY when the matching + generic tiers produced nothing,
       so the tier is unreachable while ANY curated or generic lane is healthy
       — it can never outrank a sub lane or change price ordering. Each hop
-      says why: `last_resort` + `profile_scope`."""
+      says why: `last_resort` + `profile_scope`. The SLOW health tier sits
+      beneath this stage too (TR-361): healthy before slow within every
+      stage — matching -> generic -> last-resort."""
     lanes = sorted(tables.get('fallback_lanes') or [],
                    key=lambda r: (r.get('order') or 1 << 30))
     # TR-363: requirements_unmet uses the SAME requirement split as the
@@ -3505,40 +3522,74 @@ def _resolve_fallback(tables: Any, qs: Any, hs: Any, cs: Any, reqs: Any, limit: 
             generic.append(f)  # default lane, all profiles
     out = []
 
+    def _lat_suffix(entry: Any) -> str:
+        _lat = entry.get('latency_ms')
+        return f' (latency_ms={_lat})' if _lat is not None else ''
+
+    def _classify(f: Any):
+        """TR-361: one classification point per candidate lane.
+
+        Returns ('ok', None) for a fully healthy lane (tier 0 — the only
+        class the pre-TR-361 code could serve), ('slow', detail) for a lane
+        the hourly probe marked SLOW on the provider and/or the model
+        (tier 1, servable-but-degraded), or None when a FATAL gate excludes
+        it. The fatal set is unchanged: absent from the registry,
+        retired/archived/disabled, unpriced, quota GATED or missing its
+        policy row, TR-060 plan-window exhausted, provider DOWN / DISABLED,
+        model DOWN, circuit OPEN for the exact pair. A dead lane is still
+        dead — the tier below is about SLOW only."""
+        key = (f.get('provider'), f.get('model'))
+        m = by_lane.get(key)
+        if m is None:
+            return None  # lane doesn't exist in registry — gap, not a fabrication
+        if m.get('archive') or row_is_retired(m) or m.get('disabled'):
+            return None
+        if m.get('normalized_price') is None:
+            return None
+        # ---- gates, same as the primary chain ----
+        # TR-203: same policy plane as the primary chain — FAIL-CLOSED on
+        # absence. A fallback lane whose provider has no quota-state.json row
+        # is skipped (policy-gate-missing-row in the primary path's
+        # exclusion vocabulary); only a PRESENT non-open row is quota GATED.
+        q = qs.get(f.get('provider')) or {}
+        if f.get('provider') not in qs:
+            return None  # policy-gate-missing-row: provider not listed in quota-state.json
+        if q.get('status') != 'open':
+            return None  # quota GATED
+        qg = (qgates or {}).get(f.get('provider')) or {}
+        if qg.get('active'):
+            return None  # TR-060: plan window exhausted — not a fallback either
+        h = hs.get(f.get('provider')) or {}
+        if h.get('status') in ('DOWN', 'DISABLED'):
+            # TR-247: DISABLED = provider row disabled in the probe registry
+            # (vendor shutdown, dead key) — a deliberate off, never route onto it
+            return None
+        mm = (h.get('models') or {}).get(f.get('model')) or {}
+        if mm.get('status') == 'DOWN':
+            return None
+        if (cs.get((f.get('provider'), f.get('model'))) or
+                cs.get(f'{f.get("provider")}/{f.get("model")}')):
+            return None  # circuit OPEN for this exact pair
+        slow = []
+        if h.get('status') == 'SLOW':
+            slow.append('provider ' + str(f.get('provider')) +
+                        ' probe latency SLOW' + _lat_suffix(h))
+        if mm.get('status') == 'SLOW':
+            slow.append('model ' + str(f.get('provider')) + '/' +
+                        str(f.get('model')) + ' probe latency SLOW' +
+                        _lat_suffix(mm))
+        if slow:
+            return ('slow', '; '.join(slow))
+        return ('ok', None)
+
     def _walk(group: Any, last_resort: bool=False) -> None:
-        for f in group:
+        # group: [(lane, slow_detail)] — already fatal-gated by _classify,
+        # one health tier per call (slow_detail None = tier 0, else tier 1).
+        for f, slow_detail in group:
             key = (f.get('provider'), f.get('model'))
             m = by_lane.get(key)
             if m is None:
-                continue  # lane doesn't exist in registry — gap, not a fabrication
-            if m.get('archive') or row_is_retired(m) or m.get('disabled'):
-                continue
-            if m.get('normalized_price') is None:
-                continue
-            # ---- gates, same as the primary chain ----
-            # TR-203: same policy plane as the primary chain — FAIL-CLOSED on
-            # absence. A fallback lane whose provider has no quota-state.json row
-            # is skipped (policy-gate-missing-row in the primary path's
-            # exclusion vocabulary); only a PRESENT non-open row is quota GATED.
-            q = qs.get(f.get('provider')) or {}
-            if f.get('provider') not in qs:
-                continue  # policy-gate-missing-row: provider not listed in quota-state.json
-            elif q.get('status') != 'open':
-                continue  # quota GATED
-            qg = (qgates or {}).get(f.get('provider')) or {}
-            if qg.get('active'):
-                continue  # TR-060: plan window exhausted — not a fallback either
-            h = hs.get(f.get('provider')) or {}
-            if h.get('status') in ('DOWN', 'SLOW', 'DISABLED'):
-                # TR-247: DISABLED = provider row disabled in the probe registry
-                # (vendor shutdown, dead key) — a deliberate off, never route onto it
-                continue
-            mm = (h.get('models') or {}).get(f.get('model')) or {}
-            if mm.get('status') in ('DOWN', 'SLOW'):
-                continue
-            if (cs.get((f.get('provider'), f.get('model'))) or
-                    cs.get(f'{f.get("provider")}/{f.get("model")}')):
-                continue  # circuit OPEN for this exact pair
+                continue  # classify already excluded this; kept defensive
             mt = _alias_tiers(tiers, tiers_folded, f.get('model'))
             unmet = [(c, lvl, mt.get(c) if mt.get(c) is not None else -1)
                      for c, lvl in fb_tier_reqs
@@ -3575,6 +3626,12 @@ def _resolve_fallback(tables: Any, qs: Any, hs: Any, cs: Any, reqs: Any, limit: 
                    'data_class': m.get('data_class'),
                    'fallback': True, 'key_env': f.get('key_env'),
                    'requirements_unmet': unmet}
+            if slow_detail:
+                # TR-361: machine-readable degradation marker on every
+                # tier-1 hop — this lane answers, but the probe marked it
+                # SLOW and it served only because nothing healthy could.
+                ent['slow'] = True
+                ent['slow_detail'] = slow_detail
             if last_resort:
                 # name WHY this hop is a poor fit — never a silent profile swap
                 ent['last_resort'] = True
@@ -3587,12 +3644,40 @@ def _resolve_fallback(tables: Any, qs: Any, hs: Any, cs: Any, reqs: Any, limit: 
             if len(out) >= limit:
                 return
 
-    # Tier 1 = curated-for-this-profile, then generic (historical ordering).
-    _walk(specific + generic)
-    if not out and unmatched:
-        # Tier 2 = LAST RESORT. Strictly subordinate: reached only when tier 1
-        # produced ZERO hops, so a healthy curated/generic lane always wins.
-        _walk(unmatched, last_resort=True)
+    # TR-361: classify every candidate ONCE, stage order preserved
+    # (matching + generic = stage 1, different-profile = last-resort stage 2).
+    stage1 = []
+    for f in specific + generic:
+        cls = _classify(f)
+        if cls is not None:
+            stage1.append((f, cls[1]))
+    stage2 = []
+    for f in unmatched:
+        cls = _classify(f)
+        if cls is not None:
+            stage2.append((f, cls[1]))
+    # Health TIER over the existing candidate order: tier 0 = provider and
+    # model both OK — today's behaviour; ordering and price sorting are
+    # untouched. Tier 1 = probe-marked SLOW, admitted ONLY when NO tier-0
+    # lane exists in any stage. SLOW is a latency signal, not a failure:
+    # under host load every fallback provider goes SLOW at once, and the
+    # flat skip turned that into a guaranteed `no chain` -> gateway 503 ->
+    # the tick loses its whole window (157 deaths in the 24h to 2026-11-03,
+    # TR-361). A slow lane answers; a 503 does not.
+    if any(d is None for _, d in stage1) or any(d is None for _, d in stage2):
+        pool1 = [(f, d) for f, d in stage1 if d is None]
+        pool2 = [(f, d) for f, d in stage2 if d is None]
+    else:
+        pool1, pool2 = stage1, stage2
+    # Stage order matching -> generic -> last-resort, the SLOW tier beneath
+    # every stage: a tier-1 pass serves slow lanes in the same order a
+    # tier-0 pass would serve healthy ones.
+    _walk(pool1)
+    if not out and pool2:
+        # LAST RESORT. Strictly subordinate: reached only when the
+        # matching/generic stage produced ZERO hops, so a curated/generic
+        # lane — healthy or merely slow — always wins first.
+        _walk(pool2, last_resort=True)
     return out
 
 
@@ -4385,6 +4470,15 @@ def resolve(project: Any=None, profile_id: Any=None, adhoc: Any=None, use_health
                 f'{head["provider"]}/{head["model"]} (always-run lane; '
                 f'DEGRADED — requirements_unmet: '
                 f'{[(c, lvl, have) for c, lvl, have in head.get("requirements_unmet", [])]})')
+            if any(hop.get('slow') for hop in fb_used):
+                # TR-361: the served lane is probe-marked SLOW — a latency
+                # signal, not a failure. Name the trade: this lane answers;
+                # the pre-fix alternative was a 503 and a lost tick window.
+                reasons.append(
+                    f'SLOW FALLBACK: {head["provider"]}/{head["model"]} is '
+                    'probe-marked SLOW and is served because no healthy '
+                    'always-run lane existed — a slow lane answers; a 503 '
+                    'loses the whole tick window (TR-361)')
 
     if not head and not _had_eligible:
         # NOTHING was eligible (an unsatisfiable rating) and no always-run lane could serve
