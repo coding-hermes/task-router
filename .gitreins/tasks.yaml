@@ -1616,3 +1616,14 @@ tasks:
   status: complete
   created_at: '2026-11-06T03:01:00.955743+00:00'
   completed_at: '2026-11-06T03:01:05.969320+00:00'
+- id: TR-276
+  title: 'SERVE MODES: one binary, explicit modes (api|proxy|ui|all), with mode/cache-gen/admission
+    on /health'
+  criteria:
+  - One binary with explicit modes (api|proxy|ui|all); mode+port logged at boot. /health
+    reports mode, loaded commit+source sha, cache generation, admission (max in-flight/current),
+    ops counters. Test proves each mode serves its own surface and refuses other modes
+    mutations (403 not 500). Starting twice on same port fails loudly naming the port.
+  status: complete
+  created_at: '2026-11-06T03:43:49.079205+00:00'
+  completed_at: '2026-11-06T03:47:46.827425+00:00'
