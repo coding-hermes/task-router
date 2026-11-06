@@ -1,0 +1,33 @@
+RELEASE-READINESS VERIFICATION — task-router first release cut
+row: RELEASE-2026-10-22-001 (P0, owner-gated)
+tick: task-router-foreman-2026-11-06-12-08-29
+worktree: /home/kara/worktrees/task-router-RELEASE-2026-10-22-001-20261106-120829
+source_sha: 586dcf6b16bde9a3b722a65a805bf4e090819a52
+workers_dispatched: 0 (WAVE_BUDGET=1; owner-gated row remains workerless)
+decision: NO CUT — no explicit owner authorization naming task-router, a release version, and a baseline SHA exists.
+
+MEASURED RELEASE SURFACE
+local numeric tags: 0
+remote tags: 0
+GitHub Release objects: 0
+pyproject.toml version: 0.2.0
+task_router.__version__: 0.2.0
+CHANGELOG v0.3.0 headings: 0
+
+DEPENDENCIES
+TR-341 complete (380893b)
+TR-344 complete (board-only/no commit)
+QA-TASKROUTER-2 complete (705742aed21ffa563e29ccbe37bf52d584ffb5ca)
+XK-404-001-R2 complete (bf5fef9)
+
+CI
+Recent exact-head query at source_sha 586dcf6b16bde9a3b722a65a805bf4e090819a52: latest three GitHub Actions runs are completed/success on main; no recent failure was observed.
+Exact candidate CI: not run for this verification commit because this commit is evidence/bookkeeping only and no release authorization exists.
+
+OWNER GATE
+The row's criterion 1 requires an explicit owner authorization naming task-router and the release version/baseline SHA before any tag or Release object. The board and event evidence contain only the requirement or statements that authorization is absent; they contain no release grant against a named baseline SHA. The scheduler prompt is not authorization.
+
+HELD BACK
+No version bump, CHANGELOG promotion, tag, GitHub Release, or candidate artifacts were created. v0.3.0 remains a proposal only.
+
+ch:trace row=RELEASE-2026-10-22-001 spec=docs/releases/release-readiness.md#written-procedure wave=.coding-hermes/waves/task-router-foreman-2026-11-06-12-08-29.json#verification-only-owner-gated test=none:owner-gated-readiness evidence=.coding-hermes/evidence/release-readiness-verify-2026-11-06-12-08-29.txt witness=github:latest-three-completed-success verdict=none:verification-only-no-task commit=none:pending-board-closeout memory=none:pending
