@@ -416,3 +416,42 @@ def test_enabled_fleet_lanes_all_in_committed_table():
         f"projects.jsonl (ROUTER-MISS): {missing[:10]} — run "
         f"scripts/derive_projects_seed.py then scripts/router_seed.py"
     )
+
+
+# ---------------------------------------------------------------------------
+# 6. TR-381: the suffix map must cover every suffix the live fleet actually
+#    uses (the 2026-11-04 fleet-ops wave added -ops/-check/-repair ids and a
+#    compound primary code-factory; the map refused them and blocked the whole
+#    append until each was classified from table precedent).
+# ---------------------------------------------------------------------------
+
+@pytest.mark.skipif(not (os.path.exists(_FLEET) and os.path.exists(_DB)),
+                    reason="host fleet.toml / scheduler.db absent (fresh clone)")
+def test_ops_suffix_classified_and_live_dry_run_clean():
+    sys.path.insert(0, SCRIPTS)
+    import derive_projects_seed as dps
+
+    # (a) classify_lane('bunker-ops') -> a profile the registry declares,
+    #     board_type per the rule ('' is reserved for -sync lanes).
+    profile, board_type = dps.classify_lane("bunker-ops")
+    declared = set()
+    with open(os.path.join(DATA_DIR, "task_profiles.jsonl"), encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if line:
+                declared.add(json.loads(line)["id"])
+    assert profile in declared, (
+        f"classify_lane('bunker-ops') -> {profile!r}, not declared in "
+        f"data/tables/task_profiles.jsonl")
+    assert board_type == "jsonl"
+
+    # the compound primary rides the bare-primary P0_FORE precedent; an
+    # unknown compound id that is NOT a primary still refuses loudly
+    assert dps.classify_lane("code-factory", {"code-factory"}) == ("P0_FORE", "jsonl")
+    with pytest.raises(ValueError, match="refusing to guess"):
+        dps.classify_lane("newproj-banana")
+
+    # (b) full seed path on live host data: the detector reports 0 missing
+    # lanes (exit 0) the day after an append — red again if a new wave lands
+    # with a suffix the map does not know.
+    assert dps.main(["--dry-run"]) == 0

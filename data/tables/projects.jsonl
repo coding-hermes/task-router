@@ -102,6 +102,7 @@
 {"id": "bunker-dogfood", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
 {"id": "bunker-foreman", "sensitivity": "open", "board_type": "jsonl", "profile": "P0_FORE"}
 {"id": "bunker-foreman-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
+{"id": "bunker-ops", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
 {"id": "bunker-perf", "sensitivity": "open", "board_type": "jsonl", "profile": "P2_AGENTIC"}
 {"id": "bunker-perf-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
 {"id": "bunker-pm", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
@@ -136,12 +137,23 @@
 {"id": "chimera-v2-review", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
 {"id": "chimera-v2-review-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
 {"id": "chimera-v2-sync", "sensitivity": "open", "board_type": "", "profile": "P8_SYNC"}
+{"id": "code-factory", "sensitivity": "open", "board_type": "jsonl", "profile": "P0_FORE"}
+{"id": "code-factory-docs", "sensitivity": "open", "board_type": "jsonl", "profile": "P3_DOCS"}
+{"id": "code-factory-dogfood", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
+{"id": "code-factory-ops", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
+{"id": "code-factory-perf", "sensitivity": "open", "board_type": "jsonl", "profile": "P2_AGENTIC"}
+{"id": "code-factory-pm", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
+{"id": "code-factory-readme", "sensitivity": "open", "board_type": "jsonl", "profile": "P3_DOCS"}
+{"id": "code-factory-releng", "sensitivity": "open", "board_type": "jsonl", "profile": "P2_AGENTIC"}
+{"id": "code-factory-review", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
+{"id": "code-factory-sync", "sensitivity": "open", "board_type": "", "profile": "P8_SYNC"}
 {"id": "coding-hermes-scheduler", "sensitivity": "open", "board_type": "jsonl", "profile": "P1_CODING"}
 {"id": "coding-hermes-scheduler-docs", "sensitivity": "open", "board_type": "jsonl", "profile": "P3_DOCS"}
 {"id": "coding-hermes-scheduler-docs-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
 {"id": "coding-hermes-scheduler-dogfood", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
 {"id": "coding-hermes-scheduler-foreman", "sensitivity": "open", "board_type": "jsonl", "profile": "P0_FORE"}
 {"id": "coding-hermes-scheduler-foreman-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
+{"id": "coding-hermes-scheduler-ops", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
 {"id": "coding-hermes-scheduler-perf", "sensitivity": "open", "board_type": "jsonl", "profile": "P2_AGENTIC"}
 {"id": "coding-hermes-scheduler-perf-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
 {"id": "coding-hermes-scheduler-pm", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
@@ -194,6 +206,7 @@
 {"id": "crier-dogfood", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
 {"id": "crier-foreman", "sensitivity": "open", "board_type": "jsonl", "profile": "P0_FORE"}
 {"id": "crier-foreman-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
+{"id": "crier-ops", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
 {"id": "crier-perf", "sensitivity": "open", "board_type": "jsonl", "profile": "P2_AGENTIC"}
 {"id": "crier-pm", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
 {"id": "crier-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
@@ -312,6 +325,7 @@
 {"id": "escalation-doctrine-readme", "sensitivity": "open", "board_type": "jsonl", "profile": "P3_DOCS"}
 {"id": "escalation-doctrine-readme-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
 {"id": "escalation-doctrine-sync", "sensitivity": "open", "board_type": "", "profile": "P8_SYNC"}
+{"id": "fleet-ops-check", "sensitivity": "open", "board_type": "jsonl", "profile": "P7_MOCK"}
 {"id": "fleet-releng", "sensitivity": "open", "board_type": "jsonl", "profile": "P2_AGENTIC"}
 {"id": "fleet-releng-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
 {"id": "frontiers-ghost-sync", "sensitivity": "open", "board_type": "", "profile": "P8_SYNC"}
@@ -321,6 +335,7 @@
 {"id": "gitreins-dogfood", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
 {"id": "gitreins-foreman", "sensitivity": "open", "board_type": "jsonl", "profile": "P0_FORE"}
 {"id": "gitreins-foreman-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
+{"id": "gitreins-ops", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
 {"id": "gitreins-perf", "sensitivity": "open", "board_type": "jsonl", "profile": "P2_AGENTIC"}
 {"id": "gitreins-pm", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
 {"id": "gitreins-poc", "sensitivity": "open", "board_type": "jsonl", "profile": "P4_SECURITY"}
@@ -465,6 +480,7 @@
 {"id": "hermes-dagger-dogfood", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
 {"id": "hermes-dagger-foreman", "sensitivity": "open", "board_type": "jsonl", "profile": "P0_FORE"}
 {"id": "hermes-dagger-foreman-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
+{"id": "hermes-dagger-ops", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
 {"id": "hermes-dagger-perf", "sensitivity": "open", "board_type": "jsonl", "profile": "P2_AGENTIC"}
 {"id": "hermes-dagger-pm", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
 {"id": "hermes-dagger-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
@@ -533,6 +549,8 @@
 {"id": "inference-estimator-readme-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
 {"id": "inference-estimator-sync", "sensitivity": "open", "board_type": "", "profile": "P8_SYNC"}
 {"id": "kobayashi-maru-sync", "sensitivity": "open", "board_type": "", "profile": "P8_SYNC"}
+{"id": "lane-cadence-check", "sensitivity": "open", "board_type": "jsonl", "profile": "P7_MOCK"}
+{"id": "lane-repair", "sensitivity": "open", "board_type": "jsonl", "profile": "P7_MOCK"}
 {"id": "logsey", "sensitivity": "open", "board_type": "jsonl", "profile": "P0_FORE"}
 {"id": "logsey-docs", "sensitivity": "open", "board_type": "jsonl", "profile": "P3_DOCS"}
 {"id": "logsey-docs-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
@@ -824,6 +842,7 @@
 {"id": "task-router-dogfood", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
 {"id": "task-router-foreman", "sensitivity": "open", "board_type": "jsonl", "profile": "P0_FORE"}
 {"id": "task-router-foreman-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
+{"id": "task-router-ops", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
 {"id": "task-router-perf", "sensitivity": "open", "board_type": "jsonl", "profile": "P2_AGENTIC"}
 {"id": "task-router-pm", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
 {"id": "task-router-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
