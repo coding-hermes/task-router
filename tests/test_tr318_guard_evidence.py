@@ -177,13 +177,17 @@ def test_p4_security_measured_pool_and_exclusion(tmp_path):
     battery, and the security>=2 pool holds only {gpt-6.1-sol, GLM-5.3,
     GLM-5.2}. The old estimate (GLM-5.2 guard 0.86, tier 0) was the only
     thing letting a second family into the chain; the measurement removed
-    it. Lowering the guard requirement to re-admit GLM is the owner's call
-    (TR-318 fix direction b), never the worker's — so this cell pins the
-    honest invariants instead:
-      * the chain still resolves non-empty (head = gpt-6.1-sol family);
-      * every GLM guard row in the pool is bench-sourced (measured), never
-        family/estimate — the exclusion is evidence-based;
-      * the guard=0 requirement itself is untouched.
+    it. TR-363 (2026-11-05) then took that owner call: the committed bars in
+    data/tables/task_profile_requirements.jsonl moved to guard=-1/review=-1
+    (security stays 2), re-admitting the GLM-5.2 line through the blank -1
+    tier — so this cell pins the honest invariants instead:
+      * the chain still resolves non-empty (INT-CI-20 measured: 9 hops,
+        head = glm-5.2 family; families {gpt-6.1-sol, GLM-5.2, GLM-5.3});
+      * the guard rows of the measured-excluded glm-5.2-fast / glm-5.2-
+        short-flex / glm-5.3-flash stay bench-sourced 0/4 — the measurement
+        that held the old bar remains on the record;
+      * the requirement rows still come from committed data: guard=-1,
+        review=-1, security=2 (the TR-363 values, never re-invented).
     """
     env = _hermetic_env(tmp_path)
     reg = _seed(env)
@@ -197,11 +201,13 @@ def test_p4_security_measured_pool_and_exclusion(tmp_path):
             f"the pool must be measured, not estimated")
         assert row["perf"] == pytest.approx(0.0), (
             f"{m} measured guard drifted: {row['perf']}")
-    # the requirement is untouched (data rows, not the bootstrap dict)
+    # the requirement rows (data, not the bootstrap dict) — INT-CI-20: the
+    # committed values moved to guard=-1/review=-1 under TR-363
+    # (data/tables/task_profile_requirements.jsonl); security stays 2.
     reqs = {r["category"]: r["level"] for r in reg["tables"]["task_profile_requirements"]
             if r["task_id"] == "P4_SECURITY"}
-    assert reqs.get("security") == 2 and reqs.get("guard") == 0 \
-        and reqs.get("review") == 0, f"P4 requirements changed: {reqs}"
+    assert reqs.get("security") == 2 and reqs.get("guard") == -1 \
+        and reqs.get("review") == -1, f"P4 requirements changed: {reqs}"
     # the chain resolves non-empty and its models all clear the bars
     state = tmp_path / "state"
     tiers = reg["tables"]["model_tier"]

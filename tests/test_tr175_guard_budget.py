@@ -101,7 +101,10 @@ def test_seeded_registry_carries_the_committed_levels(seeded_registry_path):
     sys.path.insert(0, os.path.join(REPO, "scripts"))
     import router_outcomes as ro
     sig = ro.profile_signature("P4_SECURITY", registry_path=seeded_registry_path)
-    assert sig == {"guard": 0, "review": 0, "security": 2}
+    # INT-CI-20 (TR-363): the committed bars in
+    # data/tables/task_profile_requirements.jsonl are guard=-1/review=-1/
+    # security=2 — pinned to the DECLARED values, exact.
+    assert sig == {"guard": -1, "review": -1, "security": 2}
 
 
 # ---------------------------------------------------------------------------

@@ -48,6 +48,19 @@ until a human re-pins the case consciously (the failure message names both
 sides). Pools may GROW freely (min_chain is a floor); head changes and
 must_exclude violations always fail.
 
+INT-CI-20 (2026-11-05, TR-363 aftermath): profile/P4_SECURITY consciously
+re-pinned to the DECLARED bars (-1/-1/2 per
+data/tables/task_profile_requirements.jsonl) and their measured decision.
+profile/P5_VISION_E2E and adhoc/visual-qa-band are measured-RED on this tree
+and deliberately left unpinned: the new vision head
+(opencode-go/deepseek-v4.1-flash) fails the independent check — vision>=1
+but its model_tier row is tier=-1 (family alias) while models.jsonl declares
+vision=true (a router-answer vs tier-data contradiction, not a stale pin) —
+deepseek/deepseek-flash (now vision=true declared) entered both vision pools
+across two must_exclude pins, and the visual-qa pool shrank 36 -> 31 lanes
+(below its floor; lowering min_chain is not allowed). Reported to the
+foreman; the data-plane residual row is theirs to file.
+
 ch:trace row=TR-350 spec=board-row-TR-350 test=tests/test_routing_quality_corpus.py
 """
 import json
@@ -293,12 +306,20 @@ CASES = [
     {
         'id': 'profile/P4_SECURITY', 'kind': 'eligible',
         'input': {'profile': 'P4_SECURITY'},
-        'capability_tags': {'guard': 0, 'review': 0, 'security': 2},
-        # security>=2 is a hard bar: only 4 lanes clear it, the cheapest is a
-        # $1.52 openrouter lane, and the PAYG default lane must NOT serve it.
+        # INT-CI-20 (TR-363): the DECLARED bars in
+        # data/tables/task_profile_requirements.jsonl moved guard/review
+        # 0 -> -1 (security stays 2); pinned to the committed values.
+        'capability_tags': {'guard': -1, 'review': -1, 'security': 2},
+        # security>=2 is still the hard bar; guard/review at -1 re-admit the
+        # GLM-5.2 line through the blank -1 guard tier. Measured 2026-11-05
+        # (INT-CI-20, this tree @ 4e04d68): the head moved to the cheapest
+        # security>=2 lane, the $0.786-sticker neuralwatt flex lane
+        # (effective 0.725), and the pool grew 4 -> 9 lanes (floor stays 4 —
+        # pools may grow freely). deepseek-flash stays OUT: no security tier
+        # row -> blank -1 < 2.
         'expect': {
-            'head': ['openrouter', 'z-ai/glm-5.3'],
-            'head_usd_1m': 1.52,
+            'head': ['neuralwatt', 'glm-5.2-short-fast-flex'],
+            'head_usd_1m': 0.786,
             'must_include': [['commandcode', 'gpt-6.1-sol'],
                              ['commandcode', 'zai-org/GLM-5.2-Fast']],
             'must_exclude': [['deepseek', 'deepseek-flash'],
@@ -448,8 +469,10 @@ CASES = [
         'id': 'adhoc/security-band', 'kind': 'eligible',
         'input': {'adhoc': ['security=2', 'guard=0']},
         'capability_tags': {'security': 2, 'guard': 0},
-        # Same 4-lane pool as P4_SECURITY: the band, not the profile id, is
-        # what makes security-critical routing expensive.
+        # The 4-lane pool P4_SECURITY had BEFORE TR-363 moved its profile
+        # bars to guard=-1/review=-1 (data/tables/task_profile_requirements.jsonl).
+        # This adhoc band keeps guard=0, so the GLM-5.2 line stays out and the
+        # $1.52 openrouter lane still heads the original 4-lane pool.
         'expect': {
             'head': ['openrouter', 'z-ai/glm-5.3'],
             'head_usd_1m': 1.52,

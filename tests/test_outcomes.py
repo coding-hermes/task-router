@@ -113,7 +113,10 @@ def test_profile_signature_is_declared_category_levels(seeded_registry_path):
     """
     sig = ro.profile_signature('P4_SECURITY', registry_path=seeded_registry_path)
     assert sig is not None
-    assert sig == {'guard': 0, 'review': 0, 'security': 2}
+    # INT-CI-20 (TR-363): the DECLARED bars moved in
+    # data/tables/task_profile_requirements.jsonl — guard/review 0 -> -1,
+    # security stays 2. Pinned to the committed values, exact.
+    assert sig == {'guard': -1, 'review': -1, 'security': 2}
     p1 = ro.profile_signature('P1_CODING', registry_path=seeded_registry_path)
     assert 'code_gen' in p1 and 'refactor' in p1
     assert ro.profile_signature('P_DOES_NOT_EXIST',
