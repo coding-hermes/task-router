@@ -1,0 +1,32 @@
+{
+  "tick": "task-router-foreman-2026-11-06-14-41-12",
+  "project": "task-router",
+  "repo": "/home/kara/task-router",
+  "base_ref": "origin/main",
+  "base_sha": "218e194fa22ab25ddfe37944648a7a0cb00885a6",
+  "wave_budget": 10,
+  "wave_size": 2,
+  "independence_check": "TR-372 touches scripts/router_spawn.py::_append_metrics, scripts/router_metrics.py, scripts/router_prometheus.py, docs; QA-TASKROUTER-3 touches tests/test_validate.py only. No shared files, no depends_on edges between the two rows (both depends_on empty/null).",
+  "workers": [
+    {
+      "task_id": "TR-372",
+      "priority": "P1",
+      "title": "Cap and rotate data/metrics.jsonl with retention; readers resolve the rotated set",
+      "worktree": "/home/kara/worktrees/task-router-TR-372",
+      "branch": "wt/TR-372",
+      "model": "glm-5.3-flash",
+      "provider": "zai-glm"
+    },
+    {
+      "task_id": "QA-TASKROUTER-3",
+      "priority": "P3",
+      "title": "tests/test_validate.py bare-run acceptance must skip with a make-seed pointer on a checkout without registry.json",
+      "worktree": "/home/kara/worktrees/task-router-QA-TASKROUTER-3",
+      "branch": "wt/QA-TASKROUTER-3",
+      "model": "glm-5.3-flash",
+      "provider": "zai-glm"
+    }
+  ],
+  "merge_order": ["TR-372", "QA-TASKROUTER-3"],
+  "notes": "Both dispatched in isolated worktrees off origin/main 218e194; foreman merges serially and verifies gates after each merge."
+}
