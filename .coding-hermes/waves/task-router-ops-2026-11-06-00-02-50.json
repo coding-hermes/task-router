@@ -1,0 +1,37 @@
+{
+  "wave_id": "task-router-ops-2026-11-06-00-02-50",
+  "lane": "task-router-ops",
+  "tick": "2026-11-06-00-02-50",
+  "workdir": "/home/kara/.hermes/stand-in/pm/task-router",
+  "canonical_root": "/home/kara/task-router",
+  "selected_row": "INT-CI-19",
+  "wave_size": 1,
+  "workers": [
+    {
+      "row": "INT-CI-19",
+      "model": "glm-5.3-flash",
+      "provider": "zai-glm",
+      "worktree": "/home/kara/proj-wt-intci19",
+      "branch": "fix/int-ci-19-ops-probes",
+      "base": "564938d",
+      "commit": "ecf8ca69beeb7a1775de0fb413df40349e0f5f5d",
+      "brief": "/home/kara/.hermes/cache/scratch/intci19-20261106/brief.md",
+      "launcher_log": "/home/kara/.hermes/cache/scratch/intci19-20261106/worker.log",
+      "exit_marker": "/home/kara/.hermes/cache/scratch/intci19-20261106/worker.exit",
+      "exit_rc": 0,
+      "files": [
+        "scripts/outcome_probe_projects.py",
+        "tests/test_tr251_boundary_and_replay.py",
+        "outcome-probes/code-factory.json",
+        "outcome-probes/fleet-ops-check.json",
+        "outcome-probes/lane-cadence-check.json",
+        "outcome-probes/lane-repair.json"
+      ]
+    }
+  ],
+  "worktrees": ["/home/kara/proj-wt-intci19", "/home/kara/proj-wt-intci19-close"],
+  "published": "564938d..ecf8ca6 to origin/main (ALLOW_RED_PUSH=1, CI-repair: the parent tip 564938d was red; board_commit_boundary_gate OK, inv4 diff gate PASS)",
+  "not_dispatched": [
+    "INT-CI-20 (filed, not worked): the TR-363 capability-pointer landing d8e2e17 lowers P4_SECURITY guard/review 0 -> -1 and leaves five dependent expectations unpinned; a distinct root cause on the same tree."
+  ]
+}
