@@ -1515,3 +1515,14 @@ tasks:
   status: complete
   created_at: '2026-11-06T00:49:35.762667+00:00'
   completed_at: '2026-11-06T00:49:36.408147+00:00'
+- id: TR-363
+  title: 'Profiles become capability POINTERS: data-driven resolution + why-lane report'
+  criteria:
+  - P3_DOCS, P4_SECURITY and P5_VISION_E2E each resolve to at least 3 hops and at
+    least 2 distinct providers from registry data; a why-lane report explains requested
+    capabilities and per-lane exclusion reasons from data; a test proves equal evidence
+    on two providers makes both eligible; no literal model identifier candidate list
+    is introduced.
+  status: complete
+  created_at: '2026-11-06T00:00:42.500540+00:00'
+  completed_at: '2026-11-06T00:45:56.588087+00:00'
