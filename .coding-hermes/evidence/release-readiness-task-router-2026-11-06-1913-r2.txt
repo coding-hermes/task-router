@@ -1,0 +1,119 @@
+Release readiness sweep (re-gate / re-delivery pass): task-router-releng-2026-11-06-19-13-01
+
+This is the SECOND pass of this tick id. The first pass landed at 2026-11-06T19:18Z as
+.coding-hermes/evidence/release-readiness-task-router-2026-11-06-1913.txt (commit 5dfbc88).
+Its carried blocker — "exact-head CI in progress" — was re-probed at the current tip and is now
+REFUTED. This artifact records the correction and the fresh measurements; it does not replace the
+first pass's census, which is unchanged because the delta between the two tips is board/evidence only.
+
+Identity
+- Repository: coding-hermes/task-router
+- Canonical root: /home/kara/task-router
+- Remote: git@github.com:coding-hermes/task-router.git
+- Default branch: main
+- Candidate SHA (code head of the range): 553d2cb3270eb91abd1069707f9bd9e3d9d3280d
+- Current tip / evidence carrier: 5dfbc882c78cff6925bc976ae42febcdbb12c544
+- origin/main: 5dfbc882c78cff6925bc976ae42febcdbb12c544
+- Divergence: 0 ahead / 0 behind after fetch
+- Working tree: clean
+- Measured at: 2026-11-06T19:47Z-19:52Z
+
+Delta from the first pass of this tick
+- git diff --name-only 553d2cb3..5dfbc88 = .coding-hermes/board/tasks.jsonl and
+  .coding-hermes/evidence/release-readiness-task-router-2026-11-06-1913.txt only.
+- Therefore the code tree and the commit census are unchanged; the census below is carried,
+  spot-verified (see "Census re-verification"), not re-derived.
+
+Release surface (measured, unchanged)
+- Local tags: 0
+- Remote tags (git ls-remote --tags origin): 0
+- GitHub Release objects (gh release list): 0
+- Prior release artifacts to inventory: none
+- No tag, Release object, package artifact or external release state was created or changed.
+
+Census re-verification
+- Range 4d44b1ee..553d2cb3: git rev-list --count = 66; non-merge subjects = 63.
+- Prefix census (63): board=29, fix=9, chore=8, evidence=6, feat=5, dogfood=5, test=1.
+  (29+9+8+6+5+5+1 = 63, so the census is complete and reconciles with the range count.)
+- Material: feat=5, fix=9, perf=0. Non-material/bookkeeping: 49.
+- BREAKING CHANGE footers: 0. Bang-marked subjects: 0.
+- Semver: feat-bearing delta on a 0.x line implies a MINOR bump; the natural first-cut candidate
+  remains v0.3.0 as a PROPOSAL. No major bump is warranted.
+
+Hosted CI — CORRECTION TO THE CARRIED BLOCKER
+- Candidate run 42277410847 on 553d2cb3: completed / SUCCESS at 2026-11-06T19:46:48Z
+  https://github.com/coding-hermes/task-router/actions/runs/42277410847
+  Job "test": completed/success, 18 steps, every step success, none skipped, none cancelled:
+  state plane, setup-python, install deps, registry seed, full test suite, guard test command
+  (gitreins parity), fresh-clone resolve smoke, registry integrity, null-debt invariants (TR-201),
+  TR-251 boundary gate, TR-251 evidence replay, outcome_probes check-all + reference-gate,
+  proxy harness guard.
+- The first pass of this tick recorded this run as in_progress and therefore as non-evidence.
+  That statement is superseded: exact-candidate CI is GREEN and is now admissible evidence.
+- Carrier run 42279104647 on 5dfbc88: still in_progress at measurement time. The carrier's own
+  exact-SHA state is reported as PENDING, not green; it proves nothing about the candidate either way.
+- ci.yml triggers push on main, pull_request and workflow_dispatch; there is NO tag trigger, so a
+  future tag commit needs an explicit workflow_dispatch to be CI-verified (repo-documented pattern).
+- Earlier red/cancelled runs on other SHAs (e.g. 42243967596 failure on a2ed866, 42249632921
+  cancelled on 7cffa19) are ancestors and are not inherited onto the candidate.
+
+Version, tooling, artifacts
+- pyproject.toml: version = "0.2.0"  (line 7)
+- task_router/__init__.py: __version__ = "0.2.0"  (line 11)
+- CHANGELOG.md: populated [Unreleased]; no ## v0.3.0 heading
+- Makefile: present, but NO release/version/bump/publish/tag target
+- scripts/release*: absent (scripts/router_release_backfill.py is unrelated)
+- Dockerfile: absent | .goreleaser.yml / goreleaser.yaml: absent | package.json: absent
+- docs/releases/release-readiness.md: written procedure only, all manual sed/commit steps
+- Executable release driver: ABSENT. Tracked as RELEASE-2026-11-03-001 (pending).
+- Artifact type: Python package (wheel + sdist). No candidate artifacts were built in this pass:
+  version-prep is absent, so any build would still stamp 0.2.0 and would not be a v0.3.0 asset.
+
+GitReins
+- No verdict is bound to 553d2cb3 or 5dfbc88. Newest verdicts bind earlier SHAs only
+  (TR-372 -> 34fc3f5, QA-TASKROUTER-3 -> d59304b, INT-CI-21 -> 5c79257, TR-381 -> 5932715).
+  Current-head GitReins evidence: NONE.
+
+NEW FINDING — gitreins ledger marks TR-371 complete while its only implementation commit is unmerged
+- .gitreins/tasks.yaml at the current tip carries: id TR-371, status complete,
+  completed_at 2026-11-06T18:54:02Z (added by commit 553d2cb3, "chore(gitreins): record TR-371 completion").
+- The implementation commit is 3b859ab8a5b412c7fe07dd4cf1cc3cbf2bee6479
+  "feat: add TaskRouterNoHopsHigh Alertmanager rule contract (TR-371)" adding
+  monitoring/task-router-alerts.yml, tests/test_nohops_alert_rule.py, docs/observability-spec.md.
+- git merge-base --is-ancestor 3b859ab HEAD -> rc=1 (NOT an ancestor of main).
+  git branch -a --contains 3b859ab -> wt/TR-371 and remotes/origin/wt/TR-371 only.
+  rev-list --left-right --count wt/TR-371...origin/main -> 1 ahead / 3 behind.
+  Worktree /home/kara/worktrees/task-router-TR-371 sits on 3b859ab.
+- Proof from the committed tree, not the working copy: monitoring/task-router-alerts.yml and
+  tests/test_nohops_alert_rule.py are ABSENT from HEAD; only docs/observability-spec.md is present.
+- Board row TR-371 is still status=pending, priority=P0, updated_at 2026-11-03T21:29:16Z.
+- Consequence for release: TR-371's work is NOT release content and the P0 remains genuinely open.
+  The ledger entry asserts a completion that main does not carry.
+
+Dogfood / QA
+- Latest record in the committed tree: .coding-hermes/dogfood-log.md, 2026-11-06 (4th dispatch of
+  tick task-router-dogfood-2026-11-06-12-08-29, records-only re-verification). Verdict carried:
+  PROMISING-BUT-ROUGH. Install leg not launched in that fire (bunker-mvp ONLINE, version 0.2.1,
+  Net mode shared -> isolation-UNVERIFIED; installability PROVEN by the recorded run at 0.2.0).
+  Earlier measured cells in that battery: tests FAIL, ci-pass FAIL. Product tree measured there at
+  586dcf6 and byte-identical to the prior run; it is stale relative to 553d2cb3 and is not a waiver.
+- Open P0/P1 blockers at the tip (pending/blocked), none accepted into a release decision:
+  P0 TR-294, RELEASE-2026-10-22-001, RELEASE-2026-11-03-001, TR-371, TR-375, TR-376, TR-378;
+  P1 INT-CI-10, INT-CI-11, INT-CI-17, INT-CI-18, INT-CI-19, INT-CI-20, TR-REV-20261027-02,
+  TR-OF-20261101-01, QA-TASK-ROUTER-FOREMAN-1, QA-TASK-ROUTER-FOREMAN-2, TR-366, TR-367, TR-368,
+  TR-382, TR-386, TR-387, TR-388, TR-1000242751831738, TR-1000976681059246/7/8.
+
+Decision
+- NO CUT.
+- Rule: Decision-1 gate 2 — open P0 blockers exist (TR-294, TR-371 unmerged, TR-375, TR-376, TR-378).
+  Exact-SHA CI is now green, so CI is no longer part of the reason; the remaining hard invariants fail:
+  the version surface does not agree with any tag (pins 0.2.0, no version-prep commit, CHANGELOG
+  [Unreleased] populated), the repository-owned release driver is absent, and the first-ever
+  artifact/distribution channel plus the version choice are an owner decision that no record carries.
+- Escalation (unchanged, one row): the first cut requires the owner to name the version and baseline
+  SHA and to establish the distribution channel; silence is the default and no tag is created.
+- Next action after authorization: version-prep commit on the candidate (bump both pins, promote
+  CHANGELOG, reopen empty [Unreleased]) -> exact-SHA CI green on THAT commit -> python -m build
+  -> annotated tag -> workflow_dispatch CI on the tag ref -> gh release create --notes-file
+  -> download, install in a fresh venv, verify task_router.__version__ and assets.
+- No tag, GitHub Release, package artifact or external state was created or changed by this pass.
