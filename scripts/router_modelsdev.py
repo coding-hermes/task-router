@@ -300,6 +300,7 @@ def run_sync(api: Any, models: Any, catalog: Any, mappings: Any, include_all: bo
     # TR-035 lane 1: capability refresh on EXISTING registry rows (context_limit
     # / vision / thinking) + per-change evidence for the weekly research lane.
     refreshed = {'context_limit': 0, 'vision': 0, 'thinking': 0}
+    vetoed = {'vision': 0}
     refreshed_rows = []
 
     # TR-019 pre-pass: EXTERNAL payload names -> our registry ids via the
@@ -433,9 +434,20 @@ def run_sync(api: Any, models: Any, catalog: Any, mappings: Any, include_all: bo
                         continue
                     if row.get('valid_to') or row.get('archive'):
                         continue  # retired rows are frozen
+                    row_note = row.get('note') or ''
                     for field, new in cat_fields.items():
                         old = row.get(field)
                         if old == new:
+                            continue
+                        if field == 'vision' and 'capability-flag-precedence' in row_note:
+                            # INT-CI-21 precedence (docs/capability-flag-precedence.md):
+                            # the boolean mirrors the tier plane, and rows carrying
+                            # the precedence note were downgraded to null by that
+                            # ruling. The models.dev family fill must not re-inflate
+                            # them — a nightly revert of the correction re-reddens
+                            # the routing corpus (seen 2026-11-06: 9 deepseek-family
+                            # lanes flipped null->true and the tier-veto design broke).
+                            vetoed['vision'] += 1
                             continue
                         row[field] = new
                         refreshed[field] = refreshed.get(field, 0) + 1
@@ -451,6 +463,7 @@ def run_sync(api: Any, models: Any, catalog: Any, mappings: Any, include_all: bo
         'silenced_providers': silenced,
         'catalog_new': cat_new,
         'refreshed': refreshed,
+        'refresh_vetoed': vetoed,
         'refreshed_rows': refreshed_rows,
         'catalog_refreshed': cat_refreshed,
         'catalog_refreshed_rows': cat_refreshed_rows,
