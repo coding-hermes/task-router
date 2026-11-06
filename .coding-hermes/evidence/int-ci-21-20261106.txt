@@ -1,0 +1,69 @@
+INT-CI-21 — TR-363 vision pointer vs tier-plane contradiction: fix + evidence
+Tick: task-router-foreman-2026-11-06-04-13-39   Host: kara
+Implementation commit: ad5757862f21f9662276bfb7354417c6a1ab324c (base 50fe4a2, ff onto origin/main)
+Pushed: origin/main == ad57578 (unpushed=0 verified after push)
+Captured: 2026-11-06T05:4x Z
+
+AC1 — the two corpus cases pass, pins untouched
+  $ ~/.hermes/venvs/board/bin/python3 -m pytest -q tests/test_routing_quality_corpus.py
+  -> 26 passed  (was 23/25 + summary red; 25/25 cases + summary green now)
+  Named cases measured individually:
+    [profile/P5_VISION_E2E]  CORPUS PASS head=('openrouter','moonshotai/kimi-k3') chain=3 exclusions=0
+    [adhoc/visual-qa-band]   CORPUS PASS head=('stepfun','step-3.7-flash')      chain=36 exclusions=0
+  git show --stat ad57578: tests/ NOT in the diff — no test deleted/skipped/xfailed/loosened;
+  capability_tags, must_include and min_chain untouched (AC5).
+
+AC2 — precedence DECIDED and recorded, with the arm probe
+  docs/capability-flag-precedence.md (committed in ad57578).
+  Decision: the models.jsonl boolean is the ADMISSION arm (router_spawn flag gate, TR-363) and must
+  MIRROR the tier plane; the tier plane WINS disagreements (it is the fleet evidence record; the
+  boolean is a published echo). Divergence from the brief's suggested boolean-wins rule is recorded:
+  its precondition (alias source carrying a MEASURED tier) fails for the deepseek family
+  (alias deepseek-flash has tier_source=estimate), and boolean-wins is unsatisfiable against the
+  pinned must_exclude bars.
+  Arm probe (router-exact _build_chain): pre-fix boolean-arm pool 31 / tier-arm 36; post-fix both
+  arms resolve to the SAME 36-lane pool, zero symmetric difference -> the two sources can no longer
+  disagree. A code-level 'tier-contradiction' veto (primary + fallback paths) makes future
+  models.dev re-fills fail closed.
+
+AC3 — clinepass/kimi-k3 did not silently leave the pool
+  models.jsonl vision=null -> true WITH the evidence on the row
+  (note: on-row measured perf_e2e_vision=0.75 + vision tier>=3 record, doc citation).
+  Post-fix probe: clinepass/kimi-k3 is back in the adhoc/visual-qa-band pool (36 lanes = floor).
+
+AC4 — deepseek/deepseek-flash absent from both vision pools
+  Post-fix probe: deepseek/deepseek-flash bool=False tier=False -> absent from P5_VISION_E2E and
+  adhoc/visual-qa-band chains (both must_exclude pins satisfied; corpus reports exclusions=0).
+
+Data diff (data/tables/models.jsonl only, 23 lanes, every edited row carries a note citing the doc):
+  9x vision true->null (deepseek family; null-with-reason = unresearched is not support, fail-closed)
+  6x false->true (mirror-lane fill drift; vision tier>=3 + a live TRUE twin of the same weights)
+  8x null->true (kimi-k3 / minimax-m3 deployments; on-row perf_e2e_vision 0.75 / 0.55 + tier 3)
+
+Suite at the committed tip
+  $ ~/.hermes/venvs/board/bin/python3 -m pytest -q tests/
+  -> 2 failed, 2903 passed, 3 skipped in 1578.61s
+     FAILED tests/test_xkiro_catalog_freshness.py::test_non_archived_xkiro_models_are_in_live_catalog
+        PRE-EXISTING live-carrier catalog drift: reproduces IDENTICALLY at base 50fe4a2 (verified by
+        stashing the patch); the diff touches zero xkiro rows. Needs the XK-404-001-R2 archive wave.
+     FAILED tests/test_server.py::test_ledger_and_listing_mutation_round_trips
+        LOAD/COLLISION FLAKE: rerun solo -> 1 passed in 3.34s. It failed only while the GitReins
+        Tier-2 evaluator was running its own suite against the same checkout.
+  The two test_tr363_profile_pointers failures + test_validate bare-run failure observed mid-tick
+  were stale gitignored registry machine state (worker mid-write); at the committed tip:
+  $ pytest -q tests/test_tr363_profile_pointers.py -> 14 passed.
+
+Gates
+  gitreins guard -> DEGRADED PASS (Tier 1 secrets clean; tests skipped: no staged files on a clean
+  post-commit tree). Guard log .gitreins/logs/guard-20261106T054018.679395Z.log
+  gitreins task complete INT-CI-21 -> Completed: INT-CI-21 -> complete; Tier 1 PASSED; Tier 2 running
+  pre-push: board_commit_boundary_gate OK (0 completion flips); null_debt_invariants INV4 PASS
+  (0 routable perf-less lanes added/changed). CI gate overridden with ALLOW_RED_PUSH=1, DISCLOSED:
+  the blocking red (run 42160865138 on 50fe4a2) is exactly the INT-CI-21 failure set this commit fixes
+  ([profile/P5_VISION_E2E] expected openrouter/moonshotai/kimi-k3, actual opencode-go/deepseek-v4.1-flash;
+  [adhoc/visual-qa-band] missing clinepass/kimi-k3).
+
+CI health at closeout
+  run 42169767179 (ad57578, main) — IN PROGRESS at capture. Result recorded in the row note; never
+  claimed green until the run concludes.
+  Pre-existing unrelated red: tests/test_xkiro_catalog_freshness (live catalog drift) — see residual row.

@@ -1627,3 +1627,13 @@ tasks:
   status: complete
   created_at: '2026-11-06T03:43:49.079205+00:00'
   completed_at: '2026-11-06T03:47:46.827425+00:00'
+- id: INT-CI-21
+  title: vision pointer admits lanes whose model_tier contradicts models.jsonl boolean
+  criteria:
+  - Two corpus cases pass WITHOUT deleting capability_tags/emptying must_include/lowering
+    min_chain; precedence rule between models.jsonl vision boolean and model_tier.jsonl
+    tier decided and recorded; clinepass/kimi-k3 vision=null handled explicitly; deepseek/deepseek-flash
+    absent from vision chains across must_exclude pins; no test deleted/skipped/xfailed/loosened
+  status: complete
+  created_at: '2026-11-06T04:15:36.451375+00:00'
+  completed_at: '2026-11-06T05:25:34.327137+00:00'
