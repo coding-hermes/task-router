@@ -40,7 +40,12 @@ missing head as "use your own fallback", never as a crash.
 python3 -m venv .venv && . .venv/bin/activate
 pip install -e . && pip install duckdb      # duckdb is REQUIRED for seed
 export TASK_ROUTER_HOME=/tmp/tr-home        # isolate state (or leave default)
-router seed                                 # build registry.json from data/tables
+router seed --allow-unsatisfiable           # build registry.json from data/tables
+# ^ flagless `router seed` EXITS 1 on the committed tree (math has no routable
+#   lane; TR-1000976681059246) but STILL writes registry.json and rewrites
+#   2 tracked data/tables files before it refuses (TR-1000976681059248) —
+#   so `git status` after any seed on a checkout, and never assume a refusal
+#   left the tree alone. `make seed` (Makefile:60) passes no flag and fails.
 
 # Daily use
 router spawn my-project --format json --quiet    # head + chain + exclusions
