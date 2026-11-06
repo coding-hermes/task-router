@@ -406,7 +406,9 @@ CASES = [
                              ['xkiro', 'qwen/qwen3.5-397b-a17b:free']],
             # 2026-11-03: floor 592->591 — the live openrouter hermes-3-llama row
             # left the pool when its vanished carrier id was archived (XK-404-001-R2).
-            'min_chain': 591,
+            # 2026-11-06: floor 591->582 — XK-404-001-R3 wave archived 9 pool lanes
+            # (xkiro/xkiro-2/openrouter minimax + nemotron :free; catalog-absent + chat-404).
+            'min_chain': 582,
         },
     },
     # --- ad-hoc capability bands (the classifier's output space) ------------
@@ -535,7 +537,9 @@ CASES = [
                              ['deepseek', 'deepseek-flash']],
             'must_exclude': [],
             # 2026-11-03: floor 780->779 — vanished openrouter hermes-3 archived.
-            'min_chain': 779,
+            # 2026-11-06: floor 779->769 — XK-404-001-R3 wave archived 10 pool lanes
+            # (catalog-absent, chat-404 per id on both xkiro seats).
+            'min_chain': 769,
         },
     },
     {

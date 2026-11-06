@@ -159,6 +159,13 @@ POST_DEDUPE_ADDITIONS = {
     # 2026-11-05 (model-router-refresh tick): models.dev sync arrivals (3) +
     # clinepass API-sync arrivals auto-disabled by the plan sweep (6) + two
     # mirror-priced filings from the VANISHED/removal slice
+    # 2026-11-06 (model-router-refresh tick): models.dev sync arrivals (3)
+    ("opencode-go", "crouton-alpha-free"): "models.dev sync 2026-11-06 — new catalog lane, priced sub-bucket blended est (opencode-go $12/5h per_request plan)",
+    ("openrouter", "google/gemini-omni-1.1-flash"): "models.dev sync 2026-11-06 — new catalog lane, sticker-priced 1.5 (normalized:payg-sticker)",
+    ("openrouter", "google/gemini-omni-1.2-flash"): "models.dev sync 2026-11-06 — new catalog lane, sticker-priced 1.5 (normalized:payg-sticker)",
+    ("clinepass", "auto-code"): "clinepass API sync 2026-11-06 — carrier arrival, plan-sweep disabled (PAYG outside flat plan)",
+    ("clinepass", "gemini-omni-1.1-flash"): "clinepass API sync 2026-11-06 — carrier arrival, plan-sweep disabled (PAYG outside flat plan)",
+    ("clinepass", "gemini-omni-1.2-flash"): "clinepass API sync 2026-11-06 — carrier arrival, plan-sweep disabled (PAYG outside flat plan)",
     ("opencode-go", "hy4"): "models.dev sync 2026-11-05 — new catalog lane, priced sub-bucket blended est 0.9007",
     ("openrouter", "inclusionai/ling-3.0-tiny"): "models.dev sync 2026-11-05 — new catalog lane, sticker-priced 0.015 (normalized:payg-sticker)",
     ("openrouter", "ricursiveai/ripple-65b-preview"): "models.dev sync 2026-11-05 — new catalog lane, sticker-priced 0.2 (normalized:payg-sticker)",
