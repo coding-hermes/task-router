@@ -1,0 +1,16 @@
+{
+  "tick": "task-router-foreman-2026-11-06-18-10-02",
+  "project": "task-router",
+  "wave_size": 1,
+  "budget": 6,
+  "tasks": [
+    {
+      "id": "TR-371",
+      "worktree": "/home/kara/worktrees/task-router-TR-371",
+      "branch": "wt/TR-371",
+      "base_sha": "e868af63dce5503346b7483da3f1ca0feb5c215b",
+      "model": "glm-5.3-flash",
+      "provider": "zai-glm"
+    }
+  ]
+}
