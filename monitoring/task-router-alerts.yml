@@ -1,0 +1,87 @@
+# monitoring/task-router-alerts.yml — the repository-owned Prometheus/Alertmanager
+# rule contract for TaskRouterNoHopsHigh (TR-371; docs/observability-spec.md §6,
+# alert rules minimum set).
+#
+# WHY THIS FILE LIVES HERE
+#   The live fleet rule set lives OUTSIDE this repository, in the
+#   fleet-monitoring tree on host fleet-monitor
+#   (/root/fleet-monitoring/prometheus/prometheus.yml — docs/observability-spec.md §5).
+#   task-router cannot deploy or verify that tree, so THIS file is the rule
+#   contract of record: the exact rule name, expression, threshold and duration
+#   the fleet rule set must carry. Deploying it there is a separate step that
+#   this repo cannot observe — tests/test_nohops_alert_rule.py proves the
+#   contract, never the deployment.
+#
+# THE RULE
+#   TaskRouterNoHopsHigh — the no-hops incident shape: the 2026-10 outage was
+#   the router dead-ending resolves with zero eligible hops while NOTHING
+#   alerted (scripts/router_nohops.py:4-6). The expression is the spec §6 V3
+#   ratio — no-hop proxy requests over all proxy requests, 1h rate windows:
+#
+#       sum(rate(task_router_proxy_nohops_total[1h]))
+#         / sum(rate(task_router_proxy_requests_total[1h]))
+#
+#   The spec's V3 one-liner writes the division as
+#   `... / ignoring(route_outcome) group_left sum(...)`; both sides are
+#   sum()-aggregated to label-less vectors, so the match clause is a no-op and
+#   the plain `/` here is the same ratio. Comparison binds looser than `/` in
+#   PromQL, so the `> threshold` filters the ratio vector as an alert rule
+#   expects.
+#
+#   The metric names are the task_router_ aliases of the TR-377 exposition
+#   (scripts/router_prometheus.py renders every family under BOTH
+#   router_proxy_nohops_total/router_proxy_requests_total and the task_router_
+#   product prefix). Provenance note: the board row cites "the Prometheus
+#   ratio from TR-369/TR-370" — TR-369 and TR-370 on the board are the
+#   capability-contract and perf-store-parity rows; the Prometheus ratio the
+#   row means is THIS §6 V3 expression over the TR-377 families. Named here,
+#   not silently reinterpreted.
+#
+# THRESHOLD — data/nohops-baseline.json is the single source
+#   The `> 0.227329` literal is data/nohops-baseline.json's `threshold` key:
+#   the measured baseline no-hops rate (0.177329 over a 168h window) plus the
+#   documented headroom (0.05). It is the SAME number the CLI alert thresholds
+#   (scripts/router_nohops.py, threshold_source "baseline file threshold"), so
+#   the alert, the CLI and the UI cannot disagree. Recompute with the command
+#   the baseline file itself carries in how_to_recompute:
+#
+#       ROUTING_OUTCOMES_FILE=<live store> python3 scripts/router_nohops.py \
+#         baseline --window-h 168 --write
+#
+#   If the baseline is ever recomputed and committed, the rule literal MUST be
+#   updated in the same commit — tests/test_nohops_alert_rule.py pins
+#   rule threshold == baseline file, so drift fails CI instead of shipping.
+#
+# DENOMINATOR SEMANTICS (documented difference, not a bug)
+#   The CLI ratio excludes admission sheds (route_outcome=rejected) from both
+#   sides; this Prometheus ratio does not — task_router_proxy_requests_total
+#   counts every finished proxy request, sheds included, because the counter's
+#   route_outcome dimension must stay visible for the shedding alert
+#   (TaskRouterShedding, spec §6). Same threshold over a larger denominator:
+#   the Prometheus arm is the conservative (lower) of the two.
+
+groups:
+  - name: task-router-nohops
+    rules:
+      - alert: TaskRouterNoHopsHigh
+        expr: |
+          sum(rate(task_router_proxy_nohops_total[1h]))
+            /
+          sum(rate(task_router_proxy_requests_total[1h]))
+            > 0.227329
+        for: 30m
+        labels:
+          severity: critical
+          product: task-router
+        annotations:
+          summary: "task-router: no-hops rate above the baseline threshold"
+          description: >
+            The no-hops ratio (proxy resolves that dead-ended with zero
+            eligible hops / all finished proxy requests, 1h windows) exceeded
+            its threshold — the 2026-10 incident shape. Inspect with
+            `python3 scripts/router_nohops.py check --window-h 24` and the
+            top blocking category in GET /api/ui/unservable.
+          threshold_source: >
+            data/nohops-baseline.json `threshold` key (measured baseline rate
+            + headroom 0.05); recompute via
+            `scripts/router_nohops.py baseline --window-h 168 --write`

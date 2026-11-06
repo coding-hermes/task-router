@@ -263,6 +263,40 @@ acceptance criterion — the PromQL returning data is.
 | `TaskRouterMetricsJsonlGrowth` | `deriv(task_router_metrics_jsonl_bytes[6h]) * 86400 > 5e8` | 1h |
 | `TaskRouterCodeStale` | `task_router_code_stale == 1` | 2h |
 
+### 6.1 The no-hops rule artifact (TR-371)
+
+`TaskRouterNoHopsHigh` ships as a **repository-owned artifact**:
+`monitoring/task-router-alerts.yml`. The live fleet rule set itself lives
+outside this repo (§5: `/root/fleet-monitoring/prometheus/prometheus.yml` on
+host `fleet-monitor`) and is **not verifiable from here** — the artifact plus
+`tests/test_nohops_alert_rule.py` are the contract of record; deploying the
+rule to the fleet rule set remains an **unverified** external step and no
+curl against `fleet-monitor:9090`/`:9093` can be claimed from this tree.
+
+- **Expression**: the V3 ratio —
+  `sum(rate(task_router_proxy_nohops_total[1h])) / sum(rate(task_router_proxy_requests_total[1h])) > 0.227329`,
+  `for: 30m`. The spec one-liner's `ignoring(route_outcome) group_left` is a
+  no-op once both sides are `sum()`-aggregated; the artifact's plain `/` is
+  the same ratio. The inputs are the TR-377 exposition families
+  (`router_proxy_nohops_total` / `router_proxy_requests_total` and their
+  `task_router_*` aliases). Provenance note: the board row cites "the
+  Prometheus ratio from TR-369/TR-370"; TR-369/TR-370 are the
+  capability-contract / perf-store-parity rows — the Prometheus ratio meant
+  here is this §6 V3 expression over the TR-377 families. Named, not silently
+  reinterpreted.
+- **Threshold source**: `data/nohops-baseline.json` — the rule literal is that
+  file's `threshold` key (measured baseline rate 0.177329 over a 168h window
+  + headroom 0.05; recompute via
+  `ROUTING_OUTCOMES_FILE=<live store> python3 scripts/router_nohops.py baseline --window-h 168 --write`).
+  The same file feeds the CLI alert (`router_nohops.py`,
+  threshold_source "baseline file threshold"), so the alert, the CLI and the
+  UI share one threshold. The test pins rule threshold == baseline file: a
+  recomputed baseline and the rule literal must land in the same commit.
+- **Denominator semantics**: the proxy ratio counts every finished proxy
+  request (admission sheds included); the CLI ratio excludes
+  `route_outcome=rejected` from both sides. Same threshold over a larger
+  denominator — the Prometheus arm is the conservative (lower) of the two.
+
 ## 7. Deliberately not instrumented
 
 - **Per-session / per-task / per-caller-key labels.** Straight to a cardinality
