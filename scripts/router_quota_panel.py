@@ -494,11 +494,19 @@ def panel_view(query: Any=None, ledger_path: Any=None, now: Any=None, quota_tabl
     ledger_path = ledger_path or acc.router_outcomes.outcomes_path()
     ledger_rows, scan = _scan_ledger_tail(ledger_path, scan_limit)
 
+    # TR-216 alias inheritance: a gateway alias owns no window, so its spend
+    # IS the parent's. Fold BEFORE grouping, or the derived window (and the
+    # burn-surplus view built over these rows) understates spend — which
+    # overstates headroom and invents budget that does not exist.
+    alias_of = acc.load_alias_map(quota_table_path)
+    alias_target = {a: acc.canonical_provider(a, {}, alias_of)
+                    for a in alias_of}
     by_provider = {}
     for r in ledger_rows:
         p = r.get("provider")
         if p:
-            by_provider.setdefault(str(p), []).append(r)
+            p = str(p)
+            by_provider.setdefault(alias_target.get(p, p), []).append(r)
 
     # -- one row per L0 declaration ----------------------------------------
     windows = []

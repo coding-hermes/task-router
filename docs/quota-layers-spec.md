@@ -54,6 +54,10 @@ Rules inherited from this repo's doctrine:
   budget while others draw the paid window down at a discount. Same provider can have both.
 - **An alias does not own quota.** `gw-deepseek` and `myrouter:zai-glm` are gateway aliases: they carry
   `alias_of: <provider>` and **inherit** the parent's windows. Without this they double-count.
+  *(Enforced in the L2 view since TR-216: `router_quota_accounting.py` reads the table's `alias_of`
+  declarations at query time and folds alias rows into the PARENT's block — one budget, `aliases` naming
+  the ids absorbed, `--provider <alias>` resolving to the parent. Chains resolve transitively and
+  order-independently; a cycle folds nothing rather than guessing an owner.)*
 - **Multi-account is per account** (`account: "xkiro"` vs `"xkiro-2"`). Aggregation is a display choice;
   the accounting is per account. Two accounts of the same plan never merge into "2× the window" unless the
   provider's own docs say the limit is per-person.

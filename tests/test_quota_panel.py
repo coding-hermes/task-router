@@ -17,6 +17,8 @@ import json
 import os
 import sys
 
+import pytest
+
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'scripts'))
 import router_quota_panel as qp  # noqa: E402
 import router_server as rs  # noqa: E402
@@ -92,6 +94,23 @@ def _panel(tmp_path, quota_rows, ledger_rows=None, limits=None, cache=None,
 
 
 # ---- AC1: the rung is on every number; estimate never renders as reading ----
+
+def test_alias_spend_counts_toward_the_parent_window(tmp_path):
+    """TR-216: a gateway alias owns no window — its spend IS the parent's.
+    Folding must happen before the derived window (and the burn view) reads
+    the rows, or the panel reports budget the lane already burned."""
+    d = _panel(
+        tmp_path,
+        [_quota_row(pid="parent-p", window="rolling_5h", unit="usd", limit=10.0),
+         _quota_row(pid="alias-p", window="none", unit="usd", limit=None,
+                    alias_of="parent-p")],
+        [_ledger_row(provider="parent-p", cost=1.0),
+         _ledger_row(provider="alias-p", cost=2.5)])
+    w = next(x for x in d["windows"] if x["provider"] == "parent-p")
+    assert w["spent"] == pytest.approx(3.5), (
+        "alias rows were not folded into the parent's window — spend "
+        "understated, remaining overstated")
+
 
 def test_derived_remaining_is_estimate_only_with_its_rung(tmp_path):
     d = _panel(tmp_path, [_quota_row(limit=1000, unit="tokens")],

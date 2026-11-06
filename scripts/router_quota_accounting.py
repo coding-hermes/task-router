@@ -84,6 +84,20 @@ accounts AND the accounts differ; a provider merely NAMED like a sibling
 stays its own budget. Each folded block names its `seats` (the ledger
 provider ids absorbed), and the CLI's --provider filter matches seat ids too.
 
+ALIAS INHERITANCE (TR-216, spec §2 "an alias does not own quota"): a gateway
+alias (gw-deepseek -> deepseek, myrouter:zai-glm -> zai-glm) carries `alias_of`
+on its L0 rows, owns no window, and INHERITS the parent's. The view reads those
+declarations from the committed table at query time (`load_alias_map`), the
+same no-second-store doctrine as the account map, and folds alias rows into the
+PARENT's block: one budget, never a second one drawing down the same window.
+A limits-config `alias_of` map may override or extend the table (an operator's
+hand beats the data, and the closer hand wins). Chains resolve transitively and
+ORDER-INDEPENDENTLY (every row is canonicalized on its own, so a->b->c writes
+the same answer whatever order the declarations landed in); a cycle stops
+folding instead of looping or silently dropping spend. Folded blocks name the
+absorbed ids in `aliases`, and the CLI --provider filter resolves an alias to
+its parent block.
+
 AGGREGATED DISPLAY (TR-216): the view NEVER emits a summed cross-account row.
 Whether a consumer may sum the per-account limits is a DISPLAY declaration
 that lives in the L0 table (`aggregate_display.sum_limits`: "unknown" until a
@@ -198,19 +212,29 @@ def quota_table_path(explicit: Any=None):
 
 
 def _load_quota_table_rows(path: Any) -> list:
-    """Decoded rows of the L0 table. Missing file -> [] (silent: no labels
-    is the honest empty); corrupt -> one stderr warning + [] (fail-open,
-    same policy as load_limits)."""
+    """Decoded rows of the L0 table.
+
+    TOLERANT PER LINE, like the ledger scan: the table is append-written, so a
+    torn tail is normal. One bad line must never blank the WHOLE table — that
+    would silently drop every alias/account label and make the view lie.
+    Missing file -> [] (silent: no labels is the honest empty); an unreadable
+    file -> one warning + []; skipped lines -> one warning + the decoded rows.
+    """
     if not os.path.exists(path):
         return []
     rows = []
+    skipped = 0
     try:
         with open(path, encoding='utf-8') as fh:
             for line in fh:
                 line = line.strip()
                 if not line:
                     continue
-                r = json.loads(line)
+                try:
+                    r = json.loads(line)
+                except ValueError:
+                    skipped += 1
+                    continue
                 if isinstance(r, dict):
                     rows.append(r)
     except Exception as e:  # noqa: BLE001
@@ -218,6 +242,10 @@ def _load_quota_table_rows(path: Any) -> list:
               f'{type(e).__name__}: {e} — no account labels applied',
               file=sys.stderr)
         return []
+    if skipped:
+        print(f'router_quota_accounting: quota table {path}: skipped '
+              f'{skipped} unparseable line(s) — labels applied from the '
+              f'{len(rows)} decoded row(s)', file=sys.stderr)
     return rows
 
 
@@ -259,6 +287,65 @@ def seat_folds(account_map: Any) -> dict:
         if base_acct is not None and base_acct != amap[pid]:
             folds[pid] = m.group(1)
     return folds
+
+
+def load_alias_map(path: Any=None) -> dict:
+    """{alias_provider_id: parent_provider_id} from the L0 table (TR-216).
+
+    Spec §2: "an alias does not own quota" — gateway aliases carry `alias_of`
+    and INHERIT the parent's windows, so the view must fold their rows into
+    the parent's block or the same window is drawn down twice. The table is
+    the authority (query time, never stored), so no second hand-maintained
+    alias list can drift from it.
+
+    Only a uniform, non-empty declaration per provider is a usable identity: a
+    provider whose rows disagree, a blank parent, or a self-alias maps to
+    nothing (never a guessed inheritance edge).
+    """
+    by_pid = {}
+    for r in _load_quota_table_rows(quota_table_path(path)):
+        by_pid.setdefault(str(r.get('provider_id')), []).append(r)
+    out = {}
+    for pid, prows in by_pid.items():
+        if not pid or pid == 'None':
+            continue
+        parents = {str(r.get('alias_of')).strip() for r in prows
+                   if r.get('alias_of') not in (None, '')}
+        parents.discard('')
+        if len(parents) != 1:
+            continue
+        parent = next(iter(parents))
+        if parent != pid:
+            out[pid] = parent
+    return out
+
+
+def canonical_provider(pid: Any, folds: Any=None, alias_of: Any=None) -> str:
+    """The budget-owning provider id for `pid` (TR-216).
+
+    Applies seat folds (xkiro-2 -> xkiro) and alias hops (gw-deepseek ->
+    deepseek) until neither applies. Resolving each row on its own is what
+    makes a chain (a -> b -> c) ORDER-INDEPENDENT: the old pop-and-append
+    folding depended on dict iteration order, so which budget a chain landed
+    in varied with declaration order. A cycle (a -> b -> a) folds NOTHING —
+    the original id comes back, so a bad declaration cannot hang the view,
+    pick an arbitrary winner, or drop the spend.
+    """
+    cur = str(pid)
+    seen = {cur}
+    while True:
+        nxt = (alias_of or {}).get(cur) or (folds or {}).get(cur)
+        if not nxt:
+            return cur
+        nxt = str(nxt)
+        if nxt == cur:
+            return cur
+        if nxt in seen:
+            # cycle (a -> b -> a): fold NOTHING. A bad declaration must never
+            # pick an arbitrary winner, and it must not drop the spend either.
+            return str(pid)
+        cur = nxt
+        seen.add(cur)
 
 
 def load_aggregate_display(path: Any=None) -> dict:
@@ -427,8 +514,9 @@ def account_provider(provider: Any, rows: Any, cfg: Any, now_ts: Any, default_wi
 
     limit_raw = cfg.get('limit_usd')
     limit = None
+    where = f'provider {provider}' + (f' account {account}' if account else '')
     if limit_raw is None:
-        block['remaining_reason'] = f'no limit configured for provider {provider}'
+        block['remaining_reason'] = f'no limit configured for {where}'
     elif isinstance(limit_raw, bool) or not isinstance(limit_raw, (int, float)) \
             or not math.isfinite(limit_raw):
         block['remaining_reason'] = (
@@ -534,7 +622,7 @@ def account_provider(provider: Any, rows: Any, cfg: Any, now_ts: Any, default_wi
 
 
 def account(rows: Any, limits: Any, now_ts: Any, account_map: Any=None,
-            aggregate_display: Any=None) -> list:
+            aggregate_display: Any=None, alias_map: Any=None) -> list:
     """Per-provider (or per provider+account) blocks over ledger rows — the
     L2 VIEW (pure function).
 
@@ -556,10 +644,37 @@ def account(rows: Any, limits: Any, now_ts: Any, account_map: Any=None,
     ledger provider ids) and — when the L0 table declares it —
     `aggregate_display`, the doc-permission statement for summing limits
     across accounts. The view itself never emits a summed cross-account row.
+
+    Alias inheritance (TR-216, spec §2): `alias_map` is {alias: parent} loaded
+    from the L0 table's `alias_of` rows (account_ledger does this; tests pass
+    fixtures). Alias rows land in the PARENT's block — the alias owns no
+    budget, so the parent's window is drawn down once. A limits-config
+    `alias_of` map overrides/extends it (the closer hand wins). Folded blocks
+    carry `aliases` (the alias ids absorbed).
+
+    The function never mutates `rows`: the same ledger list may be accounted
+    against a different table between calls, and a leaked label would make the
+    second answer depend on the first (the query must be pure, or "the view
+    cannot drift" stops being true).
     """
     now = float(now_ts)
     amap = account_map if isinstance(account_map, dict) else {}
     folds = seat_folds(amap)
+    # -- alias authority: L0 table first, the limit config's own map on top
+    # (operator override). Invalid edges are dropped by load_alias_map; the
+    # config side is filtered here for the same reasons.
+    aliases = {}
+    if isinstance(alias_map, dict):
+        for a, p in alias_map.items():
+            if p not in (None, '') and str(p) != str(a):
+                aliases[str(a)] = str(p)
+    cfg_alias = limits.get('alias_of') or {}
+    if isinstance(cfg_alias, dict):
+        for a, p in cfg_alias.items():
+            if p not in (None, '') and str(p) != str(a):
+                aliases[str(a)] = str(p)
+    alias_targets = {a: canonical_provider(a, folds, aliases) for a in aliases}
+
     by_provider = {}
     for r in rows:
         if not isinstance(r, dict):
@@ -567,34 +682,40 @@ def account(rows: Any, limits: Any, now_ts: Any, account_map: Any=None,
         p = r.get('provider')
         if p is None:
             continue        # unattributable usage cannot sit in a provider budget
-        p = str(p)
-        if p in folds:
-            # a seat id: label with ITS declared account, then re-key to the
-            # family provider so the family reports one entry per account
-            r.setdefault('account', amap[p])
-            p = folds[p]
-        by_provider.setdefault(p, []).append(r)
-    for p, prow in by_provider.items():
-        acct = amap.get(p)
+        p0 = str(p)
+        target = canonical_provider(p0, folds, aliases)
+        # work on a COPY: the view is a pure query over the caller's ledger
+        row = dict(r)
+        # the account label comes from the id's OWN declaration, else from the
+        # budget owner it resolved to (a seat/alias inherits the family's)
+        acct = amap.get(p0)
+        if acct is None:
+            acct = amap.get(target)
         if acct is not None:
-            for r in prow:
-                r.setdefault('account', acct)
+            row.setdefault('account', acct)
+        row['_src_provider'] = p0      # provenance for the seats/aliases labels
+        by_provider.setdefault(target, []).append(row)
     providers_cfg = limits.get('providers') or {}
     default_window = limits.get('default_window') or DEFAULT_WINDOW
 
-    # -- multi-account resolution (TR-216): per provider, declared accounts.
-    # When a `providers` config carries a top-level "alias_of" map (optional,
-    # data-driven — mirrors the L0 table's alias declarations), an alias
-    # provider's rows fold into the PARENT's block: the view reports one
-    # budget under the parent's name and the alias provider gets none. Aliases
-    # never double-count their parent's window (spec §2).
-    alias_of = limits.get('alias_of') or {}
-    if isinstance(alias_of, dict) and alias_of:
-        for alias, parent in alias_of.items():
-            for r in by_provider.get(str(alias), []):
-                r.setdefault('_alias_hop', str(alias))
-                by_provider.setdefault(str(parent), []).append(r)
-            by_provider.pop(str(alias), None)
+    def _cfg_for(p: Any) -> dict:
+        """Config for a canonical budget owner.
+
+        The parent's own entry wins. An ALIAS/SEAT entry still describes the
+        parent's window (neither owns a window of its own), so it is used as
+        the fallback rather than leaving a configured alias silently
+        limit-less.
+        """
+        cfg = providers_cfg.get(p)
+        if isinstance(cfg, dict) and cfg:
+            return cfg
+        absorbed = sorted(a for a, owner in alias_targets.items() if owner == p) \
+            + sorted(s for s, owner in folds.items() if owner == p)
+        for a in absorbed:
+            alt = providers_cfg.get(a)
+            if isinstance(alt, dict) and alt:
+                return alt
+        return cfg if isinstance(cfg, dict) else {}
 
     def _blocks(provider: Any, prow: Any, cfg: Any):
         cfg = cfg if isinstance(cfg, dict) else {}
@@ -608,6 +729,27 @@ def account(rows: Any, limits: Any, now_ts: Any, account_map: Any=None,
             else:
                 labeled.add(str(a))
 
+        def _annotate(block: Any, subrows: Any) -> Any:
+            """Name the ledger ids this block ABSORBED (TR-216).
+
+            Provenance comes from the rows themselves (`_src_provider`), so a
+            seat/alias label lands on the account block that actually holds
+            the spend — no post-hoc matching by account name, which could
+            mislabel when a seat declares no account of its own.
+            """
+            srcs = {str(r.get('_src_provider')) for r in subrows
+                    if r.get('_src_provider') not in (None, '')}
+            srcs.discard(str(provider))
+            if not srcs:
+                return block
+            seats = sorted(s for s in srcs if folds.get(s) == provider)
+            als = sorted(a for a in srcs if alias_targets.get(a) == provider)
+            if seats:
+                block['seats'] = seats
+            if als:
+                block['aliases'] = als
+            return block
+
         if not declared and len(labeled) < 2:
             # single-account shape: byte-identical pre-TR-216 behavior when
             # nothing declares an account; when the L0 table labels the rows,
@@ -617,9 +759,9 @@ def account(rows: Any, limits: Any, now_ts: Any, account_map: Any=None,
             # unlabeled spend to an account it never declared.
             single = (next(iter(labeled))
                       if len(labeled) == 1 and not has_unlabeled else None)
-            return [account_provider(provider, prow, cfg, now,
-                                     default_window=default_window,
-                                     account=single)]
+            return [_annotate(account_provider(provider, prow, cfg, now,
+                                               default_window=default_window,
+                                               account=single), prow)]
 
         paccount_cfgs = cfg.get('accounts') if isinstance(cfg.get('accounts'),
                                                           dict) else {}
@@ -656,30 +798,31 @@ def account(rows: Any, limits: Any, now_ts: Any, account_map: Any=None,
                     acfg = {}
             else:
                 acfg = dict(acfg)
-            out.append(account_provider(provider, by_acct.get(acct, []), acfg,
-                                        now, default_window=default_window,
-                                        account=acct))
+            out.append(_annotate(account_provider(provider,
+                                                  by_acct.get(acct, []), acfg,
+                                                  now,
+                                                  default_window=default_window,
+                                                  account=acct),
+                                by_acct.get(acct, [])))
         return out
 
     out_blocks = []
-    for p in sorted(set(by_provider) | set(providers_cfg)):
-        cfg = providers_cfg.get(p) or {}
-        out_blocks.extend(_blocks(p, by_provider.get(p, []), cfg))
+    # A config entry naming a SEAT or an ALIAS is that family's window, not a
+    # second budget: canonicalize the key so the family appears once.
+    cfg_providers = {canonical_provider(c, folds, aliases) for c in providers_cfg}
+    for p in sorted(set(by_provider) | cfg_providers):
+        out_blocks.extend(_blocks(p, by_provider.get(p, []), _cfg_for(p)))
 
-    # -- TR-216 annotations: which ledger seat ids each block absorbed, and
-    # the family's doc-permission statement for summing limits (declared in
-    # the L0 table, "unknown" until a provider doc permits it). The view
-    # never computes a cross-account sum itself.
+    # -- TR-216 annotation: the family's doc-permission statement for summing
+    # limits (declared in the L0 table, "unknown" until a provider doc permits
+    # it). The view never computes a cross-account sum itself. `seats` and
+    # `aliases` were attached per block above, from the rows it absorbed.
     family_blocks = {}
     for b in out_blocks:
         family_blocks.setdefault(b['provider'], []).append(b)
     for p, blocks in family_blocks.items():
-        seats = sorted(s for s, fam in folds.items() if fam == p)
         split = len(blocks) > 1
         for b in blocks:
-            mine = [s for s in seats if amap.get(s) == b.get('account')]
-            if mine:
-                b['seats'] = mine
             decl = (aggregate_display or {}).get(p) \
                 if isinstance(aggregate_display, dict) else None
             if decl is not None and split:
@@ -687,14 +830,15 @@ def account(rows: Any, limits: Any, now_ts: Any, account_map: Any=None,
     return out_blocks
 
 
-def account_ledger(path: Any=None, limits: Any=None, now_ts: Any=None) -> list:
+def account_ledger(path: Any=None, limits: Any=None, now_ts: Any=None,
+                   alias_map: Any=None) -> list:
     """The view over the ledger FILE — the only I/O path (read-only).
 
     `limits` may be a loaded config dict or a PATH to a config file (loaded
     here, still at query time — callers that query repeatedly pass the doc
     and re-load it themselves so an edit between queries is honored).
-    The L0 account map + aggregate-display declarations are read from the
-    committed quota table at query time too (TR-216) — the same
+    The L0 account map, alias map and aggregate-display declarations are read
+    from the committed quota table at query time too (TR-216) — the same
     no-second-store doctrine: the table is DATA, the view is a query.
     """
     path = path or router_outcomes.outcomes_path()
@@ -702,9 +846,12 @@ def account_ledger(path: Any=None, limits: Any=None, now_ts: Any=None) -> list:
         limits = load_limits(limits)
     limits = limits if limits is not None else load_limits(limits_path())
     rows = router_outcomes.load_outcome_rows(path)
+    if alias_map is None:
+        alias_map = load_alias_map()
     return account(rows, limits, now_ts if now_ts is not None else time.time(),
                    account_map=load_account_map(),
-                   aggregate_display=load_aggregate_display())
+                   aggregate_display=load_aggregate_display(),
+                   alias_map=alias_map)
 
 
 # -------------------------------------------------------------------- CLI ----
@@ -725,6 +872,8 @@ def _print_human(blocks: Any, ledger: Any, limits_file: Any, as_of: Any) -> int:
             label = f"{label}/{b['account']}"
         if b.get('seats'):
             label = f"{label} (+{','.join(b['seats'])})"
+        if b.get('aliases'):
+            label = f"{label} (~{','.join(b['aliases'])})"
         print(f"  {label:<30} {str(b['window']):<13} "
               f"spent=${_fmt_usd(b['spent_usd'])} "
               f"tokens={b['tokens_in']}/{b['tokens_out']} "
@@ -780,11 +929,19 @@ def main(argv: Any=None) -> int | None:
         blocks = account_ledger(path=ledger, limits=limits, now_ts=now_ts)
         if args.provider:
             want = str(args.provider).strip()
-            # a seat provider id (xkiro-2) names a block that reports under
-            # its family provider (xkiro) — match the seats too (TR-216)
-            blocks = [b for b in blocks
-                      if b['provider'] == want
-                      or want in (b.get('seats') or [])]
+            # a SEAT id (xkiro-2) or an ALIAS id (gw-deepseek) names a block
+            # that reports under its family/parent provider: match on what the
+            # block ABSORBED first (TR-216), then fall back to the resolved
+            # owner so an alias with no rows still resolves to its parent.
+            target = canonical_provider(want, seat_folds(load_account_map()),
+                                        load_alias_map())
+            matched = [b for b in blocks
+                       if b['provider'] == want
+                       or want in (b.get('seats') or [])
+                       or want in (b.get('aliases') or [])]
+            if not matched and target != want:
+                matched = [b for b in blocks if b['provider'] == target]
+            blocks = matched
         as_of = _iso(now_ts)
         if args.json:
             print(json.dumps({'as_of': as_of, 'ledger': ledger,

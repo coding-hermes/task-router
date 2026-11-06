@@ -114,7 +114,10 @@ def test_ac1_aliases_never_double_count_their_parent():
     b = blocks[0]
     assert b["spent_usd"] == pytest.approx(4.0)   # both rows, summed ONCE
     assert b["remaining_usd"] == pytest.approx(6.0)
-    assert "alias-x" not in json.dumps(json.dumps(b)) + b["provider"]
+    # the alias is NAMED as spend this budget absorbed — never emitted as a
+    # second budget of its own (which is what double-counting looked like)
+    assert b.get("aliases") == ["alias-x"]
+    assert [x for x in blocks if x["provider"] == "alias-x"] == []
 
 
 def test_ac1_alias_rows_in_l0_table_never_own_a_window():
@@ -271,6 +274,9 @@ def test_ac3_unconfigured_sibling_account_still_shows_its_spend():
     assert by_acct["xkiro-9"]["spent_usd"] == pytest.approx(4.0)
     assert by_acct["xkiro-9"]["remaining_usd"] is None
     assert "no limit configured" in (by_acct["xkiro-9"]["remaining_reason"] or "")
+    # the reason names the ACCOUNT, not just the family — two split blocks
+    # otherwise carry the same sentence and the operator cannot tell which
+    assert "xkiro-9" in by_acct["xkiro-9"]["remaining_reason"]
 
 
 def test_ac3_real_table_accounts_match_live_lane_companies():
@@ -467,6 +473,36 @@ def test_ac5_cli_reports_distinct_accounts_for_xkiro(tmp_path, monkeypatch):
     assert seat_block["seats"] == ["xkiro-2"]
 
 
+def test_ac5_every_multi_account_family_splits_one_entry_per_account():
+    """Data-driven over the committed table: EVERY family the L0 declares with
+    two account-bearing ids splits into one entry per account — no family is
+    special-cased in code, and no block is a summed cross-account row."""
+    amap = acc.load_account_map(QUOTA)
+    folds = acc.seat_folds(amap)
+    families = sorted(set(folds.values()))
+    assert set(families) == {"commandcode", "opencode-go", "xkiro"}, families
+    rows = []
+    for fam in families:
+        rows.append(_row(fam, cost=1.0, session=f"{fam}-family"))
+        for j, seat in enumerate(s for s, f in folds.items() if f == fam):
+            rows.append(_row(seat, cost=2.0 + j, session=f"{fam}-seat{j}"))
+    blocks = acc.account(rows, {}, T0, account_map=amap)
+    per_family = {}
+    for b in blocks:
+        per_family.setdefault(b["provider"], []).append(b)
+    assert set(per_family) == set(families), "a seat leaked a block of its own"
+    assert sum(b["n_rows"] for b in blocks) == len(rows)
+    for fam in families:
+        seats = sorted(s for s, f in folds.items() if f == fam)
+        assert len(per_family[fam]) == 1 + len(seats), (
+            f"{fam}: expected one entry per account ({1 + len(seats)}), "
+            f"got {len(per_family[fam])}")
+        assert {b["account"] for b in per_family[fam]} == \
+            {amap[fam]} | {amap[s] for s in seats}
+        for b in per_family[fam]:
+            assert b["n_rows"] == 1, "a block summed more than its own account"
+
+
 def test_ac5_real_table_declares_aggregate_and_rollover_on_seat_rows():
     """Data-level (item 3 + item 4): every multi-account row carries
     aggregate_display unknown-with-reason; xkiro/-2 and opencode-go/-2 mark
@@ -493,3 +529,204 @@ def test_ac5_real_table_declares_aggregate_and_rollover_on_seat_rows():
             ro = r.get("rollover")
             assert ro.get("included_credits") == "no-rollover"
             assert ro.get("topup_credits") == "rollover-never-expire"
+
+
+# ==========================================================================
+# AC6 — alias inheritance on the REAL path: L0 table -> view -> CLI
+#
+# The first landing only honored `alias_of` from the limits CONFIG, which the
+# operator never populated from the table — so `gw-deepseek` spend would have
+# reported as its own budget and the parent's window would have been drawn
+# down twice. The table is the authority (spec §2: "an alias does not own
+# quota"), read at query time like the account map.
+# ==========================================================================
+
+GATEWAY_ALIASES = {"gw-deepseek": "deepseek",
+                   "myrouter:zai-glm": "zai-glm"}
+
+
+def test_ac6_l0_alias_map_declares_the_gateway_aliases():
+    amap = acc.load_alias_map(QUOTA)
+    for alias, parent in GATEWAY_ALIASES.items():
+        assert amap.get(alias) == parent, (
+            f"{alias}: alias_of lost from the L0 table — an alias that "
+            f"resolves to nothing double-counts its parent's window")
+    pids = {r["provider_id"] for r in _load(QUOTA)}
+    for alias, parent in amap.items():
+        assert alias != parent, f"{alias}: self-alias is not an identity"
+        assert parent in pids, f"{alias}: parent {parent} has no L0 rows"
+
+
+def test_ac6_alias_rows_fold_into_the_parent_not_a_second_budget():
+    rows = [_row("deepseek", cost=2.0, session="a"),
+            _row("gw-deepseek", cost=3.0, session="b")]
+    blocks = acc.account(rows, {}, T0, alias_map=acc.load_alias_map(QUOTA))
+    assert [b["provider"] for b in blocks] == ["deepseek"], (
+        "alias emitted its own budget — the parent window is drawn down twice")
+    b = blocks[0]
+    assert b["spent_usd"] == pytest.approx(5.0)
+    assert b["n_rows"] == 2
+    assert b["aliases"] == ["gw-deepseek"]
+
+
+def test_ac6_alias_spend_is_counted_exactly_once():
+    """The invariant behind "never double-count": every ledger row lands in
+    exactly one block and the money sums to the ledger — no block may be a
+    second view of the same window."""
+    rows = [_row("zai-glm", cost=1.0, session="a"),
+            _row("myrouter:zai-glm", cost=4.0, session="b"),
+            _row("myrouter:zai-glm", cost=0.5, session="c")]
+    blocks = acc.account(rows, {}, T0, alias_map=acc.load_alias_map(QUOTA))
+    assert len(blocks) == 1
+    assert sum(b["n_rows"] for b in blocks) == len(rows)
+    assert sum(b["spent_usd"] for b in blocks) == pytest.approx(5.5)
+
+
+def test_ac6_alias_chain_resolves_the_same_in_any_declaration_order():
+    rows = [_row("a", cost=1.0, session="1"),
+            _row("b", cost=2.0, session="2"),
+            _row("c", cost=4.0, session="3")]
+    one = acc.account(rows, {}, T0, alias_map={"a": "b", "b": "c"})
+    other = acc.account(rows, {}, T0, alias_map={"b": "c", "a": "b"})
+    assert [b["provider"] for b in one] == ["c"]
+    assert [b["provider"] for b in other] == ["c"]
+    assert one[0]["spent_usd"] == pytest.approx(7.0)
+    assert other[0]["spent_usd"] == pytest.approx(7.0)
+    assert one[0]["n_rows"] == 3 and other[0]["n_rows"] == 3   # none dropped
+    assert one[0]["aliases"] == ["a", "b"]                     # both named
+
+
+def test_ac6_alias_cycle_folds_nothing_and_drops_nothing():
+    rows = [_row("a", cost=1.0, session="1"),
+            _row("b", cost=2.0, session="2")]
+    blocks = acc.account(rows, {}, T0, alias_map={"a": "b", "b": "a"})
+    # a cycle is not an identity: neither id is picked as the winner, both keep
+    # their own budget, and every row still lands exactly once
+    assert [b["provider"] for b in blocks] == ["a", "b"]
+    assert [b["n_rows"] for b in blocks] == [1, 1]
+    assert sum(b["spent_usd"] for b in blocks) == pytest.approx(3.0)
+
+
+def test_ac6_the_view_is_pure_and_never_mutates_the_callers_rows():
+    rows = [_row("xkiro", cost=1.0, session="a"),
+            _row("gw-deepseek", cost=2.0, session="b")]
+    snapshot = json.dumps(rows, sort_keys=True)
+    acc.account(rows, {}, T0, account_map={"xkiro": "xkiro-1"},
+                alias_map={"gw-deepseek": "deepseek"})
+    assert json.dumps(rows, sort_keys=True) == snapshot, (
+        "account() leaked labels onto the caller's rows — the next query over "
+        "the same ledger would answer differently (a view must not drift)")
+    first = acc.account(rows, {}, T0, account_map=acc.load_account_map(QUOTA),
+                        alias_map=acc.load_alias_map(QUOTA))
+    second = acc.account(rows, {}, T0, account_map=acc.load_account_map(QUOTA),
+                         alias_map=acc.load_alias_map(QUOTA))
+    assert first == second
+
+
+def test_ac6_a_limits_config_alias_overrides_the_table_edge():
+    rows = [_row("gw-deepseek", cost=2.0, session="a"),
+            _row("other-parent", cost=1.0, session="b")]
+    blocks = acc.account(rows, {"alias_of": {"gw-deepseek": "other-parent"}},
+                         T0, alias_map={"gw-deepseek": "deepseek"})
+    assert [b["provider"] for b in blocks] == ["other-parent"]
+    assert blocks[0]["spent_usd"] == pytest.approx(3.0)
+
+
+def test_ac6_an_alias_keyed_config_still_describes_the_parent_window():
+    """An operator may write the limit under the ALIAS id (that is the id
+    they call). The alias owns no budget, so the entry describes the PARENT's
+    window — it must not be silently dropped into a separate block or into
+    'no limit configured'."""
+    rows = [_row("gw-deepseek", cost=9.0, session="a")]
+    limits = {"providers": {"gw-deepseek": {"window": "rolling_5h",
+                                            "limit_usd": 10.0}}}
+    blocks = acc.account(rows, limits, T0, alias_map=acc.load_alias_map(QUOTA))
+    assert len(blocks) == 1
+    b = blocks[0]
+    assert b["provider"] == "deepseek"
+    assert b["limit_usd"] == pytest.approx(10.0)
+    assert b["remaining_usd"] == pytest.approx(1.0)
+
+
+def test_ac6_a_torn_tail_does_not_blank_the_alias_map(tmp_path):
+    """The table is append-written, so a half-flushed last line is normal.
+    Skipping only the bad line keeps every alias/account declaration readable;
+    blanking the whole table would silently turn alias folding off — the exact
+    failure that lets a window be drawn down twice."""
+    tbl = tmp_path / "provider_quota.jsonl"
+    with tbl.open("w") as f:
+        f.write(json.dumps({"provider_id": "deepseek", "account": "default",
+                            "window_kind": "rolling_5h", "unit": "usd"}) + "\n")
+        f.write(json.dumps({"provider_id": "gw-deepseek",
+                            "account": "default", "window_kind": "none",
+                            "unit": "usd", "alias_of": "deepseek"}) + "\n")
+        f.write('{"provider_id": "torn"')          # torn tail, as on disk
+    assert acc.load_alias_map(str(tbl)) == {"gw-deepseek": "deepseek"}
+    assert acc.load_account_map(str(tbl)) == {"deepseek": "default",
+                                              "gw-deepseek": "default"}
+
+
+def test_ac6_cli_resolves_an_alias_to_its_parent_block(tmp_path, monkeypatch):
+    """The acceptance command with an alias id: `accounting --provider
+    gw-deepseek` reports the PARENT's single budget (spend counted once), and
+    names the alias it absorbed."""
+    led = _led(tmp_path, [
+        {"provider": "gw-deepseek", "model": "m", "tokens_in": 100,
+         "tokens_out": 0, "cost_usd": 3.0, "ts": T0, "session_id": "a"},
+        {"provider": "deepseek", "model": "m", "tokens_in": 100,
+         "tokens_out": 0, "cost_usd": 1.0, "ts": T0, "session_id": "b"},
+    ])
+    monkeypatch.setenv("ROUTING_OUTCOMES_FILE", led)
+    monkeypatch.setenv("ROUTER_QUOTA_LIMITS_FILE",
+                       str(tmp_path / "unused-limits.json"))
+    monkeypatch.setenv("ROUTER_PROVIDER_QUOTA_FILE", QUOTA)
+    monkeypatch.setattr(router_outcomes, "_PRICE_MAP", {})
+    script = os.path.join(SCRIPTS, "router_quota.py")
+    for want in ("gw-deepseek", "deepseek"):
+        proc = subprocess.run(
+            [sys.executable, script, "accounting", "--provider", want,
+             f"--now={int(T0)}", "--json"],
+            capture_output=True, text=True)
+        assert proc.returncode == 0, proc.stderr
+        out = json.loads(proc.stdout)
+        assert len(out["providers"]) == 1, (
+            f"--provider {want}: expected ONE parent block, got "
+            f"{[b['provider'] for b in out['providers']]}")
+        b = out["providers"][0]
+        assert b["provider"] == "deepseek"
+        assert b["spent_usd"] == pytest.approx(4.0)
+        assert b.get("aliases") == ["gw-deepseek"]
+
+
+@pytest.mark.parametrize("family,seat,acct1,acct2", [
+    ("opencode-go", "opencode-go-2", "opencode-go-1", "opencode-go-2"),
+    ("commandcode", "commandcode-2", "seat-1", "seat-2"),
+])
+def test_ac5_cli_reports_distinct_accounts_for_every_multi_account_family(
+        tmp_path, monkeypatch, family, seat, acct1, acct2):
+    """Item 3 breadth: the per-account rule holds for ALL seat families, not
+    just xkiro — two ledger provider ids, two entries, never a summed row."""
+    led = _led(tmp_path, [
+        {"provider": family, "model": "m", "tokens_in": 100, "tokens_out": 0,
+         "cost_usd": 2.0, "ts": T0, "session_id": "a"},
+        {"provider": seat, "model": "m", "tokens_in": 100, "tokens_out": 0,
+         "cost_usd": 5.0, "ts": T0, "session_id": "b"},
+    ])
+    monkeypatch.setenv("ROUTING_OUTCOMES_FILE", led)
+    monkeypatch.setenv("ROUTER_QUOTA_LIMITS_FILE",
+                       str(tmp_path / "unused-limits.json"))
+    monkeypatch.setenv("ROUTER_PROVIDER_QUOTA_FILE", QUOTA)
+    monkeypatch.setattr(router_outcomes, "_PRICE_MAP", {})
+    proc = subprocess.run(
+        [sys.executable, os.path.join(SCRIPTS, "router_quota.py"),
+         "accounting", "--provider", family, f"--now={int(T0)}", "--json"],
+        capture_output=True, text=True)
+    assert proc.returncode == 0, proc.stderr
+    out = json.loads(proc.stdout)
+    assert len(out["providers"]) == 2, "summed rows instead of one per account"
+    got = {b["account"]: b for b in out["providers"]}
+    assert set(got) == {acct1, acct2}
+    assert got[acct1]["spent_usd"] == pytest.approx(2.0)
+    assert got[acct2]["spent_usd"] == pytest.approx(5.0)
+    assert got[acct2]["seats"] == [seat]
+    assert all(b["provider"] == family for b in out["providers"])

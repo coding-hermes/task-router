@@ -2196,10 +2196,14 @@ def _lane_headroom(quota_ctx: Any, provider: Any) -> float | None:
     """
     try:
         limits = quota_ctx.get('limits') or {}
+        # TR-216: an alias id resolves to its parent budget (the ctx grouped
+        # rows by the canonical owner, so the lookup must use the same key).
+        key = str(provider)
+        key = (quota_ctx.get('alias_target') or {}).get(key, key)
         block = _rqa.account_provider(
-            str(provider),
-            (quota_ctx.get('rows_by_provider') or {}).get(str(provider), []),
-            (limits.get('providers') or {}).get(provider) or {},
+            key,
+            (quota_ctx.get('rows_by_provider') or {}).get(key, []),
+            (limits.get('providers') or {}).get(key) or {},
             quota_ctx.get('now'),
             default_window=limits.get('default_window') or _rqa.DEFAULT_WINDOW)
         h = block.get('headroom_usd_per_s')
@@ -2216,8 +2220,8 @@ def _quota_order_ctx() -> dict:
     a missing/corrupt/empty config never silently changes an ordering, and
     never blocks one (fail-open is sacred)."""
     ctx = {'enabled': False, 'reason': None, 'limits': None, 'limits_path': None,
-           'ledger_path': None, 'rows_by_provider': {}, 'n_limits': 0,
-           'now': time.time(), 'guard': _quota_order_guard()}
+           'ledger_path': None, 'rows_by_provider': {}, 'alias_target': {},
+           'n_limits': 0, 'now': time.time(), 'guard': _quota_order_guard()}
     try:
         path = _rqa.limits_path()
         doc = _rqa.load_limits(path)
@@ -2232,13 +2236,21 @@ def _quota_order_ctx() -> dict:
             ctx['reason'] = 'disabled: ROUTER_QUOTA_ORDER_GUARD=0'
             return ctx
         ledger = _rqa.router_outcomes.outcomes_path()
+        # TR-216 alias inheritance: an alias owns no window, so its spend is
+        # the PARENT's spend. Without this fold the headroom term would see an
+        # under-counted spend (over-stated headroom) on the alias's parent.
+        alias_of = _rqa.load_alias_map()
+        alias_target = {a: _rqa.canonical_provider(a, {}, alias_of)
+                        for a in alias_of}
         by = {}
         for r in _rqa.router_outcomes.load_outcome_rows(ledger):
             p = (r or {}).get('provider')
             if p is None:
                 continue
-            by.setdefault(str(p), []).append(r)
-        ctx.update(enabled=True, ledger_path=ledger, rows_by_provider=by)
+            p = str(p)
+            by.setdefault(alias_target.get(p, p), []).append(r)
+        ctx.update(enabled=True, ledger_path=ledger, rows_by_provider=by,
+                   alias_target=alias_target)
         return ctx
     except Exception as e:  # noqa: BLE001 — fail-open, never block a resolve
         ctx['reason'] = (f'quota-order inputs unreadable: '
