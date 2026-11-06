@@ -1,0 +1,94 @@
+Release readiness sweep — task-router-releng-2026-11-06-19-13-01, pass 4 (re-gate)
+Re-gated at the current canonical tip. This pass CORRECTS two carried CI claims from pass 3.
+
+Identity
+- Repository: coding-hermes/task-router (remote git@github.com:coding-hermes/task-router.git)
+- Canonical root: /home/kara/task-router ; default branch: main
+- Candidate/carrier SHA: 822584400c011965d5a186161793b0cfa327a162
+- origin/main: 822584400c011965d5a186161793b0cfa327a162 (0 ahead / 0 behind)
+- Working tree: clean (git status --porcelain empty)
+
+Re-gate corrections (carried blockers re-probed at this tip)
+1. CORRECTED — pass 3 recorded run 42283117823 on prior carrier 1168dc2 as "in_progress / PENDING".
+   Re-probed: 42283117823 on 1168dc23831f70c3aa4fe1464f7430c943708bd2 = completed/SUCCESS.
+   That blocker is refuted, not carried.
+2. NEW — current tip 8225844 run 42286561173 = completed/SUCCESS. Per-step: steps 1-15 all
+   success (Set up, checkout, state plane, setup-python, install deps, seed registry, Full test
+   suite, Guard test command (gitreins parity), Fresh-clone resolve smoke, Registry integrity,
+   Null-debt invariants TR-201, TR-251 boundary gate, TR-251 evidence replay, outcome_probes
+   check-all, Proxy harness guard) plus post steps. Exact-tip hosted CI is GREEN.
+   CI was polled to terminal in this pass; no in_progress conclusion is carried forward.
+
+Range and semver (not re-derived — product tree unchanged, see below)
+- Prior passes: HEAD advanced 1168dc2 -> 8225844 by board/evidence bookkeeping only:
+  git diff --name-only 1168dc2..8225844 = .coding-hermes/board/tasks.jsonl,
+  .coding-hermes/evidence/release-readiness-task-router-2026-11-06-1913-r3.txt.
+  git diff --stat 553d2cb..8225844 over task_router tests scripts data Makefile pyproject.toml
+  README.md CHANGELOG.md is EMPTY, so the pass-3 census stands verbatim.
+- No prior numeric tag exists. Material candidate 553d2cb3270eb91abd1069707f9bd9e3d9d3280d.
+- Range 4d44b1ee0558c6e9f2855cd45318220ce8a0ce85..553d2cb: 66 commits, 63 non-merge subjects;
+  feat=5, fix=9, perf=0, breaking footers=0, bang-marked subjects=0 (reconciles to 63).
+- Five feat commits in range => 0.x minor axis => natural first-cut proposal v0.3.0.
+  This is a PROPOSAL, not authorization, and no major bump is warranted
+  (zero BREAKING CHANGE footers, zero bang-marked subjects).
+
+Release surface (three layers, all empty — initial-release candidate)
+- Annotated/numeric tags: 0 local (git tag) / 0 remote (git ls-remote --tags origin)
+- GitHub Release objects: 0 (never any)
+- Build artifacts / package publication: none
+- Tag-triggered publisher: ABSENT. .github/workflows/ci.yml triggers on push branches [main],
+  pull_request, workflow_dispatch — there is NO `tags:` trigger. A tag push would publish
+  NOTHING, silently. Release-surface finding already open as RELEASE-2026-11-03-001.
+- No tag, Release, package artifact, or external release state was created or changed this pass.
+
+Version and tooling
+- pyproject.toml version: 0.2.0 ; task_router/__init__.py __version__: 0.2.0 (agree with each other)
+- CHANGELOG.md: top heading is `## [Unreleased]` with populated body; no `## v0.3.0` heading.
+  Version-prep is therefore ABSENT for any cut.
+- Makefile present but carries NO release/version/bump/publish/tag target.
+- No scripts/release*, no .goreleaser*, no Dockerfile, no package.json.
+- docs/releases/release-readiness.md is a manual procedure only (docs-only, not executable).
+- Artifact type is a Python package (console script `router = task_router.cli:main`).
+  No artifacts were built: version-prep and authorization are both absent.
+
+Deployed-artifact staleness
+- No `router`, `task-router`, or `task_router` console script resolves on PATH; ~/.local/bin/router
+  is absent. There is no deployed local binary to be stale — the deployed-artifact layer is
+  ABSENT, which is a separate finding class from "stale", and it is not release-gating.
+
+GitReins
+- No verdict is bound to 8225844 or 1168dc2 (grep of .gitreins/history for both SHAs: no hits).
+- Latest bound verdicts are older SHAs only: 593271f7 (TR-381-R1), 34fc3f5 (TR-372),
+  f5fa3f1 (TR-276). Current-tip GitReins evidence is UNVERIFIED, not green.
+
+Dogfood / QA
+- Latest committed dogfood record: 2026-11-06, verdict PROMISING-BUT-ROUGH. It reports
+  fresh-machine tests FAIL on the interpreter-dependent `::ffff` loopback gate, install
+  isolation UNVERIFIED (bunker Net mode shared), and a refused seed that still writes
+  registry/data. Its measured product SHA is stale relative to this tip; the label is not a waiver.
+- Board validator baseline remains RESULT: FAIL (422 errors, 518 warnings) — standing legacy
+  board-lint debt (415 non-ascending event ids, 7 superseded-status rows), not repaired here.
+
+Blockers (open after last-physical-line dedupe by id)
+- Open P0 = 6: TR-294 (blocked), TR-375 (blocked), TR-376 (blocked), TR-378 (blocked),
+  TR-371 (pending), RELEASE-2026-10-22-001 (pending, this readiness row).
+- Open P1 = 29.
+- TR-371 divergence RE-PROVEN live at this tip (not carried):
+  git merge-base --is-ancestor 3b859ab8a5b412c7fe07dd4cf1cc3cbf2bee6479 HEAD -> rc=1;
+  git branch -a --contains 3b859ab -> only wt/TR-371 and origin/wt/TR-371;
+  git rev-list --left-right --count wt/TR-371...origin/main -> 1 ahead / 5 behind.
+  .gitreins/tasks.yaml still records TR-371 as complete. Live blocker, unchanged.
+- Authorization: NO release-cut / authorization row exists. A grep of the canonical board for
+  release-cut|authoriz returns only this readiness row's own "requires owner authorization" title.
+
+Decision
+- NO CUT. Decision-1 rule 2: open P0 blockers exist on a repo with no release surface.
+- Independent hard invariants also fail: no version-prep commit (CHANGELOG still [Unreleased],
+  pins still 0.2.0), no executable release driver, no tag-triggered publisher, no first-release
+  authorization/distribution decision, and no current-tip GitReins/dogfood clearance.
+- Green exact-tip CI does NOT change this: CI green clears only the CI invariant; the remaining
+  invariants and the open P0s are independent of it.
+- Next action: owner explicitly authorizes task-router + version (v0.3.0 or other) + baseline SHA;
+  then land version/CHANGELOG prep, get exact-SHA green CI, build wheel/sdist, create the immutable
+  annotated tag, add/dispatch a tag-ref publisher, publish the Release ONCE, and verify the
+  downloaded installation and assets.
