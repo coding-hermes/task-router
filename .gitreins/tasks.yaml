@@ -1459,3 +1459,20 @@ tasks:
   status: complete
   created_at: '2026-11-05T23:13:20.573909+00:00'
   completed_at: '2026-11-05T23:13:21.609573+00:00'
+- id: TR-365
+  title: 'Gate state corrected from live evidence: fireworks-ai un-gated, kimi re-dated,
+    deepseek-v4p1-flash-1017 carrier decision recorded'
+  criteria:
+  - 'Gate state corrected from live 2026-11-05 evidence: (1) `jq -r ''.providers["fireworks-ai"].status''
+    ~/.hermes/model-router/quota-state.json` prints `open` and its `.reason` names
+    2026-11-05, the seven FIREWORKS_* service keys and the HTTP 200 proof; (2) `jq
+    -r ''.providers["kimi-for-coding"].reason'' ~/.hermes/model-router/quota-state.json`
+    names 2026-11-05 and `jq -e . ` on that file exits 0; (3) from /home/kara/task-router,
+    `/home/kara/.hermes/venvs/board/bin/python3 scripts/router_spawn.py --profile
+    P3_DOCS --format json` emits a chain containing at least 3 hops whose provider
+    is `fireworks-ai`, and no `gate`/`gate_reasons` entry excludes `fireworks-ai`
+    as un-keyed; (4) `data/tables/model_notes.jsonl` carries a row for model `accounts/fireworks/models/deepseek-v4p1-flash-1017`
+    whose note names 2026-11-05 and records the single-carrier decision.'
+  status: complete
+  created_at: '2026-11-05T16:56:36.086913+00:00'
+  completed_at: '2026-11-05T17:01:55.866591+00:00'
