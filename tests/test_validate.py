@@ -10,6 +10,8 @@ import sys
 import subprocess
 import time
 
+import pytest
+
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PY = (
     "/home/kara/.hermes/venvs/board/bin/python3"
@@ -227,6 +229,32 @@ def test_validate_reports_which_paths_were_compared(tmp_path):
 
 _BARE_ENV_KEYS = ("ROUTING_REGISTRY", "TASK_ROUTER_HOME", "XDG_DATA_HOME")
 
+# The bare-run acceptance runs against the REAL repo registry, and
+# registry.json is deliberately gitignored (TR-010: derived live store) —
+# CI and `make seed` generate it in a step before pytest, so a fresh clone
+# that skipped seeding has no store at all and the test's "healthy checkout"
+# contract is not expressible. The Makefile header documents exactly this
+# phantom-failure class ("a reviewer who omitted seed got 15 phantom test
+# failures"). The store-present assertion keeps its full strength, and the
+# present-but-invalid arm still fails loudly by design:
+# test_validate_corrupt_registry_exit1 / test_validate_stale_registry_listed /
+# test_validate_beyond_tolerance_is_still_stale.
+_REGISTRY_ABSENT_SKIP = (
+    "registry.json is a derived, gitignored store — "
+    "run `make seed` before this bare-run acceptance"
+)
+
+
+def _skip_without_repo_registry():
+    """Self-skip when the repo's derived registry store is absent.
+
+    Checked at test RUN time, not collection: a store that appears mid-suite
+    (the TR-202 probe pins seed writes into this tree, measured live) must
+    still be validated, not permanently skipped by a collection-time verdict.
+    """
+    if not os.path.exists(os.path.join(REPO, "registry.json")):
+        pytest.skip(_REGISTRY_ABSENT_SKIP)
+
 
 def _import_validate_fresh(monkeypatch, **env_over):
     """Import scripts/router_validate.py as a fresh module with the given env.
@@ -276,7 +304,10 @@ def test_bare_run_at_repo_root_exits0_on_healthy_checkout(monkeypatch):
     on the current (seeded, committed-tables) tree exits 0 and validates the
     REPO registry — the same file `router seed` writes and `router spawn`
     reads. Runs against the real repo registry/data (no fixtures) because the
-    bug was exactly in the no-env resolution path."""
+    bug was exactly in the no-env resolution path. On a checkout without the
+    derived registry.json (fresh clone, unseeded worktree) it self-skips —
+    see _skip_without_repo_registry()."""
+    _skip_without_repo_registry()
     for k in _BARE_ENV_KEYS:
         monkeypatch.delenv(k, raising=False)
     proc = subprocess.run([PY, VALIDATE, "--json"], cwd=REPO,
