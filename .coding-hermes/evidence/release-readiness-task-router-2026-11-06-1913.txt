@@ -1,0 +1,55 @@
+Release readiness sweep: task-router-releng-2026-11-06-19-13-01
+
+Identity
+- Repository: coding-hermes/task-router
+- Canonical root: /home/kara/task-router
+- Remote: git@github.com:coding-hermes/task-router.git
+- Default branch: main
+- Candidate SHA: 553d2cb3270eb91abd1069707f9bd9e3d9d3280d
+- origin/main: 553d2cb3270eb91abd1069707f9bd9e3d9d3280d
+- Divergence: 0 ahead / 0 behind
+- Working tree: clean at measurement time
+
+Release surface
+- Local numeric tags: 0
+- Remote tags: 0
+- GitHub Release objects: 0
+- Existing release artifacts: none to inventory
+- Existing tag is absent; no tag or Release mutation performed.
+
+Baseline and commit census
+- No prior numeric release tag exists. For continuity, delta was measured from the prior published releng candidate 4d44b1ee0558c6e9f2855cd45318220ce8a0ce85.
+- Range count: 66 commits by git rev-list; the conventional subject census below covers 63 non-merge subjects because the range includes merge commits.
+- Material conventional subjects: feat=5, fix=9, perf=0.
+- Bookkeeping/non-material classified subjects: 24 (chore/docs/refactor/test/ci/board/evidence/dogfood).
+- Other/unclassified subjects: 25.
+- No BREAKING CHANGE footer or bang-marked type was found in the range.
+- Natural semver proposal remains v0.3.0 for the first 0.x minor release, but this is a proposal only; no authorization or version-prep commit exists.
+
+Version and release tooling
+- pyproject.toml version: 0.2.0
+- task_router/__init__.py version: 0.2.0
+- CHANGELOG.md: populated [Unreleased], no 0.3.0 heading
+- Repository-owned release driver: absent. Existing release procedure is docs/releases/release-readiness.md; no Makefile release target, scripts/release*, GoReleaser config, Dockerfile, npm publish surface, or tag-triggered workflow was found.
+- Existing release-driver gap: RELEASE-2026-11-03-001 (pending).
+- Artifact strategy: Python package; prior strategy evidence built wheel/sdist for 0.2.0, but no candidate artifacts were built because version-prep and authorization are absent.
+
+Hosted CI
+- Exact candidate run: 42277410847, https://github.com/coding-hermes/task-router/actions/runs/42277410847
+- SHA: 553d2cb3270eb91abd1069707f9bd9e3d9d3280d
+- Status: in_progress; conclusion not yet available.
+- Job state: test/in_progress. Setup, checkout, state-plane, Python setup, dependency install, and registry seed completed; full suite and all load-bearing later steps have not completed.
+- Decision: CI is not green and is not release evidence yet. No release action performed.
+- Recent history includes earlier success and failure runs on other SHAs; they are not substituted for exact-candidate evidence.
+- ci.yml triggers push on main, pull_request, and workflow_dispatch; it has no tag trigger, so tag-SHA verification would require explicit workflow_dispatch after a future authorized cut.
+
+GitReins and dogfood
+- No current-head GitReins verdict is available for 553d2cb. The newest successful local verdicts are bound to earlier commits (for example TR-372 -> 34fc3f5 and QA-TASKROUTER-3 -> d59304b); they are not candidate evidence.
+- The latest dogfood/QA record in the committed tree is the 2026-11-06 battery record tested at earlier SHAs. It reports tests FAIL, ci-pass FAIL, resource/disconnect/collector evidence gaps, and several filed QA rows; it is stale relative to 553d2cb and is not a waiver.
+- Current open P0/P1 blockers include the existing release row, INT-CI-10/11/17/18/19/20, TR-REV-20261027-02, TR-371, TR-366/367/368, TR-380, TR-382, TR-386/387/1000242751831738, TR-388, TR-1000976681059246/7/8, and QA-TASK-ROUTER-FOREMAN-1/2. They have not been accepted into a release decision.
+
+Decision
+- NO CUT.
+- Rule: first-release contract and hard gates are unmet; exact-SHA hosted CI is in progress, version-prep is absent, the executable release driver is absent, and owner authorization naming task-router, version, and baseline SHA is absent from the canonical release row.
+- No tag, GitHub Release, package artifact, or external release state was created or changed.
+- Reusable next action: after explicit authorization and version-prep at a clean candidate SHA, wait for exact-SHA CI to complete green, build wheel/sdist with python -m build, create the immutable annotated tag, dispatch CI on the tag ref, publish the Release object, download/install the artifact, and verify tag-SHA CI separately.
