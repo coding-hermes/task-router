@@ -96,7 +96,7 @@ watchdog:
 restart-router:
 	@test -d "$(CANONICAL_TREE)/.git" || { echo "FATAL: $(CANONICAL_TREE) is not a git checkout — set CANONICAL_TREE=<the tree systemd runs>"; exit 1; }
 	@test -f "$(CANONICAL_TREE)/scripts/sync_runtime.sh" || { echo "FATAL: $(CANONICAL_TREE)/scripts/sync_runtime.sh missing"; exit 1; }
-	@if systemctl is-active --quiet task-router-server.service || systemctl is-active --quiet task-router-proxy.service || systemctl is-active --quiet task-router-web.service; then \
+	@if systemctl --user is-active --quiet task-router-server.service || systemctl --user is-active --quiet task-router-proxy.service || systemctl --user is-active --quiet task-router-web.service; then \
 	  echo "OK      serving units found (systemd --user)"; \
 	else \
 	  echo "FATAL: task-router-* units are not active systemd --user units on this host — a scripted restart would be guesswork."; \
