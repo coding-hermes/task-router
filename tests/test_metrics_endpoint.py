@@ -395,6 +395,24 @@ def test_metrics_jsonl_bytes_reports_the_hop_store(tmp_path, monkeypatch):
     assert "router_metrics_jsonl_bytes 27" in text
 
 
+def test_metrics_jsonl_family_gauge_and_alias(tmp_path, monkeypatch):
+    """TR-372: the family gauge sums the RETAINED set (current + closed
+    generations) and rides the same task_router_ alias mechanism as the
+    existing current-file gauge — one registry, one render, two names."""
+    monkeypatch.setenv("TASK_ROUTER_HOME", str(tmp_path))
+    (tmp_path / "metrics.jsonl").write_text('{"x": 1}\n' * 3)   # 27 bytes
+    (tmp_path / "metrics.jsonl.1").write_text("abcdefghij\n")   # 11 bytes
+    (tmp_path / "metrics.jsonl.2").write_text("klmnopqrst\n")   # 11 bytes
+    rp = _rp()
+    text = rp.render_metrics().decode()
+    assert "# TYPE router_metrics_jsonl_family_bytes gauge" in text
+    assert "# TYPE task_router_metrics_jsonl_family_bytes gauge" in text
+    assert "router_metrics_jsonl_family_bytes 49" in text
+    assert "task_router_metrics_jsonl_family_bytes 49" in text
+    # current-file gauge unchanged: it still reports ONLY the current file
+    assert "router_metrics_jsonl_bytes 27" in text
+
+
 def test_lane_coverage_uses_the_resolver_measurement_view(monkeypatch):
     """The ratio is computed by the resolver's own lane view
     (router_health._store_view — the same seam /health uses), not a parallel

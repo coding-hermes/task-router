@@ -567,11 +567,33 @@ def _cb_metrics_jsonl_bytes():
 REGISTRY.callback(
     "router_metrics_jsonl_bytes",
     "gauge",
-    "Size of data/metrics.jsonl (one row per chain hop per resolve). "
-    "Disk-growth early warning for the unrotated append-only hop store "
-    "(spec §3.5 / §8 finding 1); stat only — the file is never read back "
-    "on the scrape path.",
+    "Size of the CURRENT data/metrics.jsonl generation (one row per chain "
+    "hop per resolve). Disk-growth early warning; stat only — the file is "
+    "never read back on the scrape path. TR-372 added size-capped rotation; "
+    "the whole retained set's footprint is router_metrics_jsonl_family_bytes.",
     (), _cb_metrics_jsonl_bytes)
+
+
+def _cb_metrics_jsonl_family_bytes():
+    """TR-372: total bytes across the retained rotation family
+    (metrics.jsonl.N ... metrics.jsonl.1 + current). Fail-open to 0 like the
+    current-file gauge."""
+    try:
+        import router_metrics_store
+        return [({}, router_metrics_store.family_bytes(_metrics_jsonl_path()))]
+    except Exception:  # noqa: BLE001 — a collector must never fail the scrape
+        return [({}, 0)]
+
+
+REGISTRY.callback(
+    "router_metrics_jsonl_family_bytes",
+    "gauge",
+    "Total bytes across the RETAINED metrics.jsonl rotation family (all "
+    "closed generations plus the current file; TR-372 "
+    "ROUTER_METRICS_MAX_BYTES / ROUTER_METRICS_GENERATIONS). The real "
+    "retention footprint; the current-file-only view is "
+    "router_metrics_jsonl_bytes. Stat only — no file is read back.",
+    (), _cb_metrics_jsonl_family_bytes)
 
 
 def _data_dir() -> Path:

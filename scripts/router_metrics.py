@@ -11,6 +11,12 @@ Metrics file location (in order):
 The parent directory is created on writes by router_spawn.py; this query tool
 reads only.
 
+TR-372: the store is now size-capped and rotated (router_metrics_store.py —
+ROUTER_METRICS_MAX_BYTES / ROUTER_METRICS_GENERATIONS), so the query reads the
+RETAINED FAMILY `<path>.N ... <path>.1, <path>` oldest generation first; a
+windowed query returns the same aggregates as before rotation. `--rotate-now`
+enforces retention on demand (one machine-readable line, exit 0).
+
 Rows have this shape (one per chain hop):
   {
     "ts": "2026-09-01T12:34:56+00:00",
@@ -43,8 +49,19 @@ from typing import Any
 _HERE = os.path.dirname(os.path.realpath(__file__))
 _REPO = os.path.dirname(_HERE)
 
+# TR-372: the store module owns rotation + the retained-family view. Same
+# directory; when this file runs as a script, scripts/ is already sys.path[0].
+# Fail-open like every reader: without the module, this tool degrades to the
+# pre-TR-372 single-file read (no rotation awareness, same output shape).
+try:
+    import router_metrics_store as _store
+except Exception:  # noqa: BLE001 — readers never raise on a missing helper
+    _store = None
+
 
 def _metrics_path():
+    if _store is not None:
+        return _store.metrics_path(repo=_REPO)
     home = os.environ.get("TASK_ROUTER_HOME")
     if home:
         return os.path.join(home, "metrics.jsonl")
@@ -85,22 +102,32 @@ def _parse_duration(s: Any) -> int | None:
 
 
 def _read_rows(path: Any):
-    try:
-        with open(path) as f:
-            for line in f:
-                line = line.strip()
-                if not line:
-                    continue
-                try:
-                    row = json.loads(line)
-                except Exception:
-                    continue
-                if isinstance(row, dict):
-                    yield row
-    except FileNotFoundError:
-        return
-    except Exception:
-        return
+    """Yield dict rows across the RETAINED FAMILY (TR-372), oldest generation
+    first, so `ts` ordering and every aggregate survive a rotation boundary.
+    Each file is read with the same tolerance as before (missing file → no
+    rows, malformed line skipped). Without the store module this degrades to
+    the pre-TR-372 single-file read."""
+    if _store is not None:
+        paths = _store.retained_paths(str(path))
+    else:
+        paths = [str(path)]
+    for p in paths:
+        try:
+            with open(p) as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        row = json.loads(line)
+                    except Exception:
+                        continue
+                    if isinstance(row, dict):
+                        yield row
+        except FileNotFoundError:
+            continue
+        except Exception:
+            continue
 
 
 def _filter_rows(path: Any, since: Any=None, profile: Any=None):
@@ -160,7 +187,24 @@ def main(argv: Any=None) -> int:
     ap.add_argument("--profile")
     ap.add_argument("--since", help="window like 24h, 7d, 30m")
     ap.add_argument("--json", action="store_true")
+    ap.add_argument("--rotate-now", action="store_true",
+                    help="TR-372: enforce retention immediately — rotate the "
+                         "hop store if it is over ROUTER_METRICS_MAX_BYTES, "
+                         "prune generations beyond ROUTER_METRICS_GENERATIONS, "
+                         "print one machine-readable line and exit 0")
     args = ap.parse_args(argv)
+
+    if args.rotate_now:
+        # On-demand retention enforcement (no resolve needed). Exactly one
+        # machine-readable line; fail-open values (rotated=0) on any problem,
+        # still exit 0 — this command must never fail a caller's pipeline.
+        path = _metrics_path()
+        rotated, retained = 0, 0
+        if _store is not None:
+            rotated = _store.rotate_if_needed(path)
+            retained = _store.family_bytes(path)
+        print(f"rotated={rotated} retained_bytes={retained}")
+        return 0
 
     since = _parse_duration(args.since) if args.since else None
     path = _metrics_path()

@@ -137,7 +137,8 @@ State source: `~/.hermes/model-router/circuit-state.json` (`scripts/router_circu
 | `task_router_resolve_nohops_total` | counter | resolves | `project`, `profile` | Same incident shape, from the spawn side |
 | `task_router_resolve_duration_seconds` | histogram | seconds | `project` | Chain resolution latency — a scheduler tick that took 40s starves the lane |
 | `task_router_resolve_lanes_total` | gauge | lanes | `kind{eligible,excluded,chain}` | Chain anatomy at a glance |
-| `task_router_metrics_jsonl_bytes` | gauge | bytes | — | **Disk-growth early warning** for `data/metrics.jsonl` (§2, finding 1) |
+| `task_router_metrics_jsonl_bytes` | gauge | bytes | — | **Disk-growth early warning** for `data/metrics.jsonl` (§2, finding 1) — the CURRENT file only |
+| `task_router_metrics_jsonl_family_bytes` | gauge | bytes | — | Total bytes across the RETAINED rotation family (`metrics.jsonl.N … .1` + current; TR-372 `ROUTER_METRICS_MAX_BYTES`/`ROUTER_METRICS_GENERATIONS`) — the real retention footprint |
 
 ### 3.5 Subsystem `data` — data-plane freshness
 
@@ -285,6 +286,12 @@ acceptance criterion — the PromQL returning data is.
 1. **`data/metrics.jsonl` is 6.3 GB, ~10.3 M rows, ~239 MB/day, no rotation, on a 90%-full
    volume.** This is a disk-full incident in slow motion with no alert. (`stat`, 20s growth
    sample; `scripts/router_spawn.py:1012-1015` writes unconditionally.)
+   **Addressed by TR-372** (`scripts/router_metrics_store.py`): the store is now
+   size-capped and rotated (`ROUTER_METRICS_MAX_BYTES`, default 512 MiB;
+   `ROUTER_METRICS_GENERATIONS`, default 3) before every append, readers resolve the
+   retained family, and `router_metrics.py --rotate-now` enforces retention on demand.
+   The historical 6.3 GB current file must still be trimmed once by hand or by a first
+   `--rotate-now` (a single rotate moves it wholesale to `metrics.jsonl.1`).
 2. **No-hops is at 73.7% against a 22.7% threshold right now** — a live, unshipped ALERT
    (`router_nohops.py check --window-h 24`).
 3. **Chain coverage is 2.4% against a 50% floor** — cost-per-task routing is effectively

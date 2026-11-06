@@ -368,3 +368,43 @@ def test_metrics_table_output_is_not_json(tmp_path, monkeypatch):
     # No --json → human table, should not parse as JSON
     with pytest.raises(json.JSONDecodeError):
         json.loads(q.stdout)
+
+
+def test_spawn_stdout_identical_with_rotation_active(tmp_path, monkeypatch):
+    """TR-372: rotation firing during an append must not change spawn's stdout
+    or exit code. Same code, same fixture: run A rotates nothing (fresh home),
+    run B rotates an over-cap current file first (ROUTER_METRICS_MAX_BYTES).
+    Only `resolved_at` (a second-resolution wall clock) may differ."""
+    import re
+
+    reg = _seed_registry(tmp_path)
+    state_dir = _open_quota_state(tmp_path)
+    env = {
+        "ROUTING_REGISTRY": reg,
+        "ROUTER_STATE_DIR": state_dir,
+    }
+    home_a = tmp_path / "home-a"
+    home_b = tmp_path / "home-b"
+    home_a.mkdir()
+    home_b.mkdir()
+    # run B's home starts over-cap → its append rotates the file first
+    (home_b / "metrics.jsonl").write_text("z" * 300 + "\n")
+
+    pa = _run(SPAWN, ("my-project", "--format", "json"),
+              env=dict(env, TASK_ROUTER_HOME=str(home_a)))
+    pb = _run(SPAWN, ("my-project", "--format", "json"),
+              env=dict(env, TASK_ROUTER_HOME=str(home_b),
+                       ROUTER_METRICS_MAX_BYTES="200",
+                       ROUTER_METRICS_GENERATIONS="3"))
+    assert pa.returncode == 0, pa.stderr
+    assert pb.returncode == 0, pb.stderr
+
+    ts_re = re.compile(r'"resolved_at": "[^"]*"')
+    a = ts_re.sub('"resolved_at": "<ts>"', pa.stdout)
+    b = ts_re.sub('"resolved_at": "<ts>"', pb.stdout)
+    assert a == b, "rotation changed the resolve output for the same input"
+
+    # and run B actually rotated: the over-cap file was closed into .1
+    assert (home_b / "metrics.jsonl.1").exists()
+    rows = _metrics_rows(str(home_b / "metrics.jsonl"))
+    assert len(rows) == 3  # the append landed in the fresh current file
