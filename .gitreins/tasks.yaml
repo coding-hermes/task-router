@@ -1593,3 +1593,15 @@ tasks:
   status: complete
   created_at: '2026-11-06T01:05:33.245957+00:00'
   completed_at: '2026-11-06T01:05:34.957171+00:00'
+- id: INT-CI-19
+  title: 'INT-CI-19: extend the outcome-probe library coverage derivation for the
+    -ops family and author the 4 uncovered primaries'
+  criteria:
+  - 'test_live_library_covers_every_active_project passes because the probe library
+    covers every active project family in data/tables/projects.jsonl: -ops lanes resolve
+    to their family primary (SATELLITE_SUFFIXES carries -ops) and probe files exist
+    for code-factory, fleet-ops-check, lane-cadence-check and lane-repair; the committed
+    projects table is unchanged (no rows removed, seed tables untouched).'
+  status: complete
+  created_at: '2026-11-06T01:16:00.175269+00:00'
+  completed_at: '2026-11-06T01:24:40.421132+00:00'
