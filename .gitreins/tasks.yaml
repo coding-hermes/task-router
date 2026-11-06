@@ -1646,3 +1646,29 @@ tasks:
   status: complete
   created_at: '2026-11-06T09:30:43.325347+00:00'
   completed_at: '2026-11-06T10:30:16.366152+00:00'
+- id: TR-372
+  title: 'TR-372: cap and rotate data/metrics.jsonl with retention, readers resolve
+    the rotated set'
+  criteria:
+  - 'AC1: ROUTE metrics rotation is size-based with a documented cap env var and N
+    generations; a forced low cap rotates by os.replace without changing router_spawn
+    CLI stdout or exit code. AC2: scripts/router_metrics.py and the prometheus byte
+    gauge resolve the rotated family (oldest->newest) with the pre-change output shape,
+    proved by a fixture with 3 generations. AC3: python3 -m pytest -q tests/ passes
+    locally and the metrics-append fail-open contract is preserved (append failure
+    never alters exit code).'
+  status: in_progress
+  created_at: '2026-11-06T14:43:58.557498+00:00'
+  completed_at: '2026-11-06T16:00:08.210005+00:00'
+- id: QA-TASKROUTER-3
+  title: 'QA-TASKROUTER-3: test_validate bare-run test must skip with a make-seed
+    pointer when the derived registry.json is absent'
+  criteria:
+  - 'AC1: python3 -m pytest -q tests/test_validate.py exits 0 on a checkout with no
+    registry.json and reports the documented make-seed skip reason. AC2: the test
+    still fails loudly when registry.json exists but is stale/invalid. AC3: git grep
+    -n -F test_bare_run_at_repo_root_exits0_on_healthy_checkout -- tests/test_validate.py
+    prints the pinned regression test.'
+  status: complete
+  created_at: '2026-11-06T14:43:59.138683+00:00'
+  completed_at: '2026-11-06T15:25:41.280727+00:00'
