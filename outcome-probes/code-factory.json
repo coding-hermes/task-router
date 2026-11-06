@@ -1,0 +1,12 @@
+{
+  "authored_at": "2026-11-06T01:18:39Z",
+  "authored_by": "foreman-direct (INT-CI-19)",
+  "probes": [
+    {
+      "id": "code-factory-P1",
+      "kind": "outcome",
+      "statement": "the code-factory lane stages and grades a board task through its self-test gate and the gitreins guard, producing a committed diff on the code-factory-published branch"
+    }
+  ],
+  "project": "code-factory"
+}

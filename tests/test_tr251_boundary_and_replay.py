@@ -34,6 +34,7 @@ sys.path.insert(0, SCRIPTS)
 
 import board_commit_boundary_gate as gate  # noqa: E402
 import evidence_replay as replay  # noqa: E402
+import outcome_probe_projects as families  # noqa: E402
 import outcome_probes as probes  # noqa: E402
 
 
@@ -262,3 +263,13 @@ def test_live_library_covers_every_active_project():
     projects = probes.load_primary_projects()
     missing = [p for p in projects if not os.path.exists(probes.probe_path(p))]
     assert not missing, f"probe library missing: {missing[:5]}…"
+
+
+def test_family_rule_folds_the_ops_lane_into_its_primary():
+    """The 2026-11-04 fleet-ops wave (TR-381) added an -ops lane per family;
+    the family rule must fold those lanes into their primary so they are not
+    derived as their own active project, and a bare primary is unchanged."""
+    assert families.primary_of("code-factory-ops") == "code-factory"
+    assert families.primary_of("task-router-ops") == "task-router"
+    assert families.primary_of("coding-hermes-scheduler-ops") == "coding-hermes-scheduler"
+    assert families.primary_of("code-factory") == "code-factory"

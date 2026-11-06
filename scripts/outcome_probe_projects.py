@@ -19,10 +19,13 @@ PROJECTS = os.path.join(REPO, "data", "tables", "projects.jsonl")
 #: Lane suffixes that mark a SATELLITE lane of a project family. A lane whose
 #: id ends with one of these belongs to the family primary (the id with the
 #: suffix stripped). Mirrors the fleet's own family rule: one foreman primary
-#: + its -qa/-pm/-sync/-dogfood/-perf/-releng/-review/-docs/-readme lanes.
+#: + its -qa/-pm/-sync/-dogfood/-perf/-releng/-review/-docs/-readme/-ops
+#: lanes (the 2026-11-04 fleet-ops wave, TR-381, added an -ops lane per
+#: family primary).
 SATELLITE_SUFFIXES = (
     "-foreman", "-qa", "-pm", "-sync", "-dogfood",
     "-perf", "-releng", "-review", "-docs", "-readme",
+    "-ops",
 )
 
 

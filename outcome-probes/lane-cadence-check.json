@@ -1,0 +1,12 @@
+{
+  "authored_at": "2026-11-06T01:18:39Z",
+  "authored_by": "foreman-direct (INT-CI-19)",
+  "probes": [
+    {
+      "id": "lane-cadence-check-P1",
+      "kind": "outcome",
+      "statement": "the lane-cadence-check command lane compares each lane's configured cadence with its observed scheduler tick spacing and reports every lane that drifts from the configured value"
+    }
+  ],
+  "project": "lane-cadence-check"
+}

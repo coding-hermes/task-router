@@ -1,0 +1,12 @@
+{
+  "authored_at": "2026-11-06T01:18:39Z",
+  "authored_by": "foreman-direct (INT-CI-19)",
+  "probes": [
+    {
+      "id": "lane-repair-P1",
+      "kind": "outcome",
+      "statement": "the lane-repair command lane realigns a drifting lane's scheduler row to the configured cadence and proves the row reads back at the configured value"
+    }
+  ],
+  "project": "lane-repair"
+}
