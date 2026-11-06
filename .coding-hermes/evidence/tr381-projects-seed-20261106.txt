@@ -1,0 +1,87 @@
+TR-381 — projects table covers every enabled fleet lane
+tick: task-router-foreman-2026-11-06-00-02-50
+row: TR-381 (P1)  tier: T3
+worker: glm-5.3-flash @ zai-glm (seat verified in state.db: model=glm-5.3-flash,
+        billing_base_url=https://api.z.ai/api/coding/paas/v4, cwd=worktree)
+worktree: /home/kara/worktrees/task-router-TR-381 (branch wt/TR-381)
+base: origin/main 2b724fd
+implementation commit: 12f8981  (pushed to origin/main, fast-forward)
+evidence artifact: .coding-hermes/evidence/tr381-projects-seed-20261106.txt
+
+1. BASELINE FAILURE (measured by the foreman at 2b724fd, canonical checkout)
+   $ ~/.hermes/venvs/board/bin/python3 -m pytest tests/test_tr260_projects_seed.py -q
+     -> 1 failed, 9 passed in 25.07s
+     AssertionError: 19 enabled fleet lanes missing from data/tables/projects.jsonl
+     (ROUTER-MISS): ['bunker-ops', 'code-factory', 'code-factory-docs',
+      'code-factory-dogfood', 'code-factory-ops', 'code-factory-perf',
+      'code-factory-pm', 'code-factory-readme', 'code-factory-releng',
+      'code-factory-review', ...]
+
+   $ ~/.hermes/venvs/board/bin/python3 scripts/derive_projects_seed.py --dry-run
+     -> rc=1, traceback
+     ValueError: lane 'bunker-ops': no suffix-profile precedent (suffixes: docs,
+     dogfood, foreman, perf, pm, qa, readme, releng, review, security, sync)
+     — profile is an owner decision, refusing to guess
+
+2. ROOT CAUSE
+   The 2026-11-04 fleet-ops wave added lane-id shapes the classification map did
+   not know: 7x "-ops", the bare compound primary "code-factory", and the
+   "-check"/"-repair" command lanes. classify_lane() refuses to guess, so ONE
+   unclassifiable lane aborted the whole append path. The committed table is
+   therefore unable to cover the enabled fleet, and resolve answers
+   unknown-project for those lanes.
+
+3. FIX (commit 12f8981, 3 files, +101/-5)
+   - scripts/derive_projects_seed.py: classify from table precedent —
+       * "-ops" -> P8_SYNC, matching each project's "-pm" row (bunker-pm,
+         crier-pm, gitreins-pm, hermes-dagger-pm, task-router-pm,
+         coding-hermes-scheduler-pm share the ops lane's workdir/cooldown/deliver)
+       * a compound primary (strict prefix of its satellites, derived from the
+         live lane set) -> P0_FORE, per the 31 bare primaries
+       * "-check"/"-repair" -> P7_MOCK (sole "-check" precedent: mon-check;
+         lane-repair is lane-cadence-check's fleet-realign sibling)
+   - data/tables/projects.jsonl: APPEND-ONLY 950 -> 969 rows (19 added, 0 removed)
+   - tests/test_tr260_projects_seed.py: new regression test
+     test_ops_suffix_classified_and_live_dry_run_clean
+
+4. ACCEPTANCE — executed by the FOREMAN against the committed tree
+   $ pytest tests/test_tr260_projects_seed.py -q          -> 11 passed in 11.40s
+   $ scripts/derive_projects_seed.py --dry-run            -> rc=0
+       "0 missing lanes: all 79 db-enabled lanes already have rows ... (idempotent)"
+   $ scripts/router_spawn.py code-factory --format json   ->
+       {"project":"code-factory","profile":"P0_FORE","resolved_as":"project",
+        "head":{"hop":2,"provider":"xkiro-2","model":"qwen/qwen3.7-plus:free"},
+        "hops":27}
+   $ scripts/router_spawn.py task-router-ops --format json ->
+       {"project":"task-router-ops","profile":"P8_SYNC",
+        "head":{"provider":"xkiro-2","model":"qwen/qwen3.7-plus:free"},"hops":69}
+
+5. RED PROOF (the new test is load-bearing, not decoration)
+   $ git checkout 12f8981^ -- scripts/derive_projects_seed.py
+   $ pytest tests/test_tr260_projects_seed.py -q -k "suffix or ops or classifier"
+     -> 1 failed, 2 passed, 8 deselected
+        FAILED test_ops_suffix_classified_and_live_dry_run_clean
+        ValueError: lane 'bunker-ops': no suffix-profile precedent ...
+   $ git checkout 12f8981 -- scripts/derive_projects_seed.py   (tree restored)
+
+6. DISCLOSED PRE-EXISTING CONDITION (not caused by, and not fixed by, TR-381)
+   $ scripts/router_seed.py -> rc=1 on the committed tree, BEFORE and AFTER:
+     "math: levels 0..5 — no lane MEASURES this capability ... blocked holder(s):
+      ollama-cloud/qwen3.5:397b tier=5 (disabled, unpriced)"
+     "Seeding REFUSED: add a routable lane ... or re-run with --allow-unsatisfiable"
+   The live-registry refresh for this row was completed with the tool's own
+   --allow-unsatisfiable flag (rc=0; refusal still printed). The seeded registry
+   still resolves: P0_FORE 48 hops / 7 providers (--no-health). The refusal is
+   filed as its own board row so it is not absorbed silently by this close.
+
+7. SCOPE NOTES
+   - The runtime/capability path was NOT touched: no edit to router_spawn.py,
+     capability_vocab.py, task_profile_requirements.jsonl or null_reasons.jsonl.
+     A concurrent worker (TR-363, session f53f19df, worktree proj-wt-tr363) owns
+     that path; TR-381 was selected precisely because it is file-disjoint.
+   - P4_SECURITY / P5_VISION_E2E still collapse to 1 hop / 1 provider in the
+     default health-aware mode (measured this tick at 2b724fd and unchanged at
+     12f8981). That is TR-363's acceptance, not this row's.
+   - Observed, not fixed: db-enabled (79) != fleet.toml (880). Per TR-260 the DB
+     set is authoritative for this invariant; the divergence is reported, not
+     "corrected" by seeding 880 rows.

@@ -15,10 +15,13 @@ from live data without editing tables by hand.
 Row policy (matches the table's own 590-row conventions, TR-125 rule "the
 table wins where a brief map disagrees"):
   profile     by lane suffix — the foreman PRIMARY (-foreman, and any lane
-              whose id IS a foreman) gets P0_FORE; satellites follow their
-              suffix family (docs/readme P3_DOCS, sync/pm/dogfood P8_SYNC,
+              whose id IS a foreman, or whose id is the project's own primary
+              tick lane — a strict prefix of its satellites, e.g.
+              code-factory) gets P0_FORE; satellites follow their suffix
+              family (docs/readme P3_DOCS, sync/pm/dogfood/ops P8_SYNC,
               qa/review P9_REVIEW, releng/perf P2_AGENTIC, security
-              P4_SECURITY). Unknown suffix -> refused loudly (never guessed).
+              P4_SECURITY, check/repair P7_MOCK). Unknown suffix -> refused
+              loudly (never guessed).
   board_type  'jsonl' except -sync lanes ('' — the 75-row -sync precedent).
   shape       the 4-column projects schema (id, sensitivity='open',
               board_type, profile); extra fields would be dropped
@@ -63,11 +66,39 @@ SUFFIX_PROFILE = {
     'releng': 'P2_AGENTIC',  # 45 precedents
     'perf': 'P2_AGENTIC',    # 49 precedents
     'security': 'P4_SECURITY',  # python-audit-security precedent
+    # TR-381: the 2026-11-04 fleet-ops family. Each enabled <project>-ops lane
+    # shares its <project>-pm lane's workdir, cooldown (86400s) and deliver
+    # topic exactly (verified in the scheduler DB), so it rides the pm class:
+    # precedent rows bunker-pm crier-pm gitreins-pm hermes-dagger-pm
+    # task-router-pm coding-hermes-scheduler-pm — all P8_SYNC jsonl.
+    'ops': 'P8_SYNC',
+    # TR-381: mon-check is the table's sole -check row (P7_MOCK, beside the
+    # mon-alert/mon-ping/dc-prune/dc-rotate/dc-vacuum utility family).
+    'check': 'P7_MOCK',
+    # TR-381: lane-repair is the same 2026-11-03 fleet-realign command-lane
+    # wave as lane-cadence-check (same data-cleanup namespace, same bash-script
+    # form, created 34 minutes apart) — it rides that lane's P7_MOCK class.
+    'repair': 'P7_MOCK',
 }
 
+# Project PRIMARY ids: enabled lanes that are their project's own tick lane —
+# a strict prefix of another enabled lane (code-factory of code-factory-docs,
+# computed from the live lane set in main(), never hand-listed). The table
+# classifies 31 bare primaries P0_FORE (bunker crier gitreins 9router asce
+# auger boardctl consensus digest duckbrain h3 heading helios helix logsey
+# lore muster musterflow mythos pulse rethinkdb tatara trouble uhlp warpfs
+# bankai eduos.dexdat.com.co ...); a compound primary is the same class.
 
-def classify_lane(lane_id: Any) -> tuple:
+
+
+def classify_lane(lane_id: Any, primary_ids: Any=frozenset()) -> tuple:
     """(profile, board_type) for a lane id, from the table's own conventions.
+
+    primary_ids: the enabled lanes that are their project's primary tick lane
+    (strict prefix of another enabled lane — see the comment above). A compound
+    primary like code-factory gets P0_FORE per the bare-primary precedent
+    (bunker, crier, gitreins, 9router — 31 P0_FORE rows); ids that are neither
+    a known suffix nor a primary are still refused loudly.
 
     Raises ValueError on a suffix with no precedent — an unclassified lane is
     an owner decision (TR-125 precedent: 122 such lanes were left out on
@@ -79,6 +110,8 @@ def classify_lane(lane_id: Any) -> tuple:
     elif lane_id.endswith('foreman') or 'foreman' in lane_id.rsplit('-', 1)[-1]:
         # a bare foreman lane id with no dash-suffix (defensive; all current
         # foreman lanes carry the -foreman suffix)
+        profile = SUFFIX_PROFILE['foreman']
+    elif lane_id in primary_ids:
         profile = SUFFIX_PROFILE['foreman']
     else:
         raise ValueError(
@@ -175,8 +208,13 @@ def main(argv: Any=None) -> int:
         return 0
 
     new_rows = []
+    # project primaries: enabled lanes that are a strict prefix of another
+    # enabled lane (their satellites) — the compound-primary class that rides
+    # the bare-primary P0_FORE precedent (e.g. code-factory -> code-factory-docs)
+    primary_ids = {l for l in db_lanes
+                   if any(o != l and o.startswith(l + '-') for o in db_lanes)}
     for lane in missing:
-        profile, board_type = classify_lane(lane)
+        profile, board_type = classify_lane(lane, primary_ids)
         # TR-200: projects.stack removed — 100% empty since creation, no
         # reader anywhere; the row is the 4-column schema.
         new_rows.append({'id': lane, 'sensitivity': 'open',

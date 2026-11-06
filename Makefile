@@ -39,6 +39,7 @@ ROUTER_UNITS        := task-router-server.service task-router-proxy.service task
 # Only the instances that speak /health verify the restart (the :9093 web UI
 # serves no /health route today — see router_stale_watchdog.py's docstring).
 RESTART_VERIFY_URLS := http://127.0.0.1:9092 http://127.0.0.1:9391
+RESTART_VERIFY_ARGS := $(foreach u,$(RESTART_VERIFY_URLS),--url $(u))
 
 .PHONY: help venv install seed validate status serve watchdog restart-router test guard hooks smoke schemas clean
 
@@ -96,7 +97,7 @@ watchdog:
 restart-router:
 	@test -d "$(CANONICAL_TREE)/.git" || { echo "FATAL: $(CANONICAL_TREE) is not a git checkout — set CANONICAL_TREE=<the tree systemd runs>"; exit 1; }
 	@test -f "$(CANONICAL_TREE)/scripts/sync_runtime.sh" || { echo "FATAL: $(CANONICAL_TREE)/scripts/sync_runtime.sh missing"; exit 1; }
-	@if systemctl is-active --quiet task-router-server.service || systemctl is-active --quiet task-router-proxy.service || systemctl is-active --quiet task-router-web.service; then \
+	@if systemctl --user is-active --quiet task-router-server.service || systemctl --user is-active --quiet task-router-proxy.service || systemctl --user is-active --quiet task-router-web.service; then \
 	  echo "OK      serving units found (systemd --user)"; \
 	else \
 	  echo "FATAL: task-router-* units are not active systemd --user units on this host — a scripted restart would be guesswork."; \
@@ -118,7 +119,7 @@ restart-router:
 	@sleep 2; \
 	ok=0; tries=0; \
 	while [ $$tries -lt 20 ]; do \
-	  if $(PYTHON) scripts/router_stale_watchdog.py $(RESTART_VERIFY_URLS) --json >/tmp/tr255_restart_verify.json 2>/tmp/tr255_restart_verify.err; then ok=1; break; fi; \
+	  if $(PYTHON) scripts/router_stale_watchdog.py $(RESTART_VERIFY_ARGS) --json >/tmp/tr255_restart_verify.json 2>/tmp/tr255_restart_verify.err; then ok=1; break; fi; \
 	  tries=$$((tries + 1)); sleep 2; \
 	done; \
 	if [ $$ok -eq 1 ]; then \
@@ -126,7 +127,7 @@ restart-router:
 	  exit 0; \
 	fi; \
 	echo "FATAL: post-restart parity check did not turn green within ~40s:"; \
-	$(PYTHON) scripts/router_stale_watchdog.py $(RESTART_VERIFY_URLS) || true; \
+	$(PYTHON) scripts/router_stale_watchdog.py $(RESTART_VERIFY_ARGS) || true; \
 	cat /tmp/tr255_restart_verify.err 2>/dev/null; \
 	echo "Operator follow-up: systemctl --user status task-router-server.service task-router-proxy.service"; \
 	exit 1

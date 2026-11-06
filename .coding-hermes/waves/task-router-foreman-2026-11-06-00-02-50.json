@@ -1,0 +1,37 @@
+{
+  "tick": "task-router-foreman-2026-11-06-00-02-50",
+  "project": "task-router",
+  "row": "TR-381",
+  "priority": "P1",
+  "tier": "T3",
+  "wave_size": 1,
+  "wave_budget": 12,
+  "selected": "highest-priority PENDING row that is dispatchable, file-disjoint and completable inside one serial tick: TR-381 (P1). The two dispatchable P0 rows were excluded by rule, not skipped silently.",
+  "excluded": {
+    "TR-363": "IN FLIGHT by a concurrent api_server session (HERMES_SESSION_ID f53f19df-6f83-46a3-96d6-1865e064e8a6); its worker pid 3855985 launched 2026-11-05T23:00Z in /home/kara/proj-wt-tr363 (branch feat/tr363, 5 files dirty, +324 lines). A second worker on the same row would be a duplicate dispatch that edits a tree nobody has reviewed.",
+    "RELEASE-2026-10-22-001": "owner-gated (release authorization absent); re-probed by the previous tick 1.5h earlier with an unchanged surface. A scheduler tick is not authorization.",
+    "TR-355": "owner-gated live cutover. Re-probed this tick: :9092 pid 514277 and :9391 pid 514260 still execute loaded_source_sha 35182a6ce5763fae (pre-a6c8839) while the disk now recomputes 0641f4dcd8c2cbae; only the process reload is missing and the restart is a deliberate owner cutover.",
+    "TR-368": "blocked-by-TR-363 in practice: it asks for a CI gate that fails on P4_SECURITY/P5_VISION_E2E, which still resolve to 1 hop / 1 provider in the default health-aware mode (measured this tick). Landing the gate before TR-363 lands would red main.",
+    "TR-372": "deferred: its router_spawn.py metrics-write site is adjacent to the region the in-flight TR-363 worker is editing (hunks 1245+/2906-3232/3460-3918), and its retention arm needs a 24h window this tick cannot observe."
+  },
+  "dispatch": "serial worker glm-5.3-flash@zai-glm in /home/kara/worktrees/task-router-TR-381 (branch wt/TR-381, base origin/main 2b724fd); seat verified from state.db sessions/ (model=glm-5.3-flash, billing_base_url=https://api.z.ai/api/coding/paas/v4), not from the -m label",
+  "worktrees": ["/home/kara/worktrees/task-router-TR-381", "/home/kara/proj-wt-tr381-closeout"],
+  "workers": [
+    {
+      "row": "TR-381",
+      "model": "glm-5.3-flash",
+      "provider": "zai-glm",
+      "commit": "12f8981",
+      "exit": 0,
+      "acceptance": "foreman-executed: pytest tests/test_tr260_projects_seed.py -q -> 11 passed; derive --dry-run -> rc=0 / 0 missing; resolve code-factory -> real head (27 hops); resolve task-router-ops -> real head (69 hops); RED proof on the pre-fix file -> new test fails with the ValueError"
+    }
+  ],
+  "verification": {
+    "focused_tests": "11 passed in 11.40s",
+    "guard": "see GitReins TR-381 verdict artifact",
+    "red_proof": "PASS (new test fails when scripts/derive_projects_seed.py is reverted to 12f8981^)",
+    "remote": "origin/main 12f8981, fast-forward, 0 ahead / 0 behind"
+  },
+  "owner_gates_unchanged": ["RELEASE-2026-10-22-001", "TR-355"],
+  "trace": "ch:trace row=TR-381 spec=tests/test_tr260_projects_seed.py#enabled-fleet-lanes test=tests/test_tr260_projects_seed.py evidence=.coding-hermes/evidence/tr381-projects-seed-20261106.txt commit=12f8981"
+}

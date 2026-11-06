@@ -1459,3 +1459,59 @@ tasks:
   status: complete
   created_at: '2026-11-05T23:13:20.573909+00:00'
   completed_at: '2026-11-05T23:13:21.609573+00:00'
+- id: TR-365
+  title: 'Gate state corrected from live evidence: fireworks-ai un-gated, kimi re-dated,
+    deepseek-v4p1-flash-1017 carrier decision recorded'
+  criteria:
+  - 'Gate state corrected from live 2026-11-05 evidence: (1) `jq -r ''.providers["fireworks-ai"].status''
+    ~/.hermes/model-router/quota-state.json` prints `open` and its `.reason` names
+    2026-11-05, the seven FIREWORKS_* service keys and the HTTP 200 proof; (2) `jq
+    -r ''.providers["kimi-for-coding"].reason'' ~/.hermes/model-router/quota-state.json`
+    names 2026-11-05 and `jq -e . ` on that file exits 0; (3) from /home/kara/task-router,
+    `/home/kara/.hermes/venvs/board/bin/python3 scripts/router_spawn.py --profile
+    P3_DOCS --format json` emits a chain containing at least 3 hops whose provider
+    is `fireworks-ai`, and no `gate`/`gate_reasons` entry excludes `fireworks-ai`
+    as un-keyed; (4) `data/tables/model_notes.jsonl` carries a row for model `accounts/fireworks/models/deepseek-v4p1-flash-1017`
+    whose note names 2026-11-05 and records the single-carrier decision.'
+  status: complete
+  created_at: '2026-11-05T16:56:36.086913+00:00'
+  completed_at: '2026-11-05T17:01:55.866591+00:00'
+- id: TR-381
+  title: Projects table covers every enabled fleet lane (seed suffix precedent + append)
+  criteria:
+  - 'tests/test_tr260_projects_seed.py passes on this host: zero enabled fleet lanes
+    are missing from data/tables/projects.jsonl, scripts/derive_projects_seed.py --dry-run
+    reports 0 missing, and a resolve for a code-factory lane returns a real chain
+    head rather than unknown-project.'
+  status: complete
+  created_at: '2026-11-06T00:29:06.311452+00:00'
+  completed_at: '2026-11-06T00:47:12.184364+00:00'
+- id: TR-381-R1
+  title: 'TR-381 re-judge: -ops suffix precedent + 19 seeded lanes, graded on the
+    repo that holds the fix'
+  criteria:
+  - "INSTRUMENT CONTRACT: all checks run against /home/kara/task-router. Before grading,\
+    \ prove the grading root with `git -C /home/kara/task-router rev-parse --show-toplevel`\
+    \ \u2014 it must print exactly /home/kara/task-router, and `git -C /home/kara/task-router\
+    \ rev-parse HEAD` must be a descendant of commit 12f8981. If either check fails,\
+    \ STOP and report an instrument failure instead of grading: a verdict written\
+    \ against any other tree is void.\n\nOUT OF SCOPE: the earlier verdict 7af5bc59\
+    \ for task TR-381 graded that other tree and is preserved as an instrument failure;\
+    \ it is not evidence about this work.\n\nThe three checks below are assertions\
+    \ about the committed tree at /home/kara/task-router:\n(1) The guarded invariant\
+    \ test `test_enabled_fleet_lanes_all_in_committed_table` in tests/test_tr260_projects_seed.py\
+    \ passes there, i.e. that file reports 0 failed and no lane id is reported missing\
+    \ from data/tables/projects.jsonl.\n(2) `scripts/derive_projects_seed.py --dry-run`\
+    \ exits 0 and prints \"0 missing lanes\" on that tree, so the append path is idempotent\
+    \ and every enabled lane is classified by precedent from scripts/derive_projects_seed.py\
+    \ (the -ops suffix, the compound primary, the -check/-repair command lanes).\n\
+    (3) data/tables/projects.jsonl holds 969 rows there (950 before commit 12f8981,\
+    \ appended only, zero removed), and both `bunker-ops` and `code-factory` appear\
+    \ as rows with non-empty profiles.\n(4) A resolve for the project id code-factory\
+    \ returns a chain head with at least one hop (for example provider xkiro-2) rather\
+    \ than an unknown-project error.\n(5) The commit 12f8981 message carries a ch:trace\
+    \ line naming row=TR-381, and the new regression test fails when scripts/derive_projects_seed.py\
+    \ is reverted to its parent (proving it is load-bearing rather than decorative)."
+  status: complete
+  created_at: '2026-11-06T00:49:35.762667+00:00'
+  completed_at: '2026-11-06T00:49:36.408147+00:00'
