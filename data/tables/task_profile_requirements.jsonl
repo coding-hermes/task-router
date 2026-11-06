@@ -30,8 +30,8 @@
 {"task_id": "P3_DOCS", "category": "long_doc", "level": -1}
 {"task_id": "P3_DOCS", "category": "review", "level": -1}
 {"task_id": "P3_DOCS", "category": "spec_docs", "level": 0}
-{"task_id": "P4_SECURITY", "category": "guard", "level": 0}
-{"task_id": "P4_SECURITY", "category": "review", "level": 0}
+{"task_id": "P4_SECURITY", "category": "guard", "level": -1}
+{"task_id": "P4_SECURITY", "category": "review", "level": -1}
 {"task_id": "P4_SECURITY", "category": "security", "level": 2}
 {"task_id": "P5_VISION_E2E", "category": "creative", "level": -3}
 {"task_id": "P5_VISION_E2E", "category": "debug", "level": -2}

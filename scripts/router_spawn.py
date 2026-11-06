@@ -162,6 +162,14 @@ except Exception as _cvocab_exc:  # noqa: BLE001
     _cvocab = None
     _err(f'WARNING: TR-369 capability families unavailable — '
          f'capability_vocab import failed: {_cvocab_exc}')
+
+# TR-363: requirement names that resolve as CAPABILITY POINTERS to the
+# registry's own boolean lane columns (same three-state contract as the
+# TR-369 families). The columns exist on every models.jsonl row regardless
+# of the vocab module, so the tuple carries a literal fallback instead of
+# degrading to unknown-category when the import fails.
+_FLAG_CAPS = tuple(_cvocab.FLAG_CAPABILITIES) if _cvocab is not None \
+    else ('vision', 'thinking')
 try:
     import registry_path as _registry_path_mod
 except ImportError:  # live byte-copy not yet synced (sync_runtime.sh) -> old default
@@ -1230,6 +1238,28 @@ def _validate_adhoc(adhoc: Any, tables: Any) -> tuple:
                 if level != 1:
                     return None, {'error': f'invalid level {level} for capability {cat!r}: '
                                    f'capability families are boolean requirements — '
+                                   f'use {cat}=1; tier levels {lo}..{hi} do not apply',
+                                   'code': 'INVALID_REQUIREMENT', 'retryable': False}
+                reqs.append((cat, level))
+                continue
+            # TR-363: flag-only capability columns ('thinking' — no tier
+            # category behind it) are first-class requirement pointers with
+            # the same boolean contract as the families. 'vision' needs no
+            # special case here: it is already a tier category, and the
+            # pointer-vs-tier choice happens at chain build time (level >= 1
+            # rides the flag, level <= 0 keeps the tier bar).
+            if (cat in _FLAG_CAPS and known and cat not in known
+                    and not (_cvocab is not None
+                             and cat in _cvocab.CAPABILITY_FAMILIES)):
+                try:
+                    level = int(lvl)
+                except ValueError:
+                    return None, {'error': f'invalid capability requirement {part!r}: '
+                                   f'{cat} accepts only {cat}=1 (capability required)',
+                                   'code': 'INVALID_REQUIREMENT', 'retryable': False}
+                if level != 1:
+                    return None, {'error': f'invalid level {level} for capability {cat!r}: '
+                                   f'{cat} is a boolean capability pointer — '
                                    f'use {cat}=1; tier levels {lo}..{hi} do not apply',
                                    'code': 'INVALID_REQUIREMENT', 'retryable': False}
                 reqs.append((cat, level))
@@ -2904,8 +2934,37 @@ def make_sort_key(spec: Any, lanes: Any, ctx: Any) -> tuple:
     return factory(arg, lanes, ctx), name
 
 
+def _split_requirements(reqs: Any) -> tuple:
+    """TR-363: ONE requirement split shared by chain, fallback and why-report.
+
+    Returns (tier_reqs, cap_reqs, flag_reqs, min_context). Capability-family
+    reqs (TR-369) and flag-capability reqs (TR-363, `name` at level >= 1) are
+    NOT tier categories; a flag name at level <= 0 keeps the historical tier
+    semantics ('vision' is dual-natured). min_context is the synthetic token
+    bar (TR-015).
+    """
+    cap_reqs, flag_reqs, tier_reqs = [], [], []
+    min_context = None
+    for cat, lvl in reqs:
+        if cat == 'min_context':
+            min_context = lvl
+        elif _cvocab is not None and cat in _cvocab.CAPABILITY_FAMILIES:
+            cap_reqs.append((cat, lvl))
+        elif cat in _FLAG_CAPS and lvl is not None and lvl >= 1:
+            flag_reqs.append((cat, lvl))
+        else:
+            tier_reqs.append((cat, lvl))
+    return tier_reqs, cap_reqs, flag_reqs, min_context
+
+
+def _miss_record(prov: Any, model: Any, codes: list, reasons: list) -> dict:
+    """TR-363 why-report record for one excluded lane (data-derived)."""
+    return {'provider': prov, 'model': model, 'codes': codes, 'reasons': reasons}
+
+
 def _build_chain(tables: Any, reqs: Any, limit: Any=DEFAULT_CHAIN_LIMIT, sort_spec: Any=None, sort_ctx: Any=None,
-                 lifecycle_counts: Any=None, quota_ctx: Any=None, probe_ctx: Any=None) -> list:
+                 lifecycle_counts: Any=None, quota_ctx: Any=None, probe_ctx: Any=None,
+                 misses_out: Any=None, eligible_out: Any=None) -> list:
     """Replicates v_task_chain exactly, in pure python.
 
     reqs = [(category, level), ...] (profile requirements or ad-hoc).
@@ -2940,16 +2999,10 @@ def _build_chain(tables: Any, reqs: Any, limit: Any=DEFAULT_CHAIN_LIMIT, sort_sp
 
     # TR-015: split out the min_context requirement from tier-based reqs.
     # TR-369: capability-family reqs split the same way — they are not tiers.
-    cap_reqs = []
-    min_context = None
-    tier_reqs = []
-    for cat, lvl in reqs:
-        if cat == 'min_context':
-            min_context = lvl
-        elif _cvocab is not None and cat in _cvocab.CAPABILITY_FAMILIES:
-            cap_reqs.append((cat, lvl))
-        else:
-            tier_reqs.append((cat, lvl))
+    # TR-363: flag-capability reqs (`vision`/`thinking` at level >= 1) ride
+    # the registry's own boolean columns; ONE split shared with the fallback
+    # path and the why-report so the three surfaces can never disagree.
+    tier_reqs, cap_reqs, flag_reqs, min_context = _split_requirements(reqs)
     reqs = tier_reqs
 
     eligible = []
@@ -2959,6 +3012,17 @@ def _build_chain(tables: Any, reqs: Any, limit: Any=DEFAULT_CHAIN_LIMIT, sort_sp
         if ls_counts is not None:
             ls_counts[_st] = ls_counts.get(_st, 0) + 1
         if m.get('archive') or row_is_retired(m):
+            # TR-363 why-report: the exclusion says WHICH lifecycle fact.
+            if misses_out is not None:
+                if m.get('archive'):
+                    misses_out.append(_miss_record(
+                        m.get('provider'), m.get('model'),
+                        ['lifecycle-archived'], ['archived']))
+                else:
+                    misses_out.append(_miss_record(
+                        m.get('provider'), m.get('model'),
+                        ['lifecycle-retired'],
+                        [f'retired (valid_to {m.get("valid_to")})']))
             continue
         af = m.get('available_from')
         if af and str(af)[:10] > _today():
@@ -2966,11 +3030,25 @@ def _build_chain(tables: Any, reqs: Any, limit: Any=DEFAULT_CHAIN_LIMIT, sort_sp
             # they SAY SO on stderr and are COUNTED — nothing vanishes silently.
             _err(f'{m.get("provider")}/{m.get("model")}: coming_soon '
                  f'(available_from {str(af)[:10]}) — not yet routable')
+            if misses_out is not None:
+                misses_out.append(_miss_record(
+                    m.get('provider'), m.get('model'), ['coming-soon'],
+                    [f'available_from {str(af)[:10]} — not yet routable']))
             continue
         if m.get('disabled'):
+            # TR-363 why-report: the lane's own disable reason rides along.
+            if misses_out is not None:
+                _dr = m.get('disabled_reason')
+                misses_out.append(_miss_record(
+                    m.get('provider'), m.get('model'), ['lane-disabled'],
+                    ['disabled' + (f': {_dr}' if _dr else '')]))
             continue  # explicit per-provider lane disable (bad deployment)
         price = m.get('normalized_price')
         if price is None:
+            if misses_out is not None:
+                misses_out.append(_miss_record(
+                    m.get('provider'), m.get('model'), ['unpriced'],
+                    ['no normalized_price on record']))
             continue
         prov, model = m.get('provider'), m.get('model')
         mt = _alias_tiers(tiers, tiers_folded, model)
@@ -2993,6 +3071,17 @@ def _build_chain(tables: Any, reqs: Any, limit: Any=DEFAULT_CHAIN_LIMIT, sort_sp
                          f"(tier={tier})")
             except Exception:  # noqa: BLE001, S110 — fail-open contract
                 pass
+            # TR-363 why-report: the same miss, structured — the tier value
+            # (or None when the category has NO evidence row) is the reason.
+            if misses_out is not None:
+                misses_out.append({
+                    'provider': prov, 'model': model,
+                    'codes': ['requirement-miss'],
+                    'reasons': [
+                        f'{cat} level {lvl} not met '
+                        f'(tier {"none" if tier is None else tier})'
+                        for cat, lvl, tier in misses],
+                })
             continue
 
         # TR-369: capability-family gating. Only an EVIDENCED True passes:
@@ -3005,14 +3094,52 @@ def _build_chain(tables: Any, reqs: Any, limit: Any=DEFAULT_CHAIN_LIMIT, sort_sp
                 v = m.get(_cvocab.family_column(fam))
                 if v is not True:
                     why = 'unsupported' if v is False else 'unknown (unresearched)'
-                    cap_miss.append((fam, why))
+                    cap_miss.append((fam, why, v))
             if cap_miss:
                 try:
-                    for fam, why in cap_miss:
+                    for fam, why, _v in cap_miss:
                         _err(f"ROUTER-MISS: {prov}/{model} fails capability "
                              f"{fam}=1 ({why})")
                 except Exception:  # noqa: BLE001, S110 — fail-open contract
                     pass
+                # TR-363 why-report: family gate failures are data reasons too.
+                if misses_out is not None:
+                    misses_out.append({
+                        'provider': prov, 'model': model,
+                        'codes': ['capability-family-'
+                                  + ('unsupported' if v is False else 'unknown')
+                                  for fam, why, v in cap_miss],
+                        'reasons': [f'capability {fam}=1 ({why})'
+                                    for fam, why, _v in cap_miss]})
+                continue
+
+        # TR-363: flag-capability gating — a profile requirement becomes a
+        # POINTER into the registry's own boolean lane columns (stored on
+        # models.jsonl, published on /v1/models capabilities). Only an
+        # EVIDENCED True passes: False = unsupported, NULL = unresearched is
+        # not support — the exact TR-369 three-state contract, never guessed.
+        if flag_reqs:
+            flag_miss = []
+            for name, _lvl in flag_reqs:
+                v = m.get(name)
+                if v is not True:
+                    why = 'unsupported' if v is False else 'unknown (unresearched)'
+                    flag_miss.append((name, why, v))
+            if flag_miss:
+                try:
+                    for name, why, _v in flag_miss:
+                        _err(f"ROUTER-MISS: {prov}/{model} fails capability "
+                             f"{name}=1 ({why})")
+                except Exception:  # noqa: BLE001, S110 — fail-open contract
+                    pass
+                if misses_out is not None:
+                    misses_out.append({
+                        'provider': prov, 'model': model,
+                        'codes': ['capability-flag-'
+                                  + ('unsupported' if v is False else 'unknown')
+                                  for name, why, v in flag_miss],
+                        'reasons': [f'capability {name}=1 ({why})'
+                                    for name, why, _v in flag_miss]})
                 continue
 
         # TR-015: min_context gating. NULL passes (with a note); known value
@@ -3025,12 +3152,28 @@ def _build_chain(tables: Any, reqs: Any, limit: Any=DEFAULT_CHAIN_LIMIT, sort_sp
             elif ctx < min_context:
                 _err(f"ROUTER-MISS: {prov}/{model} fails min_context>={min_context} "
                      f"(context_limit={ctx})")
+                if misses_out is not None:
+                    misses_out.append(_miss_record(
+                        prov, model, ['min-context-below'],
+                        [f'context_limit {ctx} < min_context {min_context}']))
                 continue
 
         m = dict(m)
         if ctx_note:
             m['_context_note'] = ctx_note
         eligible.append(m)
+        # TR-363 why-report: the pre-gate carrier list with the lane's own
+        # evidence per requested capability — "which lanes carry them" is
+        # answered from the data, not from the survivor set.
+        if eligible_out is not None:
+            ev = {cat: mt.get(cat) for cat, _lvl in reqs}
+            for name, _lvl in flag_reqs:
+                ev[name] = m.get(name)
+            if _cvocab is not None:
+                for fam, _lvl in cap_reqs:
+                    ev[fam] = m.get(_cvocab.family_column(fam))
+            eligible_out.append({'provider': prov, 'model': model,
+                                 'price': price, 'evidence': ev})
 
     # TR-015: P3_DOCS / P2_AGENTIC prefer large-context lanes when prices are
     # close — that is the secondary component of the LEGACY ordering key.
@@ -3075,6 +3218,90 @@ def _build_chain(tables: Any, reqs: Any, limit: Any=DEFAULT_CHAIN_LIMIT, sort_sp
     return [(i + 1, m.get('provider'), m.get('model'),
              m.get('normalized_price'), m.get('data_class'), m)
             for i, m in enumerate(eligible[:limit])]
+
+
+def build_why_report(tables: Any, reqs: Any, misses: Any, eligible: Any,
+                     chain: Any, exclusions: Any, profile_id: Any=None) -> dict:
+    """TR-363: the 'why this lane' report — per profile, from DATA.
+
+    Answers three questions reproducibly, without touching live gate state
+    beyond what the resolve already read:
+      1. which capabilities were REQUESTED (and how each resolves: tier,
+         capability-family, capability-flag, min_context);
+      2. which lanes CARRY them (the pre-gate eligible set, each lane with
+         its own evidence value per requested capability);
+      3. why every other lane is EXCLUDED (requirement misses with the tier
+         value or 'none', three-state capability gate results, lifecycle,
+         pricing, disable reasons — plus the gate-stage exclusions).
+
+    `misses`/`eligible` are the collections _build_chain appended to via
+    misses_out/eligible_out; `chain`/`exclusions` are the resolve's final
+    post-gate survivors and gate exclusions. Sorted deterministically so the
+    same tables always produce the same report.
+    """
+    tier_reqs, cap_reqs, flag_reqs, min_context = _split_requirements(reqs)
+
+    def _kind(cat: Any) -> str:
+        if cat == 'min_context':
+            return 'min_context'
+        if _cvocab is not None and cat in _cvocab.CAPABILITY_FAMILIES:
+            return 'capability-family'
+        if cat in _FLAG_CAPS and any(c == cat and lvl is not None and lvl >= 1
+                                     for c, lvl in reqs):
+            return 'capability-flag'
+        return 'tier'
+
+    requested = [{'category': cat, 'level': lvl, 'resolution': _kind(cat)}
+                 for cat, lvl in reqs]
+    carrying = sorted(eligible or [],
+                      key=lambda e: (str(e.get('provider')), str(e.get('model'))))
+    excluded = sorted((misses or []) + [
+        {'provider': e.get('provider'), 'model': e.get('model'),
+         'codes': list(e.get('codes') or []),
+         'reasons': [str(w) for w in (e.get('why') or [])]}
+        for e in (exclusions or [])],
+        key=lambda e: (str(e.get('provider')), str(e.get('model'))))
+    return {
+        'profile': profile_id,
+        'requested': requested,
+        'carrying': carrying,
+        'chain': [{'hop': c.get('hop'), 'provider': c.get('provider'),
+                   'model': c.get('model')} for c in (chain or [])],
+        'excluded': excluded,
+        'counts': {'carrying': len(carrying), 'chain': len(chain or []),
+                   'excluded': len(excluded)},
+    }
+
+
+def format_why_text(why: Any, max_excluded: int=40) -> str:
+    """Human text rendering of build_why_report's doc (--format text)."""
+    lines = []
+    prof = (why or {}).get('profile')
+    lines.append(f'  WHY {prof if prof else ""}'.rstrip())
+    req_bits = [f"{r['category']}>={r['level']} [{r['resolution']}]"
+                for r in (why or {}).get('requested') or []]
+    if req_bits:
+        lines.append('    requested: ' + '; '.join(req_bits))
+    carrying = (why or {}).get('carrying') or []
+    counts = (why or {}).get('counts') or {}
+    lines.append(f'    carrying (pre-gate): {counts.get("carrying", len(carrying))}')
+    for e in carrying[:20]:
+        ev = '; '.join(f'{c}={v}' for c, v in (e.get('evidence') or {}).items())
+        lines.append(f'      {e.get("provider")}/{e.get("model")} '
+                     f'${e.get("price")}/M [{ev}]')
+    chain = (why or {}).get('chain') or []
+    lines.append(f'    chain: {counts.get("chain", len(chain))} hops')
+    for c in chain[:10]:
+        lines.append(f'      hop {c.get("hop")}: {c.get("provider")}/{c.get("model")}')
+    excluded = (why or {}).get('excluded') or []
+    lines.append(f'    excluded: {counts.get("excluded", len(excluded))}')
+    for e in excluded[:max_excluded]:
+        lines.append(f'      {e.get("provider")}/{e.get("model")}: '
+                     + '; '.join(e.get('reasons') or []))
+    if len(excluded) > max_excluded:
+        lines.append(f'      (showing first {max_excluded} of {len(excluded)} '
+                     '— full list in --format json)')
+    return '\n'.join(lines)
 
 
 def _stamp_quota_headroom(eligible: Any, quota_ctx: Any) -> None:
@@ -3230,6 +3457,14 @@ def _resolve_fallback(tables: Any, qs: Any, hs: Any, cs: Any, reqs: Any, limit: 
       says why: `last_resort` + `profile_scope`."""
     lanes = sorted(tables.get('fallback_lanes') or [],
                    key=lambda r: (r.get('order') or 1 << 30))
+    # TR-363: requirements_unmet uses the SAME requirement split as the
+    # primary chain — tier cats via tiers, capability families via their
+    # cap_* columns, flag capabilities via their boolean columns, min_context
+    # via context_limit — so a degraded hop never reports a requirement
+    # "unmet" the primary chain would have passed (the curated P5 vision
+    # lane carried no vision tier row and was flagged unmet despite its
+    # evidenced vision=True flag).
+    fb_tier_reqs, fb_cap_reqs, fb_flag_reqs, fb_minctx = _split_requirements(reqs)
     by_lane = {}
     for m in tables.get('models') or []:
         by_lane[(m.get('provider'), m.get('model'))] = m
@@ -3285,8 +3520,23 @@ def _resolve_fallback(tables: Any, qs: Any, hs: Any, cs: Any, reqs: Any, limit: 
                 continue  # circuit OPEN for this exact pair
             mt = _alias_tiers(tiers, tiers_folded, f.get('model'))
             unmet = [(c, lvl, mt.get(c) if mt.get(c) is not None else -1)
-                     for c, lvl in reqs
+                     for c, lvl in fb_tier_reqs
                      if (mt.get(c) if mt.get(c) is not None else -1) < lvl]
+            # TR-363: families, flags and min_context mirror the primary
+            # chain's gates (three-state evidence, never tier-scaled).
+            if _cvocab is not None:
+                for fam, lvl in fb_cap_reqs:
+                    v = m.get(_cvocab.family_column(fam))
+                    if v is not True:
+                        unmet.append((fam, lvl, v))
+            for name, lvl in fb_flag_reqs:
+                v = m.get(name)
+                if v is not True:
+                    unmet.append((name, lvl, v))
+            if fb_minctx is not None:
+                _c = m.get('context_limit')
+                if _c is not None and _c < fb_minctx:
+                    unmet.append(('min_context', fb_minctx, _c))
             ent = {'hop': len(out) + 1, 'provider': f.get('provider'),
                    'model': f.get('model'),
                    'usd_1m': round(float(_pub_prices(m)[0]), 4),
@@ -3488,7 +3738,7 @@ def _data_home_meta(source: Any, fallback_used: Any):
 def resolve(project: Any=None, profile_id: Any=None, adhoc: Any=None, use_health: bool=True, limit: Any=DEFAULT_CHAIN_LIMIT,
             allow_training: bool=False, allow_slow: Any=None, sort: Any=None, backend: Any=None,
             merge_backends: bool=False, window_h: Any=DEFAULT_WINDOW_H, ref_meta: Any=None,
-            lane: Any=None):
+            lane: Any=None, why: bool=False):
     """Resolve a project/profile/rating to an ordered chain.
 
     `lane` (TR-344) is the CALLER's own lane identity — a scheduler lane name
@@ -3497,6 +3747,10 @@ def resolve(project: Any=None, profile_id: Any=None, adhoc: Any=None, use_health
     semantics, gates and ordering are untouched. Absent, the census falls back
     to the project name, then to the 'primary' catch-all.
     """
+    # TR-363: capture the flag NOW — the gate stage below rebinds a local
+    # `why` list for exclusion reasons, which would shadow this parameter by
+    # the time the report is attached.
+    _why_requested = bool(why)
     tables, src, fb, warn = _load_registry_with_meta()
     warnings = [warn] if warn else []
     projects = {r.get('id'): r for r in tables.get('projects') or []}
@@ -3658,8 +3912,15 @@ def resolve(project: Any=None, profile_id: Any=None, adhoc: Any=None, use_health
         _hdoc = load_json(f'{MR}/health-state.json', {})
         _probe_ctx = _probe_coverage_ctx(
             _hdoc.get('providers') if isinstance(_hdoc, dict) else None)
+    # TR-363: when --why is on, the chain build reports ITS work — the
+    # structured exclusion records and the pre-gate carrier list — into these
+    # collections so build_why_report can answer from data. None (the
+    # default) costs nothing: the collections are never created.
+    _why_misses = [] if _why_requested else None
+    _why_eligible = [] if _why_requested else None
     chain_rows = _build_chain(tables, reqs, limit=limit, lifecycle_counts=_lc_counts, sort_spec=sort_spec,
-                              sort_ctx=sort_ctx, quota_ctx=_quota_ctx, probe_ctx=_probe_ctx) if reqs else []
+                              sort_ctx=sort_ctx, quota_ctx=_quota_ctx, probe_ctx=_probe_ctx,
+                              misses_out=_why_misses, eligible_out=_why_eligible) if reqs else []
     sort_used = (sort_ctx or {}).get('used') or 'price'
     # TR-021: keep the raw price-ordered eligible list for metrics before gates.
     chain = list(chain_rows)
@@ -4170,7 +4431,7 @@ def resolve(project: Any=None, profile_id: Any=None, adhoc: Any=None, use_health
     # null when the profile carries no version field at all. Additive.
     resolved_version = (profiles.get(pid) or {}).get('version')
 
-    return {'project': project, 'profile': pid, 'resolved_version': resolved_version,
+    doc = {'project': project, 'profile': pid, 'resolved_version': resolved_version,
             'resolved_at': now,
             # TR-069 wave 2: per-state model counts — the hiding is always
             # reported ("nothing vanishes silently").
@@ -4301,6 +4562,19 @@ def resolve(project: Any=None, profile_id: Any=None, adhoc: Any=None, use_health
             # recomputing.  This key is intentionally NOT part of the public
             # contract and is stripped before JSON serialization in main().
             '_chain_rows': chain_rows}
+    # TR-363: the why-lane report rides ONLY when requested — the payload's
+    # key set is otherwise byte-identical to the pre-TR-363 contract. The
+    # report is diagnostic: any failure to build it degrades to a stated
+    # error on the block, never a failed resolve.
+    if _why_requested:
+        try:
+            doc['why'] = build_why_report(
+                tables=tables, reqs=reqs, misses=_why_misses,
+                eligible=_why_eligible, chain=out_chain,
+                exclusions=exclusions, profile_id=pid)
+        except Exception as _exc:  # noqa: BLE001 — diagnostic, never fatal
+            doc['why'] = {'error': f'why-report failed: {_exc}'}
+    return doc
 
 def profile_ref_for(project: Any=None, task_id: Any=None, board: Any=None) -> tuple:
     """TR-124 (Bane 2026-09-24): the board row declares its own capability bar.
@@ -4557,6 +4831,11 @@ def main() -> None:
                          'classifier, or jev (cheap)')
     ap.add_argument('--list-profiles', action='store_true')
     ap.add_argument('--explain', action='store_true')
+    ap.add_argument('--why', action='store_true',
+                    help='TR-363 why-lane report: requested capabilities, '
+                         'the lanes carrying them (with their own evidence '
+                         'values), and why every excluded lane failed — '
+                         'derived from registry data')
     ap.add_argument('--format', choices=['json', 'text'], default='json')
     ap.add_argument('--no-health', action='store_true')
     ap.add_argument('--allow-training', action='store_true',
@@ -4768,7 +5047,7 @@ def main() -> None:
                 allow_slow=args.allow_slow,
                 sort=args.sort, backend=args.backend,
                 merge_backends=args.merge_backends, window_h=args.window_h,
-                ref_meta=board_profile_meta, lane=args.lane)
+                ref_meta=board_profile_meta, lane=args.lane, why=args.why)
     # TR-021: metrics append is best-effort; any failure is swallowed so
     # router_spawn stdout + exit code stay identical.  Strip the internal
     # _chain_rows helper key before serialization.
@@ -4810,6 +5089,9 @@ def main() -> None:
         print(f'  hop {c["hop"]}: {c["provider"]}/{c["model"]}  ${c["usd_1m"]}/M')
     for g in r.get('gate_reasons', []):
         print(f'  EXCLUDED: {g}')
+    # TR-363: the why-lane report, text form (json consumers read r['why']).
+    if args.why and isinstance(r.get('why'), dict):
+        print(format_why_text(r['why']))
 
 if __name__ == '__main__':
     # TR-065/TR-116 owner fix (Bane 2026-11-03): the outcome store and the

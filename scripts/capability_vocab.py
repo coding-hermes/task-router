@@ -78,6 +78,21 @@ def family_column(family: Any) -> str:
     return 'cap_' + str(family)
 
 
+# ---------------------------------------------------------------------------
+# ACCEPT vocabulary — the flag capabilities (TR-363)
+# ---------------------------------------------------------------------------
+
+#: Boolean lane columns accepted as first-class requirement POINTERS
+#: (TR-363): a profile requirement `name=1` resolves to the registry's own
+#: stored column data instead of a tier-quantile lookup. Same three-state
+#: contract as the families — True = evidenced, False = evidence of absence,
+#: None = unresearched — and the same surfaces: STORED on models.jsonl,
+#: PUBLISHED on /v1/models capabilities, ACCEPTED by --profile-req.
+#: 'vision' is dual-natured: it is ALSO a tier category, so levels <= 0 keep
+#: the historical tier semantics and only level >= 1 rides the flag.
+FLAG_CAPABILITIES = ('vision', 'thinking')
+
+
 #: Name markers -> family. A marker hit means the capability is ON record
 #: (True) regardless of catalog rows. Substring match on the lane model name
 #: and the catalog model/family names. Kept deliberately tight — 'search'

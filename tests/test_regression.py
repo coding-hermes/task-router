@@ -151,6 +151,16 @@ def test_chain_invariants_per_profile(monkeypatch, tmp_path, pid):
     tier_by_model = {}
     for (mname, cat), t in tier.items():
         tier_by_model.setdefault(str(mname).lower(), {})[cat] = t
+    # TR-363: flag-capability reqs (vision/thinking at lvl >= 1) resolve as
+    # capability POINTERS to the lane's own boolean column — same three-state
+    # contract as the TR-369 families, never tier-scaled. Mirror the resolver's
+    # ONE split here so the dominance check stays a REAL check of the rule the
+    # chain actually ran.
+    flag_caps = set(getattr(router_spawn, "_FLAG_CAPS", ()) or ())
+    lane_rows = {}
+    for m in tables["models"]:
+        lane_rows.setdefault(
+            f'{m["provider"]}/{m["model"]}', m)
 
     def _evidence(model_name, cat):
         """Own tier row, else the alias chain's (TR-043), else None."""
@@ -197,8 +207,16 @@ def test_chain_invariants_per_profile(monkeypatch, tmp_path, pid):
         seen.add(pair)
         # dominance: every requirement must be cleared — own-or-inherited tier
         # evidence (TR-043 aliases) >= lvl, OR no evidence at all with lvl <= -1
-        # (BLANK default, Bane 2026-08-27)
+        # (BLANK default, Bane 2026-08-27).
+        # TR-363: flag-capability reqs are the exception — evidenced True on
+        # the LANE row is the evidence; False/None never clear a lvl >= 1 bar.
         for cat, lvl in reqs:
+            if cat in flag_caps and lvl is not None and lvl >= 1:
+                v = (lane_rows.get(pair) or {}).get(cat)
+                assert v is True, (
+                    f"{pid}: {pair} capability {cat}=1 not evidenced "
+                    f"(flag={v!r})")
+                continue
             t = _evidence(e["model"], cat)
             if t is None:
                 assert lvl <= -1, f"{pid}: {pair} BLANK tier for {cat} cannot clear {lvl}"
@@ -309,7 +327,20 @@ def test_chain_invariants_per_profile(monkeypatch, tmp_path, pid):
     # z-ai/glm-5.3 at $1.52/M PAYG, takes the head (hermetic resolve
     # verified 2026-10-18). Killing a lane means updating the golden heads
     # deliberately — never re-enable the dead lane to silence the assert.
-    ("P4_SECURITY", "openrouter/z-ai/glm-5.3")
+    # TR-363 2026-11-06: P4's guard/review bars moved 0 -> -1 (the load-
+    # bearing requirement stays security>=2). Level-0 bars demanded AT-MEDIAN
+    # measured evidence in categories where coverage is 175 (guard) / 133
+    # (review) rows over 776 models, so every unmeasured glm-5.2-family lane
+    # fell to the BLANK -1 and the whole profile collapsed onto 2 carriers
+    # (openrouter + commandcode); with commandcode health-down that was ONE
+    # hop. At -1 (the BLANK doctrine's own lenient bar) blanks and estimates
+    # clear while MEASURED-bad tiers still fail (glm-5.3-flash guard=-4 stays
+    # out). The cheapest eligible lane is now the $0.725/M neuralwatt
+    # glm-5.2-short-fast-flex — security tier 2 (family evidence), guard=-1
+    # (estimate), review=None (BLANK, stamped no-sample-yet in
+    # null_reasons.jsonl); both clear the -1 bar. Hermetic all-open resolve
+    # 2026-11-06: 9 hops / 5 providers.
+    ("P4_SECURITY", "neuralwatt/glm-5.2-short-fast-flex")
 ])
 def test_golden_fixed_point_heads(monkeypatch, tmp_path, pid, head):
     """Known heads as of 2026-08-27 (intentional reprice/new-model changes must
