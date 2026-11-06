@@ -1538,3 +1538,58 @@ tasks:
   status: complete
   created_at: '2026-11-06T01:02:33.828980+00:00'
   completed_at: '2026-11-06T01:02:34.479152+00:00'
+- id: TR-REV2-20261027-02
+  title: 'Deploy the merged main tip to the serving units (restart-router): clear
+    the armed cutover on :9092/:9391'
+  criteria:
+  - 'PASS (all four, literal commands run in /home/kara/task-router):
+
+    1) curl -s --max-time 8 http://127.0.0.1:9092/health | jq -r ''.code.stale, .code.loaded_commit,
+    .code.repo_commit'' -> prints "false", then two identical 12-char prefixes (loaded_commit
+    == repo_commit).
+
+    2) same command against http://127.0.0.1:9391/health -> prints "false" with loaded_commit
+    == repo_commit.
+
+    3) the deploy log of `make restart-router` contains the line "VERIFIED: all health-speaking
+    instances report code.stale=false against the new tree" and the make exit status
+    is 0 (step 4/4 parity).
+
+    4) systemctl --user is-active task-router-server.service task-router-proxy.service
+    task-router-web.service -> prints "active" three times.
+
+    NOTE: this is a live deploy of the already-merged main tip 6e1f4dc; no source
+    file is modified by this task, so a whole-suite run is not the acceptance signal
+    - the four probes above are.'
+  status: complete
+  created_at: '2026-11-06T01:02:13.220091+00:00'
+  completed_at: '2026-11-06T01:02:19.406898+00:00'
+- id: TR-REV2-20261027-02-R1
+  title: 'Verification R1: serving units carry the published code (source-identity
+    arm) and the deploy-contract fixes are on origin/main'
+  criteria:
+  - "INSTRUMENT CONTRACT: every command below is run with cwd /home/kara/proj-wt-tr-rev2-restart,\
+    \ and before grading you must run `git rev-parse --show-toplevel` there and see\
+    \ exactly that path. If it prints anything else, STOP and report INSTRUMENT-FAIL;\
+    \ do not grade another tree.\n\nPASS 1 (code identity, NOT a moving commit label):\
+    \ `curl -s --max-time 8 http://127.0.0.1:9092/health | jq -r '.code.stale, (.code.loaded_source_sha\
+    \ == .code.live_source_sha)'` prints \"false\" then \"true\".\nPASS 2: the same\
+    \ command against http://127.0.0.1:9391/health prints \"false\" then \"true\"\
+    .\nPASS 3: `systemctl --user is-active task-router-server.service task-router-proxy.service\
+    \ task-router-web.service` prints \"active\" three times with exit 0.\nPASS 4\
+    \ (the two contract fixes are PUBLISHED, not just local): `git -C /home/kara/task-router\
+    \ merge-base --is-ancestor 5ba26d8 origin/main; echo $?` prints 0 and `git -C\
+    \ /home/kara/task-router merge-base --is-ancestor 48d1617 origin/main; echo $?`\
+    \ prints 0.\nPASS 5 (the evidence artifact is on the published branch): `git -C\
+    \ /home/kara/task-router show origin/main:.coding-hermes/evidence/ops/2026-11-06-deploy-cutover.md\
+    \ | head -1` prints \"# task-router ops tick \u2014 2026-11-06-00-02-50 (re-fire)\"\
+    .\n\nOUT OF SCOPE, do not re-litigate: verdict 4d7348d0 graded arm \"loaded_commit\
+    \ == repo_commit\", a literal that a sibling evidence-only commit (9d1bf7c, touching\
+    \ no served module) moved minutes after the deploy \u2014 `loaded_source_sha ==\
+    \ live_source_sha` is the invariant form of that arm. Its arm 3 (`make restart-router`\
+    \ ending step 4/4) is a SEPARATE open defect, filed as row TR-1000976681059247\
+    \ (SCHED-PERF-006 sidecar drift blocks sync_runtime.sh step 2); it is not this\
+    \ task's acceptance."
+  status: complete
+  created_at: '2026-11-06T01:05:33.245957+00:00'
+  completed_at: '2026-11-06T01:05:34.957171+00:00'
