@@ -1,0 +1,78 @@
+INT-CI-20 — CI red on main after TR-363 (d8e2e17): pin reconciliation
+Tick: task-router-foreman-2026-11-05-23-19-25   Host: kara (this box)
+Implementation commit: 5570932f2f69d2814a2f4b17e3486392e3460fcf  (base 4e04d68, ff onto origin/main)
+Captured: 2026-11-06T03:0x Z
+
+== 1. THE RED, AS MEASURED ON base 4e04d68 (hosted CI run 42146233618) ==
+step: "Full test suite (pure JSON — no duckdb needed)"  conclusion=failure
+FAILED tests/test_outcomes.py::test_profile_signature_is_declared_category_levels
+FAILED tests/test_tr175_guard_budget.py::test_seeded_registry_carries_the_committed_levels
+FAILED tests/test_tr175_guard_budget.py::test_the_two_tr175_tests_pass_on_this_tree
+FAILED tests/test_tr318_guard_evidence.py::test_p4_security_measured_pool_and_exclusion
+FAILED tests/test_routing_quality_corpus.py::test_routing_decision_matches_pinned_corpus[profile/P4_SECURITY]
+FAILED tests/test_routing_quality_corpus.py::test_routing_decision_matches_pinned_corpus[profile/P5_VISION_E2E]
+FAILED tests/test_routing_quality_corpus.py::test_corpus_summary_every_case_accounted   (22/25)
+
+== 2. SIGNATURE A — the DECLARED arrow (fixed, exact pins, no loosening) ==
+data/tables/task_profile_requirements.jsonl (committed, TR-363):
+  {"task_id": "P4_SECURITY", "category": "guard",    "level": -1}
+  {"task_id": "P4_SECURITY", "category": "review",   "level": -1}
+  {"task_id": "P4_SECURITY", "category": "security", "level": 2}
+Expectations moved 0/0/2 -> -1/-1/2 with `==` kept in
+  tests/test_outcomes.py, tests/test_tr175_guard_budget.py, tests/test_tr318_guard_evidence.py,
+  tests/test_routing_quality_corpus.py (profile/P4_SECURITY capability_tags + measured head).
+Corpus P4 decision re-pinned from the measured resolve on this tree:
+  head openrouter/z-ai/glm-5.3 @ 1.52  ->  neuralwatt/glm-5.2-short-fast-flex @ 0.786 (effective 0.725)
+  min_chain floor 4 kept (pool grew 4 -> 9); must_include / must_exclude unchanged.
+data/ was NOT touched; TR-363's design was NOT reverted.
+
+== 3. FOCUSED VERIFICATION ON 5570932 (real runs, this tick) ==
+$ .venv/bin/python -m pytest -q tests/test_outcomes.py::test_profile_signature_is_declared_category_levels \
+      tests/test_tr175_guard_budget.py tests/test_tr318_guard_evidence.py
+  14 passed in 148.36s
+$ .venv/bin/python -m pytest -q tests/test_routing_quality_corpus.py
+  23 passed, 3 failed in 17.39s
+  FAILED [profile/P5_VISION_E2E]      head expected openrouter/moonshotai/kimi-k3, actual opencode-go/deepseek-v4.1-flash
+  FAILED [adhoc/visual-qa-band]       1/2 named lanes in — missing [clinepass/kimi-k3]
+  FAILED test_corpus_summary_every_case_accounted  (23/25)
+  => 5 of the 7 reds are cleared; the two vision cases are a data/design defect, deliberately left RED.
+
+== 4. SIGNATURE B — WHY IT IS A LANE REGRESSION AND NOT A STALE PIN ==
+TR-363 makes a requirement naming vision at level>=1 resolve to the lane's own boolean
+(data/tables/models.jsonl). The corpus test independently re-checks the head against
+data/tables/model_tier.jsonl, and the two sources contradict each other on the SAME bar:
+
+  models.jsonl (provider-declared boolean):
+    {"provider":"opencode-go","model":"deepseek-v4.1-flash","vision":true,"normalized_price":0.014769}
+    {"provider":"deepseek","model":"deepseek-flash","vision":true,"normalized_price":0.14}
+    {"provider":"clinepass","model":"kimi-k3","vision":null,"normalized_price":3.0}
+
+  model_tier.jsonl (vision category):
+    {"model":"deepseek-v4-1-flash","category":"vision","tier":-1,"tier_source":"family","source_ref":"alias:deepseek-flash","perf":0.45}
+    {"model":"deepseek/deepseek-v4.1-flash","category":"vision","tier":-1,"tier_source":"family","source_ref":"alias:deepseek-flash","perf":0.45}
+    {"model":"deepseek-flash","category":"vision","tier":-1,"tier_source":"estimate","source_ref":"PROFILE_TAGS:deepseek v4 flash","perf":0.45}
+    {"model":"kimi-k3","category":"vision","tier":3,"tier_source":"estimate","source_ref":"PROFILE_TAGS:kimi k3","perf":0.72}
+
+  The new head clears the boolean but its measured/aliased vision TIER is -1, i.e. below the
+  declared bar vision>=1. Re-pinning it would launder a bar violation, which AC3 forbids.
+  Same defect, same root: deepseek/deepseek-flash (vision=true, tier -1) now enters both vision
+  chains ACROSS the pinned must_exclude; and clinepass/kimi-k3 leaves the pool (tier 3, perf 0.72,
+  but models.jsonl vision=null -> "unknown -> not supported"). adhoc/visual-qa-band pool 36 -> 31.
+  Residual filed as INT-CI-21; INT-CI-20 set blocked with that row as the reason.
+
+== 5. DUPLICATE-DISPATCH DISCLOSURE ==
+While this tick's worker committed in /home/kara/worktrees/task-router-INT-CI-20, a SECOND agent
+(session bb0ca481, platform api_server, ppid 1325023) was editing the same four test files in the
+canonical checkout /home/kara/task-router and had committed 76e20b1 ("board(INT-CI-20): file the CI
+red — 8 test failures") there, appending a DUPLICATE INT-CI-20 row. Its uncommitted diff has the
+shape AC3 forbids: profile/P5 capability_tags REMOVED (the independent check deleted), P4
+must_include emptied, P4 min_chain 4 -> 1, deepseek/deepseek-flash dropped from P5 must_exclude.
+Those edits were NOT adopted and NOT reverted; they are still uncommitted in that checkout. This tick
+landed the honest version (5570932) on origin/main; the duplicate board row and the loosened diff are
+the sibling's to reconcile.
+
+== 6. GATES ==
+pre-push (repo hook): NULL-DEBT PASS, BOARD-COMMIT-BOUNDARY OK; CI leg REFUSED on red main
+  -> pushed with ALLOW_RED_PUSH=1 (disclosed override; the red is this row's subject).
+guard=SKIP: no pre-commit guard fires in this worktree (core.hooksPath=.githooks, pre-push only).
+ci=RED at close: the suite still carries the two deliberate vision reds (INT-CI-21).
