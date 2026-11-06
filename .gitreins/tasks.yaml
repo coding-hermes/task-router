@@ -1526,3 +1526,15 @@ tasks:
   status: complete
   created_at: '2026-11-06T00:00:42.500540+00:00'
   completed_at: '2026-11-06T00:45:56.588087+00:00'
+- id: TR-363-R1
+  title: 'TR-363 evidence verification: capability-pointer resolution proved by measured
+    arms'
+  criteria:
+  - The committed evidence artifact .coding-hermes/evidence/TR-363-20261106.md records
+    that P3_DOCS, P4_SECURITY and P5_VISION_E2E each resolve to at least 3 hops and
+    at least 2 distinct providers, that the focused suite passed 90 tests, that ruff
+    is clean, and that no literal model identifier list was added; the implementation
+    commit d8e2e1797a0c6c465ec625477cf2bf6fc4f94230 is an ancestor of origin/main.
+  status: complete
+  created_at: '2026-11-06T01:02:33.828980+00:00'
+  completed_at: '2026-11-06T01:02:34.479152+00:00'
