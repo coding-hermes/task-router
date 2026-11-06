@@ -53,6 +53,8 @@ GITREINS_RUNTIME_PATHS = (
 #: Runtime/state stores that must be ignored but are NOT gitreins-specific.
 RUNTIME_STATE_PATHS = (
     "data/metrics.jsonl",              # TR-021 resolve metrics ledger
+    "data/metrics.jsonl.1",            # TR-372 rotated generations (same store)
+    "data/metrics.jsonl.3",
     "data/state/outcomes.jsonl",       # TR-049 outcomes store
 )
 
