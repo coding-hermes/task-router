@@ -3118,13 +3118,22 @@ def _build_chain(tables: Any, reqs: Any, limit: Any=DEFAULT_CHAIN_LIMIT, sort_sp
         # models.jsonl, published on /v1/models capabilities). Only an
         # EVIDENCED True passes: False = unsupported, NULL = unresearched is
         # not support — the exact TR-369 three-state contract, never guessed.
+        # INT-CI-21: ALSO check the tier value if it exists. A model with
+        # vision=true but vision tier=-1 contradicts itself — the tier data
+        # (measured performance) takes precedence over the boolean flag
+        # (vendor claim). If tier < requirement level, fail even if boolean=true.
         if flag_reqs:
             flag_miss = []
-            for name, _lvl in flag_reqs:
+            for name, lvl in flag_reqs:
                 v = m.get(name)
                 if v is not True:
                     why = 'unsupported' if v is False else 'unknown (unresearched)'
                     flag_miss.append((name, why, v))
+                else:
+                    # Boolean is true — now check the tier if it exists
+                    tier_val = mt.get(name)
+                    if tier_val is not None and tier_val < lvl:
+                        flag_miss.append((name, f'tier contradicts boolean (tier={tier_val} < {lvl})', v))
             if flag_miss:
                 try:
                     for name, why, _v in flag_miss:
@@ -3136,7 +3145,7 @@ def _build_chain(tables: Any, reqs: Any, limit: Any=DEFAULT_CHAIN_LIMIT, sort_sp
                     misses_out.append({
                         'provider': prov, 'model': model,
                         'codes': ['capability-flag-'
-                                  + ('unsupported' if v is False else 'unknown')
+                                  + ('unsupported' if v is False else 'unknown' if 'tier' not in why else 'tier-contradiction')
                                   for name, why, v in flag_miss],
                         'reasons': [f'capability {name}=1 ({why})'
                                     for name, why, _v in flag_miss]})
@@ -3533,6 +3542,11 @@ def _resolve_fallback(tables: Any, qs: Any, hs: Any, cs: Any, reqs: Any, limit: 
                 v = m.get(name)
                 if v is not True:
                     unmet.append((name, lvl, v))
+                else:
+                    # INT-CI-21: boolean is true — check tier contradiction
+                    tier_val = mt.get(name)
+                    if tier_val is not None and tier_val < lvl:
+                        unmet.append((name, lvl, v))
             if fb_minctx is not None:
                 _c = m.get('context_limit')
                 if _c is not None and _c < fb_minctx:
