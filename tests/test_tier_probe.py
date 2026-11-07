@@ -168,7 +168,9 @@ def test_stamp_reasons_classifies_and_idempotent(tmp_path, monkeypatch):
     assert len(rows) == 2
     by_pair = {(r["provider"], r["model"]): r["reason"] for r in rows}
     assert by_pair[("ok", "reachable")] == "no-sample-yet"
-    assert by_pair[("broke", "laneprovider")] == "unreachable-provider"
+    # AC2 vocabulary, not the harness's own class name (see
+    # test_stamped_reasons_are_in_the_ac2_vocabulary); the class survives as detail
+    assert by_pair[("broke", "laneprovider")] == "not-published-by-provider"
     assert all(r["field"] == "model_tier" for r in rows)
     # data_dir is ALWAYS the tables dir: the sidecar is data/null_reasons.jsonl
     # (one level up), which is the path data_null_census.py reads.
@@ -390,3 +392,18 @@ def test_probe_run_exposes_agentic_override():
                          capture_output=True, text=True, timeout=120)
     assert out.returncode == 0
     assert "--agentic" in out.stdout
+
+
+def test_stamped_reasons_are_in_the_ac2_vocabulary(tmp_path, monkeypatch):
+    """A stamp the census refuses is worse than no stamp.
+
+    data_null_census.REASONS is the AC2 authority and the TR-362 INV4 diff gate
+    enforces it at push time. The harness once stamped 'unreachable-provider',
+    which is not in that vocabulary, so 110 rows went off-vocabulary and the
+    push carrying them was refused.
+    """
+    tp = _import_module(tmp_path, monkeypatch, tmp_path / "data" / "tables")
+    census = __import__("data_null_census")
+    assert tp.REASON_UNREACHABLE in census.REASONS
+    assert tp.REASON_NO_SAMPLE in census.REASONS
+    assert tp.UNREACHABLE_DETAIL not in census.REASONS  # detail, never a reason

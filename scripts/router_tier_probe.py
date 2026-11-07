@@ -119,7 +119,13 @@ BATTERY_FLAGS = {'extended': '--extended', 'extended2': '--extended2',
                  'extended3': '--extended3'}
 
 #: TR-197 null_reasons vocabulary — reasons this harness may stamp.
-REASON_UNREACHABLE = 'unreachable-provider'
+REASON_UNREACHABLE = 'not-published-by-provider'
+#: The class the lane fell in (dead key, 402 plan, closed transport, dead id).
+#: Kept as a DETAIL, not as the reason: data_null_census.REASONS is the AC2
+#: authority and does not contain 'unreachable-provider', so stamping it as the
+#: reason put 110 rows off-vocabulary and the TR-362 INV4 diff gate rejected
+#: the push that carried them.
+UNREACHABLE_DETAIL = 'unreachable-provider'
 REASON_NO_SAMPLE = 'no-sample-yet'
 
 NULL_REASONS_FILE = 'null_reasons.jsonl'
@@ -333,11 +339,14 @@ def stamp_reasons(targets: Any, excluded: Any, commit: bool=False, data_dir: Any
         pairs.append(pair)
     rows = []
     for (prov, model) in pairs:
-        reason = (REASON_UNREACHABLE if (prov, model) in dead_or_unprobeable
-                  else REASON_NO_SAMPLE)
-        rows.append({'provider': prov, 'model': model, 'field': 'model_tier',
-                     'reason': reason, 'ts': today,
-                     'source': 'router_tier_probe TR-221 backfill wave'})
+        dead = (prov, model) in dead_or_unprobeable
+        reason = REASON_UNREACHABLE if dead else REASON_NO_SAMPLE
+        row = {'provider': prov, 'model': model, 'field': 'model_tier',
+               'reason': reason, 'ts': today,
+               'source': 'router_tier_probe TR-221 backfill wave'}
+        if dead:
+            row['detail'] = UNREACHABLE_DETAIL
+        rows.append(row)
 
     path = os.path.join(data_dir, NULL_REASONS_FILE)
     have = set()
