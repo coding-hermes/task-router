@@ -1,0 +1,37 @@
+PM FOLD CANONICALIZATION + BOARD VALIDATOR DELTA
+Tick: task-router-pm-2026-11-07-00-00-43 (PM lane, target project task-router)
+Board: /home/kara/task-router/.coding-hermes/board/tasks.jsonl (readlink -f verified real file)
+Warrant: PM labelled probe pm-probe-2026-11-07-task-router-pm-fold (not a tier-2 judge verdict)
+
+WHAT WAS REPAIRED
+Seven losing duplicate rows still carried the off-vocabulary status 'superseded'. The board
+vocabulary is closed at {blocked,complete,failed,in_progress,pending,review}; 'superseded' is not
+even an accepted read alias, so it produced a hard validator error on every run. Each row already
+named its survivor in its own title (six of seven) or in its superseded_by field (one). They were
+canonicalized to 'complete' with a G7 FOLD note that states, in the row itself, that the row is
+NOT a fixed defect and must not be counted as resolved work.
+
+  id                          survivor
+  TR-1000657714383499     ->  TR-258
+  TR-1000727060851072     ->  TR-377
+  TR-1000868439592165     ->  TR-378
+  TR-1000874277244119     ->  TR-378
+  TR-1000075566052410     ->  TR-366   (survivor still pending - the work continues under one id)
+  TR-1000562831072393     ->  TR-370
+  TR-DISK-1000234647874129 -> TR-372
+
+SAFETY OF THE CHANGE
+  - Terminal before, terminal after: scripts/project_attribution.py:132 TERMINAL_STATUSES =
+    ('complete','done','failed','superseded'), so no attribution or census count moves.
+  - Duplicate-fold semantics preserved: superseded_by and the NOT-A-FIX wording live in the note.
+  - Line-wise, byte-preserving write: only the seven target lines differ; every other line is
+    byte-identical (diff of the file before/after the batch shows 2 changed lines per row).
+
+VALIDATOR DELTA (same command before and after the batch)
+  before: RESULT: FAIL (422 error(s), 518 warning(s))
+          415 events.jsonl id-order errors + 7 tasks.jsonl "status superseded not in vocabulary"
+  after : RESULT: FAIL (415 error(s), 516 warning(s))
+          415 events.jsonl id-order errors + 0 tasks.jsonl errors
+  -> this repair removed 7 of the 7 tasks.jsonl errors. The remaining 415 are the events.jsonl
+     ascending-id defect, which needs an owner decision (normalize the file vs relax the
+     validator) and is filed as TR-1000976681059249 with measured criteria.

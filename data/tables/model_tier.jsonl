@@ -38,7 +38,7 @@
 {"model": "MiniMaxAI/MiniMax-M3", "category": "test", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/TEST"}
 {"model": "MiniMaxAI/MiniMax-M3", "category": "tool_use", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T1-TOOL"}
 {"model": "MiniMaxAI/MiniMax-M3", "category": "ui_frontend", "perf": 0.45, "tier": -1, "tier_source": "family", "source_ref": "alias:minimax-m3"}
-{"model": "MiniMaxAI/MiniMax-M3", "category": "vision", "perf": 0.72, "tier": 3, "tier_source": "family", "source_ref": "alias:minimax-m3"}
+{"model": "MiniMaxAI/MiniMax-M3", "category": "vision", "perf": 0.72, "tier": 2, "tier_source": "family", "source_ref": "alias:minimax-m3"}
 {"model": "Qwen/Qwen3.6-35B-A3B", "category": "agent_tick", "perf": 0.75, "tier": 2, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/AGENT-TICK"}
 {"model": "Qwen/Qwen3.6-35B-A3B", "category": "code_gen", "perf": 0.333, "tier": -3, "tier_source": "bench", "source_ref": "bench:T2-CODE"}
 {"model": "Qwen/Qwen3.6-35B-A3B", "category": "delegation", "perf": 0.75, "tier": 1, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/DELEGATION"}
@@ -81,26 +81,18 @@
 {"model": "Qwen/Qwen3.8-27B", "category": "review", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:REVIEW"}
 {"model": "Qwen/Qwen3.8-27B", "category": "spec_docs", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:SPEC-DOCS"}
 {"model": "Qwen/Qwen3.8-27B", "category": "test", "perf": 0.72, "tier": -1, "tier_source": "estimate", "source_ref": "CATEGORY_ESTIMATES"}
-{"model": "Qwen/Qwen3.8-Flash", "category": "agent_tick", "perf": 0.75, "tier": 2, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/AGENT-TICK"}
-{"model": "Qwen/Qwen3.8-Flash", "category": "code_gen", "perf": 0.667, "tier": 0, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T2-CODE"}
+{"model": "Qwen/Qwen3.8-Flash", "category": "agent_tick", "perf": 0.739, "tier": -3, "tier_source": "family", "source_ref": "alias:qwen3.8-flash"}
+{"model": "Qwen/Qwen3.8-Flash", "category": "code_gen", "perf": 0.85, "tier": 2, "tier_source": "family", "source_ref": "alias:qwen3.8-flash"}
 {"model": "Qwen/Qwen3.8-Flash", "category": "creative", "perf": 0.45, "tier": 1, "tier_source": "family", "source_ref": "alias:qwen3.8-flash"}
-{"model": "Qwen/Qwen3.8-Flash", "category": "debug", "perf": 0.667, "tier": -1, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T5-DEBUG"}
-{"model": "Qwen/Qwen3.8-Flash", "category": "delegation", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:DELEGATION"}
-{"model": "Qwen/Qwen3.8-Flash", "category": "guard", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:GUARD"}
-{"model": "Qwen/Qwen3.8-Flash", "category": "long_doc", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-DOC"}
-{"model": "Qwen/Qwen3.8-Flash", "category": "long_horizon", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-HORIZON"}
-{"model": "Qwen/Qwen3.8-Flash", "category": "mechanical", "perf": 0.833, "tier": -2, "tier_source": "bench", "source_ref": "bench:MECHANICAL"}
-{"model": "Qwen/Qwen3.8-Flash", "category": "mock", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:MOCK"}
-{"model": "Qwen/Qwen3.8-Flash", "category": "multilingual", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:MULTILINGUAL"}
-{"model": "Qwen/Qwen3.8-Flash", "category": "reasoning", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T3-REASON"}
+{"model": "Qwen/Qwen3.8-Flash", "category": "long_horizon", "perf": 0.85, "tier": -2, "tier_source": "family", "source_ref": "alias:qwen3.8-flash"}
+{"model": "Qwen/Qwen3.8-Flash", "category": "multilingual", "perf": 0.81, "tier": -4, "tier_source": "family", "source_ref": "alias:qwen3.8-flash"}
+{"model": "Qwen/Qwen3.8-Flash", "category": "reasoning", "perf": 0.917, "tier": -2, "tier_source": "family", "source_ref": "alias:qwen3.8-flash"}
 {"model": "Qwen/Qwen3.8-Flash", "category": "refactor", "perf": 0.72, "tier": 2, "tier_source": "family", "source_ref": "alias:qwen3.8-flash"}
-{"model": "Qwen/Qwen3.8-Flash", "category": "review", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:REVIEW"}
-{"model": "Qwen/Qwen3.8-Flash", "category": "schema", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/SCHEMA"}
-{"model": "Qwen/Qwen3.8-Flash", "category": "spec_docs", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:SPEC-DOCS"}
+{"model": "Qwen/Qwen3.8-Flash", "category": "spec_docs", "perf": 0.72, "tier": -3, "tier_source": "family", "source_ref": "alias:qwen3.8-flash"}
 {"model": "Qwen/Qwen3.8-Flash", "category": "terminal", "perf": 0.72, "tier": -1, "tier_source": "family", "source_ref": "alias:qwen3.8-flash"}
-{"model": "Qwen/Qwen3.8-Flash", "category": "test", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/TEST"}
-{"model": "Qwen/Qwen3.8-Flash", "category": "tool_use", "perf": 0.667, "tier": -2, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T1-TOOL"}
-{"model": "Qwen/Qwen3.8-Flash", "category": "vision", "perf": 0.72, "tier": 3, "tier_source": "family", "source_ref": "alias:qwen3.8-flash"}
+{"model": "Qwen/Qwen3.8-Flash", "category": "test", "perf": 0.72, "tier": -1, "tier_source": "family", "source_ref": "alias:qwen3.8-flash"}
+{"model": "Qwen/Qwen3.8-Flash", "category": "tool_use", "perf": 0.72, "tier": -2, "tier_source": "family", "source_ref": "alias:qwen3.8-flash"}
+{"model": "Qwen/Qwen3.8-Flash", "category": "vision", "perf": 0.72, "tier": 2, "tier_source": "family", "source_ref": "alias:qwen3.8-flash"}
 {"model": "Qwen/Qwen3.8-Max", "category": "agent_tick", "perf": 0.78, "tier": 2, "tier_source": "family", "source_ref": "alias:qwen3.8-max"}
 {"model": "Qwen/Qwen3.8-Max", "category": "code_gen", "perf": 0.85, "tier": 2, "tier_source": "family", "source_ref": "alias:qwen3.8-max"}
 {"model": "Qwen/Qwen3.8-Max", "category": "debug", "perf": 0.78, "tier": 1, "tier_source": "family", "source_ref": "alias:qwen3.8-max"}
@@ -306,7 +298,7 @@
 {"model": "accounts/fireworks/models/kimi-k2p7-code", "category": "code_gen", "perf": 0.75, "tier": 2, "tier_source": "family", "source_ref": "alias:kimi-k2.7-code"}
 {"model": "accounts/fireworks/models/kimi-k2p7-code", "category": "debug", "perf": 0.75, "tier": 0, "tier_source": "family", "source_ref": "alias:kimi-k2.7-code"}
 {"model": "accounts/fireworks/models/kimi-k2p7-code", "category": "delegation", "perf": 0.75, "tier": 1, "tier_source": "family", "source_ref": "alias:kimi-k2.7-code"}
-{"model": "accounts/fireworks/models/kimi-k2p7-code", "category": "e2e_vision", "perf": 0.45, "tier": 0, "tier_source": "family", "source_ref": "alias:kimi-k2.7-code"}
+{"model": "accounts/fireworks/models/kimi-k2p7-code", "category": "e2e_vision", "perf": 0.45, "tier": -1, "tier_source": "family", "source_ref": "alias:kimi-k2.7-code"}
 {"model": "accounts/fireworks/models/kimi-k2p7-code", "category": "guard", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:kimi-k2.7-code"}
 {"model": "accounts/fireworks/models/kimi-k2p7-code", "category": "long_doc", "perf": 0.65, "tier": -4, "tier_source": "family", "source_ref": "alias:kimi-k2.7-code"}
 {"model": "accounts/fireworks/models/kimi-k2p7-code", "category": "long_horizon", "perf": 0.85, "tier": -2, "tier_source": "family", "source_ref": "alias:kimi-k2.7-code"}
@@ -324,7 +316,7 @@
 {"model": "accounts/fireworks/models/kimi-k3", "category": "code_gen", "perf": 0.75, "tier": 2, "tier_source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/models/kimi-k3", "category": "debug", "perf": 0.75, "tier": 0, "tier_source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/models/kimi-k3", "category": "delegation", "perf": 0.75, "tier": 1, "tier_source": "family", "source_ref": "alias:kimi-k3"}
-{"model": "accounts/fireworks/models/kimi-k3", "category": "e2e_vision", "perf": 0.75, "tier": 3, "tier_source": "family", "source_ref": "alias:kimi-k3"}
+{"model": "accounts/fireworks/models/kimi-k3", "category": "e2e_vision", "perf": 0.75, "tier": 2, "tier_source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/models/kimi-k3", "category": "guard", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/models/kimi-k3", "category": "long_doc", "perf": 0.912, "tier": -3, "tier_source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/models/kimi-k3", "category": "long_horizon", "perf": 0.85, "tier": -2, "tier_source": "family", "source_ref": "alias:kimi-k3"}
@@ -336,11 +328,11 @@
 {"model": "accounts/fireworks/models/kimi-k3", "category": "review", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/models/kimi-k3", "category": "schema", "perf": 0.5, "tier": -3, "tier_source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/models/kimi-k3", "category": "spec_docs", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:kimi-k3"}
-{"model": "accounts/fireworks/models/kimi-k3", "category": "terminal", "perf": 0.921590909090909, "tier": 4, "tier_source": "family", "source_ref": "alias:kimi-k3"}
+{"model": "accounts/fireworks/models/kimi-k3", "category": "terminal", "perf": 0.921590909090909, "tier": 3, "tier_source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/models/kimi-k3", "category": "test", "perf": 0.72, "tier": -1, "tier_source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/models/kimi-k3", "category": "tool_use", "perf": 0.75, "tier": -1, "tier_source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/models/kimi-k3", "category": "ui_frontend", "perf": 0.72, "tier": 2, "tier_source": "family", "source_ref": "alias:kimi-k3"}
-{"model": "accounts/fireworks/models/kimi-k3", "category": "vision", "perf": 0.72, "tier": 3, "tier_source": "family", "source_ref": "alias:kimi-k3"}
+{"model": "accounts/fireworks/models/kimi-k3", "category": "vision", "perf": 0.72, "tier": 2, "tier_source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/models/minimax-m2p7", "category": "agent_tick", "perf": 0.5, "tier": -3, "tier_source": "family", "source_ref": "alias:minimax-m2.7"}
 {"model": "accounts/fireworks/models/minimax-m2p7", "category": "code_gen", "perf": 0.75, "tier": 2, "tier_source": "family", "source_ref": "alias:minimax-m2.7"}
 {"model": "accounts/fireworks/models/minimax-m2p7", "category": "debug", "perf": 0.75, "tier": 0, "tier_source": "family", "source_ref": "alias:minimax-m2.7"}
@@ -372,7 +364,7 @@
 {"model": "accounts/fireworks/models/minimax-m3", "category": "test", "perf": 0.72, "tier": -1, "tier_source": "family", "source_ref": "alias:minimax-m3"}
 {"model": "accounts/fireworks/models/minimax-m3", "category": "tool_use", "perf": 0.742, "tier": -2, "tier_source": "family", "source_ref": "alias:minimax-m3"}
 {"model": "accounts/fireworks/models/minimax-m3", "category": "ui_frontend", "perf": 0.45, "tier": -1, "tier_source": "family", "source_ref": "alias:minimax-m3"}
-{"model": "accounts/fireworks/models/minimax-m3", "category": "vision", "perf": 0.72, "tier": 3, "tier_source": "family", "source_ref": "alias:minimax-m3"}
+{"model": "accounts/fireworks/models/minimax-m3", "category": "vision", "perf": 0.72, "tier": 2, "tier_source": "family", "source_ref": "alias:minimax-m3"}
 {"model": "accounts/fireworks/models/minimax-m3p1-flash", "category": "agent_tick", "perf": 0.622, "tier": -3, "tier_source": "family", "source_ref": "alias:minimax-m3.1-flash"}
 {"model": "accounts/fireworks/models/minimax-m3p1-flash", "category": "code_gen", "perf": 0.23, "tier": -5, "tier_source": "family", "source_ref": "alias:minimax-m3.1-flash"}
 {"model": "accounts/fireworks/models/minimax-m3p1-flash", "category": "guard", "perf": 0.0, "tier": -3, "tier_source": "family", "source_ref": "alias:minimax-m3.1-flash"}
@@ -593,7 +585,7 @@
 {"model": "accounts/fireworks/routers/kimi-fast-latest", "category": "code_gen", "perf": 0.75, "tier": 2, "tier_source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/routers/kimi-fast-latest", "category": "debug", "perf": 0.75, "tier": 0, "tier_source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/routers/kimi-fast-latest", "category": "delegation", "perf": 0.75, "tier": 1, "tier_source": "family", "source_ref": "alias:kimi-k3"}
-{"model": "accounts/fireworks/routers/kimi-fast-latest", "category": "e2e_vision", "perf": 0.75, "tier": 3, "tier_source": "family", "source_ref": "alias:kimi-k3"}
+{"model": "accounts/fireworks/routers/kimi-fast-latest", "category": "e2e_vision", "perf": 0.75, "tier": 2, "tier_source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/routers/kimi-fast-latest", "category": "guard", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/routers/kimi-fast-latest", "category": "long_doc", "perf": 0.912, "tier": -3, "tier_source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/routers/kimi-fast-latest", "category": "long_horizon", "perf": 0.85, "tier": -2, "tier_source": "family", "source_ref": "alias:kimi-k3"}
@@ -605,16 +597,16 @@
 {"model": "accounts/fireworks/routers/kimi-fast-latest", "category": "review", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/routers/kimi-fast-latest", "category": "schema", "perf": 0.5, "tier": -3, "tier_source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/routers/kimi-fast-latest", "category": "spec_docs", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:kimi-k3"}
-{"model": "accounts/fireworks/routers/kimi-fast-latest", "category": "terminal", "perf": 0.921590909090909, "tier": 4, "tier_source": "family", "source_ref": "alias:kimi-k3"}
+{"model": "accounts/fireworks/routers/kimi-fast-latest", "category": "terminal", "perf": 0.921590909090909, "tier": 3, "tier_source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/routers/kimi-fast-latest", "category": "test", "perf": 0.72, "tier": -1, "tier_source": "estimate", "source_ref": "CATEGORY_ESTIMATES"}
 {"model": "accounts/fireworks/routers/kimi-fast-latest", "category": "tool_use", "perf": 0.75, "tier": -1, "tier_source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/routers/kimi-fast-latest", "category": "ui_frontend", "perf": 0.72, "tier": 2, "tier_source": "family", "source_ref": "alias:kimi-k3"}
-{"model": "accounts/fireworks/routers/kimi-fast-latest", "category": "vision", "perf": 0.72, "tier": 3, "tier_source": "family", "source_ref": "alias:kimi-k3"}
+{"model": "accounts/fireworks/routers/kimi-fast-latest", "category": "vision", "perf": 0.72, "tier": 2, "tier_source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/routers/kimi-k3-fast", "category": "agent_tick", "perf": 0.9216, "tier": 3, "tier_source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/routers/kimi-k3-fast", "category": "code_gen", "perf": 0.75, "tier": 2, "tier_source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/routers/kimi-k3-fast", "category": "debug", "perf": 0.75, "tier": 0, "tier_source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/routers/kimi-k3-fast", "category": "delegation", "perf": 0.75, "tier": 1, "tier_source": "family", "source_ref": "alias:kimi-k3"}
-{"model": "accounts/fireworks/routers/kimi-k3-fast", "category": "e2e_vision", "perf": 0.75, "tier": 3, "tier_source": "family", "source_ref": "alias:kimi-k3"}
+{"model": "accounts/fireworks/routers/kimi-k3-fast", "category": "e2e_vision", "perf": 0.75, "tier": 2, "tier_source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/routers/kimi-k3-fast", "category": "guard", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/routers/kimi-k3-fast", "category": "long_doc", "perf": 0.912, "tier": -3, "tier_source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/routers/kimi-k3-fast", "category": "long_horizon", "perf": 0.85, "tier": -2, "tier_source": "family", "source_ref": "alias:kimi-k3"}
@@ -626,16 +618,16 @@
 {"model": "accounts/fireworks/routers/kimi-k3-fast", "category": "review", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/routers/kimi-k3-fast", "category": "schema", "perf": 0.5, "tier": -3, "tier_source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/routers/kimi-k3-fast", "category": "spec_docs", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:kimi-k3"}
-{"model": "accounts/fireworks/routers/kimi-k3-fast", "category": "terminal", "perf": 0.921590909090909, "tier": 4, "tier_source": "family", "source_ref": "alias:kimi-k3"}
+{"model": "accounts/fireworks/routers/kimi-k3-fast", "category": "terminal", "perf": 0.921590909090909, "tier": 3, "tier_source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/routers/kimi-k3-fast", "category": "test", "perf": 0.72, "tier": -1, "tier_source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/routers/kimi-k3-fast", "category": "tool_use", "perf": 0.75, "tier": -1, "tier_source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/routers/kimi-k3-fast", "category": "ui_frontend", "perf": 0.72, "tier": 2, "tier_source": "family", "source_ref": "alias:kimi-k3"}
-{"model": "accounts/fireworks/routers/kimi-k3-fast", "category": "vision", "perf": 0.72, "tier": 3, "tier_source": "family", "source_ref": "alias:kimi-k3"}
+{"model": "accounts/fireworks/routers/kimi-k3-fast", "category": "vision", "perf": 0.72, "tier": 2, "tier_source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/routers/kimi-latest", "category": "agent_tick", "perf": 0.9216, "tier": 3, "tier_source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/routers/kimi-latest", "category": "code_gen", "perf": 0.75, "tier": 2, "tier_source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/routers/kimi-latest", "category": "debug", "perf": 0.75, "tier": 0, "tier_source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/routers/kimi-latest", "category": "delegation", "perf": 0.75, "tier": 1, "tier_source": "family", "source_ref": "alias:kimi-k3"}
-{"model": "accounts/fireworks/routers/kimi-latest", "category": "e2e_vision", "perf": 0.75, "tier": 3, "tier_source": "family", "source_ref": "alias:kimi-k3"}
+{"model": "accounts/fireworks/routers/kimi-latest", "category": "e2e_vision", "perf": 0.75, "tier": 2, "tier_source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/routers/kimi-latest", "category": "guard", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/routers/kimi-latest", "category": "long_doc", "perf": 0.912, "tier": -3, "tier_source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/routers/kimi-latest", "category": "long_horizon", "perf": 0.85, "tier": -2, "tier_source": "family", "source_ref": "alias:kimi-k3"}
@@ -647,11 +639,11 @@
 {"model": "accounts/fireworks/routers/kimi-latest", "category": "review", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/routers/kimi-latest", "category": "schema", "perf": 0.5, "tier": -3, "tier_source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/routers/kimi-latest", "category": "spec_docs", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:kimi-k3"}
-{"model": "accounts/fireworks/routers/kimi-latest", "category": "terminal", "perf": 0.921590909090909, "tier": 4, "tier_source": "family", "source_ref": "alias:kimi-k3"}
+{"model": "accounts/fireworks/routers/kimi-latest", "category": "terminal", "perf": 0.921590909090909, "tier": 3, "tier_source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/routers/kimi-latest", "category": "test", "perf": 0.72, "tier": -1, "tier_source": "estimate", "source_ref": "CATEGORY_ESTIMATES"}
 {"model": "accounts/fireworks/routers/kimi-latest", "category": "tool_use", "perf": 0.75, "tier": -1, "tier_source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/routers/kimi-latest", "category": "ui_frontend", "perf": 0.72, "tier": 2, "tier_source": "family", "source_ref": "alias:kimi-k3"}
-{"model": "accounts/fireworks/routers/kimi-latest", "category": "vision", "perf": 0.72, "tier": 3, "tier_source": "family", "source_ref": "alias:kimi-k3"}
+{"model": "accounts/fireworks/routers/kimi-latest", "category": "vision", "perf": 0.72, "tier": 2, "tier_source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "accounts/fireworks/routers/minimax-latest", "category": "agent_tick", "perf": 0.5, "tier": -3, "tier_source": "family", "source_ref": "alias:minimax-m3"}
 {"model": "accounts/fireworks/routers/minimax-latest", "category": "code_gen", "perf": 0.75, "tier": 2, "tier_source": "family", "source_ref": "alias:minimax-m3"}
 {"model": "accounts/fireworks/routers/minimax-latest", "category": "debug", "perf": 0.5, "tier": -3, "tier_source": "family", "source_ref": "alias:minimax-m3"}
@@ -672,7 +664,7 @@
 {"model": "accounts/fireworks/routers/minimax-latest", "category": "test", "perf": 0.72, "tier": -1, "tier_source": "estimate", "source_ref": "CATEGORY_ESTIMATES"}
 {"model": "accounts/fireworks/routers/minimax-latest", "category": "tool_use", "perf": 0.742, "tier": -2, "tier_source": "family", "source_ref": "alias:minimax-m3"}
 {"model": "accounts/fireworks/routers/minimax-latest", "category": "ui_frontend", "perf": 0.45, "tier": -1, "tier_source": "family", "source_ref": "alias:minimax-m3"}
-{"model": "accounts/fireworks/routers/minimax-latest", "category": "vision", "perf": 0.72, "tier": 3, "tier_source": "family", "source_ref": "alias:minimax-m3"}
+{"model": "accounts/fireworks/routers/minimax-latest", "category": "vision", "perf": 0.72, "tier": 2, "tier_source": "family", "source_ref": "alias:minimax-m3"}
 {"model": "accounts/fireworks/routers/qwen-max-latest", "category": "agent_tick", "perf": 0.78, "tier": 2, "tier_source": "family", "source_ref": "alias:qwen3.8-max"}
 {"model": "accounts/fireworks/routers/qwen-max-latest", "category": "code_gen", "perf": 0.85, "tier": 2, "tier_source": "family", "source_ref": "alias:qwen3.8-max"}
 {"model": "accounts/fireworks/routers/qwen-max-latest", "category": "debug", "perf": 0.78, "tier": 1, "tier_source": "family", "source_ref": "alias:qwen3.8-max"}
@@ -2103,7 +2095,7 @@
 {"model": "hf:moonshotai/Kimi-K3", "category": "code_gen", "perf": 0.75, "tier": 2, "tier_source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "hf:moonshotai/Kimi-K3", "category": "debug", "perf": 0.75, "tier": 0, "tier_source": "measured", "source_ref": "models.jsonl:perf_debug"}
 {"model": "hf:moonshotai/Kimi-K3", "category": "delegation", "perf": 0.75, "tier": 1, "tier_source": "measured", "source_ref": "models.jsonl:perf_delegation"}
-{"model": "hf:moonshotai/Kimi-K3", "category": "e2e_vision", "perf": 0.75, "tier": 3, "tier_source": "measured", "source_ref": "models.jsonl:perf_e2e_vision"}
+{"model": "hf:moonshotai/Kimi-K3", "category": "e2e_vision", "perf": 0.75, "tier": 2, "tier_source": "measured", "source_ref": "models.jsonl:perf_e2e_vision"}
 {"model": "hf:moonshotai/Kimi-K3", "category": "guard", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:GUARD"}
 {"model": "hf:moonshotai/Kimi-K3", "category": "long_doc", "perf": 1.0, "tier": 5, "tier_source": "measured", "source_ref": "models.jsonl:perf_long_doc"}
 {"model": "hf:moonshotai/Kimi-K3", "category": "long_horizon", "perf": 0.85, "tier": -2, "tier_source": "family", "source_ref": "alias:kimi-k3"}
@@ -2115,11 +2107,11 @@
 {"model": "hf:moonshotai/Kimi-K3", "category": "review", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:REVIEW"}
 {"model": "hf:moonshotai/Kimi-K3", "category": "schema", "perf": 0.5, "tier": -3, "tier_source": "measured", "source_ref": "models.jsonl:perf_schema"}
 {"model": "hf:moonshotai/Kimi-K3", "category": "spec_docs", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:SPEC-DOCS"}
-{"model": "hf:moonshotai/Kimi-K3", "category": "terminal", "perf": 0.921590909090909, "tier": 4, "tier_source": "family", "source_ref": "alias:kimi-k3"}
+{"model": "hf:moonshotai/Kimi-K3", "category": "terminal", "perf": 0.921590909090909, "tier": 3, "tier_source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "hf:moonshotai/Kimi-K3", "category": "test", "perf": 0.72, "tier": -1, "tier_source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "hf:moonshotai/Kimi-K3", "category": "tool_use", "perf": 0.75, "tier": -1, "tier_source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "hf:moonshotai/Kimi-K3", "category": "ui_frontend", "perf": 0.72, "tier": 2, "tier_source": "family", "source_ref": "alias:kimi-k3"}
-{"model": "hf:moonshotai/Kimi-K3", "category": "vision", "perf": 0.72, "tier": 3, "tier_source": "family", "source_ref": "alias:kimi-k3"}
+{"model": "hf:moonshotai/Kimi-K3", "category": "vision", "perf": 0.72, "tier": 2, "tier_source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "hf:nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-NVFP4", "category": "agent_tick", "perf": 0.75, "tier": 2, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/AGENT-TICK"}
 {"model": "hf:nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-NVFP4", "category": "code_gen", "perf": 0.667, "tier": 0, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T2-CODE"}
 {"model": "hf:nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-NVFP4", "category": "debug", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T5-DEBUG"}
@@ -2224,18 +2216,21 @@
 {"model": "hy3", "category": "ui_frontend", "perf": 0.85, "tier": 5, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:hy3"}
 {"model": "hy3-preview", "category": "reasoning", "perf": 0.904, "tier": -2, "tier_source": "bench", "source_ref": "bench:GPQA"}
 {"model": "hy3-preview", "category": "terminal", "perf": 0.544, "tier": -3, "tier_source": "bench", "source_ref": "bench:Terminal-Bench"}
+{"model": "hy4", "category": "code_gen", "perf": 0.657, "tier": -2, "tier_source": "bench", "source_ref": "bench:Tencent Hy4 appendix VENDOR-REPORTED SWE-bench Pro 65.7, gen-over-gen 57.9 -> 65.7 (corroborated 2026-11-04 by eesel/aimlapi hy4 reviews)"}
 {"model": "hy4", "category": "guard", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:GUARD"}
 {"model": "hy4", "category": "mechanical", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:MECHANICAL"}
 {"model": "hy4", "category": "mock", "perf": 0.833, "tier": -2, "tier_source": "bench", "source_ref": "bench:MOCK"}
+{"model": "hy4", "category": "reasoning", "perf": 0.9229999999999999, "tier": -2, "tier_source": "bench", "source_ref": "bench:GPQA"}
 {"model": "hy4", "category": "review", "perf": 0.75, "tier": -3, "tier_source": "bench", "source_ref": "bench:REVIEW"}
 {"model": "hy4", "category": "spec_docs", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:SPEC-DOCS"}
+{"model": "hy4", "category": "terminal", "perf": 0.8540000000000001, "tier": 2, "tier_source": "bench", "source_ref": "bench:Terminal-Bench"}
 {"model": "hy4-preview", "category": "code_gen", "perf": 0.85, "tier": 2, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:hy4-preview"}
 {"model": "hy4-preview", "category": "long_horizon", "perf": 0.85, "tier": -2, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:hy4-preview"}
 {"model": "hy4-preview", "category": "multilingual", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:MULTILINGUAL"}
 {"model": "hy4-preview", "category": "reasoning", "perf": 0.923, "tier": -2, "tier_source": "bench", "source_ref": "bench:GPQA"}
 {"model": "hy4-preview", "category": "refactor", "perf": 0.72, "tier": 2, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:hy4-preview"}
 {"model": "hy4-preview", "category": "spec_docs", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:SPEC-DOCS"}
-{"model": "hy4-preview", "category": "terminal", "perf": 0.854, "tier": 2, "tier_source": "bench", "source_ref": "bench:Terminal-Bench"}
+{"model": "hy4-preview", "category": "terminal", "perf": 0.854, "tier": 1, "tier_source": "bench", "source_ref": "bench:Terminal-Bench"}
 {"model": "hy4-preview", "category": "test", "perf": 0.72, "tier": -1, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:hy4-preview"}
 {"model": "inclusionai/ling-3.0-flash-sante:free", "category": "test", "perf": 0.72, "tier": -1, "tier_source": "estimate", "source_ref": "CATEGORY_ESTIMATES"}
 {"model": "inkling", "category": "test", "perf": 0.72, "tier": -1, "tier_source": "estimate", "source_ref": "CATEGORY_ESTIMATES"}
@@ -2252,7 +2247,7 @@
 {"model": "k3", "category": "code_gen", "perf": 0.72, "tier": 1, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:kimi k3"}
 {"model": "k3", "category": "debug", "perf": 0.75, "tier": 0, "tier_source": "measured", "source_ref": "models.jsonl:perf_debug"}
 {"model": "k3", "category": "delegation", "perf": 0.75, "tier": 1, "tier_source": "measured", "source_ref": "models.jsonl:perf_delegation"}
-{"model": "k3", "category": "e2e_vision", "perf": 0.75, "tier": 3, "tier_source": "measured", "source_ref": "models.jsonl:perf_e2e_vision"}
+{"model": "k3", "category": "e2e_vision", "perf": 0.75, "tier": 2, "tier_source": "measured", "source_ref": "models.jsonl:perf_e2e_vision"}
 {"model": "k3", "category": "guard", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:GUARD"}
 {"model": "k3", "category": "long_doc", "perf": 1.0, "tier": 5, "tier_source": "measured", "source_ref": "models.jsonl:perf_long_doc"}
 {"model": "k3", "category": "long_horizon", "perf": 0.85, "tier": -2, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:kimi k3"}
@@ -2267,12 +2262,12 @@
 {"model": "k3", "category": "test", "perf": 0.72, "tier": -1, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:kimi k3"}
 {"model": "k3", "category": "tool_use", "perf": 0.85, "tier": 0, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:kimi k3"}
 {"model": "k3", "category": "ui_frontend", "perf": 0.72, "tier": 2, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:kimi k3"}
-{"model": "k3", "category": "vision", "perf": 0.72, "tier": 3, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:kimi k3"}
+{"model": "k3", "category": "vision", "perf": 0.72, "tier": 2, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:kimi k3"}
 {"model": "k3-256k", "category": "agent_tick", "perf": 0.75, "tier": 2, "tier_source": "measured", "source_ref": "models.jsonl:perf_agent_tick"}
 {"model": "k3-256k", "category": "code_gen", "perf": 0.5, "tier": -2, "tier_source": "bench", "source_ref": "bench:T2-CODE"}
 {"model": "k3-256k", "category": "debug", "perf": 0.5, "tier": -3, "tier_source": "bench", "source_ref": "bench:T5-DEBUG"}
 {"model": "k3-256k", "category": "delegation", "perf": 0.75, "tier": 1, "tier_source": "measured", "source_ref": "models.jsonl:perf_delegation"}
-{"model": "k3-256k", "category": "e2e_vision", "perf": 0.75, "tier": 3, "tier_source": "measured", "source_ref": "models.jsonl:perf_e2e_vision"}
+{"model": "k3-256k", "category": "e2e_vision", "perf": 0.75, "tier": 2, "tier_source": "measured", "source_ref": "models.jsonl:perf_e2e_vision"}
 {"model": "k3-256k", "category": "guard", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:GUARD"}
 {"model": "k3-256k", "category": "long_doc", "perf": 1.0, "tier": 5, "tier_source": "measured", "source_ref": "models.jsonl:perf_long_doc"}
 {"model": "k3-256k", "category": "mechanical", "perf": 0.833, "tier": -2, "tier_source": "bench", "source_ref": "bench:MECHANICAL"}
@@ -2314,7 +2309,7 @@
 {"model": "kimi-k2-7-code", "category": "code_gen", "perf": 0.75, "tier": 2, "tier_source": "family", "source_ref": "alias:kimi-k2.7-code"}
 {"model": "kimi-k2-7-code", "category": "debug", "perf": 0.75, "tier": 0, "tier_source": "family", "source_ref": "alias:kimi-k2.7-code"}
 {"model": "kimi-k2-7-code", "category": "delegation", "perf": 0.75, "tier": 1, "tier_source": "family", "source_ref": "alias:kimi-k2.7-code"}
-{"model": "kimi-k2-7-code", "category": "e2e_vision", "perf": 0.45, "tier": 0, "tier_source": "family", "source_ref": "alias:kimi-k2.7-code"}
+{"model": "kimi-k2-7-code", "category": "e2e_vision", "perf": 0.45, "tier": -1, "tier_source": "family", "source_ref": "alias:kimi-k2.7-code"}
 {"model": "kimi-k2-7-code", "category": "guard", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:kimi-k2.7-code"}
 {"model": "kimi-k2-7-code", "category": "long_doc", "perf": 0.65, "tier": -4, "tier_source": "family", "source_ref": "alias:kimi-k2.7-code"}
 {"model": "kimi-k2-7-code", "category": "long_horizon", "perf": 0.85, "tier": -2, "tier_source": "family", "source_ref": "alias:kimi-k2.7-code"}
@@ -2371,7 +2366,7 @@
 {"model": "kimi-k2.7-code", "category": "code_gen", "perf": 0.75, "tier": 2, "tier_source": "bench", "source_ref": "bench:battery-T5-DEBUG"}
 {"model": "kimi-k2.7-code", "category": "debug", "perf": 0.75, "tier": 0, "tier_source": "bench", "source_ref": "bench:T5-DEBUG"}
 {"model": "kimi-k2.7-code", "category": "delegation", "perf": 0.75, "tier": 1, "tier_source": "measured", "source_ref": "models.jsonl:perf_delegation"}
-{"model": "kimi-k2.7-code", "category": "e2e_vision", "perf": 0.45, "tier": 0, "tier_source": "measured", "source_ref": "models.jsonl:perf_e2e_vision"}
+{"model": "kimi-k2.7-code", "category": "e2e_vision", "perf": 0.45, "tier": -1, "tier_source": "measured", "source_ref": "models.jsonl:perf_e2e_vision"}
 {"model": "kimi-k2.7-code", "category": "guard", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:GUARD"}
 {"model": "kimi-k2.7-code", "category": "long_doc", "perf": 0.65, "tier": -4, "tier_source": "measured", "source_ref": "models.jsonl:perf_long_doc"}
 {"model": "kimi-k2.7-code", "category": "long_horizon", "perf": 0.85, "tier": -2, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:kimi k2"}
@@ -2402,7 +2397,7 @@
 {"model": "kimi-k2.7-code-flex", "category": "code_gen", "perf": 0.75, "tier": 2, "tier_source": "family", "source_ref": "alias:kimi-k2.7-code"}
 {"model": "kimi-k2.7-code-flex", "category": "debug", "perf": 0.75, "tier": 0, "tier_source": "family", "source_ref": "alias:kimi-k2.7-code"}
 {"model": "kimi-k2.7-code-flex", "category": "delegation", "perf": 0.75, "tier": 1, "tier_source": "family", "source_ref": "alias:kimi-k2.7-code"}
-{"model": "kimi-k2.7-code-flex", "category": "e2e_vision", "perf": 0.45, "tier": 0, "tier_source": "family", "source_ref": "alias:kimi-k2.7-code"}
+{"model": "kimi-k2.7-code-flex", "category": "e2e_vision", "perf": 0.45, "tier": -1, "tier_source": "family", "source_ref": "alias:kimi-k2.7-code"}
 {"model": "kimi-k2.7-code-flex", "category": "guard", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:kimi-k2.7-code"}
 {"model": "kimi-k2.7-code-flex", "category": "long_doc", "perf": 0.65, "tier": -4, "tier_source": "family", "source_ref": "alias:kimi-k2.7-code"}
 {"model": "kimi-k2.7-code-flex", "category": "long_horizon", "perf": 0.85, "tier": -2, "tier_source": "family", "source_ref": "alias:kimi-k2.7-code"}
@@ -2420,7 +2415,7 @@
 {"model": "kimi-k3", "category": "code_gen", "perf": 0.75, "tier": 2, "tier_source": "bench", "source_ref": "bench:battery-T5-DEBUG"}
 {"model": "kimi-k3", "category": "debug", "perf": 0.75, "tier": 0, "tier_source": "bench", "source_ref": "bench:T5-DEBUG"}
 {"model": "kimi-k3", "category": "delegation", "perf": 0.75, "tier": 1, "tier_source": "measured", "source_ref": "models.jsonl:perf_delegation"}
-{"model": "kimi-k3", "category": "e2e_vision", "perf": 0.75, "tier": 3, "tier_source": "measured", "source_ref": "models.jsonl:perf_e2e_vision"}
+{"model": "kimi-k3", "category": "e2e_vision", "perf": 0.75, "tier": 2, "tier_source": "measured", "source_ref": "models.jsonl:perf_e2e_vision"}
 {"model": "kimi-k3", "category": "guard", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:GUARD"}
 {"model": "kimi-k3", "category": "long_doc", "perf": 0.912, "tier": -3, "tier_source": "measured", "source_ref": "models.jsonl:perf_long_doc"}
 {"model": "kimi-k3", "category": "long_horizon", "perf": 0.85, "tier": -2, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:kimi k3"}
@@ -2432,16 +2427,16 @@
 {"model": "kimi-k3", "category": "review", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:REVIEW"}
 {"model": "kimi-k3", "category": "schema", "perf": 0.5, "tier": -3, "tier_source": "measured", "source_ref": "models.jsonl:perf_schema"}
 {"model": "kimi-k3", "category": "spec_docs", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:SPEC-DOCS"}
-{"model": "kimi-k3", "category": "terminal", "perf": 0.921590909090909, "tier": 4, "tier_source": "bench", "source_ref": "bench:Terminal-Bench"}
+{"model": "kimi-k3", "category": "terminal", "perf": 0.921590909090909, "tier": 3, "tier_source": "bench", "source_ref": "bench:Terminal-Bench"}
 {"model": "kimi-k3", "category": "test", "perf": 0.72, "tier": -1, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:kimi k3"}
 {"model": "kimi-k3", "category": "tool_use", "perf": 0.75, "tier": -1, "tier_source": "bench", "source_ref": "bench:battery-T1-TOOL"}
 {"model": "kimi-k3", "category": "ui_frontend", "perf": 0.72, "tier": 2, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:kimi k3"}
-{"model": "kimi-k3", "category": "vision", "perf": 0.72, "tier": 3, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:kimi k3"}
+{"model": "kimi-k3", "category": "vision", "perf": 0.72, "tier": 2, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:kimi k3"}
 {"model": "kimi-k3-fast", "category": "agent_tick", "perf": 0.9216, "tier": 3, "tier_source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "kimi-k3-fast", "category": "code_gen", "perf": 0.75, "tier": 2, "tier_source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "kimi-k3-fast", "category": "debug", "perf": 0.75, "tier": 0, "tier_source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "kimi-k3-fast", "category": "delegation", "perf": 0.75, "tier": 1, "tier_source": "family", "source_ref": "alias:kimi-k3"}
-{"model": "kimi-k3-fast", "category": "e2e_vision", "perf": 0.75, "tier": 3, "tier_source": "family", "source_ref": "alias:kimi-k3"}
+{"model": "kimi-k3-fast", "category": "e2e_vision", "perf": 0.75, "tier": 2, "tier_source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "kimi-k3-fast", "category": "guard", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "kimi-k3-fast", "category": "long_doc", "perf": 0.912, "tier": -3, "tier_source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "kimi-k3-fast", "category": "long_horizon", "perf": 0.85, "tier": -2, "tier_source": "family", "source_ref": "alias:kimi-k3"}
@@ -2453,16 +2448,16 @@
 {"model": "kimi-k3-fast", "category": "review", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "kimi-k3-fast", "category": "schema", "perf": 0.5, "tier": -3, "tier_source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "kimi-k3-fast", "category": "spec_docs", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:kimi-k3"}
-{"model": "kimi-k3-fast", "category": "terminal", "perf": 0.921590909090909, "tier": 4, "tier_source": "family", "source_ref": "alias:kimi-k3"}
+{"model": "kimi-k3-fast", "category": "terminal", "perf": 0.921590909090909, "tier": 3, "tier_source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "kimi-k3-fast", "category": "test", "perf": 0.72, "tier": -1, "tier_source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "kimi-k3-fast", "category": "tool_use", "perf": 0.75, "tier": -1, "tier_source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "kimi-k3-fast", "category": "ui_frontend", "perf": 0.72, "tier": 2, "tier_source": "family", "source_ref": "alias:kimi-k3"}
-{"model": "kimi-k3-fast", "category": "vision", "perf": 0.72, "tier": 3, "tier_source": "family", "source_ref": "alias:kimi-k3"}
+{"model": "kimi-k3-fast", "category": "vision", "perf": 0.72, "tier": 2, "tier_source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "kimi-k3-flex", "category": "agent_tick", "perf": 0.9216, "tier": 3, "tier_source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "kimi-k3-flex", "category": "code_gen", "perf": 0.75, "tier": 2, "tier_source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "kimi-k3-flex", "category": "debug", "perf": 0.75, "tier": 0, "tier_source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "kimi-k3-flex", "category": "delegation", "perf": 0.75, "tier": 1, "tier_source": "family", "source_ref": "alias:kimi-k3"}
-{"model": "kimi-k3-flex", "category": "e2e_vision", "perf": 0.75, "tier": 3, "tier_source": "family", "source_ref": "alias:kimi-k3"}
+{"model": "kimi-k3-flex", "category": "e2e_vision", "perf": 0.75, "tier": 2, "tier_source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "kimi-k3-flex", "category": "guard", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "kimi-k3-flex", "category": "long_doc", "perf": 0.912, "tier": -3, "tier_source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "kimi-k3-flex", "category": "long_horizon", "perf": 0.85, "tier": -2, "tier_source": "family", "source_ref": "alias:kimi-k3"}
@@ -2474,11 +2469,11 @@
 {"model": "kimi-k3-flex", "category": "review", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "kimi-k3-flex", "category": "schema", "perf": 0.5, "tier": -3, "tier_source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "kimi-k3-flex", "category": "spec_docs", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:kimi-k3"}
-{"model": "kimi-k3-flex", "category": "terminal", "perf": 0.921590909090909, "tier": 4, "tier_source": "family", "source_ref": "alias:kimi-k3"}
+{"model": "kimi-k3-flex", "category": "terminal", "perf": 0.921590909090909, "tier": 3, "tier_source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "kimi-k3-flex", "category": "test", "perf": 0.72, "tier": -1, "tier_source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "kimi-k3-flex", "category": "tool_use", "perf": 0.75, "tier": -1, "tier_source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "kimi-k3-flex", "category": "ui_frontend", "perf": 0.72, "tier": 2, "tier_source": "family", "source_ref": "alias:kimi-k3"}
-{"model": "kimi-k3-flex", "category": "vision", "perf": 0.72, "tier": 3, "tier_source": "family", "source_ref": "alias:kimi-k3"}
+{"model": "kimi-k3-flex", "category": "vision", "perf": 0.72, "tier": 2, "tier_source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "kimi-k3.1-pro", "category": "guard", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:GUARD"}
 {"model": "kimi-k3.1-pro", "category": "mechanical", "perf": 0.833, "tier": -2, "tier_source": "bench", "source_ref": "bench:MECHANICAL"}
 {"model": "kimi-k3.1-pro", "category": "mock", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:MOCK"}
@@ -2684,7 +2679,7 @@
 {"model": "mimo-v2.5-pro", "category": "mechanical", "perf": 0.72, "tier": -4, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:mimo-v2.5-pro"}
 {"model": "mimo-v2.5-pro", "category": "refactor", "perf": 0.72, "tier": 2, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:mimo-v2.5-pro"}
 {"model": "mimo-v2.5-pro", "category": "spec_docs", "perf": 0.684, "tier": -4, "tier_source": "bench", "source_ref": "bench:BenchLM"}
-{"model": "mimo-v2.5-pro", "category": "terminal", "perf": 0.684, "tier": -3, "tier_source": "bench", "source_ref": "bench:Terminal-Bench"}
+{"model": "mimo-v2.5-pro", "category": "terminal", "perf": 0.684, "tier": -2, "tier_source": "bench", "source_ref": "bench:Terminal-Bench"}
 {"model": "mimo-v2.5-pro", "category": "test", "perf": 0.72, "tier": -1, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:mimo-v2.5-pro"}
 {"model": "mimo-v2.5-pro", "category": "tool_use", "perf": 0.85, "tier": 0, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:mimo-v2.5-pro"}
 {"model": "mimo-v2.6-flash", "category": "agent_tick", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:xiaomi/mimo-v2.6-flash"}
@@ -2757,7 +2752,7 @@
 {"model": "minimax-m3", "category": "test", "perf": 0.72, "tier": -1, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:minimax m3"}
 {"model": "minimax-m3", "category": "tool_use", "perf": 0.742, "tier": -2, "tier_source": "bench", "source_ref": "bench:MCP Atlas"}
 {"model": "minimax-m3", "category": "ui_frontend", "perf": 0.45, "tier": -1, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:minimax m3"}
-{"model": "minimax-m3", "category": "vision", "perf": 0.72, "tier": 3, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:minimax m3"}
+{"model": "minimax-m3", "category": "vision", "perf": 0.72, "tier": 2, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:minimax m3"}
 {"model": "minimax-m3.1-flash", "category": "agent_tick", "perf": 0.622, "tier": -3, "tier_source": "bench", "source_ref": "bench:research-bench-2026-10-20: Automation-Bench v1.0.6 62.2 (MiniMax launch table, VENDOR-REPORTED) vs deepseek-v4.1-flash:1017 60.5"}
 {"model": "minimax-m3.1-flash", "category": "code_gen", "perf": 0.23, "tier": -5, "tier_source": "bench", "source_ref": "bench:research-bench-2026-10-23: SWE Refactor Bench 23.0 (VENDOR-REPORTED launch table; Opus 5 31.0 same table — weak-signal axis, kept at its true scale)"}
 {"model": "minimax-m3.1-flash", "category": "guard", "perf": 0.0, "tier": -3, "tier_source": "bench", "source_ref": "bench:GUARD"}
@@ -3015,7 +3010,7 @@
 {"model": "moonshotai/Kimi-K2.7-Code", "category": "code_gen", "perf": 0.667, "tier": 0, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T2-CODE"}
 {"model": "moonshotai/Kimi-K2.7-Code", "category": "debug", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T5-DEBUG"}
 {"model": "moonshotai/Kimi-K2.7-Code", "category": "delegation", "perf": 0.75, "tier": 1, "tier_source": "bench", "source_ref": "bench:DELEGATION"}
-{"model": "moonshotai/Kimi-K2.7-Code", "category": "e2e_vision", "perf": 0.45, "tier": 0, "tier_source": "family", "source_ref": "alias:kimi-k2.7-code"}
+{"model": "moonshotai/Kimi-K2.7-Code", "category": "e2e_vision", "perf": 0.45, "tier": -1, "tier_source": "family", "source_ref": "alias:kimi-k2.7-code"}
 {"model": "moonshotai/Kimi-K2.7-Code", "category": "guard", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:GUARD"}
 {"model": "moonshotai/Kimi-K2.7-Code", "category": "long_doc", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-DOC"}
 {"model": "moonshotai/Kimi-K2.7-Code", "category": "long_horizon", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-HORIZON"}
@@ -3047,7 +3042,7 @@
 {"model": "moonshotai/Kimi-K3", "category": "code_gen", "perf": 0.667, "tier": 0, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T2-CODE"}
 {"model": "moonshotai/Kimi-K3", "category": "debug", "perf": 0.667, "tier": -1, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T5-DEBUG"}
 {"model": "moonshotai/Kimi-K3", "category": "delegation", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/DELEGATION"}
-{"model": "moonshotai/Kimi-K3", "category": "e2e_vision", "perf": 0.75, "tier": 3, "tier_source": "family", "source_ref": "alias:kimi-k3"}
+{"model": "moonshotai/Kimi-K3", "category": "e2e_vision", "perf": 0.75, "tier": 2, "tier_source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "moonshotai/Kimi-K3", "category": "guard", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:GUARD"}
 {"model": "moonshotai/Kimi-K3", "category": "long_doc", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-DOC"}
 {"model": "moonshotai/Kimi-K3", "category": "long_horizon", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-HORIZON"}
@@ -3059,11 +3054,11 @@
 {"model": "moonshotai/Kimi-K3", "category": "review", "perf": 0.75, "tier": -3, "tier_source": "bench", "source_ref": "bench:REVIEW"}
 {"model": "moonshotai/Kimi-K3", "category": "schema", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/SCHEMA"}
 {"model": "moonshotai/Kimi-K3", "category": "spec_docs", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:SPEC-DOCS"}
-{"model": "moonshotai/Kimi-K3", "category": "terminal", "perf": 0.921590909090909, "tier": 4, "tier_source": "family", "source_ref": "alias:kimi-k3"}
+{"model": "moonshotai/Kimi-K3", "category": "terminal", "perf": 0.921590909090909, "tier": 3, "tier_source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "moonshotai/Kimi-K3", "category": "test", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/TEST"}
 {"model": "moonshotai/Kimi-K3", "category": "tool_use", "perf": 0.667, "tier": -2, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T1-TOOL"}
 {"model": "moonshotai/Kimi-K3", "category": "ui_frontend", "perf": 0.72, "tier": 2, "tier_source": "family", "source_ref": "alias:kimi-k3"}
-{"model": "moonshotai/Kimi-K3", "category": "vision", "perf": 0.72, "tier": 3, "tier_source": "family", "source_ref": "alias:kimi-k3"}
+{"model": "moonshotai/Kimi-K3", "category": "vision", "perf": 0.72, "tier": 2, "tier_source": "family", "source_ref": "alias:kimi-k3"}
 {"model": "moonshotai/kimi-k2-thinking", "category": "test", "perf": 0.72, "tier": -1, "tier_source": "family", "source_ref": "alias:kimi-k2-thinking"}
 {"model": "moonshotai/kimi-k2.8-preview-agent", "category": "agent_tick", "perf": 0.75, "tier": 2, "tier_source": "bench", "source_ref": "bench:AGENT-TICK"}
 {"model": "moonshotai/kimi-k2.8-preview-agent", "category": "code_gen", "perf": 0.72, "tier": 1, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:kimi k2"}
@@ -3740,7 +3735,27 @@
 {"model": "qwen/qwen3.8-27b", "category": "schema", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/SCHEMA"}
 {"model": "qwen/qwen3.8-27b", "category": "test", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/TEST"}
 {"model": "qwen/qwen3.8-27b", "category": "tool_use", "perf": 0.667, "tier": -2, "tier_source": "bench", "source_ref": "bench:T1-TOOL"}
+{"model": "qwen/qwen3.8-flash", "category": "agent_tick", "perf": 0.75, "tier": 2, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/AGENT-TICK"}
+{"model": "qwen/qwen3.8-flash", "category": "code_gen", "perf": 0.667, "tier": 0, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T2-CODE"}
+{"model": "qwen/qwen3.8-flash", "category": "creative", "perf": 0.45, "tier": 1, "tier_source": "family", "source_ref": "alias:qwen3.8-flash"}
+{"model": "qwen/qwen3.8-flash", "category": "debug", "perf": 0.667, "tier": -1, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T5-DEBUG"}
+{"model": "qwen/qwen3.8-flash", "category": "delegation", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:DELEGATION"}
 {"model": "qwen/qwen3.8-flash", "category": "e2e_vision", "perf": 0.845, "tier": 3, "tier_source": "bench", "source_ref": "bench:qwen-official-2026-08-26"}
+{"model": "qwen/qwen3.8-flash", "category": "guard", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:GUARD"}
+{"model": "qwen/qwen3.8-flash", "category": "long_doc", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-DOC"}
+{"model": "qwen/qwen3.8-flash", "category": "long_horizon", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-HORIZON"}
+{"model": "qwen/qwen3.8-flash", "category": "mechanical", "perf": 0.833, "tier": -2, "tier_source": "bench", "source_ref": "bench:MECHANICAL"}
+{"model": "qwen/qwen3.8-flash", "category": "mock", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:MOCK"}
+{"model": "qwen/qwen3.8-flash", "category": "multilingual", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:MULTILINGUAL"}
+{"model": "qwen/qwen3.8-flash", "category": "reasoning", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T3-REASON"}
+{"model": "qwen/qwen3.8-flash", "category": "refactor", "perf": 0.72, "tier": 2, "tier_source": "family", "source_ref": "alias:qwen3.8-flash"}
+{"model": "qwen/qwen3.8-flash", "category": "review", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:REVIEW"}
+{"model": "qwen/qwen3.8-flash", "category": "schema", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/SCHEMA"}
+{"model": "qwen/qwen3.8-flash", "category": "spec_docs", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:SPEC-DOCS"}
+{"model": "qwen/qwen3.8-flash", "category": "terminal", "perf": 0.72, "tier": -1, "tier_source": "family", "source_ref": "alias:qwen3.8-flash"}
+{"model": "qwen/qwen3.8-flash", "category": "test", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/TEST"}
+{"model": "qwen/qwen3.8-flash", "category": "tool_use", "perf": 0.667, "tier": -2, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T1-TOOL"}
+{"model": "qwen/qwen3.8-flash", "category": "vision", "perf": 0.72, "tier": 2, "tier_source": "family", "source_ref": "alias:qwen3.8-flash"}
 {"model": "qwen/qwen3.8-max:free", "category": "agent_tick", "perf": 0.75, "tier": 2, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/AGENT-TICK"}
 {"model": "qwen/qwen3.8-max:free", "category": "code_gen", "perf": 0.667, "tier": 0, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T2-CODE"}
 {"model": "qwen/qwen3.8-max:free", "category": "debug", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T5-DEBUG"}
@@ -3755,10 +3770,16 @@
 {"model": "qwen/qwen3.8-omni-flash", "category": "code_gen", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
 {"model": "qwen/qwen3.8-omni-flash", "category": "debug", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
 {"model": "qwen/qwen3.8-omni-flash", "category": "delegation", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
+{"model": "qwen/qwen3.8-omni-flash", "category": "guard", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:qwen3.8-omni-flash"}
 {"model": "qwen/qwen3.8-omni-flash", "category": "long_doc", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-DOC"}
 {"model": "qwen/qwen3.8-omni-flash", "category": "long_horizon", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
+{"model": "qwen/qwen3.8-omni-flash", "category": "mechanical", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:qwen3.8-omni-flash"}
+{"model": "qwen/qwen3.8-omni-flash", "category": "mock", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:qwen3.8-omni-flash"}
+{"model": "qwen/qwen3.8-omni-flash", "category": "multilingual", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:qwen3.8-omni-flash"}
 {"model": "qwen/qwen3.8-omni-flash", "category": "reasoning", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
+{"model": "qwen/qwen3.8-omni-flash", "category": "review", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:qwen3.8-omni-flash"}
 {"model": "qwen/qwen3.8-omni-flash", "category": "schema", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
+{"model": "qwen/qwen3.8-omni-flash", "category": "spec_docs", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:qwen3.8-omni-flash"}
 {"model": "qwen/qwen3.8-omni-flash", "category": "test", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
 {"model": "qwen/qwen3.8-omni-flash", "category": "tool_use", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
 {"model": "qwen/qwen3.8-omni-flash:free", "category": "agent_tick", "perf": 0.75, "tier": 2, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/AGENT-TICK"}
@@ -3801,7 +3822,7 @@
 {"model": "qwen3.5-397b-a17b", "category": "schema", "perf": 0.25, "tier": -5, "tier_source": "bench", "source_ref": "bench:battery-T2-CODE"}
 {"model": "qwen3.5-397b-a17b", "category": "tool_use", "perf": 0.5, "tier": -3, "tier_source": "bench", "source_ref": "bench:T1-TOOL"}
 {"model": "qwen3.5:397b", "category": "math", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:AIME26"}
-{"model": "qwen3.5:397b", "category": "reasoning", "perf": 0.884, "tier": -2, "tier_source": "bench", "source_ref": "bench:GPQA"}
+{"model": "qwen3.5:397b", "category": "reasoning", "perf": 0.884, "tier": -3, "tier_source": "bench", "source_ref": "bench:GPQA"}
 {"model": "qwen3.5:397b", "category": "schema", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:BenchLM"}
 {"model": "qwen3.5:397b", "category": "spec_docs", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:BenchLM"}
 {"model": "qwen3.6-27b", "category": "mechanical", "perf": 0.72, "tier": -4, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:qwen3.6-27b"}
@@ -3870,7 +3891,7 @@
 {"model": "qwen3.8-flash", "category": "terminal", "perf": 0.72, "tier": -1, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:qwen3.8-flash"}
 {"model": "qwen3.8-flash", "category": "test", "perf": 0.72, "tier": -1, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:qwen3.8-flash"}
 {"model": "qwen3.8-flash", "category": "tool_use", "perf": 0.72, "tier": -2, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:qwen3.8-flash"}
-{"model": "qwen3.8-flash", "category": "vision", "perf": 0.72, "tier": 3, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:qwen3.8-flash"}
+{"model": "qwen3.8-flash", "category": "vision", "perf": 0.72, "tier": 2, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:qwen3.8-flash"}
 {"model": "qwen3.8-max", "category": "agent_tick", "perf": 0.78, "tier": 2, "tier_source": "measured", "source_ref": "models.jsonl:perf_agent_tick"}
 {"model": "qwen3.8-max", "category": "code_gen", "perf": 0.85, "tier": 2, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:qwen3.8"}
 {"model": "qwen3.8-max", "category": "debug", "perf": 0.78, "tier": 1, "tier_source": "measured", "source_ref": "models.jsonl:perf_debug"}
@@ -3933,7 +3954,7 @@
 {"model": "space-bunny-free", "category": "test", "perf": 0.72, "tier": -1, "tier_source": "estimate", "source_ref": "CATEGORY_ESTIMATES"}
 {"model": "space-bunny-free", "category": "tool_use", "perf": 0.742, "tier": -2, "tier_source": "estimate", "source_ref": "CATEGORY_ESTIMATES"}
 {"model": "space-bunny-free", "category": "ui_frontend", "perf": 0.45, "tier": -1, "tier_source": "estimate", "source_ref": "CATEGORY_ESTIMATES"}
-{"model": "space-bunny-free", "category": "vision", "perf": 0.72, "tier": 3, "tier_source": "estimate", "source_ref": "CATEGORY_ESTIMATES"}
+{"model": "space-bunny-free", "category": "vision", "perf": 0.72, "tier": 2, "tier_source": "estimate", "source_ref": "CATEGORY_ESTIMATES"}
 {"model": "stealth/big-pickle", "category": "agent_tick", "perf": 0.75, "tier": 2, "tier_source": "bench", "source_ref": "bench:AGENT-TICK"}
 {"model": "stealth/big-pickle", "category": "delegation", "perf": 0.75, "tier": 1, "tier_source": "bench", "source_ref": "bench:DELEGATION"}
 {"model": "stealth/big-pickle", "category": "guard", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:GUARD"}
@@ -3964,7 +3985,7 @@
 {"model": "stealth/space-bunny-alpha", "category": "test", "perf": 0.72, "tier": -1, "tier_source": "estimate", "source_ref": "CATEGORY_ESTIMATES"}
 {"model": "stealth/space-bunny-alpha", "category": "tool_use", "perf": 0.742, "tier": -2, "tier_source": "estimate", "source_ref": "CATEGORY_ESTIMATES"}
 {"model": "stealth/space-bunny-alpha", "category": "ui_frontend", "perf": 0.45, "tier": -1, "tier_source": "estimate", "source_ref": "CATEGORY_ESTIMATES"}
-{"model": "stealth/space-bunny-alpha", "category": "vision", "perf": 0.72, "tier": 3, "tier_source": "estimate", "source_ref": "CATEGORY_ESTIMATES"}
+{"model": "stealth/space-bunny-alpha", "category": "vision", "perf": 0.72, "tier": 2, "tier_source": "estimate", "source_ref": "CATEGORY_ESTIMATES"}
 {"model": "stealth/union-alpha", "category": "agent_tick", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:union-alpha"}
 {"model": "stealth/union-alpha", "category": "code_gen", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:union-alpha"}
 {"model": "stealth/union-alpha", "category": "debug", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:union-alpha"}
@@ -3988,7 +4009,7 @@
 {"model": "step-3.5-flash", "category": "terminal", "perf": 0.95, "tier": 5, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:step 3"}
 {"model": "step-3.5-flash", "category": "test", "perf": 0.95, "tier": -1, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:step 3"}
 {"model": "step-3.5-flash", "category": "tool_use", "perf": 0.75, "tier": -1, "tier_source": "bench", "source_ref": "bench:battery-T1-TOOL"}
-{"model": "step-3.5-flash", "category": "vision", "perf": 0.72, "tier": 3, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:step 3"}
+{"model": "step-3.5-flash", "category": "vision", "perf": 0.72, "tier": 2, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:step 3"}
 {"model": "step-3.7-flash", "category": "agent_tick", "perf": 0.25, "tier": -5, "tier_source": "measured", "source_ref": "models.jsonl:perf_agent_tick"}
 {"model": "step-3.7-flash", "category": "code_gen", "perf": 0.75, "tier": 2, "tier_source": "bench", "source_ref": "bench:battery-T5-DEBUG"}
 {"model": "step-3.7-flash", "category": "debug", "perf": 0.75, "tier": 0, "tier_source": "bench", "source_ref": "bench:T5-DEBUG"}
@@ -4006,7 +4027,7 @@
 {"model": "step-3.7-flash", "category": "terminal", "perf": 0.5954999999999999, "tier": -3, "tier_source": "bench", "source_ref": "bench:Terminal-Bench"}
 {"model": "step-3.7-flash", "category": "test", "perf": 0.95, "tier": -1, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:step 3"}
 {"model": "step-3.7-flash", "category": "tool_use", "perf": 0.25, "tier": -5, "tier_source": "bench", "source_ref": "bench:battery-T1-TOOL"}
-{"model": "step-3.7-flash", "category": "vision", "perf": 0.972051282051282, "tier": 4, "tier_source": "bench", "source_ref": "bench:BrowseComp multimodal"}
+{"model": "step-3.7-flash", "category": "vision", "perf": 0.972051282051282, "tier": 3, "tier_source": "bench", "source_ref": "bench:BrowseComp multimodal"}
 {"model": "step-5-preview", "category": "agent_tick", "perf": 0.75, "tier": 2, "tier_source": "family", "source_ref": "alias:stepfun/step-5-preview"}
 {"model": "step-5-preview", "category": "code_gen", "perf": 0.8375, "tier": 2, "tier_source": "bench", "source_ref": "bench:research-bench-2026-10-23: MindStudio Kingbench 8-task coding eval 83.75% (n=8 community tasks: archery game .. local Gemma fine-tune; small-n, treated as a directional tier signal only)"}
 {"model": "step-5-preview", "category": "debug", "perf": 0.667, "tier": -1, "tier_source": "family", "source_ref": "alias:stepfun/step-5-preview"}
@@ -4036,10 +4057,10 @@
 {"model": "stepfun/Step-3.5-Flash", "category": "terminal", "perf": 0.95, "tier": 5, "tier_source": "family", "source_ref": "alias:step-3.5-flash"}
 {"model": "stepfun/Step-3.5-Flash", "category": "test", "perf": 0.95, "tier": -1, "tier_source": "family", "source_ref": "alias:step-3.5-flash"}
 {"model": "stepfun/Step-3.5-Flash", "category": "tool_use", "perf": 0.75, "tier": -1, "tier_source": "family", "source_ref": "alias:step-3.5-flash"}
-{"model": "stepfun/Step-3.5-Flash", "category": "vision", "perf": 0.72, "tier": 3, "tier_source": "family", "source_ref": "alias:step-3.5-flash"}
+{"model": "stepfun/Step-3.5-Flash", "category": "vision", "perf": 0.72, "tier": 2, "tier_source": "family", "source_ref": "alias:step-3.5-flash"}
 {"model": "stepfun/Step-3.7-Flash", "category": "agent_tick", "perf": 0.75, "tier": 2, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/AGENT-TICK"}
-{"model": "stepfun/Step-3.7-Flash", "category": "code_gen", "perf": 0.75, "tier": 2, "tier_source": "family", "source_ref": "alias:step-3.7-flash"}
-{"model": "stepfun/Step-3.7-Flash", "category": "debug", "perf": 0.75, "tier": 0, "tier_source": "family", "source_ref": "alias:step-3.7-flash"}
+{"model": "stepfun/Step-3.7-Flash", "category": "code_gen", "perf": 0.667, "tier": 0, "tier_source": "bench", "source_ref": "bench:T2-CODE"}
+{"model": "stepfun/Step-3.7-Flash", "category": "debug", "perf": 0.667, "tier": -1, "tier_source": "bench", "source_ref": "bench:T5-DEBUG"}
 {"model": "stepfun/Step-3.7-Flash", "category": "delegation", "perf": 0.75, "tier": 1, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/DELEGATION"}
 {"model": "stepfun/Step-3.7-Flash", "category": "e2e_vision", "perf": 0.9721, "tier": 4, "tier_source": "family", "source_ref": "alias:step-3.7-flash"}
 {"model": "stepfun/Step-3.7-Flash", "category": "guard", "perf": 0.0, "tier": -3, "tier_source": "bench", "source_ref": "bench:GUARD"}
@@ -4056,7 +4077,7 @@
 {"model": "stepfun/Step-3.7-Flash", "category": "terminal", "perf": 0.5954999999999999, "tier": -3, "tier_source": "family", "source_ref": "alias:step-3.7-flash"}
 {"model": "stepfun/Step-3.7-Flash", "category": "test", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/TEST"}
 {"model": "stepfun/Step-3.7-Flash", "category": "tool_use", "perf": 0.667, "tier": -2, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T1-TOOL"}
-{"model": "stepfun/Step-3.7-Flash", "category": "vision", "perf": 0.972051282051282, "tier": 4, "tier_source": "family", "source_ref": "alias:step-3.7-flash"}
+{"model": "stepfun/Step-3.7-Flash", "category": "vision", "perf": 0.972051282051282, "tier": 3, "tier_source": "family", "source_ref": "alias:step-3.7-flash"}
 {"model": "stepfun/Step-5-Preview", "category": "agent_tick", "perf": 0.75, "tier": 2, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/AGENT-TICK"}
 {"model": "stepfun/Step-5-Preview", "category": "code_gen", "perf": 0.667, "tier": 0, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T2-CODE"}
 {"model": "stepfun/Step-5-Preview", "category": "debug", "perf": 0.667, "tier": -1, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T5-DEBUG"}
@@ -4072,8 +4093,6 @@
 {"model": "stepfun/Step-5-Preview", "category": "spec_docs", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:SPEC-DOCS"}
 {"model": "stepfun/Step-5-Preview", "category": "test", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/TEST"}
 {"model": "stepfun/Step-5-Preview", "category": "tool_use", "perf": 0.667, "tier": -2, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T1-TOOL"}
-{"model": "stepfun/step-3.7-flash", "category": "code_gen", "perf": 0.667, "tier": 0, "tier_source": "bench", "source_ref": "bench:T2-CODE"}
-{"model": "stepfun/step-3.7-flash", "category": "debug", "perf": 0.667, "tier": -1, "tier_source": "bench", "source_ref": "bench:T5-DEBUG"}
 {"model": "syn:large:text", "category": "code_gen", "perf": 0.75, "tier": 2, "tier_source": "bench", "source_ref": "bench:battery-T2-CODE"}
 {"model": "syn:large:text", "category": "debug", "perf": 0.5, "tier": -3, "tier_source": "bench", "source_ref": "bench:T5-DEBUG"}
 {"model": "syn:large:text", "category": "refactor", "perf": 0.75, "tier": 4, "tier_source": "bench", "source_ref": "bench:battery-T2-CODE"}
@@ -4114,6 +4133,14 @@
 {"model": "tencent/hy3-paid", "category": "terminal", "perf": 0.544, "tier": -3, "tier_source": "family", "source_ref": "alias:hy3"}
 {"model": "tencent/hy3-paid", "category": "tool_use", "perf": 0.5, "tier": -3, "tier_source": "family", "source_ref": "alias:hy3"}
 {"model": "tencent/hy3-paid", "category": "ui_frontend", "perf": 0.85, "tier": 5, "tier_source": "family", "source_ref": "alias:hy3"}
+{"model": "tencent/hy4", "category": "code_gen", "perf": 0.657, "tier": -2, "tier_source": "family", "source_ref": "alias:hy4"}
+{"model": "tencent/hy4", "category": "guard", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:hy4"}
+{"model": "tencent/hy4", "category": "mechanical", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:hy4"}
+{"model": "tencent/hy4", "category": "mock", "perf": 0.833, "tier": -2, "tier_source": "family", "source_ref": "alias:hy4"}
+{"model": "tencent/hy4", "category": "reasoning", "perf": 0.9229999999999999, "tier": -2, "tier_source": "family", "source_ref": "alias:hy4"}
+{"model": "tencent/hy4", "category": "review", "perf": 0.75, "tier": -3, "tier_source": "family", "source_ref": "alias:hy4"}
+{"model": "tencent/hy4", "category": "spec_docs", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:hy4"}
+{"model": "tencent/hy4", "category": "terminal", "perf": 0.8540000000000001, "tier": 2, "tier_source": "family", "source_ref": "alias:hy4"}
 {"model": "tencent/hy4-preview", "category": "agent_tick", "perf": 0.75, "tier": 2, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/AGENT-TICK"}
 {"model": "tencent/hy4-preview", "category": "code_gen", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T2-CODE"}
 {"model": "tencent/hy4-preview", "category": "debug", "perf": 0.667, "tier": -1, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T5-DEBUG"}
@@ -4129,7 +4156,7 @@
 {"model": "tencent/hy4-preview", "category": "review", "perf": 0.75, "tier": -3, "tier_source": "bench", "source_ref": "bench:REVIEW"}
 {"model": "tencent/hy4-preview", "category": "schema", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/SCHEMA"}
 {"model": "tencent/hy4-preview", "category": "spec_docs", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:SPEC-DOCS"}
-{"model": "tencent/hy4-preview", "category": "terminal", "perf": 0.854, "tier": 2, "tier_source": "family", "source_ref": "alias:hy4-preview"}
+{"model": "tencent/hy4-preview", "category": "terminal", "perf": 0.854, "tier": 1, "tier_source": "family", "source_ref": "alias:hy4-preview"}
 {"model": "tencent/hy4-preview", "category": "test", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/TEST"}
 {"model": "tencent/hy4-preview", "category": "tool_use", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T1-TOOL"}
 {"model": "thinkingmachines/inkling", "category": "test", "perf": 0.72, "tier": -1, "tier_source": "estimate", "source_ref": "CATEGORY_ESTIMATES"}
@@ -4273,7 +4300,7 @@
 {"model": "xiaomi/mimo-v2.5-pro", "category": "mechanical", "perf": 0.72, "tier": -4, "tier_source": "family", "source_ref": "alias:mimo-v2.5-pro"}
 {"model": "xiaomi/mimo-v2.5-pro", "category": "refactor", "perf": 0.72, "tier": 2, "tier_source": "family", "source_ref": "alias:mimo-v2.5-pro"}
 {"model": "xiaomi/mimo-v2.5-pro", "category": "spec_docs", "perf": 0.684, "tier": -4, "tier_source": "family", "source_ref": "alias:mimo-v2.5-pro"}
-{"model": "xiaomi/mimo-v2.5-pro", "category": "terminal", "perf": 0.684, "tier": -3, "tier_source": "family", "source_ref": "alias:mimo-v2.5-pro"}
+{"model": "xiaomi/mimo-v2.5-pro", "category": "terminal", "perf": 0.684, "tier": -2, "tier_source": "family", "source_ref": "alias:mimo-v2.5-pro"}
 {"model": "xiaomi/mimo-v2.5-pro", "category": "test", "perf": 0.72, "tier": -1, "tier_source": "family", "source_ref": "alias:mimo-v2.5-pro"}
 {"model": "xiaomi/mimo-v2.5-pro", "category": "tool_use", "perf": 0.85, "tier": 0, "tier_source": "family", "source_ref": "alias:mimo-v2.5-pro"}
 {"model": "xiaomi/mimo-v2.6-flash", "category": "agent_tick", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-25"}
@@ -4593,7 +4620,7 @@
 {"model": "~moonshotai/kimi-latest", "category": "code_gen", "perf": 0.75, "tier": 2, "tier_source": "family", "source_ref": "alias:accounts/fireworks/routers/kimi-latest"}
 {"model": "~moonshotai/kimi-latest", "category": "debug", "perf": 0.75, "tier": 0, "tier_source": "family", "source_ref": "alias:accounts/fireworks/routers/kimi-latest"}
 {"model": "~moonshotai/kimi-latest", "category": "delegation", "perf": 0.75, "tier": 1, "tier_source": "family", "source_ref": "alias:accounts/fireworks/routers/kimi-latest"}
-{"model": "~moonshotai/kimi-latest", "category": "e2e_vision", "perf": 0.75, "tier": 3, "tier_source": "family", "source_ref": "alias:accounts/fireworks/routers/kimi-latest"}
+{"model": "~moonshotai/kimi-latest", "category": "e2e_vision", "perf": 0.75, "tier": 2, "tier_source": "family", "source_ref": "alias:accounts/fireworks/routers/kimi-latest"}
 {"model": "~moonshotai/kimi-latest", "category": "guard", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:accounts/fireworks/routers/kimi-latest"}
 {"model": "~moonshotai/kimi-latest", "category": "long_doc", "perf": 0.912, "tier": -3, "tier_source": "family", "source_ref": "alias:accounts/fireworks/routers/kimi-latest"}
 {"model": "~moonshotai/kimi-latest", "category": "long_horizon", "perf": 0.85, "tier": -2, "tier_source": "family", "source_ref": "alias:accounts/fireworks/routers/kimi-latest"}
@@ -4605,11 +4632,11 @@
 {"model": "~moonshotai/kimi-latest", "category": "review", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:accounts/fireworks/routers/kimi-latest"}
 {"model": "~moonshotai/kimi-latest", "category": "schema", "perf": 0.5, "tier": -3, "tier_source": "family", "source_ref": "alias:accounts/fireworks/routers/kimi-latest"}
 {"model": "~moonshotai/kimi-latest", "category": "spec_docs", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:accounts/fireworks/routers/kimi-latest"}
-{"model": "~moonshotai/kimi-latest", "category": "terminal", "perf": 0.921590909090909, "tier": 4, "tier_source": "family", "source_ref": "alias:accounts/fireworks/routers/kimi-latest"}
+{"model": "~moonshotai/kimi-latest", "category": "terminal", "perf": 0.921590909090909, "tier": 3, "tier_source": "family", "source_ref": "alias:accounts/fireworks/routers/kimi-latest"}
 {"model": "~moonshotai/kimi-latest", "category": "test", "perf": 0.72, "tier": -1, "tier_source": "family", "source_ref": "alias:accounts/fireworks/routers/kimi-latest"}
 {"model": "~moonshotai/kimi-latest", "category": "tool_use", "perf": 0.75, "tier": -1, "tier_source": "family", "source_ref": "alias:accounts/fireworks/routers/kimi-latest"}
 {"model": "~moonshotai/kimi-latest", "category": "ui_frontend", "perf": 0.72, "tier": 2, "tier_source": "family", "source_ref": "alias:accounts/fireworks/routers/kimi-latest"}
-{"model": "~moonshotai/kimi-latest", "category": "vision", "perf": 0.72, "tier": 3, "tier_source": "family", "source_ref": "alias:accounts/fireworks/routers/kimi-latest"}
+{"model": "~moonshotai/kimi-latest", "category": "vision", "perf": 0.72, "tier": 2, "tier_source": "family", "source_ref": "alias:accounts/fireworks/routers/kimi-latest"}
 {"model": "~z-ai/glm-flash-latest", "category": "agent_tick", "perf": 0.75, "tier": 2, "tier_source": "bench", "source_ref": "bench:AGENT-TICK"}
 {"model": "~z-ai/glm-flash-latest", "category": "code_gen", "perf": 0.667, "tier": 0, "tier_source": "bench", "source_ref": "bench:T2-CODE"}
 {"model": "~z-ai/glm-flash-latest", "category": "creative", "perf": 0.45, "tier": 1, "tier_source": "family", "source_ref": "alias:accounts/fireworks/routers/glm-flash-latest"}

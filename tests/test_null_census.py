@@ -182,13 +182,29 @@ def test_gate_fails_then_flips_green_on_stamp(tmp_path):
     tables = _scratch(tmp_path, with_stamp=True)
     stamp_path = tmp_path / "null_reasons.jsonl"
 
-    # pick a stamped lane with a price-class null
+    # pick a stamped lane with a price-class null — the stamp must point at a
+    # field that is ACTUALLY null in the tables (a lane the daily carriers have
+    # since priced makes the mutation arm a no-op; INT-CI-23, 2026-11-07)
     rows = [json.loads(line) for line in open(stamp_path) if line.strip()]
+
+    def _still_null(provider, model, field):
+        for line in open(tables / "models.jsonl"):
+            m = json.loads(line)
+            if m.get("provider") == provider and m.get("model") == model:
+                live = not (
+                    m.get("archive")
+                    or m.get("valid_to") is not None
+                    or m.get("disabled")
+                )
+                return m.get(field) is None and live
+        return False
+
     target = next(
         r
         for r in rows
         if r["field"] == "normalized_price"
         and r["reason"] == "not-published-by-provider"
+        and _still_null(r["provider"], r["model"], "normalized_price")
     )
     key = (target["provider"], target["model"])
 

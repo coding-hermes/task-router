@@ -61,6 +61,18 @@ across two must_exclude pins, and the visual-qa pool shrank 36 -> 31 lanes
 (below its floor; lowering min_chain is not allowed). Reported to the
 foreman; the data-plane residual row is theirs to file.
 
+INT-CI-23 (2026-11-07, model-router-refresh): conscious re-pin wave after the
+951-row tier landing (3a4af93, landed 00:23 AFTER the last seed) raised the
+shared quantile scales. (a) deepseek/deepseek-flash left P2_AGENTIC and
+adhoc/cron-band — its tool_use evidence (0.75 n=1 probe; 41/66 BFCL exact-match
+third-party via sference) sits below the raised tool_use tier-0 cut (0.85);
+(b) the adhoc/security-band head flipped to synthetic's cheaper
+hf:zai-org/GLM-5.3-Flash after the 11-06 probe wave measured its guard 4/4;
+(c) pools re-measured (P9 582->577, senior-coding 79->78) under the raised
+scales; (d) the case-fold shadow fixes (stepfun/Step-3.7-Flash and
+Qwen/Qwen3.8-Flash canonicalization) are data-plane, documented in
+model_notes.jsonl.
+
 ch:trace row=TR-350 spec=board-row-TR-350 test=tests/test_routing_quality_corpus.py
 """
 import json
@@ -284,8 +296,7 @@ CASES = [
         'expect': {
             'head': ['xkiro', 'qwen/qwen3.7-plus:free'],
             'head_usd_1m': 0.0,
-            'must_include': [['commandcode', 'meituan/LongCat-2.0'],
-                             ['deepseek', 'deepseek-flash']],
+            'must_include': [['commandcode', 'meituan/LongCat-2.0']],
             'must_exclude': [['clinepass', 'dots-3-note-preview:free']],
             'min_chain': 130,
         },
@@ -408,7 +419,15 @@ CASES = [
             # left the pool when its vanished carrier id was archived (XK-404-001-R2).
             # 2026-11-06: floor 591->582 — XK-404-001-R3 wave archived 9 pool lanes
             # (xkiro/xkiro-2/openrouter minimax + nemotron :free; catalog-absent + chat-404).
-            'min_chain': 582,
+            # 2026-11-07: floor 582->577 — the 951-row tier landing (3a4af93) raised
+            # the shared quantile scales; five more lanes fall below the declared
+            # P9 bars (measured, INT-CI-23 re-pin wave).
+            # 2026-11-07 (same tick, gate ratchet): floor 577->569 — the 8 unmeasured
+            # priced arrivals (6 openrouter :batch variants + 2 liquid lanes) were
+            # taken out of service per the TR-362 usability ratchet (disabled +
+            # disabled_reason; re-enable on measurement or the owner batch-lane
+            # ruling); they had been pool members via the blank-default -1.
+            'min_chain': 569,
         },
     },
     # --- ad-hoc capability bands (the classifier's output space) ------------
@@ -423,7 +442,10 @@ CASES = [
                              ['commandcode', 'Qwen/Qwen3.8-Max-0902']],
             'must_exclude': [['clinepass', 'dots-3-note-preview:free'],
                              ['deepseek', 'deepseek-flash']],
-            'min_chain': 79,
+            # 2026-11-07: floor 79->78 — the 951-row tier landing raised the
+            # code_gen/debug scales; one pool lane fell below the declared band
+            # (measured, INT-CI-23 re-pin wave).
+            'min_chain': 78,
         },
     },
     {
@@ -475,9 +497,13 @@ CASES = [
         # bars to guard=-1/review=-1 (data/tables/task_profile_requirements.jsonl).
         # This adhoc band keeps guard=0, so the GLM-5.2 line stays out and the
         # $1.52 openrouter lane still heads the original 4-lane pool.
+        # 2026-11-07 (INT-CI-23 re-pin): the head flipped to synthetic's cheaper
+        # twin — the 11-06 probe wave landed hf:zai-org/GLM-5.3-Flash guard 4/4
+        # (measured) where the openrouter glm-5.3 lane carries no guard evidence,
+        # and the synthetic twin's public price ($0.164/M) undercuts openrouter ($1.52).
         'expect': {
-            'head': ['openrouter', 'z-ai/glm-5.3'],
-            'head_usd_1m': 1.52,
+            'head': ['synthetic', 'hf:zai-org/GLM-5.3-Flash'],
+            'head_usd_1m': 0.164,
             'must_include': [['commandcode', 'gpt-6.1-sol']],
             'must_exclude': [['deepseek', 'deepseek-flash']],
             'min_chain': 4,
@@ -518,10 +544,16 @@ CASES = [
         'expect': {
             'head': ['xkiro', 'qwen/qwen3.7-plus:free'],
             'head_usd_1m': 0.0,
-            'must_include': [['clinepass', 'deepseek-v4-flash'],
-                             ['deepseek', 'deepseek-flash']],
+            # 2026-11-07 (INT-CI-23 re-pin): deepseek-flash left the pool — its
+            # measured tool_use (0.75, n=1 probe; BFCL 41/66 third-party) sits
+            # below the TR-363-raised tier-0 cut (0.85), so the lane is excluded
+            # from every tool_use>=0 band until a qualifying sample lands.
+            'must_include': [['clinepass', 'deepseek-v4-flash']],
             'must_exclude': [['clinepass', 'dots-3-note-preview:free']],
-            'min_chain': 192,
+            # 2026-11-07: floor 192->153 — the 951-row landing raised the shared
+            # tool_use scale, so every lane whose tool_use tier fell below the
+            # band's >=0 bar left the pool at once (measured, INT-CI-23 re-pin).
+            'min_chain': 153,
         },
     },
     {

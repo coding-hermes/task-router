@@ -507,6 +507,20 @@ POST_DEDUPE_ADDITIONS = {
     # model_notes row + null_reasons stamps (census green same tick).
     ("ollama-cloud", "mimo-v2.6-flash"): "models.dev sync 2026-11-02 (bucket-plan documented gap, census-stamped)",
     ("ollama-cloud", "mimo-v2.6-pro"): "models.dev sync 2026-11-02 (bucket-plan documented gap, census-stamped)",
+    # 2026-11-07 (model-router-refresh tick, INT-CI-23 wave): clinepass API sync
+    # arrivals (3), models.dev sync arrivals (2 liquid lanes), and openrouter
+    # carrier-refresh batch-variant arrivals (5). Every lane census-stamped
+    # same tick (TR-369); the two :free lanes carry the F3 window-cost-pending tag.
+    ("clinepass", "lfm-3-1.7b"): "clinepass API sync 2026-11-07 (carrier arrival, price null pending sticker, census-stamped)",
+    ("clinepass", "lfm-3-1.7b:free"): "clinepass API sync 2026-11-07 (carrier arrival with free-lane discount row; $0 window-cost-pending TR-070/F3, census-stamped)",
+    ("clinepass", "qwen3.8-27b:batch"): "clinepass API sync 2026-11-07 (batch-variant carrier arrival, price null pending sticker, census-stamped)",
+    ("openrouter", "deepseek/deepseek-v4-flash-0731:batch"): "openrouter carrier refresh 2026-11-07 (batch-variant arrival, carrier-sticker priced, census-stamped)",
+    ("openrouter", "liquid/lfm-3-1.7b"): "models.dev sync 2026-11-07 (new catalog lane, sticker-priced, census-stamped)",
+    ("openrouter", "liquid/lfm-3-1.7b:free"): "models.dev sync 2026-11-07 (:free twin, $0 window-cost-pending TR-070/F3, census-stamped)",
+    ("openrouter", "meta/muse-glimmer-30b:batch"): "openrouter carrier refresh 2026-11-07 (batch-variant arrival, carrier-sticker priced, census-stamped)",
+    ("openrouter", "minimax/minimax-m3:batch"): "openrouter carrier refresh 2026-11-07 (batch-variant arrival, carrier-sticker priced, census-stamped)",
+    ("openrouter", "qwen/qwen3.8-27b:batch"): "openrouter carrier refresh 2026-11-07 (batch-variant arrival, carrier-sticker priced, census-stamped)",
+    ("openrouter", "thinkingmachines/inkling-small:batch"): "openrouter carrier refresh 2026-11-07 (batch-variant arrival, carrier-sticker priced, census-stamped)",
 }
 
 
