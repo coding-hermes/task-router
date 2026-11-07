@@ -1,0 +1,55 @@
+TR-378 — scrape job for task-router: LIVE health=up acceptance
+Tick: task-router-pm-2026-11-07-00-00-43 (PM segment 3)   Captured: 2026-11-06T21:02:04-05:00
+Every line below is a command that was run and its real output.
+
+====================================================================
+0. Why this was previously recorded as owner-blocked
+====================================================================
+$ ssh -o BatchMode=yes -o ConnectTimeout=8 fleet-monitor "docker ps -a --format {{.Names}} {{.Status}} | grep -i prom"
+mon-prometheus Up 4 minutes
+$ ssh -o BatchMode=yes -o ConnectTimeout=8 fleet-monitor 'docker inspect mon-prometheus --format "restart={{.HostConfig.RestartPolicy.Name}} exitcode={{.State.ExitCode}} finished={{.State.FinishedAt}}"'
+restart=unless-stopped exitcode=0 finished=2026-11-06T15:49:57.337203959Z
+=> mon-prometheus was STOPPED (clean SIGTERM, exit 0) since 2026-11-06T15:49:57Z,
+   policy=unless-stopped, so it stays down until started explicitly. No :9090 listener,
+   which is why the scripted probe from the sibling segment read the store as down.
+
+====================================================================
+1. Restore action taken (PM, this tick)
+====================================================================
+$ ssh -o BatchMode=yes -o ConnectTimeout=8 fleet-monitor "docker start mon-prometheus; curl -s -o /dev/null -w healthy:%{http_code} http://localhost:9090/-/healthy"
+STARTED
+healthy:200
+
+====================================================================
+2. AC arm 1 — /api/v1/targets shows health=up for the task-router job
+====================================================================
+$ ssh -o BatchMode=yes -o ConnectTimeout=8 fleet-monitor 'curl -s http://localhost:9090/api/v1/targets | python3 -c "... select(product=task-router) ..."'
+[{"job": "task-router", "svc": "api", "health": "up", "lastError": ""}, {"job": "task-router", "svc": "proxy", "health": "up", "lastError": ""}]
+
+====================================================================
+3. AC arm 2 — count(up{product="task-router"}==1) returns 2
+====================================================================
+$ ssh -o BatchMode=yes -o ConnectTimeout=8 fleet-monitor 'curl -s --get --data-urlencode "query=count(up{product=\"task-router\"}==1)" http://localhost:9090/api/v1/query'
+{"status":"success","data":{"resultType":"vector","result":[{"metric":{},"value":[1794016936.896,"2"]}]}}
+====================================================================
+4. AC arm 3 — one graph-able range query with datapoints across two scrape intervals
+====================================================================
+$ ssh -o BatchMode=yes -o ConnectTimeout=8 fleet-monitor 'END=$(date +%s); START=$((END-300)); curl -s --get --data-urlencode "query=up{product=\"task-router\"}" --data-urlencode start=$START --data-urlencode end=$END --data-urlencode step=30 http://localhost:9090/api/v1/query_range'
+{"status":"success","data":{"resultType":"matrix","result":[{"metric":{"__name__":"up","host":"karahermes-mde-7840hs","instance":"100.97.236.14:9092","job":"task-router","product":"task-router","service":"api"},"values":[[1794016699,"1"],[1794016729,"1"],[1794016759,"1"],[1794016789,"1"],[1794016819,"1"],[1794016849,"1"],[1794016879,"1"],[1794016909,"1"],[1794016939,"1"]]},{"metric":{"__name__":"up","host":"karahermes-mde-7840hs","instance":"100.97.236.14:9391","job":"task-router","product":"task-router","service":"proxy"},"values":[[1794016729,"1"],[1794016759,"1"],[1794016789,"1"],[1794016819,"1"],[1794016849,"1"],[1794016879,"1"],[1794016909,"1"],[1794016939,"1"]]}]}}
+====================================================================
+5. The endpoint the job scrapes (the leg that was 404 before the 11-05 restart)
+====================================================================
+$ for p in 9092 9391 9093; do curl -s -o /dev/null -m 4 -w "$p:%{http_code} " http://127.0.0.1:$p/metrics; done
+9092:200 9391:200 9093:404 
+$ curl -s -m 6 http://127.0.0.1:9391/metrics | grep -c "^task_router_"
+487
+
+====================================================================
+6. Verdict
+====================================================================
+job loaded ..... 2 targets registered (api :9092, proxy :9391), product=task-router
+health ......... up / up, lastError empty on both
+count(up==1) ... 2
+range query .... 2 series (api 9 datapoints, proxy 8 datapoints), value 1 throughout
+=> every acceptance arm of this row is MET LIVE. The only thing standing between the
+   row and this evidence was a stopped monitoring container, not an owner decision.
