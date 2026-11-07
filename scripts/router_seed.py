@@ -14,6 +14,7 @@ import os
 import re
 import shutil
 import subprocess
+import tempfile
 import datetime
 import sys
 import time
@@ -256,8 +257,8 @@ def _dedupe_models_rows(rows: Any):
     """Fold duplicate (provider, model) pairs to one survivor (TR-168).
 
     Why here: the duckdb `models` table enforces no key, and EVERY output
-    surface derives from this one load — registry.json (_dump_registry), the
-    ns export, and the data/tables tail-sync that REWRITES the committed
+    surface derives from this one load — registry.json (_build_registry_doc),
+    the ns export, and the data/tables tail-sync that REWRITES the committed
     file. Measured pre-fix (TR-168): a committed file with 5 duplicate pairs
     round-tripped all 5 through a full seed into every surface — two prices
     for one lane, the resolver picking whichever row it meets first.
@@ -1885,11 +1886,26 @@ for r in con.execute("""
     SELECT category, count(*) FROM model_perf GROUP BY 1 ORDER BY 1""").fetchall():
     print(' ', r)
 
-# ---------- 8. write the text registry + export to namespace ------------------
+# ---------- 8. build the registry document and STAGE the run outputs ----------
+# TR-1000976681059248: publishing is ATOMIC with respect to the TR-383
+# satisfiability gate. The old shape wrote registry.json, the ns mirror and
+# data/tables right here and only THEN ran the gate (bottom-of-module), so a
+# REFUSED seed exited 1 with a freshly published registry + re-synced tables
+# behind it — `make seed && make validate` failed at `make seed` while
+# `validate` went green on the artifact the refusal claimed not to seed. Now
+# the run builds its outputs into a run-unique staging directory OUTSIDE the
+# repo (tempfile.mkdtemp), the gate grades exactly those staged bytes, and
+# only a passing (or explicitly allowed) gate publishes them verbatim. A
+# refused run publishes nothing.
 ALL_TABLES = ['providers', 'models', 'archetypes', 'benchmarks', 'projects',
               'level_defs', 'category_levels', 'model_perf', 'model_tier',
               'task_profiles', 'task_profile_requirements']
-def _dump_registry() -> None:
+def _build_registry_doc() -> dict:
+    """Build the text-registry document and return it (the writer half of the
+    old _dump_registry, minus the write). Reads only the in-memory duckdb
+    `con` and the COMMITTED data/tables fallback_lanes sidecar — the same
+    publish-order-sensitive inputs as before, because the sync has not run
+    yet either way."""
     doc = {'version': 3,
            'generated_at': datetime.datetime.now(datetime.timezone.utc).isoformat(timespec='seconds'),
            'source': 'router_seed.py (in-memory duckdb engine)',
@@ -1923,120 +1939,159 @@ def _dump_registry() -> None:
                 if line:
                     rows.append(json.loads(line))
         doc['tables'][t] = rows
-    with open(REGISTRY, 'w') as f:
+    return doc
+
+def _stage_run_outputs(doc: dict, staging: str) -> None:
+    """Serialize the registry document + per-table JSONL into `staging`.
+
+    Byte-identical to what the pre-atomicity writers produced: registry.json
+    keeps its indent=1 dump and every table keeps the ensure_ascii=False
+    one-record-per-line sync shape (the old sync re-read the just-written
+    registry.json and re-serialized the same rows). The gate grades these
+    exact bytes and a passing gate publishes them verbatim, so what is
+    graded is what ships."""
+    with open(os.path.join(staging, 'registry.json'), 'w') as f:
         json.dump(doc, f, indent=1)
+    os.makedirs(os.path.join(staging, 'tables'), exist_ok=True)
+    for _t, _rows in doc['tables'].items():
+        with open(os.path.join(staging, 'tables', f'{_t}.jsonl'), 'w') as f:
+            for _r in _rows:
+                f.write(json.dumps(_r, ensure_ascii=False) + '\n')
+
+def _export_ns_mirror() -> None:
+    # ns mirror export (arrays) — only when the DuckBrain namespace exists; a
+    # fresh clone has no ns and that's fine (data/tables/ is the committed source).
+    # TR-048: a redirected unset-NS run (_NS_REDIRECTED) creates its scratch ns
+    # here so repeated bare runs land in the same self-contained place.
+    if os.path.isdir(NS) or _NS_REDIRECTED:
+        os.makedirs(f'{NS}/tables', exist_ok=True)
+        for t in ['level_defs', 'model_perf', 'category_levels', 'model_tier',
+                  'task_profiles', 'task_profile_requirements']:
+            cols = [c[0] for c in con.execute(f'DESCRIBE {t}').fetchall()]
+            order = ', '.join(str(i + 1) for i in range(len(cols)))
+            with open(f'{NS}/tables/{t}.jsonl', 'w') as f:
+                for row in con.execute(f'SELECT * FROM {t} ORDER BY {order}').fetchall():
+                    f.write(json.dumps(row, default=str) + '\n')
+        print('exported tables to', NS)
+    else:
+        print('ns mirror absent — skipped ns export (fresh clone is fine)')
+
+def _publish_run(doc: dict, staging: str) -> None:
+    """Publish the graded staged outputs to their real paths, printing the
+    same lines in the same order the pre-atomicity seed printed: the ns
+    mirror, then registry.json, then the data/tables sync. Called only after
+    the gate passed (or the opt-out fired) — never on the refusal path."""
+    _export_ns_mirror()
+    shutil.copyfile(os.path.join(staging, 'registry.json'), REGISTRY)
     print('wrote', REGISTRY, f'({os.path.getsize(REGISTRY) / 1024:.1f} KB)')
+    # Sync the COMMITTED in-repo data/tables/*.jsonl (keyed records) from the
+    # freshly built registry — the self-contained source of truth.
+    os.makedirs(DATA_DIR, exist_ok=True)
+    for _t in doc['tables']:
+        shutil.copyfile(os.path.join(staging, 'tables', f'{_t}.jsonl'),
+                        os.path.join(DATA_DIR, f'{_t}.jsonl'))
+    print('synced data/tables ->', DATA_DIR)
 
-# ns mirror export (arrays) — only when the DuckBrain namespace exists; a
-# fresh clone has no ns and that's fine (data/tables/ is the committed source).
-# TR-048: a redirected unset-NS run (_NS_REDIRECTED) creates its scratch ns
-# here so repeated bare runs land in the same self-contained place.
-if os.path.isdir(NS) or _NS_REDIRECTED:
-    os.makedirs(f'{NS}/tables', exist_ok=True)
-    for t in ['level_defs', 'model_perf', 'category_levels', 'model_tier',
-              'task_profiles', 'task_profile_requirements']:
-        cols = [c[0] for c in con.execute(f'DESCRIBE {t}').fetchall()]
-        order = ', '.join(str(i + 1) for i in range(len(cols)))
-        with open(f'{NS}/tables/{t}.jsonl', 'w') as f:
-            for row in con.execute(f'SELECT * FROM {t} ORDER BY {order}').fetchall():
-                f.write(json.dumps(row, default=str) + '\n')
-    print('exported tables to', NS)
-else:
-    print('ns mirror absent — skipped ns export (fresh clone is fine)')
-_dump_registry()
+_doc = _build_registry_doc()
+# Run-unique staging OUTSIDE the repo tree (tempfile's default dir — never
+# data/tables, never under the repo). Removed in the finally below, so a
+# refused run leaves no artifacts anywhere.
+_staging = tempfile.mkdtemp(prefix='router-seed-stage-')
+_staged_tables = os.path.join(_staging, 'tables')
+try:
+    _stage_run_outputs(_doc, _staging)
+    if __name__ == '__main__':
+        import argparse
+        ap = argparse.ArgumentParser(description='Seed the task-router routing registry')
+        # TR-029: --help must be safe and print help without running the seed.
+        # The full --only/--no-write ergonomics are TR-031; here we add only the
+        # minimal argparse wrapper so -h / --help exits before any file writes.
+        # The top-level module already intercepts --help / -h before imports run,
+        # so this block is effectively a no-op placeholder for future CLI args.
+        ap.add_argument(
+            '--allow-unsatisfiable', action='store_true',
+            help='TR-383: exit 0 even when a rating in the emit domain has no '
+                 'routable lane (the finding is still printed loudly)')
+        _seed_args = ap.parse_args()
+        # The same opt-out as an env var, because the suite and CI invoke the seed
+        # without argv control (CI: `python3 -m scripts.router_seed`). Both are
+        # LOUD: the findings print either way, and the opt-out line says seeding
+        # continued anyway. The default stays fatal — a check that can only warn is
+        # how the fleet.toml parity tripwire became permanent background noise.
+        _allow_unsat = _seed_args.allow_unsatisfiable or \
+            os.environ.get('ROUTING_ALLOW_UNSATISFIABLE') == '1'
 
-# Sync the COMMITTED in-repo data/tables/*.jsonl (keyed records) from the
-# freshly built registry — the self-contained source of truth.
-os.makedirs(DATA_DIR, exist_ok=True)
-with open(REGISTRY) as f:
-    _doc = json.load(f)
-for _t, _rows in _doc['tables'].items():
-    with open(f'{DATA_DIR}/{_t}.jsonl', 'w') as f:
-        for _r in _rows:
-            f.write(json.dumps(_r, ensure_ascii=False) + '\n')
-print('synced data/tables ->', DATA_DIR)
-
-
-if __name__ == '__main__':
-    import argparse
-    ap = argparse.ArgumentParser(description='Seed the task-router routing registry')
-    # TR-029: --help must be safe and print help without running the seed.
-    # The full --only/--no-write ergonomics are TR-031; here we add only the
-    # minimal argparse wrapper so -h / --help exits before any file writes.
-    # The top-level module already intercepts --help / -h before imports run,
-    # so this block is effectively a no-op placeholder for future CLI args.
-    ap.add_argument(
-        '--allow-unsatisfiable', action='store_true',
-        help='TR-383: exit 0 even when a rating in the emit domain has no '
-             'routable lane (the finding is still printed loudly)')
-    _seed_args = ap.parse_args()
-    # The same opt-out as an env var, because the suite and CI invoke the seed
-    # without argv control (CI: `python3 -m scripts.router_seed`). Both are
-    # LOUD: the findings print either way, and the opt-out line says seeding
-    # continued anyway. The default stays fatal — a check that can only warn is
-    # how the fleet.toml parity tripwire became permanent background noise.
-    _allow_unsat = _seed_args.allow_unsatisfiable or \
-        os.environ.get('ROUTING_ALLOW_UNSATISFIABLE') == '1'
-
-    # ── TR-383: rating satisfiability, at SEED time ──────────────────────
-    # A rating the classifier can emit but no routable lane can serve is a
-    # ticking 503. Measured 2026-11-03: the only model in the registry with any
-    # `math` tier was ollama-cloud/qwen3.5:397b (tier 5, bench AIME26) and its
-    # row is `disabled: true` with `normalized_price: null`, so all eleven math
-    # levels were unservable and P0_FORE — which requires math >= -5 — could not
-    # be served by ANY lane. Seeding exited 0 through all of it.
-    #
-    # The check runs against the tables this run just wrote (data/tables), so it
-    # grades the registry the fleet is about to use, not a stale copy.
-    try:
-        # TR-202: realpath, never the abspath-of-file idiom — this script ships
-        # to ~/.hermes/scripts through a symlink topology where that idiom lands
-        # on the wrong root. (The literal spelling is banned in this file by
-        # tests/test_symlink_path_resolution.py, comments included.)
-        sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
-        import router_satisfiability as _sat
-        # DATA_DIR is the resolver's own table directory (env-overridable via
-        # ROUTING_DATA_DIR) — hand it over verbatim instead of reconstructing a
-        # "home" from it, which is one level off whenever a caller points
-        # ROUTING_DATA_DIR at a bare .../data.
-        _tables = _sat.load_tables(table_dir=DATA_DIR)
-        _missing = [k for k, v in _tables.items()
-                    if v is None and k in ('models', 'tiers', 'domain')]
-        if _missing:
-            print(f'SATISFIABILITY: cannot read table(s) {_missing} under {DATA_DIR}',
-                  file=sys.stderr)
-            sys.exit(2)
-        _findings = _sat.satisfiability_findings(_tables)
-        if _findings:
-            _groups = _sat.summarise(_findings)
-            print(f'\nSATISFIABILITY FAIL: {len(_findings)} of '
-                  f'{len(_tables.get("domain") or [])} rating(s) in the emit '
-                  f'domain have NO routable lane, across {len(_groups)} '
-                  f'categor{"y" if len(_groups) == 1 else "ies"}')
-            for _g in _groups:
-                _lv = _g['levels']
-                _span = (f'levels {_lv[0]}..{_lv[-1]}' if len(_lv) > 1
-                         else f'level {_lv[0]}')
-                print(f'  {_g["category"]}: {_span} — {_g["reason"]}')
-                if _g['required_by']:
-                    print(f'     required by profile(s): '
-                          f'{", ".join(_g["required_by"])}')
-            if _allow_unsat:
-                print('\n--allow-unsatisfiable: seeding anyway — these ratings '
-                      'will 503 at tick time until a routable lane holds them')
+        # ── TR-383: rating satisfiability, at SEED time ──────────────────────
+        # A rating the classifier can emit but no routable lane can serve is a
+        # ticking 503. Measured 2026-11-03: the only model in the registry with any
+        # `math` tier was ollama-cloud/qwen3.5:397b (tier 5, bench AIME26) and its
+        # row is `disabled: true` with `normalized_price: null`, so all eleven math
+        # levels were unservable and P0_FORE — which requires math >= -5 — could not
+        # be served by ANY lane. Seeding exited 0 through all of it.
+        #
+        # TR-1000976681059248: the check grades the STAGED tables this run just
+        # built — the registry the fleet is ABOUT to use, not a stale copy and
+        # not state that is already published. A refusal exits before any
+        # publish step runs; a pass (or the loud opt-out) publishes the graded
+        # bytes verbatim.
+        try:
+            # TR-202: realpath, never the abspath-of-file idiom — this script ships
+            # to ~/.hermes/scripts through a symlink topology where that idiom lands
+            # on the wrong root. (The literal spelling is banned in this file by
+            # tests/test_symlink_path_resolution.py, comments included.)
+            sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+            import router_satisfiability as _sat
+            # The staging tables dir holds exactly what _stage_run_outputs
+            # wrote from this run's in-memory build — hand it over verbatim
+            # instead of DATA_DIR, which at gate time still holds the PRE-seed
+            # tables (and which is NOT always <home>/data/tables: env
+            # overrides like ROUTING_DATA_DIR redirect it).
+            _tables = _sat.load_tables(table_dir=_staged_tables)
+            _missing = [k for k, v in _tables.items()
+                        if v is None and k in ('models', 'tiers', 'domain')]
+            if _missing:
+                print(f'SATISFIABILITY: cannot read table(s) {_missing} under {_staged_tables}',
+                      file=sys.stderr)
+                sys.exit(2)
+            _findings = _sat.satisfiability_findings(_tables)
+            if _findings:
+                _groups = _sat.summarise(_findings)
+                print(f'\nSATISFIABILITY FAIL: {len(_findings)} of '
+                      f'{len(_tables.get("domain") or [])} rating(s) in the emit '
+                      f'domain have NO routable lane, across {len(_groups)} '
+                      f'categor{"y" if len(_groups) == 1 else "ies"}')
+                for _g in _groups:
+                    _lv = _g['levels']
+                    _span = (f'levels {_lv[0]}..{_lv[-1]}' if len(_lv) > 1
+                             else f'level {_lv[0]}')
+                    print(f'  {_g["category"]}: {_span} — {_g["reason"]}')
+                    if _g['required_by']:
+                        print(f'     required by profile(s): '
+                              f'{", ".join(_g["required_by"])}')
+                if _allow_unsat:
+                    print('\n--allow-unsatisfiable: seeding anyway — these ratings '
+                          'will 503 at tick time until a routable lane holds them')
+                else:
+                    print('\nSeeding REFUSED: add a routable lane for the '
+                          'categories above, or re-run with --allow-unsatisfiable '
+                          'to seed a knowingly-starved registry')
+                    sys.exit(1)
             else:
-                print('\nSeeding REFUSED: add a routable lane for the '
-                      'categories above, or re-run with --allow-unsatisfiable '
-                      'to seed a knowingly-starved registry')
-                sys.exit(1)
-        else:
-            print(f'\nSATISFIABILITY OK: all '
-                  f'{len(_tables.get("domain") or [])} rating(s) in the emit '
-                  f'domain are servable by at least one routable lane')
-    except SystemExit:
-        raise
-    except Exception as _e:  # noqa: BLE001 — never mask a seed with this check
-        print(f'SATISFIABILITY: check could not run ({_e})', file=sys.stderr)
+                print(f'\nSATISFIABILITY OK: all '
+                      f'{len(_tables.get("domain") or [])} rating(s) in the emit '
+                      f'domain are servable by at least one routable lane')
+        except SystemExit:
+            raise
+        except Exception as _e:  # noqa: BLE001 — never mask a seed with this check
+            print(f'SATISFIABILITY: check could not run ({_e})', file=sys.stderr)
+        # The gate passed (or loudly allowed the findings): publish.
+        _publish_run(_doc, _staging)
+    else:
+        # Imported, not run: the legacy module body always published at import
+        # time and the gate was always __main__-only — keep those semantics.
+        _publish_run(_doc, _staging)
+finally:
+    shutil.rmtree(_staging, ignore_errors=True)
 
 
 # The previous bottom-of-module "print('seed complete')" was removed when the
