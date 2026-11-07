@@ -1722,3 +1722,18 @@ tasks:
     run id.
   status: in_progress
   created_at: '2026-11-07T03:34:39.089945+00:00'
+- id: TR-362-V1
+  title: 'TR-362 pre-commit leg: model-data commit gate lands in .githooks/pre-commit'
+  criteria:
+  - 'Verify by reading committed files at the evaluated commit: (1) .githooks/pre-commit
+    exists, is executable, and invokes scripts/model_data_commit_gate.py with --staged;
+    (2) scripts/model_data_commit_gate.py exists and implements a capability-evidence
+    rule and a TR-369 usability-ratchet rule with an ALLOW_UNUSABLE_DATA escape hatch;
+    (3) tests/test_model_data_commit_gate.py exists and asserts a refused commit and
+    an allowed clean commit against real git; (4) scripts/install-hooks.sh asserts
+    git rev-parse --git-path hooks/pre-commit resolves to .githooks/pre-commit. Do
+    NOT run the test suite or any long command; inspect the files and their diffs
+    only.'
+  status: complete
+  created_at: '2026-11-07T10:33:33.646793+00:00'
+  completed_at: '2026-11-07T10:33:54.648170+00:00'
