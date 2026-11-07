@@ -313,3 +313,155 @@ Ordered next sequence (unchanged from pass 1; CI leg now known green)
    (`task_router.__version__`; the CLI ships no --version flag), then
    `gh release view` for tagName/isDraft/isPrerelease/assets.
 ================================================================================
+
+================================================================================
+PASS 3 — re-delivery of tick task-router-releng-2026-11-07-20-08-56
+measured 2026-11-07T20:55Z–21:05Z   (pass 2 covered 20:33Z–20:51Z)
+================================================================================
+This is the THIRD delivery of one tick id. Pass 2 is committed as ee406513
+("releng(RELEASE): sweep ... pass 2 — code-tip CI green"). Every pass-2 claim was
+re-probed at the CURRENT tip rather than carried; the delta is recorded below and
+the decision is unchanged.
+
+CONVERGED TIP (triple agreement, 21:00Z)
+  local HEAD            ee40651340bcc4c137a630d3dfd6adc7e07c9f7b
+  git ls-remote origin  ee40651340bcc4c137a630d3dfd6adc7e07c9f7b
+  gh api commits/main   ee40651340bcc4c137a630d3dfd6adc7e07c9f7b
+  default branch        main (ls-remote --symref); remote alias `origin` =
+                        git@github.com:coding-hermes/task-router.git (only remote)
+  working tree          clean (`git status --short` empty)
+No divergence this pass, so no re-anchor was needed.
+
+PRODUCT TREE IDENTITY — the code under test did not move
+  Last commit touching shipped paths (task_router/ tests/ scripts/ data/ Makefile
+  pyproject.toml): ca85625b "prometheus: prime router_proxy_nohops_total ..."
+  `git diff --name-only ca85625..ee406513` = 4 paths, ALL under .coding-hermes/:
+    .coding-hermes/board/events.jsonl
+    .coding-hermes/board/tasks.jsonl
+    .coding-hermes/evidence/release-readiness-task-router-2026-11-07-2008.txt
+    .coding-hermes/evidence/tr1000397261104277-nohops-numerator-20261107.txt
+  Filtered for non-.coding-hermes paths: ZERO. The code tree at the converged tip
+  is byte-identical to ca85625, so the census below was not re-derived.
+
+GATE STATE
+  CODE gate (authoritative for the tree) — run 42409904921 @ ca85625b
+    completed/SUCCESS, job `test` completed/success
+    20:12:09Z -> 20:46:39Z (34m30s, consistent with the workflow's own
+    "two full suites ~32-40 min" note at ci.yml:22-31)
+  CARRIER gate — run 42413110552 @ ee406513 (this pass's predecessor commit)
+    IN PROGRESS at 21:01Z, job `test` status=in_progress, **startedAt=null**
+    9 minutes after creation and never assigned a runner -> QUEUED, not running.
+    Recorded PENDING with its run id. NOT claimed green; NOT claimed red.
+    Cause observed: three runs queued at once on ubuntu-latest (42410709259 @
+    48c3c83, 42411361637 @ 0466f53, 42413110552 @ ee406513). The job's own
+    timeout-minutes is 75, so elapsed time is not evidence of a hang.
+  This pass's own carrier (the commit carrying this section) adds a fourth queued
+  run; its exact-SHA state is PENDING by construction and is reported as such.
+
+RE-PROBED BLOCKER PREMISES (both CONFIRMED, neither resolved since pass 2)
+  (1) First release surface absent — RELEASE-2026-10-22-001
+      git tag | wc -l ......................... 0
+      git ls-remote origin 'refs/tags/*' ...... 0
+      gh release list --repo .../task-router .. 0 lines (zero Release objects)
+      Repo has ZERO tags and ZERO Release objects in its whole 1,890-commit
+      history. The v0.1.0 / v0.2.0 CHANGELOG headings are DATED SECTIONS for
+      versions that were never tagged or published — a document is not a surface.
+  (2) Release driver absent — RELEASE-2026-11-03-001
+      ls scripts/release* ..................... no such file
+      release|publish|bump lines in Makefile .. 0 (of 16 targets)
+      .goreleaser* / Dockerfile / package.json . 0 present
+      `tags:` trigger in .github/workflows/ ... 0 occurrences
+      ONLY workflow is ci.yml, and ci.yml:6-8 documents the absence as
+      deliberate: "Release verification: CI must run (and stay green) on the
+      v0.2.0 tag commit, but tag pushes are not push-events on branches —
+      dispatch it." So a tag push is NOT a CI signal in this repo; tag-time
+      verification is `gh workflow run ci.yml --ref <tag>` and must be watched
+      to terminal. Note the comment names a v0.2.0 tag that has never existed.
+
+OPEN P0 CENSUS AT THE CONVERGED TIP (re-derived; pass 2 named 7)
+  9 rows non-terminal at P0:
+    RELEASE-2026-10-22-001  pending   first release surface absent
+    RELEASE-2026-11-03-001  pending   release driver absent
+    RELEASE-2026-11-07-001  pending   public posture unhardened (NEW this pass)
+    TR-294                  blocked   classifier work unmerged
+    TR-371                  pending   no-hops alert not shipped to Alertmanager
+    TR-390                  pending   capability matrix backfill
+    TR-394                  pending   tasks-admitted lanes bypass cooldown
+    TR-395                  pending   tasks-admitted lanes bypass cooldown
+    TR-1000599737158536     pending   commit-time usability guard unreferenced
+    TR-1000397261104277     review    spec §6 alert set -> fleet-monitoring
+  (TR-1000397261104277 is in review, not blocked, but is not terminal; pass 2
+  counted 7 by excluding the blocked and review rows. Counting rule now stated
+  explicitly so later passes stop re-deriving a different number.)
+
+NEW FINDINGS THIS PASS (not carried from pass 2)
+
+  A. CHANGELOG coverage gap, now quantified — prep step 1 is an AUDIT, not a
+     promote. CHANGELOG.md was last touched at 7f802f3 (2026-10-14).
+     Since then: 678 commits total, 143 of them material (feat|fix|perf).
+     The existing `## [Unreleased]` body therefore cannot describe the range it
+     will be promoted onto; promoting it as-is would ship notes that silently
+     omit most landed work. The 0.2.0-prefixed sections upstream offer no help —
+     they were never released. Cost estimate for prep: enumerating and writing
+     143 material entries is real work, not a formatting pass.
+
+  B. Public posture is unhardened on a PUBLIC repository (new row filed).
+     visibility ................................. public
+     license .................................... MIT
+     secret_scanning ............................ disabled
+     secret_scanning_push_protection ............ disabled
+     secret_scanning_validity_checks ............ disabled
+     dependabot_security_updates ................ disabled
+     branch protection (main) ................... 404 "Branch not protected"
+     Tracked-secret exposure on the tree ........ UNVERIFIED — `gitleaks dir .`
+     exceeded a 180s bounded probe over this tree and was not re-run; no claim
+     is made either way. All the settings above are admin-scoped, so the row
+     escalates rather than acting. Filed as RELEASE-2026-11-07-001.
+
+  C. Deployed artifact: ABSENT, not STALE. Probed non-blockingly:
+     `command -v router` -> absent; no pipx venv; no site-packages
+     task_router*; no console script in ~/.local/bin. The only entry point on
+     this host is the repo's own .venv/bin/router (editable dev install).
+     Consistent with zero tags/zero Release objects: nothing published has ever
+     been installed outside the checkout. Not release-blocking; recorded so a
+     later pass does not misreport a stale install.
+
+DECISION (unchanged) — NO CUT
+  Decision-1 rule 2 fires: open P0 blockers in the target (9 rows above).
+  Independently and additionally, §0 withholds this cut from releng authority:
+  with 0 tags, 0 Release objects and no tag-triggered workflow, a first cut
+  CREATES the distribution namespace rather than publishing into one. That is
+  the owner-gated clause, and it is the ONLY owner gate on this row.
+  Bump if authorized: MINOR, 0.2.0 -> 0.3.0. Census since the 0.2.0 section date
+  (2026-09-24): 1,343 non-merge commits, 141 feat / 226 fix / 232 chore /
+  467 board / 65 docs / 38 test (+ long tail). Features present, zero
+  `BREAKING CHANGE:` or `type!:` markers found, and the repo's own precedent
+  (0.1.0 -> 0.2.0) treats features as minor within the 0.x line. A major bump
+  is NOT proposed.
+  Version stamp is pyproject.toml project.version = 0.2.0, matching the last
+  never-shipped section — a previous decision, not this one's answer.
+
+ORDERED NEXT SEQUENCE (unchanged; CI leg state now explicit)
+  1. Owner decision on the channel (one line: repo task-router, version v0.3.0,
+     baseline = first cut, namespace created). Nothing else here needs owner.
+  2. Prep commit: pins 0.3.0 in pyproject.toml + task_router.__version__,
+     AUDITS and writes the 143 material entries, promotes `[Unreleased]` to
+     `## [0.3.0] — <date>` in the repo's own heading form, reopens an empty
+     `[Unreleased]`. Wait for its own terminal green run (~35 min, measured).
+  3. Land the release driver (RELEASE-2026-11-03-001) or record the manual
+     fallback plus the defect it leaves.
+  4. Tag the gated commit (ancestor of main, not necessarily the tip), push,
+     then `gh workflow run ci.yml --ref v0.3.0` (tag pushes fire nothing here),
+     watch to terminal, read per-job conclusions.
+  5. `gh release create v0.3.0` with CHANGELOG-derived notes and built
+     wheel/sdist as positional assets — exactly once; the repo has no tag
+     publisher, so manual IS the only path and the record must say so.
+  6. Download the published assets, install the wheel in a fresh venv
+     (`task_router.__version__`; the CLI ships no --version flag), then
+     `gh release view` for tagName/isDraft/isPrerelease/assets.
+
+Evidence boundary: this artifact lives in the owning checkout
+(/home/kara/task-router) and is tracked. Carrier SHA for this section is the
+commit that adds it; its hosted run is PENDING and is not claimed green.
+================================================================================
+
