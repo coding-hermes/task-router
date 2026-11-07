@@ -1,0 +1,94 @@
+TR-393 DECLINE CONTRACT — FOREMAN VERIFICATION
+Tick: task-router-foreman-2026-11-07-11-01-34
+Project: task-router (canonical workdir /home/kara/task-router)
+Row: TR-393 "Decline contract: a row the foreman will not complete must carry a structured reason"
+Worker: glm-5.3-flash @ zai-glm, brief /home/kara/.hermes/cache/scratch/tr-foreman-20261107-110134/TR-393-brief.md
+Worker worktree: /home/kara/worktrees/task-router-TR-393 (branch wt/TR-393, base origin/main 1db3537)
+Worker commit: c78e76c53b41c9c2a542b0a3e2efd9b0afcaf944
+Landed merge: 25f371453c48b350934e72202e785c5a79352d2e (--no-ff, pushed to origin/main)
+
+WHY A DECLINE CONTRACT
+Owner 2026-11-06: "tell me what is on the board now that it says it can not work on — it has
+to give a reason why it cannot complete the tasks". Before this row the board could not
+answer that in a machine-checkable form: blocked/failed rows carried "True", an empty string,
+or a fingerprint dict instead of prose.
+
+WHAT LANDED (5 files, +673/-8)
+  scripts/decline_contract.py        (new, stdlib-only, 331 lines)
+      --validate [--board PATH]  closed nine-code vocabulary, required keys
+                                 {code, reason, evidence, needs}, exit 1 + row id + field/code,
+                                 exit 2 internal error (mirrors model_data_commit_gate.py)
+      --staged                   reads git show :<board> (the STAGED blob, not the working tree)
+                                 with a git diff --name-only fast-path;
+                                 ALLOW_DECLINE_GAP=1 = loud warning + exit 0
+      --report                   one line per non-complete row: id / status / code / needs
+  .githooks/pre-commit               board leg appended after the unchanged model-data leg;
+                                     the LIVE hook (core.hooksPath=.githooks)
+  .coding-hermes/board/tasks.jsonl   8 rows backfilled, per-line byte-preserving rewrite
+  tests/test_decline_contract.py     10 tests (refusal, unknown code, missing key, staged blob,
+                                     fast path, escape hatch, report, clean board)
+  docs/decisions/TR-393-decline-contract.md
+
+BACKFILL (0 status changes, 0 rows added/removed)
+  TR-117               DEPENDENCY_UNLANDED  close gated by TR-251; no run covers its census
+  TR-225               SUPERSEDED           content duplicate of complete TR-232
+  TR-226               SUPERSEDED           content duplicate of complete TR-233
+  TR-294               OWNER_DECISION       coordinated router restart needs owner authorisation
+  TR-1000657714383498  MISSING_EVIDENCE     its own first AC (fleet-shaped load test) is unmet
+  TR-261               DEPENDENCY_UNLANDED  acceptance met, close blocked by TR-251
+  TR-296               DEPENDENCY_UNLANDED  verified work unmerged on wt/TR-296
+  TR-380               DEPENDENCY_UNLANDED  acceptance met, close blocked by TR-251
+The 8 pre-existing decline objects (TR-266, TR-1000242751831738, QA-TASKROUTER-7..12) are
+byte-identical before and after.
+
+FOREMAN-VERIFIED (not taken on the worker's report), at the worker tree and again at the
+merged head:
+  python3 scripts/decline_contract.py --validate
+    -> "decline_contract: OK — 8 row(s) in blocked/failed/review, all carry a valid decline" (exit 0)
+  python3 scripts/decline_contract.py --report
+    -> 106 lines (91 pending + 4 blocked + 4 review + 7 superseded), exit 0
+  python3 -m pytest -q tests/test_decline_contract.py
+    -> 10 passed (worker tree 5.46s; merged head 3.76s)
+  board delta 1db3537..c78e76c on tasks.jsonl: 8 insertions / 8 deletions, exactly the 8 ids
+  refusal proof: synthetic bad board staged into the index via git hash-object/update-index
+    -> bash .githooks/pre-commit  => exit 1, "TR-9999 (status=blocked): decline is missing"
+    -> ALLOW_DECLINE_GAP=1 bash .githooks/pre-commit => exit 0 + loud WARNING naming TR-9999
+    -> index restored, tree clean, hook exit 0
+
+JUDGING
+  gitreins judge --async TR-393 (landing worktree at 25f3714)
+    -> PASS, Tier 1 PASS, verdict COMPLETE
+    -> artifact .gitreins/history/2026-11-07/438123a5/verdict.json
+       {task_id: TR-393, commit: 25f371453c48b350934e72202e785c5a79352d2e, passed: true}
+  record flip: gitreins task complete TR-393 --force --skip-tier2 (tier1 PASS, verdict a198f0dd)
+  both verdicts disclosed; the tier-1-only flip does not supersede the tier-2 PASS.
+
+CI (why the row is REVIEW, not complete)
+  run 42367689002 (head 25f3714) -> failure: 9 failed / 2989 passed / 13 skipped in 20m52s.
+  The failing set is byte-identical to the pre-push tip 1db3537 (run 42365007893):
+    test_null_census.py::test_stamp_registry_vocabulary_is_the_finite_ac2_set
+    test_null_census.py::test_gate_fails_then_flips_green_on_stamp
+    test_regression.py::test_chain_invariants_per_profile[P1_CODING]
+    test_routing_quality_corpus.py::... (P2_AGENTIC, P9_REVIEW, adhoc/senior-coding-band,
+      adhoc/security-band, adhoc/cron-band, test_corpus_summary_every_case_accounted)
+  None of them touch scripts/decline_contract.py or the board; the new test file passed inside
+  the same run. The red is inherited from main and already tracked by INT-CI-23, which this
+  tick re-measured (note appended). With no GREEN run covering the commit there is nothing
+  legal to bind under TR-251, so the row is left in review with decline
+  {code: MISSING_EVIDENCE} rather than closed on a red run.
+
+PUSH
+  ALLOW_RED_PUSH=1 was required and disclosed in the merge commit body: the only block was the
+  CI leg (main tip red for the reasons above). board_commit_boundary_gate: OK (0 completion
+  flips, all evidence-bound); TR-362 INV4: PASS (0 routable perf-less lanes added/changed).
+
+BOARD VALIDATION (landing worktree, vs the pre-edit baseline built from origin/main)
+  baseline: RESULT FAIL (446 errors, 547 warnings)
+  after:    RESULT FAIL (446 errors, 549 warnings)
+  errors unchanged = the standing events.jsonl ascending-id debt (TR-1000976681059249).
+  +2 warnings are the new `decline` key being outside boardctl's declared row canon (17 rows
+  now carry it); no error added, no warning names TR-393 or INT-CI-23.
+
+FOLLOW-UPS NAMED, NOT SILENTLY DROPPED
+  - TR-393 flips to complete once main is green (INT-CI-23), binding that run id.
+  - boardctl's declared row canon does not list `decline` yet; the key warns rather than errors.

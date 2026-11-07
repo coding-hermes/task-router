@@ -1737,3 +1737,18 @@ tasks:
   status: complete
   created_at: '2026-11-07T10:33:33.646793+00:00'
   completed_at: '2026-11-07T10:33:54.648170+00:00'
+- id: TR-393
+  title: 'Decline contract: every non-complete row carries a structured reason'
+  criteria:
+  - 'Judge the committed tree at this checkout (branch tip 25f3714, commit c78e76c):
+    (1) scripts/decline_contract.py exists with the closed nine-code vocabulary and
+    a validate mode that refuses a blocked/failed/review row lacking {code,reason,evidence,needs}
+    or using an unknown code; (2) .githooks/pre-commit runs it in --staged mode when
+    the board is staged, exit 1 on violation, ALLOW_DECLINE_GAP=1 disclosed bypass;
+    (3) all 8 blocked/review rows carry a decline and the 8 pre-existing ones are
+    unchanged; (4) a report mode prints every non-complete row with code and needs;
+    (5) tests/test_decline_contract.py covers refusal and pass. Do NOT run the full
+    pytest suite.'
+  status: complete
+  created_at: '2026-11-07T11:25:27.450493+00:00'
+  completed_at: '2026-11-07T11:30:24.939177+00:00'
