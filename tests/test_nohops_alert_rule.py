@@ -123,6 +123,32 @@ def test_rule_metrics_render_from_the_exposition():
             "a ratio with a missing input")
 
 
+def test_exposition_emits_a_nohops_sample_before_any_event():
+    """TR-1000397261104277: the no-hops ratio must always be evaluable.
+
+    The hand-rolled registry renders only series that have been .inc()ed at
+    least once, so an unprimed counter family emits NO sample line and
+    sum(rate(task_router_proxy_nohops_total[1h])) in TaskRouterNoHopsHigh
+    evaluates as an EMPTY vector on a router that has served no no-hops
+    request — the alert could never fire (the 2026-10 incident's blind
+    spot). The module primes the family with one synthetic zero sample at
+    import; assert a real SAMPLE line (a line starting with the metric name
+    and '{', not the '# TYPE' row) renders for both the spec name and the
+    row-AC alias.
+    """
+    sys.modules.pop("router_prometheus", None)  # fresh import: re-run priming
+    import router_prometheus
+    doc = router_prometheus.render_metrics().decode("utf-8")
+    lines = doc.splitlines()
+    for name in (NOHOPS_METRIC, "router_proxy_nohops_total"):
+        sample_re = re.compile(r"^" + re.escape(name) + r"\{")
+        count = sum(1 for line in lines if sample_re.match(line))
+        assert count >= 1, (
+            f"exposition renders {count} {name} SAMPLE lines — "
+            f"sum(rate({name}[1h])) in TaskRouterNoHopsHigh would be an "
+            "empty vector and the alert could never fire")
+
+
 def test_for_duration_matches_spec_table():
     assert _the_rule().get("for") == "30m"
 

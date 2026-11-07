@@ -392,6 +392,16 @@ PROXY_NOHOPS = REGISTRY.counter(
     "alert thresholds.",
     ("lane_class",))
 
+# Prime the family with one synthetic zero sample: the hand-rolled registry
+# renders only label sets that have been .inc()ed at least once, so an
+# unprimed counter family emits NO sample line and
+# sum(rate(task_router_proxy_nohops_total[1h])) in TaskRouterNoHopsHigh
+# evaluates as an EMPTY vector — the alert would have no data to fire on
+# until the first real no-hops event (the 2026-10 incident's blind spot).
+# A zero sample contributes 0 to every sum/rate and cannot mask a real
+# no-hops event.
+PROXY_NOHOPS.inc({"lane_class": "none"}, 0)
+
 
 def note_proxy_request(route_outcome: Any, source: Any,
                        lane_class: Any = None) -> None:
