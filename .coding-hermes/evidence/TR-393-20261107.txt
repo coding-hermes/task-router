@@ -1,0 +1,105 @@
+TR-393 — DECLINE CONTRACT — CLOSEOUT EVIDENCE
+=============================================
+Tick:        task-router-foreman-2026-11-07-18-34-24
+Lane:        task-router-foreman (project task-router)
+Verified at: origin/main bf6bc0848462e86d48d8724b533c59fedcffa9c1 (fetched 2026-11-07T13:34-05:00)
+Landed merge: 25f371453c48b350934e72202e785c5a79352d2e
+Worker commit: c78e76c53b41c9c2a542b0a3e2efd9b0afcaf944
+Ancestry: `git merge-base --is-ancestor <merge|worker> origin/main` -> true for both.
+
+WHY THIS CLOSEOUT EXISTS
+------------------------
+The row was implemented, guarded and judged by tick task-router-foreman-2026-11-07-11-01-34 and left
+pending only because TR-251 needs a COMPLETED GREEN CI run to bind, while main was red for reasons
+tracked by INT-CI-23. INT-CI-23 is now complete and main is green, so this tick re-verifies every
+acceptance criterion against the published tree and closes the row. No code was rewritten.
+
+ACCEPTANCE (verbatim, from the row)
+-----------------------------------
+"Acceptance: (1) any row transitioned to blocked/failed/review by an agent carries a structured
+decline object: {code, reason, evidence, needs} where code is a closed vocabulary (PREMISE_FALSE,
+OWNER_DECISION, MISSING_EVIDENCE, DEPENDENCY_UNLANDED, CI_RED, ENVIRONMENT, SUPERSEDED,
+UNCHECKABLE), reason is human prose, evidence names a commit/file/command, and needs names who or
+what unblocks it; (2) a validation script rejects a blocked/failed row whose decline object is
+missing or whose code is outside the vocabulary, and it runs in the board-write path so new rows
+cannot be added without it; (3) the existing 5 failed + 2 blocked rows are backfilled with real
+codes and reasons (no row is left with "True"); (4) a report command prints every non-complete row
+with its code and needs, so the owner question is answerable in one command."
+
+CRITERION 1 + 3 + 4 — POSITIVE MEASUREMENT
+------------------------------------------
+cmd: ~/.hermes/venvs/board/bin/python3 scripts/decline_contract.py --validate
+out: decline_contract: OK — 8 row(s) in blocked/failed/review, all carry a valid decline
+     exit 0
+
+cmd: python3 <census> .coding-hermes/board/tasks.jsonl   (independent re-implementation of the rule)
+out: status_counts: {'complete': 358, 'blocked': 4, 'done': 11, 'pending': 96, 'review': 4,
+                     'superseded': 7, 'closed': 1}
+     decline_valid_blocked_failed_review: 8
+     violations: NONE
+     (checks: missing/partial decline object, code outside the nine-code vocabulary,
+      legacy failure_reason == "True", legacy failure_reason fingerprint dict) -> no row is left
+      with "True" or a fingerprint blob.
+
+cmd: ~/.hermes/venvs/board/bin/python3 scripts/decline_contract.py --report | wc -l
+out: 111   (every non-complete row, one line each: <id> <status> <code> <needs>)
+
+cmd: ~/.hermes/venvs/board/bin/python3 scripts/decline_contract.py --report | head -6
+out: TR-117	blocked	DEPENDENCY_UNLANDED	land a verdict-form run (gitreins judge with command.json) or a CI run replaying the census, th…
+     TR-218	pending	-	-
+     TR-219	pending	-	-
+     TR-225	blocked	SUPERSEDED	a fold verb that binds the successor's evidence run, then fold to complete with superseded_by=T…
+     TR-226	blocked	SUPERSEDED	a fold verb that binds the successor's evidence run, then fold to complete with superseded_by=T…
+     TR-239	pending	-	-
+
+CRITERION 2 — NEGATIVE MEASUREMENT (the validator must REFUSE, not just exist)
+-----------------------------------------------------------------------------
+Setup: a detached probe worktree at origin/main; the `decline` key stripped from exactly one
+blocked row (TR-117) with a byte-preserving per-line rewrite; that board staged into an ISOLATED
+index (GIT_INDEX_FILE=<scratch>/probe.index) so no real index was touched.
+
+cmd: GIT_INDEX_FILE=$S/probe.index python3 scripts/decline_contract.py --staged
+out: DECLINE CONTRACT VIOLATED — 1 row(s) in blocked/failed/review lack a valid decline:
+       TR-117 (status=blocked): decline is missing — a row in status 'blocked' must state why it
+       cannot complete
+       closed vocabulary: PREMISE_FALSE, OWNER_DECISION, MISSING_EVIDENCE, DEPENDENCY_UNLANDED,
+       CI_RED, ENVIRONMENT, SUPERSEDED, UNCHECKABLE, OTHER_REPO
+     exit 1
+
+cmd: ALLOW_DECLINE_GAP=1 GIT_INDEX_FILE=$S/probe.index python3 scripts/decline_contract.py --staged
+out: decline_contract.py: WARNING: ALLOW_DECLINE_GAP=1 — the board decline contract is bypassed for
+     this commit. Staged board: .coding-hermes/board/tasks.jsonl
+       TR-117 (status=blocked): decline is missing — … (every violation named, never silent)
+     exit 0
+
+BOARD-WRITE PATH — the LIVE hook, not the dead one
+--------------------------------------------------
+cmd: git config --get core.hooksPath                                  -> .githooks
+cmd: git rev-parse --git-path hooks/pre-commit                        -> .githooks/pre-commit
+cmd: GIT_INDEX_FILE=$S/probe.index git commit -m "probe: staged board with a stripped decline …"
+out: the same DECLINE CONTRACT VIOLATED block (TR-117 named); no commit was created —
+     `git log --oneline -1` still bf6bc08.
+     i.e. the commit that would have carried the invalid row was REFUSED by the live hook.
+
+TESTS
+-----
+cmd: ~/.hermes/venvs/board/bin/python3 -m pytest tests/test_decline_contract.py -q
+out: 10 passed in 1.21s
+
+TR-251 EVIDENCE BINDING
+-----------------------
+evidence_run_id: 42394852534 (GitHub Actions workflow "ci", completed / success, head
+bf6bc0848462e86d48d8724b533c59fedcffa9c1, verified with `gh run view 42394852534 --json
+status,conclusion,workflowName`). The run's head contains both 25f3714 and c78e76c.
+evidence_fingerprint: sha256 of this file.
+
+DISCLOSED GAPS (nothing above is inferred)
+------------------------------------------
+- The GitReins verdict artifacts written by tick 11-01-34 (verdict ids 438123a5 / a198f0dd) are NOT
+  present in any .gitreins/history on this host — .gitreins/history is gitignored local state.
+  The task ledger reads `TR-393 [complete]` with the criterion that was judged. This closeout does
+  NOT claim a verdict id it could not read; a fresh verification task TR-393-R1 is created and
+  judged at the closeout commit instead.
+- The prior tick's board write (status=review) never reached origin/main; the published row was
+  still `pending`, which is why this tick closes from the published tree rather than from the
+  event trail.

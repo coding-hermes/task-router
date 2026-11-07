@@ -974,3 +974,4 @@
 {"id": 1794023508019127825, "timestamp": "2026-11-07T13:14:35", "event_type": "task_created", "task_id": "QA-TASKROUTER-18", "actor": "foreman", "detail": "{\"id\":\"QA-TASKROUTER-18\",\"status\":\"pending\"}", "tick_number": null}
 {"id": 1794023508019127829, "timestamp": "2026-11-07T14:20:00", "event_type": "task_created", "task_id": "QA-TASKROUTER-14-R2", "actor": "foreman", "detail": "{\"id\":\"QA-TASKROUTER-14-R2\",\"status\":\"pending\",\"recurrence_of\":\"QA-TASKROUTER-14\"}", "tick_number": null}
 {"id": 1794023508019127830, "timestamp": "2026-11-07T17:08:32", "event_type": "task_created", "task_id": "TR-397", "actor": "foreman", "detail": "{\"id\":\"TR-397\",\"status\":\"pending\"}", "tick_number": null}
+{"id": 1794023508019127831, "timestamp": "2026-11-07T18:52:13", "event_type": "task_completed", "task_id": "TR-393", "actor": "foreman", "detail": "{\"status\":\"complete\"}", "tick_number": null}
