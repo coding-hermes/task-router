@@ -513,3 +513,7 @@ Re-probed after the pass-4 record was written. Run 42414368042 at de94cd1e7859bf
 The board-only readiness carrier pushed afterward is 5498af1cf73e2b55fef006fa2c0aa4efcbd2fda. Its push-time gate reported no completed run because run 42414368042 is the failed run on the pre-carrier product candidate de94cd1; the carrier is not claimed green. The evidence is updated in place per the one-artifact-per-tick rule.
 ================================================================================
 
+
+
+PASS 4 FINAL CORRECTION — carrier re-gate is pending
+After the RED candidate run, sibling commits landed docs/configuration.md and the board/evidence correction. Current remote tip is 926bc7986e4847be3adbc5ef3db89e112138cf13. The product fix and its documentation are now present, but exact-tip CI run 42416446480 is IN PROGRESS on 926bc79, job test in_progress; this is PENDING, not green. No release action is authorized. The failed candidate receipt remains run 42414368042 @ de94cd1, failing tests/test_doc_parity.py because ROUTER_INGRESS_LANE_COUNT was undocumented.
