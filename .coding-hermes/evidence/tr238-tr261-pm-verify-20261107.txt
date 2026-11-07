@@ -1,0 +1,42 @@
+PM VERIFICATION — TR-238 and TR-261 (task-router-pm tick task-router-pm-2026-11-07-00-00-43)
+Date: 2026-11-07 (host local 2026-11-06T21:xx-05:00)
+Warrant kind: PM labelled probes pm-probe-2026-11-07-task-router-pm-tr238 / -tr261
+
+TR-238 — "No bunker agent ships a Hermes, and the proxy's client path needs a literal key"
+  Criterion 0 (one command installs the Hermes CLI, documented in the provisioning path)
+    docs/router-in-bunker-shortcut.md 4.1 "One command: install the Hermes CLI"
+      uv tool install --python 3.12 hermes-agent   (recorded result: v0.19.0, three executables)
+  Criterion 1 (api_key_env vs literal api_key documented, with the trap)
+    docs/router-in-bunker-shortcut.md 4.2 "The proxy client path: literal key vs api_key_env (the trap)"
+    docs/configuration.md "Proxy client authentication (TR-238)" links to it
+    $ git grep -ln 'api_key_env' docs/  -> docs/configuration.md, docs/router-in-bunker-shortcut.md
+  Criterion 2 (remote-script convention: stdin-piped, ASCII-only, $() trap)
+    docs/router-in-bunker-shortcut.md 4.3 "Remote scripts for bunker exec: stdin, ASCII, and the $( ) trap"
+  Criterion 3 (a smoke proves a fresh agent reaches a router through the documented tunnel)
+    docs/router-in-bunker-shortcut.md 4.4 "Recorded smoke: a fresh agent reaching a router through the tunnel"
+  Criterion 4 (proxy-side docs state how a remote client authenticates)
+    docs/configuration.md: loopback default (127.0.0.1:9092, proxy recipe :9391), tunnel requirement,
+    ROUTER_PROXY_AUTH=passthrough as explicit opt-in scoped to /v1/chat/completions and /v1/responses
+  Landing proof:
+    $ git log -1 --format='%h %ad %s' 32714efa
+    32714ef 2026-10-25 docs(bunker): document Hermes provisioning and proxy authentication
+    $ git show --stat 32714ef   -> docs/configuration.md +31, docs/router-in-bunker-shortcut.md
+    $ git merge-base --is-ancestor 32714efa origin/main && echo IS ancestor  -> IS ancestor of origin/main
+
+TR-261 — "PROVIDER-HEALTH DASHBOARD shipped (tailnet :9095); hourly probe delivery switched to link-only"
+  Dashboard live:
+    $ curl -s -o /dev/null -m 4 -w 'code=%{http_code}\n' http://127.0.0.1:9095/  -> code=200
+    $ curl -s -m 4 http://127.0.0.1:9095/ | head -c 200
+    <!doctype html><html lang="en"><head><meta charset="utf-8">... <title>provider health — task-router</title>
+    $ ss -ltnp | grep 9095
+    LISTEN 127.0.0.1:9095  python3 pid=7520      (dashboard)
+    LISTEN 100.97.236.14:9095 socat pid=1864620  (tailnet exposure)
+  Hourly probe lane healthy and delivery is link-only:
+    $ jq -c '.jobs[]|select(.id=="2b1f0734e567")|{id,name,enabled,schedule,last_status}'
+    {"id":"2b1f0734e567","name":"provider-health-probe","enabled":true,
+     "schedule":{"kind":"cron","expr":"0 * * * *"},"last_status":"ok"}
+    $ grep -n -i 'link' ~/.hermes/scripts/provider_health_publish.sh
+    2:# Hourly provider-health tick: probe -> dashboard refresh -> link-only delivery.
+
+VERDICT: both rows' deliverables are live and landed; both were stranded in a non-canonical
+in-progress status with no worker left to advance them. Closing both as complete.

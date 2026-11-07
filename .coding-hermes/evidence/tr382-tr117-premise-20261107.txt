@@ -1,0 +1,51 @@
+PM VERIFICATION — TR-382 premise + TR-117 premise (tick task-router-pm-2026-11-07-00-00-43)
+Date: 2026-11-07 (host local 2026-11-06T21:xx-05:00)
+
+TR-382 premise — measured, not assumed
+  $ wc -l < data/tables/models.jsonl
+  2081
+  $ jq -r 'keys[]|select(startswith("perf_"))' < (head -1 data/tables/models.jsonl) | count
+  24 perf_ columns
+  Non-null values per perf_ column across all 2081 model rows (jq count of .[col]!=null):
+    perf_code_gen           0        perf_creative      0     perf_long_horizon  0
+    perf_math               0        perf_mechanical    0     perf_multilingual  0
+    perf_refactor           0        perf_security      0     perf_spec_docs     0
+    perf_terminal           0        perf_test          0     perf_tool_use      0
+    perf_ui_frontend        0        perf_vision        0
+    perf_agent_tick       105        perf_debug       105     perf_delegation  105
+    perf_schema           105        perf_e2e_vision   97     perf_review      100
+    perf_long_doc         102        perf_reasoning   102     perf_guard       103
+    perf_mock             103
+  -> 14 of 24 dimensions are ZERO across every model row, including the two most-demanded
+     by profiles (code_gen, test).
+
+  Demand side:
+  $ wc -l < data/tables/task_profile_requirements.jsonl -> 72 requirement rows
+  $ jq -r '.category' data/tables/task_profile_requirements.jsonl | sort | uniq -c
+  7 code_gen, 6 reasoning, 6 long_doc, 4 terminal, 4 schema, 4 review, 4 delegation, 4 debug,
+  4 creative, 4 agent_tick, 3 tool_use, 3 mock, 3 e2e_vision, 2 vision, 2 test, 2 security,
+  2 refactor, 2 guard, 1 ui_frontend, 1 spec_docs, 1 multilingual, 1 mechanical, 1 math,
+  1 long_horizon   -> all 24 categories are demanded, 14 of them are unservable from models.jsonl.
+
+  Supply side:
+  $ jq -r '.category' data/tables/model_perf.jsonl | sort | uniq -c  -> 24 distinct categories
+  (test 348, code_gen 287, debug 277, tool_use 267, agent_tick 264, schema 259, delegation 258,
+   reasoning 213, long_doc 193, long_horizon 184, refactor 183, guard 175, multilingual 170,
+   mock 169, review 133, terminal 107, spec_docs 100, e2e_vision 85, mechanical 78, vision 74,
+   ui_frontend 38, creative 35, security 33, math 14)
+  -> the sidecar knows the number; the model-level column that a profile lookup reads does not
+     carry it. TR-370 (closed, premise-falsified) named this row as the genuine gap owner.
+
+TR-117 premise — RE-MEASURED, now falsified
+  Row claim (2026-09): "COMPLEXITY-KEYED AVERAGES HAVE NO INPUT — 14 of 263,619 rows carry a
+  complexity signature".
+  $ jq -r 'select(.complexity!=null)|.complexity' data/state/outcomes.jsonl | wc -l
+  135186
+  $ wc -l < data/state/outcomes.jsonl
+  461796
+  $ git grep -n 'complexity' -- scripts/outcomes_averages.py | head
+  13: Buckets are per (source_system, provider, model, complexity): one row per ...
+  15: ... (complexity reference) so a lane's cost is comparable at the task profile it ...
+  17: (sample-count weighted) into (provider, model, complexity).
+  -> 135,186 of 461,796 rows (29.3%) carry a complexity value and the averages bucket on it.
+     The premise is dead; no implementation change is claimed by closing this row.

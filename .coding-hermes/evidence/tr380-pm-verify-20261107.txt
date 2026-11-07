@@ -1,0 +1,37 @@
+PM VERIFICATION — TR-380 (task-router-pm tick task-router-pm-2026-11-07-00-00-43)
+Date: 2026-11-07 (host local 2026-11-06T21:xx-05:00)
+Warrant kind: PM labelled probe pm-probe-2026-11-07-task-router-pm-tr380 (not a tier-2 judge verdict)
+
+Criterion 1/2 — self-report path + store
+  $ ls -la scripts/record_outcome.py scripts/router_store_sync.py
+  -rw-rw-r-- 9565  Nov  3 16:58 scripts/record_outcome.py
+  -rw-rw-r-- 11482 Nov  3 16:58 scripts/router_store_sync.py
+  $ wc -l < data/state/outcomes.jsonl
+  461745   (store is live and growing; 461796 at the end of the tick)
+
+Criterion 2 — TTL sync actually running and effective (stamp written by the router path)
+  $ cat data/state/store-sync.json
+  {"last_launch_at":"2026-11-06T21:06:32-0500","last_sync_at":"2026-11-06T21:07:09-0500","ok":true,
+   "detail":{"rows_before":461716,"rows_after":461739,"added":23}}
+  -> a real sync ran 13 minutes before this tick, imported 23 rows, ok=true
+
+Criterion 3 — resolve prints pure JSON, well under a second, with the sync hook installed
+  $ for i in 1 2 3; do /usr/bin/time -f 'elapsed=%es rc=%x' .venv/bin/router spawn task-router --format json; done
+  run1 elapsed=0.43s rc=0
+  run2 elapsed=0.30s rc=0
+  run3 elapsed=0.28s rc=0
+  $ jq -e '.chain|length' /tmp/res1.json  -> 15 (valid JSON, chain of 15)
+
+Criterion 4 — /api/v1/outcomes reachable in read-only mode
+  $ git grep -c 'api/v1/outcomes' -- scripts/router_server.py
+  scripts/router_server.py:4
+
+Criterion 5 — no cron owns the import or the averages refresh
+  $ jq -c '.jobs[]|select(tostring|test("996df"))' ~/.hermes/cron/jobs.json
+  {"id":"996dfcbdf4d5","name":"task-router outcomes import (TR-116 hourly)","enabled":false,
+   "schedule":{"kind":"interval","minutes":60}}
+  $ jq -r '.jobs[]|select((.name//"")|test("averag|avg";"i"))|[.id,.name,(.enabled|tostring)]|@tsv' ~/.hermes/cron/jobs.json
+  dc9786e46a48    task-router averages refresh (TR-065 hourly)    false
+
+VERDICT: all five acceptance arms measured green; row closes. Not a code change in this
+tick — the deliverable landed earlier and the status was never advanced.

@@ -1,0 +1,51 @@
+PM REPAIR ATTEMPTED, MEASURED, AND REVERTED — TR-251 WRITER GAP
+Tick: task-router-pm-2026-11-07-00-00-43 (PM lane, target project task-router)
+Board: /home/kara/task-router/.coding-hermes/board/tasks.jsonl (readlink -f verified real file)
+
+WHAT WAS FOUND
+Seven losing duplicate rows carry the off-vocabulary status 'superseded'. The board vocabulary is
+closed at {blocked,complete,failed,in_progress,pending,review}; 'superseded' is not an accepted read
+alias, so each one is a hard `boardctl validate` ERROR on every run. Each row already names its
+survivor in its own title:
+  TR-1000657714383499 -> TR-258      TR-1000727060851072 -> TR-377
+  TR-1000868439592165 -> TR-378      TR-1000874277244119 -> TR-378
+  TR-1000075566052410 -> TR-366      TR-1000562831072393 -> TR-370
+  TR-DISK-1000234647874129 -> TR-372
+
+WHAT WAS ATTEMPTED
+All seven were rewritten status='complete' with a G7 NOT-A-FIX fold note (superseded_by named, the
+row explicitly not counted as resolved work) and a labelled-probe evidence_run_id. Result measured on
+the live checkout: `boardctl validate` moved from
+  RESULT: FAIL (422 error(s), 518 warning(s))   [415 events + 7 tasks]
+to
+  RESULT: FAIL (415 error(s), 516 warning(s))   [415 events + 0 tasks]
+i.e. the repair did remove all seven tasks.jsonl errors.
+
+WHY IT WAS REVERTED (not bypassed)
+Each of those edits is a flip-to-complete in the pushed diff. On this repo the TR-251 CI step
+re-derives every such flip and demands evidence that RESOLVES (a GitHub Actions run id that
+`gh run view` confirms completed+success, or a .gitreins/history/<date>/<id>/verdict.json). A fold has
+no run by definition, and a labelled probe id is shape-only - exactly what the replay refuses. Main is
+already red from that shape: run 42327301807 on commit 7f559ae (the previous PM segment, which closed
+three rows on labelled probes) fails at the TR-251 evidence-replay step; a sibling lane filed it as
+INT-CI-22. The PM skill's rule for this case is explicit ("a fold has no run by definition ... never
+bypass the writer; leave the row open and report the block"), so all seven rows were restored
+byte-identically from the pre-tick snapshot and the seven validator errors are back BY DESIGN.
+
+STATE NOW
+  - 7 duplicate stubs: status='superseded' as before, restored byte-for-byte.
+  - tasks.jsonl validator errors: 7 (was 7 before this tick; the attempt's 0 did not survive the
+    reverting rule).
+  - events.jsonl id-order errors: 415 (pre-existing, filed as TR-1000976681059249 with criteria).
+  - The writer/validator gap itself is filed as TR-1000976681059250 (P1): it covers both facets - a
+    fold cannot be retired, and a row verified by a live probe (no commit, no run) cannot be closed.
+    Second facet measured in this tick: `gh run list --commit 289984e` and `--commit 7b45525` both
+    return [] for two rows whose deliverables are live and verified (TR-380, TR-261); both were left
+    in 'review' with their measurements quoted rather than closed on a claim.
+
+ONE ROW DID CLOSE, LEGITIMATELY
+TR-238 flips to complete bound to a REAL green CI run: 40170436247
+(`gh run list --commit 32714ef --json databaseId,conclusion,status` ->
+[{databaseId:40170436247, conclusion:success, status:completed}]). The run covers commit 32714ef, the
+commit that ships the five documentation arms the row's criteria name. That is the accepted arm, and
+it is the shape the fold rows cannot have.
