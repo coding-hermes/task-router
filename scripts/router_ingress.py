@@ -929,6 +929,146 @@ class _LaneState:
 _SUCCESS_OUTCOMES = ("ok", "accepted")
 
 
+# ---------------------------------------------------------------------------
+# TR-239 — admission sizing is a function of the enabled-lane count, not a
+# constant. The fleet scheduler runs hundreds of enabled lanes; constants
+# sized to DEFEND the router (per-lane queue 8, shared pool 4+16) refuse a
+# fleet-shaped tick after <=20s instead of serving it. The bounds below are
+# DERIVED from the enabled-lane count at call time (never at import time),
+# with explicit floors (== the pre-TR-239 constants, so nothing shrinks and
+# normal traffic is unaffected) and explicit ceilings (so memory stays
+# bounded and the refusal path stays reachable for bursts beyond them).
+# The ROUTER_INGRESS_* env vars still WIN over the derivation: an operator
+# pinning a value is never overridden by arithmetic.
+# ---------------------------------------------------------------------------
+
+#: The documented load model (this row): one scheduler tick delivers up to
+#: TICK_TASKS_PER_LANE tasks on every enabled lane; each task may traverse up
+#: to ``max_hops=3`` router hops (the documented ROUTER_PROXY_MAX_HOPS
+#: default), each hop one ingress request, and every request is retryable.
+#: One tick can therefore put up to 2 x 3 = 6 arrivals on each lane, and
+#: N x 6 arrivals on the shared surface of an N-lane fleet.
+TICK_TASKS_PER_LANE = 2
+TICK_HOPS_PER_TASK = 3            # the documented max_hops=3 load model
+TICK_ARRIVALS_PER_LANE = TICK_TASKS_PER_LANE * TICK_HOPS_PER_TASK  # 6
+
+#: (c) Conservative fallback when neither the env override nor a registry
+#: surface names the fleet: a mid-size scheduler wave. The fleet runs
+#: hundreds of enabled lanes; 64 keeps a registry-less checkout serving
+#: without pretending to know the real number.
+LANE_COUNT_FALLBACK = 64
+
+#: Hard ceilings. The lane-count input is clamped and no derived bound is
+#: unbounded, so a ballooning registry can never balloon memory, and the
+#: refusal path stays reachable (a burst wider than the ceilings still
+#: refuses).
+LANE_COUNT_INPUT_CEILING = 4096
+LANE_QUEUE_MAX_FLOOR = 8           # == pre-TR-239 ROUTER_INGRESS_LANE_QUEUE_MAX
+LANE_QUEUE_MAX_CEILING = 64
+SHARED_MAX_INFLIGHT_FLOOR = 4      # == pre-TR-239 ROUTER_INGRESS_MAX_INFLIGHT
+SHARED_MAX_INFLIGHT_CEILING = 128
+SHARED_QUEUE_MAX_FLOOR = 16        # == pre-TR-239 ROUTER_INGRESS_QUEUE_MAX
+SHARED_QUEUE_MAX_CEILING = 2048
+
+#: Resolved lazily on first use, then cached for the process. The registry
+#: does not change size mid-process often enough to matter; an operator
+#: restarts (or re-execs) to re-size.
+_LANE_COUNT_CACHE = None
+
+
+def _clamp(value: Any, floor: int, ceiling: int) -> int:
+    return max(floor, min(ceiling, int(value)))
+
+
+def _registry_lane_count() -> int:
+    """(b)1 — count fleet lanes in the routing registry's ``projects`` table.
+
+    One row per fleet lane the router knows (``router_seed.py`` exports the
+    table; the scheduler's lane detector keys on the same ids), so the row
+    count IS the lane count the router serves. Returns 0 when the registry is
+    absent or unreadable — the caller then tries the next source.
+    """
+    path = Path(os.environ.get("ROUTING_REGISTRY")
+                or (REPO_ROOT / "registry.json"))
+    try:
+        doc = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return 0
+    rows = (doc.get("tables") or {}).get("projects")
+    if not isinstance(rows, list):
+        return 0
+    return len([r for r in rows
+                if isinstance(r, dict) and str(r.get("id") or "").strip()])
+
+
+def _enabled_lane_count() -> int:
+    """How many enabled lanes the fleet runs. Resolved at CALL time (never at
+    import time), then cached per process.
+
+    Resolution order, first hit wins:
+      (a) explicit override ``ROUTER_INGRESS_LANE_COUNT`` (int > 0) — an
+          operator pinning the fleet size always wins over any discovery;
+      (b) the router's own registry surface:
+            1. the routing registry (``ROUTING_REGISTRY``, else
+               ``<repo>/registry.json``), table ``projects`` — see
+               ``_registry_lane_count()``;
+            2. the endpoint registry (``data/endpoints.jsonl`` via
+               ``load_endpoints()``) — its usable rows are the forwarding
+               targets. A weak, conservative proxy (targets undercount lanes)
+               and the only in-repo surface on a fresh clone;
+      (c) ``LANE_COUNT_FALLBACK`` when neither is available.
+    """
+    global _LANE_COUNT_CACHE
+    if _LANE_COUNT_CACHE is not None:
+        return _LANE_COUNT_CACHE
+    count = 0
+    try:
+        count = int(os.environ.get("ROUTER_INGRESS_LANE_COUNT") or 0)
+    except ValueError:
+        count = 0
+    if count <= 0:
+        count = _registry_lane_count()
+    if count <= 0:
+        endpoints, _problems = load_endpoints()
+        count = len([e for e in endpoints if e.usable])
+    if count <= 0:
+        count = LANE_COUNT_FALLBACK
+    _LANE_COUNT_CACHE = _clamp(count, 1, LANE_COUNT_INPUT_CEILING)
+    return _LANE_COUNT_CACHE
+
+
+def _derived_lane_queue_max(n_lanes: int) -> int:
+    """The per-lane queue bound, derived from the enabled-lane count.
+
+    One tick burst per lane (TICK_ARRIVALS_PER_LANE) must fit behind the
+    lane's in-flight slots, and a larger fleet stacks more retry backlog on
+    each lane, so the room grows with the count at one slot per 16 lanes.
+    Floor = LANE_QUEUE_MAX_FLOOR (the pre-TR-239 constant: no lane ever waits
+    with LESS room than before); ceiling = LANE_QUEUE_MAX_CEILING keeps
+    per-lane memory bounded no matter how big the registry is.
+    """
+    burst = TICK_ARRIVALS_PER_LANE + _env_int("ROUTER_INGRESS_LANE_MAX_INFLIGHT", 2)
+    return _clamp(burst + (n_lanes + 15) // 16,
+                  LANE_QUEUE_MAX_FLOOR, LANE_QUEUE_MAX_CEILING)
+
+
+def _derived_shared_bounds(n_lanes: int) -> tuple:
+    """The shared pool's (max_inflight, queue_max), derived from the count.
+
+    width = one serving slot per 4 lanes (floor = SHARED_MAX_INFLIGHT_FLOOR,
+    the pre-TR-239 constant), so a fleet-sized tick is SERVED, not merely
+    stored; queue = one WHOLE tick (every enabled lane arriving together,
+    TICK_ARRIVALS_PER_LANE each) must be able to WAIT behind that width
+    (floor = SHARED_QUEUE_MAX_FLOOR; ceiling = SHARED_QUEUE_MAX_CEILING keeps
+    the waiter memory bounded and the refusal path reachable).
+    """
+    width = _clamp((n_lanes + 3) // 4,
+                   SHARED_MAX_INFLIGHT_FLOOR, SHARED_MAX_INFLIGHT_CEILING)
+    queue = _clamp(n_lanes * TICK_ARRIVALS_PER_LANE,
+                   SHARED_QUEUE_MAX_FLOOR, SHARED_QUEUE_MAX_CEILING)
+    return width, queue
+
+
 class LaneGuard:
     """Per-lane admission + circuit breaker. The Ingress default.
 
@@ -941,8 +1081,12 @@ class LaneGuard:
                  failures: Any=None, open_s: Any=None, global_max: Any=None, logger: Any=None) -> None:
         self.per_lane_inflight = int(max_inflight if max_inflight is not None
                                      else _env_int("ROUTER_INGRESS_LANE_MAX_INFLIGHT", 2))
+        # TR-239: the queue bound is DERIVED from the enabled-lane count at
+        # construction time; the env var (operator pin) wins over the
+        # derivation, and the derivation's floor is the pre-TR-239 constant.
         self.per_lane_queue = int(queue_max if queue_max is not None
-                                  else _env_int("ROUTER_INGRESS_LANE_QUEUE_MAX", 8))
+                                  else _env_int("ROUTER_INGRESS_LANE_QUEUE_MAX",
+                                                _derived_lane_queue_max(_enabled_lane_count())))
         self.wait_s = float(wait_s if wait_s is not None
                             else _env_float("ROUTER_INGRESS_LANE_QUEUE_WAIT_S", 20.0))
         self.failure_threshold = int(failures if failures is not None
@@ -1040,10 +1184,15 @@ class Admission:
     """
 
     def __init__(self, max_inflight: Any=None, queue_max: Any=None, wait_s: Any=None) -> None:
+        # TR-239: both shared bounds are DERIVED from the enabled-lane count
+        # at construction time (one serving slot per 4 lanes; room for a whole
+        # tick to WAIT). The env vars (operator pins) win over the derivation,
+        # and the derivation's floors are the pre-TR-239 constants.
+        _derived_width, _derived_queue = _derived_shared_bounds(_enabled_lane_count())
         self.max_inflight = int(max_inflight if max_inflight is not None
-                                else _env_int("ROUTER_INGRESS_MAX_INFLIGHT", 4))
+                                else _env_int("ROUTER_INGRESS_MAX_INFLIGHT", _derived_width))
         self.queue_max = int(queue_max if queue_max is not None
-                             else _env_int("ROUTER_INGRESS_QUEUE_MAX", 16))
+                             else _env_int("ROUTER_INGRESS_QUEUE_MAX", _derived_queue))
         self.wait_s = float(wait_s if wait_s is not None
                             else _env_float("ROUTER_INGRESS_QUEUE_WAIT_S", 20.0))
         self._sem = threading.BoundedSemaphore(max(1, self.max_inflight))
