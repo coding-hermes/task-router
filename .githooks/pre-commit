@@ -35,6 +35,30 @@ rc=$?
 if [ "$rc" -eq 2 ]; then
 	echo "pre-commit: WARNING: model-data gate could not run (internal error) — commit allowed," >&2
 	echo "            but this is a bug: python3 scripts/model_data_commit_gate.py --force" >&2
+	rc=0
+fi
+
+if [ "$rc" -ne 0 ]; then
+	exit "$rc"
+fi
+
+# TR-393 decline contract: a board row in blocked/failed/review must state why
+# it is not complete. Same shape as the model-data leg above: the validator
+# fast-paths internally on "did the staged diff touch the board", a missing
+# script warns instead of wedging, and an internal error (exit 2) warns
+# without blocking — the same check still runs in CI
+# (tests/test_decline_contract.py). A violation (exit 1) refuses the commit.
+if [ ! -f scripts/decline_contract.py ]; then
+	echo "pre-commit: WARNING: scripts/decline_contract.py is missing — board decline contract skipped." >&2
+	exit 0
+fi
+
+"$PY" scripts/decline_contract.py --staged
+rc=$?
+
+if [ "$rc" -eq 2 ]; then
+	echo "pre-commit: WARNING: decline-contract validator could not run (internal error) — commit allowed," >&2
+	echo "            but this is a bug: python3 scripts/decline_contract.py --validate" >&2
 	exit 0
 fi
 exit "$rc"
