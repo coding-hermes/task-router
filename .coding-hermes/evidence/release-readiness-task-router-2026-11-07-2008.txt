@@ -465,3 +465,46 @@ Evidence boundary: this artifact lives in the owning checkout
 commit that adds it; its hosted run is PENDING and is not claimed green.
 ================================================================================
 
+PASS 4 — re-gating at the current remote tip
+Measured 2026-11-07T21:26Z onward. No tag, GitHub Release, version bump, or artifact publication was performed.
+
+IDENTITY
+- Canonical repository: coding-hermes/task-router; remote origin=git@github.com:coding-hermes/task-router.git; default branch main.
+- Candidate: de94cd1e7859bf8e40605361e52c00284978df3a. Local origin/main and git ls-remote origin refs/heads/main agree. Clean detached candidate worktree: /home/kara/.hermes/cache/scratch/releng-task-router-20261107-2126.
+- Prior pass-3 carrier ee406513 was superseded. ee406513..de94cd1 contains 6 non-merge commits; the product delta is TR-239 admission bounds plus tests/docs, with board/evidence bookkeeping also present. No release baseline tag exists.
+
+CI — exact candidate SHA
+- Run 42414368042, https://github.com/coding-hermes/task-router/actions/runs/42414368042, head de94cd1: IN PROGRESS, job test in_progress at 21:26Z, step Full test suite (pure JSON — no duckdb needed). This is PENDING, not green.
+- Recent green receipts 42409904921 @ ca85625 and 42411361637 @ 0466f53 are not the current candidate SHA. The exact candidate run is the deciding receipt.
+- ci.yml has no tag push trigger; tag-time verification must use workflow_dispatch on the tag ref.
+
+HISTORY / SEMVER
+- Zero numeric release tags, zero remote tags, and zero GitHub Releases: first-release surface remains unestablished.
+- Whole-history non-merge census at de94cd1: 1,793 commits; 264 feat, 310 fix, 0 perf, 1 other conventional type, 1,737 conventional subjects, 56 free-form subjects, 0 bang-marked subjects, 0 BREAKING CHANGE footers. Counts reconcile with git rev-list --no-merges --count.
+- No breaking marker. If the first release channel is later authorized, proposal remains v0.3.0 (minor on the 0.x line), not major.
+
+VERSION / RELEASE TOOLING
+- pyproject.toml and task_router/__init__.py remain 0.2.0; CHANGELOG top is populated [Unreleased], with no [0.3.0] prep section.
+- Makefile has no release/version/bump/publish/tag target; no scripts/release*, .goreleaser, Dockerfile, package.json, or tag-triggered publisher. docs/releases/release-readiness.md is manual procedure only. RELEASE-2026-11-03-001 remains the dispatchable P0 driver gap.
+- Python artifact strategy is wheel + sdist. No candidate artifacts were built because version prep, driver, and exact-SHA CI are not ready; prior 0.2.0 build evidence is not a v0.3.0 artifact.
+
+GITREINS / DOGFOOD
+- Current-head verdict: .gitreins/history/2026-11-07/f8cc7bb5/verdict.json, TR-239-R1, passed=true, commit de94cd1. It is task-scoped and dirty (working_tree_dirty_path_count=1); summary says PASS [DEGRADED — skipped: tests=no staged files]. Release-tree GitReins gate remains UNVERIFIED.
+- Latest committed dogfood: docs/dogfood/2026-11-06-integration.md, PROMISING-BUT-ROUGH. Fresh install succeeded, but documented seed refuses on 6 of 264 ratings and the tests cell fails at tests/test_metrics_endpoint.py:350. Not a release PASS.
+
+BLOCKERS / DEPLOYMENT
+- Current board census from origin/main: 8 open/non-terminal P0 rows and 29 P1 rows. RELEASE-2026-10-22-001, RELEASE-2026-11-03-001, and RELEASE-2026-11-07-001 remain pending.
+- Owner authorization naming task-router, version, and baseline for the first release is absent. The distribution channel is not established.
+- Deployed consumer artifact is ABSENT, not STALE: no global router executable or external task_router installation; only the repository editable development environment exists.
+- The existing Unreleased section does not cover the complete material history; the prior sweep measured 678 commits / 143 material since the last changelog edit. Prep is an audit, not a simple promote.
+
+DECISION
+- NO CUT. Decision-1 rule 2: exact candidate CI is non-terminal, with independent blockers of open P0s, missing version prep, missing release driver, missing tag publisher, unestablished first-release distribution channel, UNVERIFIED release-tree GitReins, and PROMISING-BUT-ROUGH dogfood.
+- No major bump is proposed; no tag was created, no existing tag was moved, and no Release object or external artifact changed.
+
+NEXT ORDERED ACTION
+1. Owner authorizes first publication for coding-hermes/task-router, naming v0.3.0 and the baseline SHA.
+2. Foreman lands version prep and the executable release driver, audits all material changelog entries, then waits for terminal green exact-SHA CI.
+3. Run a clean candidate-bound release gate; build wheel/sdist and checksums; tag only the certified ancestor; dispatch CI on the tag ref; publish once with the manual GitHub fallback; download and install-test the assets.
+================================================================================
+
