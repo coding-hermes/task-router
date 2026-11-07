@@ -1,0 +1,70 @@
+TR-239 — admission is sized to SERVE the fleet (derived bounds from the enabled-lane count)
+Tick: task-router-foreman-2026-11-07-20-46-32
+Landed: de94cd1 (merge of wt/TR-239-r2 into main), fix-forward docs commit 0110bd8
+
+WHAT CHANGED (code, not prose)
+  scripts/router_ingress.py
+    _enabled_lane_count()  resolved at CALL time, cached per process:
+      (a) ROUTER_INGRESS_LANE_COUNT env pin  >
+      (b) routing registry table `projects` (969 rows on the canonical registry) >
+      (c) usable endpoint registry via load_endpoints() >
+      (d) LANE_COUNT_FALLBACK = 64
+    _derived_lane_queue_max(N)   = clamp((TICK_ARRIVALS_PER_LANE + per_lane_inflight) + ceil(N/16), 8, 64)
+    _derived_shared_bounds(N)    = ( clamp(ceil(N/4), 4, 128), clamp(N*6, 16, 2048) )
+    LaneGuard.per_lane_queue and Admission.{max_inflight,queue_max} now default to the
+    DERIVED value; the pre-TR-239 constants survive as the FLOORS (nothing shrinks), the
+    ceilings keep memory bounded and the refusal path reachable, and every ROUTER_INGRESS_*
+    env pin still WINS over the derivation. wait_s and the global backstop default untouched.
+    Load model encoded and asserted: TICK_TASKS_PER_LANE=2 x max_hops=3 = 6 arrivals per lane
+    per tick (tasks x hops, not tasks).
+
+ACCEPTANCE ARMS — all measured by the foreman, not taken from the worker
+  1. current-knob premise
+     grep -n 'ROUTER_INGRESS_QUEUE_MAX\|ROUTER_INGRESS_LANE_QUEUE_MAX' scripts/router_ingress.py
+       -> lane queue :945, shared queue :1046 (2 lines); ROUTER_PROXY_* names absent (0)
+  2. fleet-shaped load test exists and runs
+     grep -c fleet tests/test_proxy_admission_cache.py            -> 16
+     python3 -m pytest -x -q tests/test_proxy_admission_cache.py  -> 14 passed in 1.54s (EXIT 0)
+     cases: test_a_fleet_shaped_scheduler_tick_is_served_under_the_derived_bounds (48 lanes,
+     3 tasks, 3 hops = 432 arrivals, asserts served>=0.95 AND total_refusals==0),
+     test_a_fleet_shaped_tick_through_the_shared_pool_is_served_too,
+     test_the_pre_tr239_shared_bound_cannot_hold_one_whole_tick (RED ARM: same tick pinned to
+     the old 4+16 bound refuses 0/72 served; classes shared_queue_full=24,
+     shared_no_slot_within_wait_s=48), test_the_derivation_floor_ceiling_override_and_sources
+  3. served >= 95% AND zero refusals for authenticated fleet traffic, refusals counted per
+     named class -> asserted in the two fleet tests above; classes are named
+     (lane_queue_full / lane_no_slot_within_wait_s / shared_queue_full /
+     shared_no_slot_within_wait_s / global_backstop_full / circuit_open) and an
+     unclassified refusal would fail the assertion set.
+  4. queue bound derived, not constant
+     grep -c enabled_lane scripts/router_ingress.py -> 3
+     test_the_derivation_floor_ceiling_override_and_sources proves bounds GROW with N,
+     are floored at the old constants, are hard-ceilinged, are cached per process, and that
+     an env pin beats the derivation.
+
+DESIGN AUTHORITY
+  docs/decisions/TR-239-admission-sizing.md (this repo has no docs/handbook/; per the project
+  foreman skill the decision record IS the design authority).
+
+GATES RUN BY THE FOREMAN (each in a tree named beside its number)
+  worktree task-router-TR-239-r2 @ fc5c84c: 87 passed (test_ingress + test_proxy_admission_cache
+    + test_state_dir_isolation)
+  landing worktree @ de94cd1:                95 passed (+ test_repo_hygiene)
+  gitreins tier 1 + tier 2 (TR-239-R1):      PASS / COMPLETE at de94cd1
+    verdict artifact: .gitreins/history/2026-11-07/f8cc7bb5/verdict.json
+
+CI
+  run 42414368042 on de94cd1 -> FAILED (1 failed, 3002 passed): the ONE failure was mine and
+  real — tests/test_doc_parity.py::test_all_router_env_keys_documented rejected the undocumented
+  ROUTER_INGRESS_LANE_COUNT. Fixed forward in 0110bd8 (docs/configuration.md: the new key plus
+  the derivation + floor/ceiling on the three derived bounds); local doc-parity 6 passed.
+  The push of 0110bd8 used ALLOW_RED_PUSH=1 (the pre-push gate grades the RED tip it was fixing)
+  and the override is disclosed in the commit body.
+
+NOT PROVEN BY THIS ROW
+  A live fleet run against the reloaded ingress. The bounds are proven by the suite and the
+  decision record; the running service was NOT restarted (owner gate, as before).
+
+TREE FINGERPRINT (sha256 of the two load-bearing files at 0110bd8)
+  scripts/router_ingress.py          f3fbbbd89c675584196c078a41cfd0d3fa889e844a7d23faf0ad8580f73c1c75
+  tests/test_proxy_admission_cache.py b45739070f9cd008fb34179e03e6fee6e0ab84d464af8391848716a20f000336
