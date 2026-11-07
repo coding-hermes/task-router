@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+# task-router pre-commit gates.
+#
+# Installed by scripts/install-hooks.sh, which sets core.hooksPath=.githooks.
+# THIS FILE IS THE LIVE PRE-COMMIT HOOK: `git rev-parse --git-path
+# hooks/pre-commit` answers `.githooks/pre-commit`, so anything left in
+# .git/hooks/ is dead code (see the note at the bottom).
+#
+# What it does: when the staged diff touches a model table, refuse the commit
+# if the change adds a live lane with no capability measurement and no stated
+# reason, or if the TR-369 usability defect count would rise.
+# Escape hatch: ALLOW_UNUSABLE_DATA=1 (prints a warning; never silent).
+set -uo pipefail
+cd "$(dirname "$0")/.." || exit 0
+
+PY="${PYTHON:-python3}"
+[ -x "$PY" ] || PY=python3
+
+# Nothing to do outside a work tree (e.g. a bare mirror).
+git rev-parse --is-inside-work-tree >/dev/null 2>&1 || exit 0
+
+# The gate itself is fast-paths on "did any model table change": an unrelated
+# commit pays ~80 ms for a `git diff --name-only`. A missing/broken gate must
+# not wedge commits, but it MUST be visible when it cannot run.
+if [ ! -f scripts/model_data_commit_gate.py ]; then
+	echo "pre-commit: WARNING: scripts/model_data_commit_gate.py is missing — model-data gate skipped." >&2
+	exit 0
+fi
+
+"$PY" scripts/model_data_commit_gate.py --staged
+rc=$?
+
+# 2 is an internal error. Surface it, but do not let a gate bug deadlock the
+# repo — the same check still runs in CI (tests/test_model_data_commit_gate.py).
+if [ "$rc" -eq 2 ]; then
+	echo "pre-commit: WARNING: model-data gate could not run (internal error) — commit allowed," >&2
+	echo "            but this is a bug: python3 scripts/model_data_commit_gate.py --force" >&2
+	exit 0
+fi
+exit "$rc"
+
+# NOTE (deliberate, not an oversight): .git/hooks/pre-commit still carries a
+# GitReins Tier-1 guard and a boardctl board-lint block that have never run,
+# because core.hooksPath moved git off .git/hooks before this file existed.
+# They are NOT chained in here: re-arming two dormant guards is its own change
+# with its own blast radius, and would silently change what a commit does.
