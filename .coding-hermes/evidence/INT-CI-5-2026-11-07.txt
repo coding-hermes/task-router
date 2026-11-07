@@ -1,0 +1,18 @@
+INT-CI-5 closeout evidence — task-router-pm-2026-11-07-00-00-43 (PM lane)
+Ticket: INT-CI-5 "CI red root cause: test_symlink_path_resolution runpy import-scan hangs to the 24m job timeout"
+Row status before this close: review. Dependency INT-CI-4 status: complete.
+Measured from a detached worktree at origin/main 6d8eb84aced098c6c905ab541e43a8e004958bce
+(/home/kara/proj-wt-task-router-pm-20261107-2300) on 2026-11-07T04:02Z.
+
+ARM 1 (row criterion 1) — the named CI run must be completed-success on fix commit 2d1b017:
+  $ gh run view 39378454973 -R coding-hermes/task-router --json status,conclusion,headSha,displayTitle
+  {"conclusion":"success","displayTitle":"test(INT-CI-5): the symlink-contract probe must not execute router_se…","headSha":"2d1b017a2bf3fea94ee4fa04cb87c1f4fd0fe63a","status":"completed"}
+  => completed / success, headSha 2d1b017a2bf3fea94ee4fa04cb87c1f4fd0fe63a. PASS.
+
+ARM 2 (row criterion 2) — the fix commit must be an ancestor of origin/main:
+  $ git merge-base --is-ancestor 2d1b017 origin/main ; echo $?
+  0
+  => PASS (2d1b017 is contained in origin/main 6d8eb847).
+
+Both acceptance arms above are the row's own criteria, executed verbatim. No new code, no dispatch,
+no worker. Evidence-run-id bound on the row: 39378454973 (numeric, completed, success).
