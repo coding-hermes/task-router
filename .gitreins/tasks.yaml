@@ -1672,15 +1672,6 @@ tasks:
   status: complete
   created_at: '2026-11-06T14:43:59.138683+00:00'
   completed_at: '2026-11-06T15:25:41.280727+00:00'
-- id: TR-371
-  title: Ship the no-hops alert to Alertmanager
-  criteria:
-  - Add the TaskRouterNoHopsHigh rule or an honest repository-owned integration artifact,
-    with regression coverage and documented live acceptance; do not fabricate external
-    monitoring evidence.
-  status: complete
-  created_at: '2026-11-06T18:16:20.224256+00:00'
-  completed_at: '2026-11-06T18:54:02.755192+00:00'
 - id: TR-1000976681059248
   title: 'Make the TR-383 satisfiability refusal atomic: a refused seed must publish
     nothing'
@@ -1700,3 +1691,34 @@ tasks:
   status: complete
   created_at: '2026-11-07T01:05:45.806466+00:00'
   completed_at: '2026-11-07T02:49:04.351479+00:00'
+- id: TR-371
+  title: Ship the no-hops alert to Alertmanager
+  criteria:
+  - Add the TaskRouterNoHopsHigh rule or an honest repository-owned integration artifact,
+    with regression coverage and documented live acceptance; do not fabricate external
+    monitoring evidence.
+  status: pending
+  created_at: '2026-11-07T03:34:38.541436+00:00'
+- id: TR-389
+  title: Deploy the spec section 6 alert set into the fleet Prometheus
+  criteria:
+  - 'TaskRouterNoHopsHigh and the spec section 6 minimum set are loaded by the fleet
+    Prometheus: /api/v1/rules returns a non-null state for the rule, the V3 ratio
+    evaluates instead of returning an empty vector (absent-numerator guard), and a
+    temporary sub-threshold setting drives Alertmanager /api/v2/alerts above zero;
+    restore the committed threshold afterwards.'
+  status: pending
+  created_at: '2026-11-07T03:34:38.823748+00:00'
+- id: RELEASE-2026-11-06-001
+  title: Land the TR-371 Alertmanager rule contract on main and close the ledger divergence
+  criteria:
+  - 1) monitoring/task-router-alerts.yml and tests/test_nohops_alert_rule.py exist
+    in origin/main's tree, and tests/test_nohops_alert_rule.py is green on the landed
+    commit 5c5282b; 2) the board records the repo-owned contract as LANDED and the
+    external Alertmanager deployment as explicitly UNVERIFIED and split into its own
+    row TR-389, with TR-371 itself deliberately left pending because its acceptance
+    requires the live fleet Prometheus rule loaded; 3) the closeout commit b43f950
+    is pushed to origin/main and the RELEASE row's completion binds a COMPLETED CI
+    run id.
+  status: in_progress
+  created_at: '2026-11-07T03:34:39.089945+00:00'

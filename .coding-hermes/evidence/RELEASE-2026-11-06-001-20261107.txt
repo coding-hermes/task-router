@@ -74,3 +74,16 @@ landed commit: 5c5282bc85f1ec10c4bcf0d06870efe1bd8e4caa
      -> status=completed conclusion=success headSha=5c5282bc (workflow "test", all steps)
    This is the run the board row binds; the guard + full-suite steps both ran on
    the commit that carries the TR-371 artifact.
+
+8. EXTERNAL ARM — EXPLICITLY UNVERIFIED
+   The fleet Alertmanager deployment is UNVERIFIED from this repository and is
+   not claimed: this repo cannot observe the fleet rule set, so no reading of
+   TaskRouterNoHopsHigh as loaded/firing is asserted anywhere in this closeout.
+   What IS measured is the negative: at 03:04Z /api/v1/rules on fleet-monitor
+   returned only ['capacity','host-health','uptime-probes'].
+   Ledger repair (the divergence itself): .gitreins/tasks.yaml on origin/main
+   asserted `TR-371 status: complete` while the board and its own criterion
+   (live rule loaded) said otherwise. TR-371 was deleted from the ledger and
+   re-created as PENDING with its original criterion; TR-389 was created as a
+   PENDING ledger entry so the split row is mirrored. Merging the artifact was
+   only half the repair — the ledger's false `complete` was the other half.
