@@ -1,0 +1,76 @@
+RELEASE-2026-11-06-001 — TR-371 ledger divergence — closeout evidence
+tick: task-router-ops-2026-11-07-01-00-21
+authored: 2026-11-07T03:0x Z (host clock 21:5x EST)
+landed commit: 5c5282bc85f1ec10c4bcf0d06870efe1bd8e4caa
+
+1. DIVERGENCE AS FILED
+   .gitreins/tasks.yaml carried TR-371 status=complete (553d2cb3), while the
+   implementation 3b859ab was reachable only from wt/TR-371
+   (git merge-base --is-ancestor 3b859ab 5dfbc88 -> rc=1).
+
+2. REPAIR
+   Rebased the implementation onto origin/main inside its own worktree
+   (/home/kara/worktrees/task-router-TR-371):
+     git rev-list --left-right --count wt/TR-371...origin/main   -> 1 ahead / 16 behind
+     git rebase origin/main                                      -> Successfully rebased (clean, no conflicts)
+     new commit 5c5282b  (same three files, 283 insertions)
+   Pushed fast-forward and verified remote parity:
+     git push origin HEAD:main     -> 392aa7e..5c5282b  HEAD -> main
+     git rev-list --count origin/main..5c5282b              -> 0
+     git ls-remote origin refs/heads/main -> 5c5282bc85f1ec10c4bcf0d06870efe1bd8e4caa
+
+3. TREE PROOF (committed tree, not working copy)
+   git ls-tree -r --name-only origin/main | grep -E 'monitoring/task-router-alerts.yml|tests/test_nohops_alert_rule.py'
+     monitoring/task-router-alerts.yml
+     tests/test_nohops_alert_rule.py
+   git show --stat 5c5282b:
+     docs/observability-spec.md        |  34 ++
+     monitoring/task-router-alerts.yml |  87 ++
+     tests/test_nohops_alert_rule.py   | 162 ++
+   Board row TR-371 in the same tree is still status=pending: the ledger's
+   "complete" no longer overstates what the tree carries in the sense that
+   matters here — the artifact is now ON main — but TR-371's live arm
+   (rule loaded by the fleet Alertmanager) is NOT met; see 5 below.
+
+4. REGRESSION COVERAGE (replayed on the rebased tree)
+   ~/.hermes/venvs/board/bin/python3 -m pytest tests/test_nohops_alert_rule.py tests/test_router_nohops.py -q
+     -> 38 passed, 1 skipped in 1.43s   (skips = documented, not silent)
+
+5. LIVE ARM — MEASURED, NOT FABRICATED (fleet-monitor, 2026-11-07T03:04Z)
+   a) monitoring stack is alive (containers, not systemd units):
+      mon-prometheus Up 58 minutes  0.0.0.0:9090->9090
+      mon-alertmanager Up 11 hours  127.0.0.1:9093->9093
+      (systemctl is-active prometheus alertmanager -> inactive/inactive;
+       the units are docker-managed, so a unit check reads as a false red.)
+   b) rule groups loaded now:
+      curl 127.0.0.1:9090/api/v1/rules -> ['capacity', 'host-health', 'uptime-probes']
+      rules matching *oHop* / *askRouter* -> []      # TaskRouterNoHopsHigh is NOT loaded
+      rule_files glob: /etc/prometheus/rules/*.yml, mounted from
+      /root/fleet-monitoring/alerts/rules (ro) — that is where the deploy lands.
+   c) the landed artifact is valid Prometheus rules syntax, checked against the
+      LIVE prometheus binary (read-only, nothing deployed):
+      sudo -n docker exec -i mon-prometheus promtool check rules /dev/stdin < monitoring/task-router-alerts.yml
+        -> Checking /dev/stdin
+        -> SUCCESS: 1 rules found
+   d) the rule's expression has NO live data yet:
+      count(task_router_proxy_requests_total)  -> 2 series (rate 1h = 0.00503/s)
+      count(task_router_proxy_nohops_total)    -> []   (family absent in Prometheus)
+      V3 ratio (nohops/requests, 1h)           -> []   (empty vector)
+      local exposition 127.0.0.1:9391/metrics declares
+      task_router_proxy_nohops_total in HELP/TYPE but emits ZERO sample lines,
+      so the numerator never reaches the push path while no no-hops proxy event
+      has occurred. Deploying the rule alone would therefore be INERT: the
+      expression must degrade to 0 for an absent numerator before the alert can
+      read "inactive" rather than "no data".
+
+6. SEPARATION OF ARMS
+   repo-owned: rule contract + regression test + spec section — LANDED (this row).
+   cross-repo : loading the rule into /root/fleet-monitoring/alerts/rules and
+                reloading prometheus — NOT performed by this lane; filed as a
+                follow-up row naming step 5c as its blocker.
+
+7. CI (exact-candidate)
+   gh run view 42331566721 --json status,conclusion,headSha
+     -> status=completed conclusion=success headSha=5c5282bc (workflow "test", all steps)
+   This is the run the board row binds; the guard + full-suite steps both ran on
+   the commit that carries the TR-371 artifact.
