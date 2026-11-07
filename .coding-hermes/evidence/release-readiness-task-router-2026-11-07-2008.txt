@@ -173,3 +173,143 @@ Ordered next sequence (for the pass that has that authorization)
 
 Evidence
 - This file. Measurements taken 2026-11-07T20:09Z-20:35Z against the fetched refs named above.
+
+================================================================================
+PASS 2 — same tick re-delivered (task-router-releng-2026-11-07-20-08-56)
+Measurements taken 2026-11-07T20:33Z-20:49Z. Pass 1 of this tick wrote this file
+and landed it as commit f934562; this section EXTENDS that record per the
+one-artifact-per-tick rule. No product code, tag, Release object or version bump
+was created or changed by either pass.
+
+What CHANGED since pass 1 (delta receipt)
+- Tip moved 1c585f3 -> ca85625 -> 48c3c83 -> 0466f5376e41350a29b2f7ddaac84a82d4c41190
+  (origin/main, `git ls-remote origin refs/heads/main` and
+  `gh api repos/coding-hermes/task-router/commits/main` all agree at 20:44Z and again
+  at 20:48Z).
+- `git log --oneline ca85625..HEAD` = 3 commits, all bookkeeping:
+    f934562 releng(...): readiness sweep 2026-11-07-20-08-56 — evidence at ca85625
+    48c3c83 board(RELEASE): refresh the readiness row and make the release-driver row dispatchable
+    0466f53 board(TR-1000397261104277): review — no-hops numerator landed as ca85625
+  `git diff --name-only ca85625..HEAD` = 4 files, all under `.coding-hermes/`
+  (board/events.jsonl, board/tasks.jsonl, evidence/release-readiness-...-2008.txt,
+  evidence/tr1000397261104277-nohops-numerator-20261107.txt).
+  Non-`.coding-hermes/` paths differing between ca85625 and HEAD: 0. The code tree at
+  the tip is BYTE-IDENTICAL to the code tree whose CI is cited below, so the pass-1
+  census carries forward un-re-derived (no material commit landed).
+
+CI — the leg that flipped
+- ca85625b + run 42409904921: completed / SUCCESS, terminal at 2026-11-07T20:47:06Z.
+  Per-job: `test` completed/success; per-step census 18 steps, 18 success, 0 skipped,
+  0 cancelled. Pass 1 recorded this run as IN PROGRESS; that PENDING status is
+  SUPERSEDED here and must not be carried forward.
+- Tip 0466f53 + run 42411361637: IN PROGRESS at 20:48Z (job `test`, step 7 full suite).
+  Tip 48c3c83 + run 42410709259: IN PROGRESS at 20:48Z. Both are board-only carriers;
+  their own runs are PENDING, not green, and are not claimed as green here. The gate
+  for the release tree rests on 42409904921 by tree identity (0 code paths differ).
+- Ancestor receipt: 1c585f3 + run 42406562186 completed/success (18/18 steps).
+- Cycle cost re-measured this pass: ca85625 run started 20:12Z, terminal 20:47:06Z =
+  35 minutes wall for one run (suite runs twice per job by design). Any cut that needs
+  a prep commit's own green run therefore budgets ~35 min per CI cycle.
+
+Decision (unchanged, rule number restated)
+- Decision-1 rule 2 fires: 7 open P0 rows in the target (RELEASE-2026-10-22-001,
+  RELEASE-2026-11-03-001, TR-371, TR-390, TR-394, TR-395,
+  TR-1000599737158536). Pass 1 recorded 9 open P0 / 32 open P1; re-measured now:
+  7 open P0 / 27 open P1 (TR-294 and TR-1000397261104277 closed between passes).
+  The prior 9/32 figures are superseded by these.
+- First-release invariants still failing: no version prep (both pins 0.2.0, CHANGELOG
+  top section still `## [Unreleased]`), no executable release driver, no tag-triggered
+  publisher in ci.yml, zero tags ever, zero Release objects ever.
+- NO CUT. The CI leg is now green; that clears one invariant and changes nothing about
+  the others.
+
+Release surface re-probed at the tip (all ABSENT, unchanged)
+- `git tag -l | wc -l` = 0 ; `git ls-remote --tags origin | wc -l` = 0 ;
+  `gh release list --repo coding-hermes/task-router` = 0 rows.
+- `grep -nE 'tags:|workflow_dispatch|branches:' .github/workflows/ci.yml` = push
+  branches:[main], workflow_dispatch only — no `tags:` trigger.
+- Makefile: 15 targets, none of them release/version/bump/publish/tag.
+- `ls scripts/ | grep -iE '^release|release_|_release'` = router_release_backfill.py
+  only (a data-backfill tool, NOT a cut driver). RELEASE-2026-11-03-001 stands OPEN and
+  is now dispatchable (its `acceptance` contract was filled in pass 1).
+- Version pins: pyproject.toml `version = "0.2.0"`, task_router/__init__.py
+  `__version__ = "0.2.0"`. CHANGELOG headings: [Unreleased], [0.2.0] — 2026-09-24,
+  [0.1.0] — 2026-09-21. BOTH older sections were never tagged: the version surface
+  records two releases that never shipped. That is a standing finding folded into
+  RELEASE-2026-10-22-001.
+
+Census (carried forward + one fresh cross-check)
+- Pass-1 whole-history census at ca85625 stands: 1882 commits / 1786 non-merge;
+  breaking markers (`BREAKING CHANGE:` / `type!:`): 0.
+- Fresh cross-check with the CHANGELOG's own baseline (since the 0.2.0 section date,
+  2026-09-24): `git rev-list --no-merges --count --since=2026-09-24 HEAD` = 1342;
+  prefix histogram board 467, chore 232, fix 226, feat 141, docs 65, data 50, test 38,
+  dogfood 18, evidence 14, releng 11, ci 6, qa 4, plus long tail. Sum of classified
+  rows reconciles with 1342; `grep -cE 'BREAKING CHANGE:|^[a-z]+(\(.*\))?!:'` over
+  full bodies = 0.
+- Semver reading unchanged: pre-1.0, feat-bearing delta, zero breaking → MINOR;
+  proposal v0.3.0 (0.2.0 being the never-tagged stamp in the tree).
+
+Gates that are not CI
+- GitReins: newest verdict bound to the code candidate is
+  .gitreins/history/2026-11-07/e153e8f8/verdict.json — commit ca85625, task
+  TR-1000397261104277, `passed: true`, evaluated 2026-11-07T20:19:09Z. It is task-scoped
+  and its own summary carries `Overall: PASS [DEGRADED — skipped: tests=no staged
+  files]`, worktree /home/kara/worktrees/task-router-TR-1000397261104277,
+  working_tree_dirty_path_count 1. Degraded + dirty + task-scoped = NOT a release-tree
+  verdict. No fresh non-degraded full-tree verdict bound to ca85625 exists →
+  GitReins release gate: UNVERIFIED.
+- Dogfood: newest is docs/dogfood/2026-11-06-integration.md (tick
+  task-router-dogfood-2026-11-06-12-08-29, target 586dcf6) → verdict
+  "PROMISING-BUT-ROUGH". Fresh-machine install OK (`task-router-0.2.0` installs on a
+  clean box) but the documented quick-start step 4 FAILS: `router seed` refuses on the
+  math capability (6 of 264 ratings unroutable) while writing state; the bunker cell's
+  `tests` cell FAILs at tests/test_metrics_endpoint.py:350; the collector reproduced
+  QA-TASKROUTER-12 (AGENT-GONE while the agent was alive). The seed refusal has an open
+  row (TR-1000976681059246). Dogfood gate: FAIL/PROMISING-BUT-ROUGH, not green.
+- Dependencies: TR-DEPS-001 (pending) — duckdb 1.5.6 -> 2.0.0 is a MAJOR bump on the
+  board/seed engine. Major never moves automatically; it is an owner decision and is
+  not bundled into this release line.
+- Deployed/consumer artifact: ABSENT, not stale. `~/.local/bin/router` does not exist;
+  the only installed surface is the in-repo venv
+  (`.venv/lib/python3.12/site-packages/task_router-0.2.0.dist-info`, editable). No user
+  outside the checkout has ever installed a released artifact — consistent with zero
+  tags and zero Release objects.
+
+Row corrections made this pass
+- RELEASE-2026-10-22-001's PRIMARY `acceptance` array carried two criteria that could
+  never pass or would gate the wrong commit:
+    (1) `grep -c '^## v0.3.0' CHANGELOG.md prints 1` — this repo's heading convention is
+        `## [0.3.0] — <date>` (`## [0.2.0] — 2026-09-24`), so a correct promotion still
+        fails that grep.
+    (2) `ci_gate_check.py --sha 630af6190cd12c1ee0dc94383c3c17528c985dab --require-green`
+        — 630af61 is a 2026-10-22 board commit, 501 commits behind HEAD
+        (`git rev-list --count 630af61..HEAD` = 501, ancestor rc=0). A cut would be
+        gated on a stale unrelated SHA.
+  Both are rewritten in this pass to the repo's actual heading format and to the TAG's
+  own SHA; the `acceptance_criteria` field (6 items) was already sound and is unchanged.
+- RELEASE-2026-10-22-001 `reasoning` is rebuilt to lead with this pass's candidate and
+  run state; the pass-1 text and the 2026-11-06 rationale are preserved verbatim beneath
+  it for audit.
+- Framing corrected: the owner gate on this row is the NEVER-ESTABLISHED distribution
+  channel (zero Release objects ever in this repo — a channel releng may not open on its
+  own), NOT the version number. v0.3.0 is a MINOR bump and minor/patch cuts are standing
+  releng authority the moment the channel exists. Recorded so the next pass does not
+  re-read an authorization requirement as permanent policy.
+
+Ordered next sequence (unchanged from pass 1; CI leg now known green)
+1. Land version prep as its own commit (pins 0.3.0 in both files, promote `[Unreleased]`
+   to a dated `## [0.3.0] — <date>` section audited against every feat/fix since the
+   section's last edit, reopen an empty `[Unreleased]`), then wait ~35 min for its own
+   green run.
+2. Land the release driver (RELEASE-2026-11-03-001), or record the documented manual
+   fallback plus the defect it leaves behind.
+3. Tag the gated commit (ancestor of main; not necessarily the tip), push, then
+   `gh workflow run ci.yml --ref v0.3.0`, watch to terminal, read per-job conclusions.
+4. `gh release create v0.3.0` with CHANGELOG-derived notes and built wheel/sdist as
+   positional assets — exactly once (the repo has no tag publisher, so the manual path
+   IS the only path; say so in the record).
+5. Download the published assets and install the wheel in a fresh venv
+   (`task_router.__version__`; the CLI ships no --version flag), then
+   `gh release view` for tagName/isDraft/isPrerelease/assets.
+================================================================================
