@@ -506,5 +506,10 @@ NEXT ORDERED ACTION
 1. Owner authorizes first publication for coding-hermes/task-router, naming v0.3.0 and the baseline SHA.
 2. Foreman lands version prep and the executable release driver, audits all material changelog entries, then waits for terminal green exact-SHA CI.
 3. Run a clean candidate-bound release gate; build wheel/sdist and checksums; tag only the certified ancestor; dispatch CI on the tag ref; publish once with the manual GitHub fallback; download and install-test the assets.
+
+PASS 4 CORRECTION — exact candidate CI terminalized RED
+Re-probed after the pass-4 record was written. Run 42414368042 at de94cd1e7859bf8e40605361e52c00284978df3a is terminal completed/failure. Job test failed in `Full test suite (pure JSON — no duckdb needed)`: 3002 passed, 13 skipped, 1 failed in 1266.31s. The failing test is tests/test_doc_parity.py::test_all_router_env_keys_documented; it reports ROUTER_INGRESS_LANE_COUNT missing from README.md or docs/configuration.md. This is an exact-candidate code/documentation failure, not a queued or runner-unverified state. The current release gate is RED and the no-cut decision is strengthened. Run URL: https://github.com/coding-hermes/task-router/actions/runs/42414368042.
+
+The board-only readiness carrier pushed afterward is 5498af1cf73e2b55fef006fa2c0aa4efcbd2fda. Its push-time gate reported no completed run because run 42414368042 is the failed run on the pre-carrier product candidate de94cd1; the carrier is not claimed green. The evidence is updated in place per the one-artifact-per-tick rule.
 ================================================================================
 
