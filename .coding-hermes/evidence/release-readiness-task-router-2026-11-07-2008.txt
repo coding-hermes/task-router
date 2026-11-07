@@ -1,0 +1,175 @@
+Release readiness sweep — task-router-releng-2026-11-07-20-08-56 (pass 1)
+Daily readiness sweep for the task-router release lane. Verify-only: no product code, no tag,
+no Release object, and no version bump was created or changed by this pass.
+
+Identity
+- Repository: coding-hermes/task-router ; remote alias `origin` = git@github.com:coding-hermes/task-router.git
+- Canonical root: /home/kara/task-router ; default branch: main (gh api repos/.../default_branch)
+- Candidate observed at sweep start (20:09Z): 1c585f3028db607f452a20ac77618b469c35ac60.
+  Local `git rev-parse origin/main`, `git ls-remote origin refs/heads/main` and
+  `gh api repos/coding-hermes/task-router/commits/main` agreed on that SHA at that moment.
+- TIP MOVED MID-PASS (sibling landing). Converged tip at 20:26Z:
+  ca85625bc6b1c4361a2449b500c7dd891cb64a4d, all three views agreeing again
+  (origin/main, ls-remote, provider API). Every count below is re-anchored to ca85625.
+- 1c585f3 is an ancestor of ca85625 (`git merge-base --is-ancestor 1c585f3 ca85625` -> rc=0);
+  the delta is CODE: scripts/router_prometheus.py + tests/test_nohops_alert_rule.py
+  (`git diff --name-only 1c585f3..ca85625`). The earlier candidate therefore does not stand
+  as the release tree.
+- Clean detached candidate worktree used for measurements:
+  /var/tmp/hermes-scratch/releng-tr-mLYorn at 1c585f3 (root, remote and HEAD asserted;
+  `git status --porcelain` empty). The delta commit ca85625 was read from the fetched ref.
+
+CI (hosted, exact SHA — the only tree gate this lane accepts)
+- 1c585f30 + run 42406562186: completed / SUCCESS, 2026-11-07T20:13:53Z.
+  Per-job: `test` completed/success, 18 steps, no skipped required job.
+- ca85625 + run 42409904921: IN PROGRESS at write time (job `test`, step "Full test suite").
+  Status is PENDING, not green and not red. The run was started and polled; it was not
+  watched to terminal inside this pass.
+- Measured cycle on this box (last 12 runs, `run_started_at` -> `updated_at`): 28, 42, 28, 46,
+  43, 35, 42, 43, 29, 35, 34 minutes — a full suite run costs roughly 30-45 minutes, and the
+  suite runs TWICE per job by design (ci.yml INT-CI-20261011-01 note).
+- Workflow surface: exactly one workflow, `.github/workflows/ci.yml`, triggers
+  `push: branches:[main]`, `pull_request`, `workflow_dispatch`.
+  `grep -n 'tags:' .github/workflows/*.yml` -> NO HITS. There is no tag-triggered publisher:
+  pushing a tag would publish nothing, silently. (Finding open as RELEASE-2026-11-03-001.)
+
+Commit census
+- No tag baseline exists, so the release line is the whole history. Whole-tree census at
+  ca85625: 1882 commits / 1786 non-merge; subjects classify as
+  fix 310, chore 289, feat 264, docs 89, data 68, board 556, test 49, plus long tail;
+  782 commits touch non-board paths (shipped source), 1004 are board/docs/harness bookkeeping.
+  BREAKING CHANGE / `type!:` markers: 0.
+- Delta since the previous releng sweep tip 8225844 (task-router-releng-2026-11-06-19-13-01
+  pass 4) -> ca85625: 48 non-merge commits; classified 48 (reconciles with
+  `git rev-list --no-merges --count 8225844..ca85625`).
+  Types: board 32, fix 3, chore 3, qa 2, feat 2, releng 2, prometheus 1, supervisor 1,
+  gate 1, data 1. Material (touching a non-board path): 9 —
+    ca85625 prometheus: prime router_proxy_nohops_total with a zero sample (TR-1000397261104277)
+    dcabd27 fix(registry): land INT-CI-23 — case-fold shadow fix, stale-stamp sweep (fix)
+    c78e76c feat(board): TR-393 decline contract — structured reasons (feat)
+    4d60db2 gate(TR-362): land the pre-commit leg — model-data commit gate (gate)
+    c021e67 fix(tiers): stamp the AC2 vocabulary, not the harness class name (fix)
+    3a4af93 data(tiers): land 951 measured rows from the dead probe agents (data)
+    5c5282b feat: add TaskRouterNoHopsHigh Alertmanager rule contract (TR-371) (feat)
+    c820070 fix(TR-1000976681059248): publish nothing when the satisfiability gate refuses (fix)
+    a4339bc board(INT-CI-23): close with CI-green run 42372275927 (board file + data ACs)
+- Semver: two `feat` commits and behavior-changing fixes in the delta => the 0.x MINOR axis.
+  First-cut proposal remains **v0.3.0** (unchanged from the prior pass). This is a PROPOSAL,
+  not authorization. No major bump is warranted: zero BREAKING CHANGE footers, zero
+  bang-marked subjects across all 1786 non-merge commits.
+
+Version surface and release tooling
+- `pyproject.toml` version = 0.2.0 ; `task_router/__init__.py __version__` = 0.2.0 (they agree,
+  and only these two locations carry the pin).
+- `CHANGELOG.md` top heading is `## [Unreleased]` with a populated body; below it are dated
+  `## [0.2.0] — 2026-09-24` and `## [0.1.0] — 2026-09-21` sections. There is no `[0.3.0]`
+  heading: version prep is ABSENT for any cut.
+- Makefile targets: help venv install seed validate status serve test guard hooks smoke schemas
+  watchdog restart-router clean. NO release/version/bump/publish/tag target.
+- No scripts/release*, no .goreleaser*, no Dockerfile, no package.json, no publish workflow.
+  `docs/releases/{release-readiness,v0.2.0-readiness,v0.2.0-release-body}.md` are a manual
+  procedure only — docs without a driver. That gap is RELEASE-2026-11-03-001 (P0).
+- Artifact strategy is evidenced but not built for this SHA: the package is pure-stdlib, so the
+  artifact set is wheel + sdist plus GitHub's auto source archives. The prior pass built the
+  0.2.0 tree (`python -m build` rc=0, wheel 32598 B, sdist 773538 B) — strategy evidence only,
+  NOT v0.3.0 assets.
+
+Release surface (three layers, all empty — this would be a FIRST-ever release)
+- Tags: 0 local (`git tag -l`), 0 remote (`git ls-remote --tags origin`).
+- Release objects: 0 (`gh release list --limit 10` prints nothing).
+- Published package/registry artifacts: none (no PyPI publication, no image, no registry).
+- Publisher: absent (no tag trigger — see CI above).
+- No tag, Release, artifact or external release state was created or changed by this pass.
+
+GitReins
+- No bound verdict exists for this candidate. `gitreins guard --full` was started in the clean
+  candidate worktree and hit the tool's 180 s cap while it re-ran the full suite; it produced no
+  verdict and is recorded as NOT COMPLETED, not as a pass.
+- Lane rule applies here regardless: a pristine detached tree yields changedFileCount 0, so a
+  full-tree guard returns a DEGRADED pass with build/lint/test lanes reporting "no files in
+  scope" — that is non-evidence, and the hosted exact-SHA suite carries the tree gate instead.
+- Latest bound verdicts on this repo remain older SHAs (593271f7, 34fc3f5, f5fa3f1) per the
+  prior pass. Current-tip GitReins evidence = UNVERIFIED.
+
+Dogfood / QA
+- Latest committed dogfood record (`.coding-hermes/dogfood-log.md`, 2026-11-06): verdict
+  PROMISING-BUT-ROUGH. Cells report fresh-machine tests FAIL on the interpreter-dependent
+  `::ffff` loopback gate, install isolation UNVERIFIED (bunker Net mode `shared`), and a refused
+  seed that still writes registry/data. Its measured product SHA is stale relative to this tip.
+  The label is not a waiver and this is not a PASS.
+- Open QA rows: QA-TASKROUTER-8 .. QA-TASKROUTER-18 plus QA-TASKROUTER-14-R2, all pending
+  (P2/P3). Nothing in them closes a release gate.
+
+Deployed artifact staleness
+- There is NO global install surface: no `router` executable in ~/.local/bin, /usr/local/bin or
+  /home/kara/.venv/bin, and no task_router package under ~/.local/lib/python3*/site-packages.
+  The only install is the repo's own editable venv
+  (/home/kara/task-router/.venv/lib/python3.12/site-packages/task_router-0.2.0.dist-info), which
+  tracks the working tree by construction.
+- Classification: ABSENT (no deployed global CLI), NOT stale. Recorded separately from the
+  release decision because "does not exist" and "is older than HEAD" are different findings.
+
+Dependencies
+- Runtime dependencies: NONE by design ("stdlib only — scripts/ tools must run in the bare board
+  venv", pyproject.toml). Test/dev extras: pytest, duckdb, pyyaml. uv.lock carries 9 packages.
+- No runtime dependency exists, so the advisory rule cannot fire and no security-driven patch
+  release is indicated. No lockfile version was moved this pass: patch/minor moves of dev-only
+  extras belong in the release commit, and there is no advisory to force one now.
+- An advisory scan was NOT run this pass (no audit toolchain in the unattended path); recorded as
+  not performed rather than green.
+
+Blockers (open rows at ca85625, after last-physical-line dedupe by id)
+- Open P0 = 9: TR-294 (blocked), RELEASE-2026-10-22-001 (pending, this readiness row),
+  RELEASE-2026-11-03-001 (pending, release driver absent), TR-371 (pending),
+  TR-390 (pending), TR-394 (pending), TR-395 (pending),
+  TR-1000397261104277 (pending — implementation landed in ca85625 this tip but the row is not
+  closed), TR-1000599737158536 (pending — duplicate of TR-389, which is COMPLETE; the closing
+  commit routed it to the PM lane to fold).
+- Open P1 = 32.
+- TR-371 ledger divergence re-proven live at this tip (not carried): `git merge-base
+  --is-ancestor 3b859ab8a5b412c7fe07dd4cf1cc3cbf2bee6479 HEAD` -> rc=1;
+  `git rev-list --left-right --count origin/wt/TR-371...origin/main` -> 1 ahead / 54 behind.
+  `.gitreins/tasks.yaml` still records TR-371 complete.
+- Authorization: NO release-cut authorization row and no owner statement exists. A board scan
+  for release-cut/authoriz returns only this readiness row's own title.
+
+Decision
+- **NO CUT.** Decision-1 rule 2 fires: open P0 blockers exist in the target. Rule 2 says fix the
+  blocker, not write a hold row — and two of the nine are this lane's own work items
+  (RELEASE-2026-11-03-001 the driver, and TR-1000397261104277 whose code just landed).
+- Independent invariants that also fail, each sufficient on its own:
+  * exact-SHA CI on the current tip is PENDING (run 42409904921), not green;
+  * no version-prep commit (pins 0.2.0, CHANGELOG still `[Unreleased]`, no `[0.3.0]`);
+  * no executable release driver and no tag-triggered publisher;
+  * current-tip GitReins UNVERIFIED and dogfood not cleared;
+  * the release namespace has NEVER been published to (0 tags, 0 Releases ever), which §0 of the
+    releases charter withholds from autonomous decision and reserves to the owner.
+- CI green at 1c585f3 clears only the CI invariant for THAT sha. ca85625 is a code commit and
+  has no verdict: a green ancestor is not a green candidate.
+
+Actions taken by this pass
+- RELEASE-2026-11-03-001 was `acceptance: null` — undispatchable as written. It now carries a
+  concrete repair contract (a non-publishing, non-tagging driver plus its refusal paths), so the
+  foreman can build it without owner authorization.
+- RELEASE-2026-10-22-001 primary fields and rationale refreshed from the 11-06 candidate
+  (8225844 / run 42286561173) to this tip and this run state, so no stale candidate leads the row.
+- One owner decision requested in the delivery thread: authorize a FIRST public release surface
+  for this repo and pick the version (proposal v0.3.0). One question, not a hold.
+
+Ordered next sequence (for the pass that has that authorization)
+1. Land version prep as its own commit: pins 0.3.0 in both locations, promote `[Unreleased]` to a
+   dated `## [0.3.0]` section (auditing the section against every feat/fix landed since its last
+   edit), reopen an empty `[Unreleased]`.
+2. Land the release driver (RELEASE-2026-11-03-001) or record the documented manual fallback and
+   the defect it leaves behind.
+3. Wait for terminal green on the prep commit's exact SHA (budget 30-45 min per cycle).
+4. Tag that gated commit (it must be an ancestor of main; not necessarily the tip), push the tag
+   without moving any existing ref.
+5. `gh workflow run ci.yml --ref v0.3.0`, watch to terminal, read per-job conclusions.
+6. `gh release create v0.3.0` with notes from the CHANGELOG section and the built wheel + sdist as
+   positional assets; then download the published assets into an empty dir and install the wheel
+   in a fresh venv (`task_router.__version__`; the CLI ships no --version flag).
+7. Verify `gh release view`: tagName, non-draft, non-prerelease, assets, and the tag run green.
+
+Evidence
+- This file. Measurements taken 2026-11-07T20:09Z-20:35Z against the fetched refs named above.
