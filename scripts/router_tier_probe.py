@@ -23,6 +23,18 @@ PIPELINE (all sanctioned channels, nothing hand-edited)
            always run; --extended2 guard/review; --extended3 mechanical/
            multilingual/spec_docs/mock). Dead ids 404 and are filed by the
            ingest as typed not_served gaps — evidence, not silence.
+
+           TWO BATTERY TRAPS (measured 2026-11-07):
+           - The default wave passes an explicit --models handoff (needed
+             because select_targets picks partially-tiered lanes that the
+             battery would otherwise skip), and the battery treats
+             "--models + any --extended*" as FILL-ONLY: it then skips the
+             v5/agentic probes entirely. A fill wave therefore lands
+             guard/review/mechanical/multilingual/spec_docs/mock and NO
+             agentic categories; run a separate `--batteries agentic` pass
+             (no extended flags -> fill_only is False) for those six.
+           - No terminal probe exists in any battery: terminal evidence can
+             only arrive from Terminal-Bench rows in benchmarks.jsonl.
   ingest   shells out to scripts/router_probe_ingest.py --commit. Every key
            is SINGLE-CATEGORY (the rank-fidelity rule from 67d553c: the
            BENCH_OVERLAY mapping is derived from the battery spec, so a
@@ -174,7 +186,9 @@ def _resolvable_providers(prov_cfg: Any=None, env: Any=None, probe_data: Any=Non
         if not prov:
             continue
         base, _key, extra = _run.resolve(prov, prov_cfg, env, probe_data)
-        out[prov] = bool(base)
+        # A resolved base is not enough: a header-gated provider (opencode-go)
+        # is only probeable when its session header resolved too.
+        out[prov] = bool(base) and not _run.skip_reason(prov, extra)
     return out
 
 
@@ -234,6 +248,12 @@ def select_targets(categories: Any, only_providers: Any=None, only_models: Any=N
         if prov in _run.SKIP_REASON:
             exclude('unprobeable-provider', prov, model)
             continue
+        if _run.HEADER_GATED.get(prov):
+            # header-gated: excluded only if the header did not resolve (the
+            # credential map already folds skip_reason() in)
+            if not provcred.get(prov):
+                exclude('unprobeable-provider', prov, model)
+                continue
         if not provcred.get(prov):
             exclude('no-credentials', prov, model)
             continue
@@ -287,15 +307,32 @@ def stamp_reasons(targets: Any, excluded: Any, commit: bool=False, data_dir: Any
       unprobeable-provider / no-credentials / dead-id / probe-excluded ->
           unreachable-provider (structural: a probe cannot run)
       otherwise -> no-sample-yet (reachable, not yet in a wave)
+
+    BUG FIXED: the lanes that most need a reason (a dead key, 402 plan, a
+    closed transport) are exactly the ones select_targets EXCLUDES, so
+    iterating `targets` alone stamped nothing for them and left their tier
+    nulls unexplained. The four unreachable classes are emitted too — they
+    are ACTIVE lanes by construction (the lifecycle filter runs first).
     """
-    data_dir = data_dir or DATA_DIR
+    # data/null_reasons.jsonl is the TR-197 sidecar the census
+    # (scripts/data_null_census.py: STAMP_PATH = dirname(tables) + the file)
+    # actually reads. data_dir is the TABLES dir here, so the sidecar lives one
+    # level up — defaulting to the tables dir silently wrote a second, unread
+    # copy and left every blocked lane's null unexplained.
+    data_dir = os.path.dirname(data_dir or DATA_DIR)
     today = today or datetime.date.today().isoformat()
     dead_or_unprobeable = (set(excluded.get('unprobeable-provider', []))
                            | set(excluded.get('no-credentials', []))
                            | set(excluded.get('dead-id', []))
                            | set(excluded.get('probe-excluded', [])))
+    pairs, seen = [], set()
+    for pair in list(targets) + sorted(dead_or_unprobeable):
+        if pair in seen:
+            continue
+        seen.add(pair)
+        pairs.append(pair)
     rows = []
-    for (prov, model) in targets:
+    for (prov, model) in pairs:
         reason = (REASON_UNREACHABLE if (prov, model) in dead_or_unprobeable
                   else REASON_NO_SAMPLE)
         rows.append({'provider': prov, 'model': model, 'field': 'model_tier',
@@ -346,10 +383,35 @@ def run_batteries(args: Any, targets: Any):
     cmd = [sys.executable, os.path.join(SCRIPTS, 'router_probe_run.py'),
            '--providers', provs,
            '--date', date, '--out-dir', out_dir, '--workers', str(args.workers)]
+    # HANDOFF BUG (TR-221 harness): select_targets picks lanes missing ANY
+    # --categories tier row, but the battery's own filter skips any lane with
+    # ANY tier row ("already ranked") — so a partially-tiered lane was selected
+    # and never probed, and the wave reported success while filling nothing.
+    # Passing the selected ids explicitly is the battery's supported fill path
+    # ("probe EVEN IF already ranked ... add the categories it is missing").
+    if targets and not args.models:
+        cmd += ['--models', ','.join(sorted({m for _p, m in targets}))]
+        if 'agentic' in [b.strip() for b in args.batteries.split(',') if b.strip()]:
+            # router_probe_run sets fill_only = --models AND any --extended*:
+            # in fill mode it runs the extended batteries only and SKIPS the
+            # v5/agentic probes. The bilingual note below used to be the whole
+            # remedy; now we also ask for the agentic battery explicitly so the
+            # wave actually fills agent_tick/delegation/schema/long_doc/
+            # long_horizon/test instead of reporting success with six empty
+            # categories.
+            print('NOTE: explicit --models handoff is fill-only for the extended '
+                  'batteries; --agentic is passed so the base v5+agentic probes '
+                  '(agent_tick/delegation/schema/long_doc/long_horizon/test) run '
+                  'too.', flush=True)
     for b in batteries:
         flag = BATTERY_FLAGS.get(b)
         if flag:
             cmd.append(flag)
+    # The base v5+agentic battery has no --extended* flag, so a --models fill
+    # list suppresses it (fill_only) and the agentic results file comes out
+    # empty while the run still reports success. Ask for it explicitly.
+    if 'agentic' in batteries:
+        cmd.append('--agentic')
     if args.limit:
         cmd += ['--limit', str(args.limit)]
     if args.models:

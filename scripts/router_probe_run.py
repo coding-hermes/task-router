@@ -51,16 +51,43 @@ HOME = os.path.expanduser('~')
 CONFIG = os.path.join(HOME, '.hermes', 'config.yaml')
 ENV_FILE = os.path.join(HOME, '.hermes', '.env')
 
+#: Providers a probe cannot reach AT ALL, whatever the data says.
+#: Header-gated providers (opencode-go's x-opencode-session) are NOT here:
+#: probe_providers.jsonl carries the header, so resolve() hands it back and
+#: the lane IS probeable — the old unconditional skip probed nothing and
+#: reported a stale "needs a session header" reason for 59 active lanes.
 SKIP_REASON = {
     'minimax': 'anthropic_messages transport (not OpenAI chat/completions)',
-    'opencode-go': 'requires x-opencode-session session header',
-    'opencode-go-2': 'requires x-opencode-session session header',
     'router': 'local router loopback',
     '9router': 'local router loopback',
     'chimera': 'local panel loopback',
     'task-router': 'local router loopback',
     'openai-codex': 'subscription OAuth, no API key',
 }
+
+#: provider -> the contract header it cannot be called without. A probe is
+#: admitted only when the resolved extra headers carry it (probe_providers.jsonl
+#: 'headers' or config.yaml extra_headers); otherwise it is skipped with the
+#: same named reason instead of being called wrongly.
+HEADER_GATED = {
+    'opencode-go': 'x-opencode-session',
+    'opencode-go-2': 'x-opencode-session',
+}
+
+
+def skip_reason(prov: Any, extra: Any=None) -> Any:
+    """Named reason this provider cannot be probed correctly, or None.
+
+    DATA>CODE: the header gate reads the RESOLVED headers, so adding the
+    header to probe_providers.jsonl is enough to make the provider probeable —
+    no code change per carrier.
+    """
+    gate = HEADER_GATED.get(prov)
+    if gate:
+        return None if (extra or {}).get(gate) else (
+            'requires %s session header' % gate)
+    return SKIP_REASON.get(prov)
+
 
 # Providers whose credential is not an env var. muse-code mints a key into a 0600
 # cache file held by its Hermes plugin; reading it in-process is the only way to
@@ -113,6 +140,16 @@ def load_probe_providers(path: Any=None) -> tuple:
                 disabled[prov_id] = (row.get('note') or row.get('disabled_reason')
                                      or 'disabled in probe_providers.jsonl')
                 continue
+            # `probe_blocked` is a MEASUREMENT-only block: the credential is
+            # present but a measured, named condition makes the battery
+            # uninformative (chat 401 with a live /models, 402 payment
+            # required, client-attestation 403). It must NOT set enabled=false
+            # — provider_health_probe keeps probing those carriers, because an
+            # outage/recovery signal is exactly what you want from them; only
+            # the tier battery stands down, with the measured reason carried.
+            if row.get('probe_blocked'):
+                disabled[prov_id] = str(row['probe_blocked'])
+                continue
             if not (base and key_env):
                 continue
             h = row.get('headers')
@@ -145,10 +182,18 @@ def resolve(prov: Any, prov_cfg: Any, env: Any, probe_data: Any=None) -> tuple:
             return None, None, f'unreadable cache {path}: {str(exc)[:40]}'
         return (base, key, {}) if key else (None, None, f'no {field} in {path}')
     base, key_env, extra = prov_cfg.get(prov, (None, None, {}))
+    d_base, d_key_env, d_extra = probe_enabled.get(prov, (None, None, {}))
     if not base:
-        d_base, d_key_env, d_extra = probe_enabled.get(prov, (None, None, {}))
         if d_base:
             base, key_env, extra = d_base, d_key_env, d_extra
+    elif d_extra:
+        # config.yaml carries the ROUTE (base + key); probe_providers.jsonl
+        # carries the MEASUREMENT contract (a required session header, TR-233).
+        # Dropping the header just because config listed the provider first is
+        # what kept 59 opencode-go lanes permanently unprobeable.
+        merged = dict(d_extra)
+        merged.update(extra or {})
+        extra = merged
     if not base:
         return None, None, ('no base_url for %s in config.yaml or '
                             'data/tables/%s' % (prov, PROBE_PROVIDERS_FILE))
@@ -642,6 +687,13 @@ def main() -> int:
                     help='run the v3 probes for the four categories that STILL saturated in v2 '
                          '(mechanical, multilingual, spec_docs, mock) — 6 precision-weighted '
                          'checks each, partial credit. Keys unregistered until proven.')
+    ap.add_argument('--agentic', action='store_true',
+                    help='run the base v5+agentic battery even in --models fill mode. '
+                         'Without this, a fill list suppresses v5/agentic (fill_only) so '
+                         'only the requested --extended* probes run — which silently '
+                         'halved a documented 12-category wave: the agent_tick/'
+                         'delegation/schema/long_doc/long_horizon/test results file came '
+                         'out empty and the ingest reported "rows to add: 0".')
     ap.add_argument('--models', default='',
                     help='comma-separated model ids to probe even if already ranked (for fills)')
     ap.add_argument('--tag', default='', help='suffix for the result filenames')
@@ -661,13 +713,16 @@ def main() -> int:
     only_models = {m.strip() for m in args.models.split(',') if m.strip()}
     probe_data = load_probe_providers()      # TR-227 fallback source + TR-247 refusals
     for prov in providers:
-        if prov in SKIP_REASON:
-            skipped[prov] = SKIP_REASON[prov]
-            continue
         base, key, extra = resolve(PROVIDER_ALIAS.get(prov, prov), prov_cfg, env,
                                    probe_data)   # 3rd slot = extra headers, or the reason
         if not base:
             skipped[prov] = extra or 'unresolvable provider'
+            continue
+        # Skip AFTER resolve: a transport class is a fact about the client, and
+        # header-gated lanes become probeable the moment their header resolves.
+        gate = skip_reason(prov, extra)
+        if gate:
+            skipped[prov] = gate
             continue
         for m in models:
             if m['provider'] != prov:
@@ -701,7 +756,8 @@ def main() -> int:
 
     results_v5, results_ag, results_ext, results_ext2, results_ext3 = [], [], [], [], []
     lock = __import__('threading').Lock()
-    fill_only = bool(only_models) and (args.extended or args.extended2 or args.extended3)
+    fill_only = bool(only_models) and (args.extended or args.extended2 or args.extended3) \
+        and not args.agentic
 
     def one(prov: Any, model: Any, base: Any, key: Any, extra: Any) -> None:
         v5 = {'provider': prov, 'model': model}

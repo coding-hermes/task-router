@@ -170,15 +170,15 @@ def test_stamp_reasons_classifies_and_idempotent(tmp_path, monkeypatch):
     assert by_pair[("ok", "reachable")] == "no-sample-yet"
     assert by_pair[("broke", "laneprovider")] == "unreachable-provider"
     assert all(r["field"] == "model_tier" for r in rows)
-    # commit writes the sidecar OUTSIDE data/tables? No: null_reasons lives at
-    # data/null_reasons.jsonl — data_dir here IS the tables dir, so pass its parent.
+    # data_dir is ALWAYS the tables dir: the sidecar is data/null_reasons.jsonl
+    # (one level up), which is the path data_null_census.py reads.
     parent = os.path.dirname(str(d))
-    rows_w = tp.stamp_reasons(targets, excluded, commit=True, data_dir=parent)
+    rows_w = tp.stamp_reasons(targets, excluded, commit=True, data_dir=str(d))
     assert len(rows_w) == 2
     sidecar = os.path.join(parent, "null_reasons.jsonl")
     assert os.path.exists(sidecar)
     # idempotent: a second stamped run writes nothing new
-    rows2 = tp.stamp_reasons(targets, excluded, commit=True, data_dir=parent)
+    rows2 = tp.stamp_reasons(targets, excluded, commit=True, data_dir=str(d))
     assert rows2 == []
     with open(sidecar, encoding="utf-8") as fh:
         on_disk = [json.loads(l) for l in fh if l.strip()]
@@ -273,3 +273,120 @@ def test_committed_tables_real_census_shape():
     census = tp.category_census(list(tp.WAVE_CATEGORIES))
     assert set(census) == set(tp.WAVE_CATEGORIES)
     assert census["mechanical"] >= 0
+
+# ------------------------------------------------- probeability wiring ----
+# TR-221/TR-233 regression class: a lane that IS measurable must never be
+# excluded by a stale transport reason, and the battery must be handed the
+# exact lanes select_targets picked (it skips partially-tiered lanes by
+# default, so a missing handoff silently filled nothing).
+
+def test_header_gated_provider_probeable_when_header_resolves(tmp_path, monkeypatch):
+    d = _write_tables(tmp_path, models=[_lane("opencode-go", "glm-5.3-flash")],
+                      tiers=[{"model": "glm-5.3-flash", "category": "mechanical"}])
+    tp = _import_module(tmp_path, monkeypatch, d)
+    run = tp._run
+    # header absent -> named skip, header present -> probeable
+    assert run.skip_reason("opencode-go", {}) == (
+        "requires x-opencode-session session header")
+    assert run.skip_reason("opencode-go", {"x-opencode-session": "ses_x"}) is None
+    # a provider block (401/402/403 class) still wins
+    assert run.skip_reason("minimax", {"whatever": "x"}) is not None
+
+
+def test_resolve_merges_probe_headers_over_config_route(tmp_path):
+    """config.yaml owns base/key; probe_providers.jsonl owns the measurement
+    contract header. Listing the provider in config must not drop the header."""
+    sys.path.insert(0, SCRIPTS)
+    import router_probe_run as run
+    prov_cfg = {"opencode-go": ("https://example.test/v1", "OC_KEY", {})}
+    probe = ({"opencode-go": ("https://example.test/v1", "OC_KEY",
+                              {"x-opencode-session": "ses_router_health_probe"})}, {})
+    base, key, extra = run.resolve("opencode-go", prov_cfg, {"OC_KEY": "k"}, probe)
+    assert base == "https://example.test/v1" and key == "k"
+    assert extra.get("x-opencode-session") == "ses_router_health_probe"
+    # config-supplied headers win over the data file (route truth first)
+    prov_cfg2 = {"opencode-go": ("https://example.test/v1", "OC_KEY",
+                                 {"x-opencode-session": "ses_config"})}
+    assert run.resolve("opencode-go", prov_cfg2, {"OC_KEY": "k"},
+                       probe)[2]["x-opencode-session"] == "ses_config"
+
+
+def test_probe_blocked_row_refuses_probe_but_stays_enabled(tmp_path):
+    """A measured block (401 chat / 402 plan / attestation 403) must stop the
+    battery while leaving the row enabled, so the hourly health probe keeps
+    watching the carrier for recovery."""
+    sys.path.insert(0, SCRIPTS)
+    import router_probe_run as run
+    path = tmp_path / "probe_providers.jsonl"
+    with open(path, "w", encoding="utf-8") as fh:
+        fh.write(json.dumps({"id": "blockedprov", "base_url": "https://b.test/v1",
+                             "key_env": "B_KEY", "enabled": True,
+                             "probe_blocked": "chat 401 invalid token"}) + "\n")
+        fh.write(json.dumps({"id": "okprov", "base_url": "https://c.test/v1",
+                             "key_env": "C_KEY", "enabled": True}) + "\n")
+    enabled, disabled = run.load_probe_providers(str(path))
+    assert "blockedprov" not in enabled
+    assert disabled["blockedprov"] == "chat 401 invalid token"
+    assert run.resolve("blockedprov", {}, {"B_KEY": "k"},
+                       (enabled, disabled))[:1] == (None,)
+    assert enabled["okprov"][0] == "https://c.test/v1"
+
+
+def test_run_batteries_hands_selected_models_to_the_battery(tmp_path, monkeypatch):
+    """select_targets picks lanes missing ANY category; the battery skips any
+    lane WITH a tier row. Without the explicit --models handoff the wave
+    reports success and fills nothing."""
+    d = _write_tables(tmp_path, models=[_lane("prov", "m1")])
+    tp = _import_module(tmp_path, monkeypatch, d)
+    calls = []
+    monkeypatch.setattr(tp.subprocess, "call", lambda cmd, **kw: calls.append(cmd) or 0)
+    args = type("A", (), {"date": "2026-01-01", "tag": "", "out_dir": str(tmp_path / "o"),
+                          "workers": 4, "batteries": "agentic", "providers": "prov",
+                          "limit": 0, "models": "", "commit": False})()
+    rc = tp.run_batteries(args, [("prov", "m1"), ("prov", "m2")])
+    assert rc == 0
+    probe_cmd = calls[0]
+    assert "--models" in probe_cmd
+    assert probe_cmd[probe_cmd.index("--models") + 1] == "m1,m2"
+
+
+def _fill_args(**over):
+    """A Namespace shaped like run_batteries' expectations for a --models fill."""
+    import argparse
+    base = dict(date="2026-11-07", tag="t", out_dir="/tmp/does-not-matter",
+                providers="openrouter", limit=0, models="some/model",
+                batteries="agentic,extended2,extended3", workers=1,
+                commit=False)
+    base.update(over)
+    return argparse.Namespace(**base)
+
+
+def test_run_batteries_asks_for_agentic_under_models_fill(tmp_path, monkeypatch, capsys):
+    """A --models fill list must still measure the six agentic categories.
+
+    router_probe_run suppresses the base v5+agentic battery when it is given a
+    fill list (fill_only), so the harness has to ask for it explicitly. Without
+    this the 12-category default wave silently delivered 6: the agentic results
+    file was empty and the ingest printed "rows to add: 0" while the run
+    reported success.
+    """
+    tp = _import_module(tmp_path, monkeypatch, tmp_path / "data" / "tables")
+    seen = []
+    monkeypatch.setattr(tp.subprocess, "call", lambda cmd, **kw: seen.append(cmd) or 0)
+
+    tp.run_batteries(_fill_args(), [("openrouter", "some/model")])
+    assert seen and "--agentic" in seen[0]
+
+    # ext-only waves keep the fill semantics: no agentic flag, no agentic spend
+    seen.clear()
+    tp.run_batteries(_fill_args(batteries="extended2,extended3"),
+                     [("openrouter", "some/model")])
+    assert seen and "--agentic" not in seen[0]
+
+
+def test_probe_run_exposes_agentic_override():
+    """The flag the harness above depends on must exist on the runner itself."""
+    out = subprocess.run([PY, os.path.join(SCRIPTS, "router_probe_run.py"), "--help"],
+                         capture_output=True, text=True, timeout=120)
+    assert out.returncode == 0
+    assert "--agentic" in out.stdout
