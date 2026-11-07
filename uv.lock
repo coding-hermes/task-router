@@ -160,6 +160,11 @@ version = "0.2.0"
 source = { editable = "." }
 
 [package.optional-dependencies]
+dev = [
+    { name = "duckdb" },
+    { name = "pytest" },
+    { name = "pyyaml" },
+]
 test = [
     { name = "duckdb" },
     { name = "pytest" },
@@ -171,5 +176,6 @@ requires-dist = [
     { name = "duckdb", marker = "extra == 'test'" },
     { name = "pytest", marker = "extra == 'test'" },
     { name = "pyyaml", marker = "extra == 'test'" },
+    { name = "task-router", extras = ["test"], marker = "extra == 'dev'" },
 ]
-provides-extras = ["test"]
+provides-extras = ["test", "dev"]
