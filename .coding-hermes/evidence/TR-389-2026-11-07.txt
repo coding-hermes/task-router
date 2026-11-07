@@ -1,0 +1,111 @@
+TR-389 — commit-time usability guard: ACCEPTANCE EVIDENCE
+row: TR-389 (P0) | duplicate of the same scope: TR-1000599737158536
+delivered by: 4d60db2 gate(TR-362) — model-data commit gate + live .githooks/pre-commit
+verified by foreman tick task-router-foreman-2026-11-07-19-16-54 at origin/main 96af1f4
+evidence CI run: 42394852534 (completed, success, head bf6bc084, contains 4d60db2)
+
+ARM RESULTS
+ (1) refused when staged model data is incomplete ......... PASS (PROBE_EXIT=1, ratchet + new-lane arms)
+ (2) refusal NAMES the lane and prints the detail command .. PASS (lane id + 'model_data_commit_gate.py --explain')
+ (3) installed by tracked scripts/install-hooks.sh ......... PASS (core.hooksPath=.githooks, resolves to .githooks/pre-commit; real git commit refused)
+ (4) documented bypass env var ............................ PASS (ALLOW_UNUSABLE_DATA=1, loud warning)
+ (5) two tests: bad fixture blocked / clean passes ........ PASS (37 passed in a CLEAN worktree)
+ (6) under 5s without duckdb .............................. PASS (1.66s blocked path, 0.06s unrelated path, 0 duckdb imports)
+
+NOTE: in a worktree dirtied by this very probe, test_real_repo_passes_its_own_gate fails by design
+      (the test grades the real tree, and the probe had staged an unmeasured lane). A CLEAN worktree
+      at the same commit: 37 passed. The falsification is the gate working, not a defect.
+
+--- raw probe output ---
+=== TR-389 acceptance probe @ origin/main 96af1f4 2026-11-07T14:29:45-05:00 ===
+
+--- arms 1/2/6: gate CLI blocks a staged live lane with no measurement, names lane, prints detail command ---
+PROBE_EXIT=1
+PROBE_SECONDS=1.66
+PROBE_NAMES_LANE=YES
+PROBE_PRINTS_COMMAND=YES
+--- gate stdout/stderr ---
+
+========================================================================
+COMMIT BLOCKED — incomplete model data
+========================================================================
+  1 lane(s) with no capability measurement and no stated reason:
+    • probe-provider/tr389-probe-lane-no-evidence    [added]
+        new live lane with no capability measurement and no stated reason
+  usability ratchet: usability defects would rise to 281 (ceiling 280 from parent commit)
+    defects now 281, parent commit 280, baseline 345
+    a live+priced lane with no category tier is unusable to the resolver, note or no note.
+    Clear it with a model_tier.jsonl row, or take the lane out of service (disabled + disabled_reason).
+    Removing tier rows is how the count rises: evidence is not tradeable against new lanes.
+
+  See the detail:   python3 scripts/model_data_commit_gate.py --explain
+  Fix, in order of preference:
+    1. measure the lane            (data/tables/model_tier.jsonl or model_perf.jsonl)
+    2. stamp every perf_* field    (data/tables/null_reasons.jsonl, reason from the
+                                    AC2 vocabulary — `unknown-by-design` is the honest
+                                    answer for a category that cannot be measured)
+    3. document a lane exception   (data/tables/model_notes.jsonl)
+    4. take the lane out of service (disabled=true + disabled_reason)
+
+  Deliberate, disclosed exception:
+    ALLOW_UNUSABLE_DATA=1 git commit ...
+  No gate in this repo is bypassed silently.
+
+
+CLEAN_EXIT=0
+CLEAN_SECONDS=0.06
+CLEAN_OUT=
+
+--- arm 3: real git commit refused by tracked .githooks/pre-commit (core.hooksPath=.githooks) ---
+HOOK_COMMIT_EXIT=1
+HOOK_BLOCKED_MSG=YES
+HOOK_NAMES_LANE=YES
+
+========================================================================
+COMMIT BLOCKED — incomplete model data
+========================================================================
+  1 lane(s) with no capability measurement and no stated reason:
+    • probe-provider/tr389-hook-probe-lane           [added]
+        new live lane with no capability measurement and no stated reason
+  usability ratchet: usability defects would rise to 281 (ceiling 280 from parent commit)
+    defects now 281, parent commit 280, baseline 345
+    a live+priced lane with no category tier is unusable to the resolver, note or no note.
+    Clear it with a model_tier.jsonl row, or take the lane out of service (disabled + disabled_reason).
+    Removing tier rows is how the count rises: evidence is not tradeable against new lanes.
+
+  See the detail:   python3 scripts/model_data_commit_gate.py --explain
+  Fix, in order of preference:
+    1. measure the lane            (data/tables/model_tier.jsonl or model_perf.jsonl)
+    2. stamp every perf_* field    (data/tables/null_reasons.jsonl, reason from the
+                                    AC2 vocabulary — `unknown-by-design` is the honest
+                       
+
+--- arm 3: install-hooks.sh is tracked and re-arms the hook for a fresh clone ---
+hooks installed: core.hooksPath=.githooks
+active hooks:    pre-commit pre-push 
+
+What they do:
+  pre-commit  refuses a commit that adds a live lane with no capability
+              measurement and no stated reason, or that would raise the
+              TR-369 usability defect count. Override loudly with
+              ALLOW_UNUSABLE_DATA=1.
+  pre-push    refuses a push that UPDATES 'main' while main's newest
+              completed CI run is not success. Override loudly with
+              ALLOW_RED_PUSH=1.
+
+
+--- arm 4: bypass env documented + loud ---
+75:    ALLOW_UNUSABLE_DATA=1 git commit ...
+109:BYPASS_ENV = "ALLOW_UNUSABLE_DATA"
+519:    lines.append("    ALLOW_UNUSABLE_DATA=1 git commit ...")
+
+--- arm 6: stdlib only, no duckdb import ---
+0
+
+--- arm 5: gate test suite ---
+=========================== short test summary info ============================
+FAILED tests/test_model_data_commit_gate.py::test_real_repo_passes_its_own_gate
+1 failed, 36 passed in 3.41s
+
+--- clean-worktree suite (probe-c, no staged fixture) ---
+37 passed in 2.48s
