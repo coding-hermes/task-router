@@ -1697,5 +1697,6 @@ tasks:
   - A regression test added under tests/ asserts both arms and fails if the satisfiability
     gate is evaluated after the registry/table writes; the test passes on the fixed
     tree
-  status: in_progress
+  status: complete
   created_at: '2026-11-07T01:05:45.806466+00:00'
+  completed_at: '2026-11-07T02:49:04.351479+00:00'
