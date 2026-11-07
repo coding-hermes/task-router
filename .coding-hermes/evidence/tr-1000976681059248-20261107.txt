@@ -1,0 +1,61 @@
+TR-1000976681059248 — refused seed publishes nothing
+Measured 2026-11-06 in /home/kara/proj-wt-tr-seed-atomic and re-verified at the merged head
+9a3d386 (tree identical to landed c820070 for scripts/router_seed.py + the new test).
+Python: /home/kara/.hermes/venvs/board/bin/python3
+
+PREMISE (pre-fix, base 8524321)
+-------------------------------
+run 1: rc=1, "Seeding REFUSED", and immediately before it:
+       "wrote /home/kara/proj-wt-tr-seed-atomic/registry.json (5946.2 KB)"
+       "synced data/tables -> /home/kara/proj-wt-tr-seed-atomic/data/tables"
+       registry.json mtime 1794013494  sha256_12 03ec51a3a68a
+run 2 (no intervening change): rc=1, same refusal
+       registry.json mtime 1794013517  sha256_12 cf58762f5078   <-- refused run republished
+       data/tables/models.jsonl mtime bumped 1794013494 -> 1794013518
+registry.json is gitignored (.gitignore:23), so the damage never appeared as a dirty tree.
+
+AFTER THE FIX (same worktree)
+-----------------------------
+arm A  python3 -m scripts.router_seed
+       rc=1 / "SATISFIABILITY FAIL: 6 of 264 rating(s) ... math: levels 0..5 ..."
+       / "Seeding REFUSED: add a routable lane ..."
+       sha256sum -c pre-registry.sha  -> registry.json: OK        (unchanged)
+       sha256sum -c pre-tables.sha    -> 31/31 data/tables/*.jsonl OK
+       publish markers ("wrote ", "synced data/tables ->") absent from stdout
+       git status: no drift beyond the edited source + new test
+
+arm B  python3 -m scripts.router_seed --allow-unsatisfiable
+       rc=0 / "--allow-unsatisfiable: seeding anyway ..."
+       "wrote .../registry.json (5946.2 KB)" + "synced data/tables -> ..."
+       registry.json sha256 vs arm A capture: DID NOT MATCH (it published)
+
+focused tests
+       pytest -q tests/test_seed_refusal_atomicity.py tests/test_symlink_path_resolution.py
+       -> 23 passed in 48.56s
+
+full suite at the merged head (9a3d386, worktree /home/kara/proj-wt-tr-merged-verify)
+       pytest -q tests/
+       -> 2 failed, 2940 passed, 5 skipped in 950.86s
+       both failures = tests/test_quota_gate.py::
+           test_end_to_end_gate_written_by_the_cli_is_honored_by_the_resolver
+           test_cli_quota_set_changes_spawn_head_without_state_dir
+       pre-existing order-dependent pair, filed as TR-1000976681059245;
+       tests/test_quota_gate.py alone -> 42 passed in 3.25s
+
+GITREINS (instrument failure, disclosed — NOT used as the closing evidence)
+--------------------------------------------------------------------------
+tier 1: PASSED
+async job job-f69474f221ff40a4aa245e9df307ef75: ran 31 min with no verdict; its verification
+  child looped `sh -c 'sleep 29; wc -c /tmp/seed_refuse.log; tail -30 ...; pgrep -af "router_seed"'`
+  — /tmp/seed_refuse.log stayed 0 bytes and pgrep matches its own sh -c cmdline, so the detector
+  could never fire. Killed at the exact pid 3597687, reaped as orphan.
+sync re-judge GITREINS_MAX_ITERATIONS=20: tier1 PASSED, tier2 INCOMPLETE at the iteration cap,
+  verdict 05197527 (.gitreins/history/2026-11-07/7dbfc83a/verdict.json), commit 7f559ae,
+  items=[] — zero criteria graded.
+Both are instrument results, not merit results. Filed separately for the judge defect.
+
+CI
+--
+implementation commit c820070; completed run 42327121439 (head a0cd486, contains c820070) = success.
+Run 42327301807 (head 7f559ae, the PM seg-3 board commit) is RED in "TR-251 evidence replay" for
+TR-378/TR-375/TR-376 verdict-form run ids filed by that sibling lane — filed as INT-CI-22.
