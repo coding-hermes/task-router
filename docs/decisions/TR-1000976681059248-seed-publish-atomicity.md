@@ -16,7 +16,7 @@ only afterwards, inside the `if __name__ == '__main__':` block:
 |---|---|---|
 | `_dump_registry()` | 1946 | wrote `registry.json` (6.0 MB) |
 | ns mirror export | ~1918-1945 | wrote `$NS/tables/*.jsonl` |
-| data/tables sync | 1950-1957 | rewrote 34 tracked `data/tables/*.jsonl` |
+| data/tables sync | 1950-1957 | rewrote the registry's 12 tracked `data/tables/*.jsonl` tables |
 | **satisfiability gate** | 1960-2039 | could `sys.exit(1)` — *after* all three |
 
 Measured consequence at 8524321 (`~/.hermes/venvs/board/bin/python3 -m scripts.router_seed`):
@@ -26,7 +26,10 @@ Measured consequence at 8524321 (`~/.hermes/venvs/board/bin/python3 -m scripts.r
 - immediately before that, the same run printed `wrote …/registry.json (5946.2 KB)` and
   `synced data/tables -> …/data/tables`.
 - two consecutive refused runs changed `registry.json`'s sha256
-  (`03ec51a3a68a24f7…` → `cf58762f5078aefe…`) and bumped the mtime of every tracked table.
+  (`03ec51a3a68a24f7…` → `cf58762f5078aefe…`) and bumped the mtime of every table the sync
+  rewrites — 12 files, the exact write set the pre-fix audit in
+  `tests/test_seed_refusal_atomicity.py` records (the other tracked `data/tables` entries are
+  inputs/sidecars the sync never opens).
 
 So `make seed && make validate` (README) failed at `make seed`, while `make validate` went green on the
 artifact the refusal had just written and claimed not to have seeded. The refusal was **diagnostic
