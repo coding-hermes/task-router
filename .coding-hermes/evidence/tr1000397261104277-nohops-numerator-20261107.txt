@@ -1,0 +1,75 @@
+TR-1000397261104277 — no-hops numerator always evaluates
+Evidence recorded by the task-router foreman tick 2026-11-07T19:40-05:00
+Branch landed: main   Commit: ca85625bc6b1c4361a2449b500c7dd891cb64a4d   Parent: 1c585f3028db
+Worker: glm-5.3-flash (zai-glm) in /home/kara/worktrees/task-router-TR-1000397261104277
+        (branch wt/TR-1000397261104277, base origin/main 1c585f3)
+
+WHY
+  scripts/router_prometheus.py renders only series that exist in its hand-rolled
+  registry. PROXY_NOHOPS ("router_proxy_nohops_total", label lane_class) was only
+  .inc()ed on a real no-hops event, so a router that had served no no-hops request
+  exposed NO sample line for the family. sum(rate(task_router_proxy_nohops_total[1h]))
+  is then an empty vector and TaskRouterNoHopsHigh (monitoring/task-router-alerts.yml)
+  has no data to fire on — the 2026-10 incident's blind spot.
+
+FIX (in the landed commit)
+  scripts/router_prometheus.py: PROXY_NOHOPS.inc({"lane_class": "none"}, 0) at import,
+  with a comment on why a synthetic zero sample cannot mask a real event.
+  monitoring/task-router-alerts.yml and data/nohops-baseline.json untouched
+  (their expression/threshold are pinned by existing tests and still pass).
+
+1. RED PROOF AT THE BASE COMMIT (independent, detached worktree at 1c585f3 with only
+   the new test file copied in):
+     $ python3 -m pytest -q tests/test_nohops_alert_rule.py -k nohops_sample_before_any_event
+     E   assert 0 >= 1
+     FAILED tests/test_nohops_alert_rule.py::test_exposition_emits_a_nohops_sample_before_any_event
+     1 failed, 10 deselected in 0.68s
+
+2. FOCUSED SUITE AT THE LANDED COMMIT (/home/kara/worktrees/tr-land-TR-1000397261104277,
+   clean tree at ca85625):
+     $ ~/.hermes/venvs/board/bin/python3 -m pytest -q tests/test_nohops_alert_rule.py
+     10 passed, 1 skipped in 0.94s
+
+3. FULL SUITE AT ca85625 (worker worktree, board venv):
+     $ ~/.hermes/venvs/board/bin/python3 -m pytest -q tests/
+     3 failed, 3003 passed, 6 skipped, 2 warnings in 1220.19s (0:20:20)
+   ATTRIBUTION — none of the three is this diff (each reproduced without it):
+     a) tests/test_quota_gate.py::test_end_to_end_gate_written_by_the_cli_is_honored_by_the_resolver
+        tests/test_quota_gate.py::test_cli_quota_set_changes_spawn_head_without_state_dir
+        -> the KNOWN order-dependence already filed as TR-1000976681059245. At base
+           1c585f3 both PASS when the module is run on its own:
+           "1 failed, 43 passed in 6.24s" over tests/test_quota_gate.py +
+           tests/test_xkiro_catalog_freshness.py (the only failure there was (b)).
+     b) tests/test_xkiro_catalog_freshness.py::test_non_archived_xkiro_models_are_in_live_catalog
+        -> live-catalog drift (xiaomi/mimo-v2.5, -v2.6-flash, -v2.6-pro missing from the
+           live catalog), FAILS identically at base 1c585f3 with this diff absent.
+
+4. IN-REPO ARM (the AC's own proof shape, exercised on a real server process started
+   from the landed tree):
+     $ ROUTER_STATE_DIR=<scratch> python3 scripts/router_server.py --mode read-only \
+         --host 127.0.0.1 --port 9402
+     {"status": "listening", ..., "port": 9402, ...}
+     router_server mode=all port=9402 commit=ca85625bc6b1
+     $ curl -s http://127.0.0.1:9402/metrics | grep -c '^task_router_proxy_nohops_total{'
+     1
+     rows:
+       router_proxy_nohops_total{lane_class="none"} 0
+       task_router_proxy_nohops_total{lane_class="none"} 0
+   i.e. the family is present, with a real SAMPLE line, BEFORE any proxy no-hops event.
+
+5. LIVE-PORT ARM (:9391) — UNVERIFIED, not claimed.
+   The service that serves 9391 is task-router-proxy.service, whose ExecStart loads
+   /home/kara/task-router/scripts/router_server.py; the canonical checkout was fast-
+   forwarded bf6bc08 -> ca85625, but the RUNNING process still holds the pre-fix module
+   and its /metrics reports 0 sample lines for task_router_proxy_nohops_total.
+   Loading the fix on 9391 requires `systemctl --user restart task-router-server.service
+   task-router-proxy.service`; the unattended approval gate REFUSED that command
+   ("the user has NOT consented to this action"), so the restart was not performed and
+   the :9391 reading is NOT quoted as evidence. One owner approval unsticks it.
+
+6. DEPLOY ARM (fleet Alertmanager) — UNVERIFIED by design; owner = fleet-monitoring lane.
+   monitoring/task-router-alerts.yml is the rule contract of record; this repository
+   cannot observe the fleet rule set. No deployment is claimed.
+
+VERDICT BINDING
+  GitReins task TR-1000397261104277 judged at ca85625 (see row summary / events).
