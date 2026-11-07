@@ -1681,3 +1681,21 @@ tasks:
   status: complete
   created_at: '2026-11-06T18:16:20.224256+00:00'
   completed_at: '2026-11-06T18:54:02.755192+00:00'
+- id: TR-1000976681059248
+  title: 'Make the TR-383 satisfiability refusal atomic: a refused seed must publish
+    nothing'
+  criteria:
+  - 'Pre-fix discrimination proven: `~/.hermes/venvs/board/bin/python3 -m scripts.router_seed`
+    exits 1 with "Seeding REFUSED" AND on the pre-fix tree rewrites registry.json
+    (its sha256 changes between two consecutive refused runs) plus the tracked data/tables/*.jsonl'
+  - 'Post-fix refusal is inert: the same command still exits 1 with "Seeding REFUSED",
+    but sha256 of registry.json and of every tracked data/tables/*.jsonl is identical
+    before and after the run, and `git status --porcelain` stays empty'
+  - 'Opt-in arm still publishes: running the seed with --allow-unsatisfiable (or ROUTING_ALLOW_UNSATISFIABLE=1)
+    exits 0 and does write a NEW registry.json (sha256 changes), so the gate was moved,
+    not disabled'
+  - A regression test added under tests/ asserts both arms and fails if the satisfiability
+    gate is evaluated after the registry/table writes; the test passes on the fixed
+    tree
+  status: in_progress
+  created_at: '2026-11-07T01:05:45.806466+00:00'
