@@ -103,3 +103,8 @@ data/router.db
 # as modified after every index run; untracked and ignored below.
 .vfs/graph/.symbols_cache.json
 
+
+# chains daily snapshots are generated router output (precedent cc9ba34:
+# later snapshots removed as accidentally-tracked artifacts). A stale untracked
+# snapshot blocked foreman task selection 2026-11-08 for the whole day.
+docs/chains-*.md
