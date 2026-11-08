@@ -322,6 +322,83 @@ def latest_chains_snapshot() -> dict:
         return {"latest": None, "count": 0}
 
 
+def registry_data_block(data_dir: Any = None) -> dict:
+    """The /health `registry` block: newest `valid_from`, and its age in days.
+
+    Extracted from health() byte-for-byte so the /metrics data-plane
+    collectors (TR-374, docs/observability-spec.md §3.5) publish the SAME
+    number the endpoint reports instead of a second derivation.
+
+    Fail-open exactly as before (TR-REVIEW-001): decoding is per-line
+    (skip + count, the tolerance _read_jsonl already has) and every other
+    error becomes an `error` key — a broken table must not 500 the endpoint
+    whose job is to report it.
+    """
+    data_dir = Path(data_dir) if data_dir else Path(
+        os.environ.get("ROUTING_DATA_DIR", REPO / "data" / "tables"))
+    out = {"data_dir": str(data_dir), "models": 0, "newest_valid_from": None,
+           "age_days": None}
+    try:
+        newest = None
+        n_models = 0
+        n_bad = 0
+        with (data_dir / "models.jsonl").open() as fh:
+            for number, line in enumerate(fh, 1):
+                line = line.strip()
+                if not line:
+                    continue
+                n_models += 1
+                try:
+                    row = json.loads(line)
+                except json.JSONDecodeError:
+                    n_bad += 1
+                    continue
+                if not isinstance(row, dict):
+                    n_bad += 1
+                    continue
+                vf = row.get("valid_from")
+                if vf and (newest is None or str(vf) > newest):
+                    newest = str(vf)
+    except Exception as exc:  # noqa: BLE001 — a bad table must not 500 /health
+        return {"data_dir": str(data_dir), "error": str(exc)}
+    out["models"] = n_models
+    out["newest_valid_from"] = newest
+    if n_bad:
+        # Never silent: the count is why `models` can exceed what parsed.
+        out["unparsable_lines"] = n_bad
+    if newest:
+        try:
+            d = datetime.date.fromisoformat(newest)
+            out["age_days"] = (datetime.date.today() - d).days
+        except ValueError:
+            pass
+    return out
+
+
+def probe_summary() -> dict:
+    """The /health `probe` block: hourly provider-probe freshness + status counts.
+
+    Extracted from health() unchanged so the /metrics collector
+    `router_probe_providers_up{status}` (TR-374) counts the same probe store
+    the endpoint reads. `{"error": …}` when the store is missing/unreadable —
+    absence is reported, never rendered as zero providers.
+    """
+    hs = _load_health_state()
+    if hs is None:
+        return {"error": "health-state.json missing/unreadable"}
+    providers = hs.get("providers", {}) or {}
+    counts: dict = {}
+    for p in providers.values():
+        status = p.get("status", "?")
+        counts[status] = counts.get(status, 0) + 1
+    return {
+        "updated": hs.get("updated"),
+        "age_minutes": _age_minutes(hs.get("updated")),
+        "providers": len(providers),
+        "provider_status_counts": counts,
+    }
+
+
 def health(mode: str="read-only", data_dir: Any=None):
     """The /health payload. Fail-open: a broken block never kills the response."""
     data_dir = Path(data_dir) if data_dir else Path(
@@ -353,59 +430,12 @@ def health(mode: str="read-only", data_dir: Any=None):
     # same tolerance _read_jsonl already has) and every other error is caught
     # as an `error` key: fail-open, like every other block.
     try:
-        newest = None
-        n_models = 0
-        n_bad = 0
-        with (data_dir / "models.jsonl").open() as fh:
-            for number, line in enumerate(fh, 1):
-                line = line.strip()
-                if not line:
-                    continue
-                n_models += 1
-                try:
-                    row = json.loads(line)
-                except json.JSONDecodeError:
-                    n_bad += 1
-                    continue
-                if not isinstance(row, dict):
-                    n_bad += 1
-                    continue
-                vf = row.get("valid_from")
-                if vf and (newest is None or str(vf) > newest):
-                    newest = str(vf)
-        out["registry"] = {
-            "data_dir": str(data_dir),
-            "models": n_models,
-            "newest_valid_from": newest,
-            "age_days": None,
-        }
-        if n_bad:
-            # Never silent: the count is why `models` can exceed what parsed.
-            out["registry"]["unparsable_lines"] = n_bad
-        if newest:
-            try:
-                d = datetime.date.fromisoformat(newest)
-                out["registry"]["age_days"] = (datetime.date.today() - d).days
-            except ValueError:
-                pass
+        out["registry"] = registry_data_block(data_dir)
     except Exception as exc:  # noqa: BLE001 — a bad table must not 500 /health
         out["registry"] = {"data_dir": str(data_dir), "error": str(exc)}
 
     # --- hourly probe freshness + per-provider status counts ------------------
-    hs = _load_health_state()
-    if hs is None:
-        out["probe"] = {"error": "health-state.json missing/unreadable"}
-    else:
-        providers = hs.get("providers", {})
-        counts = {}
-        for p in providers.values():
-            counts[p.get("status", "?")] = counts.get(p.get("status", "?"), 0) + 1
-        out["probe"] = {
-            "updated": hs.get("updated"),
-            "age_minutes": _age_minutes(hs.get("updated")),
-            "providers": len(providers),
-            "provider_status_counts": counts,
-        }
+    out["probe"] = probe_summary()
 
     # TR-356: silent prompt caps are distinct from ordinary provider health.
     # Publish the probe store even when it is empty so UNKNOWN is observable.

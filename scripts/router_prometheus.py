@@ -701,6 +701,87 @@ REGISTRY.callback(
     _collect_lane_coverage)
 
 
+# --- data-plane freshness (TR-374; docs/observability-spec.md §3.5) ----------
+#
+# /health already computes these numbers and, until this landed, nothing read
+# them: a live instance served 119 commits behind its repo with `stale: true`
+# on an endpoint nobody consumed. Every collector below calls the SAME
+# function the endpoint calls (router_health.measurement_coverage /
+# code_identity / registry_data_block / probe_summary) — never a second
+# derivation, so the metric and the health block cannot disagree.
+#
+# ABSENCE POLICY: a value that cannot be computed yields NO sample for that
+# family rather than a fabricated 0. A missing series is readable as "not
+# computed"; a 0 on `router_code_stale` would read as "deployed and fresh",
+# which is the exact lie TR-141 exists to prevent. The scrape-error counter
+# moves on a raising collector, and the family's HELP text states the rule.
+
+def _health_mod():
+    import router_health  # imported lazily: router_prometheus is stdlib-only
+    return router_health
+
+
+def _collect_coverage_measured_ratio():
+    cov = _health_mod().measurement_coverage() or {}
+    value = cov.get("coverage")
+    if value is None:
+        return []
+    return [({}, float(value))]
+
+
+def _collect_code_stale():
+    identity = _health_mod().code_identity() or {}
+    stale = identity.get("stale")
+    if stale is None:  # uncomputable half — never render it as "fresh"
+        return []
+    return [({}, 1 if stale else 0)]
+
+
+def _collect_registry_age_days():
+    age = (_health_mod().registry_data_block() or {}).get("age_days")
+    if age is None:
+        return []
+    return [({}, float(age))]
+
+
+def _collect_probe_providers_up():
+    counts = (_health_mod().probe_summary() or {}).get(
+        "provider_status_counts") or {}
+    return [({"status": status}, count)
+            for status, count in sorted(counts.items())]
+
+
+REGISTRY.callback(
+    "router_coverage_measured_ratio", "gauge",
+    "Measured-with-evidence chain / live chain ratio "
+    "(/health.measurement_coverage.coverage; the 0.5 floor below which "
+    "cost-per-task routing is off). Omitted, never zeroed, when the store "
+    "cannot be read.",
+    (), _collect_coverage_measured_ratio)
+
+REGISTRY.callback(
+    "router_code_stale", "gauge",
+    "1 when the RUNNING code differs from the repo (source-sha or commit), "
+    "0 when it matches. This is the deploy-parity signal the router exposes "
+    "as /health.stale: a value of 1 means the process is behind the repo. "
+    "Omitted, never 0, when the comparison cannot be made.",
+    (), _collect_code_stale)
+
+REGISTRY.callback(
+    "router_registry_age_days", "gauge",
+    "Days since the newest valid_from date in data/tables/models.jsonl "
+    "(/health.registry.age_days) — are the prices stale? Omitted when the "
+    "table carries no parseable valid_from.",
+    (), _collect_registry_age_days)
+
+REGISTRY.callback(
+    "router_probe_providers_up", "gauge",
+    "Providers in the hourly probe store by status "
+    "(/health.probe.provider_status_counts). Empty when the store is "
+    "missing: absence is reported by the health block, never as 0 providers.",
+    ("status",), _collect_probe_providers_up)
+
+
 # --- resolve-path instrumentation (called from router_server) ----------------
 
 def record_resolve(result: Any, duration_s: Any = 0.0,

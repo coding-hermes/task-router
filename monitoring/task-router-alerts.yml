@@ -85,3 +85,63 @@ groups:
             data/nohops-baseline.json `threshold` key (measured baseline rate
             + headroom 0.05); recompute via
             `scripts/router_nohops.py baseline --window-h 168 --write`
+
+  # --- data-plane health (TR-374; docs/observability-spec.md §3.5 and §6) ----
+  # These two rules close the sentence TR-255 left open: "/health stale:true is
+  # correct and honest but nothing consumes it". A router that serves a commit
+  # 119 revisions behind its repo, on a chain where 2% of lanes are measured,
+  # is a router that passes every liveness check while delivering neither the
+  # deployed code nor the cost optimisation. Both signals already existed on
+  # /health; these rules are the consumer.
+  #
+  # Inputs are the TR-374 exposition families in scripts/router_prometheus.py
+  # (router_* and their task_router_* aliases, one registry, one render).
+  - name: task-router-data-plane
+    rules:
+      - alert: TaskRouterCodeStale
+        # Spec §6 rule table row 6, verbatim.
+        expr: |
+          task_router_code_stale == 1
+        for: 2h
+        labels:
+          severity: warning
+          product: task-router
+        annotations:
+          summary: "task-router: the running process is behind the repo"
+          description: >
+            The serving listener has been running code that differs from the
+            checkout (source-sha or commit) for 2h — /health.stale is true and
+            task_router_code_stale is 1. Every fix landed since the process
+            started is INERT on the live surface, which is how a 25h-stale
+            proxy once reported a fresh commit (TR-141). Compare
+            /health.code.loaded_commit with .repo_commit, then redeploy per the
+            deploy contract in docs/operations.md — never restart mid-tick:
+            the scheduler's task-router lanes call this listener.
+          threshold_source: >
+            binary deploy-parity signal; the 2h hold is spec §6's table value
+            (it admits a normal deploy-and-verify window without paging on a
+            same-minute commit race).
+      - alert: TaskRouterCoverageBelowFloor
+        # The floor is the router's own MEASURED_MIN_COVERAGE default (0.5),
+        # the number /health.measurement_coverage grades against — the alert
+        # and the endpoint cannot disagree.
+        expr: |
+          task_router_coverage_measured_ratio < 0.5
+        for: 6h
+        labels:
+          severity: warning
+          product: task-router
+        annotations:
+          summary: "task-router: cost-per-task routing is off (coverage below floor)"
+          description: >
+            Fewer than half the live lanes carry evidence in the rolling
+            averages store, so chains are resolved price-first: the router is
+            not delivering the cost-per-task promise it exists for. Measured
+            live at 0.024 of a 0.5 floor while nothing alerted. Inspect the
+            per-category breakdown in `router_lane_coverage{kind="ratio"}` and
+            the unmeasured lanes with `kind="unmeasured"`; the probe/sampler
+            that fills the store owns that gap.
+          threshold_source: >
+            scripts/router_health.py MEASURED_MIN_COVERAGE default 0.5 — the
+            same floor /health grades coverage against. The 6h hold keeps a
+            multi-hour sampling cadence from flapping the page.
