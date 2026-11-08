@@ -1,0 +1,252 @@
+================================================================================
+RELEASE READINESS SWEEP — task-router
+Tick:      task-router-releng-2026-11-08-20-49-08
+Measured:  2026-11-08T20:49Z onward (probes below carry their own timestamps)
+Lane:      release-engineering satellite (verify only — no development)
+Decision:  NO CUT (unchanged). Delta vs 2026-11-07 sweep recorded in §7.
+================================================================================
+
+IDENTITY (preflight)
+- Canonical repository: coding-hermes/task-router
+  remote origin = git@github.com:coding-hermes/task-router.git (fetch+push, only remote)
+  git -C /home/kara/task-router rev-parse --show-toplevel = /home/kara/task-router
+  => resolved root + remote both match the lane-named target. PASS.
+- Default branch: main (gh api repos/coding-hermes/task-router --jq .default_branch)
+- Candidate SHA: e304776559d0f72b6c7169e1d31cc2e848c5223f
+  local HEAD ......... e304776559d0f72b6c7169e1d31cc2e848c5223f
+  origin/main ........ e304776559d0f72b6c7169e1d31cc2e848c5223f
+  git rev-list --left-right --count origin/main...HEAD = 0	0  (no divergence)
+  working tree ....... clean (git status --short -> empty)
+  commits landed during the sweep: none observed (single probe, no re-anchor needed)
+- Visibility: public. License: MIT. Open issues: 0 (gh issue list --state open -> empty).
+
+1. RELEASE ARTIFACT SURFACE — STILL ABSENT (never created)
+   git tag --sort=-v:refname ................ zero tags, local
+   git ls-remote --tags origin ............. zero tags, remote
+   gh release list --repo ... --limit 10 ... zero Release objects
+   tag-triggered workflow .................. none. .github/workflows/ holds one file,
+     ci.yml, whose triggers are: push[branches: main], pull_request,
+     workflow_dispatch. Tag pushes fire nothing — tag-time verification is manual
+     dispatch by design (documented in docs/releases/release-readiness.md §3).
+   Consequence: this repo has a release PROCEDURE on paper and zero release
+   ARTIFACTS. The first cut CREATES the distribution namespace.
+
+2. INVENTORY SINCE THE LAST RELEASE ARTIFACT
+   There is no last release artifact, so the honest inventory is whole-history or
+   anchored on the CHANGELOG, which is the only boundary the notes describe.
+
+   (a) Anchored on the commit that wrote the `## [0.2.0] — 2026-09-24` section
+       (base f04ac47), git rev-list --no-merges --count f04ac47..HEAD:
+       total .......................................... 1,379
+       fix ............................................ 228
+       feat ........................................... 143
+       chore .......................................... 233
+       board .......................................... 476
+       docs ........................................... 69
+       data ........................................... 53
+       test ........................................... 39
+       BREAKING CHANGE:/type!: markers ................ 0   (subjects AND bodies)
+
+   (b) Anchored on the last edit to CHANGELOG.md (7f802f3, 2026-10-14) — the
+       promotion gap, i.e. work the tag would reach but the notes do not mention:
+       total .......................................... 708
+       material (feat|fix|perf) ....................... 144   (feat 42, fix 102, perf 0)
+       board .......................................... 282
+       chore .......................................... 113
+       Board/harness bookkeeping dominates the total, so the material count —
+       not the commit count — is what a release would advertise.
+
+   Validation of the census (skill §3): prefix classes plus free-form remainder
+   reconcile with the rev-list totals; a spot sample of in-range `feat(` subjects
+   matched the counted class. Not a failed parser.
+
+3. VERSION HYGIENE
+   pyproject.toml  project.version ................. 0.2.0
+   task_router/__init__.py __version__ .............. 0.2.0
+   CHANGELOG top heading ........................... ## [Unreleased]
+   CHANGELOG has sections for [0.2.0] (2026-09-24) and [0.1.0] (2026-09-21) —
+   neither was ever tagged or released.
+   Two pins agree with each other, and both agree with a version that was never
+   shipped. The stamp is evidence of a PREVIOUS decision, not this one's answer:
+   the delta carries 143 features, so any authorized cut is a MINOR (0.2.0 ->
+   0.3.0), not the patch the stamp implies.
+   Version-prep state: NOT DONE. No [0.3.0] section, no bump commit, and the
+   [Unreleased] body predates 708 commits (144 material) of work.
+
+4. CI TRUTH ON HEAD (exact SHA, provider-measured)
+   Run 42518051542 — https://github.com/coding-hermes/task-router/actions/runs/42518051542
+     head_sha ....... e304776559d0f72b6c7169e1d31cc2e848c5223f  (= candidate)
+     event .......... push        workflow: ci        status: completed
+     conclusion ..... SUCCESS
+     created ........ 2026-11-08T20:02:36Z   terminal 2026-11-08T20:46:10Z (~43 min)
+     jobs ........... 1 job, `test`: completed/success
+     steps (all success, none skipped):
+       3  Router state plane at the default path (ci-mirror)
+       6  Seed registry (registry.json is gitignored — CI must generate it)
+       7  Full test suite (pure JSON — no duckdb needed)
+       8  Guard test command (gitreins parity)
+       9  Fresh-clone resolve smoke (stdlib, hermetic state)
+       10 Registry integrity
+       11 Null-debt invariants (TR-201)
+       12 TR-251 boundary gate
+       13 TR-251 evidence replay
+       14 outcome_probes check-all + reference-gate (TR-339-05)
+       15 Proxy harness guard (compile + no-live-harness tripwire)
+   This is the repository's only workflow, it has no path filters, and the job
+   runs the full suite plus the guard script. Per-step conclusions were read
+   because a run-level `success` does not say which jobs actually executed.
+   => Exact-SHA hosted CI gate: GREEN. This CLEARS the 2026-11-07 red recorded
+      against candidate de94cd1 (run 42414368042, failure in
+      tests/test_doc_parity.py::test_all_router_env_keys_documented).
+
+   Recent-run history (gh run list --limit 15): 14 success / 1 failure. The single
+   failure is 42478289318 @ 09a1b65 (2026-11-08T12:01Z, corpus re-pin); it was
+   fixed forward — every run after it is green and it is an ancestor of the
+   candidate, so it does not gate the current tip.
+
+5. GATES OTHER THAN HOSTED CI
+   GitReins: step 8 "Guard test command (gitreins parity)" completed/success on
+     the exact candidate SHA — a guard receipt bound to this tree, non-degraded.
+     NOT re-run locally this tick: a fresh full-suite guard pass on this host
+     duplicates 43 minutes of CI work already receipted above, and the local
+     host is under load. Labelled as CI-carried, not independently re-measured.
+   Repository verdict files: .gitreins/history/2026-11-08/ carries one run
+     (37001239) from 2026-11-07T23:20 local; no verdict exists for the candidate
+     SHA. Task-scoped verdicts are not release-tree verdicts — the CI guard step
+     is the stronger receipt here.
+   Dogfood: latest committed report docs/dogfood/2026-11-06-integration.md, HEAD
+     586dcf6, verdict PROMISING-BUT-ROUGH. Fresh install succeeded in ~16 s, but
+     the documented quick-start step `router seed` refuses: "SATISFIABILITY FAIL:
+     6 of 264 rating(s) in the emit domain have NO routable lane, across 1
+     category". CI opts out of that gate explicitly (--allow-unsatisfiable) so a
+     green run does NOT prove the documented path works. This is a genuine
+     fresh-user defect, not a test artifact. Not a release PASS.
+   QA battery (latest audit event 2026-11-08T20:02:18Z, tick
+     task-router-qa-2026-11-08-16-58-52, tested c42dd44):
+     tests cell FAIL — single red tests/test_metrics_endpoint.py::
+     test_peer_is_loopback_fails_closed, and it is CPython patch-level dependent
+     (12.3 red / 12.13 green / controller green); owned by QA-TASKROUTER-14-R2.
+     lint cell N/A on the agent (no ruff); settled off-battery on the controller
+     at the same SHA: ruff check . rc=1, 666 errors.
+     Hosted CI at the same SHA is green. Recorded, not folded into a pass.
+
+6. DEPLOYED SURFACE — SERVING PROCESSES ARE STALE (new finding this tick)
+   Three read-only processes serve this checkout; each self-reports its loaded code:
+
+     listener  pid       started (local)      entry file
+     9092      949712    Thu Nov  5 20:03:50   scripts/router_server.py --mode read-only
+     9391      969219    Thu Nov  5 20:04:50   scripts/router_server.py --mode read-only
+     9093      969280    Thu Nov  5 20:04:51   ~/.hermes/scripts/router_web.py --mode read-only
+
+   GET http://127.0.0.1:9092/health (2026-11-08T20:50:19Z):
+     status ok; service task-router/1.0; mode read-only
+     code.loaded_commit  = 9d1bf7c38f82      (2026-11-05 20:02:23 -0500)
+     code.repo_commit    = e304776559d0
+     code.stale          = TRUE
+     code.loaded_at      = 2026-11-06T01:03:52+00:00
+   GET http://127.0.0.1:9391/health: identical loaded_commit 9d1bf7c38f82, stale=TRUE.
+   GET http://127.0.0.1:9093/health -> {"error":"not found"} — that listener exposes
+     no staleness self-report, so its state is UNMEASURED, not asserted stale.
+     (Its own entry file, scripts/router_web.py, was last touched 1de4298 on
+     2026-10-22, before the process started, so its imported module is current.)
+
+   Distance: git rev-list --count 9d1bf7c38f82..HEAD = 133 commits,
+             13 of them touching scripts/ or task_router/.
+   Honest boundary: router_server.py dispatches scripts/ tools in place via runpy,
+   so tool behavior tracks the tree at call time; what is frozen is the server
+   module graph imported at boot. The staleness is real and self-declared — it is
+   NOT the whole 133-commit product delta.
+   Nothing consumes code.stale — /health reports it honestly (TR-141/TR-255 fixed
+   the reporting), no supervisor restarts on it. This is the TR-255 class
+   recurring. Filed as RELEASE-2026-11-08-001 (P2, restart + consume the flag).
+
+   Installed consumer artifact: probe NOT PERFORMED this tick — the three-part
+   absence probe (`command -v router`, pipx list, global import) was cut off by an
+   unattended command gate that returned no approval, so this leg is UNVERIFIED
+   and NOT claimed either way. Carried from 2026-11-07 (artifact absent: no global
+   `router` on PATH, no pipx venv, no site-packages task_router; only the repo's
+   editable .venv). Consistent with zero tags / zero Release objects.
+
+7. DELTA vs THE 2026-11-07 SWEEP (evidence file release-readiness-…-2026-11-07-2008.txt)
+   CHANGED THIS TICK:
+     * exact-SHA CI: 2026-11-07 ended with candidate de94cd1 RED (run
+       42414368042) and the re-gated carrier 926bc79 PENDING. Now HEAD e304776
+       is terminal GREEN with 15/15 steps success (run 42518051542). The CI leg
+       of the no-cut decision is CLEARED.
+     * material inventory since the last CHANGELOG edit: 678/143 -> 708/144.
+     * P0 pending rows: 8 -> 9. P1 pending: 29 -> 30. Total pending 100, blocked 4.
+     * NEW finding: serving processes self-report stale=true, 133 commits /
+       13 code commits behind (RELEASE-2026-11-08-001).
+   UNCHANGED:
+     * zero tags, zero Release objects, no tag-triggered workflow;
+     * version pins both 0.2.0, no version-prep commit;
+     * no release driver: Makefile targets are
+       help venv install seed validate status serve watchdog restart-router test
+       guard hooks smoke schemas clean — no release/version/bump/publish/tag
+       target; no scripts/release*, no .goreleaser, no Dockerfile, no
+       package.json. scripts/router_release_backfill.py is a data backfill, not a
+       driver. RELEASE-2026-11-03-001 remains the dispatchable P0 driver gap.
+     * public posture: security_and_analysis all disabled
+       (secret_scanning, secret_scanning_push_protection,
+       secret_scanning_non_provider_patterns, secret_scanning_validity_checks,
+       dependabot_security_updates); branches/main/protection -> HTTP 404
+       "Branch not protected". RELEASE-2026-11-07-001 remains pending.
+     * the three RELEASE-* rows (2026-10-22-001, 2026-11-03-001, 2026-11-07-001)
+       are all still `pending`. No duplicate hold row filed this tick — §8 says
+       restate the existing id, and the state of their own subject matter has not
+       moved.
+
+8. DECISION — NO CUT
+   Decision-1 rule 2 fires: open P0 blockers in the target, 9 of them —
+     RELEASE-2026-10-22-001  first release surface absent (P0)
+     RELEASE-2026-11-03-001  release driver absent (P0)
+     TR-371                  no-hops alert ships to an unreachable CLI verdict (P0)
+     TR-390                  capability matrix backfill, 364/828 lanes usable (P0)
+     TR-394, TR-395          tasks-admitted lanes bypass cooldown (P0)
+     TR-1000599737158536     commit-time usability guard never wired (P0)
+     TR-398, TR-399          reasoning-effort axis absent from storage/ingest (P0)
+   Rule 2 alone is a hard stop even though the CI leg is now green.
+
+   Independently and additionally, §0 withholds this cut from my authority: with
+   0 tags, 0 Release objects and no tag-triggered publisher, a first cut CREATES
+   the distribution namespace rather than publishing into one. That is the ONLY
+   owner-gated clause on this decision — everything else in the ordered sequence
+   below is foreman-dispatchable work.
+
+   Bump if authorized: MINOR, 0.2.0 -> 0.3.0. Evidence: 143 feat and 228 fix
+   since the 0.2.0 section base, zero BREAKING CHANGE / bang subjects or bodies,
+   and the repo's own precedent (0.1.0 -> 0.2.0) treats features as minor inside
+   the 0.x line. A major bump is NOT proposed.
+   Held back deliberately: no tag, no Release object, no version bump, no pinned
+   dependency movement (runtime is stdlib-only by design, so §6 has no runtime
+   ladder to walk), no artifact build (a wheel built from a tree whose version and
+   notes are not prepped would be a v0.2.0-named artifact for v0.3.0 content).
+
+9. ORDERED NEXT SEQUENCE (unchanged in shape; CI leg now clear)
+   1. OWNER (only owner gate): authorize first publication of
+      coding-hermes/task-router, naming v0.3.0 and the baseline SHA.
+   2. FOREMAN: version-prep commit — pins 0.3.0 in pyproject.toml AND
+      task_router/__init__.py, AUDITS and writes the 144 material entries, promotes
+      `## [Unreleased]` to `## [0.3.0] — <date>` in the repo's own heading form,
+      reopens an empty [Unreleased]. This is an audit, not a heading edit.
+      Then wait for its own terminal green run (~43 min, measured this tick).
+   3. FOREMAN: land the release driver (RELEASE-2026-11-03-001) or record the
+      manual fallback plus the defect it leaves.
+   4. FOREMAN: tag the gated commit (ancestor of main, not necessarily the tip),
+      push, `gh workflow run ci.yml --ref v0.3.0`, read per-job conclusions.
+   5. FOREMAN: `gh release create v0.3.0` with CHANGELOG-derived notes and built
+      wheel/sdist as positional assets — exactly once. The repo has no tag
+      publisher, so manual IS the only path and the record must say so.
+   6. FOREMAN: download the published assets, install the wheel in a fresh venv,
+      assert task_router.__version__ (the CLI ships no --version flag), then
+      `gh release view` for tagName/isDraft/isPrerelease/assets.
+
+EVIDENCE BOUNDARY
+- All measurements in this artifact were taken this tick against
+  /home/kara/task-router on main at e3047765, except the two explicitly
+  carried-forward items (installed-artifact absence probe: UNVERIFIED; local
+  guard re-run: not performed, CI-carried).
+- One probe was refused by the unattended command gate (multi-part installed-
+  artifact check). It was not retried, rephrased, or worked around; the leg is
+  reported UNVERIFIED per that gate's terms.
+================================================================================
