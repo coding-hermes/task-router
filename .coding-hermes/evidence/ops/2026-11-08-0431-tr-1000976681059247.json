@@ -1,0 +1,46 @@
+{
+  "tick": "task-router-ops-2026-11-08-04-31-03",
+  "project": "task-router",
+  "row": "TR-1000976681059247",
+  "operation": "bounded reversible sidecar re-canonicalization; restart deliberately withheld",
+  "measured_at": "2026-11-08T04:34:00-05:00",
+  "identity": {
+    "repo": "/home/kara/task-router",
+    "remote": "origin",
+    "origin_main_before": "136752e0e05062f29c0588f5a221782d36053776",
+    "canonical_local_tip": "ce12d501218e990019e971c11f4b40a16e8e3d21"
+  },
+  "fault": {
+    "command": "bash scripts/sync_runtime.sh",
+    "before_exit": 1,
+    "before_output": "SKIP fleet-cooldown-policy.py -> live copy matches canonical sidecar, REPO DIFFERS (SCHED-PERF-006)"
+  },
+  "canonical_decision": {
+    "chosen": "repository copy",
+    "reason": "The repository copy is the published origin/main copy and carries the owner-ruling RETIRED as a WRITER header plus bounded TR-205 pagination; the live-only _canonical_satellite_cadence helper is absent from git history.",
+    "repo_sha256": "3fb67a8ea75c83e696dd1c85007cf1963cfbef205e57544027538abd0f8f0b76",
+    "live_sha256_before": "b40b2a3f6883efba534f6d7c070adca99b2e68b7e79e7572b31070bb10d30ed8",
+    "sidecar_sha256_before": "b40b2a3f6883efba534f6d7c070adca99b2e68b7e79e7572b31070bb10d30ed8"
+  },
+  "change": {
+    "command": "write repository sha256 to ~/.hermes/scripts/.fleet-cooldown-policy.canonical.sha256, then bash scripts/sync_runtime.sh",
+    "sync_exit": 0,
+    "sync_output": "SYNCED fleet-cooldown-policy.py -> copied from repo (non-canonical live copy replaced); runtime wiring OK",
+    "live_sha256_after": "3fb67a8ea75c83e696dd1c85007cf1963cfbef205e57544027538abd0f8f0b76",
+    "reversible": "The sidecar can be restored to the prior live hash and sync will refuse the repo copy again; no source or scheduler state was changed."
+  },
+  "restart_gate": {
+    "watchdog_command": "python3 scripts/router_stale_watchdog.py --url http://127.0.0.1:9092 --url http://127.0.0.1:9391 --json",
+    "exit": 1,
+    "result": "Both health-speaking instances remain STALE: loaded 9d1bf7c38f82 vs repo ce12d501218e; restart needed.",
+    "withheld": "No restart was issued. At the close probe, :9391 had 21 ESTABLISHED client/upstream sockets and the three task-router systemd units were active; restarting during an in-flight proxy tick would violate the ops contract."
+  },
+  "post_change_census": {
+    "command": "python3 ~/.hermes/scripts/fleet_ops_check.py --project task-router --json",
+    "exit": 0,
+    "kind": "library",
+    "gaps": 0,
+    "lanes": 11
+  },
+  "status": "annotated_pending_restart"
+}
