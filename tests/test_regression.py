@@ -272,7 +272,7 @@ def test_chain_invariants_per_profile(monkeypatch, tmp_path, pid):
     #     keeps its P0 chain slot at hop 11 ($0.003867 vs $0) — the head moved
     #     on PRICE order, not capability. Verified by hermetic resolve against
     #     the worktree tables (all-open state), head = xkiro/qwen/qwen3.7-plus:free.
-    ("P0_FORE", "xkiro/qwen/qwen3.7-plus:free"),  # TR-232 2026-09-28: $0 lane, agent_tick cleared at the undamped 0.75 threshold
+    ("P0_FORE", "xkiro/openai/gpt-6-luna"),  # XK-404-001-R3 2026-11-08: qwen3.7-plus:free lane archived (vanished upstream); post-archival head is the $0→cheapest eligible xkiro gpt-6-luna plan lane
     # 2026-09-16: Step Plan Flash Pro flat-sub repricing (plan_terms 39.4x lane,
     # commit afc774c) stamped step-3.5-flash at $0.0051 normalized — cheaper than
     # every other P1_CODING/P2_AGENTIC-eligible lane, so the price-ordered chain
@@ -297,7 +297,7 @@ def test_chain_invariants_per_profile(monkeypatch, tmp_path, pid):
     #     the P2 bars (agent_tick 2, delegation 5, long_horizon 5, tool_use 5)
     #     and its $0 price takes the head. Same hermetic-resolve verification
     #     as P0_FORE above.
-    ("P2_AGENTIC", "xkiro/qwen/qwen3.7-plus:free"),  # TR-232 2026-09-28: $0 head, own-probe tiers clear all P2 bars
+    ("P2_AGENTIC", "xkiro/openai/gpt-6-luna"),  # XK-404-001-R3 2026-11-08: qwen3.7-plus:free archived; gpt-6-luna owns the post-archival head (own-probe tiers clear the P2 bars at the 2026-11-08 tables)
     # Bane 2026-08-31: P4_SECURITY requires security >= 2. Only gpt-5.6-sol
     # clears that bar. 2026-09-10: commandcode provider added (Provider API,
     # no-markup, open in the prod mirror) — its gpt-5.6-sol lane clears
