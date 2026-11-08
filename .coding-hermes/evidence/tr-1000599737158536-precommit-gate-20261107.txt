@@ -1,0 +1,113 @@
+# TR-1000599737158536 evidence — commit-time usability guard — 2026-11-07
+
+Row: "Commit-time usability guard: .git/hooks/pre-commit never references the gate, so
+incomplete model data commits freely."
+
+Disposition: PREMISE DELIVERED. The row was filed 2026-11-07T04:10:06 on the measured
+fact that no commit-time gate existed. Between filing and this tick the delivery landed
+on `main` under the row that owned the scope (TR-362, "Commit gate: no lane routable
+without measured capability data OR a stated reason"):
+
+  8be9ed1 2026-11-05  INV4 null-debt commit gate — no routable lane without perf
+                      evidence or a stated reason (data/tables/models.jsonl leg)
+  4d60db2 2026-11-07  gate(TR-362): land the pre-commit leg — model-data commit gate
+                      + live .githooks/pre-commit
+  c78e76c (TR-393)    .githooks/pre-commit also runs the decline contract
+
+Both objects are ancestors of `origin/main` = 1b9d11f, proved with
+`git merge-base --is-ancestor <sha> origin/main` (rc=0 for each). The live hook is
+`.githooks/pre-commit` (core.hooksPath), and its model-data leg is
+`scripts/model_data_commit_gate.py --staged`.
+
+Every acceptance arm was RE-MEASURED in this tick by execution, in a disposable
+detached worktree at `origin/main`, never by reading the gate's source.
+
+## AC1 — a staged model-table diff that adds an evidence-free live lane is REFUSED
+
+Worktree: scratch `probe` at origin/main (1b9d11f), clean on entry.
+Probe: clone row 1 of `data/tables/models.jsonl`, set provider=probeorg,
+model=probe-evidence-free-lane, normalized_price=0.5, null EVERY perf_* field,
+append, `git add data/tables/models.jsonl`, then run the hook's own command:
+
+    $ python3 scripts/model_data_commit_gate.py --staged
+    COMMIT BLOCKED — incomplete model data
+    1 lane(s) with no capability measurement and no stated reason:
+      • probeorg/probe-evidence-free-lane              [added]
+          new live lane with no capability measurement and no stated reason
+    usability ratchet: usability defects would rise to 281 (ceiling 280 from parent commit)
+      defects now 281, parent commit 280, baseline 345
+    exit: 1
+
+Both rules fire independently: RULE A on the lane, RULE B on the defect count versus
+the PARENT-commit ceiling (tighter than the 345 baseline, which is what closes TR-369's
+headroom blind spot).
+
+## AC2 — the refusal NAMES the offending lanes and prints the detail command
+
+Quoted above: `probeorg/probe-evidence-free-lane [added]` with the reason string, plus
+
+    See the detail:   python3 scripts/model_data_commit_gate.py --explain
+
+`grep -c probe-evidence-free-lane` on the output = 1 (the lane is named, not summarised).
+
+## AC3 — installed by the tracked scripts/install-hooks.sh; a real commit runs it
+
+    $ bash scripts/install-hooks.sh
+    hooksPath=.githooks
+    pre-commit resolves correctly: .githooks/pre-commit
+    $ git rev-parse --git-path hooks/pre-commit
+    .githooks/pre-commit            (executable: yes)
+
+Not merely present — OBSERVED RUNNING: a real `git commit` in the probe worktree
+printed the gate's own OK line before the commit was created (see AC5 arm).
+
+## AC4 — documented, loud bypass env var
+
+    $ ALLOW_UNUSABLE_DATA=1 python3 scripts/model_data_commit_gate.py --staged
+    model_data_commit_gate.py: WARNING: ALLOW_UNUSABLE_DATA=1 — the model-data commit
+    gate is bypassed for this commit. Staged model tables: data/tables/models.jsonl
+    exit: 0
+The refusal text itself advertises the bypass ("Deliberate, disclosed exception:
+ALLOW_UNUSABLE_DATA=1 git commit ..."), and
+`tests/test_model_data_commit_gate.py::test_e2e_bypass_env_is_loud_and_disclosed`
+pins it.
+
+## AC5 — blocked-with-lane-named and clean-passing tests
+
+    $ pytest -q tests/test_model_data_commit_gate.py
+    37 passed in 3.77s
+
+Includes both required arms at the real-git level:
+`test_e2e_blocks_a_new_lane_with_no_evidence`,
+`test_e2e_allows_a_clean_commit_with_real_evidence`, plus
+`test_e2e_blocks_touching_only_model_tier_for_an_unmeasured_lane`,
+`test_e2e_blocks_when_the_usability_defect_count_rises`,
+`test_real_repo_passes_its_own_gate`.
+
+Positive arm re-run by hand in the same probe worktree — lane WITH a measurement AND a
+tier row (a measurement alone does not clear the ratchet, by design):
+
+    gate_positive_rc=0
+    model_data_commit_gate.py: OK — 280 usability defects, model tables staged
+    (data/tables/model_tier.jsonl, data/tables/models.jsonl)
+    git commit (through the installed hook): rc=0, head e6a80ea
+
+## AC6 — under 5s, stdlib only, no duckdb
+
+    fast path (nothing model-table staged): 0.05 s
+    full path (models.jsonl + model_tier.jsonl staged): 0.72 s
+    imports: argparse importlib.util json os subprocess sys tempfile
+    `grep duckdb scripts/model_data_commit_gate.py` -> only the docstring line
+    "Python stdlib only, no duckdb".
+
+## Probe hygiene
+
+The probe worktree was reset to origin/main after each arm:
+`porcelain_after=0 head_restored=1b9d11f`. No tracked file in the canonical checkout or
+the landing worktree was modified by these probes.
+
+## CI binding
+
+Completed green GitHub Actions run 42418702817 (head 1b9d11f = origin/main, the tip that
+contains 8be9ed1 and 4d60db2). `gh run list -R coding-hermes/task-router` shows it
+status=completed conclusion=success.
