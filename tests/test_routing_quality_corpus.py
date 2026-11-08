@@ -252,8 +252,11 @@ CASES = [
                             'review': -1, 'schema': 1, 'terminal': -1,
                             'ui_frontend': -5, 'vision': -3},
         'expect': {
-            'head': ['xkiro', 'qwen/qwen3.7-plus:free'],
-            'head_usd_1m': 0.0,
+            # 2026-11-08 (XK-404-001-R3 archival): the dead xkiro :free head lane was
+                # archived (catalog-absent + chat 404 on both seats, 44 lanes); the next
+                # cheapest acceptable lane takes the head (09-18 golden-head law).
+            'head': ['xkiro', 'openai/gpt-6-luna'],
+            'head_usd_1m': 0.116,
             'must_include': [['commandcode', 'Qwen/Qwen3.8-27B'],
                              ['commandcode', 'google/gemini-3.8-flash']],
             'must_exclude': [['clinepass', 'dots-3-note-preview:free'],
@@ -280,8 +283,11 @@ CASES = [
         'capability_tags': {'code_gen': -2, 'debug': -3, 'refactor': -5,
                             'test': 0},
         'expect': {
-            'head': ['xkiro', 'qwen/qwen3.7-flash:free'],
-            'head_usd_1m': 0.0,
+            # 2026-11-08 (XK-404-001-R3 archival): the dead xkiro :free head lane was
+                # archived (catalog-absent + chat 404 on both seats, 44 lanes); the next
+                # cheapest acceptable lane takes the head (09-18 golden-head law).
+            'head': ['xkiro', 'cohere/command-r7b-12-2024'],
+            'head_usd_1m': 0.0375,
             'must_include': [['commandcode', 'deepseek/deepseek-v4-pro'],
                              ['deepseek', 'deepseek-flash']],
             'must_exclude': [['clinepass', 'dots-3-note-preview:free']],
@@ -294,11 +300,16 @@ CASES = [
         'capability_tags': {'agent_tick': 0, 'delegation': 0,
                             'long_horizon': 1, 'tool_use': 0},
         'expect': {
-            'head': ['xkiro', 'qwen/qwen3.7-plus:free'],
-            'head_usd_1m': 0.0,
+            # 2026-11-08 (XK-404-001-R3 archival): the dead xkiro :free head lane was
+                # archived (catalog-absent + chat 404 on both seats, 44 lanes); the next
+                # cheapest acceptable lane takes the head (09-18 golden-head law).
+            'head': ['xkiro', 'openai/gpt-6-luna'],
+            'head_usd_1m': 0.116,
             'must_include': [['commandcode', 'meituan/LongCat-2.0']],
             'must_exclude': [['clinepass', 'dots-3-note-preview:free']],
-            'min_chain': 130,
+            # 2026-11-08: floor 130->117 — XK-404-001-R3 archival removed the
+            # dead xkiro :free lanes (+ mercury trio) from this pool (measured).
+            'min_chain': 117,
         },
     },
     {
@@ -306,8 +317,11 @@ CASES = [
         'input': {'profile': 'P3_DOCS'},
         'capability_tags': {'long_doc': -1, 'review': -1, 'spec_docs': 0},
         'expect': {
-            'head': ['xkiro', 'qwen/qwen3.5-397b-a17b:free'],
-            'head_usd_1m': 0.0,
+            # 2026-11-08 (XK-404-001-R3 archival): the dead xkiro :free head lane was
+                # archived (catalog-absent + chat 404 on both seats, 44 lanes); the next
+                # cheapest acceptable lane takes the head (09-18 golden-head law).
+            'head': ['xkiro', 'openai/gpt-6-luna'],
+            'head_usd_1m': 0.116,
             'must_include': [['commandcode', 'Qwen/Qwen3.7-Plus'],
                              ['deepseek', 'deepseek-flash']],
             'must_exclude': [['clinepass', 'dots-3-note-preview:free']],
@@ -362,8 +376,11 @@ CASES = [
                             'long_doc': -1, 'reasoning': -1, 'schema': -1,
                             'terminal': -1, 'tool_use': -1},
         'expect': {
-            'head': ['xkiro', 'qwen/qwen3.7-plus:free'],
-            'head_usd_1m': 0.0,
+            # 2026-11-08 (XK-404-001-R3 archival): the dead xkiro :free head lane was
+                # archived (catalog-absent + chat 404 on both seats, 44 lanes); the next
+                # cheapest acceptable lane takes the head (09-18 golden-head law).
+            'head': ['xkiro', 'openai/gpt-6-luna'],
+            'head_usd_1m': 0.116,
             'must_include': [['commandcode', 'meituan/LongCat-2.0'],
                              ['deepseek', 'deepseek-flash']],
             'must_exclude': [['clinepass', 'dots-3-note-preview:free']],
@@ -394,8 +411,11 @@ CASES = [
                             'long_doc': -1, 'reasoning': -1, 'schema': -1,
                             'terminal': -3, 'tool_use': -1},
         'expect': {
-            'head': ['xkiro', 'qwen/qwen3.7-plus:free'],
-            'head_usd_1m': 0.0,
+            # 2026-11-08 (XK-404-001-R3 archival): the dead xkiro :free head lane was
+                # archived (catalog-absent + chat 404 on both seats, 44 lanes); the next
+                # cheapest acceptable lane takes the head (09-18 golden-head law).
+            'head': ['xkiro', 'openai/gpt-6-luna'],
+            'head_usd_1m': 0.116,
             'must_include': [['commandcode', 'gpt-6-astra'],
                              ['deepseek', 'deepseek-flash']],
             'must_exclude': [['clinepass', 'dots-3-note-preview:free']],
@@ -409,8 +429,11 @@ CASES = [
                             'mock': -3, 'reasoning': -1, 'review': -2,
                             'schema': -1, 'security': -1},
         'expect': {
-            'head': ['xkiro', 'qwen/qwen3.7-flash:free'],
-            'head_usd_1m': 0.0,
+            # 2026-11-08 (XK-404-001-R3 archival): the dead xkiro :free head lane was
+                # archived (catalog-absent + chat 404 on both seats, 44 lanes); the next
+                # cheapest acceptable lane takes the head (09-18 golden-head law).
+            'head': ['xkiro', 'cohere/command-r7b-12-2024'],
+            'head_usd_1m': 0.0375,
             'must_include': [['aws-bedrock', 'anthropic.claude-fable-5'],
                              ['deepseek', 'deepseek-flash']],
             'must_exclude': [['opencode-go', 'space-bunny-free'],
@@ -425,9 +448,11 @@ CASES = [
             # 2026-11-07 (same tick, gate ratchet): floor 577->569 — the 8 unmeasured
             # priced arrivals (6 openrouter :batch variants + 2 liquid lanes) were
             # taken out of service per the TR-362 usability ratchet (disabled +
+            # 2026-11-08: floor 569->547 — XK-404-001-R3 archival removed the
+            # dead xkiro :free lanes (+ mercury trio) from this pool (measured).
             # disabled_reason; re-enable on measurement or the owner batch-lane
             # ruling); they had been pool members via the blank-default -1.
-            'min_chain': 569,
+            'min_chain': 547,
         },
     },
     # --- ad-hoc capability bands (the classifier's output space) ------------
@@ -436,8 +461,11 @@ CASES = [
         'input': {'adhoc': ['code_gen=2', 'debug=1']},
         'capability_tags': {'code_gen': 2, 'debug': 1},
         'expect': {
-            'head': ['xkiro', 'qwen/qwen3.8-omni-flash:free'],
-            'head_usd_1m': 0.0,
+            # 2026-11-08 (XK-404-001-R3 archival): the dead xkiro :free head lane was
+                # archived (catalog-absent + chat 404 on both seats, 44 lanes); the next
+                # cheapest acceptable lane takes the head (09-18 golden-head law).
+            'head': ['xkiro', 'openai/gpt-6-luna'],
+            'head_usd_1m': 0.116,
             'must_include': [['clinepass', 'qwen3.8-max'],
                              ['commandcode', 'Qwen/Qwen3.8-Max-0902']],
             'must_exclude': [['clinepass', 'dots-3-note-preview:free'],
@@ -445,7 +473,9 @@ CASES = [
             # 2026-11-07: floor 79->78 — the 951-row tier landing raised the
             # code_gen/debug scales; one pool lane fell below the declared band
             # (measured, INT-CI-23 re-pin wave).
-            'min_chain': 78,
+            # 2026-11-08: floor 78->70 — XK-404-001-R3 archival removed the dead
+            # xkiro :free lanes (+ mercury trio) from this pool (measured).
+            'min_chain': 70,
         },
     },
     {
@@ -453,8 +483,11 @@ CASES = [
         'input': {'adhoc': ['reasoning=2']},
         'capability_tags': {'reasoning': 2},
         'expect': {
-            'head': ['xkiro', 'qwen/qwen3.7-flash:free'],
-            'head_usd_1m': 0.0,
+            # 2026-11-08 (XK-404-001-R3 archival): the dead xkiro :free head lane was
+                # archived (catalog-absent + chat 404 on both seats, 44 lanes); the next
+                # cheapest acceptable lane takes the head (09-18 golden-head law).
+            'head': ['xkiro', 'cohere/command-r7b-12-2024'],
+            'head_usd_1m': 0.0375,
             'must_include': [['commandcode', 'deepseek/deepseek-v4-pro'],
                              ['deepseek', 'deepseek-flash']],
             'must_exclude': [['clinepass', 'dots-3-note-preview:free']],
@@ -480,8 +513,11 @@ CASES = [
         'input': {'adhoc': ['long_doc=0', 'min_context=200000']},
         'capability_tags': {'long_doc': 0, 'min_context': 200000},
         'expect': {
-            'head': ['xkiro', 'qwen/qwen3.7-flash:free'],
-            'head_usd_1m': 0.0,
+            # 2026-11-08 (XK-404-001-R3 archival): the dead xkiro :free head lane was
+                # archived (catalog-absent + chat 404 on both seats, 44 lanes); the next
+                # cheapest acceptable lane takes the head (09-18 golden-head law).
+            'head': ['xkiro', 'nvidia/nemotron-3-nano-omni'],
+            'head_usd_1m': 0.056,
             'head_context_min': 200000,
             'must_include': [['commandcode', 'MiniMaxAI/MiniMax-M3'],
                              ['deepseek', 'deepseek-flash']],
@@ -529,8 +565,11 @@ CASES = [
         'input': {'adhoc': ['spec_docs=0', 'review=-1']},
         'capability_tags': {'spec_docs': 0, 'review': -1},
         'expect': {
-            'head': ['xkiro', 'qwen/qwen3.5-397b-a17b:free'],
-            'head_usd_1m': 0.0,
+            # 2026-11-08 (XK-404-001-R3 archival): the dead xkiro :free head lane was
+                # archived (catalog-absent + chat 404 on both seats, 44 lanes); the next
+                # cheapest acceptable lane takes the head (09-18 golden-head law).
+            'head': ['xkiro', 'openai/gpt-6-luna'],
+            'head_usd_1m': 0.116,
             'must_include': [['commandcode', 'Qwen/Qwen3.8-Max-0902'],
                              ['deepseek', 'deepseek-flash']],
             'must_exclude': [['clinepass', 'dots-3-note-preview:free']],
@@ -542,18 +581,25 @@ CASES = [
         'input': {'adhoc': ['agent_tick=0', 'tool_use=0', 'delegation=0']},
         'capability_tags': {'agent_tick': 0, 'tool_use': 0, 'delegation': 0},
         'expect': {
-            'head': ['xkiro', 'qwen/qwen3.7-plus:free'],
-            'head_usd_1m': 0.0,
+            # 2026-11-08 (XK-404-001-R3 archival): the dead xkiro :free head lane was
+                # archived (catalog-absent + chat 404 on both seats, 44 lanes); the next
+                # cheapest acceptable lane takes the head (09-18 golden-head law).
+            'head': ['xkiro', 'openai/gpt-6-luna'],
+            'head_usd_1m': 0.116,
             # 2026-11-07 (INT-CI-23 re-pin): deepseek-flash left the pool — its
             # measured tool_use (0.75, n=1 probe; BFCL 41/66 third-party) sits
             # below the TR-363-raised tier-0 cut (0.85), so the lane is excluded
+            # 2026-11-08: floor 153->137 — XK-404-001-R3 archival removed the
+            # dead xkiro :free lanes (+ mercury trio) from this pool (measured).
             # from every tool_use>=0 band until a qualifying sample lands.
             'must_include': [['clinepass', 'deepseek-v4-flash']],
             'must_exclude': [['clinepass', 'dots-3-note-preview:free']],
             # 2026-11-07: floor 192->153 — the 951-row landing raised the shared
             # tool_use scale, so every lane whose tool_use tier fell below the
             # band's >=0 bar left the pool at once (measured, INT-CI-23 re-pin).
-            'min_chain': 153,
+            # 2026-11-08: floor 153->137 — XK-404-001-R3 archival removed the dead
+            # xkiro :free lanes (+ mercury trio) from this pool (measured).
+            'min_chain': 137,
         },
     },
     {
@@ -563,15 +609,22 @@ CASES = [
         # TR-161 doctrine pinned: "this prompt needs nothing special" resolves
         # CHEAP (a $0.0 free lane heads a 780-lane pool), never the priciest.
         'expect': {
-            'head': ['xkiro', 'qwen/qwen3.7-flash:free'],
-            'head_usd_1m': 0.0,
+            # 2026-11-08 (XK-404-001-R3 archival): the dead xkiro :free head lane was
+                # archived (catalog-absent + chat 404 on both seats, 44 lanes); the next
+                # cheapest acceptable lane takes the head (09-18 golden-head law).
+            # 2026-11-08: floor 769->760 — XK-404-001-R3 archival removed the
+            # dead xkiro :free lanes (+ mercury trio) from this pool (measured).
+            'head': ['xkiro', 'cohere/command-r7b-12-2024'],
+            'head_usd_1m': 0.0375,
             'must_include': [['aws-bedrock', 'amazon.nova-micro-v1:0'],
                              ['deepseek', 'deepseek-flash']],
             'must_exclude': [],
             # 2026-11-03: floor 780->779 — vanished openrouter hermes-3 archived.
             # 2026-11-06: floor 779->769 — XK-404-001-R3 wave archived 10 pool lanes
             # (catalog-absent, chat-404 per id on both xkiro seats).
-            'min_chain': 769,
+            # 2026-11-08: floor 769->760 — second XK-404-001-R3 wave (44 free lanes
+            # + mercury trio, same-day chat 404s) removed 9 more pool lanes.
+            'min_chain': 760,
         },
     },
     {
@@ -583,8 +636,11 @@ CASES = [
         # condition) the default sort must degrade to the price sort and land
         # on the SAME head and eligible set as profile/P8_SYNC above.
         'expect': {
-            'head': ['xkiro', 'qwen/qwen3.7-plus:free'],
-            'head_usd_1m': 0.0,
+            # 2026-11-08 (XK-404-001-R3 archival): the dead xkiro :free head lane was
+                # archived (catalog-absent + chat 404 on both seats, 44 lanes); the next
+                # cheapest acceptable lane takes the head (09-18 golden-head law).
+            'head': ['xkiro', 'openai/gpt-6-luna'],
+            'head_usd_1m': 0.116,
             'must_include': [['commandcode', 'gpt-6-astra'],
                              ['deepseek', 'deepseek-flash']],
             'must_exclude': [['clinepass', 'dots-3-note-preview:free']],
