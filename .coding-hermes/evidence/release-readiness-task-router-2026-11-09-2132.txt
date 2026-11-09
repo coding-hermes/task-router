@@ -268,3 +268,100 @@ prior sweeps: RELEASE-2026-11-03-001 (11-03), RELEASE-2026-11-06-001, RELEASE-20
   Treat "artifacts build at 5f5f112" as UNPROVEN-AT-THIS-SHA until step 3 of §11 runs.
   CAVEAT — board counts are read from the working-tree board at write time; another lane held
   an uncommitted .gitreins/tasks.yaml marker, which this tick did not touch.
+
+=====================================================================
+PASS 2 — same tick re-delivered (task-router-releng-2026-11-09-21-32-53)
+=====================================================================
+Measurements re-derived 2026-11-09T23:22Z-23:38Z. Pass 1 wrote this file and landed it inside
+carrier 6edfd8cf; the row was then certified by 6547421b. This section EXTENDS the record in
+place (one artifact per tick). No product code, tag, Release object or version bump was created
+or changed by either pass.
+
+DELTA SINCE PASS 1 (delta receipt)
+- Tip: 5f5f1129 (pass-1 candidate) -> 6edfd8cf (pass-1 carrier) -> 6547421b (this pass)
+- git log --oneline 5f5f1129..6547421b = 2 commits, both bookkeeping:
+    6edfd8cf release: 2026-11-09 releng sweep — NO CUT, driver found stranded, P0 landing row filed
+    6547421b board: certify carrier 6edfd8cf green, refresh rolling readiness row
+- git diff --name-only 5f5f1129..6547421b = 3 files, all under .coding-hermes/
+  (board/events.jsonl, board/tasks.jsonl, evidence/release-readiness-...-2132.txt)
+- Non-.coding-hermes paths differing: 0. The code tree at the tip is byte-identical to the tree
+  pass 1 censused, so:
+    commits f04ac47..6547421b .................. 1489  (pass 1: 1487, +2 bookkeeping)
+    non-merge .................................. 1395  (94 merges in range)
+    feat ....................................... 143 non-merge / 144 merge-inclusive; fix 228; perf 0
+    breaking ................................... 0  (see BREAKING-CHANGE CORRECTION)
+    shipped delta .............................. 895 files, +145602 (unchanged by the delta)
+    code-only delta ............................ 358 files, +104156 (unchanged by the delta)
+- BREAKING-CHANGE CORRECTION: a naive `git log --format='%B' | grep -c 'BREAKING CHANGE'` over
+  this range returns 2 hits — both are releng PROSE (3f11de7b, 1168dc23) whose sweep text states
+  the breaking-change count IS zero. Per-commit inspection finds no commit declaring a breaking
+  change, and no bang-marked subject. Semver reading stands: no major bump.
+- feat count reconciliation: 143 non-merge + 1 merge subject = 144, which is the figure pass 1's
+  merge-inclusive count printed. Both numbers are correct under their own definition; neither is
+  a regression.
+
+CI — exact SHA, identity re-asserted three ways
+  git rev-parse origin/main / git ls-remote origin refs/heads/main / gh api .../commits/main .sha
+                                               .. 6547421bf54f9c3da7430d171b90b807807a980e (all three)
+  run 42714310424  workflow=CI  completed/SUCCESS  head_sha=6547421b  created 2026-11-09T22:42:50Z
+  gh api ".../actions/runs?head_sha=6547421bf54f9c3da7430d171b90b807807a980e" .total_count = 1
+  Prior carriers both green: 5f5f1129 run 42630703946; 6edfd8cf run 42708695233 (SUCCESS 22:42:05Z).
+  FILTER NOTE: the head_sha query returns total_count 0 when given the SHORT sha 6edfd8cf; the run
+  exists and is visible in `gh run list`. The tip's own run is the gate and it is green.
+  VERDICT: RELEASE-ELIGIBLE ON CI. No red run on the candidate, and none on the seven before it.
+
+BLOCKERS re-measured on origin/main (not carried)
+  Open P0 = 12  (pass 1: 11; the +1 is RELEASE-2026-11-09-001, which pass 1 itself filed)
+    RELEASE-2026-10-22-001  pending   (this rolling readiness row)
+    RELEASE-2026-11-03-001  pending   (release driver absent)
+    RELEASE-2026-11-09-001  pending   (land the stranded driver)
+    TR-294 blocked; TR-371, TR-390, TR-394, TR-395, TR-398, TR-399,
+    TR-1000599737158536 pending; TR-1000397261104277 review
+  RELEASE-row census: 6 rows — 3 P0 pending, 2 P1/P2 pending, 1 complete (RELEASE-2026-11-06-001).
+
+DRIVER — still stranded, participation unchanged
+  origin/wt/RELEASE-2026-11-03-001-r2 ... 32efe4526e1d3eec8340b3b7adad19a05bed0082
+  scripts/release_driver.py on origin/main ... ABSENT (`git cat-file -e` -> non-zero)
+  No tag-triggered publisher: .github/workflows/ci.yml carries no `tags:` trigger.
+
+VERSION HYGIENE (unchanged)
+  pyproject.toml version = 0.2.0 ; task_router/__init__.py __version__ = 0.2.0
+  CHANGELOG newest heading = "## [Unreleased]"; below it [0.2.0] — 2026-09-24, [0.1.0] — 2026-09-21.
+  NEITHER documented version was ever tagged: 0 local tags, 0 remote tags, 0 Release objects.
+  Tooling: Makefile has no release/version/bump/publish target; no scripts/release*;
+  no goreleaser; no Dockerfile; docs/releases/*.md is procedure only.
+
+DEPLOYED STALENESS (re-measured; path set stated)
+  /health on :9092 and :9391 alike: commit 9d1bf7c38f82, loaded_at 2026-11-06T01:03:52Z,
+  repo_commit 6547421b, code.stale = true — the service reports ITSELF stale.
+  git rev-list --count 9d1bf7c..origin/main ..................... 149
+  files differing over {scripts,task_router,tests,pyproject.toml}  46
+  DIVERGENT SIGNAL, recorded not smoothed: code.loaded_source_sha == code.live_source_sha
+  (0641f4dcd8c2) while code.stale = true. The endpoint's hash leg says identical, its commit leg
+  says stale. The equal hashes must NOT be read as "no code changed" — 46 files under the stated
+  paths differ between the loaded commit and the tip; the hash leg evidently covers a subset.
+  Prior passes published "14 code-path commits behind" under a narrower path filter; the 46 here
+  is a different, explicitly-named filter, not a contradiction. RELEASE-2026-11-08-001 stays open.
+
+GITREINS / DOGFOOD (unchanged)
+  No release-scoped verdict on 6547421b or 6edfd8cf. The tree gate for this lane remains
+  exact-SHA hosted CI. Latest committed dogfood record unchanged: PROMISING-BUT-ROUGH.
+
+DECISION
+  NO CUT THIS TICK. Re-derived, not copied:
+    * rule 2 — open P0 blockers exist (12), two of them release-lane (version prep; stranded driver);
+    * zero published artifacts ever => this would be the FIRST release, i.e. creation of the release
+      channel, which is owner-gated; no record authorizes task-router + a version.
+  If authorized, the bump is MINOR -> v0.3.0 (feat-bearing, zero breaking since f04ac47).
+  CI is green, so the red-CI prohibition does not fire and is not part of the reason.
+
+CAVEAT (carried, NOT cleared)
+  The build probe was not run on the candidate tree this pass either: the read-only tooling probe
+  (`which uv python3.11 python3.12 ...`) was declined by the unattended consent gate. "Artifacts
+  build at 6547421b" remains UNPROVEN-AT-THIS-SHA until §11 step 3 executes.
+  Board counts are read from origin/main's COMMITTED board and cross-checked against the working
+  tree; the two agree on every RELEASE row.
+
+HARD RULES OBSERVED THIS PASS: nothing tagged, nothing released, no tag moved or force-moved, no
+version file touched, no product code edited. Board writes are a note refresh on the existing row
+plus one audit event — no new readiness row was filed.
