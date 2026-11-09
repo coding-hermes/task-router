@@ -154,6 +154,17 @@ POST_DEDUPE_ADDITIONS = {
     # 2026-11-01 (model-router-refresh tick): two research filings
     ("commandcode", "inclusionai/ling-3.1-flash-1019:free"): "filed 2026-11-01 — carrier-arrival :free dated leaf, $0 window-cost-pending (TR-070), census-stamped",
     ("openrouter", "z-ai/glm-5.3-flashx-legal"): "models.dev sync 2026-11-03 — new catalog lane, sticker-priced 0.37 (normalized:payg-sticker)",
+    # 2026-11-09 tick (model-registry-data-quality cron): carrier-arrival wave
+    ("clinepass", "deepseek-v4.1-flash-1017:batch"): "clinepass API sync 2026-11-09 — carrier :batch arrival, disabled PAYG-outside-flat-plan (not in included_models)",
+    ("clinepass", "morph-v3-fast:batch"): "clinepass API sync 2026-11-09 — carrier :batch arrival, disabled PAYG-outside-flat-plan (not in included_models)",
+    ("clinepass", "morph-v3-large:batch"): "clinepass API sync 2026-11-09 — carrier :batch arrival, disabled PAYG-outside-flat-plan (not in included_models)",
+    ("fireworks-ai", "accounts/fireworks/models/kimi-k3p1-pro"): "models.dev sync 2026-11-09 — catalog arrival, sticker-priced 2.0 (normalized:payg-sticker), TR-039 neutral test fill",
+    ("fireworks-ai", "accounts/fireworks/routers/deepseek-v4p1-flash-1017-ultrafast"): "models.dev sync 2026-11-09 — catalog arrival, sticker-priced 2.4, alias -> deepseek-v4.1-flash + TR-039 test fill",
+    ("ollama-cloud", "kimi-k3.1-pro"): "models.dev sync 2026-11-09 — name-variant arrival, bucket-plan unpriced NULL+note, census-stamped",
+    ("openrouter", "deepseek/deepseek-v4.1-flash-1017:batch"): "openrouter carrier refresh 2026-11-09 — priced :batch arrival, TR-362 usability ratchet disable (unmeasured)",
+    ("openrouter", "morph/morph-v3-fast:batch"): "openrouter carrier refresh 2026-11-09 — priced :batch arrival, TR-362 usability ratchet disable (unmeasured)",
+    ("openrouter", "morph/morph-v3-large:batch"): "openrouter carrier refresh 2026-11-09 — priced :batch arrival, TR-362 usability ratchet disable (unmeasured)",
+    ("openrouter", "z-ai/glm-5.2:batch"): "openrouter carrier refresh 2026-11-09 — priced :batch arrival, TR-362 usability ratchet disable (unmeasured)",
     ("clinepass", "glm-5.3-flashx-legal"): "clinepass API sync 2026-11-03 — carrier mirror of the new glm-5.3-flashx-legal arrival, price null pending sticker",
     ("openrouter", "nvidia/switchyard"): "filed 2026-11-01 — router meta-model, active NULL by design (10-14 hold superseded; unblocked the openrouter preset apply)",
     # 2026-11-05 (model-router-refresh tick): models.dev sync arrivals (3) +
