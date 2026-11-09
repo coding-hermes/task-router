@@ -48,7 +48,7 @@ UNSAT_MATRIX = {'math': 5, 'security': 5}
 
 #: The order-1 always-run lane (data/tables/fallback_lanes.jsonl) — the head
 #: in every all-slow scenario, unchanged by this fix.
-DEGRADED_HEAD = ('xkiro', 'openai/gpt-5.6-terra')
+DEGRADED_HEAD = ('xkiro', 'openai/gpt-6.1-terra')  # 2026-11-09 generation refresh: fallback order-1 retargeted gpt-5.6-terra (retired) -> gpt-6.1-terra
 
 
 def _committed_tables():

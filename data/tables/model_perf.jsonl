@@ -1908,6 +1908,7 @@
 {"model": "gpt-6-luna", "category": "mock", "perf": 1.0, "source": "family", "source_ref": "alias:openai/gpt-6-luna", "reasoning_effort": "default"}
 {"model": "gpt-6-luna", "category": "multilingual", "perf": 1.0, "source": "family", "source_ref": "alias:openai/gpt-6-luna", "reasoning_effort": "default"}
 {"model": "gpt-6-luna", "category": "reasoning", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/T3-REASON", "reasoning_effort": "default"}
+{"model": "gpt-6-luna", "category": "refactor", "perf": 0.5, "source": "family", "source_ref": "alias:openai/gpt-6-luna", "reasoning_effort": "default"}
 {"model": "gpt-6-luna", "category": "review", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/REVIEW-V2", "reasoning_effort": "default"}
 {"model": "gpt-6-luna", "category": "schema", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/SCHEMA", "reasoning_effort": "default"}
 {"model": "gpt-6-luna", "category": "spec_docs", "perf": 1.0, "source": "family", "source_ref": "alias:openai/gpt-6-luna", "reasoning_effort": "default"}
@@ -3480,6 +3481,7 @@
 {"model": "openai/gpt-6-luna", "category": "mock", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/MOCK-V3", "reasoning_effort": "default"}
 {"model": "openai/gpt-6-luna", "category": "multilingual", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/MULTILINGUAL-V3", "reasoning_effort": "default"}
 {"model": "openai/gpt-6-luna", "category": "reasoning", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-25", "reasoning_effort": "default"}
+{"model": "openai/gpt-6-luna", "category": "refactor", "perf": 0.5, "source": "measured", "source_ref": "models.jsonl:perf_refactor", "reasoning_effort": "default"}
 {"model": "openai/gpt-6-luna", "category": "review", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/REVIEW-V2", "reasoning_effort": "default"}
 {"model": "openai/gpt-6-luna", "category": "schema", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-25", "reasoning_effort": "default"}
 {"model": "openai/gpt-6-luna", "category": "spec_docs", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/SPEC-DOCS-V3", "reasoning_effort": "default"}

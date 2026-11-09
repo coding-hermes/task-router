@@ -269,8 +269,12 @@ CASES = [
         'input': {'profile': 'P1_CODING'},
         'capability_tags': {'code_gen': 0, 'debug': 0, 'refactor': 0, 'test': 0},
         'expect': {
-            'head': ['xkiro', 'openai/gpt-5.6-terra'],
-            'head_usd_1m': 1.2,
+            # 2026-11-09 xkiro generation refresh: gpt-5.6-terra retired (last live
+            # 5.6 lane); head is the cheapest refactor-clearing plan lane gpt-6-luna
+            # (perf_refactor=0.5 family-inherited from the measured predecessor,
+            # live-probe replacement pending).
+            'head': ['xkiro', 'openai/gpt-6-luna'],
+            'head_usd_1m': 0.116,
             'must_include': [['commandcode', 'moonshotai/Kimi-K2.7-Code'],
                              ['deepseek', 'deepseek-flash']],
             'must_exclude': [['clinepass', 'dots-3-note-preview:free']],
@@ -309,7 +313,9 @@ CASES = [
             'must_exclude': [['clinepass', 'dots-3-note-preview:free']],
             # 2026-11-08: floor 130->117 — XK-404-001-R3 archival removed the
             # dead xkiro :free lanes (+ mercury trio) from this pool (measured).
-            'min_chain': 117,
+            # 2026-11-09: floor 117->115 — gpt-5.6-terra retirement removed the
+            # xkiro + xkiro-2 5.6-terra lanes from this pool (measured).
+            'min_chain': 115,
         },
     },
     {
@@ -450,9 +456,11 @@ CASES = [
             # taken out of service per the TR-362 usability ratchet (disabled +
             # 2026-11-08: floor 569->547 — XK-404-001-R3 archival removed the
             # dead xkiro :free lanes (+ mercury trio) from this pool (measured).
+            # 2026-11-09: floor 547->545 — gpt-5.6-terra retirement removed the
+            # xkiro + xkiro-2 5.6-terra lanes from this pool (measured).
             # disabled_reason; re-enable on measurement or the owner batch-lane
             # ruling); they had been pool members via the blank-default -1.
-            'min_chain': 547,
+            'min_chain': 545,
         },
     },
     # --- ad-hoc capability bands (the classifier's output space) ------------
@@ -597,9 +605,11 @@ CASES = [
             # 2026-11-07: floor 192->153 — the 951-row landing raised the shared
             # tool_use scale, so every lane whose tool_use tier fell below the
             # band's >=0 bar left the pool at once (measured, INT-CI-23 re-pin).
+            # 2026-11-09: floor 137->135 — gpt-5.6-terra retirement removed the
+            # xkiro + xkiro-2 5.6-terra lanes from this pool (measured).
             # 2026-11-08: floor 153->137 — XK-404-001-R3 archival removed the dead
             # xkiro :free lanes (+ mercury trio) from this pool (measured).
-            'min_chain': 137,
+            'min_chain': 135,
         },
     },
     {
@@ -612,6 +622,8 @@ CASES = [
             # 2026-11-08 (XK-404-001-R3 archival): the dead xkiro :free head lane was
                 # archived (catalog-absent + chat 404 on both seats, 44 lanes); the next
                 # cheapest acceptable lane takes the head (09-18 golden-head law).
+            # 2026-11-09: floor 760->758 — gpt-5.6-terra retirement removed the
+            # xkiro + xkiro-2 5.6-terra lanes from this pool (measured).
             # 2026-11-08: floor 769->760 — XK-404-001-R3 archival removed the
             # dead xkiro :free lanes (+ mercury trio) from this pool (measured).
             'head': ['xkiro', 'cohere/command-r7b-12-2024'],
@@ -624,7 +636,7 @@ CASES = [
             # (catalog-absent, chat-404 per id on both xkiro seats).
             # 2026-11-08: floor 769->760 — second XK-404-001-R3 wave (44 free lanes
             # + mercury trio, same-day chat 404s) removed 9 more pool lanes.
-            'min_chain': 760,
+            'min_chain': 758,
         },
     },
     {
@@ -690,7 +702,8 @@ CASES = [
         # DEGRADED on the always-run lane — visible requirements_unmet + the
         # FALLBACK reason on the record, never a silent mis-route.
         'expect': {
-            'head': ['xkiro', 'openai/gpt-5.6-terra'],
+            # 2026-11-09: fallback order-1 retargeted gpt-5.6-terra (retired) -> gpt-6.1-terra
+            'head': ['xkiro', 'openai/gpt-6.1-terra'],
             'head_unmet': [['math', 5, -1], ['security', 5, -1]],
         },
     },

@@ -166,7 +166,8 @@ def test_corrupt_registry_source_fallback_and_warning(monkeypatch, tmp_path):
     assert r["head"] is not None  # resilience: resolution still works
     # the fallback data is the committed registry — head must match the
     # golden fixed-point head for this profile (same tables as registry.json)
-    assert _pair(r["head"]) == "xkiro/openai/gpt-5.6-terra"
+    # 2026-11-09 xkiro generation refresh: head moved gpt-5.6-terra (retired) -> gpt-6-luna
+    assert _pair(r["head"]) == "xkiro/openai/gpt-6-luna"
     # 2026-11-02 (INT-CI-16): hermetic golden — _resolve pins ROUTING_AVERAGES_FILE to an absent
     # tmp path, so the TR-354 outcome floor is inert in this fixture (0 known outcomes = pass).
     # The 11-01 commandcode-2 golden encoded host-live outcomes leakage (repo data/state/
@@ -206,7 +207,8 @@ def test_missing_health_state_reported_false(monkeypatch, tmp_path):
     # behavior unchanged: a missing health file must NOT fabricate a DOWN
     # gate — the chain still resolves to the healthy head
     assert r["head"] is not None
-    assert _pair(r["head"]) == "xkiro/openai/gpt-5.6-terra"
+    # 2026-11-09 xkiro generation refresh: head moved gpt-5.6-terra (retired) -> gpt-6-luna
+    assert _pair(r["head"]) == "xkiro/openai/gpt-6-luna"
     # 2026-11-02 (INT-CI-16): hermetic golden — _resolve pins ROUTING_AVERAGES_FILE to an absent
     # tmp path, so the TR-354 outcome floor is inert in this fixture (0 known outcomes = pass).
     # The 11-01 commandcode-2 golden encoded host-live outcomes leakage (repo data/state/

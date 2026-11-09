@@ -130,9 +130,10 @@ def test_spawn_resolves_normally_despite_many_in_flight(tmp_path):
     env["ROUTING_REGISTRY"] = _write_registry(tmp_path, tables)
 
     # 2026-11-02 (INT-CI-16): _env pins ROUTING_AVERAGES_FILE to an absent tmp path, so the
-    # hermetic head is xkiro/openai/gpt-5.6-terra (identical on host and CI). In-flight rows
+    # hermetic head is xkiro/openai/gpt-6-luna (identical on host and CI; 2026-11-09 generation
+    # refresh moved the head off the retired gpt-5.6-terra). In-flight rows
     # must target the head lane.
-    head_lane = ("xkiro", "openai/gpt-5.6-terra")
+    head_lane = ("xkiro", "openai/gpt-6-luna")
     with open(env["LEDGER_FILE"], "a") as f:
         for i in range(99):
             row = {"ts": datetime.datetime.now(datetime.timezone.utc).isoformat(),
@@ -195,7 +196,7 @@ def test_soft_gate_default_off_does_not_exclude_busy_models(tmp_path):
         if p != "xkiro":
             provs[p] = {"status": "gated", "reason": "gate-off-test"}
     qdoc = {"updated": "test", "providers": provs,
-            "models": {"xkiro/openai/gpt-5.6-terra": {"concurrency_limit": 5}}}
+            "models": {"xkiro/openai/gpt-6-luna": {"concurrency_limit": 5}}}
     d = tmp_path / "state"
     d.mkdir(exist_ok=True)
     json.dump(qdoc, open(d / "quota-state.json", "w"))
@@ -208,7 +209,7 @@ def test_soft_gate_default_off_does_not_exclude_busy_models(tmp_path):
         for i in range(5):
             row = {"ts": datetime.datetime.now(datetime.timezone.utc).isoformat(),
                    "trace_id": f"tr-limit-{i}", "provider": "xkiro",
-                   "model": "openai/gpt-5.6-terra", "outcome": "started"}
+                   "model": "openai/gpt-6-luna", "outcome": "started"}
             f.write(json.dumps(row) + "\n")
 
     p = _run(SCRIPT, "coding-hermes-scheduler", "--format", "json", env_extra=env)
@@ -216,7 +217,8 @@ def test_soft_gate_default_off_does_not_exclude_busy_models(tmp_path):
     data = json.loads(p.stdout)
     assert data.get("error") is None, data.get("error")
     assert data["head"] is not None
-    assert (data["head"]["provider"], data["head"]["model"]) == ("xkiro", "openai/gpt-5.6-terra")
+    # 2026-11-09 generation refresh: hermetic head moved off the retired gpt-5.6-terra
+    assert (data["head"]["provider"], data["head"]["model"]) == ("xkiro", "openai/gpt-6-luna")
 
 
 def test_soft_gate_on_excludes_busy_models(tmp_path):

@@ -283,7 +283,7 @@ def test_chain_invariants_per_profile(monkeypatch, tmp_path, pid):
     # (pre-existing; control worktree at HEAD resolves qwen3.7-flash:free too —
     # minimax-m3:free fails P1's test>=0 bar with test tier BLANK -> -1). The
     # undamp does not move this head; the fixture now states the resolved truth.
-    ("P1_CODING", "xkiro/openai/gpt-5.6-terra"),  # 2026-10-04: gpt-5.6-luna retired (valid_to 2026-10-03); gpt-6-luna carries NO refactor tier row, so the head is the cheapest refactor-clearing plan lane, xkiro/openai/gpt-5.6-terra (0.005467/M effective; xkiro wins the tie-break over xkiro-2)
+    ("P1_CODING", "xkiro/openai/gpt-6-luna"),  # 2026-11-09 xkiro generation refresh: gpt-5.6-terra retired (valid_to 2026-11-09, replaced_by 6.1-terra — last live 5.6 lane); gpt-6-luna gained a refactor tier (perf_refactor=0.5 family-inherited from the measured predecessor bench:battery-T2-CODE, live-probe replacement pending), clearing the refactor>=0 bar that previously blocked the whole gpt-6 generation here. Head is the cheapest refactor-clearing plan lane, xkiro/openai/gpt-6-luna (0.003867/M; xkiro wins the tie-break over xkiro-2)
     # Capability-grounded heads (gpt-5.6-sol review 2026-08-27: do NOT tune
     # normal eligibility to accommodate the emergency fallback — fallback is a
     # degraded path that reports requirements_unmet). P2/P4 head on models with
