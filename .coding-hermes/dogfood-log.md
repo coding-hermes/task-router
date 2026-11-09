@@ -340,3 +340,38 @@ visibility and permissions untouched.
 
 Verdict: **WORKS-BUT-AUDIT-SURFACE-LIES** (carried-forward `PROMISING-BUT-ROUGH` upgraded — the
 core promise now holds end to end and fast; the trust defect is confined to `gaps`).
+
+### 2026-11-09b — DUPLICATE FIRE | tick=task-router-dogfood-2026-11-09-12-54-05 (run 42b)
+
+Duplicate dispatch of a tick already worked (run 42, committed `0ddfc606`). Attribution: the log BODY
+carries the run-42 heading at line 276 (`grep -c '^#\+ .*task-router-dogfood-2026-11-09-12-54-05'` = 1 on the
+pre-append log); the commit-subject grep for the tick id prints 0 only because that message names the run
+ordinal ("dogfood(run 42): file QA-TASKROUTER-22 …"), which is the known blind spot of that surface. Per the
+duplicate-fire rule the deliverable is this fire's own read-only proof plus this line — no re-measurement, no arm.
+
+**Re-verified this fire, fresh commands (HEAD-bound):** `git fetch origin main` then
+`git rev-list --left-right --count HEAD...origin/main` = `0	0`; HEAD = origin/main = `0ddfc606`
+(`0ddfc606db972685033d358ff25a1b404e28bda8`). Product diff `d9130116` (run 42's measured SHA) → `0ddfc606`
+over `task_router tests scripts data Makefile pyproject.toml README.md docs/skills` is EMPTY, so no product
+surface moved since that walk and no un-owned half can exist. Board: 493 rows / 996 events with the working
+tree byte-equal to the committed blobs (`git status --short -- .coding-hermes/board/` silent), 0 duplicate ids,
+`QA-TASKROUTER-22` present once with exactly one `task_created` event. Validator: `boardctl -C
+/home/kara/task-router validate` → `RESULT: FAIL (448 error(s), 565 warning(s))`, the same standing counts as
+run 42's parent reading, with **zero** lines mentioning `QA-TASKROUTER-22` — no new lint class.
+
+**Open-row re-proof (premise liveness only, no re-filing):** `QA-TASKROUTER-22` REPRODUCED at `0ddfc606` —
+`router gaps` run from `~/.hermes/scripts` (where `data/tables` does not exist) prints
+`== registry data-quality gaps (0 of 0 active models) ==` / `no gaps …` with rc 0, while the resolved data dir
+there has no tables. `QA-TASKROUTER-14` and `TR-1000976681059246` carried forward: their product tree is
+byte-identical to the one that proved them, so re-running them here would be re-measurement, not evidence.
+
+**Install leg — not launched this fire; census restated, not escalated.** `bunker status --server bunker-mvp`
+→ ONLINE, version 0.2.1, uptime 3d10h28m, agents 5/50 (none created or destroyed by this fire), `/tmp: private`,
+`Net mode: shared — NOT tenant isolation`, Disk 39%, Docker 11 containers. A launch now would grade
+`install-proven / isolation-UNVERIFIED` because of the shared network namespace — NOT `SKIPPED-install-bunker`,
+since host and install path both exist; installability was already proven (fresh-install cell OK:
+duckdb-2.0.0 / pyyaml-6.0.3 / task-router-0.2.0).
+
+**Judging decision:** no GitReins task and no judge ran — this is a bookkeeping-only fire with no row of its
+own to bind a verdict to. Verdict unchanged: PROMISING-BUT-ROUGH. Nothing filed, nothing left dirty. The
+duplicate delivery of this tick id is scheduler duplicate-dispatch evidence, reported in chat, not a board row.
