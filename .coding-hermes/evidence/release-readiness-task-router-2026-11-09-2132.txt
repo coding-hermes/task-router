@@ -1,0 +1,270 @@
+task-router — release readiness sweep
+tick: task-router-releng-2026-11-09-21-32-53
+lane: releng satellite (VERIFY only) — workdir /home/kara/.hermes/stand-in/releng-lane/task-router
+canonical repo: /home/kara/task-router   remote: coding-hermes/task-router (default branch: main)
+sweep time: 2026-11-09T21:32Z (tick) / measurements re-derived at write time
+prior sweeps: RELEASE-2026-11-03-001 (11-03), RELEASE-2026-11-06-001, RELEASE-2026-11-07-001 (11-08),
+              RELEASE-2026-10-22-001 (rolling version-prep row, last updated 2026-11-09T05:31:04Z)
+
+=====================================================================
+1. IDENTITY — three-way SHA agreement at the candidate
+=====================================================================
+  git rev-parse origin/main .................... 5f5f112930578d0ea69341b2360cfde0b9c2e496
+  git ls-remote origin refs/heads/main ......... 5f5f112930578d0ea69341b2360cfde0b9c2e496
+  gh api repos/coding-hermes/task-router/commits/main .sha
+                                               .. 5f5f112930578d0ea69341b2360cfde0b9c2e496
+  local HEAD ................................... 5f5f112930578d0ea69341b2360cfde0b9c2e496
+  RESULT: PASS — local, remote and API agree; no divergence, no unpushed work.
+
+  working tree at measurement: one modified file, .gitreins/tasks.yaml
+  (+7 lines: an uncommitted in_progress marker for RELEASE-2026-11-03-001 written by another
+  lane). NOT mine, NOT staged, NOT committed by this tick. Tree otherwise clean.
+
+=====================================================================
+2. INVENTORY SINCE THE LAST RELEASE ARTIFACT
+=====================================================================
+  Release artifacts in existence: ZERO. No tag has ever been created on this repo:
+    git tag -l | wc -l ......................... 0
+    git ls-remote --tags origin | wc -l ........ 0
+    gh release list ............................ (empty)
+    no `on: push: tags:` trigger exists in .github/workflows/ci.yml
+  So "since the last release artifact" == the whole tagged-window, measured from the 0.2.0
+  version-prep commit f04ac47403ed9f90c49e0170ff086a2a7b9ed957:
+
+    commits f04ac47..5f5f112 ................... 1487
+    conventional prefixes: feat 144, fix 228, breaking 0 ("BREAKING CHANGE" + "!" both 0)
+    shipped file delta (excl. .coding-hermes, data, docs/chains-*) .. 895 files, +145602
+    code-only delta (scripts, task_router, tests, pyproject, Makefile, .github)
+                                               .. 358 files, +104k
+
+  DELTA SINCE THE PREVIOUS SWEEP (row RELEASE-2026-10-22-001 recorded candidate 926bc79 at
+  2026-11-09T05:31:04Z with CI "in_progress", and RELEASE-2026-11-07-001 recorded e304776):
+    926bc798..5f5f112 ......................... 35 commits
+    of those, feat/fix ........................ 1
+    code-path commits (scripts|task_router|Makefile|pyproject|tests|.github) . 3
+    e3047765..5f5f112 ......................... 44 commits
+  Interpretation: the candidate content is essentially unchanged since yesterday; this tick's
+  material delta is CI state (RED -> GREEN, see §3), not code.
+
+=====================================================================
+3. CI TRUTH ON HEAD (exact-SHA, terminal)
+=====================================================================
+  CANDIDATE 5f5f112930578d0ea69341b2360cfde0b9c2e496
+    run 42630703946  workflow=CI  status=completed  conclusion=SUCCESS
+    headSha=5f5f112930578d0ea69341b2360cfde0b9c2e496 (exact match verified via gh run view)
+    created 2026-11-09T14:01:51Z, updated 2026-11-09T14:48:54Z (47m03s)
+    jobs: "test / lint / gates" — status completed, conclusion SUCCESS; every step concluded
+    success, including step 8 "gitreins guard" (step 8 conclusion=success).
+    => 5f5f112 is RELEASE-ELIGIBLE on the tree gate.
+
+  EIGHT CONSECUTIVE GREEN RUNS on main (newest first):
+    42630703946 success 5f5f1129   2026-11-09T14:01:51Z
+    42630048246 success 68ee7bf4   2026-11-09T13:57:33Z
+    42629057069 success f2bd9981   2026-11-09T13:50:49Z
+    42628287207 success 0ddfc606   2026-11-09T13:45:36Z
+    42624766528 success 8721ec08   2026-11-09T13:21:33Z
+    42617942476 success d9130116   2026-11-09T12:33:02Z
+    42613471830 success 4d33bff3   2026-11-09T12:00:41Z
+    42610507307 success d7a6f64f   2026-11-09T11:37:23Z
+
+  Note on the previously-red run: 42583063269 @ de94cd1 (doc/configuration.md missing from the
+  services table) was RED at the 11-09T05:31Z sweep. The fix landed in docs/configuration.md and
+  the tree has been green since; that run is superseded, not outstanding.
+
+  VERDICT: RELEASE-ELIGIBLE ON CI. No red run on the candidate; no red run on any of the 7
+  predecessors. The red-CI prohibition does not fire.
+
+=====================================================================
+4. VERSION HYGIENE — prep NOT done, and the pins are internally consistent pre-prep
+=====================================================================
+  pyproject.toml      version = "0.2.0"   (single project.version key)
+  task_router/__init__.py   __version__ = "0.2.0"
+  CHANGELOG.md        newest heading = "## [Unreleased]"; newest dated = "## [0.2.0]"
+                      (0.2.0 section exists, so 0.2.0 is the released-so-far version)
+  README.md           no version claim (nothing to keep in sync there)
+  Makefile            NO release/version-bump target on main (confirmed: no `release*:` rule)
+  scripts/            NO release or bump script on main (`router_release_backfill.py` is a
+                      router-table seeder, not a release driver)
+
+  STATE: internally CONSISTENT but UNPREPARED. All three surfaces still say 0.2.0 and the
+  changelog still carries an [Unreleased] section, i.e. the tree is mid-cycle, not release-ready.
+  A version-prep commit (pins -> target version, [Unreleased] -> [<version>] - <date>) is a
+  precondition for any cut. That is development-adjacent work: this lane files it, does not do it.
+
+=====================================================================
+5. RELEASE TOOLING — the blocker moved, it did not close
+=====================================================================
+  ON MAIN: absent. No scripts/release_driver.py, no Makefile release target, no goreleaser.yml,
+  no Dockerfile, procedure is docs-only (docs/releases/release-readiness.md).
+    git cat-file -e origin/main:scripts/release_driver.py -> fatal: does not exist
+
+  ON BRANCH origin/wt/RELEASE-2026-11-03-001-r2 (32efe4526e1d3eec8340b3b7adad19a05bed0082):
+  the implementation EXISTS and is complete-looking:
+    scripts/release_driver.py              20469 bytes
+    tests/test_release_driver.py           15109 bytes
+    Makefile targets                       release-check, release-build, release-dry-run
+    docs/releases/evidence/RELEASE-2026-11-03-001-evidence.md
+    branch board row RELEASE-2026-11-03-001 = complete (with fingerprint + implementation commits)
+    commits (3 ahead / 5 behind main):
+      b3609c20 2026-11-09T08:25:51-05:13 release: add executable dry-run driver
+      e82372fa 2026-11-09T08:41:16-05:13 release: add executable dry-run driver
+      32efe452 2026-11-09T08:48:49-05:13 board: close RELEASE-2026-11-03-001 with implementation evidence
+
+  THIS IS STRANDED WORK, and it is the single largest release blocker:
+    * no pull request open for the branch (gh pr list --state open -> none matching)
+    * ZERO hosted CI runs for it: `gh run list --json headBranch` filtered on
+      "RELEASE-2026-11-03" returns nothing. ci.yml triggers on push:branches:[main] and
+      pull_request, so pushing a wt/* branch runs no CI at all.
+    * main's board row still reads pending + deferred=true, updated 2026-11-09T09:23:40Z —
+      i.e. AFTER the branch was finished. The row is stale, not simply unstarted.
+
+  INDEPENDENT VERIFICATION OF THE BRANCH (this tick, detached worktree, clean checkout):
+    worktree /home/kara/.hermes/cache/scratch/tr-releng-20261109-2132/driverwt @ 32efe452
+    /home/kara/task-router/.venv/bin/python -m pytest -q tests/test_release_driver.py
+      -> 12 passed, 3 skipped in 1.60s   (3 skips = setuptools-guarded build arms)
+    The 3 skips are not slop: they are guarded on the PEP 517 backend being importable.
+    So the branch's own claim (15 passed in a 3.11 venv with setuptools 84.2.1) is confirmed
+    modulo the build arms, which this host's 3.12 repo venv cannot exercise.
+
+  REFUSAL PATH PROVEN LIVE (read-only, on the branch tree which has no version prep):
+    $ python scripts/release_driver.py check --tag v0.3.0
+      REFUSAL: CHANGELOG's newest heading is [Unreleased] — promote it to [<version>] - <date>
+      and bump both version pins before cutting            exit=2
+    $ python scripts/release_driver.py --help
+      {check,build,verify-checksums,cut}; cut is dry-run unless --execute.
+    Fail-closed behaviour is real, not asserted.
+
+  THREE ACCEPTANCE-CRITERIA DEFECTS that make the branch NOT landable as-is (this is the
+  finding the foreman needs — "rebase and merge" would not satisfy the row):
+    (a) TARGET NAME MISMATCH. The row's AC#1 names `make release-artifacts VERSION=vX.Y.Z`;
+        the branch defines release-check / release-build / release-dry-run and no
+        release-artifacts target at all.
+    (b) CLEAN-WORKTREE IMPOSSIBILITY. AC#1 also says "exits 0 on a clean detached worktree
+        checked out AT the tag". Every target hard-guards on $(VENV_PY):
+          $ make release-check   -> FATAL: .venv/bin/python missing — run 'make venv install'
+                                    first; make: *** Error 1
+        A clean detached worktree has no .venv by construction, so the AC as written can never
+        pass, and the procedure it serves tells you to check out in exactly such a worktree.
+    (c) BUILD BACKEND MISSING FROM THE DOCUMENTED PATH. `--help` tells users to run
+        `make venv install`, and the repo venv is CPython 3.12.13 with no setuptools:
+          $ .venv/bin/python scripts/release_driver.py build
+            ERROR: setuptools is not importable — the PEP 517 build backend is required.
+            Run `make venv install` (python3.11 venvs bundle it) or install it explicitly:
+            pip install setuptools (No module named 'setuptools')            exit=3
+        Fail-closed and clearly messaged, but it means the artifacts cannot be built by the
+        documented venv on this host as things stand.
+    (d) REBASE HAZARD. The branch rewrites .coding-hermes/board/tasks.jsonl (branch delta is
+        ~984 lines on that file) while main has since taken 5 commits touching the same file —
+        a plain rebase will conflict on the board, and the resolution rule is: keep main's
+        task rows, substitute only the row this branch owns, renumber event ids past origin's
+        maximum. Do not let a board conflict resolution revert main's rows.
+
+  Conclusion on tooling: the P0 "release driver absent" row is NOT satisfied on main, and the
+  work that would satisfy it is stranded. That combination is what keeps this release shut.
+
+=====================================================================
+6. DEPLOYED-BINARY STALENESS
+=====================================================================
+  Both live listeners are running an old commit:
+    http://127.0.0.1:9092/health  loaded_at 2026-11-06T01:03:52Z, loaded_commit 9d1bf7c38f82,
+                                  code.stale=true, repo_commit 5f5f112 (re-derived at runtime)
+    http://127.0.0.1:9391/health  same picture (secondary listener, same unit family)
+  Distance: 147 commits behind origin/main, of which 14 are code-path commits
+  (scripts | task_router | Makefile | pyproject.toml).
+  So the running service is 3 days and 147 commits stale; /health self-reports staleness
+  correctly (repo_commit is resolved at runtime, so the signal is trustworthy for once).
+  Existing row RELEASE-2026-11-08-001 (P2) covers this and remains OPEN. Not a release blocker
+  (a release does not redeploy the service), but it is the reason "released" will not mean
+  "live" until someone restarts the units.
+
+=====================================================================
+7. OPEN BLOCKERS (board census, 493 distinct ids)
+=====================================================================
+  OPEN BY PRIORITY: P0 = 11, P1 = 34, P2 = 30, P3 = 38
+  Open P0 ids: TR-398, TR-399, TR-371, TR-390, TR-394, TR-395, TR-294, TR-1000599737158536,
+               RELEASE-2026-10-22-001, RELEASE-2026-11-03-001, and TR-1000397261104277 (status
+               review). RELEASE-2026-11-06-001 is also still open.
+  Decision rule that fires: open P0 rows exist -> NO CUT. Two of the eleven are release-lane
+  rows (version prep, release driver) and both are foreman-executable without owner input.
+
+=====================================================================
+8. DOGFOOD
+=====================================================================
+  docs/dogfood/2026-11-09-integration.md (run 42, first round):
+    verdict "Works and is worth using; one trust defect" — improved over the 11-06 run's
+    PROMISING-BUT-ROUGH.
+    fresh-install cell: PASS on a clean bunker (image b54d42ff) — install, router, interrupt
+      census and telemetry all worked.
+    tests cell: FAIL (the known synthetic 500 test DATA-002, not product wiring).
+    trust defect filed: QA-TASKROUTER-22 (P2) — `gaps` reports a clean bill from zero data
+      when the zero-data case is ambiguous; the report should say it had no data.
+  This is acceptable-but-open for a release decision: the one trust defect is P2 and named, the
+  fresh-install path is proven, and the tests-cell failure is a fixture, not a regression.
+
+=====================================================================
+9. GITREINS VERDICTS
+=====================================================================
+  Newest verdict on disk: .gitreins/history/2026-11-08/37001239/verdict.json
+    task TR-1000599737158536-R1, passed=true, commit a3e61bb085840ac7..., pass_class=judged.
+    That is task-scoped and 2026-11-08-era; nothing binds a verdict to 5f5f112.
+  Verdicts on disk for 2026-11-07: f8cc7bb5, e153e8f8, dd16063a, 85caf632.
+  RELEASE-TREE GITREINS GATE: UNVERIFIED — there is no release-scoped judge run against the
+  candidate tree. The lane rule stands: exact-SHA hosted CI is the tree gate (§3), and a
+  release-scoped judge run would be an add-on, not a substitute.
+
+=====================================================================
+10. DECISION
+=====================================================================
+  NO CUT THIS TICK.
+  Reason: open P0 blockers (rejection rule 2). The two release-lane P0s are (i) version prep not
+  done on main and (ii) the release driver stranded on an unmerged branch with three AC defects.
+  Secondary: zero published artifacts means this is the FIRST release, i.e. creation of the
+  release channel, which is owner-gated; the standing authorization covers the second cut
+  onward, not the channel's first use.
+
+  If authorized, the bump is MINOR -> v0.3.0:
+    144 feat / 228 fix / 0 breaking since f04ac47 (v0.2.0 prep), 1487 commits, +145602 lines
+    across 895 shipped files, 358 files / +104k in code paths. Under the pre-1.0 rule that
+    scale is a minor, not a patch.
+  CI on the candidate is GREEN (run 42630703946), so the red-CI prohibition does not block.
+
+  WHAT THE OWNER HAS TO SAY (one line, and only this): whether task-router may publish its first
+  release, v0.3.0, from 5f5f112. Until that exists, every gate left is foreman work.
+
+=====================================================================
+11. ORDERED SEQUENCE AFTER AUTHORIZATION
+=====================================================================
+  1. Land the driver branch: rebase wt/RELEASE-2026-11-03-001-r2 onto main (board conflict
+     resolved by keeping main's rows and substituting this branch's own row), fix (a) target
+     name / (b) clean-worktree venv guard (prefer `uv run` or a uvx fallback so no .venv is
+     required) / (c) setuptools in the build path, then get hosted CI green on the merged SHA.
+     Close main's row from the merged tree.
+  2. Version prep commit: pyproject + __init__ -> 0.3.0, CHANGELOG [Unreleased] ->
+     [0.3.0] - <date>, contents audited against the 144 feat / 228 fix set.
+  3. Exact-SHA CI on the prep SHA: expect ~47 min; wait for terminal, cite the run id.
+  4. Base = merge-base of (main, v0.2.0 tag) — the tag does not exist, so base is f04ac47;
+     then tag v0.3.0 (annotated) on the prep SHA, push the tag.
+  5. `gh workflow run ci.yml --ref v0.3.0` (no tags: trigger exists), watch to terminal.
+  6. `gh release create v0.3.0 --notes-file <categorized notes>` with the wheel + sdist +
+     SHA256SUMS as assets; then download the published wheel, install it into a throwaway env
+     and run the CLI — the workspace being clean is not install evidence.
+  7. Only after 6 does standing authorization cover v0.3.1+ patch/minor cuts.
+
+  HARD RULES OBSERVED THIS TICK: nothing tagged, nothing released, nothing force-moved,
+  no version file touched, no push of my own — measurements only plus the two board writes.
+
+=====================================================================
+12. ARTIFACTS AND CAVEATS
+=====================================================================
+  Detached verification worktree (left in place for audit):
+    /home/kara/.hermes/cache/scratch/tr-releng-20261109-2132/driverwt   @ 32efe452 (clean)
+  Board rows written by this tick:
+    RELEASE-2026-10-22-001  note refresh (this sweep's evidence binding)
+    RELEASE-2026-11-09-001  NEW: land the stranded release driver (P0, foreman)
+  CAVEAT — build probe not run on the candidate tree: the scratch-worktree setup command was
+  declined by the unattended consent gate (it contained an rm -rf), so no fresh build of the
+  v0.3.0 tree was performed this tick. Buildability evidence therefore rests on the driver
+  branch's own build arms (§5c), which themselves cannot complete in the repo's 3.12 venv.
+  Treat "artifacts build at 5f5f112" as UNPROVEN-AT-THIS-SHA until step 3 of §11 runs.
+  CAVEAT — board counts are read from the working-tree board at write time; another lane held
+  an uncommitted .gitreins/tasks.yaml marker, which this tick did not touch.
