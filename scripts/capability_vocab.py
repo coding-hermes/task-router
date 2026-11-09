@@ -57,6 +57,83 @@ PERF_CATEGORIES = (
 PERF_COLUMNS = tuple('perf_' + c for c in PERF_CATEGORIES)
 
 # ---------------------------------------------------------------------------
+# TR-398: the reasoning-effort axis — ONE vocabulary across STORE + INGEST
+# ---------------------------------------------------------------------------
+#
+# The unit of capability is (provider, model, reasoning_effort): routing must
+# stop scoring models at one default effort so pairing can trade accuracy
+# against the token cost of thinking at the effort actually billed.
+#
+# The normalized levels, in comparison order for the ranked ones. 'default'
+# means "the model's own default" and is deliberately OUT of EFFORT_RANK: it
+# is a pointer at provider-side defaults, never a level, and must never be
+# compared/ranked as if it were one.
+REASONING_EFFORTS = (
+    'default', 'off', 'low', 'medium', 'high', 'x-high', 'max',
+)
+REASONING_EFFORT_DEFAULT = 'default'
+
+#: Rank order for comparisons: off < low < medium < high < x-high < max.
+#: 'default' is absent ON PURPOSE (see above) — compare only ranked levels.
+EFFORT_RANK = {
+    'off': 0, 'low': 1, 'medium': 2, 'high': 3, 'x-high': 4, 'max': 5,
+}
+
+#: Provider effort-name aliases -> the canonical REASONING_EFFORTS spelling.
+#: TRUE ALIASES ONLY, and a mapping must never DOWNGRADE a level (the 398
+#' pre-correction table mapped xhigh->high — wrong: x-high is its own level).
+#' A provider name with NO entry here is stored VERBATIM (never guessed down);
+#' add a row only when the provider name is genuinely the same level.
+PROVIDER_EFFORT_ALIASES = {
+    'minimal': 'low',       # OpenAI-style minimal == low
+    'xhigh': 'x-high',      # OpenAI-style xhigh == x-high (NOT high)
+    'max-thinking': 'max',  # providers naming the top tier "max thinking"
+    'maximum': 'max',
+    'none': 'off',
+}
+
+
+def normalize_reasoning_effort(value: Any) -> tuple:
+    """-> (stored_value, status) for one reasoning_effort input.
+
+    status is one of:
+      'missing'   absent / empty / not a string — the row is INCOMPLETE and
+                  the commit gate must refuse it (TR-399);
+      'canonical' already a REASONING_EFFORTS spelling — store as-is;
+      'alias'     a PROVIDER_EFFORT_ALIASES name — store the mapping target;
+      'verbatim'  an unknown provider name — store it VERBATIM (owner rule:
+                  never guess an unmapped name down to a lower level).
+    """
+    if not isinstance(value, str) or not value.strip():
+        return '', 'missing'
+    v = value.strip().lower()
+    if v in REASONING_EFFORTS:
+        return v, 'canonical'
+    if v in PROVIDER_EFFORT_ALIASES:
+        return PROVIDER_EFFORT_ALIASES[v], 'alias'
+    return value.strip(), 'verbatim'
+
+
+def is_stored_reasoning_effort(value: Any) -> bool:
+    """True when a STORED row value is a valid effort stamp.
+
+    Valid = EXACT canonical spelling, or a verbatim provider name. INVALID =
+    missing/empty/non-string, an un-normalized alias ('xhigh' must have been
+    written through as 'x-high'), or a case-variant of a canonical spelling
+    ('X-HIGH' — the ingest normalizes case, so storing the variant means the
+    normalization was bypassed). Use normalize_reasoning_effort for INPUTS;
+    use this for rows as stored.
+    """
+    if not isinstance(value, str) or not value.strip():
+        return False
+    v = value.strip().lower()
+    if v in PROVIDER_EFFORT_ALIASES:
+        return False
+    if v in REASONING_EFFORTS:
+        return value.strip() == v  # exact spelling, not a case-variant
+    return True  # verbatim provider name — never guessed down
+
+# ---------------------------------------------------------------------------
 # ACCEPT vocabulary — the six capability families (TR-369 GAP 3)
 # ---------------------------------------------------------------------------
 

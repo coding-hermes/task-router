@@ -108,7 +108,24 @@ def main():
     ap.add_argument('--date', default=datetime.date.today().isoformat())
     ap.add_argument('--commit', action='store_true')
     ap.add_argument('--note', default='n=1 small-probe, NOT large-bench')
+    # TR-399: the effort the probe ran at — every measurement records the
+    # reasoning effort it used, so model_perf rows can be keyed
+    # (model, category, reasoning_effort). Default 'default' matches the
+    # pre-axis probes. Aliases normalize via capability_vocab (minimal->low,
+    # xhigh->x-high, ...); unknown provider names are stored verbatim.
+    ap.add_argument('--effort', default='default',
+                    help="reasoning effort this probe ran at "
+                         "(default|off|low|medium|high|x-high|max)")
     args = ap.parse_args()
+    try:
+        import capability_vocab as _ev
+    except ImportError:
+        sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+        import capability_vocab as _ev
+    _eff_stored, _eff_status = _ev.normalize_reasoning_effort(args.effort)
+    if _eff_status == 'missing':
+        ap.error('--effort must be a non-empty effort name')
+    _effort = _eff_stored
 
     spec = BATTERIES[args.battery]
     results = json.load(open(os.path.expanduser(args.results), encoding='utf-8'))
@@ -122,7 +139,8 @@ def main():
         the same evidence twice (caught in dry run before it reached the table)."""
         return str(src or '').split(':')[0].strip()
 
-    have = {(r['model'], r['category'], key_of(r.get('source'))) for r in existing}
+    have = {(r['model'], r['category'], key_of(r.get('source')),
+             r.get('reasoning_effort') or 'default') for r in existing}
 
     # A typed failure is EVIDENCE only for some classes. `not_served` (the row names an id
     # the provider does not serve), `not_in_plan` (the model exists but our plan excludes
@@ -167,12 +185,13 @@ def main():
                 continue
             source = (f'live-probe-{args.date}/{key}: {args.battery} deterministic battery '
                       f'({field} {detail}, {args.note})')
-            if (model, category, key_of(source)) in have:
+            if (model, category, key_of(source), _effort) in have:
                 skipped += 1
                 continue
-            have.add((model, category, key_of(source)))
+            have.add((model, category, key_of(source), _effort))
             new_rows.append({'model': model, 'category': category, 'score': score,
-                             'max_score': 1.0, 'source': source, 'valid_from': args.date})
+                             'max_score': 1.0, 'source': source, 'valid_from': args.date,
+                             'reasoning_effort': _effort})
 
     print(f'battery={args.battery}  results={args.results}')
     print(f'rows to add: {len(new_rows)}   already present (skipped): {skipped}')

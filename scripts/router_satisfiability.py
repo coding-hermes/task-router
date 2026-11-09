@@ -129,6 +129,28 @@ def effective_tier(tier_map, category):
     return MISSING_TIER_DEFAULT if t is None else t
 
 
+def _best_tiers(rows):
+    """(model, category) -> the BEST tier across reasoning efforts (TR-398).
+
+    model_tier rows are now per (model, category, reasoning_effort). The
+    satisfiability question is "can ANY effort of a routable lane serve this
+    rating", so per-category we keep the max instead of whichever effort row
+    came last (the old last-write-wins was fine when every row was 'default'
+    and stays byte-identical for such corpora). 'default' is never ranked as
+    a level here — it competes by its own tier value only.
+    """
+    out = {}
+    for r in rows or []:
+        t = r.get("tier")
+        if t is None:
+            continue
+        cats = out.setdefault(r.get("model"), {})
+        c = r.get("category")
+        if cats.get(c) is None or t > cats[c]:
+            cats[c] = t
+    return out
+
+
 def capability_index(tables):
     """category -> {best_tier, holders[], blocked_holders[]} over the registry.
 
@@ -136,12 +158,7 @@ def capability_index(tables):
     they are what turns a silent gap into an explainable one ("the only lane with
     a math tier is disabled and unpriced").
     """
-    tier_map = {}
-    for r in tables.get("tiers") or []:
-        t = r.get("tier")
-        if t is None:
-            continue
-        tier_map.setdefault(r.get("model"), {})[r.get("category")] = t
+    tier_map = _best_tiers(tables.get("tiers"))
 
     model_rows = {}
     for m in tables.get("models") or []:
@@ -290,11 +307,7 @@ def diagnose_request(reqs, tables, index=None):
             missing.append({"category": cat, "need": lvl, "best_tier": best})
 
     # Per-lane shortfall over routable lanes only.
-    tier_map = {}
-    for r in tables.get("tiers") or []:
-        t = r.get("tier")
-        if t is not None:
-            tier_map.setdefault(r.get("model"), {})[r.get("category")] = t
+    tier_map = _best_tiers(tables.get("tiers"))
     routable = {}
     for m in tables.get("models") or []:
         if is_routable(m):

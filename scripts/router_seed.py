@@ -3,7 +3,9 @@
 - level_defs: -5..+5 percentile scale
 - model_perf: 24 categories (10 benchmark cols + 14 from profile-tag estimates + benchmark overlays)
 - category_levels: per-category percentile thresholds (11 levels)
-- model_tier: per (provider, model, category) signed level
+- model_tier: per (provider, model, category, reasoning_effort) signed level
+  (TR-398: the effort axis — two rows same model+category different efforts
+  stay two distinct tier entries)
 - task_profiles + requirements: P0_FORE / P5_VISION_E2E / P7_MOCK / P9_REVIEW
   + P1_CODING / P2_AGENTIC / P3_DOCS / P4_SECURITY (TR-003, 2026-08-27)
 - views: v_task_eligible, v_task_chain
@@ -227,7 +229,13 @@ BASE_COLUMNS = {
                # data/tables tail-sync.
                ('note', 'VARCHAR')],
     'benchmarks': [('model', 'VARCHAR'), ('category', 'VARCHAR'), ('score', 'DOUBLE'),
-                   ('max_score', 'DOUBLE'), ('source', 'VARCHAR'), ('valid_from', 'DATE')],
+                   ('max_score', 'DOUBLE'), ('source', 'VARCHAR'), ('valid_from', 'DATE'),
+                   # TR-398: the effort the measurement ran at — the unit of
+                   # capability is (model, category, reasoning_effort). The
+                   # closed vocabulary + provider-alias table live in
+                   # capability_vocab (normalize_reasoning_effort); NULL/'' is
+                   # stamped 'default' right after load (pre-effort-era rows).
+                   ('reasoning_effort', 'VARCHAR')],
     'archetypes': [('id', 'VARCHAR'), ('bar', 'DOUBLE'), ('skill_levels', 'VARCHAR'),
                    ('notes', 'VARCHAR')],
     'projects': [('id', 'VARCHAR'), ('sensitivity', 'VARCHAR'), ('board_type', 'VARCHAR'),
@@ -543,6 +551,12 @@ for t, cols in BASE_COLUMNS.items():
         con.executemany(f"INSERT INTO {t} VALUES ({','.join('?' * len(cols))})", rows)
     print(f'loaded {t:<12} {len(rows):>3} rows')
 
+# TR-398: a benchmark row with no effort info is a PRE-EFFORT-ERA row — stamp
+# it 'default' explicitly (an unexplained NULL is junk per the house data rule;
+# and per-effort grouping below must never see NULL as a fourth state).
+con.execute("UPDATE benchmarks SET reasoning_effort='default' "
+            "WHERE reasoning_effort IS NULL OR reasoning_effort=''")
+
 # ---------- lifecycle overlays (TR-069): dates + provenance as DATA ----------
 # Provider retirement/announcement notices live in data/lifecycle.jsonl and are
 # merged AFTER the base load: generated tables are rebuilt from the registry on
@@ -625,7 +639,10 @@ _perf_collist = ', '.join(_perf_cols)
 con.execute(f"""
 CREATE TABLE model_perf AS
 SELECT model, category, perf, 'measured' AS source,
-       'models.jsonl:perf_' || category AS source_ref
+       'models.jsonl:perf_' || category AS source_ref,
+       -- TR-398: the perf_* columns predate the effort axis — those
+       -- declarations are the model's own default-effort numbers.
+       'default' AS reasoning_effort
 FROM (
   SELECT model, replace(category, 'perf_', '') AS category, max(perf) AS perf
   FROM (UNPIVOT (SELECT model, {_perf_collist}
@@ -874,9 +891,9 @@ def _overlay_row_excluded(src: Any) -> bool:
 
 
 for src, cats in BENCH_OVERLAY.items():
-    rows = con.execute("SELECT model, category, score, max_score, source FROM benchmarks WHERE source LIKE ?",
+    rows = con.execute("SELECT model, category, score, max_score, source, reasoning_effort FROM benchmarks WHERE source LIKE ?",
                        [f'%{src}%']).fetchall()
-    for model, row_cat, score, mx, row_src in rows:
+    for model, row_cat, score, mx, row_src, row_effort in rows:
         if not mx:
             continue
         if _overlay_row_excluded(str(row_src or '')):
@@ -891,8 +908,9 @@ for src, cats in BENCH_OVERLAY.items():
         # 'agent-tick') keep the old list-wide behaviour, so nothing silently
         # loses evidence that used to land.
         eff = [row_cat] if row_cat in cats else cats
+        # TR-398: the overlay lands at the effort the row was measured at.
         for c in eff:
-            overlay.append((model, c, float(score) / float(mx), src))
+            overlay.append((model, c, float(score) / float(mx), src, row_effort))
 # map benchmark model names (e.g. cline-pass/glm-5.3) to registry (provider, model)
 model_ids = {}
 for p, m in con.execute("SELECT DISTINCT provider, model FROM models").fetchall():
@@ -1249,15 +1267,16 @@ def apply_category_estimates():
     for name, cats in CATEGORY_ESTIMATES.items():
         for cat, v in cats.items():
             cur = con.execute(
-                "SELECT perf FROM model_perf WHERE model=? AND category=?",
+                "SELECT perf FROM model_perf WHERE model=? AND category=? "
+                "AND reasoning_effort='default'",
                 [name, cat]).fetchone()
             if cur:
                 continue
             if not con.execute("SELECT 1 FROM models WHERE model=? LIMIT 1",
                                [name]).fetchone():
                 continue
-            con.execute("INSERT INTO model_perf (model, category, perf, source, source_ref) "
-                        "VALUES (?,?,?,?,?)",
+            con.execute("INSERT INTO model_perf (model, category, perf, source, source_ref, reasoning_effort) "
+                        "VALUES (?,?,?,?,?,'default')",
                         [name, cat, float(v), 'estimate', 'CATEGORY_ESTIMATES'])
             n += 1
     return n
@@ -1298,11 +1317,13 @@ def apply_benchmark_categories():
     cats = ', '.join(f"'{c}'" for c in _BRIDGE_CATS)
     before = con.execute("SELECT count(*) FROM model_perf").fetchone()[0]
     con.execute(f"""
-        INSERT INTO model_perf (model, category, perf, source, source_ref)
-        SELECT b.model, b.cat, b.rel, 'bench', 'bench:' || b.src FROM (
+        INSERT INTO model_perf (model, category, perf, source, source_ref, reasoning_effort)
+        SELECT b.model, b.cat, b.rel, 'bench', 'bench:' || b.src, b.effort FROM (
           SELECT model, replace(category, '-', '_') AS cat,
                  score / max_score AS rel, source AS src,
-                 row_number() OVER (PARTITION BY lower(model), replace(category, '-', '_')
+                 reasoning_effort AS effort,
+                 row_number() OVER (PARTITION BY lower(model), replace(category, '-', '_'),
+                                                    reasoning_effort
                                     ORDER BY score / max_score DESC, source ASC,
                                              model ASC) AS rn
           FROM benchmarks
@@ -1313,7 +1334,8 @@ def apply_benchmark_categories():
         ) AS b
         WHERE b.rn = 1
           AND NOT EXISTS (SELECT 1 FROM model_perf p
-                          WHERE lower(p.model) = lower(b.model) AND p.category = b.cat)
+                          WHERE lower(p.model) = lower(b.model) AND p.category = b.cat
+                            AND p.reasoning_effort = b.effort)
     """).fetchall()
     return con.execute("SELECT count(*) FROM model_perf").fetchone()[0] - before
 
@@ -1338,7 +1360,8 @@ def apply_quality_estimates():
             if v is None:
                 continue
             cur = con.execute(
-                "SELECT perf, source FROM model_perf WHERE model=? AND category=?",
+                "SELECT perf, source FROM model_perf WHERE model=? AND category=? "
+                "AND reasoning_effort='default'",
                 [name, cat]).fetchone()
             if not cur:
                 # TR-181: gap-fill (never a replace). Same live-lane rule as the
@@ -1349,8 +1372,8 @@ def apply_quality_estimates():
                                # TR-200: available_from filter dropped with the column.
                                "archive = false LIMIT 1", [name]).fetchone():
                     con.execute(
-                        "INSERT INTO model_perf (model, category, perf, source, source_ref) "
-                        "VALUES (?,?,?,?,?)",
+                        "INSERT INTO model_perf (model, category, perf, source, source_ref, reasoning_effort) "
+                        "VALUES (?,?,?,?,?,'default')",
                         [name, cat, float(v), 'estimate', 'QUALITY_ESTIMATES'])
                     n += 1
                 continue
@@ -1399,11 +1422,12 @@ def seed_estimates():
                 v = taglevels.get(c)
                 if v is None:
                     continue
-                if con.execute("SELECT 1 FROM model_perf WHERE model=? AND category=?",
+                if con.execute("SELECT 1 FROM model_perf WHERE model=? AND category=? "
+                               "AND reasoning_effort='default'",
                                [model, c]).fetchone():
                     continue
-                con.execute("INSERT INTO model_perf (model, category, perf, source, source_ref) "
-                            "VALUES (?,?,?,?,?)",
+                con.execute("INSERT INTO model_perf (model, category, perf, source, source_ref, reasoning_effort) "
+                            "VALUES (?,?,?,?,?,'default')",
                             [model, c, v, 'estimate', f'PROFILE_TAGS:{pname}'])
                 n += 1
     # BLANK default (Bane 2026-08-27): a model with nothing set for a category
@@ -1442,23 +1466,28 @@ def apply_overlay():
         """
         return (ref or '').startswith('models.jsonl:perf_')
 
-    for model, cat, rel, bsrc in overlay:
+    for model, cat, rel, bsrc, beffort in overlay:
+        # TR-398: the overlay competes WITHIN one effort — a benchmark row run
+        # at 'high' must never overwrite the model's 'default' number or vice
+        # versa. Pre-effort-era rows are all stamped 'default', so the single
+        # previous row per (model, category) is matched exactly as before.
+        effort = beffort if beffort else 'default'
         cur = con.execute("SELECT perf, source, source_ref FROM model_perf "
-                          "WHERE lower(model)=? AND category=?",
-                          [model.lower(), cat]).fetchone()
+                          "WHERE lower(model)=? AND category=? AND reasoning_effort=?",
+                          [model.lower(), cat, effort]).fetchone()
         if cur is None:
-            con.execute("INSERT INTO model_perf (model, category, perf, source, source_ref) "
-                        "VALUES (?,?,?,?,?)", [model, cat, rel, 'bench', f'bench:{bsrc}'])
+            con.execute("INSERT INTO model_perf (model, category, perf, source, source_ref, reasoning_effort) "
+                        "VALUES (?,?,?,?,?,?)", [model, cat, rel, 'bench', f'bench:{bsrc}', effort])
             n_ins += 1
         elif _is_declaration(cur[2]):
             con.execute("UPDATE model_perf SET perf=?, source='bench', source_ref=? "
-                        "WHERE lower(model)=? AND category=?",
-                        [rel, f'bench:{bsrc}', model.lower(), cat])
+                        "WHERE lower(model)=? AND category=? AND reasoning_effort=?",
+                        [rel, f'bench:{bsrc}', model.lower(), cat, effort])
             n_decl += 1
         elif abs(cur[0] - 0.50) < 0.001:
             con.execute("UPDATE model_perf SET perf=?, source='bench', source_ref=? "
-                        "WHERE lower(model)=? AND category=?",
-                        [rel, f'bench:{bsrc}', model.lower(), cat])
+                        "WHERE lower(model)=? AND category=? AND reasoning_effort=?",
+                        [rel, f'bench:{bsrc}', model.lower(), cat, effort])
             n_upd += 1
         elif cur[1] == 'estimate' or cur[0] < rel:
             # Bane 2026-09-01: a measured benchmark score beats ANY estimate —
@@ -1481,8 +1510,8 @@ def apply_overlay():
             # across 10 models shadowed lower bench evidence (guard, review,
             # security, terminal, spec_docs, code_gen, tool_use).
             con.execute("UPDATE model_perf SET perf=?, source='bench', source_ref=? "
-                        "WHERE lower(model)=? AND category=?",
-                        [rel, f'bench:{bsrc}', model.lower(), cat])
+                        "WHERE lower(model)=? AND category=? AND reasoning_effort=?",
+                        [rel, f'bench:{bsrc}', model.lower(), cat, effort])
             n_upd += 1
     if n_ins or n_upd or n_decl:
         print(f'overlay: {n_ins} inserted, {n_upd} neutral-updated, '
@@ -1575,29 +1604,34 @@ def apply_aliases():
         A case-folded skip test therefore let ONE spelling's row suppress the
         OTHER spelling's inheritance — the replaced spelling silently lost
         (measured: `Qwen/Qwen3.8-Flash` lost its reasoning row).
+        TR-398: keyed (category, effort) — a variant inherits the base's rows
+        per effort, never collapsing the axis.
         """
-        return dict(con.execute("SELECT category, perf FROM model_perf "
-                               "WHERE model=?", [name]).fetchall())
+        return {(cat, eff): perf for cat, eff, perf in con.execute(
+            "SELECT category, reasoning_effort, perf FROM model_perf "
+            "WHERE model=?", [name]).fetchall()}
 
     def perfs_fold(lower_name: Any) -> dict:
         """Rows for any casing of a name — the resolver's view of a BASE
         (`router_spawn._alias_tiers` falls back to a case-folded lookup). First
-        row in table order wins for a duplicate category (deterministic)."""
-        return dict(con.execute("SELECT category, perf FROM model_perf "
-                                "WHERE lower(model)=?", [lower_name]).fetchall())
+        row in table order wins for a duplicate category (deterministic).
+        TR-398: keyed (category, effort), like perfs_exact."""
+        return {(cat, eff): perf for cat, eff, perf in con.execute(
+            "SELECT category, reasoning_effort, perf FROM model_perf "
+            "WHERE lower(model)=?", [lower_name]).fetchall()}
 
     for _ in range(len(amap) + 1):
         added = 0
         for name in variants:
             merged = perfs_exact(name)
             for alt in chain(name.lower())[1:]:
-                for cat, perf in perfs_fold(alt).items():
-                    if cat in merged:
+                for (cat, eff), perf in perfs_fold(alt).items():
+                    if (cat, eff) in merged:
                         continue
-                    con.execute("INSERT INTO model_perf (model, category, perf, source, source_ref) "
-                                "VALUES (?,?,?,?,?)",
-                                [name, cat, perf, 'family', f'alias:{alt}'])
-                    merged[cat] = perf
+                    con.execute("INSERT INTO model_perf (model, category, perf, source, source_ref, reasoning_effort) "
+                                "VALUES (?,?,?,?,?,?)",
+                                [name, cat, perf, 'family', f'alias:{alt}', eff])
+                    merged[(cat, eff)] = perf
                     added += 1
         n += added
         if not added:
@@ -1614,16 +1648,25 @@ def apply_aliases():
 
 apply_aliases()
 
+# TR-398: safety net — every model_perf row carries an EXPLICIT effort stamp
+# (an unexplained NULL would silently fall out of the per-effort grouping).
+con.execute("UPDATE model_perf SET reasoning_effort='default' "
+            "WHERE reasoning_effort IS NULL OR reasoning_effort=''")
+
 # dedupe: benchmark overlays may have inserted the same (model, category) twice
 con.execute("DROP TABLE IF EXISTS model_perf_dedup")
 # dedup carries PROVENANCE of the winning value (TR-064 R2): arg_max picks the
 # source/source_ref of the row whose perf won the max() — never a generic label.
+# TR-398: GROUP BY gains reasoning_effort — two rows for the same model+
+# category at DIFFERENT efforts are two distinct capability entries and must
+# never collapse into one.
 con.execute("""
 CREATE TABLE model_perf_dedup AS
 SELECT model, category, max(perf) AS perf,
        arg_max(source, perf) AS source,
-       arg_max(source_ref, perf) AS source_ref
-FROM model_perf GROUP BY 1,2""")
+       arg_max(source_ref, perf) AS source_ref,
+       reasoning_effort
+FROM model_perf GROUP BY 1, 2, 6""")
 con.execute("DROP TABLE model_perf")
 con.execute("ALTER TABLE model_perf_dedup RENAME TO model_perf")
 
@@ -1651,22 +1694,22 @@ else:
     family_join = ""
 con.execute("""
 CREATE TABLE cat_q AS
-SELECT category,
+SELECT category, reasoning_effort,
        quantile_cont(perf, 0.01) AS q01, quantile_cont(perf, 0.05) AS q05,
        quantile_cont(perf, 0.10) AS q10, quantile_cont(perf, 0.20) AS q20,
        quantile_cont(perf, 0.35) AS q35, quantile_cont(perf, 0.50) AS q50,
        quantile_cont(perf, 0.65) AS q65, quantile_cont(perf, 0.80) AS q80,
        quantile_cont(perf, 0.90) AS q90, quantile_cont(perf, 0.95) AS q95,
        quantile_cont(perf, 0.99) AS q99
-FROM (SELECT category, family, max(perf) AS perf
-      FROM (SELECT mp.category, """ + family_expr + """, mp.perf
+FROM (SELECT category, family, reasoning_effort, max(perf) AS perf
+      FROM (SELECT mp.category, """ + family_expr + """, mp.reasoning_effort, mp.perf
             FROM model_perf mp """ + family_join + """)
-      GROUP BY category, family)
-GROUP BY category""")
+      GROUP BY category, family, reasoning_effort)
+GROUP BY category, reasoning_effort""")
 con.execute("DROP TABLE IF EXISTS category_levels")
 con.execute("""
 CREATE TABLE category_levels AS
-SELECT q.category, l.level, l.label, q.min_perf
+SELECT q.category, q.reasoning_effort, l.level, l.label, q.min_perf
 FROM level_defs l
 JOIN (UNPIVOT cat_q ON q01, q05, q10, q20, q35, q50, q65, q80, q90, q95, q99
       INTO NAME qcol VALUE min_perf) q ON q.qcol = l.qcol""")
@@ -1674,10 +1717,13 @@ con.execute("DROP TABLE IF EXISTS model_tier")
 con.execute("""
 CREATE TABLE model_tier AS
 SELECT mp.model, mp.category, mp.perf, max(cl.level) AS tier,
-       mp.source AS tier_source, mp.source_ref AS source_ref
+       mp.source AS tier_source, mp.source_ref AS source_ref,
+       mp.reasoning_effort
 FROM model_perf mp JOIN category_levels cl
-  ON cl.category = mp.category AND cl.min_perf <= mp.perf
-GROUP BY mp.model, mp.category, mp.perf, mp.source, mp.source_ref""")
+  ON cl.category = mp.category AND cl.reasoning_effort = mp.reasoning_effort
+ AND cl.min_perf <= mp.perf
+GROUP BY mp.model, mp.category, mp.perf, mp.source, mp.source_ref,
+         mp.reasoning_effort""")
 # BLANK default (Bane 2026-08-27): models without a perf row in a category have
 # NO tier row — the resolver treats a missing tier as -1, never 0 and never
 # an inflated neutral.
@@ -1852,10 +1898,15 @@ con.execute("DROP VIEW IF EXISTS v_task_eligible")
 con.execute("DROP VIEW IF EXISTS v_task_chain")
 con.execute("""
 CREATE VIEW v_task_eligible AS
-SELECT r.task_id, m.provider, m.model, m.normalized_price, m.token_factor, m.plan_tier, m.data_class
+SELECT r.task_id, ef.reasoning_effort, m.provider, m.model, m.normalized_price,
+       m.token_factor, m.plan_tier, m.data_class
 FROM models m
 JOIN task_profiles tp ON true
 JOIN (SELECT DISTINCT task_id FROM task_profile_requirements) r ON r.task_id = tp.id
+-- TR-398: one eligibility row per (task, lane, effort) — the caller filters
+-- on reasoning_effort to rank lanes at the effort actually billed. With an
+-- all-'default' corpus this is exactly the single-effort eligible set.
+JOIN (SELECT DISTINCT reasoning_effort FROM model_tier) ef ON true
 WHERE (m.valid_to IS NULL OR m.valid_to > CURRENT_DATE) AND m.archive = false
   AND (m.disabled IS NULL OR NOT m.disabled)
   AND NOT EXISTS (
@@ -1863,17 +1914,22 @@ WHERE (m.valid_to IS NULL OR m.valid_to > CURRENT_DATE) AND m.archive = false
         WHERE rr.task_id = r.task_id
           AND NOT EXISTS (SELECT 1 FROM model_tier t
                           WHERE t.model = m.model
+                            AND t.reasoning_effort = ef.reasoning_effort
                             AND t.category = rr.category AND t.tier >= rr.level))""")
 con.execute("""
 CREATE VIEW v_task_chain AS
-SELECT task_id, provider, model, normalized_price, perf_sum, data_class,
-       row_number() OVER (PARTITION BY task_id ORDER BY plan_tier ASC,
+SELECT task_id, provider, model, reasoning_effort, normalized_price, perf_sum,
+       data_class,
+       row_number() OVER (PARTITION BY task_id, reasoning_effort
+                          ORDER BY plan_tier ASC,
                           (normalized_price * token_factor) ASC,
                           model ASC, provider ASC) AS hop
 FROM (
-  SELECT e.task_id, e.provider, e.model, e.normalized_price, e.token_factor, e.plan_tier, e.data_class,
+  SELECT e.task_id, e.provider, e.model, e.reasoning_effort, e.normalized_price,
+         e.token_factor, e.plan_tier, e.data_class,
          (SELECT sum(t.tier) FROM model_tier t
-          WHERE t.model = e.model) AS perf_sum
+          WHERE t.model = e.model
+            AND t.reasoning_effort = e.reasoning_effort) AS perf_sum
   FROM v_task_eligible e
 ) WHERE normalized_price IS NOT NULL""")
 

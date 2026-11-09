@@ -235,6 +235,42 @@ def test_lower_baseline_in_the_same_commit_is_honoured():
 
 
 # ---------------------------------------------------------------------------
+# RULE C — the reasoning-effort axis (TR-398/TR-399)
+# ---------------------------------------------------------------------------
+def test_effort_missing_is_refused():
+    v = G.check_efforts(
+        [{"model": "m", "category": "code_gen", "perf": 0.7}], [])
+    assert v and v[0]["rule"] == "effort" and "MISSING" in v[0]["why"]
+
+
+def test_effort_unnormalized_alias_is_refused_never_downgraded():
+    """'xhigh' must be stored 'x-high' — mapping it to 'high' would downgrade."""
+    v = G.check_efforts(
+        [{"model": "m", "category": "code_gen", "perf": 0.7,
+          "reasoning_effort": "xhigh"}], [])
+    assert v and "un-normalized provider alias" in v[0]["why"]
+    assert "'x-high'" in v[0]["why"]
+
+
+def test_effort_canonical_and_verbatim_names_are_accepted():
+    assert G.check_efforts(
+        [{"model": "m", "category": "code_gen", "perf": 0.7,
+          "reasoning_effort": "x-high"},
+         {"model": "m", "category": "code_gen", "perf": 0.7,
+          "reasoning_effort": "default"},
+         # owner rule: an unmapped provider name is stored verbatim, not
+         # guessed down to a lower level
+         {"model": "m", "category": "code_gen", "perf": 0.7,
+          "reasoning_effort": "ultra"}], []) == []
+
+
+def test_effort_benchmark_rows_are_gated_too():
+    v = G.check_efforts([], [{"model": "m", "category": "code_gen",
+                              "score": 0.7, "max_score": 1.0}])
+    assert v and v[0]["table"].endswith("benchmarks.jsonl")
+
+
+# ---------------------------------------------------------------------------
 # end-to-end: the CLI against a real git repo
 # ---------------------------------------------------------------------------
 def _git(repo, *args, check=True):
@@ -269,6 +305,7 @@ def _make_repo(tmp_path, models, tiers=(), baseline_defects=None, notes=(), stam
     _write(repo, "data/tables/models.jsonl", list(models))
     _write(repo, "data/tables/model_tier.jsonl", list(tiers))
     _write(repo, "data/tables/model_perf.jsonl", [])
+    _write(repo, "data/tables/benchmarks.jsonl", [])  # TR-398: ingest target, gated too
     _write(repo, "data/null_reasons.jsonl", list(stamps))
     _write(repo, "data/tables/model_notes.jsonl", list(notes))
     # The baseline must describe the tree it is committed with, or every fixture

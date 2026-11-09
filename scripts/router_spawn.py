@@ -523,6 +523,33 @@ def _fold_tier_names(tiers: Any):
     return folded
 
 
+def _tier_index(rows: Any):
+    """{model: {category: tier}} from model_tier rows — effort-aware (TR-398).
+
+    model_tier rows are now per (model, category, reasoning_effort); this
+    effort-agnostic index prefers the row stamped 'default' (the effort the
+    resolver has always billed — never silently charge a higher effort's
+    tokens for a default call) and fills categories with no default row from
+    the BEST tier across efforts (a lane that clears a bar only at 'high'
+    CAN serve it; the caller picks the effort via the seed views). Corpora
+    with only 'default'-stamped rows index exactly as before.
+    """
+    idx: dict = {}
+    for r in rows or []:
+        if r.get('reasoning_effort') in (None, 'default'):
+            idx.setdefault(r.get('model'), {})[r.get('category')] = r.get('tier')
+    for r in rows or []:
+        eff = r.get('reasoning_effort')
+        if eff in (None, 'default'):
+            continue
+        cats = idx.setdefault(r.get('model'), {})
+        c, t = r.get('category'), r.get('tier')
+        cur = cats.get(c)
+        if cur is None or (t is not None and t > cur):
+            cats[c] = t
+    return idx
+
+
 def _alias_tiers(tiers: Any, folded: Any, model: Any):
     """Tier dict for a lane's model id, alias-aware (TR-043).
 
@@ -3027,9 +3054,7 @@ def _build_chain(tables: Any, reqs: Any, limit: Any=DEFAULT_CHAIN_LIMIT, sort_sp
     # with a bad deployment is disabled EXPLICITLY via models.disabled.
     # TR-043: an alias-mapped variant (see _alias_tiers) also inherits its
     # base's tier rows for categories it has none of its own.
-    tiers = {}
-    for r in tables.get('model_tier') or []:
-        tiers.setdefault(r.get('model'), {})[r.get('category')] = r.get('tier')
+    tiers = _tier_index(tables.get('model_tier'))
     tiers_folded = _fold_tier_names(tiers)
 
     # TR-015: split out the min_context requirement from tier-based reqs.
@@ -3529,9 +3554,7 @@ def _resolve_fallback(tables: Any, qs: Any, hs: Any, cs: Any, reqs: Any, limit: 
     by_lane = {}
     for m in tables.get('models') or []:
         by_lane[(m.get('provider'), m.get('model'))] = m
-    tiers = {}
-    for r in tables.get('model_tier') or []:
-        tiers.setdefault(r.get('model'), {})[r.get('category')] = r.get('tier')
+    tiers = _tier_index(tables.get('model_tier'))
     tiers_folded = _fold_tier_names(tiers)  # TR-043: alias-aware lane tiers
     generic, specific, unmatched = [], [], []
     for f in lanes:

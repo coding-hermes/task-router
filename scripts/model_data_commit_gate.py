@@ -61,6 +61,18 @@ THE TWO RULES
     over the exact tables this commit will contain, so this gate's number is
     the gate's number — no second implementation to drift.
 
+(C) EFFORT STAMPS (TR-398/TR-399) — every staged model_perf.jsonl or
+    benchmarks.jsonl row must carry an explicit reasoning_effort from the
+    closed vocabulary (default, off, low, medium, high, x-high, max — the
+    live table plus the provider-alias map is
+    scripts/capability_vocab.py). Refused: a missing/empty stamp (a
+    measurement without an effort is incomplete — the row cannot be paired
+    with the cost of the effort actually billed), an un-normalized provider
+    alias ('xhigh' must be stored 'x-high'), and case-variants of a
+    canonical spelling. A provider name with NO alias mapping is stored
+    VERBATIM and accepted — the gate never guesses an unmapped name down to
+    a lower level.
+
 TRIGGERS
 --------
 The gate reads nothing (and returns in microseconds) unless the staged diff
@@ -99,12 +111,13 @@ ROOT = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 MODELS = "data/tables/models.jsonl"
 TIERS = "data/tables/model_tier.jsonl"
 PERFS = "data/tables/model_perf.jsonl"
+BENCHES = "data/tables/benchmarks.jsonl"
 STAMPS = "data/null_reasons.jsonl"  # the census's real stamp file (data_null_census.STAMP_PATH)
 STAMPS_DERIVED = "data/tables/null_reasons.jsonl"  # seeded copy; a trigger, not the source
 NOTES = "data/tables/model_notes.jsonl"
 BASELINE = "data/state/usability-baseline.json"
 
-TRIGGER_PATHS = (MODELS, TIERS, PERFS, STAMPS, STAMPS_DERIVED, NOTES)
+TRIGGER_PATHS = (MODELS, TIERS, PERFS, BENCHES, STAMPS, STAMPS_DERIVED, NOTES)
 
 BYPASS_ENV = "ALLOW_UNUSABLE_DATA"
 
@@ -354,6 +367,82 @@ def check_capability(models_head, models_base, tier_rows, perf_rows,
     return violations
 
 
+#: Fallback reasoning-effort vocabulary (TR-398). The live table is
+#: capability_vocab.REASONING_EFFORTS / PROVIDER_EFFORT_ALIASES; these copies
+#: exist only so the gate still runs if that module cannot be imported. The
+#: gate refuses a row whose effort is MISSING (TR-399: a measurement without
+#: an effort stamp is incomplete) and one carrying an UN-NORMALIZED provider
+#' alias ('xhigh' must be stored 'x-high'). An unknown provider name with no
+#: alias mapping is stored VERBATIM per the owner's never-downgrade rule —
+#: the gate does not guess it down and does not refuse it.
+_FALLBACK_EFFORTS = ("default", "off", "low", "medium", "high", "x-high", "max")
+_FALLBACK_EFFORT_ALIASES = {
+    "minimal": "low", "xhigh": "x-high", "max-thinking": "max",
+    "maximum": "max", "none": "off",
+}
+
+
+def _effort_violation_why(value):
+    """None when the stored effort stamp is valid; else the refusal why."""
+    try:
+        sys.path.insert(0, os.path.join(ROOT, "scripts"))
+        import capability_vocab as _ev  # noqa: E402
+        stored, status = _ev.normalize_reasoning_effort(value)
+        canonical = tuple(_ev.REASONING_EFFORTS)
+        stored_ok = _ev.is_stored_reasoning_effort(value)
+    except Exception:
+        stored, status = _effort_normalize_fallback(value)
+        canonical = _FALLBACK_EFFORTS
+        stored_ok = status == 'canonical' or status == 'verbatim'
+        if status == 'verbatim' and str(value).strip().lower() in canonical:
+            stored_ok = str(value).strip() == str(value).strip().lower()
+    if not stored_ok and status == 'canonical':
+        return ("reasoning_effort %r is a case-variant of the canonical "
+                "spelling %r — store the normalized form" % (value, stored))
+    if status == "missing":
+        return ("reasoning_effort is MISSING/empty — TR-399: a measurement "
+                "without an effort stamp is incomplete; store the effort the "
+                "run actually used (vocabulary: %s)"
+                % ", ".join(canonical))
+    if status == "alias":
+        return ("reasoning_effort %r is an un-normalized provider alias — "
+                "store %r (the alias table must be applied at ingest, and "
+                "must never DOWNGRADE a level)" % (value, stored))
+    return None  # canonical or a verbatim provider name — valid
+
+
+def _effort_normalize_fallback(value):
+    if not isinstance(value, str) or not value.strip():
+        return "", "missing"
+    v = value.strip().lower()
+    if v in _FALLBACK_EFFORTS:
+        return v, "canonical"
+    if v in _FALLBACK_EFFORT_ALIASES:
+        return _FALLBACK_EFFORT_ALIASES[v], "alias"
+    return value.strip(), "verbatim"
+
+
+def check_efforts(perf_rows, bench_rows):
+    """TR-398/TR-399 rule C: every staged perf/benchmark row carries a valid
+    reasoning_effort stamp. Refused: missing/empty, un-normalized provider
+    aliases, case-variants of the canonical spellings. Accepted: canonical
+    values and verbatim unmapped provider names (never guessed down)."""
+    violations = []
+    for table, rows in ((PERFS, perf_rows), (BENCHES, bench_rows)):
+        for i, r in enumerate(rows):
+            why = _effort_violation_why(r.get("reasoning_effort"))
+            if why:
+                violations.append({
+                    "rule": "effort",
+                    "table": table,
+                    "line": i + 1,
+                    "model": r.get("model"),
+                    "category": r.get("category"),
+                    "why": why,
+                })
+    return violations
+
+
 # ---------------------------------------------------------------------------
 # RULE B — the usability ratchet
 # ---------------------------------------------------------------------------
@@ -426,14 +515,17 @@ def _baseline_value(repo, rev):
 
 
 def evaluate(repo):
-    """Run both rules over the index. Returns a report dict."""
-    head = {p: _rows_at(repo, "", p) for p in (MODELS, TIERS, PERFS, STAMPS, NOTES)}
-    base = {p: _rows_at(repo, "HEAD", p) for p in (MODELS, TIERS, PERFS, STAMPS, NOTES)}
+    """Run all rules over the index. Returns a report dict."""
+    paths = (MODELS, TIERS, PERFS, BENCHES, STAMPS, NOTES)
+    head = {p: _rows_at(repo, "", p) for p in paths}
+    base = {p: _rows_at(repo, "HEAD", p) for p in paths}
 
     violations = check_capability(
         head[MODELS], base[MODELS], head[TIERS], head[PERFS],
         head[NOTES], head[STAMPS], stamp_rows_base=base[STAMPS],
     )
+    # TR-398/TR-399 rule C: the effort axis is validated on the staged rows.
+    violations += check_efforts(head[PERFS], head[BENCHES])
 
     # TR-369's count, raw and unfiltered. Do NOT "excuse" stamped lanes here:
     # data/null_reasons.jsonl already carries a no-sample-yet stamp for every
@@ -493,6 +585,16 @@ def render(report):
         for v in bad[:10]:
             lines.append("    • %-46s [bad-stamp] %s" % (_fmt_lane(v), v["why"]))
 
+    for v in (by_rule.get("effort") or [])[:10]:
+        lines.append("  effort stamp (TR-398/TR-399): %s line %s (%s) — %s"
+                     % (v.get("table"), v.get("line"), v.get("model"), v.get("why")))
+    n_effort = len(by_rule.get("effort") or [])
+    if n_effort > 10:
+        lines.append("    … %d more" % (n_effort - 10))
+    if n_effort:
+        lines.append("    Every row must carry an explicit reasoning_effort from the")
+        lines.append("    closed vocabulary (capability_vocab.REASONING_EFFORTS);")
+        lines.append("    unmapped provider names are stored verbatim — never guessed down.")
     for v in by_rule.get("ratchet") or []:
         lines.append("  usability ratchet: %s" % v["why"])
         if v.get("base_defects") is not None:
