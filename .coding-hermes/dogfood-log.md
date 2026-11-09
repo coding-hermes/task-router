@@ -375,3 +375,60 @@ duckdb-2.0.0 / pyyaml-6.0.3 / task-router-0.2.0).
 **Judging decision:** no GitReins task and no judge ran — this is a bookkeeping-only fire with no row of its
 own to bind a verdict to. Verdict unchanged: PROMISING-BUT-ROUGH. Nothing filed, nothing left dirty. The
 duplicate delivery of this tick id is scheduler duplicate-dispatch evidence, reported in chat, not a board row.
+
+### 2026-11-09c — DUPLICATE FIRE (third delivery) | tick=task-router-dogfood-2026-11-09-12-54-05 (run 42c)
+
+Third dispatch of a tick id already worked twice (run 42 committed `0ddfc606`, run 42b committed `f2bd9981`).
+Both duplicate surfaces hit before discovery: log body `grep -c '^#\+ .*task-router-dogfood-2026-11-09-12-54-05'`
+= 2 (run 42 heading + run 42b heading) and commit-subject `git log --oneline --fixed-strings --grep=<tick-id>` = 1
+(`f2bd9981 dogfood(run 42b) … tick -12-54-05`), as does the clock-suffix grep `--grep=12-54-05`. Per the
+duplicate-fire rule the deliverable is this fire's own read-only proof plus this line: no re-measurement, no
+arm, no new row. Consecutive dispatch of one tick id is scheduler duplicate-dispatch evidence, raised in chat.
+
+**Re-verified this fire, fresh commands (HEAD-bound, `~/.hermes/cache/scratch/tr-df-20261109-1254-r3-3424404/`):**
+`git fetch origin main` then `git rev-list --left-right --count HEAD...origin/main` = `0\t0`; HEAD = origin/main =
+`f2bd99814cbec9a33a8051299216ac7af37d8d72`. No Git operation marker: `REBASE_HEAD`/`MERGE_HEAD`/`CHERRY_PICK_HEAD`/
+`REVERT_HEAD`/`index.lock`/`rebase-merge`/`rebase-apply` all absent, `git status --short --untracked-files=no` shows
+only a sibling's `.gitreins/tasks.yaml` (not this lane's file, left untouched).
+
+**Arm decision — none earned, product surface did not move.** `git diff --name-only d9130116..f2bd9981` (run 42's
+measured SHA → now) names only records: `.coding-hermes/board/{tasks,events}.jsonl`, `.coding-hermes/dogfood-log.md`,
+`docs/dogfood/2026-11-09-{integration,diagnostics}.md`, `skills/task-router-usage/SKILL.md` — every one written by
+run 42/42b. The product-path diff over `task_router tests scripts data Makefile pyproject.toml README.md docs/skills`
+is EMPTY, so no user-visible surface moved and no un-owned half can exist; re-timing would be a re-measurement of
+run 42's numbers (spawn 0.232 s, validate 0.124 s, HTTP verify 2.1 ms — all subsecond, nothing to feel).
+
+**Board proof (working tree byte-equal to committed blobs):** 493 rows / 996 events, `git status --short --
+.coding-hermes/board/` silent, `jq -r .id | sort | uniq -d` = 0 duplicate ids, `QA-TASKROUTER-22` present exactly
+once in `tasks.jsonl` with exactly one `task_created` event in `events.jsonl`. Unchanged from run 42b, as expected
+for a fire that wrote nothing.
+
+**Validator (the gate that actually ran):** `boardctl -C /home/kara/task-router validate` → `RESULT: FAIL (448
+error(s), 565 warning(s))` and `boardctl: validation failed`, exit 1 — byte-identical standing counts to runs 42
+and 42b (whole-board non-ascending `events.jsonl` id debt, pre-existing), with ZERO lines mentioning
+`QA-TASKROUTER-22`, so no new lint class and no new harm from this fire.
+
+**Open-row premise liveness (anchor probed, not re-measured):** `QA-TASKROUTER-22` (pending, P2) cites
+`task_router/cli.py:147-181`; at `f2bd9981` the anchor is LIVE at `task_router/cli.py:169`
+(`candidates.extend(_parents(os.path.abspath(os.getcwd())))` still runs before the package-dir candidate at :170,
+first-match on `scripts/router_spawn.py`) and `_data_dir()` still at :245 — the citation drifted a few lines, the
+premise did not. Product tree is byte-identical to the tree that reproduced the defect, so the reproduction is
+carried forward rather than re-run (`QA-TASKROUTER-14`, `TR-1000976681059246` likewise).
+
+**Install leg — not launched this fire; census restated, not escalated.** `bunker status --server bunker-mvp`
+→ ONLINE, version 0.2.1, uptime 3d10h32m, agents 5/50, `/tmp: private (per-session pam_namespace instance)`,
+`Net mode: shared — host network namespace … NOT tenant isolation`, Disk 43%, Docker 11 containers, 20 orphan keys.
+Transport checked independently of the client's exit status: `curl -s -o /dev/null -w '%{http_code}'` on
+`http://100.115.67.116:19090/health` = `404` (live daemon; also `404` on the `:18080` port `~/.bunker/config.yaml`
+lists — the client prints the advertised port, both answer), while the CLI's DEFAULT server `bunker-las-03`
+answers `000` (connection refused) — a bare `bunker status` therefore reads OFFLINE and only `--server bunker-mvp`
+is meaningful here. `BUNKER_QA_SERVER=bunker-mvp bunker-qa.sh status` → `bunkerd=active docker=yes act=no
+uidmap=yes`. A launch now would grade `install-proven / isolation-UNVERIFIED` because of the shared network
+namespace — NOT `SKIPPED-install-bunker`: host, credential and install path all exist, and installability was
+already proven (fresh-install cell OK: duckdb-2.0.0 / pyyaml-6.0.3 / task-router-0.2.0).
+
+**Judging decision:** no GitReins task and no judge ran — this is a bookkeeping-only fire with no row of its own to
+bind a verdict to (sibling judges share this checkout and must be serialised). The gate that did run is the repo's
+own pre-commit hook (`core.hooksPath=.githooks`) plus `boardctl validate` above. Verdict unchanged:
+PROMISING-BUT-ROUGH. Nothing filed, nothing left dirty, product code untouched, repo visibility and permissions
+untouched.
