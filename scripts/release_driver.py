@@ -340,6 +340,12 @@ def cmd_cut(args):
     version, base_sha, landed_sha = run_preflight(
         repo, args.tag, args.remote, args.landed_ref, args.base or "HEAD")
     changelog_section(repo, version)  # refuse before building if notes are empty
+    # Check execute-only publishing prerequisites before any build side effect.
+    # A missing release client must be reported as such, not masked by a
+    # backend/build-environment error.
+    if args.execute and not shutil.which("gh"):
+        raise ToolError("gh is not available on PATH — the GitHub Release leg "
+                        "cannot run; refusing to tag a half-publishable cut")
     print(f"ok: CHANGELOG section for [{version}] extractable")
     print(f"== build: wheel + sdist + SHA256SUMS -> {out_dir}")
     artifacts = build_artifacts(project_dir, out_dir)
@@ -361,9 +367,9 @@ def cmd_cut(args):
         for cmd in (tag_cmd, push_cmd, release_cmd):
             print("  " + " ".join(cmd))
         print()
-        print(f"DRY-RUN complete — no tag created, nothing pushed, "
-              f"no Release created. To publish (the repo's ONE publish path): "
-              f"re-run with --execute.")
+        print("DRY-RUN complete — no tag created, nothing pushed, "
+              "no Release created. To publish (the repo's ONE publish path): "
+              "re-run with --execute.")
         return 0
 
     # ---- execute path: the single publish path ---------------------------
