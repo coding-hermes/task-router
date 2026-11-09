@@ -304,3 +304,41 @@ Use an isolated HOME together with TASK_ROUTER_HOME and ROUTER_STATE_DIR, then r
 For API use, start `router server --mode read-only --host 127.0.0.1 --port <scratch-port>` and verify `/health`, `/openapi.json`, `/profiles`, and `/resolve`. Compare `/health`'s `code.loaded_commit` with the checkout HEAD; the scratch run reported equal commits and `stale=false`. A read-only execution-decision POST is expected to return HTTP 403.
 
 The generic `bunker-qa.sh` install leg must be run against the primary git checkout, not a detached worktree that the helper rejects as non-repository. A completed package install does not prove the whole battery: inspect per-cell evidence and the agent logs. If the battery is truncated before the full suite/chaos cells, classify it incomplete even when the fresh-install cell says rc=0. Teardown is not proven by destroy output alone: retry after stopping owned operator processes, then require `bunker info <agent>` to return `not_found`.
+
+## Dogfood run 42 (2026-11-09)
+
+**Run the CLI from the repo root, or pin `TASK_ROUTER_REPO`.** `task_router/cli.py:147-181`
+resolves the repo root from cwd ancestors first, taking the first directory that contains
+`scripts/router_spawn.py`. The canonical install dir `~/.hermes` has exactly that shape, so a
+`router` invocation from `~/.hermes/scripts` silently points at `~/.hermes/data/tables` (absent)
+instead of the checkout. Symptoms are quiet, not loud: `router gaps` prints
+`0 of 0 active models — no gaps` and exits 0 there, while the same binary from any other cwd
+reports the real `790 of 790` with gap lines. Until `QA-TASKROUTER-22` lands, treat a
+`0 of 0` gaps census as "wrong directory", never as "clean registry": run from the repo root or
+export `TASK_ROUTER_REPO=/home/kara/task-router` and re-check the count.
+
+**Receipt verification fails closed — judge it by exit status, not by the printed JSON.**
+`router decide --verify receipt.json --expect-parent-run <id> --expect-step <id>` returns rc 0
+with `signature_ok: true` for an untampered receipt, and **rc 1** with `signature_ok: false` when
+any signed field is edited (e.g. `head.model`), and rc 1 for a mismatched `--expect-parent-run`.
+Piping the verify into `jq` masks rc, which is how a tampered receipt can look like a pass in a
+sweep — capture `$?` before any pipe.
+
+**A refused seed now leaves nothing behind.** `router seed` on unsatisfiable ratings exits 1 with
+`Seeding REFUSED` and writes no `registry.json` (verify with an empty `TASK_ROUTER_HOME`); the
+flagless refusal itself is still open as `TR-1000976681059246`, so a quick start needs
+`router seed --allow-unsatisfiable` (registry.json ≈ 6.99 MB) before `validate`/`spawn` mean
+anything.
+
+**Edit mode really requires the key.** `router server --mode edit` answers
+`401 {"receipt_id":null,"error":"unauthorized"}` without `X-API-Key` and `200` with
+`ROUTER_EDIT_API_KEY`; the key does not leak across sequential keyed/unkeyed requests.
+Read-only mode needs no key for GETs and answers `POST /api/v1/execution-decision` fine on
+loopback.
+
+**Harvest the install leg over SSH when `bunker-qa.sh collect` aborts.** A live agent can be
+unreachable to `collect` (`ssh probe returned no state`) while
+`ssh -i ~/.config/bunker/keys/<agent> bunker-<agent>@<ip>` works; the cell evidence and logs are
+in `~/qa-evidence.jsonl` and `~/qa-logs-*/` on the agent. On a clean Python 3.12.3 box the suite
+is `1 failed, 856 passed, 10 skipped in ~732 s`, the failure being
+`test_peer_is_loopback_fails_closed`.

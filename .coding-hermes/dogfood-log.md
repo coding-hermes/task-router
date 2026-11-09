@@ -272,3 +272,71 @@ Install leg — not launched this fire; census only. `bunker status --server bun
 Prior evidence bundle re-read and non-empty: 74 files / 5.1M under `~/.hermes/cache/scratch/tr-df-20261106-1208-ev/`, `/tmp/bunker-qa-evidence-20261106T122522Z-3139047.jsonl` 2508 B, both `docs/dogfood/2026-11-06-*.md` in the HEAD tree, usage skill carries the `--allow-unsatisfiable` correction.
 
 No arm taken, deliberately: both open rows were walked in full — both `pending`, neither carries a withdrawal or contradiction note (string scan for withdraw/contradict/supersede/not-reproduced = empty on both), and their subjects (refused-seed-still-writes P1; interpreter-dependent `::ffff` loopback gate P2) are fully owned by the preceding fires. With the product tree byte-identical to the measured SHA, no un-owned half can exist, so a new row would be re-measurement rather than evidence. Verdict carried forward: PROMISING-BUT-ROUGH. Escalating in chat, not on the board, because this is a scheduler duplicate-dispatch defect in another project's lane.
+
+### 2026-11-09 — task-router-dogfood-2026-11-09-12-54-05 (run 42)
+
+First fire of this tick id (`grep -c` on this log = 0, `git log --grep` = 0). Arm taken: a fresh
+real-use walk of the CLI and both HTTP modes, because the product tree had moved since the last
+measured SHA (`586dcf6` → `d9130116`) while those rows stayed `pending`.
+
+Subject: `/home/kara/task-router` at `d9130116` (product diff `d9130116..8721ec08` over
+`task_router tests scripts data Makefile pyproject.toml README.md` is empty — measurements stand
+at the current tip). Binary: `~/.hermes/venvs/board/bin/router` (editable → the live tree), state
+isolated with `TASK_ROUTER_HOME`/`ROUTER_STATE_DIR` under
+`~/.hermes/cache/scratch/tr-df-20261109-1254-r1/`.
+
+Walked: `seed` (refused, then forced), `validate`, `spawn` by profile / by project / unknown,
+`estimate`, `decide` + `decide --verify` (good / tampered / wrong-parent), `status`, `gaps`, and
+the HTTP surface in `--mode read-only` (GET matrix + decision + verify) and `--mode edit`
+(auth matrix). Report `docs/dogfood/2026-11-09-integration.md`, trail
+`docs/dogfood/2026-11-09-diagnostics.md`.
+
+**New finding — filed `QA-TASKROUTER-22` (P2).** `router gaps` prints
+`0 of 0 active models` + `no gaps` with rc 0 when the resolved `data/tables` does not exist, and
+cwd decides which directory that is: from `~/.hermes/scripts` (the canonical install dir, which
+has its own `scripts/router_spawn.py`) it reads nothing; from `/tmp` the same binary reports
+`790 of 790` with gap lines. Cause: `task_router/cli.py:147-181` prefers cwd ancestors over the
+package checkout (`cli.py:245` `_data_dir()`), and `scripts/router_gaps.py` treats an empty table
+read as "nothing to check". The audit surface lies in the reassuring direction. Four acceptance
+criteria filed, including the missing zero-data test and a cwd-independence test.
+
+**Reproduced, not re-filed:** `QA-TASKROUTER-14` — clean box (bunker `b54d42ff`, Python 3.12.3)
+`1 failed, 856 passed, 10 skipped in 731.79s`, failure `test_peer_is_loopback_fails_closed`
+(`::ffff:127.0.0.1` is not `is_loopback` there). `TR-1000976681059246` — flagless `router seed`
+still refuses on unsatisfiable math ratings.
+
+**Cleared this run, so the board does not need them:** `TR-1000976681059248` is FIXED — refusal
+now exits 1 and leaves a fresh `TASK_ROUTER_HOME` empty (no 7 MB `registry.json`). Receipt
+verification fails closed: valid rc 0 / `signature_ok:true`, tampered rc 1 / `false`, wrong
+`--expect-parent-run` rc 1 (the earlier `rc=0` reading of the tampered case was a `| jq` shell
+artifact). Edit-mode HTTP auth enforces the key (`401`/`401`/`200`) with no state leak across
+sequential keyed/unkeyed requests.
+
+**Install leg — run, not skipped.** `bunker-qa.sh status` → `bunkerd=active docker=yes act=no
+uidmap=yes`; agent evidence (`b54d42ff`, harvested over SSH because the collect path aborts with
+`ssh probe returned no state` against a live agent — tooling defect, reported not filed here):
+`toolchain-bootstrap OK`, `fresh-install OK` (`duckdb-2.0.0 pyyaml-6.0.3 task-router-0.2.0`,
+artifact `~/tools/venv/bin/router`), `tests FAIL` (the one loopback test), `lint`/`docker_build`/
+`compose_config` N/A. A decoy `collect --evidence` path returns `COLLECT-FAIL no-launch-record`,
+which is how the live-agent-only failure mode was separated from a bad path.
+
+**Performance (Step 2b) — nothing a user would feel, so no PERF row.** `spawn P1_CODING` 0.232 s
+real, `validate` 0.124 s real, HTTP verify 2.1 ms server-side. Only observation worth a number:
+the full suite costs 731.79 s on a 2-vCPU clean box (≈0.85 s/test), which is contributor friction
+with no profiled hot path — stated, not filed.
+
+**Board write verified, not asserted:** id from the minter
+(`board_next_id.py … QA-TASKROUTER` → `QA-TASKROUTER-22`); `grep -c '"id": "QA-TASKROUTER-22"'`
+on `tasks.jsonl` = 1 and on `events.jsonl` = 1 (`task_created`, event id
+`1794082887258446142` = prior max + 1); `git diff --stat -- .coding-hermes/board/` =
+`2 files changed, 2 insertions(+)`; `boardctl -C /home/kara/task-router validate` still FAILs on
+standing debt (448 errors / 565 warnings) with **zero** lines mentioning the new id, so no new
+lint harm.
+
+Left behind: this entry, the two reports, a usage-skill correction (run the CLI from the repo
+root or with `TASK_ROUTER_REPO`; `router gaps` is not trustworthy from the install dir until
+`QA-TASKROUTER-22` lands), and the one row + one event above. Product code untouched; repo
+visibility and permissions untouched.
+
+Verdict: **WORKS-BUT-AUDIT-SURFACE-LIES** (carried-forward `PROMISING-BUT-ROUGH` upgraded — the
+core promise now holds end to end and fast; the trust defect is confined to `gaps`).
