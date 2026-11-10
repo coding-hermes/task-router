@@ -365,3 +365,113 @@ CAVEAT (carried, NOT cleared)
 HARD RULES OBSERVED THIS PASS: nothing tagged, nothing released, no tag moved or force-moved, no
 version file touched, no product code edited. Board writes are a note refresh on the existing row
 plus one audit event — no new readiness row was filed.
+
+=====================================================================
+PASS 3 — same tick re-delivered (task-router-releng-2026-11-09-21-32-53)
+=====================================================================
+Measurements re-derived 2026-11-09T23:45Z - 2026-11-10T00:30Z. Pass 1 wrote this file (landed in
+carrier 6edfd8cf), pass 2 extended it in place (carrier 225d762a). This section EXTENDS the record
+again, per the one-artifact-per-tick rule. No product code, tag, Release object or version bump was
+created or changed by any pass.
+
+DELTA SINCE PASS 2 (delta receipt)
+- Tip: 6547421b (pass-2 candidate) -> 225d762a (pass-2 carrier, this pass's candidate)
+- git log --oneline 6547421b..225d762a = 1 commit
+    225d762a release: 2026-11-09 releng sweep pass 2 — NO CUT re-derived at tip 6547421b
+- git diff --name-only 6547421b..225d762a = 3 files, all under .coding-hermes/
+    board/events.jsonl, board/tasks.jsonl, evidence/release-readiness-...-2132.txt
+- Non-.coding-hermes paths differing: 0. The code tree at 225d762a is byte-identical to the tree
+  both earlier passes censused, so the census below is CARRIED BY TREE IDENTITY, re-counted at the
+  new tip to prove the range is the same size plus bookkeeping.
+
+INVENTORY (re-counted at 225d762a)
+  commits f04ac47..225d762a ................... 1490   (pass 2: 1489, +1 bookkeeping)
+  non-merge feat .............................. 143
+  non-merge fix ............................... 228
+  breaking (! subject / BREAKING CHANGE) ...... 0
+  tags ever created ........................... 0 local / 0 remote
+  Release objects ever created ................ 0
+  => "since the last release artifact" is still the whole 0.2.0-prep line; nothing to diff against.
+
+CI — exact SHA, identity asserted three ways at measurement time
+  git rev-parse origin/main ................... 225d762ac77cf72bbf13a48b7aaf1e07e5c0f518
+  git ls-remote origin refs/heads/main ....... 225d762ac77cf72bbf13a48b7aaf1e07e5c0f518
+  gh api repos/.../commits/main .sha ......... 225d762ac77cf72bbf13a48b7aaf1e07e5c0f518
+  run 42721883132  workflow=CI  COMPLETED / SUCCESS
+    head_sha 225d762a... (exact), created 2026-11-09T23:36:50Z, terminal 2026-11-10T00:24:33Z
+    = 47m43s       job "test": completed / success
+  The run was watched from in_progress to terminal inside this pass (25 samples); it is not a
+  carried claim. Both earlier carriers remain green: 6547421b run 42714310424, 6edfd8cf run
+  42708695233, 5f5f1129 run 42630703946.
+  VERDICT: RELEASE-ELIGIBLE ON CI at 225d762a. No red run on the candidate or on any main run
+  since the superseded 42583063269 @ de94cd1.
+
+RELEASE SURFACE (re-probed after the carrier, still empty)
+  git tag -l | wc -l .......................... 0
+  git ls-remote --tags origin | wc -l ......... 0
+  gh release list --repo coding-hermes/task-router | wc -l .. 0
+  .github/workflows/ci.yml:3-9 ............... on: push branches:[main], pull_request,
+                                               workflow_dispatch — NO `tags:` trigger
+  NEW FINDING (recorded this pass): ci.yml lines 7-8 carry the comment "Release verification: CI
+  must run (and stay green) on the v0.2.0 tag commit, but tag pushes are not push-events on
+  branches — dispatch it." No v0.2.0 tag has ever existed on this repository (0 local, 0 remote),
+  so that comment documents a tag-verification step that could never have run for v0.2.0. It is a
+  stale procedure reference, not a claim about state; it is folded into RELEASE-2026-10-22-001
+  rather than filed as a new row (the surface it describes is already that row's subject).
+
+VERSION HYGIENE (re-read from the committed tree, unchanged)
+  pyproject.toml:7 ............................ version = "0.2.0"
+  task_router/__init__.py:11 .................. __version__ = "0.2.0"
+  CHANGELOG.md headings ....................... ## [Unreleased] / ## [0.2.0] — 2026-09-24 /
+                                                ## [0.1.0] — 2026-09-21
+  Neither documented version was ever tagged. Prep remains a precondition, and remains undone.
+
+DRIVER — still stranded (participation re-measured)
+  origin/wt/RELEASE-2026-11-03-001-r2 ......... 32efe4526e1d3eec8340b3b7adad19a05bed0082
+  ahead / behind origin/main .................. 3 / 8   (pass 2: 3 / 5 — main advanced, branch did not)
+  scripts/release_driver.py on origin/main .... ABSENT (git cat-file -e -> exit 128)
+  Makefile targets ............................ no release/version/bump/publish/tag rule
+  No PR open for the branch; ci.yml does not trigger on wt/* pushes, so the branch has zero hosted
+  CI by construction. RELEASE-2026-11-09-001 stays OPEN and foreman-dispatchable.
+
+OPEN BLOCKERS (board census on origin/main, last-physical-line dedupe; 494 lines)
+  OPEN BY PRIORITY: P0 = 12, P1 = 34, P2 = 31, P3 = 44
+  Open P0: RELEASE-2026-10-22-001 pending, RELEASE-2026-11-03-001 pending,
+           RELEASE-2026-11-09-001 pending, TR-1000397261104277 review, TR-1000599737158536 pending,
+           TR-294 blocked, TR-371, TR-390, TR-394, TR-395, TR-398, TR-399 pending
+  RELEASE rows: 6 total — 3 P0 pending, 2 P1/P2 pending (RELEASE-2026-11-07-001 public posture,
+  RELEASE-2026-11-08-001 staleness), 1 complete (RELEASE-2026-11-06-001).
+  Decision rule 2 fires: open P0 exists in the target.
+
+DEPLOYED STALENESS — PARTIALLY UNVERIFIED THIS PASS (stated, not smoothed)
+  The live /health probe on :9092 and :9391 was DECLINED by the unattended consent gate (the
+  command never ran; silence is not consent). I did not re-route around it. Therefore the runtime
+  fields (loaded_commit / loaded_at / code.stale) are CARRIED from pass 2's measurement, not
+  re-derived: commit 9d1bf7c38f82, loaded_at 2026-11-06T01:03:52Z, code.stale=true.
+  What IS re-derived from git alone: `git rev-list --count 9d1bf7c38f82..origin/main` = 150
+  (pass 2: 149), and files differing over {scripts, task_router, tests, pyproject.toml, Makefile}
+  = 46 (unchanged). So the service is now 150 commits behind, 46 of them in code paths, and is
+  red-flagged stale by its own prior self-report. RELEASE-2026-11-08-001 stays OPEN.
+
+GITREINS / DOGFOOD (unchanged, not re-measured)
+  Newest verdict on disk remains .gitreins/history/2026-11-08/37001239 (task TR-1000599737158536-R1,
+  passed=true). Nothing binds a verdict to 225d762a. Release-scoped GitReins gate: UNVERIFIED.
+  Tree gate for this lane remains exact-SHA hosted CI (§CI above).
+  Latest committed dogfood record remains docs/dogfood/2026-11-09-integration.md (run 42):
+  "Works and is worth using; one trust defect" (QA-TASKROUTER-22, P2).
+
+DECISION
+  NO CUT THIS TICK. Re-derived at 225d762a, not copied:
+    * rule 2 — open P0 blockers exist (12), two of them release-lane and foreman-executable
+      (version prep; land the stranded driver);
+    * zero published artifacts in the repository's whole history => a cut would CREATE the release
+      channel, which §0 reserves to the owner; no record authorizes task-router + a version.
+  CI is green at the candidate, so the red-CI prohibition does not fire and is NOT part of the
+  reason. The blocker is not CI.
+  If authorized, the bump is MINOR -> v0.3.0 (feat-bearing, zero breaking since f04ac47).
+  Owner input still required, one line: whether task-router may publish its first release, v0.3.0,
+  and from which baseline SHA.
+
+HARD RULES OBSERVED THIS PASS: nothing tagged, nothing released, no tag created or force-moved, no
+version file touched, no product code edited, no external release state changed. Board writes are
+one note refresh on the existing rolling row plus one audit event; no new readiness row filed.
