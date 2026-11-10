@@ -99,10 +99,21 @@ artifact was edited afterwards.
 CORRECTION: the seven rows now carry a6f40507. No finding text, severity, status or
 acceptance criterion was touched; only the pointer to the bytes.
 
-VERIFY (after this commit):
-  git show <this-commit>:.coding-hermes/board/tasks.jsonl | grep -c b0c050f1     -> 0
-  git show <this-commit>:.coding-hermes/evidence/readme-reverify-2026-11-10.txt | sha256sum
-                                                                                 -> a6f40507...
+VERIFY (after this commit). Note the difference between a BINDING and prose: the
+re-fire notes on README-5 and README-6 quote the old digest while recording the
+correction, so a bare grep over the board still finds it twice. Only tree_fp
+fields are bindings.
+
+  git show <this-commit>:.coding-hermes/board/tasks.jsonl \
+    | jq -r '.detail.evidence[]?.tree_fp' | grep -c b0c050f1
+                                                                        -> 0
+  git show <this-commit>:.coding-hermes/board/tasks.jsonl \
+    | jq -r '.detail.evidence[]?.tree_fp' | grep -c a6f40507           -> 7
+  git show <this-commit>:.coding-hermes/board/tasks.jsonl | grep -c b0c050f1
+                                                                        -> 2
+     (the two re-fire notes quoting the superseded digest as prose -- not bindings)
+  git show <this-commit>:.coding-hermes/evidence/readme-reverify-2026-11-10.txt \
+    | sha256sum                                                        -> a6f40507...
 
 --------------------------------------------------------------------------------
 5. LOCAL-ONLY DEFECT -- NOT PUBLISHED, HANDED OFF
