@@ -13,6 +13,9 @@
 #   make serve     run the API + UI on 9092 (foreground: Ctrl-C to stop)
 #   make watchdog  TR-255: check every fleet listener's /health code.stale
 #   make restart-router  TR-255: the deploy contract (pull -> sync -> restart -> verify)
+#   make release-check    RELEASE-001: fail-closed preflight (tags/dirty/ancestor/pins)
+#   make release-build    RELEASE-001: wheel + sdist + SHA256SUMS into dist/
+#   make release-dry-run  RELEASE-001: full cut, NO tag, NO Release (dry-run default)
 #   make test      the full suite
 #   make guard     the repo's gitreins guard command (tests + CI gate)
 #   make hooks     install .githooks (the pre-push CI gate)
@@ -41,7 +44,7 @@ ROUTER_UNITS        := task-router-server.service task-router-proxy.service task
 RESTART_VERIFY_URLS := http://127.0.0.1:9092 http://127.0.0.1:9391
 RESTART_VERIFY_ARGS := $(foreach u,$(RESTART_VERIFY_URLS),--url $(u))
 
-.PHONY: help venv install seed validate status serve watchdog restart-router test guard hooks smoke schemas clean
+.PHONY: help venv install seed validate status serve watchdog restart-router test guard hooks smoke schemas clean release-check release-build release-dry-run
 
 help:
 	@sed -n 's/^#   //p' Makefile
@@ -135,3 +138,27 @@ restart-router:
 clean:
 	@rm -rf $(VENV)
 	@echo "removed $(VENV)"
+
+# RELEASE-2026-11-03-001: the release driver (docs/releases/release-readiness.md#driver).
+# The driver replaces the hand-derived pre-cut checklist: `release-check` runs
+# every fail-closed refusal (existing local/remote tag, dirty worktree,
+# non-ancestor base, mismatched version pins) as executed read-only commands;
+# `release-build` produces wheel + sdist + SHA256SUMS in dist/; `release-dry-run`
+# runs the whole `cut` path and publishes NOTHING (the driver's --execute is
+# the repo's single publish path and is owner-gated — no target here passes it).
+TAG ?=
+BASE ?=
+BASE_ARG = $(if $(BASE),--base $(BASE),)
+
+release-check:
+	@test -x $(VENV_PY) || { echo "FATAL: $(VENV_PY) missing — run 'make venv install' first"; exit 1; }
+	@$(VENV_PY) scripts/release_driver.py check --tag "$(TAG)" $(BASE_ARG)
+
+release-build:
+	@test -x $(VENV_PY) || { echo "FATAL: $(VENV_PY) missing — run 'make venv install' first"; exit 1; }
+	@$(VENV_PY) scripts/release_driver.py build
+
+release-dry-run:
+	@test -x $(VENV_PY) || { echo "FATAL: $(VENV_PY) missing — run 'make venv install' first"; exit 1; }
+	@test -n "$(TAG)" || { echo "FATAL: TAG is required — e.g. make release-dry-run TAG=v0.3.0"; exit 1; }
+	@$(VENV_PY) scripts/release_driver.py cut --tag "$(TAG)" $(BASE_ARG)
