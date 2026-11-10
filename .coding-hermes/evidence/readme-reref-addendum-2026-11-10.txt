@@ -105,15 +105,22 @@ correction, so a bare grep over the board still finds it twice. Only tree_fp
 fields are bindings.
 
   git show <this-commit>:.coding-hermes/board/tasks.jsonl \
-    | jq -r '.detail.evidence[]?.tree_fp' | grep -c b0c050f1
+    | jq -r '(.detail|objects|.evidence[]?) | .tree_fp // empty' | grep -c b0c050f1
                                                                         -> 0
   git show <this-commit>:.coding-hermes/board/tasks.jsonl \
-    | jq -r '.detail.evidence[]?.tree_fp' | grep -c a6f40507           -> 7
+    | jq -r '(.detail|objects|.evidence[]?) | .tree_fp // empty' | grep -c a6f40507
+                                                                        -> 7
   git show <this-commit>:.coding-hermes/board/tasks.jsonl | grep -c b0c050f1
                                                                         -> 2
      (the two re-fire notes quoting the superseded digest as prose -- not bindings)
   git show <this-commit>:.coding-hermes/evidence/readme-reverify-2026-11-10.txt \
     | sha256sum                                                        -> a6f40507...
+
+The selector is '(.detail|objects|.evidence[]?)' and not '.detail.evidence[]?'
+because a large minority of this board's older rows carry .detail as a string or
+a boolean; indexing those raises "Cannot index string with string evidence" on
+stderr while still emitting the right counts. Run as written above these four
+commands print their numbers with 0 bytes on stderr.
 
 --------------------------------------------------------------------------------
 5. LOCAL-ONLY DEFECT -- NOT PUBLISHED, HANDED OFF
