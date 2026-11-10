@@ -86,3 +86,17 @@ UNVERIFIED
 - Full `pytest -q tests/` green state at the published tip (first pass timed out at 420s; not re-attempted).
 - Live deployment/classifier upstream command (needs credentials and a real gateway).
 - Whether GitHub Actions is red for the same seed refusal (not probed this pass).
+
+BOARD-LINT CENSUS (skill requirement: assert before/after counts)
+  before (3c095fed board, extracted with git archive): RESULT: FAIL (450 error(s), 569 warning(s))
+  after  (this tick's board, b587b66e):               RESULT: FAIL (450 error(s), 571 warning(s))
+  delta: errors 0, warnings +2. Both new warnings are the same one:
+    "title carries P4 but priority is P3" on README-5 and README-6.
+  That is the state this repo's own adapter mandates: TR-348 maps doc severity P4/P5 into the
+  closed P0-P3 priority field while the label stays in the title
+  (scripts/board_priority_normalize.py, "title untouched, plus a notes provenance note").
+  21 pre-existing rows carry the identical warning (DOC-5..DOC-17, TR-284, TR-318, INT-CI-20/21).
+  `python3 scripts/board_priority_normalize.py` reports "board already canonical" (rc=0), and the
+  pre-push board_commit_boundary_gate reports 0 off-vocabulary priority emissions for this diff.
+  The 450 pre-existing errors are unrelated event-ordering defects in events.jsonl (baseline equal).
+
