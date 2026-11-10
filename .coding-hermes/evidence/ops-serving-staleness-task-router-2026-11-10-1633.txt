@@ -1,0 +1,126 @@
+OPS TICK RECORD — task-router-ops-2026-11-10-16-33-14
+Row: RELEASE-2026-11-08-001 (P2) — "Serving stale: both read-only router_server listeners
+self-report code.stale=true — and nothing consumes the flag"
+Captured: 2026-11-10T16:33Z..16:52Z UTC. All commands run read-only except where marked BLOCKED.
+Outcome: servicing parity NOT restored (this seat cannot restart units); the deploy contract was
+measured and is broken at step 1. Row left PENDING. Nothing was restarted.
+
+--------------------------------------------------------------------------------
+1. REGISTRATION / TREES
+--------------------------------------------------------------------------------
+$ grep -A6 'name = "task-router-ops"' ~/.hermes/fleet.toml
+name = "task-router-ops"; repo_url = https://github.com/coding-hermes/task-router
+workdir = /home/kara/.hermes/stand-in/pm/task-router   <- stand-in, NOT a git root
+$ cd /home/kara/.hermes/stand-in/pm/task-router && git rev-parse --show-toplevel
+fatal: not a git repository (or any of the parent directories): .git   (rc=128)
+
+Canonical serving tree (the tree the units exec): /home/kara/task-router
+$ git -C /home/kara/task-router remote -v
+origin  git@github.com:coding-hermes/task-router.git (fetch/push)
+$ git -C /home/kara/task-router log -1 --format='%H %ci %s'
+1d13785b13a99b76c24b69d9c9fc5832e8af8357 2026-11-10 08:21:26 -0500 qa(board): QA-TASKROUTER-23 ...
+$ git -C /home/kara/task-router rev-parse --abbrev-ref HEAD
+main
+$ git -C /home/kara/task-router rev-list --left-right --count main...origin/main
+1       5
+$ git -C /home/kara/task-router status --porcelain
+ M .coding-hermes/board/events.jsonl
+ M .coding-hermes/board/tasks.jsonl
+$ git -C /home/kara/task-router log -1 --format='%H %s' origin/main
+36a6807e775029a689bd29c2a7d5b11dc446dc38 qa(board): task-router-qa-2026-11-10-11-03-55 — 6 annotations, no new rows
+$ git -C /home/kara/task-router cherry origin/main main
++ 1d13785b13a99b76c24b69d9c9fc5832e8af8357      # local commit has NO equivalent patch at origin
+
+--------------------------------------------------------------------------------
+2. LIVE LISTENERS — self-report (the row's own measurement surface)
+--------------------------------------------------------------------------------
+$ ps -eo pid,lstart,args | grep -E 'router_server|router_web'
+ 949712 Thu Nov  5 20:03:50 2026 /usr/bin/python3 /home/kara/task-router/scripts/router_server.py --mode read-only --host 127.0.0.1 --port 9092
+ 969219 Thu Nov  5 20:04:50 2026 /usr/bin/python3 /home/kara/task-router/scripts/router_server.py --mode read-only --host 127.0.0.1 --port 9391
+ 969280 Thu Nov  5 20:04:51 2026 /home/kara/.hermes/venvs/board/bin/python3 /home/kara/.hermes/scripts/router_web.py --host 127.0.0.1 --port 9093 --mode read-only
+(PIDs are the same three the row cited on 2026-11-08 — nothing has been restarted since 2026-11-05.)
+
+$ curl -s -m 6 http://127.0.0.1:9092/health | jq -c .code
+{"loaded_commit":"9d1bf7c38f82","loaded_source_sha":"0641f4dcd8c2cbae","loaded_at":"2026-11-06T01:03:52+00:00",
+ "repo_commit":"1d13785b13a9","live_source_sha":"0641f4dcd8c2cbae","stale":true,"error":null}
+$ curl -s -m 6 http://127.0.0.1:9391/health | jq -c .code
+{"loaded_commit":"9d1bf7c38f82","loaded_source_sha":"0641f4dcd8c2cbae","loaded_at":"2026-11-06T01:04:52+00:00",
+ "repo_commit":"1d13785b13a9","live_source_sha":"0641f4dcd8c2cbae","stale":true,"error":null}
+$ curl -s -m 6 http://127.0.0.1:9093/health
+{"error":"not found"}       # :9093 router_web.py still exposes no /health — UNMEASURED, exempted (README:302 documents it)
+
+Staleness age at capture: loaded_at 2026-11-06T01:03:52Z -> now 402521s = 4d15h48m (4.66 days).
+Note the flag compares against the LOCAL tree HEAD (1d13785b), not origin/main — so the two listeners are
+stale against both, but a restart would only settle them against the local, diverged tree.
+
+$ systemctl --user is-active task-router-{server,proxy,web}.service task-router-{api,proxy}-tailnet.service
+active active active active active
+
+--------------------------------------------------------------------------------
+3. THE CONSUMER (row acceptance arm 3) — it reports, it does not act
+--------------------------------------------------------------------------------
+$ cd /home/kara/task-router && make watchdog
+rc=2
+STALE       http://127.0.0.1:9092  loaded 9d1bf7c38f82/0641f4dcd8c2cbae vs repo 1d13785b13a9/0641f4dcd8c2cbae; restart needed (loaded_at 2026-11-06T01:03:52+00:00)
+UNREACHABLE http://127.0.0.1:9093  HTTP 404 from http://127.0.0.1:9093/health (no /health surface on this listener)
+STALE       http://127.0.0.1:9391  loaded 9d1bf7c38f82/0641f4dcd8c2cbae vs repo 1d13785b13a9/0641f4dcd8c2cbae; restart needed (loaded_at 2026-11-06T01:04:52+00:00)
+make: *** [Makefile:93: watchdog] Error 1
+Verdict: the watchdog works exactly as documented (conservative STALE, honest UNREACHABLE for :9093, rc 0/1/2),
+but README.md:311 states "Not yet wired into cron: schedule `make watchdog` ... to alert on exit != 0."
+So arm 3 of RELEASE-2026-11-08-001 ("at least one consumer ACTS on code.stale:true ... restarts or files a row
+when stale persists beyond a stated window") is still NOT satisfied by the tree: nothing schedules it.
+
+--------------------------------------------------------------------------------
+4. THE DOCUMENTED DEPLOY CONTRACT — broken at step 1 (this is the new finding)
+--------------------------------------------------------------------------------
+$ cd /home/kara/task-router && make restart-router     # rc=2
+OK      serving units found (systemd --user)
+== step 1/4: git -C /home/kara/task-router pull --ff-only ...
+   dirty:  M .coding-hermes/board/events.jsonl
+   dirty:  M .coding-hermes/board/tasks.jsonl
+fatal: Not possible to fast-forward, aborting.
+FATAL: pull failed (fix the canonical tree by hand)
+make: *** [Makefile:106: restart-router] Error 1
+
+Cause, measured not guessed: the canonical tree carries one local board-only commit (1d13785b) with no
+equivalent at origin (git cherry shows "+"), while origin/main is 5 commits ahead. `--ff-only` on a diverged
+branch refuses by design, so the supervised deploy path aborts BEFORE sync_runtime.sh and BEFORE any restart.
+This is a DIFFERENT blocker from TR-1000976681059247 (which reports make restart-router dying at step 2 on the
+SCHED-PERF-006 sidecar pin); step 1 now fails first, so that row's premise is also worth re-measuring.
+1d13785b's own title ("qa(board): QA-TASKROUTER-23 ...") is duplicated at origin by 3c095fed — i.e. the local
+commit is a superseded board snapshot, but it cannot be dropped safely from here: the board JSONL files are
+dirty in the shared checkout, so a reset/rebase would race the sibling lanes that wrote them.
+
+Pre-restart sanity check (so a restart could not take a syntactically broken tree down):
+$ PYTHONDONTWRITEBYTECODE=1 python3 -m py_compile scripts/router_server.py scripts/router_stale_watchdog.py
+py_compile OK
+$ git -C /home/kara/task-router show -p MainPID --value task-router-server.service ...
+before: 949712 / 969219 / 969280
+
+--------------------------------------------------------------------------------
+5. WHAT WAS NOT DONE, AND WHY (honest boundary)
+--------------------------------------------------------------------------------
+BLOCKED, NOT PERFORMED: `systemctl --user restart task-router-server.service task-router-proxy.service
+task-router-web.service` — the unattended approval gate refused it twice (5-minute no-response both times;
+"silence is not consent"). No retry, no route around it: the units were NOT restarted, and the process census
+after the attempt is byte-identical (pids 949712 / 969219 / 969280, same start times, all five units active).
+So acceptance arms 1 and 2 of RELEASE-2026-11-08-001 remain UNPROVEN from this seat — not because the fix is
+wrong, but because this lane has no restart authority.
+
+--------------------------------------------------------------------------------
+6. OPERATOR LADDER (ordered, for a seat that may restart)
+--------------------------------------------------------------------------------
+1. Wait for a quiet window on the canonical tree (no lane writing .coding-hermes/board/*.jsonl).
+2. Resolve the diverged commit, either:
+     git -C /home/kara/task-router rebase origin/main        # keep the board snapshot, replay on top, or
+     git -C /home/kara/task-router reset --hard origin/main  # drop the superseded snapshot (3c095fed covers it)
+   Both are destructive to the dirty board files, hence operator-only.
+3. make restart-router        # now reaches pull + sync_runtime.sh + restart + /health parity re-check
+4. Verify with the listeners' own self-report, not the restart's exit code:
+     curl -s http://127.0.0.1:9092/health | jq .code   -> stale:false, loaded_commit == repo_commit
+     curl -s http://127.0.0.1:9391/health | jq .code   -> stale:false
+     make watchdog; echo rc=$?                          -> rc=1 only because :9093 has no /health (expected)
+5. Close arm 3 separately: schedule the watchdog (systemd --user timer or cron) so a stale window files a row
+   or restarts, and prove it under a forced-stale condition.
+
+Evidence digest is computed immediately before the board event is frozen (see the event payload).
