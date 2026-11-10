@@ -532,6 +532,23 @@ POST_DEDUPE_ADDITIONS = {
     ("openrouter", "minimax/minimax-m3:batch"): "openrouter carrier refresh 2026-11-07 (batch-variant arrival, carrier-sticker priced, census-stamped)",
     ("openrouter", "qwen/qwen3.8-27b:batch"): "openrouter carrier refresh 2026-11-07 (batch-variant arrival, carrier-sticker priced, census-stamped)",
     ("openrouter", "thinkingmachines/inkling-small:batch"): "openrouter carrier refresh 2026-11-07 (batch-variant arrival, carrier-sticker priced, census-stamped)",
+    # 2026-11-10 tick (model-registry-data-quality cron): 14 dated arrivals —
+    # 6 clinepass API sync lanes, 5 models.dev catalog lanes, 1 og-2 mirror
+    # filing, 2 openrouter importer :batch mirrors. All census-stamped.
+    ("clinepass", "claude-fable-5.2"): "clinepass API sync 2026-11-10 — carrier arrival (sticker priced, census-stamped)",
+    ("clinepass", "claude-fable-5.2:batch"): "clinepass API sync 2026-11-10 — carrier :batch arrival (PAYG-outside-plan, disabled by sync writer, census-stamped)",
+    ("clinepass", "inkling-2-small:free"): "clinepass API sync 2026-11-10 — carrier :free arrival (discount row, window-cost-pending TR-070, census-stamped)",
+    ("clinepass", "muse-ember"): "clinepass API sync 2026-11-10 — carrier arrival (sticker priced, census-stamped)",
+    ("clinepass", "nex-n2.6"): "clinepass API sync 2026-11-10 — carrier arrival (sticker priced, census-stamped)",
+    ("clinepass", "qwen3.8-max-0902:batch"): "clinepass API sync 2026-11-10 — carrier :batch arrival (PAYG-outside-plan, disabled by sync writer, census-stamped)",
+    ("opencode-go", "longcat-2.5-free"): "models.dev sync 2026-11-10 — new catalog lane (sub-bucket blended est, census-stamped)",
+    ("opencode-go-2", "longcat-2.5-free"): "mirror row filed 2026-11-10 from the opencode-go lane-1 twin (sub-bucket blended est, census-stamped)",
+    ("openrouter", "anthropic/claude-fable-5.2"): "models.dev sync 2026-11-10 — new catalog lane, sticker-priced 8.0 (normalized:payg-sticker)",
+    ("openrouter", "anthropic/claude-fable-5.2:batch"): "openrouter carrier refresh 2026-11-10 (batch-variant mirror, importer row, census-stamped)",
+    ("openrouter", "meta/muse-ember"): "models.dev sync 2026-11-10 — new catalog lane, sticker-priced 0.1 (normalized:payg-sticker)",
+    ("openrouter", "nex-agi/nex-n2.6"): "models.dev sync 2026-11-10 — new catalog lane, sticker-priced 0.12 (normalized:payg-sticker)",
+    ("openrouter", "qwen/qwen3.8-max-0902:batch"): "openrouter carrier refresh 2026-11-10 (batch-variant mirror, importer row, census-stamped)",
+    ("openrouter", "thinkingmachines/inkling-2-small:free"): "models.dev sync 2026-11-10 — new catalog :free lane (window-cost-pending TR-070, census-stamped)",
 }
 
 

@@ -2526,6 +2526,7 @@
 {"model": "kimi-k3.1-pro", "category": "multilingual", "perf": 1.0, "source": "bench", "source_ref": "bench:MULTILINGUAL", "reasoning_effort": "default"}
 {"model": "kimi-k3.1-pro", "category": "review", "perf": 1.0, "source": "bench", "source_ref": "bench:REVIEW", "reasoning_effort": "default"}
 {"model": "kimi-k3.1-pro", "category": "spec_docs", "perf": 1.0, "source": "bench", "source_ref": "bench:SPEC-DOCS", "reasoning_effort": "default"}
+{"model": "kimi-k3.1-pro", "category": "terminal", "perf": 0.657, "source": "bench", "source_ref": "bench:Terminal-Bench", "reasoning_effort": "default"}
 {"model": "laguna-s-2.1", "category": "test", "perf": 0.72, "source": "estimate", "source_ref": "CATEGORY_ESTIMATES", "reasoning_effort": "default"}
 {"model": "ling-3.0-flash-sante", "category": "test", "perf": 0.72, "source": "estimate", "source_ref": "CATEGORY_ESTIMATES", "reasoning_effort": "default"}
 {"model": "ling-3.0-flash-sante:free", "category": "test", "perf": 0.72, "source": "family", "source_ref": "alias:inclusionai/ling-3.0-flash-sante:free", "reasoning_effort": "default"}
