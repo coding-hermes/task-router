@@ -1,0 +1,18 @@
+CI evidence for INT-CI-0000000024
+
+Published head: c8c9a611ec0c04526f0b3c06ce2bea91069fc5f1
+Hosted run: 42792810243
+Hosted result: completed/failure; test job failed at TR-251 evidence replay.
+
+Local replay at the published head:
+REPLAY-FAIL RELEASE-2026-11-03-001: run 'task-router-releng-2026-11-07-20-08-56' does not resolve to any store (no .gitreins/history/<date>/task-router-releng-2026-11-07-20-08-56/verdict.json under the tested checkout; not a CI run id; not a stated-reason null)
+evidence_replay: 1 failure(s), 1 row(s) replayed
+exit=1
+
+Independent boundary check:
+board_commit_boundary_gate: OK (1 completion flip(s) in the diff, all evidence-bound; 0 off-vocabulary priority emission(s))
+exit=0
+
+Interpretation: evidence replay is red because a completed row cites a missing verdict-store handle. Boundary validation still passes. The remediation must preserve the evidence-store contract and produce a new completed hosted CI run with the replay step green.
+
+ch:trace row=INT-CI-0000000024 spec=docs/evidence-run-store-decision.md#evidence-run-store wave=none:serial-dispatch test=scripts/evidence_replay.py::RELEASE-2026-11-03-001 evidence=.coding-hermes/evidence/int-ci-0000000024-2026-11-10.txt witness=run:42792810243 verdict=none:ci-red-open commit=none:open memory=none:unverified

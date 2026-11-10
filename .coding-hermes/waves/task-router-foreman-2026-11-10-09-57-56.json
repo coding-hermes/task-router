@@ -1,0 +1,19 @@
+{
+  "tick_id": "task-router-foreman-2026-11-10-09-57-56",
+  "project": "task-router",
+  "budget": 12,
+  "mode": "serial-fallback",
+  "selected_row": "TR-390",
+  "selected_priority": "P0",
+  "workers_dispatched": 1,
+  "worker_model": "glm-5.3-flash",
+  "worker_provider": "zai-glm",
+  "worker_worktree": "/home/kara/worktrees/task-router-TR-390",
+  "worker_branch": "wt/TR-390",
+  "worker_base": "c8c9a611ec0c04526f0b3c06ce2bea91069fc5f1",
+  "worker_result": "zero implementation diff; process terminated after bounded stall",
+  "gitreins": "TR-390 created/started/deleted; no completion because no implementation commit existed",
+  "ci_failure_filed": "INT-CI-0000000024",
+  "evidence": ".coding-hermes/evidence/int-ci-0000000024-2026-11-10.txt",
+  "ch:trace": "row=TR-390 spec=docs/category-data-quality.md#capability-evidence wave=.coding-hermes/waves/task-router-foreman-2026-11-10-09-57-56.json#serial test=tests/test_tr369_usability_gate.py evidence=none:worker-zero-diff witness=none:not-live-verification verdict=none:worker-not-judged commit=none:no-implementation-commit memory=none:unverified"
+}
