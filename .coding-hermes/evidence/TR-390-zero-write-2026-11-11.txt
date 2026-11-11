@@ -1,0 +1,19 @@
+TR-390 zero-write dispatch evidence
+Tick: task-router-foreman-2026-11-11-05-38-47
+Repository: coding-hermes/task-router
+Published base: 659e15d2b3187457236e32834fdea7ae538a018f
+Worker worktree: /home/kara/worktrees/task-router-TR-390
+Worker branch: wt/TR-390
+Worker model/provider requested and launched: glm-5.3-flash @ zai-glm
+Worker session: local-d1e2b78e6a1fba1c90022c58beea9d78569b3ee5c027844ddcc555cfcf8f6c82
+Worker process: 1104053
+
+Observed result:
+- Process ran for 13m26s and made repeated repository exploration calls.
+- The worker worktree remained clean throughout the final check: no source/test diff, no staged paths, no untracked implementation files, and no commit beyond the published base.
+- The worker was terminated by its exact PID after the zero-write threshold; no fallback worker was launched.
+- GitReins lifecycle TR-390 was created and started before dispatch, then deleted after the failed zero-write dispatch. No task-complete/judge was run because there was no implementation commit to judge.
+
+Disposition: pending; worker_status=failed. Routed to task-router-qa for worker-supervision/zero-write recovery. A materially changed dispatch is required; do not repeat the same brief/lane unchanged.
+
+ch:trace row=TR-390 spec=docs/category-data-quality.md#usability wave=none:serial test=none:zero-write-dispatch evidence=.coding-hermes/evidence/TR-390-zero-write-2026-11-11.txt witness=none:no-implementation-commit verdict=none:zero-write-dispatch commit=none:board-closeout-only memory=none:unverified
