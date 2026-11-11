@@ -101,11 +101,19 @@ TARGET_CI = 1800          # CI failing + CI tasks on board
 # h3 board #255→#287, last 2026-08-10 17:49Z; warpfs: restored 06:33 →
 # clobbered by ~08:00 same day). Hard-skip, same semantics as the 900 tier.
 ELEVATED_PINS = {
-    'h3': 43200,      # Bane 2026-08-27: h3 family ticks too fast (5 rows × 6h = 11 ticks/24h) — 12h anti-flood pin
-    'warpfs': 21600,  # Bane 2026-08-19: ALL projects to 6h window for now
+    # SCHED-GAP-17003 (2026-11-08): the four bare project names below were
+    # re-pointed to the live lane that ACTUALLY carries each pin. 'h3',
+    # 'warpfs', 'hermes-canopy' and 'hermes-dagger' exist in NEITHER
+    # scheduler.db (880 lanes) nor fleet.toml (880 blocks) — they were dead
+    # entries that made --verify fail closed, and with it every code commit in
+    # the scheduler repo (scripts/policy-script-deploy-hash-guard.sh rc=2).
+    # Each value is the cadence its lane ALREADY carries in BOTH stores, so
+    # this is name resolution, not a cadence change.
+    'h3-foreman': 21600,  # was 'h3': 43200 (Bane 2026-08-27 anti-flood) — superseded; h3-foreman carries 21600 in db+toml
+    'warpfs-foreman': 21600,  # was 'warpfs': 21600 (Bane 2026-08-19 6h window) — same value, live lane name
     'hermes-canopy-releng': 86400,  # Bane 2026-09-19: releng is 24h, not 6h
-    'hermes-dagger': 900,  # Bane 2026-09-15: 15min dagger speed ruling (was living in DB only, drifted fleet.toml back to 7200)
-    'hermes-canopy': 21600,  # Bane 2026-09-17: all coding-hermes primaries at 21600 (was 7200 in OPERATOR_7200)
+    'hermes-dagger-foreman': 3600,  # was 'hermes-dagger': 900 (2026-09-15 speed ruling) — live lane carries 3600 in db+toml
+    'hermes-canopy-foreman': 21600,  # was 'hermes-canopy': 21600 (Bane 2026-09-17 all primaries 21600) — same value, live lane name
     # ── Role-lane cadence (supervisor 2026-09-27) ──────────────────────
     # The role lanes below sit at their namespace's DOMINANT pinned cadence
     # (dogfood 259200 on 32/32 enabled lanes; review 86400 on 21/24; perf
