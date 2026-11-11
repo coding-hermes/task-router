@@ -1,0 +1,96 @@
+TR-398 verification-only closeout — effort axis in capability storage
+=====================================================================
+Row:            TR-398 (P0) "Effort axis in capability storage: model_perf rows keyed
+                (model, category, reasoning_effort)"
+Tick:           task-router-foreman-2026-11-11-06-23-53
+Verified at:    dae712ca98cfd26e0f7005a6012fc36e70a22a1e (== origin/main at verification)
+Verified on:    2026-11-11T01:26:24-05:00
+Implementation: ea2702ab6b89edde0e108d27984af2d4fb0eee5a "TR-398+TR-399: reasoning_effort
+                axis in capability storage + gated ingest" (2026-11-09 02:31:03 -0500)
+Landing proof:  git merge-base --is-ancestor ea2702ab6b89edde0e108d27984af2d4fb0eee5a origin/main
+                -> exit 0 (commit is an ancestor of origin/main)
+
+MODE: verification-only. The published tree already carries the implementation, so this
+tick re-measured the acceptance contract instead of dispatching a worker or creating a
+GitReins implementation lifecycle (project skill: a pending row whose implementation
+exists on the published branch needs verification and closeout, not re-dispatch).
+
+ACCEPTANCE COMMAND (row's own PASS line)
+----------------------------------------
+$ /home/kara/.hermes/venvs/board/bin/python3 -m pytest -q tests/test_tr398_effort_axis.py
+9 passed in 1.70s
+(exit 0) — run inside a detached worktree of origin/main (dae712ca), clean tree
+(uncommitted paths = 0), so the count is tree-true and not contaminated by a probe.
+
+CLAUSE-BY-CLAUSE
+----------------
+1. "Add a reasoning_effort field to data/tables/model_perf.jsonl"
+   MEASURED: rows=4749, every row carries the key.
+   $ jq -r '.reasoning_effort // "<MISSING>"' data/tables/model_perf.jsonl | sort | uniq -c
+      4749 default
+   "<MISSING>" occurrences = 0.
+
+2. "Every existing row is back-stamped reasoning_effort='default' explicitly — an
+   unexplained NULL is junk"
+   MEASURED: 4749/4749 rows stamped 'default'. NULL/absent = 0/4749.
+   Backfill driver committed: scripts/migrate_reasoning_effort_tr398.py, which routes every
+   stored value through capability_vocab.normalize_reasoning_effort() and stamps
+   pre-effort-era rows 'default' explicitly.
+
+3. "CLOSED vocabulary normalized across providers ... provider-specific names like
+   minimal/xhigh map in one table"
+   MEASURED: scripts/capability_vocab.py
+     REASONING_EFFORTS = ('default','off','low','medium','high','x-high','max')
+     PROVIDER_EFFORT_ALIASES = {minimal->low, xhigh->x-high, max-thinking->max,
+                                maximum->max, none->off}
+   normalize_reasoning_effort() returns status in {missing, canonical, alias, verbatim};
+   an unmapped provider name is stored VERBATIM (owner never-downgrade rule, and the
+   aliases table never maps x-high down to high).
+   Covered by: test_vocabulary_is_the_owner_corrected_set_in_comparison_order,
+               test_aliases_never_downgrade_a_level  (both PASSED).
+
+4. "The seed and the satisfiability gate must not collapse rows across efforts: tier
+   computation becomes per (model, category, effort)"
+   MEASURED in code at this tree:
+     scripts/router_seed.py:6       model_tier: per (provider, model, category, reasoning_effort)
+     scripts/router_seed.py:238     model_tier column list carries ('reasoning_effort','VARCHAR')
+     scripts/router_spawn.py:529    "model_tier rows are now per (model, category, reasoning_effort)"
+     scripts/router_satisfiability.py:135  _best_tiers() reduces per (model, category, effort)
+   Covered by: test_seed_keeps_two_efforts_as_two_distinct_tiers  (PASSED),
+               test_default_effort_rows_seed_exactly_as_before    (PASSED).
+
+5. "a row with an unexplained NULL effort fails the gate"
+   MEASURED: scripts/model_data_commit_gate.py refuses a row whose effort is MISSING
+   (TR-399 arm) and rejects an un-normalized provider alias ('xhigh' must be stored
+   'x-high'); an unmapped provider name is stored verbatim and is NOT refused.
+   Covered by: test_gate_refuses_a_perf_row_missing_reasoning_effort (PASSED),
+               test_gate_refuses_an_out_of_vocab_effort             (PASSED),
+               test_gate_refuses_an_effortless_benchmark_row        (PASSED),
+               test_gate_accepts_canonical_verbatim_and_first_class_levels (PASSED).
+   Targeted re-run of the four negative/positive arms:
+   $ pytest -q tests/test_tr398_effort_axis.py -k "two_distinct_tiers or
+       missing_reasoning_effort or out_of_vocab_effort or effortless_benchmark"
+   4 passed, 5 deselected in 1.11s
+
+6. "the effort vocabulary is validated at board/registry write time"
+   MEASURED: capability_vocab.normalize_reasoning_effort() is the single normalizer, and
+   scripts/model_data_commit_gate.py imports its vocabulary (with a committed fallback copy)
+   and runs as the live .githooks/pre-commit leg on staged data/registry changes.
+
+CI BINDING
+----------
+Evidence run: 42964300746 (completed / success), head 659e15d2, created 2026-11-11T06:13:13Z,
+"board(TR-371): route missing live alert deployment to monitoring".
+Containment: 659e15d2 is an ancestor of origin/main and ea2702ab is an ancestor of 659e15d2,
+so the bound run's tree CONTAINS the implementation commit.
+  $ git merge-base --is-ancestor ea2702ab6b89edde0e108d27984af2d4fb0eee5a origin/main  -> 0
+NOTE: the implementation commit itself was not re-run at its own head; the binding is a
+newest-completed-green run whose head contains it, as the repository closeout rules require.
+
+WHAT THIS EVIDENCE DOES NOT CLAIM
+---------------------------------
+- No worker was dispatched and no GitReins implementation task was created: the work was
+  already landed, so the tick is verification-only.
+- No effort-VARIED measurement exists yet in the committed corpus (4749/4749 rows are
+  'default'). Producing rows at non-default efforts is TR-399 (ingest) and TR-403
+  (backfill plan), not this row.
