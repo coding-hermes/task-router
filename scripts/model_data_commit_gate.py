@@ -628,6 +628,9 @@ def main(argv=None):
     ap = argparse.ArgumentParser(description="commit-time gate for partial model data")
     ap.add_argument("--staged", action="store_true",
                     help="check the index against HEAD (default; what pre-commit does)")
+    ap.add_argument("--scan-tree", action="store_true",
+                    help="scan the WORKING TREE with no staging requirement — the same "
+                         "rules as the commit gate, runnable any time (make scan)")
     ap.add_argument("--explain", action="store_true",
                     help="print full detail for every offending lane")
     ap.add_argument("--json", action="store_true", help="machine-readable output")
@@ -637,6 +640,28 @@ def main(argv=None):
     args = ap.parse_args(argv)
 
     repo = os.path.realpath(args.repo)
+
+    if args.scan_tree:
+        # Whole-tree scan: evaluate the COMMITTED tree (same data evaluate() uses)
+        # but force-run regardless of what is staged, so `make scan` works any time.
+        touched = list(TRIGGER_PATHS)
+        try:
+            report = evaluate(repo)
+        except Exception as exc:
+            print("%s: ERROR: scan failed to run: %s" % (os.path.basename(__file__), exc),
+                  file=sys.stderr)
+            return 2
+        if args.json:
+            print(json.dumps(report, indent=1, default=str))
+        elif report["ok"]:
+            print("%s: SCAN OK — %d usability defects (baseline %s)"
+                  % (os.path.basename(__file__), report["head_defects"],
+                     report.get("baseline_defects", "?")))
+        else:
+            print(render(report), file=sys.stderr if not args.explain else sys.stdout)
+            if args.explain:
+                print(json.dumps(report, indent=1, default=str))
+        return 0 if report["ok"] else 1
 
     if not args.force:
         touched = [p for p in staged_paths(repo) if p in TRIGGER_PATHS]

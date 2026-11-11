@@ -1,12 +1,12 @@
 {
- "defects": 345,
- "usable": 364,
- "live_lane_rows": 828,
- "usable_share_pct": 44.0,
+ "defects": 280,
+ "usable": 424,
+ "live_lane_rows": 795,
+ "usable_share_pct": 53.3,
  "reasons": {
-  "tiers_below_blank_default": 79,
-  "never_measured": 345,
-  "unpriced": 40
+  "tiers_below_blank_default": 66,
+  "never_measured": 280,
+  "unpriced": 25
  },
  "note": "Usability ratchet: `defects` (live+priced+never-measured lanes) may only decrease. Regenerate with scripts/router_usability_gate.py --ratchet."
 }

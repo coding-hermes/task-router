@@ -97,6 +97,15 @@ watchdog:
 # units + a /health parity check. Guarded by REAL assertions — a tree state it
 # does not understand or a unit that is not systemd-managed fails loudly and
 # touches nothing. Operator-level by design: the worker never restarts.
+.PHONY: scan
+# One-command data-completeness scan (TR-1005973715853616836): the same checks the
+# pre-commit gate enforces at the door, runnable any time over the whole tree.
+# Fails non-zero if the tree holds model records missing capability evidence,
+# missing reasoning_effort, or an unexplained usability defect above the ratchet.
+scan:
+	@python3 scripts/router_usability_gate.py --ratchet
+	@python3 scripts/model_data_commit_gate.py --scan-tree
+
 restart-router:
 	@test -d "$(CANONICAL_TREE)/.git" || { echo "FATAL: $(CANONICAL_TREE) is not a git checkout — set CANONICAL_TREE=<the tree systemd runs>"; exit 1; }
 	@test -f "$(CANONICAL_TREE)/scripts/sync_runtime.sh" || { echo "FATAL: $(CANONICAL_TREE)/scripts/sync_runtime.sh missing"; exit 1; }
