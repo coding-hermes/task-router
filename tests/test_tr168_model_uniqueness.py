@@ -154,6 +154,13 @@ POST_DEDUPE_ADDITIONS = {
     # 2026-11-01 (model-router-refresh tick): two research filings
     ("commandcode", "inclusionai/ling-3.1-flash-1019:free"): "filed 2026-11-01 — carrier-arrival :free dated leaf, $0 window-cost-pending (TR-070), census-stamped",
     ("openrouter", "z-ai/glm-5.3-flashx-legal"): "models.dev sync 2026-11-03 — new catalog lane, sticker-priced 0.37 (normalized:payg-sticker)",
+    # 2026-11-05 morph onboard (Bane directive): new Morph provider (Ultra plan)
+    ("morph", "morph-dsv41flash"): "morph onboard 2026-11-05 — chat lane, sticker 0.12/0.80 (Ultra-unlimited family)",
+    ("morph", "morph-dsv41flash-1017"): "morph onboard 2026-11-05 — chat lane, sticker 0.12/0.80, Ultra-unlimited (no token meter)",
+    ("morph", "morph-kimik31"): "morph onboard 2026-11-05 — Kimi K3.1 plan-exclusive, unpriced by design (Ultra unlimited, not-published-by-provider stamps)",
+    ("morph", "morph-fast-apply"): "morph onboard 2026-11-05 — Fast Apply merge model, sticker 0.80/1.20",
+    ("morph", "morph-compactor"): "morph onboard 2026-11-05 — Compact model, sticker 0.20/0.50",
+    ("morph", "morph-warp-grep-v2.1"): "morph onboard 2026-11-05 — WarpGrep v2.1 code-search subagent, sticker 0.80/0.80",
     # 2026-11-09 tick (model-registry-data-quality cron): carrier-arrival wave
     ("clinepass", "deepseek-v4.1-flash-1017:batch"): "clinepass API sync 2026-11-09 — carrier :batch arrival, disabled PAYG-outside-flat-plan (not in included_models)",
     ("clinepass", "morph-v3-fast:batch"): "clinepass API sync 2026-11-09 — carrier :batch arrival, disabled PAYG-outside-flat-plan (not in included_models)",

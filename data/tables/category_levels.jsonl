@@ -67,8 +67,8 @@
 {"category": "guard", "reasoning_effort": "default", "level": -5, "label": "-----", "min_perf": 0.0}
 {"category": "guard", "reasoning_effort": "default", "level": -4, "label": "----", "min_perf": 0.0}
 {"category": "guard", "reasoning_effort": "default", "level": -3, "label": "---", "min_perf": 0.0}
-{"category": "guard", "reasoning_effort": "default", "level": -2, "label": "--", "min_perf": 0.6960000000000002}
-{"category": "guard", "reasoning_effort": "default", "level": -1, "label": "-", "min_perf": 0.8599999999999999}
+{"category": "guard", "reasoning_effort": "default", "level": -2, "label": "--", "min_perf": 0.6960000000000001}
+{"category": "guard", "reasoning_effort": "default", "level": -1, "label": "-", "min_perf": 0.86}
 {"category": "guard", "reasoning_effort": "default", "level": 0, "label": "0", "min_perf": 1.0}
 {"category": "guard", "reasoning_effort": "default", "level": 1, "label": "+", "min_perf": 1.0}
 {"category": "guard", "reasoning_effort": "default", "level": 2, "label": "++", "min_perf": 1.0}
@@ -109,7 +109,7 @@
 {"category": "math", "reasoning_effort": "default", "level": 4, "label": "++++", "min_perf": 0.9996}
 {"category": "math", "reasoning_effort": "default", "level": 5, "label": "+++++", "min_perf": 0.99992}
 {"category": "mechanical", "reasoning_effort": "default", "level": -5, "label": "-----", "min_perf": 0.667}
-{"category": "mechanical", "reasoning_effort": "default", "level": -4, "label": "----", "min_perf": 0.7041}
+{"category": "mechanical", "reasoning_effort": "default", "level": -4, "label": "----", "min_perf": 0.7041000000000001}
 {"category": "mechanical", "reasoning_effort": "default", "level": -3, "label": "---", "min_perf": 0.7652}
 {"category": "mechanical", "reasoning_effort": "default", "level": -2, "label": "--", "min_perf": 0.833}
 {"category": "mechanical", "reasoning_effort": "default", "level": -1, "label": "-", "min_perf": 1.0}
@@ -186,7 +186,7 @@
 {"category": "schema", "reasoning_effort": "default", "level": 4, "label": "++++", "min_perf": 1.0}
 {"category": "schema", "reasoning_effort": "default", "level": 5, "label": "+++++", "min_perf": 1.0}
 {"category": "security", "reasoning_effort": "default", "level": -5, "label": "-----", "min_perf": 0.5573688888888889}
-{"category": "security", "reasoning_effort": "default", "level": -4, "label": "----", "min_perf": 0.6108444444444445}
+{"category": "security", "reasoning_effort": "default", "level": -4, "label": "----", "min_perf": 0.6108444444444444}
 {"category": "security", "reasoning_effort": "default", "level": -3, "label": "---", "min_perf": 0.6776888888888889}
 {"category": "security", "reasoning_effort": "default", "level": -2, "label": "--", "min_perf": 0.7111111111111111}
 {"category": "security", "reasoning_effort": "default", "level": -1, "label": "-", "min_perf": 0.8222222222222222}
@@ -208,7 +208,7 @@
 {"category": "spec_docs", "reasoning_effort": "default", "level": 4, "label": "++++", "min_perf": 1.0}
 {"category": "spec_docs", "reasoning_effort": "default", "level": 5, "label": "+++++", "min_perf": 1.0}
 {"category": "terminal", "reasoning_effort": "default", "level": -5, "label": "-----", "min_perf": 0.39990000000000003}
-{"category": "terminal", "reasoning_effort": "default", "level": -4, "label": "----", "min_perf": 0.44825000000000004}
+{"category": "terminal", "reasoning_effort": "default", "level": -4, "label": "----", "min_perf": 0.44825}
 {"category": "terminal", "reasoning_effort": "default", "level": -3, "label": "---", "min_perf": 0.544}
 {"category": "terminal", "reasoning_effort": "default", "level": -2, "label": "--", "min_perf": 0.66}
 {"category": "terminal", "reasoning_effort": "default", "level": -1, "label": "-", "min_perf": 0.72}
@@ -230,7 +230,7 @@
 {"category": "test", "reasoning_effort": "default", "level": 4, "label": "++++", "min_perf": 1.0}
 {"category": "test", "reasoning_effort": "default", "level": 5, "label": "+++++", "min_perf": 1.0}
 {"category": "tool_use", "reasoning_effort": "default", "level": -5, "label": "-----", "min_perf": 0.0}
-{"category": "tool_use", "reasoning_effort": "default", "level": -4, "label": "----", "min_perf": 0.33299999999999996}
+{"category": "tool_use", "reasoning_effort": "default", "level": -4, "label": "----", "min_perf": 0.333}
 {"category": "tool_use", "reasoning_effort": "default", "level": -3, "label": "---", "min_perf": 0.5}
 {"category": "tool_use", "reasoning_effort": "default", "level": -2, "label": "--", "min_perf": 0.667}
 {"category": "tool_use", "reasoning_effort": "default", "level": -1, "label": "-", "min_perf": 0.75}
@@ -255,10 +255,10 @@
 {"category": "vision", "reasoning_effort": "default", "level": -4, "label": "----", "min_perf": 0.45}
 {"category": "vision", "reasoning_effort": "default", "level": -3, "label": "---", "min_perf": 0.45}
 {"category": "vision", "reasoning_effort": "default", "level": -2, "label": "--", "min_perf": 0.45}
-{"category": "vision", "reasoning_effort": "default", "level": -1, "label": "-", "min_perf": 0.44999999999999996}
+{"category": "vision", "reasoning_effort": "default", "level": -1, "label": "-", "min_perf": 0.45}
 {"category": "vision", "reasoning_effort": "default", "level": 0, "label": "0", "min_perf": 0.6}
 {"category": "vision", "reasoning_effort": "default", "level": 1, "label": "+", "min_perf": 0.72}
 {"category": "vision", "reasoning_effort": "default", "level": 2, "label": "++", "min_perf": 0.72}
 {"category": "vision", "reasoning_effort": "default", "level": 3, "label": "+++", "min_perf": 0.8712307692307695}
-{"category": "vision", "reasoning_effort": "default", "level": 4, "label": "++++", "min_perf": 0.9720512820512821}
+{"category": "vision", "reasoning_effort": "default", "level": 4, "label": "++++", "min_perf": 0.972051282051282}
 {"category": "vision", "reasoning_effort": "default", "level": 5, "label": "+++++", "min_perf": 0.9932923076923076}
