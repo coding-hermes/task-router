@@ -73,6 +73,10 @@ EXPECTED_SPAWN_KEYS = {
     # TR-357 M3: the outcome demotion's audit block (additive; pinned by
     # tests/test_lane_demotion.py).
     "outcome_demotions",
+    # TR-401: the effort axis this resolve ran on (additive; absent-request
+    # resolves carry requested=null and the effort-agnostic chain, pinned by
+    # tests/test_tr401_effort_resolver.py).
+    "effort",
 }
 
 #: requirements no lane in the committed tables clears (tiers max out per

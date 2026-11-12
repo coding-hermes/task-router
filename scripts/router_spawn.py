@@ -523,7 +523,7 @@ def _fold_tier_names(tiers: Any):
     return folded
 
 
-def _tier_index(rows: Any):
+def _tier_index(rows: Any, effort: Any = None, evidence_out: Any = None):
     """{model: {category: tier}} from model_tier rows — effort-aware (TR-398).
 
     model_tier rows are now per (model, category, reasoning_effort); this
@@ -534,6 +534,15 @@ def _tier_index(rows: Any):
     CAN serve it; the caller picks the effort via the seed views). Corpora
     with only 'default'-stamped rows index exactly as before.
     """
+    if effort not in (None, 'default'):
+        # TR-401: score at the EFFORT ACTUALLY REQUESTED. Rows stamped with
+        # that effort are used first; a model with no row at that effort falls
+        # back to its 'default' row as a LABELLED proxy (reported through
+        # evidence_out), never mixed in silently as if it were measured.
+        idx, ev = _effort_tier_index(rows, effort)
+        if evidence_out is not None:
+            evidence_out.update(ev)
+        return idx
     idx: dict = {}
     for r in rows or []:
         if r.get('reasoning_effort') in (None, 'default'):
@@ -591,6 +600,199 @@ def _alias_tiers(tiers: Any, folded: Any, model: Any):
             if merged.get(cat) is None:
                 merged[cat] = tier
     return merged
+
+
+# --- TR-401: effort-aware resolution -----------------------------------------
+# The unit of routing is (provider, model, reasoning_effort). A caller may ASK
+# for an effort; the resolver then (a) considers only lanes that can actually
+# be RUN at that effort, (b) scores them with the tier MEASURED at that effort
+# when one exists, (c) prices them at that effort when a measured cost cell
+# exists, and (d) records the effort on the resolution and on every hop so
+# outcomes are attributable per effort. Nothing is guessed: a lane with no
+# measurement at the requested effort is `tier_evidence='default-proxy'` and
+# sorts BEHIND measured lanes (the row's acceptance criterion), and a lane that
+# cannot take the parameter is EXCLUDED with a ROUTER-MISS line — never
+# silently ranked as if it could think harder.
+EFFORT_AUTO = 'auto'
+
+#: Inference corpus (AC: "explicit flag or inferred from task type — debug at
+#: high, mechanical at low/default"). Deterministic substring rules on the task
+#: text, no model call, so the behavior is testable and reproducible.
+EFFORT_HIGH_HINTS = (
+    'debug', 'root cause', 'root-cause', 'rootcause', 'flaky', 'race condition',
+    'regression', 'investigate', 'architect', 'postmortem', 'hardening',
+    'prove that', 'prove the', 'audit',
+)
+EFFORT_LOW_HINTS = (
+    'rename', 'typo', 'whitespace', 'reformat', 'formatting', 'docstring',
+    'bump version', 'changelog', 'move file', 'lint fix', 'comment only',
+)
+
+
+def _effort_rank(effort: Any):
+    """Ordering rank for a RANKED effort level, else None ('default' has none)."""
+    if _cvocab is None:
+        return None
+    return _cvocab.EFFORT_RANK.get(effort)
+
+
+def normalize_effort_request(value: Any) -> tuple:
+    """-> (effort, status, note) for one requested effort.
+
+    status: 'absent'    nothing requested — the resolver is effort-agnostic;
+            'auto'      the caller asked for inference (EFFORT_AUTO);
+            'canonical' / 'alias' / 'verbatim' — a level (see capability_vocab);
+            'invalid'   unparsable — DEGRADED to 'default' with a note, never a
+                        blocked resolve (fail-open is sacred).
+
+    A provider alias ('xhigh', 'minimal') is normalized to the canonical level
+    the store uses, so a caller passing an OpenAI-style name cannot silently
+    route at a different depth than the tier rows carry.
+    """
+    if value is None:
+        return None, 'absent', None
+    if isinstance(value, str) and value.strip().lower() in ('auto', 'infer'):
+        return EFFORT_AUTO, 'auto', None
+    if _cvocab is None:
+        return 'default', 'invalid', ('effort requested but capability_vocab is '
+                                      'unavailable — effort ignored')
+    stored, status = _cvocab.normalize_reasoning_effort(value)
+    if status == 'missing':
+        return 'default', 'invalid', f'effort {value!r} is not a string — ignored'
+    if status == 'verbatim':
+        # An unmapped provider name is stored VERBATIM (never guessed down), but
+        # it has no rank, so it cannot pick effort-specific tiers; say so.
+        return 'default', 'invalid', (f'effort {value!r} is not a known level '
+                                      f'({", ".join(_cvocab.REASONING_EFFORTS)}) — ignored')
+    return stored, status, None
+
+
+def infer_effort(text: Any) -> tuple:
+    """-> (effort, matched) inferred from task text. No text -> ('default', None).
+
+    High-effort work first: a text that names BOTH a hard and a mechanical
+    verb ('debug the rename regression') is hard — under-thinking a hard task
+    costs a wrong answer, over-thinking a mechanical one costs tokens.
+    """
+    low = str(text or '').lower()
+    if not low.strip():
+        return 'default', None
+    for hint in EFFORT_HIGH_HINTS:
+        if hint in low:
+            return 'high', hint
+    for hint in EFFORT_LOW_HINTS:
+        if hint in low:
+            return 'low', hint
+    return 'default', None
+
+
+def _effort_tier_index(rows: Any, effort: Any) -> tuple:
+    """-> ({model: {category: tier}}, {(model, category): evidence}).
+
+    Tier evidence AT `effort`. A category with a row stamped exactly `effort`
+    is 'measured'; a category the model carries only at 'default' falls back to
+    that row as 'default-proxy' (labelled, and demoted in the ordering);
+    anything else is absent — never invented, never 0.
+    """
+    tiers: dict = {}
+    evidence: dict = {}
+    for r in rows or []:
+        if r.get('reasoning_effort') != effort:
+            continue
+        if r.get('tier') is None:
+            continue
+        tiers.setdefault(r.get('model'), {})[r.get('category')] = r.get('tier')
+        evidence[(r.get('model'), r.get('category'))] = 'measured'
+    for r in rows or []:
+        if r.get('reasoning_effort') not in (None, 'default'):
+            continue
+        cats = tiers.setdefault(r.get('model'), {})
+        c = r.get('category')
+        if c in cats:
+            continue
+        cats[c] = r.get('tier')
+        evidence[(r.get('model'), c)] = 'default-proxy'
+    return tiers, evidence
+
+
+def _effort_evidence(evidence: Any, model: Any, category: Any):
+    """Evidence label for one (model, category), case/alias tolerant."""
+    if not evidence:
+        return 'none'
+    hit = evidence.get((model, category))
+    if hit:
+        return hit
+    low = str(model).lower()
+    for (mo, cat), ev in evidence.items():
+        if cat == category and str(mo).lower() == low:
+            return ev
+    for alt in _alias_chain(model)[1:]:
+        for (mo, cat), ev in evidence.items():
+            if cat == category and str(mo).lower() == str(alt).lower():
+                return ev
+    return 'none'
+
+
+def _effort_cost_index(rows: Any, effort: Any) -> dict:
+    """{(provider, model): cost_effort row} at `effort` (TR-400's cells)."""
+    idx = {}
+    for r in rows or []:
+        if r.get('reasoning_effort') != effort:
+            continue
+        idx[(r.get('provider'), r.get('model'))] = r
+    return idx
+
+
+def _effort_supported(m: Any, effort: Any) -> tuple:
+    """-> (ok, why): can this LANE be run at `effort`?
+
+    'default'/'off' need no provider parameter, so every lane supports them.
+    A ranked effort needs thinking capability. The evidence is the registry's
+    own `thinking` boolean — the same three-state contract TR-363/TR-369 use:
+    True passes, False is unsupported, NULL is unresearched and NEVER counts as
+    support (a lane whose provider has no reasoning parameter cannot be asked
+    to think harder just because nobody checked).
+    """
+    if effort in (None, 'default', 'off'):
+        return True, None
+    flag = m.get('thinking')
+    if flag is True:
+        return True, None
+    if flag is False:
+        return False, 'thinking=false (no reasoning parameter on this lane)'
+    return False, 'thinking unknown (unresearched)'
+
+
+def _promote_measured_effort(eligible: Any, proxy_order: Any = 'demote') -> list:
+    """TR-401 AC: measured-at-effort evidence outranks a default-effort proxy.
+
+    A STABLE sort (prior order — price/sort_spec — survives inside each group):
+    lanes MEASURED at the requested effort first, best weakest-link tier
+    leading; lanes carrying only a default-effort proxy after them. This is the
+    exact defect the row names: a lane whose measured tier at the effort is
+    worse must never outrank another measured lane merely because its DEFAULT
+    tier is higher. Proxy lanes are never dropped — they are demoted and say so
+    (`tier_evidence`), because with the effort axis unbackfilled they are the
+    only lanes there are.
+
+    `ROUTER_EFFORT_PROXY_ORDER=keep` restores the plain price/sort order (the
+    auditable rollback), and the promotion list is reported on the payload.
+    """
+    if str(proxy_order or 'demote').lower() != 'demote':
+        return []
+    measured = [m for m in (eligible or []) if m.get('_effort_measured')]
+    if not measured:
+        return []
+
+    def key(m):
+        if not m.get('_effort_measured'):
+            return (1, 0.0)
+        tiers = [t for t in (m.get('_effort_tier') or {}).values()
+                 if isinstance(t, (int, float))]
+        return (0, -float(min(tiers)) if tiers else 0.0)
+
+    eligible.sort(key=key)
+    return [f"{m.get('provider')}/{m.get('model')}" for m in measured]
 
 
 def _parse_utc(ts: Any):
@@ -1160,6 +1362,14 @@ def _append_metrics(rows: Any, result: Any) -> None:
             'chain_length': len(result.get('chain') or []),
             'routing_env_vars': _routing_env_names(),
         }
+        # TR-401: the effort is part of the OUTCOME's identity, not a note.
+        # Every row carries the effort it was resolved at (null = agnostic) so
+        # per-effort attribution never has to guess which depth was billed.
+        _ef = (result.get('effort') or {}) if isinstance(result.get('effort'), dict) else {}
+        _ef_used = _ef.get('requested')
+        _ef_src = _ef.get('source')
+        snapshot['reasoning_effort'] = _ef_used
+        snapshot['effort_source'] = _ef_src
         error_obj = result.get('error')
         lines = []
         if error_obj:
@@ -1212,6 +1422,11 @@ def _append_metrics(rows: Any, result: Any) -> None:
                     'price_usd_per_m': price_used,
                     'outcome': outcome,
                     'exclusion_reason': reason,
+                    'reasoning_effort': _ef_used,
+                    'effort_evidence': (chain_by_hop.get(hop, {})
+                                        .get('tier_evidence', None)
+                                        if isinstance(chain_by_hop.get(hop), dict)
+                                        else None),
                     'config_snapshot': snapshot,
                 })
         with open(path, 'a') as f:
@@ -3026,7 +3241,7 @@ def _miss_record(prov: Any, model: Any, codes: list, reasons: list) -> dict:
 
 def _build_chain(tables: Any, reqs: Any, limit: Any=DEFAULT_CHAIN_LIMIT, sort_spec: Any=None, sort_ctx: Any=None,
                  lifecycle_counts: Any=None, quota_ctx: Any=None, probe_ctx: Any=None,
-                 misses_out: Any=None, eligible_out: Any=None) -> list:
+                 misses_out: Any=None, eligible_out: Any=None, effort_ctx: Any=None) -> list:
     """Replicates v_task_chain exactly, in pure python.
 
     reqs = [(category, level), ...] (profile requirements or ad-hoc).
@@ -3055,6 +3270,14 @@ def _build_chain(tables: Any, reqs: Any, limit: Any=DEFAULT_CHAIN_LIMIT, sort_sp
     # TR-043: an alias-mapped variant (see _alias_tiers) also inherits its
     # base's tier rows for categories it has none of its own.
     tiers = _tier_index(tables.get('model_tier'))
+    # TR-401: when an effort is requested, the tier index IS that effort's view
+    # (measured rows first, default rows as a labelled proxy). Nothing else
+    # changes: eligibility, gates and fail-open are untouched.
+    _effort_ev: dict = {}
+    _eff_req = (effort_ctx or {}).get('requested')
+    if effort_ctx and effort_ctx.get('ranked'):
+        tiers = _tier_index(tables.get('model_tier'), effort=_eff_req,
+                            evidence_out=_effort_ev)
     tiers_folded = _fold_tier_names(tiers)
 
     # TR-015: split out the min_context requirement from tier-based reqs.
@@ -3111,6 +3334,23 @@ def _build_chain(tables: Any, reqs: Any, limit: Any=DEFAULT_CHAIN_LIMIT, sort_sp
                     ['no normalized_price on record']))
             continue
         prov, model = m.get('provider'), m.get('model')
+        # TR-401: an effort request narrows to lanes that can actually be run
+        # at that effort. Evidence is the registry's own `thinking` flag; a lane
+        # that cannot take the parameter is excluded LOUDLY (ROUTER-MISS line +
+        # structured why-record), never silently ranked as if it could.
+        if effort_ctx and effort_ctx.get('ranked'):
+            _eff_ok, _eff_why = _effort_supported(m, _eff_req)
+            if not _eff_ok:
+                try:
+                    _err(f"ROUTER-MISS: {prov}/{model} cannot run at effort "
+                         f"{_eff_req} ({_eff_why})")
+                except Exception:  # noqa: BLE001, S110 — fail-open contract
+                    pass
+                if misses_out is not None:
+                    misses_out.append(_miss_record(
+                        prov, model, ['effort-unsupported'],
+                        [f'effort {_eff_req}: {_eff_why}']))
+                continue
         mt = _alias_tiers(tiers, tiers_folded, model)
         # BLANK default (Bane 2026-08-27): a missing tier = -1 (no data = slightly
         # below median — clears lenient bars, fails 0 and up). NEVER 0, never an
@@ -3230,6 +3470,17 @@ def _build_chain(tables: Any, reqs: Any, limit: Any=DEFAULT_CHAIN_LIMIT, sort_sp
         m = dict(m)
         if ctx_note:
             m['_context_note'] = ctx_note
+        # TR-401: carry this lane's tier AT the requested effort (empty dict
+        # when effort-agnostic) plus its evidence label, so the ordering pass
+        # and the hop payload can both speak from data.
+        if effort_ctx and effort_ctx.get('ranked'):
+            _tiers_at = {cat: mt.get(cat) for cat, _lvl in reqs}
+            _ev_at = {cat: _effort_evidence(_effort_ev, model, cat)
+                      for cat, _lvl in reqs}
+            m['_effort_tier'] = _tiers_at
+            m['_effort_evidence'] = _ev_at
+            m['_effort_measured'] = any(v == 'measured'
+                                        for v in _ev_at.values())
         eligible.append(m)
         # TR-363 why-report: the pre-gate carrier list with the lane's own
         # evidence per requested capability — "which lanes carry them" is
@@ -3282,6 +3533,22 @@ def _build_chain(tables: Any, reqs: Any, limit: Any=DEFAULT_CHAIN_LIMIT, sort_sp
     if sort_ctx is not None:
         sort_ctx['used'] = sort_used
         sort_ctx['warning'] = sort_warning
+    # TR-401 (AC): measured-at-effort evidence outranks a default-effort proxy.
+    # LAST on purpose — it is a stable partition, so the price/sort_spec order
+    # survives INSIDE each group and no other axis is re-ranked. Inert whenever
+    # no lane carries a measurement at the requested effort (today: every
+    # non-default effort, until TR-403's backfill lands), which is why the
+    # current chains are byte-identical.
+    if effort_ctx and effort_ctx.get('ranked'):
+        try:
+            effort_ctx['promoted'] = _promote_measured_effort(
+                eligible, os.environ.get('ROUTER_EFFORT_PROXY_ORDER', 'demote'))
+        except Exception:  # noqa: BLE001 — fail-open: ordering unchanged on error
+            effort_ctx['promoted'] = []
+        effort_ctx['measured_lanes'] = sum(
+            1 for m in eligible if m.get('_effort_measured'))
+        effort_ctx['proxy_lanes'] = sum(
+            1 for m in eligible if not m.get('_effort_measured'))
     # 6th element = the full model row, so callers can expose PUBLIC prices
     # (usd_1m/in_per_m/out_per_m) without a second lookup.
     return [(i + 1, m.get('provider'), m.get('model'),
@@ -3895,7 +4162,8 @@ def _data_home_meta(source: Any, fallback_used: Any):
 def resolve(project: Any=None, profile_id: Any=None, adhoc: Any=None, use_health: bool=True, limit: Any=DEFAULT_CHAIN_LIMIT,
             allow_training: bool=False, allow_slow: Any=None, sort: Any=None, backend: Any=None,
             merge_backends: bool=False, window_h: Any=DEFAULT_WINDOW_H, ref_meta: Any=None,
-            lane: Any=None, why: bool=False):
+            lane: Any=None, why: bool=False, effort: Any=None, effort_source: Any=None,
+            effort_meta: Any=None):
     """Resolve a project/profile/rating to an ordered chain.
 
     `lane` (TR-344) is the CALLER's own lane identity — a scheduler lane name
@@ -4075,9 +4343,32 @@ def resolve(project: Any=None, profile_id: Any=None, adhoc: Any=None, use_health
     # default) costs nothing: the collections are never created.
     _why_misses = [] if _why_requested else None
     _why_eligible = [] if _why_requested else None
+    # TR-401: the requested effort, normalized once, plus the ctx the chain
+    # builder reports its effort work into. `default`/absent = effort-agnostic
+    # (the historical resolve, byte-identical); an invalid request degrades to
+    # default with the reason on the payload rather than blocking.
+    _eff_used, _eff_status, _eff_note = normalize_effort_request(effort)
+    _effort_ctx = None
+    if _eff_used and _eff_used != EFFORT_AUTO:
+        _effort_ctx = {
+            'requested': _eff_used,
+            'ranked': _effort_rank(_eff_used) is not None,
+            'source': effort_source or 'flag',
+            'status': _eff_status,
+            'note': _eff_note,
+            'promoted': [],
+            'measured_lanes': 0,
+            'proxy_lanes': 0,
+            'inference': effort_meta,
+            # TR-400's cost cells at this effort, keyed (provider, model) —
+            # priced at the effort ACTUALLY billed, None when unmeasured.
+            'cost': _effort_cost_index(tables.get('cost_effort'), _eff_used)
+                     if _effort_rank(_eff_used) is not None else {},
+        }
     chain_rows = _build_chain(tables, reqs, limit=limit, lifecycle_counts=_lc_counts, sort_spec=sort_spec,
                               sort_ctx=sort_ctx, quota_ctx=_quota_ctx, probe_ctx=_probe_ctx,
-                              misses_out=_why_misses, eligible_out=_why_eligible) if reqs else []
+                              misses_out=_why_misses, eligible_out=_why_eligible,
+                              effort_ctx=_effort_ctx) if reqs else []
     sort_used = (sort_ctx or {}).get('used') or 'price'
     # TR-021: keep the raw price-ordered eligible list for metrics before gates.
     chain = list(chain_rows)
@@ -4422,6 +4713,28 @@ def resolve(project: Any=None, profile_id: Any=None, adhoc: Any=None, use_health
             # TR-049: the stats this hop was ranked by (additive key; the
             # sort itself never changes gate behavior).
             ent['outcomes'] = outcome_note(mrow, sort_ctx)
+        # TR-401: the effort this hop would run at, what it is worth AT that
+        # effort, the evidence behind that value, and its measured cost cell —
+        # so an outcome can be attributed per effort (the row's AC) instead of
+        # silently pooling every effort into one model average.
+        if _effort_ctx:
+            ent['reasoning_effort'] = _effort_ctx['requested']
+            _at = mrow.get('_effort_tier')
+            ent['tier_at_effort'] = dict(_at) if _at else {}
+            _ev = mrow.get('_effort_evidence')
+            ent['tier_evidence'] = dict(_ev) if _ev else {}
+            _cell = (_effort_ctx.get('cost') or {}).get((prov, model))
+            if _cell is not None:
+                ent['cost_at_effort'] = _cell.get('est_cost_per_task')
+                ent['cost_effort_basis'] = _cell.get('basis')
+                if _cell.get('est_cost_per_task') is None:
+                    ent['cost_effort_null_reason'] = _cell.get('null_reason')
+            else:
+                ent['cost_at_effort'] = None
+                ent['cost_effort_basis'] = 'unmeasured'
+                ent['cost_effort_null_reason'] = (
+                    f'no cost_effort cell for this lane at '
+                    f'effort {_effort_ctx["requested"]}')
         out_chain.append(ent)
 
     # --- 4. diversity pruning: two-knob caps on the survivor chain -------------
@@ -4615,6 +4928,24 @@ def resolve(project: Any=None, profile_id: Any=None, adhoc: Any=None, use_health
             'board_profile': ref_meta,
             'head': head, 'chain': out_chain, 'exclusions': exclusions,
             'gate_reasons': reasons,
+            # TR-401: the effort axis this resolve ran on. Always present
+            # (requested null = effort-agnostic, the historical behavior) so a
+            # consumer can attribute outcomes per effort: which effort was
+            # asked for, where it came from (flag/inferred/absent), how many
+            # lanes had a MEASURED tier at it versus a default-effort proxy,
+            # and who the measurement promotion moved.
+            'effort': {
+                'requested': (_effort_ctx or {}).get('requested'),
+                'source': (_effort_ctx or {}).get('source') or 'absent',
+                'status': (_effort_ctx or {}).get('status') or 'absent',
+                'ranked': bool((_effort_ctx or {}).get('ranked')),
+                'note': (_effort_ctx or {}).get('note'),
+                'inference': (_effort_ctx or {}).get('inference'),
+                'measured_lanes': (_effort_ctx or {}).get('measured_lanes', 0),
+                'proxy_lanes': (_effort_ctx or {}).get('proxy_lanes', 0),
+                'promoted_by_measurement': (_effort_ctx or {}).get('promoted') or [],
+                'proxy_order': os.environ.get('ROUTER_EFFORT_PROXY_ORDER', 'demote'),
+            },
             # TR-1000976681059244 (A): the seats whose ACCOUNT-WIDE free daily
             # pool is spent, with the reset bound their exclusions name. Empty
             # list = no seat gated on this resolve.
@@ -5044,6 +5375,18 @@ def main() -> None:
                     help='caller lane identity (e.g. lore-qa) used ONLY to key '
                          'the TR-344 unservable-rating census (lane_class); '
                          'never affects routing')
+    # TR-401: the effort the caller wants this task RUN at. 'auto' infers from
+    # the task text (debug → high, mechanical → low); a level scores and prices
+    # the chain at THAT effort; absent = today's effort-agnostic resolve.
+    ap.add_argument('--effort', default=None, metavar='LEVEL',
+                    help='reasoning effort for this resolve: '
+                         + ' | '.join(('auto',) + tuple(
+                             _cvocab.REASONING_EFFORTS if _cvocab is not None
+                             else ('default', 'off', 'low', 'medium', 'high',
+                                   'x-high', 'max')))
+                         + ' (provider aliases like xhigh/minimal accepted). '
+                           'auto infers from --prompt/--from-task text. Omit for '
+                           'the effort-agnostic chain (TR-401).')
     args = ap.parse_args()
 
     # TR-033 / TR-055: --quiet takes precedence; set the env so the rest of the
@@ -5214,13 +5557,39 @@ def main() -> None:
     # plane's presence/provenance.
     _maybe_bootstrap_isolated_state()
 
+    # TR-401: resolve the effort request. An explicit level wins; 'auto' is
+    # INFERRED from the task text (the AC's "inferred from task type"); an
+    # unparsable value degrades to the effort-agnostic resolve with a loud
+    # warning instead of blocking (fail-open is sacred).
+    _effort_arg, _effort_source, _effort_meta = None, None, None
+    _effort_req = args.effort or os.environ.get('ROUTER_EFFORT')
+    if _effort_req:
+        _eff_level, _eff_status, _eff_note = normalize_effort_request(_effort_req)
+        if _eff_status == 'invalid':
+            _err(f'WARNING: --effort {_effort_req!r} ignored — {_eff_note}',
+                 force=True)
+            _effort_meta = {'requested': _effort_req, 'note': _eff_note}
+        elif _eff_level == EFFORT_AUTO:
+            _inferred, _hint = infer_effort(task_text)
+            _effort_arg, _effort_source = _inferred, 'inferred'
+            _effort_meta = {'requested': EFFORT_AUTO, 'inferred': _inferred,
+                            'hint': _hint,
+                            'text_chars': len(task_text or '')}
+            if _inferred == 'default':
+                _err('WARNING: --effort auto found no effort signal in the task '
+                     'text — resolving at the effort-agnostic default', force=True)
+        else:
+            _effort_arg, _effort_source = _eff_level, 'flag'
+
     r = resolve(project=args.project, profile_id=args.profile_id,
                 adhoc=args.adhoc, use_health=not args.no_health,
                 allow_training=args.allow_training,
                 allow_slow=args.allow_slow,
                 sort=args.sort, backend=args.backend,
                 merge_backends=args.merge_backends, window_h=args.window_h,
-                ref_meta=board_profile_meta, lane=args.lane, why=args.why)
+                ref_meta=board_profile_meta, lane=args.lane, why=args.why,
+                effort=_effort_arg, effort_source=_effort_source,
+                effort_meta=_effort_meta)
     # TR-021: metrics append is best-effort; any failure is swallowed so
     # router_spawn stdout + exit code stay identical.  Strip the internal
     # _chain_rows helper key before serialization.
@@ -5249,6 +5618,14 @@ def main() -> None:
             print(f'  COMPLEXITY: {cx.get("source")} conf={cx.get("confidence")} '
                   f'({cx.get("text_chars")} chars from {cx.get("text_source")})')
     print(f'▶ {r.get("project", r.get("profile"))}  profile={r.get("profile")}  gate={r.get("gate")}')
+    _eff_doc = r.get('effort') or {}
+    if _eff_doc.get('requested') or _eff_doc.get('source') not in (None, 'absent'):
+        print(f'  EFFORT: {_eff_doc.get("requested")} '
+              f'(source={_eff_doc.get("source")}, ranked={_eff_doc.get("ranked")}, '
+              f'measured_lanes={_eff_doc.get("measured_lanes")}, '
+              f'proxy_lanes={_eff_doc.get("proxy_lanes")})')
+        if _eff_doc.get('note'):
+            print(f'    {_eff_doc["note"]}')
     qmeta = r.get('quota') or {}
     if qmeta.get('present') is False:
         print(f'  QUOTA: no policy plane at {qmeta.get("path")} — every lane is '

@@ -173,6 +173,8 @@ in the client's own process environment) vs literal `api_key` in the client's
 | Variable | Used by | Effect | Default |
 |---|---|---|---|
 | `ROUTER_SPAWN_QUIET` | `router_spawn.py` | Suppress stderr telemetry output when set to a truthy value (equivalent to `--quiet` flag) | — (disabled) |
+| `ROUTER_EFFORT` | `router_spawn.py` | TR-401: default reasoning effort for a resolve when `--effort` is not passed — a level (`default`/`off`/`low`/`medium`/`high`/`x-high`/`max`, provider aliases like `xhigh`/`minimal` accepted) or `auto` to infer from the task text. Unset = the effort-agnostic chain | — (unset) |
+| `ROUTER_EFFORT_PROXY_ORDER` | `router_spawn.py` | TR-401: ordering of lanes at a requested effort when no measurement exists at that effort. `demote` (default) sorts measured-at-effort lanes ahead of `default-proxy` lanes; `keep` restores the plain price/sort order (the auditable rollback) | `demote` |
 | `ROUTER_MISS_VERBOSE` | `router_spawn.py` | Enable verbose telemetry for classification misses when set (overrides `ROUTER_SPAWN_QUIET`) | — (disabled) |
 | `ROUTER_RETIRE_WARN_DAYS` | `router_spawn.py` | Warn when a provider/model has not been seen in the registry for this many days | `14` |
 | `ROUTER_SORT_MIN_COVERAGE` | `router_spawn.py` | Minimum fraction of measured prices required before sorting by effective price (prevents sorting on sparse data) | `0.5` |
