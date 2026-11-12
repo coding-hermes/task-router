@@ -701,8 +701,6 @@ def main() -> int:
     ap.add_argument('--providers', required=True)
     ap.add_argument('--limit', type=int, default=0, help='max models (0 = all matching)')
     ap.add_argument('--date', default=datetime.date.today().isoformat())
-    ap.add_argument('--effort', default='default', choices=('default', 'off', 'low', 'medium', 'high', 'x-high', 'max'),
-                    help='canonical reasoning effort sent to every probe in this run')
     ap.add_argument('--out-dir', default=os.path.expanduser('~/model_bench'))
     ap.add_argument('--extended', action='store_true',
                     help='also run the six blocking-category probes (guard, mock, review, '
