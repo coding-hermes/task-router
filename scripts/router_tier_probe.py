@@ -427,24 +427,36 @@ def run_batteries(args: Any, targets: Any):
         cmd += ['--models', args.models]
     if tag:
         cmd += ['--tag', args.tag]
+    cmd += ['--effort', args.effort]
+    if args.efforts:
+        cmd += ['--efforts', args.efforts]
     print('PROBE:', ' '.join(cmd), flush=True)
     rc = subprocess.call(cmd, env=env, cwd=REPO)
     if rc != 0:
         return rc
 
-    for b in batteries:
-        results = os.path.join(out_dir, f'results_lanes_{date}{tag}_{b}.json')
-        if not os.path.exists(results):
-            print(f'ingest SKIP {b}: no results file {results}')
-            continue
-        icmd = [sys.executable, os.path.join(SCRIPTS, 'router_probe_ingest.py'),
-                '--results', results, '--battery', b, '--date', date]
-        if args.commit:
-            icmd.append('--commit')
-        print('INGEST:', ' '.join(icmd), flush=True)
-        rc = subprocess.call(icmd, env=env, cwd=REPO)
-        if rc != 0:
-            return rc
+    # TR-399: --efforts makes the probe write ONE result file set per effort
+    # (tag suffixed with the effort), so the ingest must walk the same list —
+    # ingesting only the unsuffixed name would silently drop every effort but
+    # the last.
+    effort_runs = ([e.strip() for e in args.efforts.split(',') if e.strip()]
+                   if args.efforts else [args.effort])
+    for eff in effort_runs:
+        eff_tag = f'{tag}-{eff}' if args.efforts else tag
+        for b in batteries:
+            results = os.path.join(out_dir, f'results_lanes_{date}{eff_tag}_{b}.json')
+            if not os.path.exists(results):
+                print(f'ingest SKIP {b} @{eff}: no results file {results}')
+                continue
+            icmd = [sys.executable, os.path.join(SCRIPTS, 'router_probe_ingest.py'),
+                    '--results', results, '--battery', b, '--date', date,
+                    '--effort', eff]
+            if args.commit:
+                icmd.append('--commit')
+            print('INGEST:', ' '.join(icmd), flush=True)
+            rc = subprocess.call(icmd, env=env, cwd=REPO)
+            if rc != 0:
+                return rc
     print('\nnext step: reseed the derived tables — '
           '~/.hermes/venvs/board/bin/python3 scripts/router_seed.py')
     return 0
@@ -470,6 +482,14 @@ def main(argv: Any=None):
     ap.add_argument('--out-dir', default='~/model_bench')
     ap.add_argument('--limit', type=int, default=0)
     ap.add_argument('--tag', default='')
+    # TR-399: the effort this wave measures at. Passed through to the probe
+    # (stamped on every result row) and to the ingest (which refuses a row
+    # without a stamp). --efforts runs the wave once per effort.
+    ap.add_argument('--effort', default='default',
+                    help='reasoning effort this wave measures at '
+                         '(default|off|low|medium|high|x-high|max)')
+    ap.add_argument('--efforts', default='',
+                    help='comma-separated efforts: run the wave once per effort')
     ap.add_argument('--stamp-reasons', action='store_true',
                     help='append data/null_reasons.jsonl rows for unmeasured live lanes')
     ap.add_argument('--reasons-only', action='store_true',
