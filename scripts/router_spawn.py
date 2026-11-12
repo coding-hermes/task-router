@@ -4940,15 +4940,22 @@ def task_text_for(project: Any=None, task_id: Any=None, board: Any=None) -> tupl
         return None, 'no task id'
     cands = []
     if board:
+        # An EXPLICIT board is authoritative: the caller named the file it wants
+        # read, so a miss there is a real miss. Falling through to the cwd /
+        # project boards would answer with a DIFFERENT board's row that happens
+        # to share the id (the repo's own .coding-hermes/board carries TR-4xx
+        # rows, so `--board /tmp/x --from-task TR-404` silently scored the
+        # repo's TR-404 instead of reporting the miss — CI red, run 43101564376).
         cands.append(board)
-    cands.append(os.path.join(os.getcwd(), '.coding-hermes', 'board', 'tasks.jsonl'))
-    if project:
-        # The routing registry keys projects by id+profile only (no workdir), so
-        # conventional locations are tried rather than guessed from it.
-        home = os.path.expanduser('~')
-        cands.append(os.path.join(home, project, '.coding-hermes', 'board', 'tasks.jsonl'))
-        cands.append(os.path.join(home, 'coding-hermes', project,
-                                  '.coding-hermes', 'board', 'tasks.jsonl'))
+    else:
+        cands.append(os.path.join(os.getcwd(), '.coding-hermes', 'board', 'tasks.jsonl'))
+        if project:
+            # The routing registry keys projects by id+profile only (no workdir),
+            # so conventional locations are tried rather than guessed from it.
+            home = os.path.expanduser('~')
+            cands.append(os.path.join(home, project, '.coding-hermes', 'board', 'tasks.jsonl'))
+            cands.append(os.path.join(home, 'coding-hermes', project,
+                                      '.coding-hermes', 'board', 'tasks.jsonl'))
     for path in cands:
         try:
             with open(path) as fh:
