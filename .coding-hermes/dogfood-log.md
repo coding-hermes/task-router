@@ -519,3 +519,17 @@ pyyaml-6.0.3 task-router-0.2.0* on a clean host. Then the agent vanished before 
 identical to the same counts on a copy of the committed HEAD board (`validate-baseline.sh`), and zero lines mention my ids —
 the standing red is pre-existing `events.jsonl` id-order debt, my rows added no new lint class. Trail + bunker ledger committed
 to `.coding-hermes/evidence/DOGFOOD-2026-11-12-134125{,-bunker.jsonl}`. Product code untouched; repo visibility/permissions untouched.
+
+### 2026-11-12 (run 44 continuation) — tick `task-router-dogfood-2026-11-12-13-41-25`
+
+Continuation of the same tick after the product tree advanced from `c98efd14` to canonical `af84c2e6`; this was not a duplicate fire. A fresh isolated clone installed with `pip install -e .` in 1.37s and DuckDB in 0.86s. `router seed --allow-unsatisfiable` completed in 12.80s, `router validate --json` returned `valid=true`, and `router spawn task-router --effort low|high|max --format json --quiet` returned non-empty heads with matching effort, `source=registry.json`, and `fallback_used=false`. Unknown `--effort bogus` remained fail-open (rc 0 plus an explicit stderr warning and effort-absent result); no row was filed for that behavior.
+
+Performance: headline spawn cold 0.06s at loadavg `3.31 4.26 4.97`; warm `hyperfine --warmup 2 --runs 6` = 62.4ms ± 2.6ms. Nothing user-noticeable; no PERF row or profile.
+
+The served `:9092` process still reported `stale=true` with loaded commit `6cbc6aefa573`, and `GET /resolve?project=task-router&effort=high` still returned `effort.requested=null`, re-proving existing rows `TR-1000976681059253` and `TR-1000976681059254`; no duplicate rows were filed. The earlier circuit-plane finding `TR-1000976681059252` remains owned by its pending row.
+
+Required install leg was attempted via `PATH=/home/kara/.hermes/scripts:$PATH BUNKER_QA_SERVER=bunker-mvp bunker-qa.sh launch /home/kara/task-router`; bunker 0.3.0 refused before spawn because `~/.bunker/config.yaml` is absent and no server is configured. This is an explicit skipped harness leg, not a silent pass or a product install failure. `TR-1000976681059256` was minted by `board_next_id.py` after an exact-id zero-count preflight and records the blocker. Local compensating install evidence is in `/home/kara/.hermes/cache/scratch/tr-df-20261112-134125-r2`.
+
+Left behind: `docs/dogfood/2026-11-12-run44-integration.md`, `docs/dogfood/2026-11-12-run44-diagnostics.md`, this log section, the usage-skill addition, and board row `TR-1000976681059256` with one task-created event. Board validator remains red at 458 errors / 603 warnings from standing mixed event-id ordering debt; the new row adds no reported error. Product code, visibility, permissions, scheduler state, and credentials were untouched.
+
+Verdict: PROMISING-BUT-ROUGH.

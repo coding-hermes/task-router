@@ -305,6 +305,10 @@ For API use, start `router server --mode read-only --host 127.0.0.1 --port <scra
 
 The generic `bunker-qa.sh` install leg must be run against the primary git checkout, not a detached worktree that the helper rejects as non-repository. A completed package install does not prove the whole battery: inspect per-cell evidence and the agent logs. If the battery is truncated before the full suite/chaos cells, classify it incomplete even when the fresh-install cell says rc=0. Teardown is not proven by destroy output alone: retry after stopping owned operator processes, then require `bunker info <agent>` to return `not_found`.
 
+### Dogfood run 44 (2026-11-12)
+
+At `af84c2e6`, a fresh isolated clone installed with `pip install -e .` and `pip install duckdb`, then `router seed --allow-unsatisfiable` completed in 12.80s and `router validate --json` returned `valid=true`. Effort-aware CLI resolves returned the requested `reasoning_effort` for `low`, `high`, and `max`, with `source=registry.json` and `fallback_used=false`. An unknown `--effort bogus` is fail-open: exit 0, a stderr warning says the value was ignored, and the result is effort-absent; callers that need strict input rejection must validate before invoking the router. The prescribed bunker leg was not run because bunker 0.3.0 had no configured server; see board row `TR-1000976681059256` and `docs/dogfood/2026-11-12-run44-diagnostics.md`. Warm `router spawn --effort high` measured 62.4ms ± 2.6ms (n=6) after a 0.06s cold process; no PERF row was warranted.
+
 ## Dogfood run 42 (2026-11-09)
 
 **Run the CLI from the repo root, or pin `TASK_ROUTER_REPO`.** `task_router/cli.py:147-181`
