@@ -623,9 +623,10 @@ def test_registry_integrity():
     active = [m for m in models if not m.get("archive") and m.get("valid_to") is None]
     assert len(models) >= 50
     assert len(active) >= 50
-    # model_perf: only EVIDENCED (model, category) rows — metrics ONCE PER
-    # MODEL (Bane 2026-08-27), never per provider lane; BLANK default: models
-    # with no data have NO perf/tier rows, resolved as -1 at chain time.
+    # model_perf: EVIDENCED rows are keyed by (model, category, effort)
+    # (TR-398/TR-403); default remains the resolver's legacy effort while
+    # non-default measurements are distinct cells. Models with no data have NO
+    # perf/tier rows and resolve as -1 at chain time.
     perfs = tables["model_perf"]
     cats_in_perf = {p["category"] for p in perfs}
     assert cats_in_perf <= ALL_CATS, cats_in_perf - ALL_CATS
@@ -672,8 +673,16 @@ def test_registry_integrity():
         return False
     orphan = [m for m in per_key if not _model_is_served(m)]
     assert not orphan, f"orphan perf rows with no live lane or alias: {orphan}"
-    # every model with ANY evidence must have it consistently (no dup pairs)
-    assert len(perfs) == len({(p["model"], p["category"]) for p in perfs}), "dup perf cells"
+    # Every effort cell is unique. Within one effort, (model, category) must
+    # still be unique; different efforts are intentionally separate cells.
+    perf_keys = [(p["model"], p["category"], p.get("reasoning_effort", "default"))
+                 for p in perfs]
+    assert len(perfs) == len(set(perf_keys)), "dup perf cells"
+    for effort in {k[2] for k in perf_keys}:
+        same_effort = [(m, c) for m, c, e in perf_keys if e == effort]
+        assert len(same_effort) == len(set(same_effort)), (
+            f"dup perf cells within reasoning_effort={effort!r}"
+        )
     # model_tier: only known model names or names covered by model_aliases /
     # raw benchmark product-surface ids (e.g. cline-pass/*, z-ai/*, syn:large:text)
     # that map to registry lanes; levels within -5..+5
