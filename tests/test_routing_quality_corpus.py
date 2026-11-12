@@ -460,7 +460,7 @@ CASES = [
             # xkiro + xkiro-2 5.6-terra lanes from this pool (measured).
             # disabled_reason; re-enable on measurement or the owner batch-lane
             # ruling); they had been pool members via the blank-default -1.
-            'min_chain': 545,
+            'min_chain': 541,  # 545->541 2026-11-12: carrier-death archival wave (openrouter seed/xing4.0 lanes + TR-362 arrivals disabled) removed 4 live review-eligible lanes; per the 09-18 law the floor follows the fleet, dead lanes are never re-enabled to silence it,
         },
     },
     # --- ad-hoc capability bands (the classifier's output space) ------------

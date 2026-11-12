@@ -91,6 +91,7 @@ reports/*.html
 # existing data/state/outcomes.jsonl.bak-* rule could not match.
 data/state/benchmarks.jsonl.bak-*
 data/state/outcomes-averages.jsonl.bak-*
+data/tables/*.bak-*
 # scripts/router_nohops.py append-only per-resolve audit trail — one row per
 # no-hop resolve, grows with traffic, never repo content.
 data/state/router-events.jsonl

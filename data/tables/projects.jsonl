@@ -192,6 +192,7 @@
 {"id": "consensus-dogfood", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
 {"id": "consensus-foreman", "sensitivity": "open", "board_type": "jsonl", "profile": "P0_FORE"}
 {"id": "consensus-foreman-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
+{"id": "consensus-ops", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
 {"id": "consensus-perf", "sensitivity": "open", "board_type": "jsonl", "profile": "P2_AGENTIC"}
 {"id": "consensus-pm", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
 {"id": "consensus-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
@@ -425,6 +426,7 @@
 {"id": "heading-dogfood", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
 {"id": "heading-foreman", "sensitivity": "open", "board_type": "jsonl", "profile": "P0_FORE"}
 {"id": "heading-foreman-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
+{"id": "heading-ops", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
 {"id": "heading-perf", "sensitivity": "open", "board_type": "jsonl", "profile": "P2_AGENTIC"}
 {"id": "heading-pm", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
 {"id": "heading-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
@@ -650,6 +652,7 @@
 {"id": "muster-dogfood", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
 {"id": "muster-foreman", "sensitivity": "open", "board_type": "jsonl", "profile": "P0_FORE"}
 {"id": "muster-foreman-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
+{"id": "muster-ops", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
 {"id": "muster-perf", "sensitivity": "open", "board_type": "jsonl", "profile": "P2_AGENTIC"}
 {"id": "muster-pm", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
 {"id": "muster-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
@@ -970,6 +973,7 @@
 {"id": "wojons-mythos-readme-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
 {"id": "wojons-mythos-releng", "sensitivity": "open", "board_type": "jsonl", "profile": "P2_AGENTIC"}
 {"id": "wojons-mythos-releng-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
+{"id": "wojons-mythos-review", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
 {"id": "wojons-mythos-sync", "sensitivity": "open", "board_type": "", "profile": "P8_SYNC"}
 {"id": "zz-gap12-probe", "sensitivity": "open", "board_type": "jsonl", "profile": "P7_MOCK"}
 {"id": "zz-schedgap-011-probe", "sensitivity": "open", "board_type": "jsonl", "profile": "P7_MOCK"}
