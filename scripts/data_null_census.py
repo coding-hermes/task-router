@@ -159,6 +159,20 @@ STRUCTURAL = {
     },
     "model_perf.jsonl": {"notes": "no notes"},
     "model_tier.jsonl": {"notes": "no notes"},
+    # TR-400: cost@effort. A null here is the designed state of a cell the
+    # generator could not measure — the row's own null_reason names the gap
+    # (no outcome rows at that effort / no published price split), so the
+    # absence is explained twice: structurally here and per-row there.
+    "cost_effort.jsonl": {
+        "est_cost_per_task": "no measurement at this effort (null_reason names the gap)",
+        "tokens_in": "no outcome rows at this effort",
+        "tokens_out": "no outcome rows at this effort",
+        "tokens_reasoning": "no outcome rows at this effort",
+        "in_per_m": "provider publishes no input price",
+        "out_per_m": "provider publishes no output price",
+        "source_ref": "cell is an explained null (see null_reason)",
+        "null_reason": "cell is costed — no gap to explain",
+    },
     "plan_terms.jsonl": {
         "requests": "billing model does not use request counts",
         "rate_per_minute": "billing model has no published rate limit",

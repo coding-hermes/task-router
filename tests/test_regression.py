@@ -577,7 +577,10 @@ def test_registry_integrity():
     tables = _load_tables()
     core = {"providers", "models", "archetypes", "benchmarks", "projects",
             "level_defs", "category_levels", "model_perf", "model_tier",
-            "task_profiles", "task_profile_requirements"}
+            "task_profiles", "task_profile_requirements",
+            # TR-400 cost@effort: one row per (provider, model, effort), loaded
+            # as a base table from data/tables so v_cost_effort can join it.
+            "cost_effort"}
     sidecars = {"model_catalog", "model_notes", "plan_terms", "temporary_discounts",
                 "provider_rules", "quality_estimates", "fallback_lanes",
                 # Probe v3 data-driven provider tables (commit 2c3e064)
