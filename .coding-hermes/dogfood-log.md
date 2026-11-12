@@ -533,3 +533,40 @@ Required install leg was attempted via `PATH=/home/kara/.hermes/scripts:$PATH BU
 Left behind: `docs/dogfood/2026-11-12-run44-integration.md`, `docs/dogfood/2026-11-12-run44-diagnostics.md`, this log section, the usage-skill addition, and board row `TR-1000976681059256` with one task-created event. Board validator remains red at 458 errors / 603 warnings from standing mixed event-id ordering debt; the new row adds no reported error. Product code, visibility, permissions, scheduler state, and credentials were untouched.
 
 Verdict: PROMISING-BUT-ROUGH.
+
+## Run 45 — 2026-11-12 (tick `task-router-dogfood-2026-11-12-13-41-25`, second fire)
+
+**Verdict: PROMISING-BUT-ROUGH.** The product works when used and cannot be trusted when read.
+
+Feedback loop walked for real this fire: fresh `git archive` of HEAD `65fab925` → documented seed →
+`router spawn` / `validate` / served `/resolve`. Bunker install leg launched (agent `8ca717de`) and
+died at `collect` after the fresh-install cell (2 of 2 attempts) — recorded as failed, not skipped.
+
+The finding that matters: at the same commit the two named CI tests **fail in CI and pass locally**.
+Reproduced deterministically — unseeded tree `5 passed`; run the exact CI seed step
+(`ROUTING_ALLOW_UNSATISFIABLE=1 python3 -m scripts.router_seed`, `ci.yml:110-113`) and the same tests
+fail exactly as CI reports. Cause: the seed appends to the **tracked** `data/tables/model_tier.jsonl`
+(844,422 → 863,968 bytes; every other table byte-identical), so CI validates rows no committed tree
+contains. Hash-order and missing-registry were ruled out experimentally.
+
+Perf (Step 2b): cold CLI spawn 0.25–0.26 s at 74 MB RSS; warm served `/resolve` 0.273–0.302 s over
+six calls; warm `router validate` 0.02–0.03 s at 17 MB RSS, on a host at loadavg 6.61/16 cores.
+Nothing slow enough for a user to feel → **no PERF row filed**; the 10x gap between served `/resolve`
+and the CLI's registry read is recorded as an observation only, unprofiled, because a quarter second
+is not discomfort.
+
+Filed: `TR-234-R2` (golden heads vs seeded corpus, main red at `65fab925`, recur of `TR-234`),
+`TR-1000976681059257` (seed mutates a tracked data file → CI/dev corpus divergence),
+`TR-1000976681059255-R2` (bunker install leg died again, recur of `TR-1000976681059255`),
+`TR-1000976681059258` (`boardctl validate` red on pristine `origin/main`, 458 errors / 603 warnings,
+hook in warn-mode → duplicate-id guard cannot block). Plus an `audit` event on `TR-403`: its premise
+guard `test_corpus_is_effort_honest_today` now fails because the seeded corpus gained measured `high`
+cells, so closing `TR-403` without touching the assertion leaves main red.
+
+Not re-filed (owned elsewhere): seed refusal without `--allow-unsatisfiable` → `TR-384`; served
+`/resolve` ignoring `effort` → `TR-1000976681059254`; `--effort bogus` fail-open → accepted in run 44.
+
+Left behind: `docs/dogfood/2026-11-12-run45-integration.md`,
+`docs/dogfood/2026-11-12-run45-diagnostics.md`, this entry, a run-45 section in
+`skills/task-router-usage/SKILL.md`. No product code, board semantics, visibility, permissions,
+scheduler state or credentials touched.

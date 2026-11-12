@@ -346,3 +346,34 @@ unreachable to `collect` (`ssh probe returned no state`) while
 in `~/qa-evidence.jsonl` and `~/qa-logs-*/` on the agent. On a clean Python 3.12.3 box the suite
 is `1 failed, 856 passed, 10 skipped in ~732 s`, the failure being
 `test_peer_is_loopback_fails_closed`.
+
+### Dogfood run 45 (2026-11-12) — the seed decides what CI sees
+
+**Never trust a local green run of `test_golden_fixed_point_heads` at this repo's HEAD.** At
+`65fab925` the fore and agentic golden tests fail in CI and pass locally. The difference is the seed:
+CI runs `ROUTING_ALLOW_UNSATISFIABLE=1 python3 -m scripts.router_seed` (`ci.yml:110-113`) before the
+suite, and that step **appends measured rows to the tracked `data/tables/model_tier.jsonl`**
+(844,422 → 863,968 bytes; all other tables byte-identical). Reproduce CI exactly:
+
+```
+git archive HEAD | tar -x -C /tmp/h && cd /tmp/h
+ROUTING_ALLOW_UNSATISFIABLE=1 python3 -m scripts.router_seed
+pytest -q tests/test_regression.py -k golden_fixed_point_heads
+```
+
+Plain `router_seed` (no flag) refuses on the `math` domain — `ollama-cloud/qwen3.5:397b` is disabled
+and unpriced (`SATISFIABILITY FAIL`). That refusal is `TR-384`, not a broken checkout.
+
+**Judge `boardctl validate` by the error COUNT, not by pass/fail.** On pristine `origin/main` it
+already reports `FAIL (458 error(s), 603 warning(s))` — `events.jsonl` id descents left by merges —
+and `.githooks/pre-commit` runs it in `warn` mode. Record `458 → 458` as a clean append; a bare
+"validate failed" tells you nothing.
+
+**Keep profile ids out of task titles.** A title containing `P0_FORE` / `P2_AGENTIC` trips the
+priority-token warning (it matches the `P0`/`P2` prefix), so a clean row starts producing lint noise
+the moment it is filed. Put profile ids in `detail` instead.
+
+**Perf baseline for the headline operations** (16 cores, loadavg 6.6): cold `router spawn` 0.25–0.26 s
+at ~74 MB RSS; warm served `GET /resolve` 0.273–0.302 s; warm `router validate --json` 0.02–0.03 s at
+~17 MB RSS. Anything far above those numbers on a similar box is worth a profile; the quarter-second
+`/resolve` is not.
