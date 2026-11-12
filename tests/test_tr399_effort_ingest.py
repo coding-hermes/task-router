@@ -177,8 +177,10 @@ def test_argv_helpers_replace_and_drop_flags():
 
 def test_tier_probe_passes_the_effort_to_probe_and_ingest():
     src = (REPO / "scripts" / "router_tier_probe.py").read_text(encoding="utf-8")
-    assert "cmd += ['--effort', args.effort]" in src
+    assert "cmd += ['--effort', _effort]" in src
     assert "'--effort', eff]" in src, "the ingest leg must carry the per-effort stamp"
+    # a programmatic caller with a pre-TR-399 Namespace must not crash
+    assert "getattr(args, 'effort', 'default')" in src
 
 
 # ---------------------------------------------------------------------------

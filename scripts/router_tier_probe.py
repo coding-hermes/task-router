@@ -427,9 +427,12 @@ def run_batteries(args: Any, targets: Any):
         cmd += ['--models', args.models]
     if tag:
         cmd += ['--tag', args.tag]
-    cmd += ['--effort', args.effort]
-    if args.efforts:
-        cmd += ['--efforts', args.efforts]
+    # getattr: programmatic callers pass a Namespace shaped before TR-399.
+    _effort = getattr(args, 'effort', 'default')
+    _efforts = getattr(args, 'efforts', '')
+    cmd += ['--effort', _effort]
+    if _efforts:
+        cmd += ['--efforts', _efforts]
     print('PROBE:', ' '.join(cmd), flush=True)
     rc = subprocess.call(cmd, env=env, cwd=REPO)
     if rc != 0:
@@ -439,10 +442,10 @@ def run_batteries(args: Any, targets: Any):
     # (tag suffixed with the effort), so the ingest must walk the same list —
     # ingesting only the unsuffixed name would silently drop every effort but
     # the last.
-    effort_runs = ([e.strip() for e in args.efforts.split(',') if e.strip()]
-                   if args.efforts else [args.effort])
+    effort_runs = ([e.strip() for e in _efforts.split(',') if e.strip()]
+                   if _efforts else [_effort])
     for eff in effort_runs:
-        eff_tag = f'{tag}-{eff}' if args.efforts else tag
+        eff_tag = f'{tag}-{eff}' if _efforts else tag
         for b in batteries:
             results = os.path.join(out_dir, f'results_lanes_{date}{eff_tag}_{b}.json')
             if not os.path.exists(results):

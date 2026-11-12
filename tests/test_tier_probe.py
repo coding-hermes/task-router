@@ -344,7 +344,8 @@ def test_run_batteries_hands_selected_models_to_the_battery(tmp_path, monkeypatc
     monkeypatch.setattr(tp.subprocess, "call", lambda cmd, **kw: calls.append(cmd) or 0)
     args = type("A", (), {"date": "2026-01-01", "tag": "", "out_dir": str(tmp_path / "o"),
                           "workers": 4, "batteries": "agentic", "providers": "prov",
-                          "limit": 0, "models": "", "commit": False})()
+                          "limit": 0, "models": "", "commit": False,
+                          "effort": "default", "efforts": ""})()
     rc = tp.run_batteries(args, [("prov", "m1"), ("prov", "m2")])
     assert rc == 0
     probe_cmd = calls[0]
@@ -358,7 +359,7 @@ def _fill_args(**over):
     base = dict(date="2026-11-07", tag="t", out_dir="/tmp/does-not-matter",
                 providers="openrouter", limit=0, models="some/model",
                 batteries="agentic,extended2,extended3", workers=1,
-                commit=False)
+                commit=False, effort="default", efforts="")
     base.update(over)
     return argparse.Namespace(**base)
 

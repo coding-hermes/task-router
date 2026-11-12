@@ -87,7 +87,7 @@ def test_probe_ingest_emits_undamped_scores(tmp_path):
     p = subprocess.run(
         [PY, os.path.join(SCRIPTS, "router_probe_ingest.py"),
          "--results", str(results), "--battery", "v5", "--date", "2026-09-28",
-         "--commit"],
+         "--effort", "default", "--commit"],
         capture_output=True, text=True, env=dict(os.environ, ROUTING_DATA_DIR=data),
         timeout=120)
     assert p.returncode == 0, p.stderr[-500:]
@@ -100,7 +100,7 @@ def test_probe_ingest_emits_undamped_scores(tmp_path):
     p = subprocess.run(
         [PY, os.path.join(SCRIPTS, "router_probe_ingest.py"),
          "--results", str(results), "--battery", "agentic", "--date", "2026-09-28",
-         "--commit"],
+         "--effort", "default", "--commit"],
         capture_output=True, text=True, env=dict(os.environ, ROUTING_DATA_DIR=data),
         timeout=120)
     assert p.returncode == 0, p.stderr[-500:]
@@ -122,7 +122,7 @@ def test_probe_ingest_rerun_is_skipped(tmp_path):
         p = subprocess.run(
             [PY, os.path.join(SCRIPTS, "router_probe_ingest.py"),
              "--results", str(results), "--battery", "agentic", "--date", "2026-09-28",
-             "--commit"],
+             "--effort", "default", "--commit"],
             capture_output=True, text=True, env=dict(os.environ, ROUTING_DATA_DIR=data),
             timeout=120)
         assert p.returncode == 0, p.stderr[-500:]
