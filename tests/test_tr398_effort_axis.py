@@ -110,6 +110,16 @@ def _synthetic_data(tmp_path, bench_rows):
          "version": 1, "tag": "P0_FORE"}])
     _write_jsonl(data / "task_profile_requirements.jsonl", [
         {"task_id": "P0_FORE", "category": "code_gen", "level": -5}])
+    # TR-400 added cost_effort to the seed's ALL_TABLES; the corpus needs a row
+    # (an EMPTY file falls back to the ns mirror and crashes the seed). One
+    # honestly-unmeasured cell is enough — this fixture is about the EFFORT axis.
+    _write_jsonl(data / "cost_effort.jsonl", [
+        {"provider": "prov-a", "model": "test-model",
+         "reasoning_effort": "default", "est_cost_per_task": None,
+         "tokens_in": None, "tokens_out": None, "tokens_reasoning": None,
+         "in_per_m": None, "out_per_m": None, "n_samples": 0,
+         "basis": "unmeasured", "source_ref": "tr398-fixture",
+         "null_reason": "fixture: no outcome rows at this effort"}])
     return data
 
 
