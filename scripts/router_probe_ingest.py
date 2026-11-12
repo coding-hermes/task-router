@@ -110,22 +110,41 @@ def main():
     ap.add_argument('--note', default='n=1 small-probe, NOT large-bench')
     # TR-399: the effort the probe ran at — every measurement records the
     # reasoning effort it used, so model_perf rows can be keyed
-    # (model, category, reasoning_effort). Default 'default' matches the
-    # pre-axis probes. Aliases normalize via capability_vocab (minimal->low,
-    # xhigh->x-high, ...); unknown provider names are stored verbatim.
-    ap.add_argument('--effort', default='default',
+    # (model, category, reasoning_effort). Aliases normalize via
+    # capability_vocab (minimal->low, xhigh->x-high, ...); unknown provider
+    # names are stored verbatim.
+    #
+    # A results row may carry its OWN reasoning_effort (a battery that ran
+    # several efforts in one file); that stamp wins over --effort. A row with
+    # NEITHER is REFUSED — a measurement without an effort is incomplete
+    # (TR-399), and silently defaulting it is how the axis would rot back to
+    # one effort. --efforts is the allowlist for a run that claims to cover a
+    # set of efforts: a row stamped outside it means the results file is not
+    # the run the operator asked for, so the whole ingest refuses.
+    ap.add_argument('--effort', default=None,
                     help="reasoning effort this probe ran at "
-                         "(default|off|low|medium|high|x-high|max)")
+                         "(default|off|low|medium|high|x-high|max); required "
+                         "unless every results row carries its own stamp")
+    ap.add_argument('--efforts', default='',
+                    help="comma-separated allowlist of efforts this run covers; "
+                         "a row stamped outside it is refused")
     args = ap.parse_args()
     try:
         import capability_vocab as _ev
     except ImportError:
         sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
         import capability_vocab as _ev
-    _eff_stored, _eff_status = _ev.normalize_reasoning_effort(args.effort)
-    if _eff_status == 'missing':
-        ap.error('--effort must be a non-empty effort name')
-    _effort = _eff_stored
+
+    def _norm(value: Any, what: str) -> str:
+        stored, status = _ev.normalize_reasoning_effort(value)
+        if status == 'missing':
+            ap.error(f'{what} must be a non-empty effort name')
+        return stored
+
+    _effort = _norm(args.effort, '--effort') if args.effort is not None else None
+    _allowed = {_norm(e, '--efforts') for e in args.efforts.split(',') if e.strip()}
+    if _allowed and _effort is not None and _effort not in _allowed:
+        ap.error(f'--effort {_effort!r} is not in --efforts {sorted(_allowed)}')
 
     spec = BATTERIES[args.battery]
     results = json.load(open(os.path.expanduser(args.results), encoding='utf-8'))
@@ -152,6 +171,7 @@ def main():
     EVIDENCE_CLASSES = {'not_served', 'not_in_plan', 'endpoint_unsupported'}
 
     new_rows, skipped, errors, empty = [], 0, [], []
+    unstamped = []
     for row in results:
         model = row.get('model')
         if not model:
@@ -159,6 +179,20 @@ def main():
         if row.get('error'):
             errors.append({'provider': row.get('provider'), 'model': model,
                            'error': row['error'], 'error_class': row.get('error_class')})
+            continue
+        # TR-399: the effort this measurement ran at. A row's own stamp wins;
+        # --effort is the run-level default; NEITHER is a refusal, never a
+        # silent 'default'.
+        if row.get('reasoning_effort') not in (None, ''):
+            row_effort = _norm(row.get('reasoning_effort'),
+                               f'reasoning_effort on {model}')
+        else:
+            row_effort = _effort
+        if row_effort is None:
+            unstamped.append(model)
+            continue
+        if _allowed and row_effort not in _allowed:
+            unstamped.append(f'{model} (effort {row_effort!r} outside --efforts)')
             continue
         for field, (key, category, maxpts) in spec.items():
             v = row.get(field)
@@ -185,13 +219,27 @@ def main():
                 continue
             source = (f'live-probe-{args.date}/{key}: {args.battery} deterministic battery '
                       f'({field} {detail}, {args.note})')
-            if (model, category, key_of(source), _effort) in have:
+            if (model, category, key_of(source), row_effort) in have:
                 skipped += 1
                 continue
-            have.add((model, category, key_of(source), _effort))
+            have.add((model, category, key_of(source), row_effort))
             new_rows.append({'model': model, 'category': category, 'score': score,
                              'max_score': 1.0, 'source': source, 'valid_from': args.date,
-                             'reasoning_effort': _effort})
+                             'reasoning_effort': row_effort})
+
+    if unstamped:
+        # TR-399: refuse the WHOLE run. A partial write would leave the table
+        # with a subset of a battery and no record of what was dropped.
+        print(f'REFUSED: {len(unstamped)} result row(s) carry no reasoning_effort '
+              f'and no --effort was given — a measurement without an effort stamp '
+              f'is incomplete (TR-399).', file=sys.stderr)
+        for m in unstamped[:10]:
+            print(f'   {m}', file=sys.stderr)
+        if len(unstamped) > 10:
+            print(f'   … {len(unstamped) - 10} more', file=sys.stderr)
+        print('   pass --effort <level> (the effort the battery ran at) or stamp '
+              'each results row with reasoning_effort.', file=sys.stderr)
+        return 2
 
     print(f'battery={args.battery}  results={args.results}')
     print(f'rows to add: {len(new_rows)}   already present (skipped): {skipped}')

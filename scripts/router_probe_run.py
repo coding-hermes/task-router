@@ -39,6 +39,7 @@ import datetime
 import json
 import os
 import re
+import subprocess
 import sys
 import time
 import urllib.error
@@ -670,6 +671,27 @@ def call(base: Any, key: Any, model: Any, prompt: Any, extra: Any, max_tokens: i
     return content, lat
 
 
+def _argv_without(argv: list, flag: str) -> list:
+    """Drop `flag` and its value from an argv list ('--flag v' and '--flag=v')."""
+    out, i = [], 0
+    while i < len(argv):
+        a = argv[i]
+        if a == flag:
+            i += 2
+            continue
+        if a.startswith(flag + '='):
+            i += 1
+            continue
+        out.append(a)
+        i += 1
+    return out
+
+
+def _argv_set(argv: list, flag: str, value: str) -> list:
+    """Set `flag` to `value`, replacing any existing occurrence."""
+    return _argv_without(argv, flag) + [flag, value]
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument('--providers', required=True)
@@ -700,8 +722,48 @@ def main() -> int:
     ap.add_argument('--workers', type=int, default=4,
                     help='concurrent lanes; lower it for providers with a tight per-key '
                          'concurrency cap (xkiro throttled 4 workers into 429s)')
+    # TR-399: every measurement records the reasoning effort it ran at, so the
+    # ingest can key rows (model, category, reasoning_effort). --efforts runs
+    # the whole battery ONCE PER EFFORT (the efforts this target set supports),
+    # each run writing its own result files — the reference measurement must
+    # never be one effort's score silently relabelled as another's.
+    ap.add_argument('--effort', default='default',
+                    help="reasoning effort this run measures at "
+                         "(default|off|low|medium|high|x-high|max); stamped on "
+                         "every result row and carried by the ingest")
+    ap.add_argument('--efforts', default='',
+                    help="comma-separated efforts to measure in one invocation — "
+                         "runs the battery once per effort with per-effort result "
+                         "files (tag suffixed with the effort)")
     ap.add_argument('--dry-run', action='store_true')
     args = ap.parse_args()
+
+    try:
+        import capability_vocab as _ev
+    except ImportError:
+        sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+        import capability_vocab as _ev
+
+    def _norm(value: Any, what: str) -> str:
+        stored, status = _ev.normalize_reasoning_effort(value)
+        if status == 'missing':
+            ap.error(f'{what} must be a non-empty effort name')
+        return stored
+
+    effort = _norm(args.effort, '--effort')
+    if args.efforts:
+        efforts = [_norm(e, '--efforts') for e in args.efforts.split(',') if e.strip()]
+        if not efforts:
+            ap.error('--efforts was given but listed no effort')
+        rc = 0
+        for eff in efforts:
+            sub = _argv_without(sys.argv[1:], '--efforts')
+            sub = _argv_set(sub, '--effort', eff)
+            sub = _argv_set(sub, '--tag', f'{args.tag}-{eff}' if args.tag else eff)
+            print(f'=== effort {eff}: running the battery again ===', flush=True)
+            rc = max(rc, subprocess.call(
+                [sys.executable, os.path.realpath(__file__)] + sub))
+        return rc
 
     providers = [p.strip() for p in args.providers.split(',') if p.strip()]
     env, prov_cfg = load_env(), load_providers()
@@ -760,11 +822,13 @@ def main() -> int:
         and not args.agentic
 
     def one(prov: Any, model: Any, base: Any, key: Any, extra: Any) -> None:
-        v5 = {'provider': prov, 'model': model}
-        ag = {'provider': prov, 'model': model}
-        ext = {'provider': prov, 'model': model}
-        ext2 = {'provider': prov, 'model': model}
-        ext3 = {'provider': prov, 'model': model}
+        # TR-399: every result row carries the effort this run measured at, so
+        # the ingest keys (model, category, effort) without guessing.
+        v5 = {'provider': prov, 'model': model, 'reasoning_effort': effort}
+        ag = {'provider': prov, 'model': model, 'reasoning_effort': effort}
+        ext = {'provider': prov, 'model': model, 'reasoning_effort': effort}
+        ext2 = {'provider': prov, 'model': model, 'reasoning_effort': effort}
+        ext3 = {'provider': prov, 'model': model, 'reasoning_effort': effort}
         # Per-battery isolation (TR-221, measured 2026-10-11): one shared
         # try/except around the whole lane let a single task's HTTP 400 —
         # groq gpt-oss-20b answers the T1-TOOL probe with literal tool-call
