@@ -151,6 +151,26 @@ State source: `~/.hermes/model-router/circuit-state.json` (`scripts/router_circu
 | `task_router_probe_providers_up` | gauge | providers | `status{OK,DOWN,DISABLED}` | Is the upstream fleet reachable? (live: 21 OK / 4 DOWN / 3 DISABLED) |
 | `task_router_quota_remaining_ratio` | gauge | ratio | `provider`, `window` | Is a credential about to exhaust? (source: `data/tables/provider_quota.jsonl`) |
 
+### 3.6 Subsystem `tier` — capability at the effort actually billed (TR-398/402)
+
+The unit of capability is `(provider, model, reasoning_effort)`: thinking burns
+output tokens, so a lane's accuracy **and** its cost both depend on the effort it
+ran at. These families read the published tables at scrape time
+(`data/tables/model_tier.jsonl`, `cost_effort.jsonl`, `models.jsonl`), cache on
+`(mtime, size)` so a quiet registry costs one `stat()` per file, and are
+**aggregate-only by design** — see §7 for why the per-lane cube is data, not series.
+
+| Metric | Type | Unit | Labels | Question it answers |
+|---|---|---|---|---|
+| `task_router_tier` | gauge | live lanes | `category`, `reasoning_effort`, `tier` | What does the tier ladder look like AT this effort? (a rung with 0 lanes is a rung no chain can reach) |
+| `task_router_tier_cost_cells` | gauge | cube cells | `category`, `reasoning_effort`, `basis{measured,unmeasured,unpriced,no_cell}` | How much of the ladder at this effort is actually COSTED — the accuracy-per-dollar denominator's coverage, and the ratchet TR-403 drives down |
+| `task_router_tier_effort_levels` | gauge | levels | — | Is the effort axis real yet? `1` = every cell is still the `default` pointer; `>1` = per-effort evidence exists |
+
+Row AC (TR-402) names `task_router_tier` with an effort label; the `router_*`
+alias carries the same samples (§4 alias rule). The per-lane answer — "is GLM at
+`high` worth xkiro at `default` for `code_gen`?" — is a JOIN over published data,
+not a scrape: see [tier-cost-cube.md](tier-cost-cube.md).
+
 ## 4. Exposure mechanism
 
 **Decision: a `/metrics` route on the existing servers (all three listeners), via the
@@ -299,6 +319,14 @@ curl against `fleet-monitor:9090`/`:9093` can be claimed from this tree.
 
 ## 7. Deliberately not instrumented
 
+- **Per-lane tier/cost series (`task_router_tier` per provider+model).** The cube is
+  24 categories x ~1170 live lanes ≈ 28k constant gauges for zero information the
+  table does not already carry, so the tier families are aggregated
+  (`category, reasoning_effort, tier`) and the per-lane
+  `(provider, model, effort, category)` cube is PUBLISHED as data —
+  `data/tables/*.jsonl`, `registry.json`, and the `v_tier_cost_effort` view
+  (`scripts/tier_cost_cube.py`, recipe in [tier-cost-cube.md](tier-cost-cube.md)).
+  Prometheus is the alerting plane; the cube is the analysis plane.
 - **Per-session / per-task / per-caller-key labels.** Straight to a cardinality
   explosion — the outcome store already has ~450k rows in a 24h window. Those belong in
   `data/state/outcomes.jsonl` and the existing `/api/ui/flow?id=...` route, which is a

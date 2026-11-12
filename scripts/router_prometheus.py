@@ -53,11 +53,24 @@ from __future__ import annotations
 import json
 import os
 import re
+import sys
 import threading
 from pathlib import Path
 from typing import Any
 
 REPO = Path(__file__).resolve().parents[1]
+
+#: TR-402: the published-cube module, same directory. One live-lane rule is
+#: shared with the cube and the registry view; a missing module is loud (the
+#: families are omitted and counted on scrape_errors), never a divergent copy.
+try:
+    import tier_cost_cube  # noqa: E402
+except ImportError:  # pragma: no cover — partial install / symlinked entry point
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    try:
+        import tier_cost_cube  # noqa: E402
+    except ImportError:
+        tier_cost_cube = None
 
 CONTENT_TYPE = "text/plain; version=0.0.4; charset=utf-8"
 
@@ -701,7 +714,147 @@ REGISTRY.callback(
     _collect_lane_coverage)
 
 
+# --- TR-402: effort-aware tier + cost-basis coverage ------------------------
+
+#: Scrape-time cache for the published tier/cost tables. Keyed by
+#: (path, mtime_ns, size) of each source file, so a seed that rewrites the
+#: tables is picked up on the next scrape while a quiet registry costs one
+#: stat() per file instead of re-parsing ~8k JSONL rows every 15s.
+_TIER_CACHE = {"key": None, "samples": None}
+_TIER_CACHE_LOCK = threading.Lock()
+
+
+def _stat_key(paths):
+    key = []
+    for p in paths:
+        try:
+            st = os.stat(p)
+        except OSError:
+            key.append((str(p), None, None))
+            continue
+        key.append((str(p), st.st_mtime_ns, st.st_size))
+    return tuple(key)
+
+
+def _collect_tier_effort():
+    """Tier distribution and cost-basis coverage per (category, effort).
+
+    Aggregate-only BY DESIGN (spec §7): a per-lane series set would be
+    24 categories x 1170 live lanes ~= 28k constant gauges for zero extra
+    information, so the metric answers "what does the tier ladder look like
+    AT THIS EFFORT, and how much of it is actually costed"; the per-lane cube
+    is PUBLISHED as data (data/tables/*.jsonl, registry.json, the
+    v_tier_cost_effort view) and readers join it there.
+    """
+    data_dir = _data_dir()
+    paths = (data_dir / "model_tier.jsonl", data_dir / "models.jsonl",
+             data_dir / "cost_effort.jsonl")
+    key = _stat_key(paths)
+    with _TIER_CACHE_LOCK:
+        if _TIER_CACHE["key"] == key and _TIER_CACHE["samples"] is not None:
+            return _TIER_CACHE["samples"]
+
+        if tier_cost_cube is None:  # pragma: no cover — a broken install
+            # Loud, not silent: registry.render() counts this on
+            # router_prometheus_scrape_errors_total and omits the family. A
+            # divergent second copy of the live-lane rule would be worse —
+            # the metric would quietly count lanes the cube excludes.
+            raise RuntimeError("tier_cost_cube module unavailable")
+
+        tier_rows = _read_jsonl(paths[0])
+        # ONE live-lane rule: the cube's own (disabled/archive/valid_to), so
+        # the scrape can never count a lane the published cube excludes.
+        live = tier_cost_cube.live_lanes(_read_jsonl(paths[1]))
+        live_models = {m for (_p, m) in live}
+        providers_by_model: dict = {}
+        for (p, m) in live:
+            providers_by_model.setdefault(m, []).append(p)
+        cost_rows = _read_jsonl(paths[2])
+
+        lanes_by_cat_eff: dict = {}
+        for r in tier_rows:
+            model = str(r.get("model") or "")
+            cat = r.get("category")
+            eff = str(r.get("reasoning_effort") or "")
+            tier = r.get("tier")
+            if not model or not cat or not eff or model not in live_models:
+                continue
+            n_providers = len(providers_by_model.get(model, ()))
+            if not n_providers:
+                continue
+            k = (str(cat), eff, str(tier))
+            lanes_by_cat_eff[k] = lanes_by_cat_eff.get(k, 0) + n_providers
+
+        # Cost-basis coverage of the SAME cube cells: how many of the
+        # (provider, model, category, effort) cells carry a measured cost.
+        basis_counts: dict = {}
+        cost_by_key = {}
+        for c in cost_rows:
+            cost_by_key[(str(c.get("provider") or ""), str(c.get("model") or ""),
+                         str(c.get("reasoning_effort") or ""))] = c
+        for r in tier_rows:
+            model = str(r.get("model") or "")
+            cat = r.get("category")
+            eff = str(r.get("reasoning_effort") or "")
+            if not model or not cat or not eff or model not in live_models:
+                continue
+            for p in providers_by_model.get(model, ()):
+                cell = cost_by_key.get((p, model, eff))
+                basis = str((cell or {}).get("basis") or "no_cell")
+                k = (str(cat), eff, basis)
+                basis_counts[k] = basis_counts.get(k, 0) + 1
+
+        efforts = sorted({str(r.get("reasoning_effort") or "")
+                          for r in tier_rows if r.get("reasoning_effort")})
+        samples = {
+            "tier": [({"category": cat, "reasoning_effort": eff,
+                       "tier": tier}, n)
+                     for (cat, eff, tier), n in sorted(lanes_by_cat_eff.items())],
+            "basis": [({"category": cat, "reasoning_effort": eff,
+                        "basis": basis}, n)
+                      for (cat, eff, basis), n in sorted(basis_counts.items())],
+            "efforts": sorted({e for e in efforts if e}),
+        }
+        _TIER_CACHE["key"] = key
+        _TIER_CACHE["samples"] = samples
+        return samples
+
+
+REGISTRY.callback(
+    "router_tier",
+    "gauge",
+    "Live lanes per (category, reasoning_effort, signed tier) — the tier "
+    "ladder AT the effort actually billed (TR-398 effort axis). Aggregate "
+    "by design (spec §7); the per-lane (provider, model, effort, category) "
+    "cube is published as data and joinable via v_tier_cost_effort. Read "
+    "from model_tier.jsonl + models.jsonl at scrape time.",
+    ("category", "reasoning_effort", "tier"),
+    lambda: _collect_tier_effort()["tier"])
+
+
+REGISTRY.callback(
+    "router_tier_cost_cells",
+    "gauge",
+    "Cube cells per (category, reasoning_effort, cost basis="
+    "measured|unmeasured|unpriced|no_cell): how much of the tier ladder at "
+    "that effort actually carries a measured cost — the accuracy-per-dollar "
+    "denominator's coverage, and the ratchet TR-403 drives down.",
+    ("category", "reasoning_effort", "basis"),
+    lambda: _collect_tier_effort()["basis"])
+
+
+REGISTRY.callback(
+    "router_tier_effort_levels",
+    "gauge",
+    "Distinct reasoning efforts present in published tier data. 1 means every "
+    "cell is still the 'default' pointer (no per-effort evidence yet); >1 "
+    "means the effort axis carries real measurements.",
+    (),
+    lambda: [({}, len(_collect_tier_effort()["efforts"]))])
+
+
 # --- resolve-path instrumentation (called from router_server) ----------------
+
 
 def record_resolve(result: Any, duration_s: Any = 0.0,
                    profile: Any = None) -> None:

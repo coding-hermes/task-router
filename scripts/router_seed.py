@@ -1966,6 +1966,20 @@ JOIN models m ON m.provider = c.provider AND m.model = c.model
 WHERE (m.valid_to IS NULL OR m.valid_to > CURRENT_DATE) AND m.archive = false
   AND (m.disabled IS NULL OR NOT m.disabled)""")
 print('category_levels rows:', con.execute('SELECT count(*) FROM category_levels').fetchone()[0])
+# TR-402: the published CUBE — (provider, model, effort, category). The tier
+# is a MODEL fact (inherited by every provider serving it), the cost is a LANE
+# fact; this view is the join, and its SQL lives in scripts/tier_cost_cube.py
+# so the warehouse and the stdlib reader cannot drift. A NULL cost keeps its
+# reason (never 0: a zero wins price rankings as if it were free).
+try:
+    import tier_cost_cube as _tccube
+except ImportError:  # pragma: no cover — direct-script invocation from elsewhere
+    sys.path.insert(0, _HERE)
+    import tier_cost_cube as _tccube
+con.execute("DROP VIEW IF EXISTS v_tier_cost_effort")
+con.execute(_tccube.CUBE_VIEW_SQL)
+print('tier_cost_effort cells:',
+      con.execute('SELECT count(*) FROM v_tier_cost_effort').fetchone()[0])
 print('model_tier rows:', con.execute('SELECT count(*) FROM model_tier').fetchone()[0])
 print('profiles:', con.execute('SELECT id FROM task_profiles ORDER BY 1').fetchall())
 print('categories:', con.execute('SELECT count(DISTINCT category) FROM model_perf').fetchone()[0])

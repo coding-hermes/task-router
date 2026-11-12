@@ -33,7 +33,7 @@ for f in router_spawn.py router_circuit.py router_quota.py router_ledger.py rout
          router_diff.py router_metrics.py router_validate.py router_probefix.py router_refresh_resume.py \
          router_health_probe.py router_proxy_stats.py router_ui_data.py router_rank_audit.py \
          router_release_backfill.py router_probe_ingest.py router_probe_run.py proxy_acceptance.py \
-         policy_gate_audit.py; do
+         policy_gate_audit.py tier_cost_cube.py; do
   target="${LIVE_DIR}/${f}"
   if [ -L "${target}" ] && [ "$(readlink "${target}")" = "${REPO_SCRIPTS}/${f}" ]; then
     echo "OK      ${f} -> symlink already correct"
