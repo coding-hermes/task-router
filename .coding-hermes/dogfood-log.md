@@ -481,3 +481,41 @@ exist and installability was proven by run 42's fresh-install cell (duckdb-2.0.0
 judges share this checkout and must be serialised). The gate that did run is the repo's own pre-commit hook (`core.hooksPath=.githooks`)
 plus `boardctl validate` above. Verdict unchanged: PROMISING-BUT-ROUGH. Nothing filed, product code untouched, repo visibility and
 permissions untouched.
+
+---
+
+## run 43 — tick `task-router-dogfood-2026-11-12-13-41-25` (2026-11-12 13:41Z, executor: hand-run of skill `coding-hermes-dogfood`)
+
+**Verdict: PROMISING-BUT-ROUGH.** The CLI is genuinely usable — `router spawn --effort <minimal|low|default|high|max>` answers in
+well under a second, rejects garbage effort values, and `router status` / `GET /resolve` behave. Four findings came out of USING it,
+not from reading tests: two of them are silent-wrong-answer classes a user would never see as an error.
+
+**Filed (4 rows, ids minted by `board_next_id.py`, 515 → 519 board lines):**
+- `TR-1000976681059252` (P1) two breaker planes. `router spawn` reads `~/.local/share/task-router/circuit-state.json`
+  (346 B, `pairs={}`, zero `open_until`, two Sept fixtures) while `:9092` and `scripts/router_spawn.py` read
+  `~/.hermes/model-router/circuit-state.json` (3.85 MB, 5 open breakers). Caught live: at 13:5xZ the CLI named
+  `xkiro/openai/gpt-6-luna` while the service skipped it — that pair was `api_down` 13:32:30Z→14:02:30Z. After expiry all
+  three entry points agreed again, so the divergence is intermittent and silent.
+- `TR-1000976681059253` (P2) `GET /resolve` silently drops effort: `?effort=high`, `?reasoning_effort=high` and a POST body
+  all return 200 with `effort={requested:null,source:absent}`, no warnings, chain identical to the no-effort call
+  (`scripts/router_server.py:1003-1076` never passes `--effort`).
+- `TR-1000976681059254` (P2) served plane is a day-old boot: `:9092`/`:9391` started Nov 11 14:31, the effort exporter landed
+  `db40f5ba` at 02:37 -0500 today → `curl :9092/metrics | grep -c effort` = **0** vs **354** from a fresh HEAD server on `:19092`.
+  `/health` says ok either way, and `/metrics` carries no build/version label, so nothing distinguishes stale from current.
+- `TR-1000976681059255` (P2) install leg dies after the fresh-install cell: `COLLECT-ADOPT reason=recent tick-death-orphan
+  agent=c688aa9c` / `AGENT-GONE rows=7` — tests/ui never ran and no per-cell SKIPPED rows explain the gap.
+
+**Not filed (deliberately):** no PERF row. `hyperfine -w 2 -r 8` on `router status` and the headline `router spawn` put every
+interactive operation inside tolerance and `GET /resolve` answered in tens of ms; nothing a user would feel.
+
+**Install leg — install PROVEN, battery incomplete (not a SKIPPED row).** `bunker-qa.sh launch` on bunker-mvp gave agent
+`c688aa9c`; ledger `/tmp/bunker-qa-evidence-20261112T135003Z-4101880.jsonl` records `launch OK`, `toolchain-bootstrap OK` ×5
+(go 1.27.4, venv+pytest, gcc/g++, make 4.3, jq 1.8.2) and `fresh-install OK` — *Successfully installed duckdb-2.0.0
+pyyaml-6.0.3 task-router-0.2.0* on a clean host. Then the agent vanished before the test leg. `collect c688aa9c` →
+`COLLECT-FAIL no-launch-record` (the record is keyed by evidence path, not agent id — 10 minutes of the tick lost to that);
+`collect --evidence <ledger>` → the AGENT-GONE result above. Installability is therefore proven, the rest is filed as a row.
+
+**Write-proof:** `tasks.jsonl` 515 → 519; `boardctl validate .coding-hermes/board` → `RESULT: FAIL (458 error(s), 603 warning(s))`,
+identical to the same counts on a copy of the committed HEAD board (`validate-baseline.sh`), and zero lines mention my ids —
+the standing red is pre-existing `events.jsonl` id-order debt, my rows added no new lint class. Trail + bunker ledger committed
+to `.coding-hermes/evidence/DOGFOOD-2026-11-12-134125{,-bunker.jsonl}`. Product code untouched; repo visibility/permissions untouched.

@@ -1,0 +1,62 @@
+dogfood tick: task-router-dogfood-2026-11-12-13-41-25
+lane: task-router-dogfood | project: task-router (/home/kara/task-router) | workdir: /home/kara/.hermes/stand-in/dogfood/task-router
+executor: skill coding-hermes-dogfood run by hand (driver retired)
+host at measurement: 16 cpus, loadavg 3.53 4.24 4.92
+
+A. REAL-USE RUN (CLI as a user)
+  router status                                  -> served plane reachable
+  router spawn task-router --effort <lvl>        -> minimal/low/default/high/max accepted; head returned per level
+  router spawn --effort bogus                    -> rejected (input validation present)
+  GET  :19092/resolve?project=task-router        -> 200, head provider/model returned
+  POST :19092/resolve {"reasoning_effort":"high"}-> 200, effort.requested = null, source = absent  (parameter dropped)
+  GET  :19092/v1/chat/completions, /v1/responses -> 403 behind _authorize (server.py:1356), as documented
+
+B. CIRCUIT-STATE PLANE SPLIT (row TR-1000976681059252, P1)
+  /home/kara/.local/share/task-router/circuit-state.json : 346 B, pairs={}, open_until count 0,
+      fixtures only: prov-a/mod-x, dogfood-test/test-model, mtime 2026-09-16  (THIS is what `router spawn` reads;
+      task_router/cli.py:264 exports ROUTER_STATE_DIR=<data home>)
+  /home/kara/.hermes/model-router/circuit-state.json     : 3,850,400 B, open_until count 5, mtime 2026-11-12 09:01
+      (THIS is what :9092 and scripts/router_spawn.py read)
+  open pairs observed (probe-circuits3.sh):
+      xkiro/openai/gpt-6-luna            api_down  opened 13:32:30Z  open_until 14:02:30Z  (gateway 503 "draining existing work")
+      ollama-cloud/kimi-k3               policy_gate  open_until 2030
+      (+ p1/bad, clinepass/glm-5.3, gpt-6.1-terra)
+  timeline: during 13:5xZ the CLI named xkiro/openai/gpt-6-luna while :9092 skipped it; after 14:02:30Z expiry,
+  probe-heads.sh shows CLI, scripts/router_spawn.py and GET :9092/resolve all agree again -> intermittent + silent.
+
+C. HTTP EFFORT PARITY (row TR-1000976681059253, P2)
+  GET  :19092/resolve?project=task-router&effort=high              -> 200, effort={requested:null,source:absent,status:absent,ranked:false}, no warnings
+  GET  :19092/resolve?project=task-router&reasoning_effort=high    -> same
+  POST :19092/resolve body {"reasoning_effort":"high"}             -> same
+  scripts/router_server.py:1003-1076 builds argv without any --effort flag.
+
+D. SERVED-PLANE DRIFT (row TR-1000976681059254, P2)
+  HEAD                                     : 96b1bf4a 2026-11-12 07:20 -0500
+  effort exporter commit                   : db40f5ba 2026-11-12 02:37:03 -0500 (TR-402, scripts/router_prometheus.py)
+  served processes                         : PID 1021522 (:9092), 1022040 (:9391) started Wed Nov 11 14:31:51/52 (18h32m)
+  effort metric lines  curl :9092/metrics  -> 0        (3,414-line payload, zero effort series, no build/version label)
+  effort metric lines  curl :19092/metrics -> 354      (fresh read-only server started from HEAD this tick)
+  /health on both                          -> ok       (nothing distinguishes stale from current)
+
+E. PERF (skill coding-hermes/perf)
+  hyperfine -w 2 -r 8 on `router status` and `router spawn ... --effort high --format json`, warm runs.
+  No user-noticeable latency: every headline CLI operation returned well inside interactive tolerance and the served /resolve
+  answered in tens of ms. No PERF row filed - a win nobody can feel is not a finding.
+
+F. INSTALL LEG (bunker-qa.sh, ephemeral bunker)
+  launch  BUNKER_QA_SERVER=bunker-mvp bunker-qa.sh launch /home/kara/task-router -> OK agent=c688aa9c server=bunker-mvp ttl=4h
+  evidence ledger /tmp/bunker-qa-evidence-20261112T135003Z-4101880.jsonl
+    toolchain-bootstrap OK x5 : go 1.27.4, python venv+pytest, gcc/g++ wrappers, GNU Make 4.3, jq 1.8.2
+    fresh-install      OK     : Successfully installed duckdb-2.0.0 pyyaml-6.0.3 task-router-0.2.0
+    lint               N/A    : no supported lint trigger
+  collect c688aa9c                            -> COLLECT-FAIL no-launch-record evidence=c688aa9c
+  collect --evidence <ledger>                 -> COLLECT-ADOPT reason=recent tick-death-orphan agent=c688aa9c new_tick_pid=239846
+                                                 AGENT-GONE agent=c688aa9c rows=7
+  => installability PROVEN on a fresh host; tests/ui legs never ran because the agent died.
+     Filed as TR-1000976681059255 (P2) - not a SKIPPED-install-bunker: host, credential and install path all worked.
+
+G. BOARD WRITE-PROOF
+  tasks.jsonl 515 -> 519 lines (3 + 1 rows appended; ids minted by board_next_id.py, none reused)
+  boardctl validate .coding-hermes/board -> RESULT: FAIL (458 error(s), 603 warning(s))
+  SAME counts on a copy of the committed HEAD board (validate-baseline.sh) -> my rows added ZERO lint errors;
+  grep -c '100097668105925' validate.txt = 0. Standing red is pre-existing events.jsonl id-order debt.
