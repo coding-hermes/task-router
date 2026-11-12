@@ -617,13 +617,17 @@ def call_anthropic(base: Any, url_model: Any, key: Any, prompt: Any, extra: Any,
             raise
 
 
-def call(base: Any, key: Any, model: Any, prompt: Any, extra: Any, max_tokens: int=3000, retries: int=4, provider: Any=None) -> tuple:
-    """One chat-completions call. `model` may arrive BARE (registry form); when
-    `provider` names a provider with a wire-id contract (TR-233), the REQUEST
-    carries wire_model_id(provider, model) — the caller's bare id is never
-    mutated, so result rows keep the registry vocabulary."""
+def call(base: Any, key: Any, model: Any, prompt: Any, extra: Any, max_tokens: int=3000, retries: int=4, provider: Any=None, effort: Any='default') -> tuple:
+    """One chat-completions call, optionally stamped with reasoning effort.
+
+    The stored vocabulary is canonical; provider wire aliases are translated only
+    at the request boundary (off->none, x-high->xhigh). The registry model id and
+    ingested result remain unchanged.
+    """
     wire = wire_model_id(provider, model) if provider else model
     body = {"model": wire, "messages": [{"role": "user", "content": prompt}], "max_tokens": max_tokens}
+    if effort and effort != 'default':
+        body['reasoning_effort'] = {'off': 'none', 'x-high': 'xhigh'}.get(effort, effort)
     headers = {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key,
                'User-Agent': 'hermes-bench/5.0'}
     headers.update(extra or {})
@@ -697,6 +701,8 @@ def main() -> int:
     ap.add_argument('--providers', required=True)
     ap.add_argument('--limit', type=int, default=0, help='max models (0 = all matching)')
     ap.add_argument('--date', default=datetime.date.today().isoformat())
+    ap.add_argument('--effort', default='default', choices=('default', 'off', 'low', 'medium', 'high', 'x-high', 'max'),
+                    help='canonical reasoning effort sent to every probe in this run')
     ap.add_argument('--out-dir', default=os.path.expanduser('~/model_bench'))
     ap.add_argument('--extended', action='store_true',
                     help='also run the six blocking-category probes (guard, mock, review, '
@@ -842,7 +848,7 @@ def main() -> int:
             if not fill_only:
                 try:
                     for tid, mx, prompt, scorer in V5:
-                        content, lat = call(base, key, model, prompt, extra, provider=prov)
+                        content, lat = call(base, key, model, prompt, extra, provider=prov, effort=args.effort)
                         v5[tid] = scorer(content)
                         v5[tid + '_lat'] = round(lat, 1)
                         if not (content or '').strip():
@@ -853,7 +859,7 @@ def main() -> int:
                     print(f'ERR  {prov}/{model} [v5]: [{err_class(e)}] {str(e)[:80]}', flush=True)
                 try:
                     for cat, prompt, checks in AGENTIC:
-                        content, lat = call(base, key, model, prompt, extra, provider=prov)
+                        content, lat = call(base, key, model, prompt, extra, provider=prov, effort=args.effort)
                         passed = [n for n, fn in checks if fn(content)]
                         ag[cat] = {'passed': len(passed), 'total': len(checks), 'lat': round(lat, 1),
                                    'failed': [n for n, _ in checks if n not in passed]}
@@ -866,7 +872,7 @@ def main() -> int:
             if args.extended:
                 try:
                     for cat, prompt, checks in EXTENDED:
-                        content, lat = call(base, key, model, prompt, extra, provider=prov)
+                        content, lat = call(base, key, model, prompt, extra, provider=prov, effort=args.effort)
                         passed = [n for n, fn in checks if fn(content)]
                         ext[cat] = {'passed': len(passed), 'total': len(checks), 'lat': round(lat, 1),
                                     'failed': [n for n, _ in checks if n not in passed]}
@@ -886,7 +892,7 @@ def main() -> int:
             if args.extended2:
                 try:
                     for cat, prompt, checks in EXTENDED_V2:
-                        content, lat = call(base, key, model, prompt, extra, provider=prov)
+                        content, lat = call(base, key, model, prompt, extra, provider=prov, effort=args.effort)
                         passed = [n for n, fn in checks if fn(content)]
                         ext2[cat] = {'passed': len(passed), 'total': len(checks), 'lat': round(lat, 1),
                                      'failed': [n for n, _ in checks if n not in passed]}
@@ -899,7 +905,7 @@ def main() -> int:
             if args.extended3:
                 try:
                     for cat, prompt, checks in EXTENDED_V3:
-                        content, lat = call(base, key, model, prompt, extra, provider=prov)
+                        content, lat = call(base, key, model, prompt, extra, provider=prov, effort=args.effort)
                         passed = [n for n, fn in checks if fn(content)]
                         ext3[cat] = {'passed': len(passed), 'total': len(checks), 'lat': round(lat, 1),
                                      'failed': [n for n, _ in checks if n not in passed]}

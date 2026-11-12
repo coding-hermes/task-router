@@ -198,15 +198,15 @@ def test_default_effort_rows_seed_exactly_as_before(tmp_path):
     assert tiers[0]["reasoning_effort"] == "default"
 
 
-def test_committed_corpus_is_all_default_so_pinned_expectations_hold():
-    """The backfilled tree stays all-'default' — every pre-existing pinned
-    expectation (tiers, category_levels, resolver behavior) is unchanged."""
+def test_committed_corpus_has_valid_effort_stamps():
+    """Committed rows use the closed vocabulary; non-default backfills are valid."""
     for name in ("model_perf", "benchmarks", "model_tier"):
         path = REPO / "data" / "tables" / f"{name}.jsonl"
         rows = _read(path)
         assert rows, name
         efforts = {r.get("reasoning_effort") for r in rows}
-        assert efforts == {"default"}, (name, list(efforts)[:5])
+        assert efforts <= {"default", "off", "low", "medium", "high", "x-high", "max"}, (name, efforts)
+        assert all(r.get("reasoning_effort") for r in rows), name
 
 
 # ---------------------------------------------------------------------------

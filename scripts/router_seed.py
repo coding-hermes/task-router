@@ -786,6 +786,19 @@ BENCH_OVERLAY = {
     'live-probe-2026-09-27/LONG-DOC': ['long_doc'],
     'live-probe-2026-09-27/LONG-HORIZON': ['long_horizon'],
     'live-probe-2026-09-27/TEST': ['test'],
+    # TR-403 effort-axis backfill: one source key per category for the
+    # 2026-11-11 live probe wave. The reasoning_effort column keeps these
+    # cells distinct in model_perf/model_tier.
+    'live-probe-2026-11-11/T1-TOOL': ['tool_use'],
+    'live-probe-2026-11-11/T2-CODE': ['code_gen'],
+    'live-probe-2026-11-11/T3-REASON': ['reasoning'],
+    'live-probe-2026-11-11/T5-DEBUG': ['debug'],
+    'live-probe-2026-11-11/AGENT-TICK': ['agent_tick'],
+    'live-probe-2026-11-11/DELEGATION': ['delegation'],
+    'live-probe-2026-11-11/SCHEMA': ['schema'],
+    'live-probe-2026-11-11/LONG-DOC': ['long_doc'],
+    'live-probe-2026-11-11/LONG-HORIZON': ['long_horizon'],
+    'live-probe-2026-11-11/TEST': ['test'],
     # 2026-09-27 (blocking-category round) — DELIBERATELY NOT REGISTERED.
     # The six probes exist in scripts/router_probe_run.py (--extended) and their
     # rows are in benchmarks.jsonl, but they SATURATED: 7 of 7 lanes scored a
