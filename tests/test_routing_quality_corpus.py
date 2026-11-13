@@ -73,14 +73,28 @@ scales; (d) the case-fold shadow fixes (stepfun/Step-3.7-Flash and
 Qwen/Qwen3.8-Flash canonicalization) are data-plane, documented in
 model_notes.jsonl.
 
-TR-403 (2026-11-12, effort backfill): measured effort rows are now part of the resolver's default best-tier view; all seven observed changes are honest cheaper-head moves, not routing defects:
-- profile/P0_FORE: xkiro/openai/gpt-6-luna -> xkiro/nvidia/nemotron-3-nano-omni; measured gpt-6-luna effort tiers clear the bars, while Nemotron's measured off tiers also clear them and $0.056 wins over $0.116.
-- profile/P2_AGENTIC: xkiro/openai/gpt-6-luna -> xkiro/nvidia/nemotron-3-nano-omni; measured gpt-6-luna effort tiers clear agentic bars, and Nemotron's measured off rows clear them at the lower price.
-- profile/P6_DEFAULT: xkiro/openai/gpt-6-luna -> xkiro/nvidia/nemotron-3-nano-omni; measured gpt-6-luna effort tiers retain eligibility, while measured Nemotron off tiers make the cheaper head eligible.
-- profile/P8_SYNC: xkiro/openai/gpt-6-luna -> xkiro/nvidia/nemotron-3-nano-omni; measured gpt-6-luna effort tiers retain sync eligibility, and measured Nemotron off tiers win price order.
-- adhoc/senior-coding-band: xkiro/openai/gpt-6-luna -> xkiro/nvidia/nemotron-3-nano-omni; measured gpt-6-luna code_gen/debug tiers clear 2/1, while Nemotron off tiers clear the same band at $0.056.
-- adhoc/cron-band: xkiro/openai/gpt-6-luna -> xkiro/nvidia/nemotron-3-nano-omni; measured gpt-6-luna tiers remain qualifying, and Nemotron off tiers provide the cheaper qualifying head.
-- adhoc/default-sort-same-decision-P8_SYNC: xkiro/openai/gpt-6-luna -> xkiro/nvidia/nemotron-3-nano-omni; it follows P8_SYNC and preserves default-sort equivalence.
+TR-403 (2026-11-12, effort backfill) — SUPERSEDED by INT-CI-26, see below.
+The seven pins it moved are reverted; the reasoning it recorded was sound for
+the data it had, but that data was degenerate.
+
+INT-CI-26 (2026-11-13, per-effort ladder population): TR-403's backfill wave
+had measured only two lanes, so every quantile of every (category, effort)
+collapsed onto a single value — the ladder read "perf >= 0.667 -> tier 5", every
+measured lane scored 5 at that effort, and the effort rows claimed tiers their
+perf did not support. Those inflated rows leaked into the effort-agnostic index
+via max-merge, which is what made xkiro/nvidia/nemotron-3-nano-omni the cheapest
+"qualifying" head at $0.056 and moved the seven cases below. The seed now reuses
+the calibrated 'default' ladder for a non-default effort until MIN_LADDER_FAMILIES
+(10) distinct families back it, and a row whose effort provenance is alias
+inheritance (tier_source='family') is 'alias-proxy', never 'measured' — a variant
+that never ran at that effort must not outrank a real measurement. With the
+ladder honest, Nemotron no longer clears these bars and the golden head returns:
+- profile/P0_FORE, profile/P2_AGENTIC, profile/P6_DEFAULT, profile/P8_SYNC,
+  adhoc/senior-coding-band, adhoc/cron-band,
+  adhoc/default-sort-same-decision-P8_SYNC:
+  xkiro/nvidia/nemotron-3-nano-omni -> xkiro/openai/gpt-6-luna ($0.116).
+adhoc/long-context-doc-band still resolves to Nemotron and is deliberately left
+pinned there — the revert is per-case evidence, not a blanket rollback.
 
 ch:trace row=TR-350 spec=board-row-TR-350 test=tests/test_routing_quality_corpus.py
 """
@@ -264,8 +278,10 @@ CASES = [
             # 2026-11-08 (XK-404-001-R3 archival): the dead xkiro :free head lane was
                 # archived (catalog-absent + chat 404 on both seats, 44 lanes); the next
                 # cheapest acceptable lane takes the head (09-18 golden-head law).
-            'head': ['xkiro', 'nvidia/nemotron-3-nano-omni'],
-            'head_usd_1m': 0.056,
+            # INT-CI-26 (2026-11-13): reverted to the golden head — TR-403's
+            # effort re-pin rested on a degenerate ladder (see module docstring).
+            'head': ['xkiro', 'openai/gpt-6-luna'],
+            'head_usd_1m': 0.116,
             'must_include': [['commandcode', 'Qwen/Qwen3.8-27B'],
                              ['commandcode', 'google/gemini-3.8-flash']],
             'must_exclude': [['clinepass', 'dots-3-note-preview:free'],
@@ -316,8 +332,10 @@ CASES = [
             # 2026-11-08 (XK-404-001-R3 archival): the dead xkiro :free head lane was
                 # archived (catalog-absent + chat 404 on both seats, 44 lanes); the next
                 # cheapest acceptable lane takes the head (09-18 golden-head law).
-            'head': ['xkiro', 'nvidia/nemotron-3-nano-omni'],
-            'head_usd_1m': 0.056,
+            # INT-CI-26 (2026-11-13): reverted to the golden head — TR-403's
+            # effort re-pin rested on a degenerate ladder (see module docstring).
+            'head': ['xkiro', 'openai/gpt-6-luna'],
+            'head_usd_1m': 0.116,
             'must_include': [['commandcode', 'meituan/LongCat-2.0']],
             'must_exclude': [['clinepass', 'dots-3-note-preview:free']],
             # 2026-11-08: floor 130->117 — XK-404-001-R3 archival removed the
@@ -394,8 +412,10 @@ CASES = [
             # 2026-11-08 (XK-404-001-R3 archival): the dead xkiro :free head lane was
                 # archived (catalog-absent + chat 404 on both seats, 44 lanes); the next
                 # cheapest acceptable lane takes the head (09-18 golden-head law).
-            'head': ['xkiro', 'nvidia/nemotron-3-nano-omni'],
-            'head_usd_1m': 0.056,
+            # INT-CI-26 (2026-11-13): reverted to the golden head — TR-403's
+            # effort re-pin rested on a degenerate ladder (see module docstring).
+            'head': ['xkiro', 'openai/gpt-6-luna'],
+            'head_usd_1m': 0.116,
             'must_include': [['commandcode', 'meituan/LongCat-2.0'],
                              ['deepseek', 'deepseek-flash']],
             'must_exclude': [['clinepass', 'dots-3-note-preview:free']],
@@ -429,8 +449,10 @@ CASES = [
             # 2026-11-08 (XK-404-001-R3 archival): the dead xkiro :free head lane was
                 # archived (catalog-absent + chat 404 on both seats, 44 lanes); the next
                 # cheapest acceptable lane takes the head (09-18 golden-head law).
-            'head': ['xkiro', 'nvidia/nemotron-3-nano-omni'],
-            'head_usd_1m': 0.056,
+            # INT-CI-26 (2026-11-13): reverted to the golden head — TR-403's
+            # effort re-pin rested on a degenerate ladder (see module docstring).
+            'head': ['xkiro', 'openai/gpt-6-luna'],
+            'head_usd_1m': 0.116,
             'must_include': [['commandcode', 'gpt-6-astra'],
                              ['deepseek', 'deepseek-flash']],
             'must_exclude': [['clinepass', 'dots-3-note-preview:free']],
@@ -481,8 +503,10 @@ CASES = [
             # 2026-11-08 (XK-404-001-R3 archival): the dead xkiro :free head lane was
                 # archived (catalog-absent + chat 404 on both seats, 44 lanes); the next
                 # cheapest acceptable lane takes the head (09-18 golden-head law).
-            'head': ['xkiro', 'nvidia/nemotron-3-nano-omni'],
-            'head_usd_1m': 0.056,
+            # INT-CI-26 (2026-11-13): reverted to the golden head — TR-403's
+            # effort re-pin rested on a degenerate ladder (see module docstring).
+            'head': ['xkiro', 'openai/gpt-6-luna'],
+            'head_usd_1m': 0.116,
             'must_include': [['clinepass', 'qwen3.8-max'],
                              ['commandcode', 'Qwen/Qwen3.8-Max-0902']],
             'must_exclude': [['clinepass', 'dots-3-note-preview:free'],
@@ -601,8 +625,10 @@ CASES = [
             # 2026-11-08 (XK-404-001-R3 archival): the dead xkiro :free head lane was
                 # archived (catalog-absent + chat 404 on both seats, 44 lanes); the next
                 # cheapest acceptable lane takes the head (09-18 golden-head law).
-            'head': ['xkiro', 'nvidia/nemotron-3-nano-omni'],
-            'head_usd_1m': 0.056,
+            # INT-CI-26 (2026-11-13): reverted to the golden head — TR-403's
+            # effort re-pin rested on a degenerate ladder (see module docstring).
+            'head': ['xkiro', 'openai/gpt-6-luna'],
+            'head_usd_1m': 0.116,
             # 2026-11-07 (INT-CI-23 re-pin): deepseek-flash left the pool — its
             # measured tool_use (0.75, n=1 probe; BFCL 41/66 third-party) sits
             # below the TR-363-raised tier-0 cut (0.85), so the lane is excluded
@@ -660,8 +686,10 @@ CASES = [
             # 2026-11-08 (XK-404-001-R3 archival): the dead xkiro :free head lane was
                 # archived (catalog-absent + chat 404 on both seats, 44 lanes); the next
                 # cheapest acceptable lane takes the head (09-18 golden-head law).
-            'head': ['xkiro', 'nvidia/nemotron-3-nano-omni'],
-            'head_usd_1m': 0.056,
+            # INT-CI-26 (2026-11-13): reverted to the golden head — TR-403's
+            # effort re-pin rested on a degenerate ladder (see module docstring).
+            'head': ['xkiro', 'openai/gpt-6-luna'],
+            'head_usd_1m': 0.116,
             'must_include': [['commandcode', 'gpt-6-astra'],
                              ['deepseek', 'deepseek-flash']],
             'must_exclude': [['clinepass', 'dots-3-note-preview:free']],
