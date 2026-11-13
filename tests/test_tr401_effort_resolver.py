@@ -227,13 +227,26 @@ def test_junk_effort_degrades_with_a_note_never_blocks():
 
 # --------------------------------------------------------------- corpus -----
 def test_corpus_is_effort_honest_today():
-    """The committed corpus has no measured non-default cells yet (TR-403 is the
-    backfill). Pin that so an unbackfilled claim cannot quietly pass: at 'high'
-    every lane is a PROXY, none 'measured'."""
+    """Every non-default cell the corpus calls MEASURED must carry real
+    measurement provenance, and alias inheritance must never be sold as one.
+
+    TR-403's 2026-11-11 backfill wave is the first real non-default evidence,
+    so the original "no measured non-default cells yet" pin is obsolete — the
+    claim it protected is now backed by probe rows. What must still hold: a
+    cell stamped at an effort whose row came from alias inheritance
+    (`tier_source='family'`) is a PROXY, never 'measured'.
+    """
     tiers = _rows("model_tier.jsonl")
     idx, ev = rs._effort_tier_index(tiers, "high")
     assert idx, "effort index built nothing at all"
-    assert not [k for k, v in ev.items() if v == "measured"]
+    measured = {k for k, v in ev.items() if v == "measured"}
+    assert measured, "the 2026-11-11 backfill wave should register as measured"
+    family = {(r["model"], r["category"]) for r in tiers
+              if r.get("reasoning_effort") == "high"
+              and str(r.get("tier_source") or "").lower() == "family"}
+    assert family, "expected alias-inherited effort rows in the corpus"
+    assert not (measured & family), "alias inheritance sold as a measurement"
+    assert all(ev[k] == "alias-proxy" for k in family)
     # the default view is unchanged by the effort work: same keys as before
     base = rs._tier_index(tiers)
     assert base and rs._tier_index(tiers, effort="default") == base

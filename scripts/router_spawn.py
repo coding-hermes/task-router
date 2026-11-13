@@ -690,9 +690,12 @@ def _effort_tier_index(rows: Any, effort: Any) -> tuple:
     """-> ({model: {category: tier}}, {(model, category): evidence}).
 
     Tier evidence AT `effort`. A category with a row stamped exactly `effort`
-    is 'measured'; a category the model carries only at 'default' falls back to
-    that row as 'default-proxy' (labelled, and demoted in the ordering);
-    anything else is absent — never invented, never 0.
+    is 'measured' — unless the row's own provenance is alias inheritance
+    (`tier_source='family'`), which is a PROXY by definition: the variant never
+    ran at that effort, it inherited its base's number. A category the model
+    carries only at 'default' falls back to that row as 'default-proxy'
+    (labelled, and demoted in the ordering); anything else is absent — never
+    invented, never 0.
     """
     tiers: dict = {}
     evidence: dict = {}
@@ -702,7 +705,9 @@ def _effort_tier_index(rows: Any, effort: Any) -> tuple:
         if r.get('tier') is None:
             continue
         tiers.setdefault(r.get('model'), {})[r.get('category')] = r.get('tier')
-        evidence[(r.get('model'), r.get('category'))] = 'measured'
+        src = str(r.get('tier_source') or r.get('source') or '').strip().lower()
+        evidence[(r.get('model'), r.get('category'))] = (
+            'alias-proxy' if src == 'family' else 'measured')
     for r in rows or []:
         if r.get('reasoning_effort') not in (None, 'default'):
             continue

@@ -121,3 +121,30 @@ def test_category_estimates_never_override_existing_perf(tmp_path):
     perf = {(r["model"], r["category"]): r["perf"]
             for r in reg["tables"]["model_perf"]}
     assert perf[("deepseek-v4-flash", "test")] > 0.05
+
+
+def test_no_degenerate_effort_ladder(tmp_path):
+    """A per-effort ladder must never be built from a sample too thin to rank.
+
+    TR-404 (INT-CI-26): TR-403's first backfill wave measured two lanes, so
+    every quantile of every (category, effort) collapsed onto ONE value and the
+    ladder read "perf >= 0.667 -> tier 5" — every measured lane scored 5 at
+    that effort, a $0.0019 lane headed P0_FORE/P2_AGENTIC, and the golden-head
+    regression test went red on main. Below the population floor the effort
+    must reuse the calibrated 'default' ladder for its category instead.
+    """
+    reg = _seed(_hermetic_env(tmp_path))
+    ladders = {}
+    for r in reg["tables"]["category_levels"]:
+        ladders.setdefault((r["category"], r["reasoning_effort"]), []).append(
+            r["min_perf"])
+    assert ladders, "seed produced no category_levels at all"
+    degenerate = sorted(k for k, v in ladders.items()
+                        if k[1] not in (None, "default") and len(set(v)) < 2)
+    assert not degenerate, (
+        "per-effort ladder(s) built from a single-value population "
+        f"(every level identical): {degenerate[:6]}")
+    # the default ladders are the calibrated ones and must stay non-degenerate
+    for (cat, eff), vals in ladders.items():
+        if eff in (None, "default"):
+            assert len(set(vals)) > 1, f"default ladder {cat} collapsed"

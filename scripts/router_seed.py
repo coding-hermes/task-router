@@ -1740,6 +1740,43 @@ SELECT q.category, q.reasoning_effort, l.level, l.label, q.min_perf
 FROM level_defs l
 JOIN (UNPIVOT cat_q ON q01, q05, q10, q20, q35, q50, q65, q80, q90, q95, q99
       INTO NAME qcol VALUE min_perf) q ON q.qcol = l.qcol""")
+
+# TR-404 (INT-CI-26): a per-effort ladder needs a POPULATION, not a sample.
+# TR-403's first backfill wave measured TWO lanes, so every quantile of every
+# (category, effort) collapsed onto one value — the ladder then read
+# "perf >= 0.667 -> tier 5" and every measured lane scored 5 at that effort,
+# inflating eligibility (a $0.0019 lane headed P0_FORE/P2_AGENTIC) and making
+# the effort rows claim a tier their perf does not support. Below the floor the
+# effort reuses the CALIBRATED 'default' ladder for its category: the perf is
+# still the measured one, the scale is the one we actually have evidence for,
+# and the reuse is printed (never silent). The floor is a population size, so
+# the per-effort ladder switches itself on as the backfill grows.
+MIN_LADDER_FAMILIES = 10
+con.execute("DROP TABLE IF EXISTS effort_pop")
+con.execute("""
+CREATE TABLE effort_pop AS
+SELECT category, reasoning_effort, count(*) AS families,
+       count(DISTINCT perf) AS distinct_perfs
+FROM (SELECT category, family, reasoning_effort, max(perf) AS perf
+      FROM (SELECT mp.category, """ + family_expr + """, mp.reasoning_effort, mp.perf
+            FROM model_perf mp """ + family_join + """)
+      GROUP BY category, family, reasoning_effort)
+GROUP BY category, reasoning_effort""")
+_thin = con.execute(
+    "SELECT category, reasoning_effort, families, distinct_perfs FROM effort_pop "
+    "WHERE reasoning_effort IS NOT NULL AND reasoning_effort <> 'default' "
+    "AND (families < ? OR distinct_perfs < 2) ORDER BY category, reasoning_effort",
+    [MIN_LADDER_FAMILIES]).fetchall()
+for _cat, _eff, _fams, _dperfs in _thin:
+    con.execute("DELETE FROM category_levels WHERE category=? AND reasoning_effort=?",
+                [_cat, _eff])
+    con.execute("INSERT INTO category_levels "
+                "SELECT category, ?, level, label, min_perf FROM category_levels "
+                "WHERE category=? AND reasoning_effort='default'", [_eff, _cat])
+    print(f'  effort ladder: {_cat}@{_eff} population {_fams} families/'
+          f'{_dperfs} distinct perfs < floor {MIN_LADDER_FAMILIES} '
+          f'-> default ladder reused (proxy scale)')
+con.execute("DROP TABLE IF EXISTS effort_pop")
 con.execute("DROP TABLE IF EXISTS model_tier")
 con.execute("""
 CREATE TABLE model_tier AS
