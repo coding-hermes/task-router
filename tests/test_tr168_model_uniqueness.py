@@ -583,6 +583,14 @@ POST_DEDUPE_ADDITIONS = {
     ("openrouter", "kt/midm-k-3.0-pro"): "models.dev sync 2026-11-12 — priced arrival, TR-362 usability ratchet disable (unmeasured)",
     ("openrouter", "moonshotai/kimi-k3.1-pro:batch"): "models.dev sync 2026-11-12 — priced arrival, TR-362 usability ratchet disable (unmeasured)",
     ("openrouter", "motif-technologies/motif-3"): "models.dev sync 2026-11-12 — priced arrival, TR-362 usability ratchet disable (unmeasured)",
+    ("clinepass", "gemini-4-hydrogen"): "models.dev+clinepass sync 2026-11-13 — priced arrival, plan-sweep disable (PAYG outside flat plan)",
+    ("clinepass", "gemini-4-hydrogen:batch"): "models.dev+clinepass sync 2026-11-13 — priced arrival, plan-sweep disable (PAYG outside flat plan)",
+    ("clinepass", "inkling-2-small"): "clinepass sync 2026-11-13 — priced arrival, plan-sweep disable (PAYG outside flat plan)",
+    ("clinepass", "particle-1:free"): "clinepass sync 2026-11-13 — :free teaser arrival, probe battery 2026-11-13 200 pong, re-disabled on TR-369 zero headroom",
+    ("openrouter", "google/gemini-4-hydrogen"): "models.dev sync 2026-11-13 — priced arrival, probe battery 2026-11-13 200 pong, re-disabled on TR-369 zero headroom",
+    ("openrouter", "google/gemini-4-hydrogen:batch"): "models.dev sync 2026-11-13 — priced :batch mirror, TR-362 usability ratchet disable (unmeasured)",
+    ("openrouter", "particle-ai/particle-1:free"): "models.dev sync 2026-11-13 — :free teaser arrival, probe battery 2026-11-13 200 pong, re-disabled on TR-369 zero headroom",
+    ("openrouter", "thinkingmachines/inkling-2-small"): "models.dev sync 2026-11-13 — priced arrival, probe battery 2026-11-13 200 pong, re-disabled on TR-369 zero headroom",
 
 }
 
