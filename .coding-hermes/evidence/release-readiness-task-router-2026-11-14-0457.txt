@@ -1,0 +1,62 @@
+task-router — release readiness sweep
+Tick: task-router-releng-2026-11-14-04-57-03
+Lane: releng satellite (VERIFY only)
+Canonical repo: /home/kara/task-router
+Remote: origin = git@github.com:coding-hermes/task-router.git
+Forge: GitHub, coding-hermes/task-router; default branch: main
+
+## Known issues
+- First-publication release surface remains absent: no remote tags and no GitHub Release. The owner-controlled first-release authorization is not present on the current board.
+- Exact candidate CI is still in progress (run 43562403261); it is not release-green yet.
+- No GitReins verdict is bound to the candidate; latest stored verdict is bound to a3e61bb, not this tree.
+- Dogfood remains PROMISING-BUT-ROUGH with failed or unverified cells; it is stale relative to this candidate.
+- The two read-only service listeners report stale=true; :9093 has no /health route and is unmeasured.
+- Release host is at 97% filesystem use with 54G available at measurement; no cleanup was performed by this lane.
+
+## Certified candidate and parity
+- Candidate SHA: 70e2beed2c2eb50c27be91094fa2de815b036d39
+- git rev-parse origin/main: 70e2beed2c2eb50c27be91094fa2de815b036d39
+- git ls-remote origin refs/heads/main: 70e2beed2c2eb50c27be91094fa2de815b036d39
+- Canonical working tree: no tracked changes observed; ignored runtime/cache files were preserved.
+- The candidate is three board-only releng commits after the last code-bearing candidate f4f23709; `git diff f4f23709..candidate` changes only .coding-hermes/board/events.jsonl and tasks.jsonl.
+
+## Release baseline and semver
+- Numeric release tags: 0 local; 0 remote. GitHub Releases: 0.
+- No valid last-release tag exists, so a since-release range cannot honestly be named; the full non-merge history is the inventory baseline.
+- Full non-merge history: 1912 commits. Conventional subject census: feat 269, fix 318, docs 94, chore 292, test 53, refactor 3, perf 0, ci 11, build 0, other 872. Sum reconciles to 1912.
+- Breaking markers: 0 `type!:` subjects and 0 `BREAKING CHANGE` footers observed in the census.
+- Proposal: MINOR, v0.3.0, because the untagged history is feature-bearing and no breaking marker was found. This is not authorization: this repository has never published a release channel and requires explicit owner authorization for the first publication.
+
+## Version hygiene and repository-owned release tooling
+- pyproject.toml: version = 0.2.0.
+- task_router/__init__.py: __version__ = 0.2.0.
+- CHANGELOG.md: newest heading is [Unreleased], followed by [0.2.0] dated 2026-09-24.
+- Version preparation for v0.3.0 is absent; the pins and changelog must be changed in a deliberate prep commit before any cut.
+- Repository-owned driver is present: scripts/release_driver.py and Makefile targets release-check, release-build, release-dry-run. Release docs are under docs/releases/.
+- No Go, Dockerfile/registry, Goreleaser, npm, or publish-package workflow was detected; this is a Python wheel + sdist release surface.
+- Executed `/usr/bin/python3 scripts/release_driver.py check --tag v0.3.0` at the certified tree: rc=2, refusal because [Unreleased] must be promoted and both pins bumped.
+- Executed `/usr/bin/python3 scripts/release_driver.py build` in a detached candidate worktree: rc=0. It produced strategy-only 0.2.0 artifacts: task_router-0.2.0-py3-none-any.whl (33063 bytes), task_router-0.2.0.tar.gz (871563 bytes), and SHA256SUMS with recomputation verification. These are not v0.3.0 publishable assets.
+
+## Hosted CI
+- Exact candidate run: 43562403261, headSha 70e2beed2c2eb50c27be91094fa2de815b036d39, workflow ci, event push, status in_progress, conclusion unset.
+- Job-level state: test in_progress; Full test suite in_progress; later guard and verification steps pending. Exact check-runs count is 1 and its conclusion is null.
+- Earlier run 43532815403 at f4f23709 completed success, but it is not the certified candidate because three board-only commits followed it. Its green result is not borrowed for the current candidate.
+- No CI red is asserted for the current candidate; the exact gate is pending/unproven and therefore blocks a cut.
+
+## GitReins and dogfood
+- `.gitreins/history` newest verdict: 2026-11-08/37001239/verdict.json, passed=true, task TR-1000599737158536-R1, evaluated commit a3e61bb085840ac7f09705aee77502aa093b19ea.
+- No stored verdict references 70e2beed; GitReins release-tree evidence is UNVERIFIED, not red.
+- Latest committed dogfood record is run 45 from 2026-11-12: PROMISING-BUT-ROUGH. It records seeded-corpus CI failures, bunker install-agent death/incomplete cells, and other findings; it is stale relative to 70e2beed and is not a release waiver.
+
+## Deployment and host posture
+- GET http://127.0.0.1:9092/health: HTTP 200, stale=true, loaded_commit 6cbc6aefa573, repo_commit 70e2beed2c2e; runtime source revision 6cbc6aef.
+- GET http://127.0.0.1:9391/health: HTTP 200, stale=true, loaded_commit 6cbc6aefa573, repo_commit 70e2beed2c2e; runtime source revision 6cbc6aef.
+- GET http://127.0.0.1:9093/health: HTTP 404; no staleness surface, therefore unmeasured rather than claimed stale.
+- Host filesystem: /dev/nvme0n1p2 1.8T size, 1.7T used, 54G available, 97% used. This lane did not clean caches or mutate services.
+
+## Board and decision
+- Current open task census: 151 nonterminal rows, including 10 P0 and 45 P1 rows. Open release rows: RELEASE-2026-10-22-001, RELEASE-2026-11-07-001, RELEASE-2026-11-08-001, RELEASE-2026-11-09-001, RELEASE-2026-11-14-001, RELEASE-2026-11-14-002, RELEASE-2026-11-14-003, RELEASE-2026-11-14-004.
+- Decision: NO CUT.
+- Reasons: first-publication authorization absent; version prep absent; exact candidate CI in progress; no candidate-bound GitReins verdict; dogfood not a pass; known deployment and host issues remain.
+- No tag, tag push, GitHub Release, artifact upload, version edit, changelog edit, service restart, or cleanup was performed.
+- Next gate: owner authorizes task-router + v0.3.0 + baseline, then version-prep and exact-head CI must become terminal green; obtain candidate-bound GitReins evidence, rerun the repository driver at the prepared tree, and only then execute its publish path without force-moving any ref.
