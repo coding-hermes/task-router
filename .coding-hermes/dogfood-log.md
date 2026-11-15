@@ -688,3 +688,64 @@ to `bunker`, not to task-router, and is not cross-filed from this lane.
 residual facts (missing `task_created` events, stale `-R3` premise) are records and board-reconciliation
 matters, not product rows. Left behind: this entry and the bunker evidence file. No product code, no
 existing row's status, no visibility, permission, scheduler state or credential touched.
+
+## Run 46c — 2026-11-15 (third fire of tick `task-router-dogfood-2026-11-15-15-59-32`; the install leg's ci-pass cell settled, and it settled badly)
+
+**Dispatch identity.** Same already-closed scheduler row (`status=failed`, gateway 502 at 11:49:48-05:00),
+third dispatch. HEAD was still `0be54aa7`, tree clean, board 530 rows at fire start. What made this one
+different from fire 3: the battery launched in run 46b (agent `c7d08d97` on `bunker-mvp`) was still
+executing its act leg when the run-46b record was written, so this fire harvested the cells that had
+not yet spoken — and they do speak.
+
+**Install leg, deciding cells (agent `c7d08d97`, 2.0-core CPUQuota, 4 GiB, 14.9 GB disk at 85%).**
+`fresh-install` **OK**, `toolchain-bootstrap` **OK**, `lint`/`upgrade`/`docker-deploy` **N/A**,
+`tests` **FAIL**, `ci-pass` **FAIL**. Both failures are real, and they are different defects:
+
+- `tests` FAIL `rc=1`, 17:29:37Z: `pytest -x -q` stopped on
+  `test_metrics_endpoint.py::test_peer_is_loopback_fails_closed` — **856 passed, 10 skipped, 1 failed
+  in 816.16s**. Agent interpreter Python 3.12.3; `ipaddress.ip_address("::ffff:127.0.0.1").is_loopback`
+  returns `False` there. Owned by pending `QA-TASKROUTER-14` (and its `-R2`). No third row.
+- `ci-pass` FAIL 18:22:38Z on **both legs**, and the act leg is the new information.
+
+**The act leg is arithmetically unpassable on this agent, not unlucky.** `ci.log`: act starts
+17:29:44Z, six steps green — `actions/checkout@v4` 1.18s, *Router state plane at the default path
+(ci-mirror)* 0.12s, `actions/setup-python@v5` 9.31s (3.11.18), *Install test deps* 4.63s, *Seed
+registry* 35.24s — then **`Full test suite (pure JSON — no duckdb needed)` ran 38m3.34s** and was cut
+by the driver budget: `ci_rc=124`, `BUNKER_QA_ACT_TIMEOUT=2400`, "context canceled", "Job failed".
+38m3s of a 40m budget spent inside one step that had not finished.
+
+The budget is short by arithmetic, measurable on this same box:
+
+| measurement (same agent, same tree) | tests | wall | rate |
+|---|---|---|---|
+| `tests` cell `pytest -x -q` | 866 | 816.16s | 1.061 /s |
+| `native.log` fallback suite | 866 | 773.12s | 1.120 /s |
+| repo, `.venv/bin/python -m pytest --collect-only -q` | **3150 collected** | — | — |
+
+3150 / 1.061 = **2969s ≈ 49.5 min**; 3150 / 1.120 = **2813s ≈ 46.9 min**. Needed: ~47–49.5 min.
+Applied: 40 min. Hosted CI at this SHA takes 28m51s (`QA-TASKROUTER-20`). Every run of this leg loses
+7–9.5 minutes it never had. That is a harness-budget defect, and it is now a number rather than a hunch.
+
+**Filed: 1 row.** `QA-TASKROUTER-20-R2` (recurrence of pending `QA-TASKROUTER-20`, minted with
+`board_next_id.py … --recur`, not hand-chosen; free-checked `grep -c` = 1 line; priority P3, status
+pending) carrying the kill at 38m3s/rc=124, the two throughput samples, the 3150-test collection, and
+AC that requires either a settled verdict or the printed arithmetic in the cell detail. Board 530 → 531.
+No existing row's status touched; no product code touched.
+
+**Board lint: unchanged class, one more error than run 46b.** `boardctl validate` after the append:
+`RESULT: FAIL (455 error(s), 591 warning(s))`. The same files exported from `HEAD` validate to
+**455 error(s)** in an isolated directory, so **the append added 0 errors**, and no error line names the
+new row. This is the pre-existing events.jsonl descending-id class already owned by pending
+`TR-1000976681059249` (filed when it stood at 415). Not re-filed; recorded here.
+
+**Residue closed instead of inherited.** `c7d08d97` was **destroyed** after harvesting (daemon archived
+the 8.8 GB home before delete, archive verified by the daemon). Left in flight and disclosed: the chaos
+cell had not started when the deciding cells had already graded the battery `FAIL`, so the archived
+battery is 19 evidence rows, not a full-cell set.
+
+**Left behind:** this entry; `.coding-hermes/evidence/DOGFOOD-2026-11-15-1822-bunker-battery.jsonl`
+(19 rows) plus the three verbatim cell logs `…-ci.log`, `…-native.log`, `…-tests.log`; row
+`QA-TASKROUTER-20-R2`. No product code, no existing row's status, no visibility, permission, scheduler
+state or credential touched. `bunker-qa.sh collect` remains wedged (`AGENT-GONE already-recorded` while
+the driver was alive) — worked around with `bunker exec`/`bunker pull`; that probe defect belongs to
+`bunker`, not to task-router, and is not cross-filed from this lane.

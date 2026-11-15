@@ -1,0 +1,48 @@
+time="2026-11-15T17:29:44Z" level=info msg="Using docker host 'unix:///run/bunker/c7d08d97/docker.sock', and daemon socket 'unix:///run/bunker/c7d08d97/docker.sock'"
+[ci/test] ⭐ Run Set up job
+[ci/test] 🚀  Start image=catthehacker/ubuntu:act-latest
+[ci/test]   🐳  docker pull image=catthehacker/ubuntu:act-latest platform= username= forcePull=true
+[ci/test]   🐳  docker create image=catthehacker/ubuntu:act-latest platform= entrypoint=["tail" "-f" "/dev/null"] cmd=[] network="host"
+[ci/test]   🐳  docker run image=catthehacker/ubuntu:act-latest platform= entrypoint=["tail" "-f" "/dev/null"] cmd=[] network="host"
+[ci/test]   🐳  docker exec cmd=[node --no-warnings -e console.log(process.execPath)] user= workdir=
+[ci/test]   ✅  Success - Set up job
+[ci/test]   ☁  git clone 'https://github.com/actions/setup-python' # ref=v5
+[ci/test] ⭐ Run Main actions/checkout@v4
+[ci/test]   🐳  docker cp src=/home/bunker-c7d08d97/qa-task-router/. dst=/home/bunker-c7d08d97/qa-task-router
+[ci/test]   ✅  Success - Main actions/checkout@v4 [1.17552847s]
+[ci/test] ⭐ Run Main Router state plane at the default path (ci-mirror)
+[ci/test]   🐳  docker exec cmd=[bash -e /var/run/act/workflow/1] user= workdir=
+[ci/test]   ✅  Success - Main Router state plane at the default path (ci-mirror) [120.599826ms]
+[ci/test] ⭐ Run Main actions/setup-python@v5
+[ci/test]   🐳  docker cp src=/home/bunker-c7d08d97/.cache/act/actions-setup-python@v5/ dst=/var/run/act/actions/actions-setup-python@v5/
+[ci/test]   🐳  docker exec cmd=[/opt/acttoolcache/node/24.22.2/x64/bin/node /var/run/act/actions/actions-setup-python@v5/dist/setup/index.js] user= workdir=
+[ci/test]   ❓  ::group::Installed versions
+[ci/test]   ❓  ::endgroup::
+[ci/test]   ❓ add-matcher /run/act/actions/actions-setup-python@v5/.github/python.json
+[ci/test]   ✅  Success - Main actions/setup-python@v5 [9.307173367s]
+[ci/test]   ⚙  ::set-env:: LD_LIBRARY_PATH=/opt/hostedtoolcache/Python/3.11.18/x64/lib
+[ci/test]   ⚙  ::set-env:: pythonLocation=/opt/hostedtoolcache/Python/3.11.18/x64
+[ci/test]   ⚙  ::set-env:: PKG_CONFIG_PATH=/opt/hostedtoolcache/Python/3.11.18/x64/lib/pkgconfig
+[ci/test]   ⚙  ::set-env:: Python_ROOT_DIR=/opt/hostedtoolcache/Python/3.11.18/x64
+[ci/test]   ⚙  ::set-env:: Python2_ROOT_DIR=/opt/hostedtoolcache/Python/3.11.18/x64
+[ci/test]   ⚙  ::set-env:: Python3_ROOT_DIR=/opt/hostedtoolcache/Python/3.11.18/x64
+[ci/test]   ⚙  ::set-output:: python-version=3.11.18
+[ci/test]   ⚙  ::set-output:: python-path=/opt/hostedtoolcache/Python/3.11.18/x64/bin/python
+[ci/test]   ⚙  ::add-path:: /opt/hostedtoolcache/Python/3.11.18/x64
+[ci/test]   ⚙  ::add-path:: /opt/hostedtoolcache/Python/3.11.18/x64/bin
+[ci/test] ⭐ Run Main Install test deps
+[ci/test]   🐳  docker exec cmd=[bash -e /var/run/act/workflow/3] user= workdir=
+[ci/test]   ✅  Success - Main Install test deps [4.62529356s]
+[ci/test] ⭐ Run Main Seed registry (registry.json is gitignored — CI must generate it)
+[ci/test]   🐳  docker exec cmd=[bash -e /var/run/act/workflow/4] user= workdir=
+[ci/test]   ✅  Success - Main Seed registry (registry.json is gitignored — CI must generate it) [35.242811546s]
+[ci/test] ⭐ Run Main Full test suite (pure JSON — no duckdb needed)
+[ci/test]   🐳  docker exec cmd=[bash -e /var/run/act/workflow/5] user= workdir=
+[ci/test]   ❌  Failure - Main Full test suite (pure JSON — no duckdb needed) [38m3.337653725s]
+[ci/test] context canceled
+Get "http://%2Frun%2Fbunker%2Fc7d08d97%2Fdocker.sock/v1.52/containers/c1adda5b31f1de34e24c6805493293bd6156a7bb82cf441a317a94cc545d80ae/archive?path=%2Fvar%2Frun%2Fact%2Fworkflow%2FSUMMARY.md": context canceled
+Get "http://%2Frun%2Fbunker%2Fc7d08d97%2Fdocker.sock/v1.52/containers/c1adda5b31f1de34e24c6805493293bd6156a7bb82cf441a317a94cc545d80ae/archive?path=%2Fvar%2Frun%2Fact%2Fworkflow%2Fpathcmd.txt": context canceled
+[ci/test] ⭐ Run Complete job
+[ci/test]   ❌  Failure - Complete job
+[ci/test] 🏁  Job failed
+Error: context canceled

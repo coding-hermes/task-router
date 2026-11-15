@@ -1,0 +1,89 @@
+........ssssss.......................................................... [  2%]
+........................................................................ [  4%]
+........................................................................ [  6%]
+......................................................................s. [  9%]
+........................................................................ [ 11%]
+........................................................................ [ 13%]
+........................................................................ [ 16%]
+........................................................................ [ 18%]
+........................................................................ [ 20%]
+........................................................................ [ 22%]
+........ss.............................................................. [ 25%]
+.......................................s................................ [ 27%]
+..F
+=================================== FAILURES ===================================
+______________________ test_peer_is_loopback_fails_closed ______________________
+
+    def test_peer_is_loopback_fails_closed():
+        sys.path.insert(0, str(SCRIPTS))
+        from router_server import _peer_is_loopback
+        assert _peer_is_loopback("127.0.0.1") is True
+        assert _peer_is_loopback("::1") is True
+>       assert _peer_is_loopback("::ffff:127.0.0.1") is True
+E       AssertionError: assert False is True
+E        +  where False = <function _peer_is_loopback at 0x73d731515080>('::ffff:127.0.0.1')
+
+tests/test_metrics_endpoint.py:350: AssertionError
+=============================== warnings summary ===============================
+tests/test_seed_refusal_atomicity.py:120
+  /home/bunker-c7d08d97/qa-task-router/tests/test_seed_refusal_atomicity.py:120: PytestUnknownMarkWarning: Unknown pytest.mark.timeout - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.timeout(1200)
+
+tests/test_seed_refusal_atomicity.py:160
+  /home/bunker-c7d08d97/qa-task-router/tests/test_seed_refusal_atomicity.py:160: PytestUnknownMarkWarning: Unknown pytest.mark.timeout - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.timeout(1200)
+
+tests/test_seed_refusal_atomicity.py:227
+  /home/bunker-c7d08d97/qa-task-router/tests/test_seed_refusal_atomicity.py:227: PytestUnknownMarkWarning: Unknown pytest.mark.timeout - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.timeout(1200)
+
+tests/test_symlink_path_resolution.py:471
+  /home/bunker-c7d08d97/qa-task-router/tests/test_symlink_path_resolution.py:471: PytestUnknownMarkWarning: Unknown pytest.mark.timeout - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.timeout(1200)  # INT-CI-20261015-01: the router_seed.py case execs the
+
+tests/test_classifier_lane_failover.py::test_429_still_retries_primary_first
+  /home/bunker-c7d08d97/tools/venv/lib/python3.12/site-packages/_pytest/unraisableexception.py:63: PytestUnraisableExceptionWarning: Exception ignored in: <function _TemporaryFileCloser.__del__ at 0x73d732ccfec0>
+  
+  Traceback (most recent call last):
+    File "/home/bunker-c7d08d97/qa-task-router/scripts/router_classify.py", line 405, in default_llm
+      got = _call_lane(lane, body)
+            ^^^^^^^^^^^^^^^^^^^^^^
+    File "/home/bunker-c7d08d97/qa-task-router/tests/test_classifier_lane_failover.py", line 41, in fake_call_lane
+      raise _http_error(code)
+  urllib.error.HTTPError: HTTP Error 429: err
+  
+  During handling of the above exception, another exception occurred:
+  
+  Traceback (most recent call last):
+    File "/usr/lib/python3.12/tempfile.py", line 611, in __del__
+      self.cleanup()
+    File "/usr/lib/python3.12/tempfile.py", line 591, in cleanup
+      self.file.close()
+      ^^^^^^^^^^^^^^^
+  AttributeError: '_FakeResponse' object has no attribute 'close'. Did you mean: 'code'?
+  
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+    warnings.warn(pytest.PytestUnraisableExceptionWarning(msg))
+
+tests/test_classifier_resilience.py::test_persistent_429_degrades_visibly_with_reason
+tests/test_cli_contracts.py::test_fail_open_coercion_table
+  /home/bunker-c7d08d97/tools/venv/lib/python3.12/site-packages/_pytest/unraisableexception.py:63: PytestUnraisableExceptionWarning: Exception ignored in: <function _TemporaryFileCloser.__del__ at 0x73d732ccfec0>
+  
+  Traceback (most recent call last):
+    File "/usr/lib/python3.12/tempfile.py", line 611, in __del__
+      self.cleanup()
+    File "/usr/lib/python3.12/tempfile.py", line 591, in cleanup
+      self.file.close()
+      ^^^^^^^^^^^^^^^
+  AttributeError: '_FakeResponse' object has no attribute 'close'. Did you mean: 'code'?
+  
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+    warnings.warn(pytest.PytestUnraisableExceptionWarning(msg))
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_metrics_endpoint.py::test_peer_is_loopback_fails_closed - A...
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+1 failed, 856 passed, 10 skipped, 7 warnings in 773.12s (0:12:53)
