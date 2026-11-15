@@ -105,3 +105,25 @@ This artifact records readiness only. The next release gate is explicit owner au
 - Dogfood is stale and PROMISING-BUT-ROUGH, with failed/unverified cells.
 - The :9092 and :9391 listeners report stale=true; :9093 is unmeasured.
 - Release host disk usage is 97% with 54G free; no cleanup was authorized or performed.
+
+## Pass 2 — 2026-11-15 05:49Z re-anchor
+
+Tick: task-router-releng-2026-11-15-05-41-02
+Certified candidate: aa8c081e0b3d4dbaff299f463604740e4632e8f0
+Candidate tree: e6b7a98c6019983c13fd5036c4790d69724fe5b2
+
+Decision: NO CUT. The repository remains a first-publication channel with zero remote tags and zero GitHub Release objects. Commit 6cbc6aef claims owner approval, but the durable readiness row still says authorization is missing and its evidence is stale; the authorization carrier conflict remains unresolved, so this lane fails closed. The candidate's exact-SHA CI is also in progress.
+
+Inventory: no prior release tag exists. Against the v0.2.0 version-preparation commit f04ac47403ed9f90c49e0170ff086a2a7b9ed957, the candidate range contains 1,482 non-merge commits. Strict subject classifier reconciles to 1,482: feat 31, fix 145, perf 0, other conventional 167, non-conventional 1,139. No breaking subject markers or line-start BREAKING CHANGE footers. Proposed bump remains MINOR v0.3.0, proposal only.
+
+Tooling: repository-owned Python release path is scripts/release_driver.py with Makefile release-check, release-build, and release-dry-run. pyproject.toml and task_router/__init__.py remain 0.2.0; CHANGELOG starts with [Unreleased]. Executed release_driver.py check --tag v0.3.0 --base aa8c081e0b3d4dbaff299f463604740e4632e8f0 returned exit 2 and refused the cut because [Unreleased] must be promoted and both pins must be bumped. No publish build, tag, or release mutation was attempted.
+
+CI: exact run 43682318136, workflow ci, push event, head aa8c081e0b3d4dbaff299f463604740e4632e8f0, status in_progress, conclusion unset. Exact check run 132715388717 (test) is in_progress. This is not release-green. Prior run 43613003327 is success on 08b6b2be and is not borrowed.
+
+GitReins: no verdict references aa8c081e0b3d4dbaff299f463604740e4632e8f0. Candidate-bound release evidence is UNVERIFIED.
+
+Dogfood: latest committed evidence remains PROMISING-BUT-ROUGH with failed and UNVERIFIED cells; it is stale relative to this candidate and does not waive the release gate.
+
+Known issues: authorization conflict; missing version preparation; exact candidate CI nonterminal; candidate-bound GitReins absent; stale dogfood; existing RELEASE-2026-10-22-001 row stale and pending; prior deployment evidence reports stale listeners and unmeasured :9093.
+
+Mutation scope: no tag, Release object, version edit, changelog edit, artifact publication, service restart, cleanup, or board write was performed by this verification pass before the evidence carrier.
