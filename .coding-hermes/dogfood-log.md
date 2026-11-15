@@ -618,3 +618,73 @@ Left behind: `docs/dogfood/2026-11-15-run46-integration.md`,
 `TR-1000976681059255-R3`, `TR-1000976681059261` (board 527 → 530, each id free-checked and unique).
 No product code, no existing row's status, no visibility, permission, scheduler state or credential
 touched.
+
+## Run 46b — 2026-11-15 (second fire of tick `task-router-dogfood-2026-11-15-15-59-32`; records-only, install leg resolved)
+
+**Dispatch identity first.** The scheduler row for this tick reads `status=failed`,
+`spawned_at=2026-11-15T10:59:32-05:00`, `completed_at=11:49:48-05:00`, error "gateway 502". Run 46's
+commit `459fc391` landed at **11:56:19-05:00** — six and a half minutes *after* the tick was closed
+failed. So this fire is a post-close re-dispatch of an id that already ran to completion, not a new
+run. That is why everything below is a re-proof or a resolution, never a re-measurement of unchanged
+bytes.
+
+**The product did not move.** `git diff --name-only 326d36ec..HEAD` over the positive product
+allowlist (`task_router scripts tests data registry.json pyproject.toml Makefile build dist
+monitoring outcome-probes snapshots scripts…`) = **0 files**. What moved is records only:
+`.coding-hermes` (2), `docs` (2), `skills` (1). Every run-46 number therefore stands byte-for-byte.
+
+**Install leg: NOT skipped this fire — and it passed.** `bunker-mvp` measured **85%** (126.7/149.9 GB)
+at 17:08Z, inside the 94% admission gate that refused the same host at 97% in run 46; `bunkerd=active
+docker=yes uidmap=yes act=no`. `bunker-qa.sh launch /home/kara/task-router --server bunker-mvp` →
+agent `c7d08d97`.
+
+- `fresh-install` **OK** at 17:16:00Z: `Successfully installed duckdb-2.0.0 pyyaml-6.0.3
+  task-router-0.2.0` from `pip install -e .[dev]`. First non-skipped install grade in five fires.
+- The harness emitted `no artifact expected` for that cell, so I exercised the entrypoint myself on
+  the fresh agent: `~/tools/venv/bin/router spawn task-router --format json` answers `head = xkiro /
+  openai/gpt-6-luna, usd_1m 0.116 (in 0.1 / out 0.5)`. Install → usable binary, not a pip message.
+
+**Fresh-machine test leg: RED, and already owned.** The `tests` cell FAILed `rc=1` at 17:29:37Z;
+`pytest -x -q` stopped at 27% on `test_peer_is_loopback_fails_closed`:
+`_peer_is_loopback("::ffff:127.0.0.1")` → `False`, expected `True`. The agent's interpreter is
+**Python 3.12.3** (`~/tools/venv/bin/python -V`; direct `ipaddress` probe on that agent returns
+`False`) — the exact interpreter pending row **QA-TASKROUTER-14** names as known-bad, whose AC already
+requires a green `pytest -q tests/` on every README-supported interpreter and prescribes normalising
+`ipv4_mapped` at `scripts/router_server.py:5431-5444`. **No row filed:** defect, interpreter and
+prescribed fix are unchanged, so a `-R2` would be a bare sibling of the base id. What this fire adds
+is that the red is reachable through the *documented onboarding path* on a stock box, and that with
+the install leg green it is the only red left there.
+
+**Record-keeping divergence (this lane's own, by exact id).** Run 46 appended
+`TR-1000976681059260`, `TR-1000976681059255-R3`, `TR-1000976681059261` to `tasks.jsonl` with **no
+`task_created` events** — `grep` of `events.jsonl` for all three is empty, while 293 ids do carry one
+and the newest is `2026-11-15T06:24:43Z`. All three exist, are `pending`, and carry acceptance
+criteria, so they are dispatchable. Not repaired from a detection fire; disclosed here.
+
+**Board lint unchanged in class.** `boardctl validate` at `459fc391`: `RESULT: FAIL (455 error(s), 590
+warning(s))` — the pre-existing events.jsonl descending-id and legacy-shape class (run 45 measured
+458/603 on a different tree). No line names any of the three new rows: no new lint class.
+
+**Premise re-proofs.** `git show 326d36ec:scripts/router_decision.py` still advertises
+`POST /api/v1/execution-decision` in its header while `READ_ONLY_POST_PATHS` excludes it →
+`TR-1000976681059260` holds. `TR-1000976681059255-R3`'s premise ("both reachable hosts refuse at
+94%") is **stale as of 17:08Z** — `bunker-mvp` now admits. Not closed here (row status is a foreman's
+to change); handed over for reconciliation.
+
+**Perf: re-measured, no finding.** `hyperfine --warmup 2 --runs 8 '.venv/bin/router spawn
+task-router --format json'` on the byte-identical tree = **259.0 ms ± 15.2 ms** (user 217.7, sys 40.6)
+at **loadavg 14.04**, against run 46's 197.9 ms ± 9.4 ms at 3.61. The delta is host load, not the
+product. Nothing a user would feel → **no PERF row**.
+
+**Agent residue and a harness false negative.** `c7d08d97` is left **running** on `bunker-mvp`
+(ttl 4h) past the install/tests cells. `bunker-qa.sh collect` wedged on
+`AGENT-GONE already-recorded` with the evidence frozen at 7 rows while the agent was demonstrably
+alive (`pgrep -c -f qa-run.sh` = 5, 15 evidence rows, no finish marker); worked around with
+`bunker pull c7d08d97 qa-evidence.jsonl`. The 15-row set is persisted at
+`.coding-hermes/evidence/DOGFOOD-2026-11-15-171454-bunker.jsonl`. That collect() probe defect belongs
+to `bunker`, not to task-router, and is not cross-filed from this lane.
+
+**Filed: 0 rows.** Nothing new escaped the surface `QA-TASKROUTER-14` already covers, and the two
+residual facts (missing `task_created` events, stale `-R3` premise) are records and board-reconciliation
+matters, not product rows. Left behind: this entry and the bunker evidence file. No product code, no
+existing row's status, no visibility, permission, scheduler state or credential touched.
