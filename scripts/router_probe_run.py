@@ -499,17 +499,32 @@ WIRE_ID_PREFIX = {
 def wire_model_id(provider: Any, model: Any):
     """Registry id -> the id the provider's API actually serves.
 
-    clinepass wants 'modelType/model' ('cline-pass/<bare>'); every other
-    provider's ids stay bare/verbatim. Idempotent (already-prefixed ids pass
-    through) and slash-carrying ids pass through untouched (vendor-prefixed
-    alternates from probe_fixes are already wire-shaped).
+    DATA FIRST (TR-148 / router_wire_ids.py): a verified probe_fixes.jsonl row
+    for (provider, model) wins — file order, last row. clinepass proves why the
+    prefix alone is not enough: its in-plan lanes serve 'modelType/model'
+    ('cline-pass/<bare>') but its ':free' lanes answer ONLY at the vendor-org
+    id from GET /models ('nvidia/nemotron-3.5-lightning:free'). The bare-prefix
+    guess 404s every free lane (7 of 8 listed lanes, 2026-11-15), so the lane
+    stays unmeasurable while the fix sits in a table nobody reads.
+    Only when a lane has no verified fix does the provider default apply.
+    Idempotent (already-prefixed ids pass through) and slash-carrying ids pass
+    through untouched (vendor-prefixed alternates from probe_fixes are already
+    wire-shaped; result rows keep the bare registry id).
     """
     if not model:
         return model
-    prefix = WIRE_ID_PREFIX.get(provider)
-    if not prefix or '/' in model:  # already wire-shaped: never double-prefix
+    model = str(model)
+    if '/' in model:  # already wire-shaped: never double-prefix
         return model
-    return prefix + model
+    try:  # single source of truth for the table-backed transform
+        sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+        import router_wire_ids
+    except Exception:  # noqa: BLE001 — the prober must never die on an import
+        router_wire_ids = None
+    if router_wire_ids is not None:
+        return router_wire_ids.wire_model_id(provider, model)
+    prefix = WIRE_ID_PREFIX.get(provider)
+    return prefix + model if prefix else model
 
 PROBE_SERIAL = {
     # Providers that throttle hard under concurrency. commandcode-2 turned four lanes
