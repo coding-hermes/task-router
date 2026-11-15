@@ -377,3 +377,31 @@ the moment it is filed. Put profile ids in `detail` instead.
 at ~74 MB RSS; warm served `GET /resolve` 0.273–0.302 s; warm `router validate --json` 0.02–0.03 s at
 ~17 MB RSS. Anything far above those numbers on a similar box is worth a profile; the quarter-second
 `/resolve` is not.
+
+## Dogfood run 46 (2026-11-15) — the decision seam is a write, and the seed is not the writer
+
+Two things a consumer needs that cost a run to learn:
+
+1. **`POST /api/v1/execution-decision` is a write.** On a read-only instance (`--mode read-only`,
+   which is how the fleet runs it) it answers **403 `read-only mode` before any routing happens** —
+   the decision seam appends an issuance record, so it needs `--mode edit` plus the edit key
+   (`router_server.py:1109`, allow-list `1374-1377`). Only `/api/v1/execution-decision/verify`
+   answers read-only, and it will return `ok=false` when the instance has no receipt key or when the
+   receipt carries no binding expectation. Do not read `router_decision.py:30` ("read-only mode OK")
+   as a statement about the decision POST — it is wrong there (`TR-1000976681059260`).
+   If you need a decision without editing the instance, run the CLI in the same tree: `router decide
+   --request req.json --format json`.
+2. **A fresh checkout seeds cleanly; the refusal is safe.** `router seed` without a flag exits 1 on
+   the `math` domain (`TR-384`) and writes **nothing** — no `registry.json`, no table mutation. With
+   `--allow-unsatisfiable` it writes `registry.json` (~8 MB) and leaves all 32 tracked
+   `data/tables/*.jsonl` byte-identical (`TR-1000976681059261`). If you see a seeded tree whose
+   `model_tier.jsonl` or `category_levels.jsonl` differs, the writer is something else — bisect it,
+   do not patch the seed.
+
+Reading a receipt: mint with `router decide --init-receipt-key` once per state dir; verify with the
+binding you expect (`--expect-parent-run/--expect-step/--expect-generation`) — a bare `--verify`
+cannot prove the receipt belongs to your run. `POST /decide` does not exist; the 404 names the real
+surface and `/openapi.json` is the contract of record.
+
+Cost, measured (16 cores, loadavg 3.6): `router spawn` 198 ms warm / 190 ms cold / 49.8 MB RSS;
+served `/resolve` ~300 ms per call; `/health` 125–190 ms. Nothing here is slow enough to feel.

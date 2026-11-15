@@ -570,3 +570,51 @@ Left behind: `docs/dogfood/2026-11-12-run45-integration.md`,
 `docs/dogfood/2026-11-12-run45-diagnostics.md`, this entry, a run-45 section in
 `skills/task-router-usage/SKILL.md`. No product code, board semantics, visibility, permissions,
 scheduler state or credentials touched.
+
+## Run 46 — 2026-11-15 (tick `task-router-dogfood-2026-11-15-15-59-32`, executor: hand-run of skill `coding-hermes-dogfood`)
+
+Target `/home/kara/task-router` at `326d36ec` (main, parity 0/0, clean tree), host 16 cores loadavg
+`3.51 5.05 8.35`, root fs 93% used. Hermetic `git archive` of HEAD for the CLI leg; the live
+read-only router on `127.0.0.1:9092` for the HTTP leg.
+
+**Verdict: PROMISING-BUT-ROUGH.** Every modern surface works when driven — `router spawn` resolves a
+priced head in 198 ms warm (190 ms cold, 49.8 MB), `router decide` mints a receipt that binds to
+(parent_run, step, generation) and rejects a tampered head, and the served `/resolve` answers 200 in
+~300 ms. What a consumer cannot trust is the documentation over the deployment: the module that
+documents the decision surface still advertises a read-only path the server deliberately refuses.
+
+This fire: install (venv + `pip install -e .` + duckdb), seed (refusal owned by `TR-384`, then
+`--allow-unsatisfiable`), `validate`/`status`/`spawn`/`decide`/`decide --verify` (+ tamper),
+`decide --init-receipt-key`, served `/health`, `/resolve` low+high, `/gaps`, `/listings/models`,
+`/openapi.json`, `POST /decide` (404 with a good hint), `POST /api/v1/execution-decision` (403
+read-only), `POST …/verify` (no key required, correctly `ok=false`).
+
+**The finding that matters:** `scripts/router_decision.py:30` sells the decision POST as
+"read-only mode OK", but `scripts/router_server.py:1109` + the allow-list at `1374-1377` refuse it
+403 before auth because the seam appends an issuance record (`:1368`, H1-F4). A foreman building the
+HTTP decision client from the module contract wires it to a read-only router and reads the refusal as
+a credential problem. Filed `TR-1000976681059260`.
+
+**Also filed — a non-reproduction that protects a worker from a false fix:** a clean export seeded
+with `--allow-unsatisfiable` leaves **32/32** `data/tables/*.jsonl` byte-identical, and
+`validate`→`status`→`spawn`→`decide` change none of them; a refused seed writes no registry at all.
+So the premises of the pending `TR-1000976681059257` and the completed `TR-1000976681059248` no
+longer hold at this HEAD. The two-table delta I did see lived only in the long-lived pass1 tree (after
+a bare seed preceded the flagged one) and is **unattributed**. Filed `TR-1000976681059261` so nobody
+"fixes" a clean seed; the delta is handed over as a bisect target.
+
+**Install leg: SKIPPED, explicitly.** `bunker-mvp` (97%) and `bunker-las-02` (100%) both refuse at the
+94% disk admission gate; `bunker-las-01`, `bunker-las-04`, `cube-las-00` are unreachable. Zero cells,
+no agent, no evidence file — filed `TR-1000976681059255-R3` (recur of the install-leg family; distinct
+from `-R2`, which died at collect after an agent existed). Fleet disk hygiene, not a product red.
+
+Perf: cold `router spawn` 0.19 s / 49.8 MB; warm `hyperfine` **197.9 ms ± 9.4 ms**; served `/resolve`
+300/299/317/296/291/300 ms; `/health` 189/125/131 ms. Nothing a user would feel → **no PERF row**.
+Observation only: served `/resolve` costs ~100 ms more than the CLI's in-process resolve.
+
+Left behind: `docs/dogfood/2026-11-15-run46-integration.md`,
+`docs/dogfood/2026-11-15-run46-diagnostics.md`, a run-46 section in
+`skills/task-router-usage/SKILL.md`, this entry, and rows `TR-1000976681059260`,
+`TR-1000976681059255-R3`, `TR-1000976681059261` (board 527 → 530, each id free-checked and unique).
+No product code, no existing row's status, no visibility, permission, scheduler state or credential
+touched.
