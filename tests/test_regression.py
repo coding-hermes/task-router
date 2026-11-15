@@ -340,7 +340,7 @@ def test_chain_invariants_per_profile(monkeypatch, tmp_path, pid):
     # (estimate), review=None (BLANK, stamped no-sample-yet in
     # null_reasons.jsonl); both clear the -1 bar. Hermetic all-open resolve
     # 2026-11-06: 9 hops / 5 providers.
-    ("P4_SECURITY", "neuralwatt/glm-5.2-short-fast-flex")
+    ("P4_SECURITY", "openrouter/z-ai/glm-5.3")
 ])
 def test_golden_fixed_point_heads(monkeypatch, tmp_path, pid, head):
     """Known heads as of 2026-08-27 (intentional reprice/new-model changes must

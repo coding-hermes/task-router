@@ -375,9 +375,20 @@ CASES = [
         # (effective 0.725), and the pool grew 4 -> 9 lanes (floor stays 4 —
         # pools may grow freely). deepseek-flash stays OUT: no security tier
         # row -> blank -1 < 2.
+        # INT-CI-27 (2026-11-15, red main @ a2efedff): the seed re-derives
+        # per-category tiers from POOL QUANTILES, and the morph guard evidence
+        # landed on 2026-11-15 (live-probe GUARD + GUARD-V2 rows, commit
+        # c70f9b22) shifted the guard pool's boundaries: the neuralwatt flex
+        # lane's guard tier fell -1 -> -2, so it no longer clears P4's
+        # declared guard=-1 bar and drops out. The head is now the next
+        # cheapest security>=2 lane with MEASURED guard/review 4/4 —
+        # openrouter z-ai/glm-5.3 at $1.52/M (TR-318's measured 5.3 lane).
+        # This is a deliberate re-pin of a measured decision, not drift: the
+        # committed tables were never re-exported after c70f9b22, which is why
+        # only a seeded tree (CI) saw the move.
         'expect': {
-            'head': ['neuralwatt', 'glm-5.2-short-fast-flex'],
-            'head_usd_1m': 0.786,
+            'head': ['openrouter', 'z-ai/glm-5.3'],
+            'head_usd_1m': 1.52,
             'must_include': [['commandcode', 'gpt-6.1-sol'],
                              ['commandcode', 'zai-org/GLM-5.2-Fast']],
             'must_exclude': [['deepseek', 'deepseek-flash'],

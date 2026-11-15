@@ -84,7 +84,7 @@
 {"model": "Qwen/Qwen3.8-Flash", "category": "agent_tick", "perf": 0.739, "tier": -3, "tier_source": "family", "source_ref": "alias:qwen3.8-flash", "reasoning_effort": "default"}
 {"model": "Qwen/Qwen3.8-Flash", "category": "code_gen", "perf": 0.85, "tier": 2, "tier_source": "family", "source_ref": "alias:qwen3.8-flash", "reasoning_effort": "default"}
 {"model": "Qwen/Qwen3.8-Flash", "category": "creative", "perf": 0.45, "tier": 1, "tier_source": "family", "source_ref": "alias:qwen3.8-flash", "reasoning_effort": "default"}
-{"model": "Qwen/Qwen3.8-Flash", "category": "long_horizon", "perf": 0.85, "tier": -2, "tier_source": "family", "source_ref": "alias:qwen3.8-flash", "reasoning_effort": "default"}
+{"model": "Qwen/Qwen3.8-Flash", "category": "long_horizon", "perf": 0.85, "tier": -3, "tier_source": "family", "source_ref": "alias:qwen3.8-flash", "reasoning_effort": "default"}
 {"model": "Qwen/Qwen3.8-Flash", "category": "multilingual", "perf": 0.81, "tier": -4, "tier_source": "family", "source_ref": "alias:qwen3.8-flash", "reasoning_effort": "default"}
 {"model": "Qwen/Qwen3.8-Flash", "category": "reasoning", "perf": 0.917, "tier": -2, "tier_source": "family", "source_ref": "alias:qwen3.8-flash", "reasoning_effort": "default"}
 {"model": "Qwen/Qwen3.8-Flash", "category": "refactor", "perf": 0.72, "tier": 3, "tier_source": "family", "source_ref": "alias:qwen3.8-flash", "reasoning_effort": "default"}
@@ -218,7 +218,7 @@
 {"model": "accounts/fireworks/models/glm-5p2", "category": "creative", "perf": 0.45, "tier": 1, "tier_source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/models/glm-5p2", "category": "debug", "perf": 0.5, "tier": -3, "tier_source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/models/glm-5p2", "category": "delegation", "perf": 0.75, "tier": 1, "tier_source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
-{"model": "accounts/fireworks/models/glm-5p2", "category": "guard", "perf": 0.86, "tier": -1, "tier_source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
+{"model": "accounts/fireworks/models/glm-5p2", "category": "guard", "perf": 0.86, "tier": -2, "tier_source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/models/glm-5p2", "category": "mock", "perf": 0.8, "tier": -4, "tier_source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/models/glm-5p2", "category": "multilingual", "perf": 0.86, "tier": -3, "tier_source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/models/glm-5p2", "category": "reasoning", "perf": 0.912, "tier": -2, "tier_source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
@@ -239,7 +239,7 @@
 {"model": "accounts/fireworks/models/glm-5p3", "category": "e2e_vision", "perf": 0.35, "tier": -2, "tier_source": "family", "source_ref": "alias:glm-5.3", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/models/glm-5p3", "category": "guard", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:glm-5.3", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/models/glm-5p3", "category": "long_doc", "perf": 0.8296, "tier": -3, "tier_source": "family", "source_ref": "alias:glm-5.3", "reasoning_effort": "default"}
-{"model": "accounts/fireworks/models/glm-5p3", "category": "long_horizon", "perf": 0.85, "tier": -2, "tier_source": "family", "source_ref": "alias:glm-5.3", "reasoning_effort": "default"}
+{"model": "accounts/fireworks/models/glm-5p3", "category": "long_horizon", "perf": 0.85, "tier": -3, "tier_source": "family", "source_ref": "alias:glm-5.3", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/models/glm-5p3", "category": "mechanical", "perf": 0.833, "tier": -2, "tier_source": "family", "source_ref": "alias:glm-5.3", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/models/glm-5p3", "category": "mock", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:glm-5.3", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/models/glm-5p3", "category": "multilingual", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:glm-5.3", "reasoning_effort": "default"}
@@ -301,7 +301,7 @@
 {"model": "accounts/fireworks/models/kimi-k2p7-code", "category": "e2e_vision", "perf": 0.45, "tier": -1, "tier_source": "family", "source_ref": "alias:kimi-k2.7-code", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/models/kimi-k2p7-code", "category": "guard", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:kimi-k2.7-code", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/models/kimi-k2p7-code", "category": "long_doc", "perf": 0.65, "tier": -4, "tier_source": "family", "source_ref": "alias:kimi-k2.7-code", "reasoning_effort": "default"}
-{"model": "accounts/fireworks/models/kimi-k2p7-code", "category": "long_horizon", "perf": 0.85, "tier": -2, "tier_source": "family", "source_ref": "alias:kimi-k2.7-code", "reasoning_effort": "default"}
+{"model": "accounts/fireworks/models/kimi-k2p7-code", "category": "long_horizon", "perf": 0.85, "tier": -3, "tier_source": "family", "source_ref": "alias:kimi-k2.7-code", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/models/kimi-k2p7-code", "category": "mechanical", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:kimi-k2.7-code", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/models/kimi-k2p7-code", "category": "mock", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:kimi-k2.7-code", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/models/kimi-k2p7-code", "category": "multilingual", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:kimi-k2.7-code", "reasoning_effort": "default"}
@@ -319,7 +319,7 @@
 {"model": "accounts/fireworks/models/kimi-k3", "category": "e2e_vision", "perf": 0.75, "tier": 2, "tier_source": "family", "source_ref": "alias:kimi-k3", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/models/kimi-k3", "category": "guard", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:kimi-k3", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/models/kimi-k3", "category": "long_doc", "perf": 0.912, "tier": -3, "tier_source": "family", "source_ref": "alias:kimi-k3", "reasoning_effort": "default"}
-{"model": "accounts/fireworks/models/kimi-k3", "category": "long_horizon", "perf": 0.85, "tier": -2, "tier_source": "family", "source_ref": "alias:kimi-k3", "reasoning_effort": "default"}
+{"model": "accounts/fireworks/models/kimi-k3", "category": "long_horizon", "perf": 0.85, "tier": -3, "tier_source": "family", "source_ref": "alias:kimi-k3", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/models/kimi-k3", "category": "mechanical", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:kimi-k3", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/models/kimi-k3", "category": "mock", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:kimi-k3", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/models/kimi-k3", "category": "multilingual", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:kimi-k3", "reasoning_effort": "default"}
@@ -352,7 +352,7 @@
 {"model": "accounts/fireworks/models/minimax-m3", "category": "e2e_vision", "perf": 0.55, "tier": 1, "tier_source": "family", "source_ref": "alias:minimax-m3", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/models/minimax-m3", "category": "guard", "perf": 0.0, "tier": -3, "tier_source": "family", "source_ref": "alias:minimax-m3", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/models/minimax-m3", "category": "long_doc", "perf": 0.78, "tier": -3, "tier_source": "family", "source_ref": "alias:minimax-m3", "reasoning_effort": "default"}
-{"model": "accounts/fireworks/models/minimax-m3", "category": "long_horizon", "perf": 0.85, "tier": -2, "tier_source": "family", "source_ref": "alias:minimax-m3", "reasoning_effort": "default"}
+{"model": "accounts/fireworks/models/minimax-m3", "category": "long_horizon", "perf": 0.85, "tier": -3, "tier_source": "family", "source_ref": "alias:minimax-m3", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/models/minimax-m3", "category": "mechanical", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:minimax-m3", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/models/minimax-m3", "category": "mock", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:minimax-m3", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/models/minimax-m3", "category": "multilingual", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:minimax-m3", "reasoning_effort": "default"}
@@ -492,7 +492,7 @@
 {"model": "accounts/fireworks/routers/glm-5p2-fast", "category": "creative", "perf": 0.45, "tier": 1, "tier_source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/routers/glm-5p2-fast", "category": "debug", "perf": 0.5, "tier": -3, "tier_source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/routers/glm-5p2-fast", "category": "delegation", "perf": 0.75, "tier": 1, "tier_source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
-{"model": "accounts/fireworks/routers/glm-5p2-fast", "category": "guard", "perf": 0.86, "tier": -1, "tier_source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
+{"model": "accounts/fireworks/routers/glm-5p2-fast", "category": "guard", "perf": 0.86, "tier": -2, "tier_source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/routers/glm-5p2-fast", "category": "mock", "perf": 0.8, "tier": -4, "tier_source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/routers/glm-5p2-fast", "category": "multilingual", "perf": 0.86, "tier": -3, "tier_source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/routers/glm-5p2-fast", "category": "reasoning", "perf": 0.912, "tier": -2, "tier_source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
@@ -513,7 +513,7 @@
 {"model": "accounts/fireworks/routers/glm-5p3-fast", "category": "e2e_vision", "perf": 0.35, "tier": -2, "tier_source": "family", "source_ref": "alias:glm-5.3", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/routers/glm-5p3-fast", "category": "guard", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:glm-5.3", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/routers/glm-5p3-fast", "category": "long_doc", "perf": 0.8296, "tier": -3, "tier_source": "family", "source_ref": "alias:glm-5.3", "reasoning_effort": "default"}
-{"model": "accounts/fireworks/routers/glm-5p3-fast", "category": "long_horizon", "perf": 0.85, "tier": -2, "tier_source": "family", "source_ref": "alias:glm-5.3", "reasoning_effort": "default"}
+{"model": "accounts/fireworks/routers/glm-5p3-fast", "category": "long_horizon", "perf": 0.85, "tier": -3, "tier_source": "family", "source_ref": "alias:glm-5.3", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/routers/glm-5p3-fast", "category": "mechanical", "perf": 0.833, "tier": -2, "tier_source": "family", "source_ref": "alias:glm-5.3", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/routers/glm-5p3-fast", "category": "mock", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:glm-5.3", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/routers/glm-5p3-fast", "category": "multilingual", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:glm-5.3", "reasoning_effort": "default"}
@@ -534,7 +534,7 @@
 {"model": "accounts/fireworks/routers/glm-fast-latest", "category": "e2e_vision", "perf": 0.35, "tier": -2, "tier_source": "family", "source_ref": "alias:glm-5.3", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/routers/glm-fast-latest", "category": "guard", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:glm-5.3", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/routers/glm-fast-latest", "category": "long_doc", "perf": 0.8296, "tier": -3, "tier_source": "family", "source_ref": "alias:glm-5.3", "reasoning_effort": "default"}
-{"model": "accounts/fireworks/routers/glm-fast-latest", "category": "long_horizon", "perf": 0.85, "tier": -2, "tier_source": "family", "source_ref": "alias:glm-5.3", "reasoning_effort": "default"}
+{"model": "accounts/fireworks/routers/glm-fast-latest", "category": "long_horizon", "perf": 0.85, "tier": -3, "tier_source": "family", "source_ref": "alias:glm-5.3", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/routers/glm-fast-latest", "category": "mechanical", "perf": 0.833, "tier": -2, "tier_source": "family", "source_ref": "alias:glm-5.3", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/routers/glm-fast-latest", "category": "mock", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:glm-5.3", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/routers/glm-fast-latest", "category": "multilingual", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:glm-5.3", "reasoning_effort": "default"}
@@ -577,7 +577,7 @@
 {"model": "accounts/fireworks/routers/glm-latest", "category": "e2e_vision", "perf": 0.35, "tier": -2, "tier_source": "family", "source_ref": "alias:glm-5.3", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/routers/glm-latest", "category": "guard", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:glm-5.3", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/routers/glm-latest", "category": "long_doc", "perf": 0.8296, "tier": -3, "tier_source": "family", "source_ref": "alias:glm-5.3", "reasoning_effort": "default"}
-{"model": "accounts/fireworks/routers/glm-latest", "category": "long_horizon", "perf": 0.85, "tier": -2, "tier_source": "family", "source_ref": "alias:glm-5.3", "reasoning_effort": "default"}
+{"model": "accounts/fireworks/routers/glm-latest", "category": "long_horizon", "perf": 0.85, "tier": -3, "tier_source": "family", "source_ref": "alias:glm-5.3", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/routers/glm-latest", "category": "mechanical", "perf": 0.833, "tier": -2, "tier_source": "family", "source_ref": "alias:glm-5.3", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/routers/glm-latest", "category": "mock", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:glm-5.3", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/routers/glm-latest", "category": "multilingual", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:glm-5.3", "reasoning_effort": "default"}
@@ -597,7 +597,7 @@
 {"model": "accounts/fireworks/routers/kimi-fast-latest", "category": "e2e_vision", "perf": 0.75, "tier": 2, "tier_source": "family", "source_ref": "alias:kimi-k3", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/routers/kimi-fast-latest", "category": "guard", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:kimi-k3", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/routers/kimi-fast-latest", "category": "long_doc", "perf": 0.912, "tier": -3, "tier_source": "family", "source_ref": "alias:kimi-k3", "reasoning_effort": "default"}
-{"model": "accounts/fireworks/routers/kimi-fast-latest", "category": "long_horizon", "perf": 0.85, "tier": -2, "tier_source": "family", "source_ref": "alias:kimi-k3", "reasoning_effort": "default"}
+{"model": "accounts/fireworks/routers/kimi-fast-latest", "category": "long_horizon", "perf": 0.85, "tier": -3, "tier_source": "family", "source_ref": "alias:kimi-k3", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/routers/kimi-fast-latest", "category": "mechanical", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:kimi-k3", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/routers/kimi-fast-latest", "category": "mock", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:kimi-k3", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/routers/kimi-fast-latest", "category": "multilingual", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:kimi-k3", "reasoning_effort": "default"}
@@ -618,7 +618,7 @@
 {"model": "accounts/fireworks/routers/kimi-k3-fast", "category": "e2e_vision", "perf": 0.75, "tier": 2, "tier_source": "family", "source_ref": "alias:kimi-k3", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/routers/kimi-k3-fast", "category": "guard", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:kimi-k3", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/routers/kimi-k3-fast", "category": "long_doc", "perf": 0.912, "tier": -3, "tier_source": "family", "source_ref": "alias:kimi-k3", "reasoning_effort": "default"}
-{"model": "accounts/fireworks/routers/kimi-k3-fast", "category": "long_horizon", "perf": 0.85, "tier": -2, "tier_source": "family", "source_ref": "alias:kimi-k3", "reasoning_effort": "default"}
+{"model": "accounts/fireworks/routers/kimi-k3-fast", "category": "long_horizon", "perf": 0.85, "tier": -3, "tier_source": "family", "source_ref": "alias:kimi-k3", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/routers/kimi-k3-fast", "category": "mechanical", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:kimi-k3", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/routers/kimi-k3-fast", "category": "mock", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:kimi-k3", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/routers/kimi-k3-fast", "category": "multilingual", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:kimi-k3", "reasoning_effort": "default"}
@@ -639,7 +639,7 @@
 {"model": "accounts/fireworks/routers/kimi-latest", "category": "e2e_vision", "perf": 0.75, "tier": 2, "tier_source": "family", "source_ref": "alias:kimi-k3", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/routers/kimi-latest", "category": "guard", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:kimi-k3", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/routers/kimi-latest", "category": "long_doc", "perf": 0.912, "tier": -3, "tier_source": "family", "source_ref": "alias:kimi-k3", "reasoning_effort": "default"}
-{"model": "accounts/fireworks/routers/kimi-latest", "category": "long_horizon", "perf": 0.85, "tier": -2, "tier_source": "family", "source_ref": "alias:kimi-k3", "reasoning_effort": "default"}
+{"model": "accounts/fireworks/routers/kimi-latest", "category": "long_horizon", "perf": 0.85, "tier": -3, "tier_source": "family", "source_ref": "alias:kimi-k3", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/routers/kimi-latest", "category": "mechanical", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:kimi-k3", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/routers/kimi-latest", "category": "mock", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:kimi-k3", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/routers/kimi-latest", "category": "multilingual", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:kimi-k3", "reasoning_effort": "default"}
@@ -660,7 +660,7 @@
 {"model": "accounts/fireworks/routers/minimax-latest", "category": "e2e_vision", "perf": 0.55, "tier": 1, "tier_source": "family", "source_ref": "alias:minimax-m3", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/routers/minimax-latest", "category": "guard", "perf": 0.0, "tier": -3, "tier_source": "family", "source_ref": "alias:minimax-m3", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/routers/minimax-latest", "category": "long_doc", "perf": 0.78, "tier": -3, "tier_source": "family", "source_ref": "alias:minimax-m3", "reasoning_effort": "default"}
-{"model": "accounts/fireworks/routers/minimax-latest", "category": "long_horizon", "perf": 0.85, "tier": -2, "tier_source": "family", "source_ref": "alias:minimax-m3", "reasoning_effort": "default"}
+{"model": "accounts/fireworks/routers/minimax-latest", "category": "long_horizon", "perf": 0.85, "tier": -3, "tier_source": "family", "source_ref": "alias:minimax-m3", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/routers/minimax-latest", "category": "mechanical", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:minimax-m3", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/routers/minimax-latest", "category": "mock", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:minimax-m3", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/routers/minimax-latest", "category": "multilingual", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:minimax-m3", "reasoning_effort": "default"}
@@ -1086,6 +1086,22 @@
 {"model": "deepseek-flash", "category": "test", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/TEST", "reasoning_effort": "default"}
 {"model": "deepseek-flash", "category": "tool_use", "perf": 0.75, "tier": -1, "tier_source": "bench", "source_ref": "bench:battery-T1-TOOL", "reasoning_effort": "default"}
 {"model": "deepseek-flash", "category": "vision", "perf": 0.45, "tier": -1, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:deepseek v4 flash", "reasoning_effort": "default"}
+{"model": "deepseek-flash-latest", "category": "agent_tick", "perf": 0.75, "tier": 2, "tier_source": "family", "source_ref": "alias:morph-dsv41flash-1017", "reasoning_effort": "default"}
+{"model": "deepseek-flash-latest", "category": "code_gen", "perf": 0.667, "tier": 0, "tier_source": "family", "source_ref": "alias:morph-dsv41flash-1017", "reasoning_effort": "default"}
+{"model": "deepseek-flash-latest", "category": "debug", "perf": 0.667, "tier": -1, "tier_source": "family", "source_ref": "alias:morph-dsv41flash-1017", "reasoning_effort": "default"}
+{"model": "deepseek-flash-latest", "category": "delegation", "perf": 0.75, "tier": 1, "tier_source": "family", "source_ref": "alias:morph-dsv41flash-1017", "reasoning_effort": "default"}
+{"model": "deepseek-flash-latest", "category": "guard", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:morph-dsv41flash-1017", "reasoning_effort": "default"}
+{"model": "deepseek-flash-latest", "category": "long_doc", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:morph-dsv41flash-1017", "reasoning_effort": "default"}
+{"model": "deepseek-flash-latest", "category": "long_horizon", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:morph-dsv41flash-1017", "reasoning_effort": "default"}
+{"model": "deepseek-flash-latest", "category": "mechanical", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:morph-dsv41flash-1017", "reasoning_effort": "default"}
+{"model": "deepseek-flash-latest", "category": "mock", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:morph-dsv41flash-1017", "reasoning_effort": "default"}
+{"model": "deepseek-flash-latest", "category": "multilingual", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:morph-dsv41flash-1017", "reasoning_effort": "default"}
+{"model": "deepseek-flash-latest", "category": "reasoning", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:morph-dsv41flash-1017", "reasoning_effort": "default"}
+{"model": "deepseek-flash-latest", "category": "review", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:morph-dsv41flash-1017", "reasoning_effort": "default"}
+{"model": "deepseek-flash-latest", "category": "schema", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:morph-dsv41flash-1017", "reasoning_effort": "default"}
+{"model": "deepseek-flash-latest", "category": "spec_docs", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:morph-dsv41flash-1017", "reasoning_effort": "default"}
+{"model": "deepseek-flash-latest", "category": "test", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:morph-dsv41flash-1017", "reasoning_effort": "default"}
+{"model": "deepseek-flash-latest", "category": "tool_use", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:morph-dsv41flash-1017", "reasoning_effort": "default"}
 {"model": "deepseek-r1", "category": "test", "perf": 0.72, "tier": -1, "tier_source": "estimate", "source_ref": "CATEGORY_ESTIMATES", "reasoning_effort": "default"}
 {"model": "deepseek-v4-1-flash", "category": "agent_tick", "perf": 0.75, "tier": 2, "tier_source": "family", "source_ref": "alias:deepseek-v4.1-flash", "reasoning_effort": "default"}
 {"model": "deepseek-v4-1-flash", "category": "code_gen", "perf": 0.75, "tier": 2, "tier_source": "family", "source_ref": "alias:deepseek-flash", "reasoning_effort": "default"}
@@ -1454,7 +1470,7 @@
 {"model": "glm-5-2", "category": "creative", "perf": 0.45, "tier": 1, "tier_source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
 {"model": "glm-5-2", "category": "debug", "perf": 0.5, "tier": -3, "tier_source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
 {"model": "glm-5-2", "category": "delegation", "perf": 0.75, "tier": 1, "tier_source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
-{"model": "glm-5-2", "category": "guard", "perf": 0.86, "tier": -1, "tier_source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
+{"model": "glm-5-2", "category": "guard", "perf": 0.86, "tier": -2, "tier_source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
 {"model": "glm-5-2", "category": "mock", "perf": 0.8, "tier": -4, "tier_source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
 {"model": "glm-5-2", "category": "multilingual", "perf": 0.86, "tier": -3, "tier_source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
 {"model": "glm-5-2", "category": "reasoning", "perf": 0.912, "tier": -2, "tier_source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
@@ -1475,7 +1491,7 @@
 {"model": "glm-5-3", "category": "e2e_vision", "perf": 0.35, "tier": -2, "tier_source": "family", "source_ref": "alias:glm-5.3", "reasoning_effort": "default"}
 {"model": "glm-5-3", "category": "guard", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:glm-5.3", "reasoning_effort": "default"}
 {"model": "glm-5-3", "category": "long_doc", "perf": 0.8296, "tier": -3, "tier_source": "family", "source_ref": "alias:glm-5.3", "reasoning_effort": "default"}
-{"model": "glm-5-3", "category": "long_horizon", "perf": 0.85, "tier": -2, "tier_source": "family", "source_ref": "alias:glm-5.3", "reasoning_effort": "default"}
+{"model": "glm-5-3", "category": "long_horizon", "perf": 0.85, "tier": -3, "tier_source": "family", "source_ref": "alias:glm-5.3", "reasoning_effort": "default"}
 {"model": "glm-5-3", "category": "mechanical", "perf": 0.833, "tier": -2, "tier_source": "family", "source_ref": "alias:glm-5.3", "reasoning_effort": "default"}
 {"model": "glm-5-3", "category": "mock", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:glm-5.3", "reasoning_effort": "default"}
 {"model": "glm-5-3", "category": "multilingual", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:glm-5.3", "reasoning_effort": "default"}
@@ -1533,7 +1549,7 @@
 {"model": "glm-5.2", "category": "creative", "perf": 0.45, "tier": 1, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:glm-5.2", "reasoning_effort": "default"}
 {"model": "glm-5.2", "category": "debug", "perf": 0.5, "tier": -3, "tier_source": "bench", "source_ref": "bench:T5-DEBUG", "reasoning_effort": "default"}
 {"model": "glm-5.2", "category": "delegation", "perf": 0.75, "tier": 1, "tier_source": "bench", "source_ref": "bench:battery-T1-TOOL", "reasoning_effort": "default"}
-{"model": "glm-5.2", "category": "guard", "perf": 0.86, "tier": -1, "tier_source": "estimate", "source_ref": "QUALITY_ESTIMATES", "reasoning_effort": "default"}
+{"model": "glm-5.2", "category": "guard", "perf": 0.86, "tier": -2, "tier_source": "estimate", "source_ref": "QUALITY_ESTIMATES", "reasoning_effort": "default"}
 {"model": "glm-5.2", "category": "mock", "perf": 0.8, "tier": -4, "tier_source": "estimate", "source_ref": "QUALITY_ESTIMATES", "reasoning_effort": "default"}
 {"model": "glm-5.2", "category": "multilingual", "perf": 0.86, "tier": -3, "tier_source": "estimate", "source_ref": "QUALITY_ESTIMATES", "reasoning_effort": "default"}
 {"model": "glm-5.2", "category": "reasoning", "perf": 0.912, "tier": -2, "tier_source": "bench", "source_ref": "bench:GPQA", "reasoning_effort": "default"}
@@ -1572,7 +1588,7 @@
 {"model": "glm-5.2-flex", "category": "creative", "perf": 0.45, "tier": 1, "tier_source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
 {"model": "glm-5.2-flex", "category": "debug", "perf": 0.5, "tier": -3, "tier_source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
 {"model": "glm-5.2-flex", "category": "delegation", "perf": 0.75, "tier": 1, "tier_source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
-{"model": "glm-5.2-flex", "category": "guard", "perf": 0.86, "tier": -1, "tier_source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
+{"model": "glm-5.2-flex", "category": "guard", "perf": 0.86, "tier": -2, "tier_source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
 {"model": "glm-5.2-flex", "category": "mock", "perf": 0.8, "tier": -4, "tier_source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
 {"model": "glm-5.2-flex", "category": "multilingual", "perf": 0.86, "tier": -3, "tier_source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
 {"model": "glm-5.2-flex", "category": "reasoning", "perf": 0.912, "tier": -2, "tier_source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
@@ -1590,7 +1606,7 @@
 {"model": "glm-5.2-short", "category": "creative", "perf": 0.45, "tier": 1, "tier_source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
 {"model": "glm-5.2-short", "category": "debug", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T5-DEBUG", "reasoning_effort": "default"}
 {"model": "glm-5.2-short", "category": "delegation", "perf": 0.25, "tier": -5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/DELEGATION", "reasoning_effort": "default"}
-{"model": "glm-5.2-short", "category": "guard", "perf": 0.86, "tier": -1, "tier_source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
+{"model": "glm-5.2-short", "category": "guard", "perf": 0.86, "tier": -2, "tier_source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
 {"model": "glm-5.2-short", "category": "long_doc", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-DOC", "reasoning_effort": "default"}
 {"model": "glm-5.2-short", "category": "long_horizon", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-HORIZON", "reasoning_effort": "default"}
 {"model": "glm-5.2-short", "category": "mock", "perf": 0.8, "tier": -4, "tier_source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
@@ -1629,7 +1645,7 @@
 {"model": "glm-5.2-short-fast-flex", "category": "creative", "perf": 0.45, "tier": 1, "tier_source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
 {"model": "glm-5.2-short-fast-flex", "category": "debug", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T5-DEBUG", "reasoning_effort": "default"}
 {"model": "glm-5.2-short-fast-flex", "category": "delegation", "perf": 0.75, "tier": 1, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/DELEGATION", "reasoning_effort": "default"}
-{"model": "glm-5.2-short-fast-flex", "category": "guard", "perf": 0.86, "tier": -1, "tier_source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
+{"model": "glm-5.2-short-fast-flex", "category": "guard", "perf": 0.86, "tier": -2, "tier_source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
 {"model": "glm-5.2-short-fast-flex", "category": "long_doc", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-DOC", "reasoning_effort": "default"}
 {"model": "glm-5.2-short-fast-flex", "category": "long_horizon", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/LONG-HORIZON", "reasoning_effort": "default"}
 {"model": "glm-5.2-short-fast-flex", "category": "mock", "perf": 0.8, "tier": -4, "tier_source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
@@ -1673,7 +1689,7 @@
 {"model": "glm-5.3", "category": "e2e_vision", "perf": 0.35, "tier": -2, "tier_source": "measured", "source_ref": "models.jsonl:perf_e2e_vision", "reasoning_effort": "default"}
 {"model": "glm-5.3", "category": "guard", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:GUARD", "reasoning_effort": "default"}
 {"model": "glm-5.3", "category": "long_doc", "perf": 0.8296, "tier": -3, "tier_source": "measured", "source_ref": "models.jsonl:perf_long_doc", "reasoning_effort": "default"}
-{"model": "glm-5.3", "category": "long_horizon", "perf": 0.85, "tier": -2, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:glm-5.3", "reasoning_effort": "default"}
+{"model": "glm-5.3", "category": "long_horizon", "perf": 0.85, "tier": -3, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:glm-5.3", "reasoning_effort": "default"}
 {"model": "glm-5.3", "category": "mechanical", "perf": 0.833, "tier": -2, "tier_source": "bench", "source_ref": "bench:MECHANICAL", "reasoning_effort": "default"}
 {"model": "glm-5.3", "category": "mock", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:MOCK", "reasoning_effort": "default"}
 {"model": "glm-5.3", "category": "multilingual", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:MULTILINGUAL", "reasoning_effort": "default"}
@@ -2176,7 +2192,7 @@
 {"model": "hf:moonshotai/Kimi-K3", "category": "e2e_vision", "perf": 0.75, "tier": 2, "tier_source": "measured", "source_ref": "models.jsonl:perf_e2e_vision", "reasoning_effort": "default"}
 {"model": "hf:moonshotai/Kimi-K3", "category": "guard", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:GUARD", "reasoning_effort": "default"}
 {"model": "hf:moonshotai/Kimi-K3", "category": "long_doc", "perf": 1.0, "tier": 5, "tier_source": "measured", "source_ref": "models.jsonl:perf_long_doc", "reasoning_effort": "default"}
-{"model": "hf:moonshotai/Kimi-K3", "category": "long_horizon", "perf": 0.85, "tier": -2, "tier_source": "family", "source_ref": "alias:kimi-k3", "reasoning_effort": "default"}
+{"model": "hf:moonshotai/Kimi-K3", "category": "long_horizon", "perf": 0.85, "tier": -3, "tier_source": "family", "source_ref": "alias:kimi-k3", "reasoning_effort": "default"}
 {"model": "hf:moonshotai/Kimi-K3", "category": "mechanical", "perf": 0.833, "tier": -2, "tier_source": "bench", "source_ref": "bench:MECHANICAL", "reasoning_effort": "default"}
 {"model": "hf:moonshotai/Kimi-K3", "category": "mock", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:MOCK", "reasoning_effort": "default"}
 {"model": "hf:moonshotai/Kimi-K3", "category": "multilingual", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:MULTILINGUAL", "reasoning_effort": "default"}
@@ -2244,7 +2260,7 @@
 {"model": "hf:zai-org/GLM-5.2", "category": "creative", "perf": 0.45, "tier": 1, "tier_source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
 {"model": "hf:zai-org/GLM-5.2", "category": "debug", "perf": 0.5, "tier": -3, "tier_source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
 {"model": "hf:zai-org/GLM-5.2", "category": "delegation", "perf": 0.75, "tier": 1, "tier_source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
-{"model": "hf:zai-org/GLM-5.2", "category": "guard", "perf": 0.86, "tier": -1, "tier_source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
+{"model": "hf:zai-org/GLM-5.2", "category": "guard", "perf": 0.86, "tier": -2, "tier_source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
 {"model": "hf:zai-org/GLM-5.2", "category": "mock", "perf": 0.8, "tier": -4, "tier_source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
 {"model": "hf:zai-org/GLM-5.2", "category": "multilingual", "perf": 0.86, "tier": -3, "tier_source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
 {"model": "hf:zai-org/GLM-5.2", "category": "reasoning", "perf": 0.912, "tier": -2, "tier_source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
@@ -2291,7 +2307,7 @@
 {"model": "hy3", "category": "mechanical", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:MECHANICAL", "reasoning_effort": "default"}
 {"model": "hy3", "category": "mock", "perf": 0.833, "tier": -2, "tier_source": "bench", "source_ref": "bench:MOCK", "reasoning_effort": "default"}
 {"model": "hy3", "category": "multilingual", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:MULTILINGUAL", "reasoning_effort": "default"}
-{"model": "hy3", "category": "reasoning", "perf": 0.897, "tier": -2, "tier_source": "bench", "source_ref": "bench:GPQA", "reasoning_effort": "default"}
+{"model": "hy3", "category": "reasoning", "perf": 0.897, "tier": -3, "tier_source": "bench", "source_ref": "bench:GPQA", "reasoning_effort": "default"}
 {"model": "hy3", "category": "refactor", "perf": 0.5, "tier": 1, "tier_source": "bench", "source_ref": "bench:battery-T2-CODE", "reasoning_effort": "default"}
 {"model": "hy3", "category": "review", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:REVIEW", "reasoning_effort": "default"}
 {"model": "hy3", "category": "schema", "perf": 0.5, "tier": -3, "tier_source": "measured", "source_ref": "models.jsonl:perf_schema", "reasoning_effort": "default"}
@@ -2310,7 +2326,7 @@
 {"model": "hy4", "category": "spec_docs", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:SPEC-DOCS", "reasoning_effort": "default"}
 {"model": "hy4", "category": "terminal", "perf": 0.8540000000000001, "tier": 2, "tier_source": "bench", "source_ref": "bench:Terminal-Bench", "reasoning_effort": "default"}
 {"model": "hy4-preview", "category": "code_gen", "perf": 0.85, "tier": 2, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:hy4-preview", "reasoning_effort": "default"}
-{"model": "hy4-preview", "category": "long_horizon", "perf": 0.85, "tier": -2, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:hy4-preview", "reasoning_effort": "default"}
+{"model": "hy4-preview", "category": "long_horizon", "perf": 0.85, "tier": -3, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:hy4-preview", "reasoning_effort": "default"}
 {"model": "hy4-preview", "category": "multilingual", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:MULTILINGUAL", "reasoning_effort": "default"}
 {"model": "hy4-preview", "category": "reasoning", "perf": 0.923, "tier": -2, "tier_source": "bench", "source_ref": "bench:GPQA", "reasoning_effort": "default"}
 {"model": "hy4-preview", "category": "refactor", "perf": 0.72, "tier": 3, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:hy4-preview", "reasoning_effort": "default"}
@@ -2335,7 +2351,7 @@
 {"model": "k3", "category": "e2e_vision", "perf": 0.75, "tier": 2, "tier_source": "measured", "source_ref": "models.jsonl:perf_e2e_vision", "reasoning_effort": "default"}
 {"model": "k3", "category": "guard", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:GUARD", "reasoning_effort": "default"}
 {"model": "k3", "category": "long_doc", "perf": 1.0, "tier": 5, "tier_source": "measured", "source_ref": "models.jsonl:perf_long_doc", "reasoning_effort": "default"}
-{"model": "k3", "category": "long_horizon", "perf": 0.85, "tier": -2, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:kimi k3", "reasoning_effort": "default"}
+{"model": "k3", "category": "long_horizon", "perf": 0.85, "tier": -3, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:kimi k3", "reasoning_effort": "default"}
 {"model": "k3", "category": "mechanical", "perf": 0.833, "tier": -2, "tier_source": "bench", "source_ref": "bench:MECHANICAL", "reasoning_effort": "default"}
 {"model": "k3", "category": "mock", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:MOCK", "reasoning_effort": "default"}
 {"model": "k3", "category": "multilingual", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:MULTILINGUAL", "reasoning_effort": "default"}
@@ -2397,7 +2413,7 @@
 {"model": "kimi-k2-7-code", "category": "e2e_vision", "perf": 0.45, "tier": -1, "tier_source": "family", "source_ref": "alias:kimi-k2.7-code", "reasoning_effort": "default"}
 {"model": "kimi-k2-7-code", "category": "guard", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:kimi-k2.7-code", "reasoning_effort": "default"}
 {"model": "kimi-k2-7-code", "category": "long_doc", "perf": 0.65, "tier": -4, "tier_source": "family", "source_ref": "alias:kimi-k2.7-code", "reasoning_effort": "default"}
-{"model": "kimi-k2-7-code", "category": "long_horizon", "perf": 0.85, "tier": -2, "tier_source": "family", "source_ref": "alias:kimi-k2.7-code", "reasoning_effort": "default"}
+{"model": "kimi-k2-7-code", "category": "long_horizon", "perf": 0.85, "tier": -3, "tier_source": "family", "source_ref": "alias:kimi-k2.7-code", "reasoning_effort": "default"}
 {"model": "kimi-k2-7-code", "category": "mechanical", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:kimi-k2.7-code", "reasoning_effort": "default"}
 {"model": "kimi-k2-7-code", "category": "mock", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:kimi-k2.7-code", "reasoning_effort": "default"}
 {"model": "kimi-k2-7-code", "category": "multilingual", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:kimi-k2.7-code", "reasoning_effort": "default"}
@@ -2454,7 +2470,7 @@
 {"model": "kimi-k2.7-code", "category": "e2e_vision", "perf": 0.45, "tier": -1, "tier_source": "measured", "source_ref": "models.jsonl:perf_e2e_vision", "reasoning_effort": "default"}
 {"model": "kimi-k2.7-code", "category": "guard", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:GUARD", "reasoning_effort": "default"}
 {"model": "kimi-k2.7-code", "category": "long_doc", "perf": 0.65, "tier": -4, "tier_source": "measured", "source_ref": "models.jsonl:perf_long_doc", "reasoning_effort": "default"}
-{"model": "kimi-k2.7-code", "category": "long_horizon", "perf": 0.85, "tier": -2, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:kimi k2", "reasoning_effort": "default"}
+{"model": "kimi-k2.7-code", "category": "long_horizon", "perf": 0.85, "tier": -3, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:kimi k2", "reasoning_effort": "default"}
 {"model": "kimi-k2.7-code", "category": "mechanical", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:MECHANICAL", "reasoning_effort": "default"}
 {"model": "kimi-k2.7-code", "category": "mock", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:MOCK", "reasoning_effort": "default"}
 {"model": "kimi-k2.7-code", "category": "multilingual", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:MULTILINGUAL", "reasoning_effort": "default"}
@@ -2485,7 +2501,7 @@
 {"model": "kimi-k2.7-code-flex", "category": "e2e_vision", "perf": 0.45, "tier": -1, "tier_source": "family", "source_ref": "alias:kimi-k2.7-code", "reasoning_effort": "default"}
 {"model": "kimi-k2.7-code-flex", "category": "guard", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:kimi-k2.7-code", "reasoning_effort": "default"}
 {"model": "kimi-k2.7-code-flex", "category": "long_doc", "perf": 0.65, "tier": -4, "tier_source": "family", "source_ref": "alias:kimi-k2.7-code", "reasoning_effort": "default"}
-{"model": "kimi-k2.7-code-flex", "category": "long_horizon", "perf": 0.85, "tier": -2, "tier_source": "family", "source_ref": "alias:kimi-k2.7-code", "reasoning_effort": "default"}
+{"model": "kimi-k2.7-code-flex", "category": "long_horizon", "perf": 0.85, "tier": -3, "tier_source": "family", "source_ref": "alias:kimi-k2.7-code", "reasoning_effort": "default"}
 {"model": "kimi-k2.7-code-flex", "category": "mechanical", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:kimi-k2.7-code", "reasoning_effort": "default"}
 {"model": "kimi-k2.7-code-flex", "category": "mock", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:kimi-k2.7-code", "reasoning_effort": "default"}
 {"model": "kimi-k2.7-code-flex", "category": "multilingual", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:kimi-k2.7-code", "reasoning_effort": "default"}
@@ -2503,7 +2519,7 @@
 {"model": "kimi-k3", "category": "e2e_vision", "perf": 0.75, "tier": 2, "tier_source": "measured", "source_ref": "models.jsonl:perf_e2e_vision", "reasoning_effort": "default"}
 {"model": "kimi-k3", "category": "guard", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:GUARD", "reasoning_effort": "default"}
 {"model": "kimi-k3", "category": "long_doc", "perf": 0.912, "tier": -3, "tier_source": "measured", "source_ref": "models.jsonl:perf_long_doc", "reasoning_effort": "default"}
-{"model": "kimi-k3", "category": "long_horizon", "perf": 0.85, "tier": -2, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:kimi k3", "reasoning_effort": "default"}
+{"model": "kimi-k3", "category": "long_horizon", "perf": 0.85, "tier": -3, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:kimi k3", "reasoning_effort": "default"}
 {"model": "kimi-k3", "category": "mechanical", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:MECHANICAL", "reasoning_effort": "default"}
 {"model": "kimi-k3", "category": "mock", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:MOCK", "reasoning_effort": "default"}
 {"model": "kimi-k3", "category": "multilingual", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:MULTILINGUAL", "reasoning_effort": "default"}
@@ -2524,7 +2540,7 @@
 {"model": "kimi-k3-fast", "category": "e2e_vision", "perf": 0.75, "tier": 2, "tier_source": "family", "source_ref": "alias:kimi-k3", "reasoning_effort": "default"}
 {"model": "kimi-k3-fast", "category": "guard", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:kimi-k3", "reasoning_effort": "default"}
 {"model": "kimi-k3-fast", "category": "long_doc", "perf": 0.912, "tier": -3, "tier_source": "family", "source_ref": "alias:kimi-k3", "reasoning_effort": "default"}
-{"model": "kimi-k3-fast", "category": "long_horizon", "perf": 0.85, "tier": -2, "tier_source": "family", "source_ref": "alias:kimi-k3", "reasoning_effort": "default"}
+{"model": "kimi-k3-fast", "category": "long_horizon", "perf": 0.85, "tier": -3, "tier_source": "family", "source_ref": "alias:kimi-k3", "reasoning_effort": "default"}
 {"model": "kimi-k3-fast", "category": "mechanical", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:kimi-k3", "reasoning_effort": "default"}
 {"model": "kimi-k3-fast", "category": "mock", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:kimi-k3", "reasoning_effort": "default"}
 {"model": "kimi-k3-fast", "category": "multilingual", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:kimi-k3", "reasoning_effort": "default"}
@@ -2545,7 +2561,7 @@
 {"model": "kimi-k3-flex", "category": "e2e_vision", "perf": 0.75, "tier": 2, "tier_source": "family", "source_ref": "alias:kimi-k3", "reasoning_effort": "default"}
 {"model": "kimi-k3-flex", "category": "guard", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:kimi-k3", "reasoning_effort": "default"}
 {"model": "kimi-k3-flex", "category": "long_doc", "perf": 0.912, "tier": -3, "tier_source": "family", "source_ref": "alias:kimi-k3", "reasoning_effort": "default"}
-{"model": "kimi-k3-flex", "category": "long_horizon", "perf": 0.85, "tier": -2, "tier_source": "family", "source_ref": "alias:kimi-k3", "reasoning_effort": "default"}
+{"model": "kimi-k3-flex", "category": "long_horizon", "perf": 0.85, "tier": -3, "tier_source": "family", "source_ref": "alias:kimi-k3", "reasoning_effort": "default"}
 {"model": "kimi-k3-flex", "category": "mechanical", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:kimi-k3", "reasoning_effort": "default"}
 {"model": "kimi-k3-flex", "category": "mock", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:kimi-k3", "reasoning_effort": "default"}
 {"model": "kimi-k3-flex", "category": "multilingual", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:kimi-k3", "reasoning_effort": "default"}
@@ -2850,7 +2866,7 @@
 {"model": "minimax-m3", "category": "e2e_vision", "perf": 0.55, "tier": 1, "tier_source": "measured", "source_ref": "models.jsonl:perf_e2e_vision", "reasoning_effort": "default"}
 {"model": "minimax-m3", "category": "guard", "perf": 0.0, "tier": -3, "tier_source": "bench", "source_ref": "bench:GUARD", "reasoning_effort": "default"}
 {"model": "minimax-m3", "category": "long_doc", "perf": 0.78, "tier": -3, "tier_source": "measured", "source_ref": "models.jsonl:perf_long_doc", "reasoning_effort": "default"}
-{"model": "minimax-m3", "category": "long_horizon", "perf": 0.85, "tier": -2, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:minimax m3", "reasoning_effort": "default"}
+{"model": "minimax-m3", "category": "long_horizon", "perf": 0.85, "tier": -3, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:minimax m3", "reasoning_effort": "default"}
 {"model": "minimax-m3", "category": "mechanical", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:MECHANICAL", "reasoning_effort": "default"}
 {"model": "minimax-m3", "category": "mock", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:MOCK", "reasoning_effort": "default"}
 {"model": "minimax-m3", "category": "multilingual", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:MULTILINGUAL", "reasoning_effort": "default"}
@@ -3188,12 +3204,44 @@
 {"model": "moonshotai/kimi-k3-agent", "category": "schema", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:SCHEMA", "reasoning_effort": "default"}
 {"model": "moonshotai/kimi-k3-agent", "category": "spec_docs", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:SPEC-DOCS", "reasoning_effort": "default"}
 {"model": "moonshotai/kimi-k3-agent", "category": "test", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:TEST", "reasoning_effort": "default"}
+{"model": "morph-dsv41flash", "category": "agent_tick", "perf": 0.75, "tier": 2, "tier_source": "bench", "source_ref": "bench:AGENT-TICK", "reasoning_effort": "default"}
+{"model": "morph-dsv41flash", "category": "code_gen", "perf": 0.667, "tier": 0, "tier_source": "bench", "source_ref": "bench:T2-CODE", "reasoning_effort": "default"}
+{"model": "morph-dsv41flash", "category": "debug", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:T5-DEBUG", "reasoning_effort": "default"}
+{"model": "morph-dsv41flash", "category": "delegation", "perf": 0.5, "tier": -2, "tier_source": "bench", "source_ref": "bench:DELEGATION", "reasoning_effort": "default"}
+{"model": "morph-dsv41flash", "category": "guard", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:GUARD", "reasoning_effort": "default"}
+{"model": "morph-dsv41flash", "category": "long_doc", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:LONG-DOC", "reasoning_effort": "default"}
+{"model": "morph-dsv41flash", "category": "long_horizon", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:LONG-HORIZON", "reasoning_effort": "default"}
+{"model": "morph-dsv41flash", "category": "mechanical", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:MECHANICAL", "reasoning_effort": "default"}
+{"model": "morph-dsv41flash", "category": "mock", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:MOCK", "reasoning_effort": "default"}
+{"model": "morph-dsv41flash", "category": "multilingual", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:MULTILINGUAL", "reasoning_effort": "default"}
+{"model": "morph-dsv41flash", "category": "reasoning", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:T3-REASON", "reasoning_effort": "default"}
+{"model": "morph-dsv41flash", "category": "review", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:REVIEW", "reasoning_effort": "default"}
+{"model": "morph-dsv41flash", "category": "schema", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:SCHEMA", "reasoning_effort": "default"}
+{"model": "morph-dsv41flash", "category": "spec_docs", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:SPEC-DOCS", "reasoning_effort": "default"}
+{"model": "morph-dsv41flash", "category": "test", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:TEST", "reasoning_effort": "default"}
+{"model": "morph-dsv41flash", "category": "tool_use", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:T1-TOOL", "reasoning_effort": "default"}
+{"model": "morph-dsv41flash-1017", "category": "agent_tick", "perf": 0.75, "tier": 2, "tier_source": "bench", "source_ref": "bench:AGENT-TICK", "reasoning_effort": "default"}
+{"model": "morph-dsv41flash-1017", "category": "code_gen", "perf": 0.667, "tier": 0, "tier_source": "bench", "source_ref": "bench:T2-CODE", "reasoning_effort": "default"}
+{"model": "morph-dsv41flash-1017", "category": "debug", "perf": 0.667, "tier": -1, "tier_source": "bench", "source_ref": "bench:T5-DEBUG", "reasoning_effort": "default"}
+{"model": "morph-dsv41flash-1017", "category": "delegation", "perf": 0.75, "tier": 1, "tier_source": "bench", "source_ref": "bench:DELEGATION", "reasoning_effort": "default"}
+{"model": "morph-dsv41flash-1017", "category": "guard", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:GUARD", "reasoning_effort": "default"}
+{"model": "morph-dsv41flash-1017", "category": "long_doc", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:LONG-DOC", "reasoning_effort": "default"}
+{"model": "morph-dsv41flash-1017", "category": "long_horizon", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:LONG-HORIZON", "reasoning_effort": "default"}
+{"model": "morph-dsv41flash-1017", "category": "mechanical", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:MECHANICAL", "reasoning_effort": "default"}
+{"model": "morph-dsv41flash-1017", "category": "mock", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:MOCK", "reasoning_effort": "default"}
+{"model": "morph-dsv41flash-1017", "category": "multilingual", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:MULTILINGUAL", "reasoning_effort": "default"}
+{"model": "morph-dsv41flash-1017", "category": "reasoning", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:T3-REASON", "reasoning_effort": "default"}
+{"model": "morph-dsv41flash-1017", "category": "review", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:REVIEW", "reasoning_effort": "default"}
+{"model": "morph-dsv41flash-1017", "category": "schema", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:SCHEMA", "reasoning_effort": "default"}
+{"model": "morph-dsv41flash-1017", "category": "spec_docs", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:SPEC-DOCS", "reasoning_effort": "default"}
+{"model": "morph-dsv41flash-1017", "category": "test", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:TEST", "reasoning_effort": "default"}
+{"model": "morph-dsv41flash-1017", "category": "tool_use", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:T1-TOOL", "reasoning_effort": "default"}
 {"model": "morph-glm52-744b", "category": "agent_tick", "perf": 0.75, "tier": 2, "tier_source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
 {"model": "morph-glm52-744b", "category": "code_gen", "perf": 0.629, "tier": -2, "tier_source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
 {"model": "morph-glm52-744b", "category": "creative", "perf": 0.45, "tier": 1, "tier_source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
 {"model": "morph-glm52-744b", "category": "debug", "perf": 0.5, "tier": -3, "tier_source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
 {"model": "morph-glm52-744b", "category": "delegation", "perf": 0.75, "tier": 1, "tier_source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
-{"model": "morph-glm52-744b", "category": "guard", "perf": 0.86, "tier": -1, "tier_source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
+{"model": "morph-glm52-744b", "category": "guard", "perf": 0.86, "tier": -2, "tier_source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
 {"model": "morph-glm52-744b", "category": "mock", "perf": 0.8, "tier": -4, "tier_source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
 {"model": "morph-glm52-744b", "category": "multilingual", "perf": 0.86, "tier": -3, "tier_source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
 {"model": "morph-glm52-744b", "category": "reasoning", "perf": 0.912, "tier": -2, "tier_source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
@@ -3214,7 +3262,7 @@
 {"model": "morph-glm53-744b", "category": "e2e_vision", "perf": 0.35, "tier": -2, "tier_source": "family", "source_ref": "alias:glm-5.3", "reasoning_effort": "default"}
 {"model": "morph-glm53-744b", "category": "guard", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:glm-5.3", "reasoning_effort": "default"}
 {"model": "morph-glm53-744b", "category": "long_doc", "perf": 0.8296, "tier": -3, "tier_source": "family", "source_ref": "alias:glm-5.3", "reasoning_effort": "default"}
-{"model": "morph-glm53-744b", "category": "long_horizon", "perf": 0.85, "tier": -2, "tier_source": "family", "source_ref": "alias:glm-5.3", "reasoning_effort": "default"}
+{"model": "morph-glm53-744b", "category": "long_horizon", "perf": 0.85, "tier": -3, "tier_source": "family", "source_ref": "alias:glm-5.3", "reasoning_effort": "default"}
 {"model": "morph-glm53-744b", "category": "mechanical", "perf": 0.833, "tier": -2, "tier_source": "family", "source_ref": "alias:glm-5.3", "reasoning_effort": "default"}
 {"model": "morph-glm53-744b", "category": "mock", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:glm-5.3", "reasoning_effort": "default"}
 {"model": "morph-glm53-744b", "category": "multilingual", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:glm-5.3", "reasoning_effort": "default"}
@@ -3256,7 +3304,7 @@
 {"model": "morph-kimik3", "category": "e2e_vision", "perf": 0.75, "tier": 2, "tier_source": "family", "source_ref": "alias:kimi-k3", "reasoning_effort": "default"}
 {"model": "morph-kimik3", "category": "guard", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:kimi-k3", "reasoning_effort": "default"}
 {"model": "morph-kimik3", "category": "long_doc", "perf": 0.912, "tier": -3, "tier_source": "family", "source_ref": "alias:kimi-k3", "reasoning_effort": "default"}
-{"model": "morph-kimik3", "category": "long_horizon", "perf": 0.85, "tier": -2, "tier_source": "family", "source_ref": "alias:kimi-k3", "reasoning_effort": "default"}
+{"model": "morph-kimik3", "category": "long_horizon", "perf": 0.85, "tier": -3, "tier_source": "family", "source_ref": "alias:kimi-k3", "reasoning_effort": "default"}
 {"model": "morph-kimik3", "category": "mechanical", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:kimi-k3", "reasoning_effort": "default"}
 {"model": "morph-kimik3", "category": "mock", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:kimi-k3", "reasoning_effort": "default"}
 {"model": "morph-kimik3", "category": "multilingual", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:kimi-k3", "reasoning_effort": "default"}
@@ -3277,7 +3325,7 @@
 {"model": "morph-kimik3-fast", "category": "e2e_vision", "perf": 0.75, "tier": 2, "tier_source": "family", "source_ref": "alias:kimi-k3", "reasoning_effort": "default"}
 {"model": "morph-kimik3-fast", "category": "guard", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:kimi-k3", "reasoning_effort": "default"}
 {"model": "morph-kimik3-fast", "category": "long_doc", "perf": 0.912, "tier": -3, "tier_source": "family", "source_ref": "alias:kimi-k3", "reasoning_effort": "default"}
-{"model": "morph-kimik3-fast", "category": "long_horizon", "perf": 0.85, "tier": -2, "tier_source": "family", "source_ref": "alias:kimi-k3", "reasoning_effort": "default"}
+{"model": "morph-kimik3-fast", "category": "long_horizon", "perf": 0.85, "tier": -3, "tier_source": "family", "source_ref": "alias:kimi-k3", "reasoning_effort": "default"}
 {"model": "morph-kimik3-fast", "category": "mechanical", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:kimi-k3", "reasoning_effort": "default"}
 {"model": "morph-kimik3-fast", "category": "mock", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:kimi-k3", "reasoning_effort": "default"}
 {"model": "morph-kimik3-fast", "category": "multilingual", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:kimi-k3", "reasoning_effort": "default"}
@@ -4141,7 +4189,7 @@
 {"model": "qwen3.8-flash", "category": "agent_tick", "perf": 0.739, "tier": -3, "tier_source": "bench", "source_ref": "bench:CoWorkBench research-bench-2026-08-27", "reasoning_effort": "default"}
 {"model": "qwen3.8-flash", "category": "code_gen", "perf": 0.85, "tier": 2, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:qwen3.8-flash", "reasoning_effort": "default"}
 {"model": "qwen3.8-flash", "category": "creative", "perf": 0.45, "tier": 1, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:qwen3.8-flash", "reasoning_effort": "default"}
-{"model": "qwen3.8-flash", "category": "long_horizon", "perf": 0.85, "tier": -2, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:qwen3.8-flash", "reasoning_effort": "default"}
+{"model": "qwen3.8-flash", "category": "long_horizon", "perf": 0.85, "tier": -3, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:qwen3.8-flash", "reasoning_effort": "default"}
 {"model": "qwen3.8-flash", "category": "multilingual", "perf": 0.81, "tier": -4, "tier_source": "bench", "source_ref": "bench:SWE-bench Multilingual research-bench-2026-08-27", "reasoning_effort": "default"}
 {"model": "qwen3.8-flash", "category": "reasoning", "perf": 0.917, "tier": -2, "tier_source": "bench", "source_ref": "bench:GPQA", "reasoning_effort": "default"}
 {"model": "qwen3.8-flash", "category": "refactor", "perf": 0.72, "tier": 3, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:qwen3.8-flash", "reasoning_effort": "default"}
@@ -4199,9 +4247,9 @@
 {"model": "space-bunny-free", "category": "debug", "perf": 0.75, "tier": 0, "tier_source": "estimate", "source_ref": "CATEGORY_ESTIMATES", "reasoning_effort": "default"}
 {"model": "space-bunny-free", "category": "delegation", "perf": 0.5, "tier": -2, "tier_source": "estimate", "source_ref": "CATEGORY_ESTIMATES", "reasoning_effort": "default"}
 {"model": "space-bunny-free", "category": "e2e_vision", "perf": 0.55, "tier": 1, "tier_source": "estimate", "source_ref": "CATEGORY_ESTIMATES", "reasoning_effort": "default"}
-{"model": "space-bunny-free", "category": "guard", "perf": 0.86, "tier": -1, "tier_source": "estimate", "source_ref": "QUALITY_ESTIMATES", "reasoning_effort": "default"}
+{"model": "space-bunny-free", "category": "guard", "perf": 0.86, "tier": -2, "tier_source": "estimate", "source_ref": "QUALITY_ESTIMATES", "reasoning_effort": "default"}
 {"model": "space-bunny-free", "category": "long_doc", "perf": 0.78, "tier": -3, "tier_source": "estimate", "source_ref": "CATEGORY_ESTIMATES", "reasoning_effort": "default"}
-{"model": "space-bunny-free", "category": "long_horizon", "perf": 0.85, "tier": -2, "tier_source": "estimate", "source_ref": "CATEGORY_ESTIMATES", "reasoning_effort": "default"}
+{"model": "space-bunny-free", "category": "long_horizon", "perf": 0.85, "tier": -3, "tier_source": "estimate", "source_ref": "CATEGORY_ESTIMATES", "reasoning_effort": "default"}
 {"model": "space-bunny-free", "category": "mock", "perf": 0.84, "tier": -2, "tier_source": "estimate", "source_ref": "QUALITY_ESTIMATES", "reasoning_effort": "default"}
 {"model": "space-bunny-free", "category": "reasoning", "perf": 0.8, "tier": -3, "tier_source": "estimate", "source_ref": "CATEGORY_ESTIMATES", "reasoning_effort": "default"}
 {"model": "space-bunny-free", "category": "refactor", "perf": 0.75, "tier": 4, "tier_source": "estimate", "source_ref": "CATEGORY_ESTIMATES", "reasoning_effort": "default"}
@@ -4230,9 +4278,9 @@
 {"model": "stealth/space-bunny-alpha", "category": "debug", "perf": 0.75, "tier": 0, "tier_source": "estimate", "source_ref": "CATEGORY_ESTIMATES", "reasoning_effort": "default"}
 {"model": "stealth/space-bunny-alpha", "category": "delegation", "perf": 0.5, "tier": -2, "tier_source": "estimate", "source_ref": "CATEGORY_ESTIMATES", "reasoning_effort": "default"}
 {"model": "stealth/space-bunny-alpha", "category": "e2e_vision", "perf": 0.55, "tier": 1, "tier_source": "estimate", "source_ref": "CATEGORY_ESTIMATES", "reasoning_effort": "default"}
-{"model": "stealth/space-bunny-alpha", "category": "guard", "perf": 0.86, "tier": -1, "tier_source": "estimate", "source_ref": "QUALITY_ESTIMATES", "reasoning_effort": "default"}
+{"model": "stealth/space-bunny-alpha", "category": "guard", "perf": 0.86, "tier": -2, "tier_source": "estimate", "source_ref": "QUALITY_ESTIMATES", "reasoning_effort": "default"}
 {"model": "stealth/space-bunny-alpha", "category": "long_doc", "perf": 0.78, "tier": -3, "tier_source": "estimate", "source_ref": "CATEGORY_ESTIMATES", "reasoning_effort": "default"}
-{"model": "stealth/space-bunny-alpha", "category": "long_horizon", "perf": 0.85, "tier": -2, "tier_source": "estimate", "source_ref": "CATEGORY_ESTIMATES", "reasoning_effort": "default"}
+{"model": "stealth/space-bunny-alpha", "category": "long_horizon", "perf": 0.85, "tier": -3, "tier_source": "estimate", "source_ref": "CATEGORY_ESTIMATES", "reasoning_effort": "default"}
 {"model": "stealth/space-bunny-alpha", "category": "mock", "perf": 0.84, "tier": -2, "tier_source": "estimate", "source_ref": "QUALITY_ESTIMATES", "reasoning_effort": "default"}
 {"model": "stealth/space-bunny-alpha", "category": "reasoning", "perf": 0.8, "tier": -3, "tier_source": "estimate", "source_ref": "CATEGORY_ESTIMATES", "reasoning_effort": "default"}
 {"model": "stealth/space-bunny-alpha", "category": "refactor", "perf": 0.75, "tier": 4, "tier_source": "estimate", "source_ref": "CATEGORY_ESTIMATES", "reasoning_effort": "default"}
@@ -4285,7 +4333,7 @@
 {"model": "step-3.7-flash", "category": "terminal", "perf": 0.5954999999999999, "tier": -3, "tier_source": "bench", "source_ref": "bench:Terminal-Bench", "reasoning_effort": "default"}
 {"model": "step-3.7-flash", "category": "test", "perf": 0.95, "tier": -1, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:step 3", "reasoning_effort": "default"}
 {"model": "step-3.7-flash", "category": "tool_use", "perf": 0.25, "tier": -5, "tier_source": "bench", "source_ref": "bench:battery-T1-TOOL", "reasoning_effort": "default"}
-{"model": "step-3.7-flash", "category": "vision", "perf": 0.972051282051282, "tier": 3, "tier_source": "bench", "source_ref": "bench:BrowseComp multimodal", "reasoning_effort": "default"}
+{"model": "step-3.7-flash", "category": "vision", "perf": 0.972051282051282, "tier": 4, "tier_source": "bench", "source_ref": "bench:BrowseComp multimodal", "reasoning_effort": "default"}
 {"model": "step-5-preview", "category": "agent_tick", "perf": 0.75, "tier": 2, "tier_source": "family", "source_ref": "alias:stepfun/step-5-preview", "reasoning_effort": "default"}
 {"model": "step-5-preview", "category": "code_gen", "perf": 0.8375, "tier": 2, "tier_source": "bench", "source_ref": "bench:research-bench-2026-10-23: MindStudio Kingbench 8-task coding eval 83.75% (n=8 community tasks: archery game .. local Gemma fine-tune; small-n, treated as a directional tier signal only)", "reasoning_effort": "default"}
 {"model": "step-5-preview", "category": "debug", "perf": 0.667, "tier": -1, "tier_source": "family", "source_ref": "alias:stepfun/step-5-preview", "reasoning_effort": "default"}
@@ -4335,7 +4383,7 @@
 {"model": "stepfun/Step-3.7-Flash", "category": "terminal", "perf": 0.5954999999999999, "tier": -3, "tier_source": "family", "source_ref": "alias:step-3.7-flash", "reasoning_effort": "default"}
 {"model": "stepfun/Step-3.7-Flash", "category": "test", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/TEST", "reasoning_effort": "default"}
 {"model": "stepfun/Step-3.7-Flash", "category": "tool_use", "perf": 0.667, "tier": -2, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T1-TOOL", "reasoning_effort": "default"}
-{"model": "stepfun/Step-3.7-Flash", "category": "vision", "perf": 0.972051282051282, "tier": 3, "tier_source": "family", "source_ref": "alias:step-3.7-flash", "reasoning_effort": "default"}
+{"model": "stepfun/Step-3.7-Flash", "category": "vision", "perf": 0.972051282051282, "tier": 4, "tier_source": "family", "source_ref": "alias:step-3.7-flash", "reasoning_effort": "default"}
 {"model": "stepfun/Step-5-Preview", "category": "agent_tick", "perf": 0.75, "tier": 2, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/AGENT-TICK", "reasoning_effort": "default"}
 {"model": "stepfun/Step-5-Preview", "category": "code_gen", "perf": 0.667, "tier": 0, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T2-CODE", "reasoning_effort": "default"}
 {"model": "stepfun/Step-5-Preview", "category": "debug", "perf": 0.667, "tier": -1, "tier_source": "bench", "source_ref": "bench:live-probe-2026-09-27/T5-DEBUG", "reasoning_effort": "default"}
@@ -4365,7 +4413,7 @@
 {"model": "tencent/hy3", "category": "mechanical", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:hy3", "reasoning_effort": "default"}
 {"model": "tencent/hy3", "category": "mock", "perf": 0.833, "tier": -2, "tier_source": "family", "source_ref": "alias:hy3", "reasoning_effort": "default"}
 {"model": "tencent/hy3", "category": "multilingual", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:hy3", "reasoning_effort": "default"}
-{"model": "tencent/hy3", "category": "reasoning", "perf": 0.897, "tier": -2, "tier_source": "family", "source_ref": "alias:hy3", "reasoning_effort": "default"}
+{"model": "tencent/hy3", "category": "reasoning", "perf": 0.897, "tier": -3, "tier_source": "family", "source_ref": "alias:hy3", "reasoning_effort": "default"}
 {"model": "tencent/hy3", "category": "refactor", "perf": 0.5, "tier": 1, "tier_source": "family", "source_ref": "alias:hy3", "reasoning_effort": "default"}
 {"model": "tencent/hy3", "category": "review", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:hy3", "reasoning_effort": "default"}
 {"model": "tencent/hy3", "category": "schema", "perf": 0.5, "tier": -3, "tier_source": "family", "source_ref": "alias:hy3", "reasoning_effort": "default"}
@@ -4383,7 +4431,7 @@
 {"model": "tencent/hy3-paid", "category": "mechanical", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:hy3", "reasoning_effort": "default"}
 {"model": "tencent/hy3-paid", "category": "mock", "perf": 0.833, "tier": -2, "tier_source": "family", "source_ref": "alias:hy3", "reasoning_effort": "default"}
 {"model": "tencent/hy3-paid", "category": "multilingual", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:hy3", "reasoning_effort": "default"}
-{"model": "tencent/hy3-paid", "category": "reasoning", "perf": 0.897, "tier": -2, "tier_source": "family", "source_ref": "alias:hy3", "reasoning_effort": "default"}
+{"model": "tencent/hy3-paid", "category": "reasoning", "perf": 0.897, "tier": -3, "tier_source": "family", "source_ref": "alias:hy3", "reasoning_effort": "default"}
 {"model": "tencent/hy3-paid", "category": "refactor", "perf": 0.5, "tier": 1, "tier_source": "family", "source_ref": "alias:hy3", "reasoning_effort": "default"}
 {"model": "tencent/hy3-paid", "category": "review", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:hy3", "reasoning_effort": "default"}
 {"model": "tencent/hy3-paid", "category": "schema", "perf": 0.5, "tier": -3, "tier_source": "family", "source_ref": "alias:hy3", "reasoning_effort": "default"}
@@ -4690,7 +4738,7 @@
 {"model": "z-ai/glm-5.3", "category": "code_gen", "perf": 0.85, "tier": 2, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:glm-5.3", "reasoning_effort": "default"}
 {"model": "z-ai/glm-5.3", "category": "creative", "perf": 0.45, "tier": 1, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:glm-5.3", "reasoning_effort": "default"}
 {"model": "z-ai/glm-5.3", "category": "guard", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:GUARD", "reasoning_effort": "default"}
-{"model": "z-ai/glm-5.3", "category": "long_horizon", "perf": 0.85, "tier": -2, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:glm-5.3", "reasoning_effort": "default"}
+{"model": "z-ai/glm-5.3", "category": "long_horizon", "perf": 0.85, "tier": -3, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:glm-5.3", "reasoning_effort": "default"}
 {"model": "z-ai/glm-5.3", "category": "refactor", "perf": 0.72, "tier": 3, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:glm-5.3", "reasoning_effort": "default"}
 {"model": "z-ai/glm-5.3", "category": "review", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:REVIEW", "reasoning_effort": "default"}
 {"model": "z-ai/glm-5.3", "category": "security", "perf": 0.85, "tier": 2, "tier_source": "estimate", "source_ref": "PROFILE_TAGS:glm-5.3", "reasoning_effort": "default"}
@@ -4759,7 +4807,7 @@
 {"model": "zai-org/GLM-5.2", "category": "creative", "perf": 0.45, "tier": 1, "tier_source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
 {"model": "zai-org/GLM-5.2", "category": "debug", "perf": 0.5, "tier": -3, "tier_source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
 {"model": "zai-org/GLM-5.2", "category": "delegation", "perf": 0.75, "tier": 1, "tier_source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
-{"model": "zai-org/GLM-5.2", "category": "guard", "perf": 0.86, "tier": -1, "tier_source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
+{"model": "zai-org/GLM-5.2", "category": "guard", "perf": 0.86, "tier": -2, "tier_source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
 {"model": "zai-org/GLM-5.2", "category": "mock", "perf": 0.8, "tier": -4, "tier_source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
 {"model": "zai-org/GLM-5.2", "category": "multilingual", "perf": 0.86, "tier": -3, "tier_source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
 {"model": "zai-org/GLM-5.2", "category": "reasoning", "perf": 0.912, "tier": -2, "tier_source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
@@ -4879,7 +4927,7 @@
 {"model": "~moonshotai/kimi-latest", "category": "e2e_vision", "perf": 0.75, "tier": 2, "tier_source": "family", "source_ref": "alias:accounts/fireworks/routers/kimi-latest", "reasoning_effort": "default"}
 {"model": "~moonshotai/kimi-latest", "category": "guard", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:accounts/fireworks/routers/kimi-latest", "reasoning_effort": "default"}
 {"model": "~moonshotai/kimi-latest", "category": "long_doc", "perf": 0.912, "tier": -3, "tier_source": "family", "source_ref": "alias:accounts/fireworks/routers/kimi-latest", "reasoning_effort": "default"}
-{"model": "~moonshotai/kimi-latest", "category": "long_horizon", "perf": 0.85, "tier": -2, "tier_source": "family", "source_ref": "alias:accounts/fireworks/routers/kimi-latest", "reasoning_effort": "default"}
+{"model": "~moonshotai/kimi-latest", "category": "long_horizon", "perf": 0.85, "tier": -3, "tier_source": "family", "source_ref": "alias:accounts/fireworks/routers/kimi-latest", "reasoning_effort": "default"}
 {"model": "~moonshotai/kimi-latest", "category": "mechanical", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:accounts/fireworks/routers/kimi-latest", "reasoning_effort": "default"}
 {"model": "~moonshotai/kimi-latest", "category": "mock", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:accounts/fireworks/routers/kimi-latest", "reasoning_effort": "default"}
 {"model": "~moonshotai/kimi-latest", "category": "multilingual", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:accounts/fireworks/routers/kimi-latest", "reasoning_effort": "default"}
@@ -4923,7 +4971,7 @@
 {"model": "~z-ai/glm-latest", "category": "e2e_vision", "perf": 0.35, "tier": -2, "tier_source": "family", "source_ref": "alias:accounts/fireworks/routers/glm-latest", "reasoning_effort": "default"}
 {"model": "~z-ai/glm-latest", "category": "guard", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:accounts/fireworks/routers/glm-latest", "reasoning_effort": "default"}
 {"model": "~z-ai/glm-latest", "category": "long_doc", "perf": 0.8296, "tier": -3, "tier_source": "family", "source_ref": "alias:accounts/fireworks/routers/glm-latest", "reasoning_effort": "default"}
-{"model": "~z-ai/glm-latest", "category": "long_horizon", "perf": 0.85, "tier": -2, "tier_source": "family", "source_ref": "alias:accounts/fireworks/routers/glm-latest", "reasoning_effort": "default"}
+{"model": "~z-ai/glm-latest", "category": "long_horizon", "perf": 0.85, "tier": -3, "tier_source": "family", "source_ref": "alias:accounts/fireworks/routers/glm-latest", "reasoning_effort": "default"}
 {"model": "~z-ai/glm-latest", "category": "mechanical", "perf": 0.833, "tier": -2, "tier_source": "family", "source_ref": "alias:accounts/fireworks/routers/glm-latest", "reasoning_effort": "default"}
 {"model": "~z-ai/glm-latest", "category": "mock", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:accounts/fireworks/routers/glm-latest", "reasoning_effort": "default"}
 {"model": "~z-ai/glm-latest", "category": "multilingual", "perf": 1.0, "tier": 5, "tier_source": "family", "source_ref": "alias:accounts/fireworks/routers/glm-latest", "reasoning_effort": "default"}
