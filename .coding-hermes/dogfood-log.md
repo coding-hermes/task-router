@@ -828,3 +828,68 @@ forbids.
 
 **Filed: 0 rows. Left behind: this entry only.** No product code, no existing row's status, no
 visibility, permission, scheduler state or credential touched.
+
+---
+
+## run 46e — 2026-11-15T18:59Z — skill-driven EXECUTOR fire: real use on a fresh clone
+
+Fire 6 of tick `task-router-dogfood-2026-11-15-15-59-32`. Fires 3–5 were records/arithmetic work on run 46's
+numbers; this fire used the product, from a machine-state that had never held it.
+
+**Fresh-machine leg, and it produced two findings.** `git clone` of `origin/main` (**5ce46384**) into scratch:
+**4 s**. `uv venv` + `UV_LINK_MODE=copy uv pip install -e '.[dev]'`: **5 s**. `router --help`: rc 0. Then I ran
+`README.md:34-46` verbatim against a clean `TASK_ROUTER_HOME`:
+
+- `router seed` → **rc 1**, `Seeding REFUSED: … add a routable lane for the categories above, or re-run with
+  --allow-unsatisfiable` (blocked capability **math levels 0..5**; its only holder `ollama-cloud/qwen3.5:397b`
+  tier 5 is disabled and unpriced). `registry.json` is therefore never written, and `router validate` → **rc 1**
+  on `registry.exists`.
+- **README:42-45 never says the bare command can refuse**, and `--allow-unsatisfiable` appears only in
+  `skills/task-router-usage/SKILL.md:43`. The first documented command of the quickstart fails on a clean
+  checkout and the recovery path lives outside the README → **filed `TR-1000976681059263`** (P2).
+- With the flag: `router seed --allow-unsatisfiable` rc 0 in **17 s** (registry.json **7.97 MB**, 100,905
+  `metrics.jsonl` lines), `validate` rc 0, `spawn` rc 0. **Time-to-first-success on a fresh clone = ~27 s**
+  (4 + 5 + 17 + <1 + <1) — and **blocked at step 1** for a user who does not know the flag. That is the first
+  hard TTFS number this lane has measured end to end; earlier fires explicitly refused to inherit one.
+
+**The text renderer lies by omission, and this is the surface a human reads.** Same tree, isolated home:
+`router spawn my-project --format json --quiet` reports `chain` length **71** and **14** exclusions
+(68,926 bytes / 2,568 lines). `router spawn my-project --format text` prints HEAD, exactly **5** hop lines, all
+**14** `EXCLUDED` lines, and stops at **21** lines / 3,236 bytes — no ellipsis, no "of 71", no way to ask for the
+rest (`router spawn --help` exposes no `--all` / `--full` / `--limit`). Cause is a literal slice:
+`scripts/router_spawn.py:5643` `for c in r.get('chain', [])[1:6]:`, while exclusions at `:5646` print in full.
+A user reading the compact view concludes `my-project` has five fallbacks; it has seventy-one → **filed
+`TR-1000976681059262`** (P2). This is the render-layer twin of the silent-omission class the board already
+tracks (TR-081), and it was invisible to every previous fire because nobody ran the text format and counted.
+
+**Perf: measured, not user-noticeable, no PERF row.** `router spawn my-project --format json --quiet`, repo
+venv, isolated home: cold **0.49 s**, warm **0.43 / 0.41 / 0.39 s**, maxrss **75,336 kB** — while re-reading a
+**7.97 MB** `registry.json` and emitting **68,926 bytes**. Nothing here is slow enough that a user would notice,
+so filing a `PERF-` row would devalue the real ones; recorded as a number only. The payload asymmetry is the
+finding above, not a latency finding.
+
+**Install leg: settled, cited, not re-run — never silently passed.** `bunker status --server bunker-mvp`:
+ONLINE, disk **83 % (125.1/149.9 GB)**, **3/50** agents — still inside the 94 % admission gate, so
+`TR-1000976681059255-R3`'s "both hosts refuse" premise is stale for the third read and its status is untouched.
+Today's cells in `.coding-hermes/evidence/`: `DOGFOOD-2026-11-15-171454-bunker.jsonl` and
+`DOGFOOD-2026-11-15-1822-bunker-battery.jsonl` — fresh-install **OK** (duckdb 2.0.0, pyyaml 6.0.3,
+task-router 0.2.0), tests **FAIL** (already owned by `QA-TASKROUTER-14`), act ci-pass killed by budget
+(`QA-TASKROUTER-20-R2`). No `.logs` directory was collected for the 18:22 battery, so the tests cell cannot be
+attributed past its verdict — noted, not re-filed; the recurrence chain already runs to `-R4`, a fifth sibling
+would be noise.
+
+**Board writes verified, not asserted.** `boardctl create` appended both rows; `grep -c` of each id in
+`tasks.jsonl` = **1**; their events are `…052 → …053 → …054`, ascending and paired (the run-46 trio's
+missing-event defect does not repeat here). `boardctl validate` on **HEAD** and on the working tree both report
+`RESULT: FAIL (455 error(s), 590 warning(s))` — **identical**, so my two rows added zero errors; `0` error lines
+name either new row. The class is owned by `TR-1000976681059249` (415 → 455 errors since it was filed) and
+`TR-1000976681059258`; disclosed, not re-filed.
+
+**Verdict: PROMISING-BUT-ROUGH**, now with specifics instead of impressions — a stranger can install it in
+4 + 5 seconds and reach a routable answer in ~27 s, but the documented first command fails and the human-readable
+spawn view under-reports the chain by 66 hops without saying so.
+
+**Filed: 2 rows (`TR-1000976681059262`, `TR-1000976681059263`). Left behind: this entry,
+`.coding-hermes/evidence/DOGFOOD-2026-11-15-1859-taskrouter-46e.jsonl`, and
+`docs/dogfood/2026-11-15-run46e-{diagnostics,integration}.md`.** No product code, no existing row's status, no
+visibility, permission, scheduler state or credential touched.
