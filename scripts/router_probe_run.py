@@ -187,7 +187,7 @@ def resolve(prov: Any, prov_cfg: Any, env: Any, probe_data: Any=None) -> tuple:
     if not base:
         if d_base:
             base, key_env, extra = d_base, d_key_env, d_extra
-    elif d_extra:
+    elif d_extra or (d_key_env and not key_env):
         # config.yaml carries the ROUTE (base + key); probe_providers.jsonl
         # carries the MEASUREMENT contract (a required session header, TR-233).
         # Dropping the header just because config listed the provider first is
@@ -195,6 +195,13 @@ def resolve(prov: Any, prov_cfg: Any, env: Any, probe_data: Any=None) -> tuple:
         merged = dict(d_extra)
         merged.update(extra or {})
         extra = merged
+        # Same split for the credential: a config.yaml provider entry with
+        # `api_key_env: null` names no variable at all, yet the data file does
+        # (morph: config has the base_url, MORPHLLM_API_KEY lives in .env, and
+        # resolve() reported "key env None absent from .env" for all three
+        # lanes). Config still wins when it DOES name a variable.
+        if not key_env and d_key_env:
+            key_env = d_key_env
     if not base:
         return None, None, ('no base_url for %s in config.yaml or '
                             'data/tables/%s' % (prov, PROBE_PROVIDERS_FILE))

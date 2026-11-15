@@ -140,6 +140,50 @@ def test_unknown_provider_reason_names_both_sources(hermetic):
     assert "config.yaml" in why and "probe_providers.jsonl" in why
 
 
+# ------------------------------------- key_env fallback (morph, 2026-11-15) ----
+# A config.yaml provider entry that carries the base_url but leaves
+# `api_key_env: null` names NO variable, so resolve() reported
+# "key env None absent from .env" for every lane of that provider even though
+# the data file named the variable and the key was in .env. morph was
+# unprobeable for exactly this reason (three lanes, zero capability rows).
+
+def test_config_base_with_null_key_env_falls_back_to_probe_data(hermetic):
+    cfg = hermetic["home"] / ".hermes" / "config.yaml"
+    cfg.write_text(cfg.read_text() +
+                   "  morph:\n"
+                   "    base_url: https://api.morphllm.com/v1\n"
+                   "    api_key_env: null\n")
+    (hermetic["home"] / ".hermes" / ".env").write_text(
+        "MORPHLLM_API_KEY=sk-fake-morph\n", encoding="utf-8")
+    _write_probe_data(
+        hermetic["data"],
+        [{"id": "morph", "base_url": "https://api.morphllm.com/v1",
+          "key_env": "MORPHLLM_API_KEY", "enabled": True}])
+    base, key, extra = rpr.resolve("morph", rpr.load_providers(), rpr.load_env(),
+                                   rpr.load_probe_providers())
+    assert base == "https://api.morphllm.com/v1"      # config still owns the route
+    assert key == "sk-fake-morph"                     # data file supplies the var
+    assert extra == {}
+
+
+def test_config_key_env_still_wins_over_probe_data(hermetic):
+    """Control: a config entry that DOES name a variable is never overridden."""
+    cfg = hermetic["home"] / ".hermes" / "config.yaml"
+    cfg.write_text(cfg.read_text() +
+                   "  morph:\n"
+                   "    base_url: https://api.morphllm.com/v1\n"
+                   "    api_key_env: CONFIG_MORPH_KEY\n")
+    (hermetic["home"] / ".hermes" / ".env").write_text(
+        "CONFIG_MORPH_KEY=sk-config\nMORPHLLM_API_KEY=sk-data\n", encoding="utf-8")
+    _write_probe_data(
+        hermetic["data"],
+        [{"id": "morph", "base_url": "https://api.morphllm.com/v1",
+          "key_env": "MORPHLLM_API_KEY", "enabled": True}])
+    _, key, _ = rpr.resolve("morph", rpr.load_providers(), rpr.load_env(),
+                            rpr.load_probe_providers())
+    assert key == "sk-config"
+
+
 def test_missing_key_env_still_skips_with_env_name(hermetic):
     """The fallback finds base_url but the key env is absent -> skip names the
     env var (a calibration fact, not a silent drop)."""
