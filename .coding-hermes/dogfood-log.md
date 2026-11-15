@@ -893,3 +893,52 @@ spawn view under-reports the chain by 66 hops without saying so.
 `.coding-hermes/evidence/DOGFOOD-2026-11-15-1859-taskrouter-46e.jsonl`, and
 `docs/dogfood/2026-11-15-run46e-{diagnostics,integration}.md`.** No product code, no existing row's status, no
 visibility, permission, scheduler state or credential touched.
+
+## run 46f — 2026-11-15T20:15Z — skill-driven EXECUTOR fire: first real use of `router chain-run`
+
+Fire 46f of tick `task-router-dogfood-2026-11-15-15-59-32`, measured at HEAD `b6731033` (product tree identical
+to 46e's `5ce46384` — the diff is records and docs only). Fires 46/46b–46e covered install, seed and `spawn`; this
+one used the command a user actually wires into their own loop, chosen because it had **0** mentions in this log
+and **0** use rows on the board.
+
+**The happy path is real.** A caller that fails only on hop 13 walked 13 → 14 and stopped on the first success:
+`xkiro/openai/gpt-6-luna` rc 1 → `transport-failure`, `xkiro-2/openai/gpt-6-luna` rc 0 → `success=true
+final=xkiro-2`, with `ROUTER_HOP`/`ROUTER_PROVIDER`/`ROUTER_MODEL` correct per attempt. `attempts[]` carries rc,
+latency and error — an earlier suspicion that it did not was checked and dropped rather than filed.
+
+**The failures are all contract failures, and each was reproduced twice.** (1) Five hops failing and
+`--max-hops 1` failing both return **rc 0** with `success=false final=null` — `if router chain-run …; then`
+deploys on total failure. (2) `scripts/router_chain_run.py:104-106` classifies *every* non-zero caller exit as
+`transport-failure`, so a deterministic `exit 3` is replayed across the 71-hop chain — 25,028 ms for 5 hops, ~5-6
+min for the full walk — with no `--stop-on-rc`. (3) `README.md:632` says `` `router <cmd>` everywhere` `` while
+`chain-run` returns rc 2 outside a checkout and its own message says the `scripts/` tools ship with the checkout,
+not the wheel; `spawn`/`status`/`estimate` all returned rc 0 from the same scratch cwd. (4) `outcomes.jsonl` has
+2 torn lines (436576, 436577 — line 436577 is a truncated router-proxy prefix spliced onto a hermes row) from
+interleaved appends; verified with `jq` per line rather than trusting the stderr notice.
+
+**Perf: this one a user can feel, so it got a row.** Same command, same dir: 1 hop **6,336 ms**, warm
+**6,882 / 6,438 ms**, 2 hops **14,050 ms**, 5 hops **25,028 ms**, against a caller command that takes **0.019 s**;
+control `--dry-run --max-hops 1` is **413 ms**. cProfile (2 failing attempts, 9.897 s): **954,560** `json.loads`
+calls costing **6.091 s** — ≈475k per attempt, the line count of the 413 MB ledger — via
+`router_data_cache.py:471-477` from `router_spawn.py:1851(load_outcome_stats)`, even though every resolved hop
+already carries an `outcomes` block. The `time.sleep` 2.484 s in the profile is the background `_poll_loop`
+thread and is *not* counted in the per-hop number.
+
+**Install leg: settled, cited, not re-run.** Fresh-clone install was measured by 46e on this same product tree
+(4 s + 5 s, `router --help` rc 0) and the tree has not changed since; `bunker status --server bunker-mvp`:
+ONLINE, 3/50 agents, 0 orphan users/homes, 20 orphan keys, disk 83 % (125.0/149.9 GB) inside the 94 % gate.
+Recorded in the evidence artifact — neither a silent pass nor a SKIPPED row.
+
+**Board writes verified, not asserted.** Five rows appended with a run id and the evidence sha256; `grep -c` of
+each id in `tasks.jsonl` = **1**; `boardctl validate` on the working tree `FAIL (455 error(s), 590 warning(s))`
+against the `origin/main` baseline's `(455 error(s), 591 warning(s))` — same error count, no error line naming
+any new id, so the 455 are the board's own pre-existing `events.jsonl` debt.
+
+**Verdict: PROMISING-BUT-UNSAFE-TO-AUTOMATE** — good design and unusually good diagnostics, missing the contract
+layer: an exit status a shell can trust, a way to say "do not retry this", and a per-hop cost that does not grow
+with operator history.
+
+**Filed: 5 rows (`TR-1000976681059264` P1, `TR-1000976681059265` P2, `PERF-1` P2, `TR-1000976681059266` P3,
+`DOC-19` P3). Left behind: this entry, `.coding-hermes/evidence/DOGFOOD-2026-11-15-2015-taskrouter-46f.jsonl`
+(8 records: 1 run header + 7 steps), `docs/dogfood/2026-11-15-run46f-diagnostics.md` and `docs/dogfood/2026-11-15-run46f-integration.md`.**
+No product code, no existing row's status, no visibility, permission, scheduler state or credential touched.
