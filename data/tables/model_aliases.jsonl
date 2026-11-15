@@ -247,3 +247,7 @@
 {"model": "morph-kimik3", "inherits": "kimi-k3", "note": "2026-11-13 probe battery: morph serves Kimi K3, same weights; sticker 2.5/14 vs kimi-k3 3.0/15; chat 200 pong"}
 {"model": "morph-kimik3-fast", "inherits": "kimi-k3", "note": "2026-11-13 probe battery: morph K3 speed lane, same weights as the kimi-k3-fast pattern; sticker 6.0/22.5 fast-tier premium; chat 200 pong"}
 {"model": "longcat-2.5-free", "inherits": "longcat-2.5-preview", "note": "2026-11-13 probe battery: opencode-go free serving of LongCat-2.5-preview, same weights; precedent meituan/longcat-2.5-preview:free alias; chat 200 pong"}
+{"model": "deepseek-v4.1-flash-speed", "inherits": "deepseek-v4.1-flash", "note": "speed lane = same weights, faster serving; sticker 0.15 == base 0.15 (neuralwatt, 2026-11-15 models.dev arrival)"}
+{"model": "kimi-k3.1-pro-flex", "inherits": "kimi-k3.1-pro", "note": "flex lane = same weights, cheaper serving; sticker 1.3 = 0.65x of base 2.0, neuralwatt flex convention (2026-11-15)"}
+{"model": "hf:moonshotai/Kimi-K3.1-Pro", "inherits": "kimi-k3.1-pro", "note": "hf: explicit id = same weights; sticker 2.0 == family 2.0 (synthetic, 2026-11-15 arrival)"}
+{"model": "hf:Qwen/Qwen3.8-27B", "inherits": "qwen3.8-27b", "note": "hf: explicit id = same weights; sticker 0.45 inside family range 0.42-0.8 (synthetic, 2026-11-15 arrival)"}

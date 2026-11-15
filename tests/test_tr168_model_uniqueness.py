@@ -596,7 +596,23 @@ POST_DEDUPE_ADDITIONS = {
     ("openrouter", "google/gemini-4-hydrogen:batch"): "models.dev sync 2026-11-13 — priced :batch mirror, TR-362 usability ratchet disable (unmeasured)",
     ("openrouter", "particle-ai/particle-1:free"): "models.dev sync 2026-11-13 — :free teaser arrival, probe battery 2026-11-13 200 pong, re-disabled on TR-369 zero headroom",
     ("openrouter", "thinkingmachines/inkling-2-small"): "models.dev sync 2026-11-13 — priced arrival, probe battery 2026-11-13 200 pong, re-disabled on TR-369 zero headroom",
-
+    # 2026-11-15 tick: 14 arrivals — 12 models.dev wave (9 neuralwatt incl. 6 nw-* TR-362-disabled no-measured-base;
+    # 2 synthetic hf: alias-tier'd; ollama-cloud inkling-2-small unpriced bucket-plan) + 2 clinepass ephemeral
+    # nightly SKUs (sync auto-disabled, PAYG-outside-plan sweep). All arrival-day gated (lesson arrival-day-tier-or-disable-executed).
+    ("neuralwatt", "deepseek-v4.1-flash-speed"): "models.dev sync 2026-11-15 — -speed serving variant, sticker 0.15==base, alias-tier'd",
+    ("neuralwatt", "kimi-k3.1-pro"): "models.dev sync 2026-11-15 — exact-name match to measured family, sticker-priced",
+    ("neuralwatt", "kimi-k3.1-pro-flex"): "models.dev sync 2026-11-15 — flex variant 0.65x base, alias-tier'd",
+    ("neuralwatt", "nw-flash"): "models.dev sync 2026-11-15 — proprietary bundle name, no measured base, TR-362-disabled",
+    ("neuralwatt", "nw-flash-flex"): "models.dev sync 2026-11-15 — no measured base, TR-362-disabled",
+    ("neuralwatt", "nw-large"): "models.dev sync 2026-11-15 — no measured base, TR-362-disabled",
+    ("neuralwatt", "nw-large-flex"): "models.dev sync 2026-11-15 — no measured base, TR-362-disabled",
+    ("neuralwatt", "nw-small"): "models.dev sync 2026-11-15 — no measured base, TR-362-disabled",
+    ("neuralwatt", "nw-small-flex"): "models.dev sync 2026-11-15 — no measured base, TR-362-disabled",
+    ("ollama-cloud", "inkling-2-small"): "models.dev sync 2026-11-15 — bucket-plan unpriced (model_note), held out of chains",
+    ("synthetic", "hf:Qwen/Qwen3.8-27B"): "models.dev sync 2026-11-15 — hf: explicit id, alias-tier'd to qwen3.8-27b",
+    ("synthetic", "hf:moonshotai/Kimi-K3.1-Pro"): "models.dev sync 2026-11-15 — hf: explicit id, alias-tier'd to kimi-k3.1-pro",
+    ("clinepass", "cline-astra-opus10-20261114-azure-r1"): "clinepass API sync 2026-11-15 — ephemeral nightly SKU, plan-sweep disabled",
+    ("clinepass", "cline-fable52-opus10-20261114-vertex-global-r1"): "clinepass API sync 2026-11-15 — ephemeral nightly SKU, plan-sweep disabled",
 }
 
 
