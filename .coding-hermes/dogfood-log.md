@@ -749,3 +749,82 @@ battery is 19 evidence rows, not a full-cell set.
 state or credential touched. `bunker-qa.sh collect` remains wedged (`AGENT-GONE already-recorded` while
 the driver was alive) — worked around with `bunker exec`/`bunker pull`; that probe defect belongs to
 `bunker`, not to task-router, and is not cross-filed from this lane.
+
+## Run 46d — 2026-11-15 (fourth fire of tick `task-router-dogfood-2026-11-15-15-59-32`; records-only — every leg already closed, verified rather than re-walked)
+
+Target `/home/kara/task-router`. `git fetch origin main` then
+`rev-list --left-right --count HEAD...origin/main` = **0 0**; HEAD `a5f17e64`, clean tree. The log already
+carries run 46, 46b and 46c as fires of **this same tick id** (`grep -c` = 3 before this entry), so this is
+a fourth delivery of an id worked to completion three times. Per the skill, a duplicate fire owns
+provenance repair, residue teardown and the report — not a product re-walk — and the gate for that is
+whether product bytes moved.
+
+**The product did not move.** `git diff --name-only 0be54aa7..HEAD` (run 46's measured SHA → HEAD) is
+7 files, all under `.coding-hermes` (4 evidence, 2 board, 1 dir record). Zero files in
+`task_router scripts tests data registry.json pyproject.toml Makefile`. No arm earned, no unchanged bytes
+re-timed.
+
+**The earlier fires' prose was checked against its own evidence, not inherited.** Their artifacts exist
+and are git-tracked: five evidence files under `.coding-hermes/evidence/`
+(`DOGFOOD-2026-11-15-171454-bunker.jsonl`, `…-1822-bunker-battery.jsonl`, `…-1822-ci.log`,
+`…-1822-native.log`, `…-1822-tests.log`), `docs/dogfood/2026-11-15-run46-integration.md`,
+`docs/dogfood/2026-11-15-run46-diagnostics.md`, `skills/task-router-usage/SKILL.md`. Reading them:
+
+- `…-1822-tests.log`: `1 failed, 856 passed, 10 skipped, 7 warnings in 816.16s` — the quoted rate.
+- `…-1822-native.log`: `773.12s` for the same count — the second throughput sample.
+- `…-1822-ci.log`: `❌ Failure - Main Full test suite (pure JSON — no duckdb needed) [38m3.337653725s]`
+  then `context canceled` — the kill, verbatim.
+
+The one number in `QA-TASKROUTER-20-R2` that did **not** come from the agent is the collected-test count,
+so it is the one worth re-deriving: `.venv/bin/python -m pytest --collect-only -q` on this host reports
+**3150 tests collected in 1.57s**. 3150 / 1.061 tests/s = 2969 s ≈ **49.5 min** against
+`BUNKER_QA_ACT_TIMEOUT=2400`. **The row's arithmetic holds.** Nothing in it needed correcting.
+
+**Row pairing — one repaired chain, one known-open class, neither touched.** `QA-TASKROUTER-20-R2` has
+exactly **1** row in `tasks.jsonl` and **1** `task_created` event in `events.jsonl`: 46c's append is a
+complete pair. The three run-46 rows (`TR-1000976681059260`, `TR-1000976681059261`,
+`TR-1000976681059255-R3`) still carry **no** creation event — re-verified by subtraction over the whole
+board: **531 unique row ids, 264 with a `task_created` event, 267 without**, and all three are in the
+missing set. Not repaired here: this lane's brief forbids board-state changes beyond filing, and the
+class (validator red / warn-only hook) is already owned by pending `TR-1000976681059249` and
+`TR-1000976681059258`. Disclosed again rather than silently re-filed.
+
+**Residue: closed by 46c, confirmed by me — and one proxy trap avoided.** `bunker audit list --server
+bunker-mvp` shows `DestroyAgent c7d08d97 ok` at `18:31:14Z`, and `bunker info c7d08d97 --server
+bunker-mvp` now answers `not_found`. Trap worth recording: `bunker info c7d08d97` **without** `--server`
+resolves against `bunker-las-03` and prints the identical `not_found` — a not-found on the wrong host is
+not evidence the agent is gone, only that the CLI has a default server.
+
+**Observed, unowned, deliberately not touched:** agent `6c831765` on `bunker-mvp` (4.0 cores / 4.0 GB,
+created `2026-11-15T16:57:09Z`, TTL to `20:57:09Z`) holds `qa-run.finished`, `qa-run.log`,
+`qa-evidence.jsonl` and `qa-logs-2287223` with `pgrep -fc '[q]a-run.sh'` = **0** — an idle, finished
+battery. No record in this repo claims it (it predates run 46b's `17:08Z` launch, and run 46 launched no
+agent at all), so it is not this lane's residue; destroying another lane's agent would be a destructive
+act on evidence I cannot attribute. Left for TTL expiry and named here so the next fire does not
+re-diagnose it. Host state at the same moment: `bunker status --server bunker-mvp` ONLINE, disk
+**83% (125.1/149.9 GB)**, 3/50 agents, 20 orphan keys.
+
+**Install leg: settled three fires ago, and not re-run — never silently passed.** fresh-install OK,
+tests FAIL on the `::ffff:127.0.0.1` interpreter case (`QA-TASKROUTER-14`), ci-pass FAIL killed by
+budget (`QA-TASKROUTER-20-R2`). `bunker-mvp` measures 83% tonight, still inside the 94% admission gate,
+so `TR-1000976681059255-R3`'s premise ("both reachable hosts refuse at 94%") is **stale for the second
+time** — a handoff for reconciliation, its status untouched.
+
+**Board lint: error count identical, warning count is not a usable delta.** `boardctl validate` at
+`a5f17e64`: `RESULT: FAIL (455 error(s), 590 warning(s))`. Error count matches 46b (455) and 46c (455);
+the warn count has now printed 590 / 591 / 590 across three reads of the same tree, so only the error
+count survives as a delta. `grep -c` of error lines naming `QA-TASKROUTER-20-R2`, any 2026-11-15 row or
+`duplicate` = **0**. Class unchanged, owned by `TR-1000976681059249` / `TR-1000976681059258`.
+
+**Perf: no finding, and no new number.** Product bytes are identical to the last measurement on this
+tree; re-timing them at loadavg `12.44` would measure the host, which 46b already isolated (259.0 ms
+± 15.2 at load 14.04 vs 197.9 ms ± 9.4 at 3.61). Subsecond operations nobody would feel — no `PERF-`
+row, because filing one would devalue the real ones.
+
+**Verdict: unchanged — PROMISING-BUT-ROUGH** (run 46's standing verdict; this fire produced no product
+evidence to move it). Time-to-first-success **not measured this fire** — records-only by construction,
+and a number carried from an earlier fire would be exactly the kind of inherited figure the skill
+forbids.
+
+**Filed: 0 rows. Left behind: this entry only.** No product code, no existing row's status, no
+visibility, permission, scheduler state or credential touched.
