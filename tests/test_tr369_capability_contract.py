@@ -176,3 +176,34 @@ def test_capability_census_exits_zero():
         f"census exited {p.returncode}\n{p.stdout[-2000:]}\n{p.stderr[-2000:]}")
     assert "OK: zero unexplained capability gaps" in p.stdout
     _stamps_use_reasons_vocabulary()
+
+
+def test_batch_lanes_never_route_bane_rule_2026_11_16():
+    """Bane rule 2026-11-16: batch endpoints never route. Every :batch lane is
+    async-only (sole endpoint /api/v1/batches — morph-worker census
+    17851699); agent traffic is synchronous. The exclusion is a NAMED miss
+    ('batch-async-only'), never silent, and a cheaper :batch lane can never
+    outrank its base lane into a head or a chain."""
+    tables = {
+        'model_tier': [
+            {'model': 'x', 'category': 'reasoning', 'tier': 5,
+             'reasoning_effort': 'default', 'source': 't'},
+        ],
+        'models': [
+            # the batch twin is 10x cheaper — price ordering would head it
+            {'provider': 'p', 'model': 'x:batch', 'normalized_price': 0.05,
+             'plan_tier': 1, 'archive': False, 'valid_to': None},
+            {'provider': 'p', 'model': 'x', 'normalized_price': 0.50,
+             'plan_tier': 1, 'archive': False, 'valid_to': None},
+        ],
+    }
+    misses = []
+    import router_spawn as spawn
+    chain = spawn._build_chain(tables, [('reasoning', 3)],
+                               misses_out=misses)
+    assert [c[2] for c in chain] == ['x']
+    batch_misses = [mm for mm in misses
+                    if mm.get('model') == 'x:batch']
+    assert batch_misses, 'the :batch exclusion must be a NAMED miss'
+    assert any('batch-async-only' in c for mm in batch_misses
+               for c in mm.get('codes', []))

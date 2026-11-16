@@ -3472,6 +3472,21 @@ def _build_chain(tables: Any, reqs: Any, limit: Any=DEFAULT_CHAIN_LIMIT, sort_sp
                         ['lifecycle-retired'],
                         [f'retired (valid_to {m.get("valid_to")})']))
             continue
+        # BANE RULE (2026-11-16): batch endpoints never route. Morph-worker
+        # census (t_model_anthropic_claude-opus-5:batch, 17851699): all 86
+        # feed-present :batch lanes are ASYNC-ONLY — their sole endpoint is
+        # /api/v1/batches — while agent traffic is synchronous. A :batch lane
+        # can never serve a resolver request, so it is excluded with a named
+        # miss, not left to price ordering to surface as a head.
+        if str(m.get('model', '')).endswith(':batch'):
+            if misses_out is not None:
+                misses_out.append(_miss_record(
+                    m.get('provider'), m.get('model'),
+                    ['batch-async-only'],
+                    ['lane is async-only (sole endpoint /api/v1/batches); '
+                     'agent traffic is synchronous — see '
+                     't_api_type_truncation census 17851699']))
+            continue
         af = m.get('available_from')
         if af and str(af)[:10] > _today():
             # TR-069 wave 2: announced-but-unreleased lanes never route, but
