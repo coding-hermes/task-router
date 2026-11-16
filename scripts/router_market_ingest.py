@@ -171,6 +171,30 @@ def load_registry_ids(path: str) -> set[str]:
     return ids
 
 
+def load_registry_bare_id_map(path: str) -> dict[str, set[str]]:
+    """Map each registry model id to its BARE form (vendor prefix stripped).
+
+    Lanes may serve a model under an id that differs from the OpenRouter feed
+    id: the feed says 'openai/gpt-6.1-sol' while commandcode serves the same
+    underlying model as 'gpt-6.1-sol'. Market evidence describes the MODEL, not
+    the lane, so it must reach every lane serving that model (TR-350 defect,
+    found 2026-11-16 by the P5_VISION_E2E corpus case: the tier derivation
+    never saw commandcode's vision evidence because the market rows were keyed
+    under the feed id only).
+    """
+    bare: dict[str, set[str]] = {}
+    with open(path, encoding="utf-8") as handle:
+        for line in handle:
+            if not line.strip():
+                continue
+            row = json.loads(line)
+            model = row.get("model")
+            if not model or "/" not in model:
+                continue
+            bare.setdefault(model.rsplit("/", 1)[1], set()).add(model)
+    return bare
+
+
 def load_live_registry_ids(path: str) -> set[str]:
     """Return live OpenRouter model ids for the explicit NULL coverage report."""
     ids: set[str] = set()
@@ -230,6 +254,24 @@ def main(argv: list[str] | None = None) -> int:
     registry_ids = load_registry_ids(args.models)
     live_registry_ids = load_live_registry_ids(args.models)
     rows, report = build_rows(payload, registry_ids, date)
+    # TR-350 fix (2026-11-16): mirror market rows to BARE id variants — lanes
+    # may serve the model under a prefixed or unprefixed form that differs from
+    # the feed id; the evidence belongs to the model, not one lane's spelling.
+    bare_map = load_registry_bare_id_map(args.models)
+    mirrored: list[dict[str, Any]] = []
+    for row in rows:
+        model = row.get("model", "")
+        bare_form = model.rsplit("/", 1)[1] if "/" in model else model
+        if bare_form == model or bare_form not in bare_map:
+            continue
+        serving_variants = bare_map[bare_form] - {model}
+        if not serving_variants:
+            continue
+        for variant in sorted(serving_variants):
+            alt = dict(row)
+            alt["model"] = variant
+            mirrored.append(alt)
+    rows = rows + mirrored
     feed_ids = {m["id"] for m in parse_feed(payload)}
     missing = sorted(live_registry_ids - emitted_model_ids(rows))
     report["missing_registry_models"] = missing
