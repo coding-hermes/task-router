@@ -7296,6 +7296,7 @@
 {"model": "sensenova/sensenova-6.8-flash-lite", "category": "schema", "score": 1.0, "max_score": 1.0, "source": "live-probe-2026-09-27/SCHEMA: agentic deterministic battery (schema 4/4, n=1 small-probe, NOT large-bench)", "valid_from": "2026-09-27", "reasoning_effort": "default"}
 {"model": "sensenova/sensenova-6.8-flash-lite", "category": "test", "score": 1.0, "max_score": 1.0, "source": "live-probe-2026-09-27/TEST: agentic deterministic battery (test 4/4, n=1 small-probe, NOT large-bench)", "valid_from": "2026-09-27", "reasoning_effort": "default"}
 {"model": "sensenova/sensenova-6.8-flash-lite", "category": "tool_use", "score": 1.0, "max_score": 1.0, "source": "live-probe-2026-09-27/T1-TOOL: v5 deterministic battery (T1-TOOL 3/3, n=1 small-probe, NOT large-bench)", "valid_from": "2026-09-27", "reasoning_effort": "default"}
+{"model": "solar-mini4", "category": "artificial_analysis_intelligence", "score": 0.24, "max_score": 1.0, "source": "market", "valid_from": "2026-11-16", "reasoning_effort": "default"}
 {"model": "solar-mini4", "category": "code_gen", "score": 0.406976744186, "max_score": 1.0, "source": "market", "valid_from": "2026-11-16", "reasoning_effort": "default"}
 {"model": "solar-mini4", "category": "creative", "score": 0.411042944785, "max_score": 1.0, "source": "market", "valid_from": "2026-11-16", "reasoning_effort": "default"}
 {"model": "solar-mini4", "category": "creative", "score": 0.430379746835, "max_score": 1.0, "source": "market", "valid_from": "2026-11-16", "reasoning_effort": "default"}
@@ -7497,6 +7498,7 @@
 {"model": "union-alpha", "category": "schema", "score": 1.0, "max_score": 1.0, "source": "live-probe-2026-09-16 valid JSON Ada/36 (n=1-2 small-probe, NOT large-bench; clinepass stealth/union-alpha stream-only lane)", "valid_from": "2026-09-16", "reasoning_effort": "default"}
 {"model": "union-alpha", "category": "test", "score": 1.0, "max_score": 1.0, "source": "live-probe-2026-09-16 pytest 4 asserts, 4 requested classes, correct (n=1-2 small-probe, NOT large-bench; clinepass stealth/union-alpha stream-only lane)", "valid_from": "2026-09-16", "reasoning_effort": "default"}
 {"model": "union-alpha", "category": "tool_use", "score": 1.0, "max_score": 1.0, "source": "live-probe-2026-09-16 ordered 3-tool plan, correct sequence+why (n=1 small-probe)", "valid_from": "2026-09-16", "reasoning_effort": "default"}
+{"model": "upstage/solar-mini4", "category": "artificial_analysis_intelligence", "score": 0.24, "max_score": 1.0, "source": "market", "valid_from": "2026-11-16", "reasoning_effort": "default"}
 {"model": "upstage/solar-mini4", "category": "code_gen", "score": 0.406976744186, "max_score": 1.0, "source": "market", "valid_from": "2026-11-16", "reasoning_effort": "default"}
 {"model": "upstage/solar-mini4", "category": "creative", "score": 0.411042944785, "max_score": 1.0, "source": "market", "valid_from": "2026-11-16", "reasoning_effort": "default"}
 {"model": "upstage/solar-mini4", "category": "creative", "score": 0.430379746835, "max_score": 1.0, "source": "market", "valid_from": "2026-11-16", "reasoning_effort": "default"}
