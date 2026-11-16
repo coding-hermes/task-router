@@ -88,12 +88,24 @@ def _priced_marker(price, model="paid-marker", provider="prov-paid"):
 
 
 def _with_tiers(tables, *models, tier=5):
+    """Tier rows AND a measured capability row per marker.
+
+    Since the ELIGIBILITY GATE (owner ruling 2026-11-11) a lane that clears
+    every tier but carries no measured row is ineligible: tier data alone no
+    longer buys a chain slot. These fixtures are about PRICE, so each marker is
+    stamped with the evidence a real lane would have — otherwise the marker is
+    dropped before the price is ever read.
+    """
     cats = sorted({r["category"] for r in tables["model_tier"]})
     rows = list(tables["model_tier"])
+    perf = list(tables.get("model_perf") or [])
     for m in models:
         rows += [{"model": m, "category": c, "tier": tier} for c in cats]
+        perf += [{"model": m, "category": c, "perf": 0.9, "source": "fixture"}
+                 for c in cats]
     tables = dict(tables)
     tables["model_tier"] = rows
+    tables["model_perf"] = perf
     return tables
 
 

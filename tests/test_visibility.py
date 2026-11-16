@@ -143,6 +143,13 @@ def test_healthy_path_marker_proves_registry_loaded(monkeypatch, tmp_path):
     cats = sorted({r["category"] for r in tables["model_tier"]})
     stamped["model_tier"] = list(tables["model_tier"]) + [
         {"model": "marker-9000", "category": c, "tier": 5} for c in cats]
+    # ELIGIBILITY GATE (owner ruling 2026-11-11): a lane with tiers but no
+    # measured row is ineligible, so the marker carries the evidence a real
+    # lane would. The assertion below is about WHICH registry was loaded, not
+    # about measurement, so the evidence must not be the variable under test.
+    stamped["model_perf"] = list(tables.get("model_perf") or []) + [
+        {"model": "marker-9000", "category": c, "perf": 0.9,
+         "source": "fixture"} for c in cats]
     state = _state_dir(tmp_path, providers=_open_providers(tables) | {"prov-marker": {"status": "open"}})
     r = _resolve(monkeypatch, tmp_path, stamped, state_dir=state)
     assert "error" not in r, r.get("error")

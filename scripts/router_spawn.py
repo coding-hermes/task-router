@@ -3239,6 +3239,158 @@ def _split_requirements(reqs: Any) -> tuple:
     return tier_reqs, cap_reqs, flag_reqs, min_context
 
 
+#: ELIGIBILITY GATE (owner ruling 2026-11-11: "no model appears on a list it
+#: cannot act on"). A lane is ELIGIBLE only when it carries a real price AND at
+#: least one measured capability row. Everything else leaves the chain with a
+#: NAMED verdict — `ineligible:unpriced` / `ineligible:no-evidence` — instead of
+#: being ranked on the blank tier default (-1) as if it had been measured.
+#: The gate is ON by default (the owner green-lit the tightening); ROUTER_ELIGIBILITY=0
+#: restores the legacy resolve byte-for-byte. Fail-open: unreadable evidence
+#: tables mean NO lane can be judged, so the gate reports itself inert rather
+#: than excluding the whole registry.
+ELIGIBILITY_RULE = ('a lane is eligible only with a normalized_price AND >=1 '
+                    'measured capability row (model_perf.perf or '
+                    'benchmarks.score); otherwise it leaves the chain named '
+                    'ineligible:unpriced or ineligible:no-evidence')
+ELIG_ELIGIBLE = 'eligible'
+ELIG_UNPRICED = 'ineligible:unpriced'
+ELIG_NO_EVIDENCE = 'ineligible:no-evidence'
+_ELIG_OFF = ('0', 'false', 'off', 'no')
+
+
+def _eligibility_cfg() -> dict:
+    """The gate's state for THIS resolve (env re-read per resolve, never raises).
+
+    ROUTER_ELIGIBILITY=0/false/off disables the rule entirely; anything else
+    (including a malformed value) leaves the documented default — ON — because
+    an owner ruling is not opt-in and a typo must not silently undo it.
+    """
+    raw = os.environ.get('ROUTER_ELIGIBILITY')
+    enabled, why = True, 'default-on: owner ruling 2026-11-11'
+    if raw is not None:
+        if str(raw).strip().lower() in _ELIG_OFF:
+            enabled = False
+            why = f'ROUTER_ELIGIBILITY={raw} — gate disabled, legacy resolve'
+        else:
+            why = f'ROUTER_ELIGIBILITY={raw} — gate enabled'
+    return {'rule': ELIGIBILITY_RULE, 'enabled': enabled, 'reason': why,
+            'env': raw}
+
+
+def evidence_index(tables: Any) -> set:
+    """Models carrying at least one measured capability row, alias-expanded.
+
+    perf rows that are null do not count (a null is an absence, not a
+    measurement); bench rows count only with a score. Read from the SAME tables
+    the chain builder already holds, so declare/seed drift cannot make the
+    census and the resolver disagree.
+
+    Alias expansion: a renamed variant inherits its base's rows (TRANSITIVELY),
+    from the registry's own `model_aliases` table AND the on-disk alias map —
+    a rename is a naming event, never a measurement gap. Expanded to a fixpoint
+    so a chain of renames (a -> b -> c) is fully covered.
+    """
+    out = set()
+    for row in tables.get('model_perf') or []:
+        if isinstance(row, dict) and row.get('model') and row.get('perf') is not None:
+            out.add(str(row['model']))
+    for row in tables.get('benchmarks') or []:
+        if isinstance(row, dict) and row.get('model') and row.get('score') is not None:
+            out.add(str(row['model']))
+    # alias map: {lower(variant): lower(base)} from the table, then the file.
+    amap = {}
+    for row in tables.get('model_aliases') or []:
+        if not isinstance(row, dict):
+            continue
+        var = row.get('model') or row.get('variant')
+        base = row.get('inherits') or row.get('base')
+        if var and base:
+            amap[str(var).lower()] = str(base).lower()
+    try:
+        for k, v in (_alias_map() or {}).items():
+            amap.setdefault(k, v)
+    except Exception:  # noqa: BLE001 — aliases are enrichment, never a gate
+        pass
+    if not amap:
+        return out
+    folded = {str(m).lower() for m in out}
+    changed = True
+    while changed:
+        changed = False
+        for var, base in amap.items():
+            if base in folded and var not in folded:
+                folded.add(var)
+                out.add(var)
+                changed = True
+    return out
+
+
+def _has_evidence(model: Any, evidence: Any, folded: Any = None) -> bool:
+    """Alias-aware evidence test: a renamed variant inherits its base's rows.
+
+    Evidence is per MODEL (registry tiers key models, not lanes), and the alias
+    chain is transitive, so a variant listed under a new id is not punished for
+    a rename that its base already measured. Case-folded for lookups.
+    """
+    for name in _alias_chain(model):
+        if name in evidence:
+            return True
+        if folded and str(name).lower() in folded:
+            return True
+    return False
+
+
+def eligibility_verdict(row: Any, evidence: Any, folded: Any = None) -> str:
+    """The named verdict for ONE lane row: eligible | ineligible:<reason>."""
+    if not isinstance(row, dict):
+        return ELIG_NO_EVIDENCE
+    if row.get('normalized_price') is None:
+        return ELIG_UNPRICED
+    return (ELIG_ELIGIBLE if _has_evidence(row.get('model'), evidence, folded)
+            else ELIG_NO_EVIDENCE)
+
+
+def eligibility_census(tables: Any, max_named: int = 50) -> dict:
+    """Counts + named lanes per verdict over the LIVE lane rows.
+
+    The published-list view of the same rule the resolver applies: one place
+    that answers "how many lanes can actually act, and which ones cannot, and
+    why". Live = not archived, not disabled, not past valid_to — the same
+    lifecycle test the chain builder uses, so a retired lane is never counted
+    as a measurement gap (TR-363 doctrine).
+    """
+    models = tables.get('models') or []
+    evidence = evidence_index(tables)
+    folded = {str(m).lower() for m in evidence}
+    counts = {ELIG_ELIGIBLE: 0, ELIG_UNPRICED: 0, ELIG_NO_EVIDENCE: 0}
+    named = {ELIG_UNPRICED: [], ELIG_NO_EVIDENCE: []}
+    live = 0
+    for row in models:
+        if not isinstance(row, dict):
+            continue
+        if row.get('archive') or row.get('disabled') or row_is_retired(row):
+            continue
+        live += 1
+        verdict = eligibility_verdict(row, evidence, folded)
+        counts[verdict] = counts.get(verdict, 0) + 1
+        if verdict != ELIG_ELIGIBLE and len(named[verdict]) < max_named:
+            named[verdict].append({'provider': row.get('provider'),
+                                   'model': row.get('model'),
+                                   'verdict': verdict})
+    eligible = counts.get(ELIG_ELIGIBLE, 0)
+    return {
+        'rule': ELIGIBILITY_RULE,
+        'live_lanes': live,
+        'counts': counts,
+        'share_eligible': (round(eligible / live, 4) if live else 0.0),
+        'evidence_models': len(evidence),
+        'named': named,
+        'named_truncated': {k: max(0, v - max_named) for k, v in
+                            ((ELIG_UNPRICED, counts.get(ELIG_UNPRICED, 0)),
+                             (ELIG_NO_EVIDENCE, counts.get(ELIG_NO_EVIDENCE, 0)))},
+    }
+
+
 def _miss_record(prov: Any, model: Any, codes: list, reasons: list) -> dict:
     """TR-363 why-report record for one excluded lane (data-derived)."""
     return {'provider': prov, 'model': model, 'codes': codes, 'reasons': reasons}
@@ -3246,7 +3398,8 @@ def _miss_record(prov: Any, model: Any, codes: list, reasons: list) -> dict:
 
 def _build_chain(tables: Any, reqs: Any, limit: Any=DEFAULT_CHAIN_LIMIT, sort_spec: Any=None, sort_ctx: Any=None,
                  lifecycle_counts: Any=None, quota_ctx: Any=None, probe_ctx: Any=None,
-                 misses_out: Any=None, eligible_out: Any=None, effort_ctx: Any=None) -> list:
+                 misses_out: Any=None, eligible_out: Any=None, effort_ctx: Any=None,
+                 eligibility_ctx: Any=None) -> list:
     """Replicates v_task_chain exactly, in pure python.
 
     reqs = [(category, level), ...] (profile requirements or ad-hoc).
@@ -3269,6 +3422,13 @@ def _build_chain(tables: Any, reqs: Any, limit: Any=DEFAULT_CHAIN_LIMIT, sort_sp
     as unsupported and NULL fails as unknown (unresearched is not support);
     every failure is a ROUTER-MISS line so nothing vanishes silently."""
     models = tables.get('models') or []
+    # ELIGIBILITY GATE: active only when the caller passes the ctx (resolve()
+    # always does). Callers that build a chain without it keep the pre-gate
+    # behavior byte-for-byte — the gate can narrow a chain, so it must be an
+    # explicit, auditable decision at the call site, never a surprise.
+    _elig_on = bool((eligibility_ctx or {}).get('enabled'))
+    _elig_evidence = evidence_index(tables) if _elig_on else set()
+    _elig_folded = {str(m).lower() for m in _elig_evidence} if _elig_on else set()
     # Evidence is per MODEL (Bane 2026-08-27): tiers keyed by model name only;
     # every provider lane of the same weights inherits the same tier. A lane
     # with a bad deployment is disabled EXPLICITLY via models.disabled.
@@ -3335,10 +3495,31 @@ def _build_chain(tables: Any, reqs: Any, limit: Any=DEFAULT_CHAIN_LIMIT, sort_sp
         if price is None:
             if misses_out is not None:
                 misses_out.append(_miss_record(
-                    m.get('provider'), m.get('model'), ['unpriced'],
-                    ['no normalized_price on record']))
+                    m.get('provider'), m.get('model'),
+                    ['unpriced'] + ([ELIG_UNPRICED] if _elig_on else []),
+                    ['no normalized_price on record'
+                     + (f' — {ELIG_UNPRICED}' if _elig_on else '')]))
             continue
         prov, model = m.get('provider'), m.get('model')
+        # ELIGIBILITY GATE (owner ruling 2026-11-11): a lane with no measured
+        # capability row cannot be ranked for a requirement — it used to ride
+        # the blank tier default (-1) and show up on published chains as if it
+        # had been measured. It now leaves the chain with the NAMED reason, so
+        # the gap is countable instead of merely rankable. Measured lanes are
+        # untouched: no hop moves because of this rule (verified against the
+        # live corpus), which is why the flip was safe to sequence now.
+        if _elig_on and not _has_evidence(model, _elig_evidence, _elig_folded):
+            try:
+                _err(f'ROUTER-MISS: {prov}/{model} {ELIG_NO_EVIDENCE} — no '
+                     f'measured capability row (perf or bench) for this model')
+            except Exception:  # noqa: BLE001, S110 — fail-open contract
+                pass
+            if misses_out is not None:
+                misses_out.append(_miss_record(
+                    prov, model, [ELIG_NO_EVIDENCE],
+                    ['no measured capability row (model_perf.perf / '
+                     'benchmarks.score) for this model']))
+            continue
         # TR-401: an effort request narrows to lanes that can actually be run
         # at that effort. Evidence is the registry's own `thinking` flag; a lane
         # that cannot take the parameter is excluded LOUDLY (ROUTER-MISS line +
@@ -4332,6 +4513,19 @@ def resolve(project: Any=None, profile_id: Any=None, adhoc: Any=None, use_health
     # an empty chain — identical to v_task_eligible.)
     _quota_ctx = _quota_order_ctx()
     _lc_counts = {}
+    # ELIGIBILITY GATE (owner ruling 2026-11-11): read ONCE per resolve, before
+    # the chain is built, because the rule narrows the eligible set. The census
+    # rides the same tables, so the payload's counts and the chain can never
+    # disagree about which lanes can act.
+    _elig_gate = _eligibility_cfg()
+    _elig_census = None
+    if _elig_gate.get('enabled'):
+        try:
+            _elig_census = eligibility_census(tables)
+        except Exception as _exc:  # noqa: BLE001 — fail-open: never block a resolve
+            _elig_gate = dict(_elig_gate, enabled=False,
+                              reason=f'census-error: {_exc} — gate inert')
+            _elig_census = None
     # TR-1000976681059244: the coverage term needs the health snapshot BEFORE
     # the chain is built, because its stamps must land before the sort. The map
     # is therefore read here as well as in the gate stage below (a local file
@@ -4373,7 +4567,36 @@ def resolve(project: Any=None, profile_id: Any=None, adhoc: Any=None, use_health
     chain_rows = _build_chain(tables, reqs, limit=limit, lifecycle_counts=_lc_counts, sort_spec=sort_spec,
                               sort_ctx=sort_ctx, quota_ctx=_quota_ctx, probe_ctx=_probe_ctx,
                               misses_out=_why_misses, eligible_out=_why_eligible,
-                              effort_ctx=_effort_ctx) if reqs else []
+                              effort_ctx=_effort_ctx,
+                              eligibility_ctx=_elig_gate) if reqs else []
+    if _elig_gate.get('enabled') and reqs and not chain_rows:
+        # FAIL-OPEN (sacred): the eligibility gate must never be the reason a
+        # caller has no chain. A chain that had candidate lanes and lost ALL of
+        # them to this rule means the EVIDENCE PLANE is what is broken — no
+        # perf/bench rows at all (an isolated/sample-data install, a wiped
+        # table, a fresh clone mid-seed), not 800 lanes that cannot act. Rebuild
+        # WITHOUT the gate and hold the lanes, loudly: the waiver is on the
+        # payload, the census is untouched, and the fleet keeps moving.
+        _waiver = ('eligibility gate emptied the chain — the evidence plane is '
+                   'absent or broken (no model_perf/benchmarks rows at all); '
+                   'chain rebuilt without the gate so callers keep a chain')
+        _err(f'WARNING: ELIGIBILITY WAIVED — {_waiver}')
+        _elig_gate = dict(_elig_gate, enabled=False, waived=True,
+                          waiver_reason=_waiver)
+        if _why_requested:
+            _why_misses = []
+            _why_eligible = []
+        # the lifecycle census is a COUNTER dict shared with the first build —
+        # clear it, or the waived rebuild double-counts every lane (caught by
+        # tests/test_lifecycle_states.py::test_resolve_end_to_end_counts_and_hop_warnings)
+        if isinstance(_lc_counts, dict):
+            _lc_counts.clear()
+        chain_rows = _build_chain(tables, reqs, limit=limit,
+                                  lifecycle_counts=_lc_counts, sort_spec=sort_spec,
+                                  sort_ctx=sort_ctx, quota_ctx=_quota_ctx,
+                                  probe_ctx=_probe_ctx, misses_out=_why_misses,
+                                  eligible_out=_why_eligible,
+                                  effort_ctx=_effort_ctx, eligibility_ctx=None)
     sort_used = (sort_ctx or {}).get('used') or 'price'
     # TR-021: keep the raw price-ordered eligible list for metrics before gates.
     chain = list(chain_rows)
@@ -4995,6 +5218,20 @@ def resolve(project: Any=None, profile_id: Any=None, adhoc: Any=None, use_health
             # made. Always present (judged False carries the reason) — the
             # displacement is visible in the payload, never silent.
             'hop0_eligibility': _hop0,
+            # ELIGIBILITY GATE (owner ruling 2026-11-11): the rule, its state,
+            # and the census the chain was built from — how many live lanes can
+            # act, how many cannot and under which NAME. Always present; a
+            # disabled gate says so with its reason, so an eligible:ineligible
+            # judgement is never made off the record.
+            'eligibility': dict(
+                _elig_gate,
+                live_lanes=(_elig_census or {}).get('live_lanes'),
+                counts=(_elig_census or {}).get('counts'),
+                share_eligible=(_elig_census or {}).get('share_eligible'),
+                evidence_models=(_elig_census or {}).get('evidence_models'),
+                named=((_elig_census or {}).get('named') or {}).get(ELIG_NO_EVIDENCE, [])[:10],
+                named_unpriced=((_elig_census or {}).get('named') or {}).get(ELIG_UNPRICED, [])[:10],
+            ),
             # TR-357 M3: the outcome demotion's audit block — the active
             # demotions (from the recorded log), who was displaced off hop 0,
             # and the reason it was inert when it was. Always present — the

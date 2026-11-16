@@ -915,6 +915,30 @@ class RouterApplication:
                     _read_jsonl("models"))
             if path == "/health":
                 payload = router_health.health(mode=self.mode)
+                # ELIGIBILITY GATE (owner ruling 2026-11-11): the published
+                # census — how many live lanes can act, how many cannot and
+                # under which NAME. Read from the same registry tables the
+                # resolver uses; a failure here never breaks /health (the
+                # block reports itself unavailable instead of vanishing).
+                if isinstance(payload, dict):
+                    try:
+                        import router_spawn as _rs
+                        _tables, _src, _fb, _warn = _rs._load_registry_with_meta()
+                        _census = _rs.eligibility_census(_tables)
+                        payload['eligibility'] = dict(
+                            _rs._eligibility_cfg(),
+                            live_lanes=_census.get('live_lanes'),
+                            counts=_census.get('counts'),
+                            share_eligible=_census.get('share_eligible'),
+                            evidence_models=_census.get('evidence_models'),
+                            named=_census.get('named'),
+                        )
+                    except Exception as _exc:  # noqa: BLE001 — /health never 500s on this
+                        payload['eligibility'] = {
+                            'rule': 'unavailable',
+                            'enabled': None,
+                            'reason': f'census-error: {_exc}',
+                        }
                 # TR-172: expose this process's admission and rating-cache state.
                 if isinstance(payload, dict):
                     payload['admission'] = _admission_stats()

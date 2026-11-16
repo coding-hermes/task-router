@@ -77,6 +77,10 @@ EXPECTED_SPAWN_KEYS = {
     # resolves carry requested=null and the effort-agnostic chain, pinned by
     # tests/test_tr401_effort_resolver.py).
     "effort",
+    # ELIGIBILITY GATE (owner ruling 2026-11-11): the rule, its state and the
+    # live-lane census the chain was built from (additive; the rule itself is
+    # pinned by tests/test_eligibility_gate.py).
+    "eligibility",
 }
 
 #: requirements no lane in the committed tables clears (tiers max out per

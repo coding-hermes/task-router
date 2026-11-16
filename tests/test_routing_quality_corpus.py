@@ -498,11 +498,19 @@ CASES = [
             # taken out of service per the TR-362 usability ratchet (disabled +
             # 2026-11-08: floor 569->547 — XK-404-001-R3 archival removed the
             # dead xkiro :free lanes (+ mercury trio) from this pool (measured).
+            # 2026-11-15 (ELIGIBILITY GATE, owner ruling 2026-11-11): floor
+            # 539->285 — the resolver now drops lanes that cannot ACT (no
+            # normalized_price, or no measured capability row) instead of
+            # ranking them on the blank tier default. This is the pre-authorized
+            # re-pin wave for that flip, NOT a data loss: the census on the same
+            # tree reports 798 live lanes = 514 eligible / 26 ineligible:unpriced
+            # / 258 ineligible:no-evidence, and the HEAD is unchanged (the
+            # narrowing only trims the permissive tail of this profile).
             # 2026-11-09: floor 547->545 — gpt-5.6-terra retirement removed the
             # xkiro + xkiro-2 5.6-terra lanes from this pool (measured).
             # disabled_reason; re-enable on measurement or the owner batch-lane
             # ruling); they had been pool members via the blank-default -1.
-            'min_chain': 539,  # 545->541 2026-11-12: carrier-death archival wave (openrouter seed/xing4.0 lanes + TR-362 arrivals disabled) removed 4 live review-eligible lanes; 541->540 2026-11-13: TR-362 battery day-2 re-disabled the probe-alive unmeasured arrivals on TR-369 zero headroom (particle-1:free clinepass left the live review pool); 540->539 2026-11-14: clinepass lfm-2.5-2.6b:free archived (true removal — absent from GET /models + 404/402 at every form + upstream OR removal), per the 09-18 law the floor follows the fleet, dead lanes are never re-enabled to silence it,
+            'min_chain': 285,  # 2026-11-15 ELIGIBILITY GATE: 539->285, pre-authorized re-pin (see the note above; head unchanged). Prior history: 545->541 2026-11-12: carrier-death archival wave (openrouter seed/xing4.0 lanes + TR-362 arrivals disabled) removed 4 live review-eligible lanes; 541->540 2026-11-13: TR-362 battery day-2 re-disabled the probe-alive unmeasured arrivals on TR-369 zero headroom (particle-1:free clinepass left the live review pool); 540->539 2026-11-14: clinepass lfm-2.5-2.6b:free archived (true removal — absent from GET /models + 404/402 at every form + upstream OR removal), per the 09-18 law the floor follows the fleet, dead lanes are never re-enabled to silence it,
         },
     },
     # --- ad-hoc capability bands (the classifier's output space) ------------
@@ -682,7 +690,13 @@ CASES = [
             # (catalog-absent, chat-404 per id on both xkiro seats).
             # 2026-11-08: floor 769->760 — second XK-404-001-R3 wave (44 free lanes
             # + mercury trio, same-day chat 404s) removed 9 more pool lanes.
-            'min_chain': 758,
+            # 2026-11-15 (ELIGIBILITY GATE, owner ruling 2026-11-11): floor
+            # 758->508 — same pre-authorized re-pin as profile/P9_REVIEW: the
+            # gate removes lanes with no price or no measured capability row.
+            # The head is unchanged (xkiro/cohere/command-r7b-12-2024, $0.0375),
+            # so the TR-161 "resolves CHEAP" doctrine this case exists to pin
+            # still holds; only the pool floor moves.
+            'min_chain': 508,
         },
     },
     {

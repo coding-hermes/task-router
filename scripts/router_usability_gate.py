@@ -115,6 +115,29 @@ def classify():
     return usable, explained, defects, reasons
 
 
+def _eligibility_census():
+    """The resolver's eligibility census, or an explained absence.
+
+    Imported lazily so this report keeps working (with the reason stated) when
+    the resolver module cannot be imported — a published list must never fail
+    silently, and it must never invent a verdict it could not compute.
+    """
+    try:
+        sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+        import router_spawn
+        tables, _src, _fb, _warn = router_spawn._load_registry_with_meta()
+        census = router_spawn.eligibility_census(tables)
+        return {'rule': router_spawn.ELIGIBILITY_RULE,
+                'enabled': router_spawn._eligibility_cfg()['enabled'],
+                'live_lanes': census['live_lanes'],
+                'counts': census['counts'],
+                'share_eligible': census['share_eligible'],
+                'evidence_models': census['evidence_models']}
+    except Exception as exc:  # noqa: BLE001 — report the gap, never crash the gate
+        return {'rule': 'unavailable', 'enabled': None,
+                'reason': f'eligibility-census-error: {exc}'}
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--json', action='store_true')
@@ -133,6 +156,12 @@ def main():
         except Exception:
             baseline = None
 
+    # ELIGIBILITY GATE (owner ruling 2026-11-11): the published list carries the
+    # resolver's own verdict vocabulary, so a reader of this report and a reader
+    # of a resolve payload see the SAME names for the same lanes. Derived from
+    # the same tables (perf/bench rows), never re-asserted here.
+    eligibility = _eligibility_census()
+
     report = {
         'live_lane_rows': total_live,
         'usable': len(usable),
@@ -141,6 +170,7 @@ def main():
         'usable_share_pct': round(share, 1),
         'reasons': dict(reasons),
         'baseline_defects': (baseline or {}).get('defects'),
+        'eligibility': eligibility,
     }
 
     if args.json:
@@ -155,6 +185,10 @@ def main():
         print(f'  USABLE              {len(usable):>6}   ({share:.1f}%)')
         print(f'  explained gaps      {len(explained):>6}   (reason derived from data)')
         print(f'  DEFECTS             {len(defects):>6}   (live, priced, never measured)')
+        if eligibility.get('counts'):
+            print('  eligibility (resolver verdicts, same names as the payload):')
+            for k, v in sorted(eligibility['counts'].items()):
+                print(f'      {k:<28}{v:>6}')
         for k, v in reasons.most_common():
             print(f'      {k:<28}{v:>6}')
         if defects:
