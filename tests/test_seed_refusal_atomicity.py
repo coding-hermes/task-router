@@ -38,9 +38,17 @@ conftest's session-wide ROUTING_ALLOW_UNSATISFIABLE=1 into the refusal legs
 (and the operator's data home into every leg). Fixtures are tmp copies of the
 committed tables; the real checkout is never touched.
 
-Known shared premise: the committed tables currently carry an unservable
-rating (the TR-383 `math` gap), which is what makes the refusal legs refuse.
-tests/test_tr383_satisfiability.py pins the same premise for the same reason.
+Known shared premise: the fixture must be UNSATISFIABLE, or the refusal legs
+have nothing to refuse. That premise used to be carried by the live registry's
+`math` gap; commit 95896e60 turned that gap into a DECLARED decision
+(data/tables/unmeasured_categories.jsonl), which withdraws math 0..5 from the
+emit domain and makes the committed tables satisfiable — so the seed correctly
+published and these legs went red. The fixture now DROPS the declaration from
+its copy, which restores the undeclared gap the refusal path exists to catch:
+the premise is pinned by the fixture instead of by whatever the live corpus
+happens to look like today. If a routable lane ever measures math >= 0.996 the
+gap closes for real and leg 1's "SATISFIABILITY FAIL" assertion is the tripwire
+that says so.
 """
 import hashlib
 import json
@@ -80,10 +88,18 @@ def _make_fixture(tmp_path):
     The sentinel matters: "unchanged" must mean an EXISTING registry is not
     clobbered (the live shape — a refusal must not overwrite the store the
     fleet is currently using), not merely that no file appeared.
+
+    The copy DROPS data/tables/unmeasured_categories.jsonl on purpose: that
+    declaration is what makes the committed corpus satisfiable (math 0..5 is
+    withdrawn from the emit domain), and these legs need an UNSATISFIABLE
+    registry to prove the refusal path. Removing the declaration restores the
+    undeclared math gap — the exact defect TR-383 exists to catch — so the
+    premise is a property of the fixture, not of today's live data.
     """
     data = tmp_path / "data" / "tables"
     data.parent.mkdir()
     shutil.copytree(COMMITTED_TABLES, data)
+    (data / "unmeasured_categories.jsonl").unlink(missing_ok=True)
     reg = tmp_path / "registry.json"
     reg.write_text(json.dumps({"version": 0, "sentinel": "pre-run"}) + "\n")
     (tmp_path / "home").mkdir()

@@ -126,13 +126,29 @@ def test_circuit_concurrency_no_corruption(tmp_path):
 
 
 def _seed_scratch_registry(tmp_path, reg):
-    """registry.json is gitignored live state - derive it in CI via seed."""
+    """registry.json is gitignored live state - derive it in CI via seed.
+
+    The seed is pointed at a SCRATCH copy of the committed tables. Without
+    ROUTING_DATA_DIR the seed publishes into the checkout's own data/tables
+    (and syncs every tracked *.jsonl), which polluted the tree for every test
+    that ran after this one — measured as a 204-line diff in
+    data/tables/{model_perf,model_tier,benchmarks}.jsonl and a usability count
+    that moved 272 -> 265, turning test_tr403's committed-baseline wire red on
+    a full-suite run while it passed alone. A test that seeds must never write
+    the checkout it is testing.
+    """
     src = os.path.join(REPO, "registry.json")
     if os.path.isfile(src):
         reg.write_text(open(src).read())
         return
+    import shutil
     import subprocess
-    env = dict(os.environ, ROUTING_REGISTRY=str(reg))
+    data = tmp_path / "seed-data" / "tables"
+    data.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copytree(os.path.join(REPO, "data", "tables"), data)
+    env = dict(os.environ, ROUTING_REGISTRY=str(reg),
+               ROUTING_DATA_DIR=str(data),
+               ROUTING_NS=str(tmp_path / "seed-ns"))
     subprocess.run([sys.executable, os.path.join(REPO, "scripts", "router_seed.py")],
                    capture_output=True, text=True, env=env, cwd=REPO, timeout=240)
     assert reg.exists(), "seed failed to produce scratch registry.json"

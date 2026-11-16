@@ -18,6 +18,7 @@ committed baseline without the ratchet being tightened.
 import importlib.util
 import json
 import pathlib
+import subprocess
 import sys
 
 import pytest
@@ -349,12 +350,31 @@ def test_check_catches_a_done_cell_without_measurement():
     assert any('non-measured evidence' in p for p in problems), problems
 
 
-def test_committed_baseline_is_not_stale():
+def test_committed_baseline_is_not_stale(tmp_path):
     """AC3's permanent wire, on the REAL tables: the baseline may never sit above
     the defects that actually exist, because a looser wire licenses a regression.
+
+    The wire grades the COMMITTED tree (``git show HEAD:data/tables/...``), not
+    the working tree. Both the baseline and the tables it is compared against are
+    committed artifacts, and CI grades a clean checkout where the two are the
+    same — reading the working tree made this test fail whenever any earlier test
+    in the same session left the checkout's tables rewritten (measured
+    2026-11-16: a full-suite run left a 204-line diff in
+    data/tables/{benchmarks,model_perf,model_tier}.jsonl and the usable-defect
+    count moved 272 -> 265, so the test passed alone and failed in the suite).
+    A committed change that lowers the defect count WITHOUT ratcheting the
+    baseline still turns this red, which is the regression it exists to catch.
     """
     sys.path.insert(0, str(SCRIPTS))
     gate = _load('router_usability_gate_tr403', SCRIPTS / 'router_usability_gate.py')
+    committed = tmp_path / "committed"
+    committed.mkdir()
+    for name in ("models.jsonl", "model_tier.jsonl"):
+        blob = subprocess.run(
+            ["git", "-C", str(ROOT), "show", f"HEAD:data/tables/{name}"],
+            capture_output=True, text=True, check=True).stdout
+        (committed / name).write_text(blob)
+    gate.DATA = str(committed)
     _usable, _explained, defects, _reasons = gate.classify()
     allowed = json.loads(BASELINE.read_text())['defects']
     assert allowed <= len(defects), (

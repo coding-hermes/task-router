@@ -620,7 +620,13 @@ def test_registry_integrity():
                 # t_tier_stability (2026-11-15): the FROZEN absolute tier bands
                 # the seed reads as constants (an INPUT, never an export) — the
                 # reason evidence for one model cannot re-tier another
-                "tier_ladder"}
+                "tier_ladder",
+                # t_math_unservable (2026-11-15, commit 95896e60): the DECLARED
+                # unmeasured ranges — an operator statement that a category/level
+                # span is out of the emit domain on purpose, with a reason and a
+                # recheck condition. A declared input, like tier_ladder: the seed
+                # reads it and withdraws the declared levels from category_levels.
+                "unmeasured_categories"}
     assert core <= set(tables), f"missing core tables: {core - set(tables)}"
     assert set(tables) - core <= sidecars, f"unexpected tables: {set(tables) - core - sidecars}"
     models = tables["models"]
