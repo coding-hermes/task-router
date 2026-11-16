@@ -4127,7 +4127,7 @@
 {"model": "qwen3.5-397b-a17b", "category": "refactor", "perf": 0.25, "tier": -5, "tier_source": "bench", "source_ref": "bench:battery-T2-CODE", "reasoning_effort": "default"}
 {"model": "qwen3.5-397b-a17b", "category": "schema", "perf": 0.25, "tier": -5, "tier_source": "bench", "source_ref": "bench:battery-T2-CODE", "reasoning_effort": "default"}
 {"model": "qwen3.5-397b-a17b", "category": "tool_use", "perf": 0.5, "tier": -3, "tier_source": "bench", "source_ref": "bench:T1-TOOL", "reasoning_effort": "default"}
-{"model": "qwen3.5:397b", "category": "math", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:AIME26", "reasoning_effort": "default"}
+{"model": "qwen3.5:397b", "category": "math", "perf": 1.0, "tier": -1, "tier_source": "bench", "source_ref": "bench:AIME26", "reasoning_effort": "default"}
 {"model": "qwen3.5:397b", "category": "reasoning", "perf": 0.884, "tier": -3, "tier_source": "bench", "source_ref": "bench:GPQA", "reasoning_effort": "default"}
 {"model": "qwen3.5:397b", "category": "schema", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:BenchLM", "reasoning_effort": "default"}
 {"model": "qwen3.5:397b", "category": "spec_docs", "perf": 1.0, "tier": 5, "tier_source": "bench", "source_ref": "bench:BenchLM", "reasoning_effort": "default"}

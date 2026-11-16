@@ -1851,6 +1851,69 @@ for _cat, _eff, _fams, _dperfs in _thin:
           f'{_dperfs} distinct perfs < floor {MIN_LADDER_FAMILIES} '
           f'-> default ladder reused (proxy scale)')
 con.execute("DROP TABLE IF EXISTS effort_pop")
+
+# ---------- 5b. declared-unmeasured categories (a DECLARED input) --------------
+# A category/level range the registry deliberately does NOT publish because no
+# routable lane can hold it. This is the honest shape of "unmeasured", as
+# opposed to two dishonest ones: deleting the frozen ladder (which only hands
+# the category to the quantile fallback, rebuilding the same levels from the
+# same population) or hand-editing category_levels.jsonl (which the next seed
+# silently reverts).
+#
+# The input is data/tables/unmeasured_categories.jsonl — one row per range:
+#   {category, min_level, max_level, reason, declared_at, declared_by, recheck}
+# `reason` is REQUIRED: a withdrawal nobody can explain is exactly the silent
+# gap this input exists to prevent, so a reasonless row refuses the seed.
+#
+# The withdrawal happens HERE, before model_tier is built, so the published
+# domain, the tier rows and the satisfiability gate all agree on one scale.
+# Levels at or below the resolver's blank default (-1) are NOT withdrawn: every
+# lane serves those by having no tier row at all, so they are not a gap.
+UNMEASURED_FILE = os.path.join(DATA_DIR, 'unmeasured_categories.jsonl')
+_decl_rows = []
+if os.path.exists(UNMEASURED_FILE):
+    with open(UNMEASURED_FILE, encoding='utf-8') as _uh:
+        for _ln in _uh:
+            _ln = _ln.strip()
+            if _ln:
+                _decl_rows.append(json.loads(_ln))
+_max_level = con.execute("SELECT max(level) FROM level_defs").fetchone()[0]
+if _max_level is None:
+    _max_level = 5
+for _d in _decl_rows:
+    _dcat = _d.get('category')
+    if not _dcat:
+        raise SystemExit(f'unmeasured_categories: row without a category: {_d!r}')
+    if not str(_d.get('reason') or '').strip():
+        raise SystemExit(
+            f'unmeasured_categories: {_dcat} is declared unmeasured with NO reason '
+            f'— a withdrawal nobody can explain is the silent gap this input '
+            f'exists to prevent; add a reason (and a recheck signal) or drop the row')
+for _d in _decl_rows:
+    _dcat = _d.get('category')
+    _dlo = int(_d.get('min_level') if _d.get('min_level') is not None else 0)
+    _dhi = _d.get('max_level')
+    _dhi = int(_dhi) if _dhi is not None else int(_max_level)
+    _removed = con.execute(
+        "SELECT count(*) FROM category_levels WHERE category=? AND level BETWEEN ? AND ?",
+        [_dcat, _dlo, _dhi]).fetchone()[0]
+    con.execute(
+        "DELETE FROM category_levels WHERE category=? AND level BETWEEN ? AND ?",
+        [_dcat, _dlo, _dhi])
+    _span = (f'levels {_dlo}..{_dhi}' if _dhi != _dlo else f'level {_dlo}')
+    if _removed:
+        print(f'unmeasured: {_dcat} {_span} WITHDRAWN from the emit domain '
+              f'({_removed} level row(s)) — {_d.get("reason")}')
+    else:
+        # A declaration that withdraws nothing is either already applied or
+        # stale. Never silent: the operator has to be able to tell which.
+        print(f'unmeasured: {_dcat} {_span} declared but withdrew 0 level row(s) '
+              f'— already withdrawn, or the declaration is stale '
+              f'(recheck: {_d.get("recheck") or "none recorded"})')
+if _decl_rows:
+    print(f'unmeasured: {len(_decl_rows)} declared range(s) from '
+          f'{os.path.basename(UNMEASURED_FILE)}')
+
 con.execute("DROP TABLE IF EXISTS model_tier")
 con.execute("""
 CREATE TABLE model_tier AS
@@ -2155,7 +2218,11 @@ def _build_registry_doc() -> dict:
     # fallback_lanes is a data-file table (Bane 2026-08-27 — provider facts
     # live in data, not code); it must ride along in registry.json so spawn's
     # stdlib fallback path can resolve always-run lanes.
-    for t in ('fallback_lanes',):
+    # unmeasured_categories is the DECLARED-input sidecar (5b): it rides along
+    # for the same reason — /health, the published lists and the satisfiability
+    # gate must all be able to say WHICH part of the scale was withdrawn and
+    # why, from the same bytes the seed graded.
+    for t in ('fallback_lanes', 'unmeasured_categories'):
         src = os.path.join(DATA_DIR, f'{t}.jsonl')
         rows = []
         if os.path.exists(src):
@@ -2279,6 +2346,21 @@ try:
                       file=sys.stderr)
                 sys.exit(2)
             _findings = _sat.satisfiability_findings(_tables)
+            # A declared-unmeasured range is a DECISION, not a defect — print it
+            # on every run (pass or fail) so the withdrawal is never something an
+            # operator has to diff two registries to discover.
+            for _d in _sat.declared_unmeasured(_tables):
+                _hi = _d["max_level"]
+                _span = (f'levels {_d["min_level"]}..{_hi}'
+                         if _hi is not None and _hi != _d["min_level"]
+                         else f'level {_d["min_level"]}')
+                print(f'DECLARED UNMEASURED: {_d["category"]} {_span} — '
+                      f'{_d["reason"]}')
+            _residue = _sat.declared_gaps(_tables)
+            if _residue:
+                print(f'DECLARED-LEVEL RESIDUE: {len(_residue)} declared rating(s) '
+                      f'are still in the staged domain — the withdrawal step did '
+                      f'not run')
             if _findings:
                 _groups = _sat.summarise(_findings)
                 print(f'\nSATISFIABILITY FAIL: {len(_findings)} of '

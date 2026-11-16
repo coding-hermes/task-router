@@ -239,6 +239,20 @@ def test_seed_refuses_by_default_and_the_env_var_is_the_only_opt_out(tmp_path):
     data.parent.mkdir()
     import shutil
     shutil.copytree(REPO / "data" / "tables", data)
+    # BUILD the unsatisfiable state explicitly. The live corpus no longer has an
+    # undeclared gap — `math` levels 0..5 are withdrawn by a DECLARED row in
+    # data/tables/unmeasured_categories.jsonl (t_math_unservable). A test that
+    # leaned on the live gap would now pass for the wrong reason (or fail the
+    # moment the registry got healthier). So: drop the declaration and add a
+    # frozen ladder for a category NO lane measures, with every band above any
+    # achievable perf — the seed must refuse on that, by name.
+    (data / "unmeasured_categories.jsonl").unlink(missing_ok=True)
+    with open(data / "tier_ladder.jsonl", "a") as f:
+        for lvl in range(-5, 6):
+            f.write(json.dumps({"category": "refusal_probe",
+                                "reasoning_effort": "default", "level": lvl,
+                                "label": "+" * max(lvl, 1),
+                                "min_perf": 0.999999}) + "\n")
     env = {k: v for k, v in os.environ.items()
            if k in ("PATH", "LANG", "LC_ALL", "PYTHONPATH", "VIRTUAL_ENV",
                     "PYTHONHOME", "SYSTEMROOT")}
@@ -259,7 +273,7 @@ def test_seed_refuses_by_default_and_the_env_var_is_the_only_opt_out(tmp_path):
     assert p.returncode == 1, (
         f"seed without the opt-out must refuse; rc={p.returncode}\n"
         f"stdout tail:\n{p.stdout[-1500:]}\nstderr tail:\n{p.stderr[-800:]}")
-    assert "SATISFIABILITY FAIL" in p.stdout and "math" in p.stdout
+    assert "SATISFIABILITY FAIL" in p.stdout and "refusal_probe" in p.stdout
     assert "Seeding REFUSED" in p.stdout
     # …and the SAME run with the env opt-out seeds loudly and exits 0.
     env["ROUTING_ALLOW_UNSATISFIABLE"] = "1"

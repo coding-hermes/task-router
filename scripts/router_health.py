@@ -415,6 +415,45 @@ def health(mode: str="read-only", data_dir: Any=None):
         out["context_fidelity"] = {"status": "UNKNOWN", "lanes": {},
                                    "error": str(exc)[:200]}
 
+    # --- declared-unmeasured capabilities -------------------------------------
+    # A category/level range the registry deliberately does not publish because
+    # no routable lane can hold it (data/tables/unmeasured_categories.jsonl,
+    # applied by the seed). Published here so an operator reading /health can
+    # tell "we never measured this" from "we measured it and nobody holds it" —
+    # the two look identical in a chain that simply never asks for the category.
+    # Fail-open like every other block: a bad file degrades to an error key.
+    try:
+        _decl = []
+        _decl_path = data_dir / "unmeasured_categories.jsonl"
+        if _decl_path.exists():
+            with _decl_path.open() as fh:
+                for line in fh:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        row = json.loads(line)
+                    except json.JSONDecodeError:
+                        continue
+                    if isinstance(row, dict) and row.get("category"):
+                        _decl.append({
+                            "category": row.get("category"),
+                            "min_level": row.get("min_level", 0),
+                            "max_level": row.get("max_level"),
+                            "reason": row.get("reason"),
+                            "declared_at": row.get("declared_at"),
+                            "declared_by": row.get("declared_by"),
+                            "recheck": row.get("recheck"),
+                        })
+        out["unmeasured_categories"] = {
+            "count": len(_decl),
+            "declared": _decl,
+            "source": str(_decl_path),
+        }
+    except Exception as exc:  # noqa: BLE001 — status surfaces fail open
+        out["unmeasured_categories"] = {"count": 0, "declared": [],
+                                        "error": str(exc)[:200]}
+
     # --- circuit / gate states -------------------------------------------------
     try:
         st = router_circuit.load()

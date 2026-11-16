@@ -172,7 +172,21 @@ def test_quantile_fallback_still_exists_when_the_ladder_is_absent(tmp_path):
     rows = [json.loads(l) for l in open(no_ladder_data / "category_levels.jsonl")
             if l.strip()]
     default = [r for r in rows if (r.get("reasoning_effort") or "default") == "default"]
-    assert len(default) == 24 * 11
+    # A DECLARED-unmeasured range is withdrawn from the domain on purpose
+    # (data/tables/unmeasured_categories.jsonl, applied by the seed), so the
+    # full 11-level ladder is expected MINUS exactly those levels — and never
+    # minus anything else. Without this the assertion would demand the seed
+    # publish a rating no routable lane can serve.
+    decl_path = no_ladder_data / "unmeasured_categories.jsonl"
+    decl = [json.loads(l) for l in open(decl_path) if l.strip()] if decl_path.exists() else []
+    withdrawn = set()
+    for d in decl:
+        lo = int(d.get("min_level") if d.get("min_level") is not None else 0)
+        hi = d.get("max_level")
+        hi = int(hi) if hi is not None else 5
+        withdrawn |= {(d["category"], lvl) for lvl in range(lo, hi + 1)}
+    assert len(default) == 24 * 11 - len(withdrawn)
+    assert not [r for r in default if (r["category"], r["level"]) in withdrawn]
     # the fallback path reproduces the frozen bands on an unchanged pool: the
     # freeze moved the ladder from "recomputed every run" to "committed", not
     # from one scale to a different one.
@@ -180,4 +194,6 @@ def test_quantile_fallback_still_exists_when_the_ladder_is_absent(tmp_path):
                    if l.strip()]
     fb = {(r["category"], r["level"]): r["min_perf"] for r in default}
     for r in ladder_rows:
+        if (r["category"], r["level"]) in withdrawn:
+            continue  # declared unmeasured: the band is not published at all
         assert abs(fb[(r["category"], r["level"])] - r["min_perf"]) <= 1e-9

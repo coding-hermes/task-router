@@ -92,7 +92,64 @@ def load_tables(data_home=None, table_dir=None):
         "requirements": _read_jsonl(
             os.path.join(base, "task_profile_requirements.jsonl")),
         "profiles": _read_jsonl(os.path.join(base, "task_profiles.jsonl")),
+        # Declared-unmeasured capabilities (a DECLARED input, not a measurement):
+        # a category/level range the registry deliberately does not publish
+        # because no routable lane can hold it. Absent file -> None, which reads
+        # as "nothing declared" — the pre-declaration behaviour, unchanged.
+        "unmeasured": _read_jsonl(
+            os.path.join(base, "unmeasured_categories.jsonl")),
     }
+
+
+def declared_unmeasured(tables):
+    """The declared-unmeasured ranges, normalized and sorted.
+
+    A declaration is an OPERATOR STATEMENT, not evidence: it says "this part of
+    the scale is out of the emit domain on purpose, and here is why". It is
+    honoured in two places and both are load-bearing:
+
+      * the seed WITHDRAWS the declared levels from `category_levels` (the
+        published emit domain), so the classifier is never offered a rating the
+        fleet cannot serve;
+      * this module does not report a declared level as a satisfiability FAIL —
+        a declared gap is a decision, an undeclared one is a defect.
+
+    A declaration with no reason is refused by the seed: a silent removal is
+    exactly what this input exists to prevent.
+    """
+    out = []
+    for r in tables.get("unmeasured") or []:
+        cat = r.get("category")
+        if not cat:
+            continue
+        lo = r.get("min_level")
+        hi = r.get("max_level")
+        out.append({
+            "category": cat,
+            "min_level": int(lo) if lo is not None else 0,
+            "max_level": int(hi) if hi is not None else None,
+            "reason": r.get("reason") or "",
+            "declared_at": r.get("declared_at"),
+            "declared_by": r.get("declared_by"),
+            "recheck": r.get("recheck"),
+        })
+    out.sort(key=lambda d: (d["category"], d["min_level"],
+                            d["max_level"] if d["max_level"] is not None else 99))
+    return out
+
+
+def declared_covers(declarations, category, level):
+    """The declaration covering (category, level), or None."""
+    for d in declarations or []:
+        if d.get("category") != category:
+            continue
+        if level < d.get("min_level", 0):
+            continue
+        hi = d.get("max_level")
+        if hi is not None and level > hi:
+            continue
+        return d
+    return None
 
 
 def is_routable(model_row):
@@ -223,6 +280,7 @@ def satisfiability_findings(tables, index=None):
     report.
     """
     idx = index if index is not None else capability_index(tables)
+    decls = declared_unmeasured(tables)
     req_by_pair = {}
     for r in tables.get("requirements") or []:
         key = (r.get("category"), r.get("level"))
@@ -237,6 +295,13 @@ def satisfiability_findings(tables, index=None):
         best = ent.get("best_tier")
         if best is not None and best >= lvl:
             continue
+        # A DECLARED gap is a decision, not a defect: the seed withdraws these
+        # levels from the published domain, and a stale domain that still
+        # carries one must not fail the gate for a range the operator has
+        # already ruled out. It is reported separately (declared_gaps) so the
+        # withdrawal is never silent.
+        if declared_covers(decls, cat, lvl) is not None:
+            continue
         findings.append({
             "category": cat,
             "level": lvl,
@@ -246,6 +311,35 @@ def satisfiability_findings(tables, index=None):
         })
     findings.sort(key=lambda f: (f["category"], f["level"]))
     return findings
+
+
+def declared_gaps(tables, index=None):
+    """Declared-unmeasured (category, level) pairs that are STILL in the domain.
+
+    Normally empty: the seed withdraws declared levels from `category_levels`,
+    so the published domain no longer contains them. A non-empty result means
+    the domain on disk predates the declaration (a stale table, or a caller
+    grading a hand-built corpus) — worth printing, never worth failing.
+    """
+    idx = index if index is not None else capability_index(tables)
+    decls = declared_unmeasured(tables)
+    out = []
+    for row in tables.get("domain") or []:
+        cat, lvl = row.get("category"), row.get("level")
+        if cat is None or lvl is None:
+            continue
+        d = declared_covers(decls, cat, lvl)
+        if d is None:
+            continue
+        ent = idx.get(cat) or {}
+        best = ent.get("best_tier")
+        if best is not None and best >= lvl:
+            continue  # servable after all — the declaration is stale, not the domain
+        out.append({"category": cat, "level": lvl, "best_tier": best,
+                    "reason": d.get("reason"), "declared_at": d.get("declared_at"),
+                    "declared_by": d.get("declared_by")})
+    out.sort(key=lambda f: (f["category"], f["level"]))
+    return out
 
 
 def summarise(findings):
@@ -383,9 +477,27 @@ def _main(argv=None):
 
     findings = satisfiability_findings(tables)
     groups = summarise(findings)
+    decls = declared_unmeasured(tables)
+    declared = declared_gaps(tables)
     if as_json:
-        print(json.dumps({"findings": findings, "groups": groups}, indent=2))
+        print(json.dumps({"findings": findings, "groups": groups,
+                          "declared_unmeasured": decls,
+                          "declared_gaps": declared}, indent=2))
         return 1 if findings else 0
+
+    # A declared gap is printed on EVERY run, pass or fail: an operator must
+    # never have to diff two registries to discover which part of the scale was
+    # withdrawn, or why.
+    for d in decls:
+        hi = d["max_level"]
+        span = (f"levels {d['min_level']}..{hi}" if hi is not None
+                and hi != d["min_level"] else f"level {d['min_level']}")
+        print(f"DECLARED UNMEASURED: {d['category']} {span} — {d['reason']}"
+              + (f" (declared {d['declared_at']} by {d['declared_by']})"
+                 if d["declared_by"] or d["declared_at"] else ""))
+    if declared:
+        print(f"DECLARED-LEVEL RESIDUE: {len(declared)} declared rating(s) are still "
+              f"present in the domain on disk — re-run the seed to withdraw them")
 
     if not findings:
         n = len(tables.get("domain") or [])

@@ -721,6 +721,10 @@ The full rule, the measurement table and the follow-up compaction row are in
 
 - Core catalog: `providers`, `models`, `benchmarks`, `archetypes`, `projects`.
 - Capability derivation: `level_defs`, `model_perf`, `category_levels`, `model_tier`.
+- Declared inputs: `tier_ladder` (frozen absolute bands) and
+  `unmeasured_categories` (a category/level range the registry deliberately does
+  not publish, with its reason — see
+  [declared-unmeasured categories](docs/unmeasured-categories.md)).
 - Profile layer: `task_profiles` (versioned + tagged), `task_profile_requirements`.
 - Provider operations: `provider_rules`, `probe_providers`, `probe_fixes`, `probe_excludes`, `probe_gaps`, `fallback_lanes`, `plan_terms`.
 - Catalog enrichment: `provider_mappings`, `model_aliases`, `model_notes`, `model_catalog`, `temporary_discounts`, `quality_estimates`.
