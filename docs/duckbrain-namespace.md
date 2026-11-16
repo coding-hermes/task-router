@@ -16,8 +16,9 @@ time. The scheduler foreman consumes this via `~/.hermes/scripts/router_spawn.py
 
 ## Data (tables/, JSONL canonical)
 - `level_defs.jsonl` — the -5..+5 scale → percentiles of each category distribution
+- `tier_ladder.jsonl` — **the frozen absolute bands** (per category + effort, 11 `min_perf` thresholds). This is an INPUT: `model_tier` is derived from these constants, so evidence landing for one model cannot re-tier another. Recalibrate deliberately with `scripts/router_tier_calibrate.py` (dry run by default, `--write` to move it); without this file the seed falls back to live pool quantiles and says so loudly.
 - `model_perf.jsonl` — (provider, model, category, perf): 24 categories × 59 models
-- `category_levels.jsonl` — per-category thresholds (11 levels each)
+- `category_levels.jsonl` — per-category thresholds (11 levels each): the frozen ladder UNION the pool-quantile fallback for pairs the ladder does not cover
 - `model_tier.jsonl` — every model's signed level per category
 - `task_profiles.jsonl` + `task_profile_requirements.jsonl` — P0_FORE / P5_VISION_E2E / P7_MOCK / P9_REVIEW + P1_CODING / P2_AGENTIC / P3_DOCS / P4_SECURITY (TR-003)
 

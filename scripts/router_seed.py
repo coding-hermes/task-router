@@ -638,6 +638,52 @@ lv = [(-5,'-----','q01'),(-4,'----','q05'),(-3,'---','q10'),(-2,'--','q20'),(-1,
       (0,'0','q50'),(1,'+','q65'),(2,'++','q80'),(3,'+++','q90'),(4,'++++','q95'),(5,'+++++','q99')]
 con.executemany("INSERT INTO level_defs VALUES (?,?,?)", lv)
 
+# ---------- 1c. tier_ladder: FROZEN absolute score bands ---------------------
+# Why this table exists (t_tier_stability, measured twice on 2026-11-15): the
+# ladder used to be a pure function of the LIVE pool — cat_q quantiles over
+# whatever model_perf rows existed at seed time. So landing ONE new benchmark
+# row re-drew every percentile in that category and re-tiered models that had
+# nothing to do with the evidence:
+#   * the morph guard evidence moved neuralwatt/glm-5.2-short-fast-flex guard
+#     -1 -> -2 and flipped the P4_SECURITY head to openrouter/z-ai/glm-5.3;
+#   * 43 ollama-cloud rows moved qwen3.8-max debug 1 -> 0, dropping both
+#     must_include lanes out of adhoc/senior-coding-band.
+# Every evidence card therefore forced collateral re-pins of unrelated routing
+# decisions, so "more evidence" and "stable decisions" fought each other.
+#
+# The fix is the ladder being an INPUT: data/tables/tier_ladder.jsonl holds the
+# calibrated ABSOLUTE bands (per category + effort, 11 min_perf thresholds) and
+# the seed treats them as constants. Adding a benchmark row for model A now
+# cannot move model B's tier — only the row's OWN model can change, because the
+# thresholds are bytes on disk, not a function of the pool. The quantile path
+# survives as a FALLBACK for any (category, effort) pair the ladder file does
+# not cover (a new category, a newly measured effort), and it says so loudly.
+# Recalibration is a deliberate act: `scripts/router_tier_calibrate.py` rewrites
+# the ladder file from the pool as one reviewed commit.
+LADDER_FILE = os.path.join(DATA_DIR, 'tier_ladder.jsonl')
+#: escape hatch for the calibration tool and for tests that grade the QUANTILE
+#: path: ignore the frozen ladder for this run (seed then behaves exactly as
+#: the pre-ladder seed did).
+_LADDER_IGNORED = os.environ.get('ROUTING_TIER_LADDER_IGNORE') == '1'
+con.execute("DROP TABLE IF EXISTS tier_ladder")
+con.execute("""CREATE TABLE tier_ladder (category VARCHAR, reasoning_effort VARCHAR,
+               level INTEGER, label VARCHAR, min_perf DOUBLE)""")
+_ladder_rows = []
+if os.path.exists(LADDER_FILE) and not _LADDER_IGNORED:
+    with open(LADDER_FILE, encoding='utf-8') as _lh:
+        for _ln in _lh:
+            _ln = _ln.strip()
+            if not _ln:
+                continue
+            _r = json.loads(_ln)
+            _ladder_rows.append((_r['category'],
+                                 _r.get('reasoning_effort') or 'default',
+                                 int(_r['level']),
+                                 _r.get('label') or '',
+                                 float(_r['min_perf'])))
+if _ladder_rows:
+    con.executemany("INSERT INTO tier_ladder VALUES (?,?,?,?,?)", _ladder_rows)
+
 # ---------- 2. model_perf: metrics ONCE PER MODEL (Bane 2026-08-27) ----------
 # Evidence describes the MODEL (weights), not the provider lane. A model
 # served by N providers has ONE perf row per category; lanes inherit the same
@@ -1734,12 +1780,35 @@ FROM (SELECT category, family, reasoning_effort, max(perf) AS perf
       GROUP BY category, family, reasoning_effort)
 GROUP BY category, reasoning_effort""")
 con.execute("DROP TABLE IF EXISTS category_levels")
+# The ladder is the FROZEN absolute bands (tier_ladder, section 1c) UNION the
+# pool-quantile fallback for every (category, effort) pair the ladder does not
+# cover. Frozen pairs are absolute: their thresholds do not move when evidence
+# lands, which is the whole point (see 1c).
 con.execute("""
 CREATE TABLE category_levels AS
+SELECT category, reasoning_effort, level, label, min_perf FROM tier_ladder
+UNION ALL
 SELECT q.category, q.reasoning_effort, l.level, l.label, q.min_perf
 FROM level_defs l
 JOIN (UNPIVOT cat_q ON q01, q05, q10, q20, q35, q50, q65, q80, q90, q95, q99
-      INTO NAME qcol VALUE min_perf) q ON q.qcol = l.qcol""")
+      INTO NAME qcol VALUE min_perf) q ON q.qcol = l.qcol
+WHERE NOT EXISTS (SELECT 1 FROM tier_ladder t
+                  WHERE t.category = q.category
+                    AND t.reasoning_effort IS NOT DISTINCT FROM q.reasoning_effort)""")
+_frozen_pairs = con.execute(
+    "SELECT count(DISTINCT category || '@' || reasoning_effort) FROM tier_ladder").fetchone()[0]
+_quant_pairs = con.execute(
+    "SELECT count(DISTINCT category || '@' || reasoning_effort) FROM category_levels").fetchone()[0] - _frozen_pairs
+if _LADDER_IGNORED:
+    print(f'tier ladder: IGNORED (ROUTING_TIER_LADDER_IGNORE=1) — '
+          f'{_quant_pairs} pair(s) from pool quantiles')
+elif _frozen_pairs:
+    print(f'tier ladder: {_frozen_pairs} frozen absolute pair(s) from '
+          f'{os.path.basename(LADDER_FILE)}, {_quant_pairs} from pool quantiles (fallback)')
+else:
+    print(f'tier ladder: NO frozen ladder at {LADDER_FILE} — every pair falls back to '
+          f'pool quantiles (tiers will move whenever evidence lands; run '
+          f'scripts/router_tier_calibrate.py to freeze them)')
 
 # TR-404 (INT-CI-26): a per-effort ladder needs a POPULATION, not a sample.
 # TR-403's first backfill wave measured TWO lanes, so every quantile of every
@@ -1765,7 +1834,12 @@ GROUP BY category, reasoning_effort""")
 _thin = con.execute(
     "SELECT category, reasoning_effort, families, distinct_perfs FROM effort_pop "
     "WHERE reasoning_effort IS NOT NULL AND reasoning_effort <> 'default' "
-    "AND (families < ? OR distinct_perfs < 2) ORDER BY category, reasoning_effort",
+    "AND (families < ? OR distinct_perfs < 2) "
+    # a FROZEN pair is absolute: its bands are bytes on disk, so a thin
+    # population cannot collapse them and the reuse rule does not apply.
+    "AND NOT EXISTS (SELECT 1 FROM tier_ladder t WHERE t.category = effort_pop.category "
+    "                AND t.reasoning_effort = effort_pop.reasoning_effort) "
+    "ORDER BY category, reasoning_effort",
     [MIN_LADDER_FAMILIES]).fetchall()
 for _cat, _eff, _fams, _dperfs in _thin:
     con.execute("DELETE FROM category_levels WHERE category=? AND reasoning_effort=?",

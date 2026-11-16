@@ -92,6 +92,11 @@ can move materially, so the daily reprice is the freshness mechanism.
 - **Base tables** (`archetypes`, `benchmarks`, `models`, `projects`,
   `providers`) are written to the routing ns `tables/` and copied to the
   task-router ns `tables/`.
+- **Tier ladder** (`data/tables/tier_ladder.jsonl`) is an INPUT, not an export:
+  the seed reads its absolute bands and never rewrites it. Moving it is a
+  deliberate, reviewed act — `scripts/router_tier_calibrate.py` prints the band
+  diff and the tier rows that would move, and `--write` is what actually moves
+  it. Never "fix" a routing pin by letting evidence re-draw the ladder.
 - **6 derived tables** (`category_levels`, `level_defs`, `model_perf`,
   `model_tier`, `task_profile_requirements`, `task_profiles`) are mirrored
   routing → task-router (they were previously a manual copy step).

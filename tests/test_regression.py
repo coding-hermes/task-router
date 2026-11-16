@@ -616,7 +616,11 @@ def test_registry_integrity():
                 "null_reasons",
                 # TR-341 lane lifecycle records (2026-10-22): per-lane
                 # disable/retire provenance rows — data sidecar
-                "lifecycle"}
+                "lifecycle",
+                # t_tier_stability (2026-11-15): the FROZEN absolute tier bands
+                # the seed reads as constants (an INPUT, never an export) — the
+                # reason evidence for one model cannot re-tier another
+                "tier_ladder"}
     assert core <= set(tables), f"missing core tables: {core - set(tables)}"
     assert set(tables) - core <= sidecars, f"unexpected tables: {set(tables) - core - sidecars}"
     models = tables["models"]
