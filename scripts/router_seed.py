@@ -158,6 +158,12 @@ BASE_COLUMNS = {
                   # provider not retired (census reason). No source invents a
                   # retirement date.
                   ('valid_to', 'DATE'), ('archive', 'BOOLEAN'),
+                  # TR-199 R4: lifecycle_source must survive the publish
+                  # round-trip — _publish_run rewrites data/tables from the
+                  # built registry, so a column absent here is stripped from
+                  # the committed file and the next gate reds on it
+                  # (2026-11-16: xkiro-2 retirement evidence lost, main red).
+                  ('lifecycle_source', 'VARCHAR'),
                   ('api_base_url', 'VARCHAR'), ('api_key_env', 'VARCHAR')],
     'models': [('provider', 'VARCHAR'), ('model', 'VARCHAR'),
                ('normalized_price', 'DOUBLE'), ('price_evidence', 'VARCHAR'),
