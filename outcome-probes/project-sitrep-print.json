@@ -1,0 +1,12 @@
+{
+  "authored_at": "2026-11-16T17:55:00Z",
+  "authored_by": "kanban-model-routing-cron 2026-11-16 (registry-completeness backfill ff8526f9: the lane was seeded into projects.jsonl with no outcome probe, which turned test_tr251_boundary_and_replay::test_live_library_covers_every_active_project red; statement derived from the lane id, its capability profile and its board role \u2014 no project-specific measurement claimed)",
+  "probes": [
+    {
+      "id": "project-sitrep-print-P1",
+      "kind": "measure",
+      "statement": "project-sitrep-print: every sitrep it prints is computed from live board and scheduler state at print time and carries its own cutoff timestamp, so a stale report cannot be mistaken for a current one."
+    }
+  ],
+  "project": "project-sitrep-print"
+}

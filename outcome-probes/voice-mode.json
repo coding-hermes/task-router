@@ -1,0 +1,12 @@
+{
+  "authored_at": "2026-11-16T17:55:00Z",
+  "authored_by": "kanban-model-routing-cron 2026-11-16 (registry-completeness backfill ff8526f9: the lane was seeded into projects.jsonl with no outcome probe, which turned test_tr251_boundary_and_replay::test_live_library_covers_every_active_project red; statement derived from the lane id, its capability profile and its board role \u2014 no project-specific measurement claimed)",
+  "probes": [
+    {
+      "id": "voice-mode-P1",
+      "kind": "outcome",
+      "statement": "voice-mode: a change claiming real-time voice works is accompanied by a transcript or session log from a live run against the endpoint \u2014 a rendered UI or a passing unit test alone is not accepted as evidence that audio flowed."
+    }
+  ],
+  "project": "voice-mode"
+}

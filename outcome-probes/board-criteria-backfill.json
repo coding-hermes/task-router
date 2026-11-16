@@ -1,0 +1,12 @@
+{
+  "authored_at": "2026-11-16T17:55:00Z",
+  "authored_by": "kanban-model-routing-cron 2026-11-16 (registry-completeness backfill ff8526f9: the lane was seeded into projects.jsonl with no outcome probe, which turned test_tr251_boundary_and_replay::test_live_library_covers_every_active_project red; statement derived from the lane id, its capability profile and its board role \u2014 no project-specific measurement claimed)",
+  "probes": [
+    {
+      "id": "board-criteria-backfill-P1",
+      "kind": "invariant",
+      "statement": "board-criteria-backfill: every acceptance criterion it writes is traceable to the row's own task body or a cited source; a row that carries no derivable criteria is recorded as such, never given invented acceptance criteria."
+    }
+  ],
+  "project": "board-criteria-backfill"
+}
