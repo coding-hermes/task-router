@@ -1,0 +1,30 @@
+{
+  "data": [
+    {
+      "id": "vendor/ranked-model",
+      "benchmarks": {
+        "design_arena": [
+          {"arena": "models", "category": "codecategories", "elo": 1400, "rank": 1},
+          {"arena": "agents", "category": "pdf", "elo": 1200, "rank": 2}
+        ],
+        "artificial_analysis": {"intelligence_index": 72.5, "coding_index": null}
+      }
+    },
+    {
+      "id": "vendor/other-model",
+      "benchmarks": {
+        "design_arena": [
+          {"arena": "models", "category": "codecategories", "elo": 1300, "rank": 2}
+        ]
+      }
+    },
+    {
+      "id": "vendor/not-registered",
+      "benchmarks": {
+        "design_arena": [
+          {"arena": "models", "category": "codecategories", "elo": 1100, "rank": 3}
+        ]
+      }
+    }
+  ]
+}
