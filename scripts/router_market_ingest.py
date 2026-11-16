@@ -189,9 +189,14 @@ def load_registry_bare_id_map(path: str) -> dict[str, set[str]]:
                 continue
             row = json.loads(line)
             model = row.get("model")
-            if not model or "/" not in model:
+            if not model:
                 continue
-            bare.setdefault(model.rsplit("/", 1)[1], set()).add(model)
+            # every id maps to its bare form — INCLUDING ids that are already
+            # bare (a lane serving 'gpt-6.1-sol' unprefixed is the same model
+            # the feed lists as 'openai/gpt-6.1-sol'); without the unprefixed
+            # arm the mirror never fires for prefix-less lane ids (TR-350).
+            bare_form = model.rsplit("/", 1)[1] if "/" in model else model
+            bare.setdefault(bare_form, set()).add(model)
     return bare
 
 

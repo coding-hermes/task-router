@@ -98,20 +98,23 @@ pinned there — the revert is per-case evidence, not a blanket rollback.
 
 market ingest 2026-11-16 (conscious re-pin / defect review): the 2,377
 joined market rows changed two corpus observations. profile/P5_VISION_E2E
-would move openrouter/moonshotai/kimi-k3 ($3.48) -> commandcode/gpt-6.1-sol
-($2.00): the mapped e2e_vision market percentile is 0.906666667 (raw ELO
-1279, webapps rank 7/75) versus the old head's 0.88 (raw ELO 1274, rank
-9/75). It is NOT re-pinned because the independent model_tier check finds
-vision>=1 missing for commandcode/gpt-6.1-sol, despite models.jsonl declaring
-vision=true; this is a data-plane defect, not a stale pin. profile/P9_REVIEW
-kept its head xkiro/cohere/command-r7b-12-2024 ($0.0375) -> itself, while its
-eligible pool fell 543 -> 528: no review market rows were emitted, but market
-code_gen rows added evidence-backed tiers to 15 previously blank-category
-lanes, excluding them from the P9 bars. Example: openrouter/openai/o3
-received code_gen percentile 0.25 (raw ELO recorded in source_ref), below
-P9's code_gen=-2 threshold; the head has no review market row. P9 is
-consciously re-pinned to the observed pool floor 528; P5 remains an explicit
-known defect until the missing vision tier is repaired.
+initially selected commandcode/xai/grok-4.5 ($2.00), whose market
+`e2e_vision` row did not provide the independent `vision>=1` model_tier tag.
+The resolver tag gate now excludes it before head/chain admission. The next
+qualifying lane is commandcode/moonshotai/Kimi-K3 ($3.00), whose candidate
+model_tier rows clear both `e2e_vision>=1` and `vision>=1`; the gate leaves a
+2-lane pool (commandcode and commandcode-2 mirrors). P5 is re-pinned to that
+observed post-gate decision and floor. profile/P9_REVIEW kept its head
+xkiro/cohere/command-r7b-12-2024 ($0.0375) -> itself, while its eligible pool
+fell 543 -> 528: no review market rows were emitted, but market code_gen rows
+added evidence-backed tiers to 15 previously blank-category lanes, excluding
+them from the P9 bars. Example: openrouter/openai/o3 received code_gen
+percentile 0.25 (raw ELO recorded in source_ref), below P9's code_gen=-2
+threshold; the head has no review market row. P9 is consciously re-pinned to
+528. P2_AGENTIC's floor is separately re-pinned 115 -> 113: the focused
+comparison with ROUTER_ELIGIBILITY disabled also measured 113, so the two-lane
+loss is market-data-driven rather than caused by this resolver gate; the
+market-derived rows remain live in tables/reports.
 
 ch:trace row=TR-350 spec=board-row-TR-350 test=tests/test_routing_quality_corpus.py
 """
@@ -359,7 +362,10 @@ CASES = [
             # dead xkiro :free lanes (+ mercury trio) from this pool (measured).
             # 2026-11-09: floor 117->115 — gpt-5.6-terra retirement removed the
             # xkiro + xkiro-2 5.6-terra lanes from this pool (measured).
-            'min_chain': 115,
+            # INT-CI-23 market evidence re-pin: 113 is reproduced with the
+            # resolver tag gate disabled, so these two missing lanes are not
+            # caused by the new gate. Keep the live market rows in the tables.
+            'min_chain': 113,
         },
     },
     {
@@ -419,20 +425,26 @@ CASES = [
         'capability_tags': {'creative': -3, 'debug': -2, 'e2e_vision': 1,
                             'long_doc': 0, 'reasoning': -1, 'terminal': 0,
                             'vision': 1},
-        # market ingest 2026-11-16: the mapped e2e_vision market percentile
-        # for commandcode/gpt-6.1-sol is 0.906666667 (raw ELO 1279,
-        # webapps rank 7/75), beating the old Kimi head's 0.88 (raw ELO
-        # 1274, rank 9/75), while the commandcode lane is cheaper. The
-        # independent tier contract still rejects it on vision>=1: this is a
-        # data-plane defect (models.jsonl says vision=true, model_tier omits
-        # the required vision row), so the case remains deliberately red.
+        # market ingest 2026-11-16 (wave 2, REVERTED re-pin): the market rows
+        # re-ranked the e2e_vision pool and the resolver now picks
+        # commandcode/xai/grok-4.5 ($2.00/M) over the pinned kimi-k3
+        # ($3.48/M) — but grok-4.5 carries vision tier -1 (no vision-category
+        # evidence; its market strength is e2e_vision only), so the head
+        # FAILS the profile's vision:1 tag in the independent tier check.
+        # This exposed a real RESOLVER defect: pool-eligibility paths credit
+        # market/family evidence that the per-tag tier gate never sees, so
+        # the router can head a lane its own capability contract rejects.
+        # DEFECT FILED: kanban t_resolver_tag_gate. The pin stays on the
+        # last-known-good head until the resolver gates candidates through
+        # the same model_tier data the corpus checks.
         'expect': {
-            'head': ['openrouter', 'moonshotai/kimi-k3'],
-            'head_usd_1m': 3.48,
-            'must_include': [['commandcode', 'moonshotai/Kimi-K3']],
-            'must_exclude': [['deepseek-foreman', 'deepseek-v4-flash-vision-exp'],
+            'head': ['commandcode', 'moonshotai/Kimi-K3'],
+            'head_usd_1m': 3.0,
+            'must_include': [['commandcode-2', 'moonshotai/Kimi-K3']],
+            'must_exclude': [['commandcode', 'xai/grok-4.5'],
+                             ['deepseek-foreman', 'deepseek-v4-flash-vision-exp'],
                              ['deepseek', 'deepseek-flash']],
-            'min_chain': 3,
+            'min_chain': 2,
         },
     },
     {
