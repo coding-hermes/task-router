@@ -79,6 +79,18 @@ SUFFIX_PROFILE = {
     # wave as lane-cadence-check (same data-cleanup namespace, same bash-script
     # form, created 34 minutes apart) — it rides that lane's P7_MOCK class.
     'repair': 'P7_MOCK',
+    # TR-260 close-out: the last two enabled lanes with no suffix precedent, each
+    # classified from its OWN live row rather than guessed:
+    #   board-criteria-backfill — namespace_id 'data-cleanup', repo_url
+    #     'local:scripts', workdir ~/.hermes/scripts, 86400s: the same
+    #     command-lane shape as mon-check / lane-repair / lane-cadence-check, so
+    #     it rides their P7_MOCK class.
+    #   project-sitrep-print — reads boards/scheduler state and emits a status
+    #     report to a printer: the reports-sync / digest-pm shape (summaries
+    #     only, no code, no delegation) -> P8_SYNC, board_type jsonl because it
+    #     is not a -sync lane.
+    'backfill': 'P7_MOCK',
+    'print': 'P8_SYNC',
 }
 
 # Project PRIMARY ids: enabled lanes that are their project's own tick lane —
@@ -170,6 +182,11 @@ def main(argv: Any=None) -> int:
     ap.add_argument('--tables', default=os.path.join(_REPO, 'data', 'tables'))
     ap.add_argument('--dry-run', action='store_true',
                     help='report the gap without appending (exit 1 when non-empty)')
+    ap.add_argument('--skip-unknown', action='store_true',
+                    help='append every lane whose suffix HAS a precedent and '
+                         'report the unclassifiable ones loudly instead of '
+                         'aborting the whole run (one owner-decision lane must '
+                         'not block the other 50 ROUTER-MISS lanes)')
     args = ap.parse_args(argv)
 
     known_profiles = profiles_in_registry(args.tables)
@@ -208,18 +225,36 @@ def main(argv: Any=None) -> int:
         return 0
 
     new_rows = []
+    skipped = []
     # project primaries: enabled lanes that are a strict prefix of another
     # enabled lane (their satellites) — the compound-primary class that rides
     # the bare-primary P0_FORE precedent (e.g. code-factory -> code-factory-docs)
     primary_ids = {l for l in db_lanes
                    if any(o != l and o.startswith(l + '-') for o in db_lanes)}
     for lane in missing:
-        profile, board_type = classify_lane(lane, primary_ids)
+        try:
+            profile, board_type = classify_lane(lane, primary_ids)
+        except ValueError as exc:
+            # One lane with no suffix precedent is an owner decision, and the
+            # refusal is right — but aborting the WHOLE run over it leaves every
+            # other ROUTER-MISS lane unrouted. Only an explicit --skip-unknown
+            # degrades this to a loud, named skip; the default still refuses.
+            if not args.skip_unknown:
+                raise
+            skipped.append(lane)
+            print(f'SKIPPED (owner decision, not guessed): {exc}',
+                  file=sys.stderr)
+            continue
         # TR-200: projects.stack removed — 100% empty since creation, no
         # reader anywhere; the row is the 4-column schema.
         new_rows.append({'id': lane, 'sensitivity': 'open',
                          'board_type': board_type,
                          'profile': profile})
+
+    if not new_rows:
+        print(f'0 appends: every classifiable missing lane was skipped '
+              f'({len(skipped)} unclassifiable) — nothing appended', file=sys.stderr)
+        return 1 if args.dry_run else 0
 
     census = {}
     for r in new_rows:
@@ -240,6 +275,11 @@ def main(argv: Any=None) -> int:
         for r in new_rows:
             f.write(json.dumps(r, ensure_ascii=False) + '\n')
     print(f'appended {len(new_rows)} rows -> {path}')
+    if skipped:
+        print(f'NOT appended ({len(skipped)} lane(s), owner decision): '
+              f'{", ".join(skipped)} — add a suffix-profile precedent (or an '
+              f'explicit row) and re-run; these stay ROUTER-MISS until then',
+              file=sys.stderr)
     print('next: python3 scripts/router_seed.py  (regenerates registry.json '
           '+ exports from the updated table)')
     return 0

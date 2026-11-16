@@ -336,6 +336,42 @@ def test_generator_dry_run_reports_gap_and_appends_nothing(fleet_world):
     assert open(os.path.join(w["tables"], "projects.jsonl")).read() == before
 
 
+def test_generator_skip_unknown_appends_the_rest_and_names_the_skip(tmp_path):
+    """One owner-decision lane must not block the other ROUTER-MISS lanes.
+
+    Default stays a hard refusal (the suffix map is not a guesser); the explicit
+    --skip-unknown appends every classifiable lane and NAMES the skipped one on
+    stderr, so the gap is reported rather than silently dropped.
+    """
+    db = str(tmp_path / "s.db")
+    fleet = str(tmp_path / "fleet.toml")
+    tables = str(tmp_path / "tables")
+    names = ["newproj-docs", "newproj-banana"]
+    _write_db(db, names)
+    _write_fleet(fleet, names)
+    _write_tables(tables, project_rows=[])
+
+    # default: the unknown suffix still aborts the whole run
+    p0 = _run_gen(db, fleet, tables)
+    assert p0.returncode != 0
+    assert "refusing to guess" in (p0.stderr + p0.stdout)
+    assert open(os.path.join(tables, "projects.jsonl")).read() == ""
+
+    # explicit opt-in: the classifiable lane lands, the unknown one is named
+    p1 = _run_gen(db, fleet, tables, "--skip-unknown")
+    assert p1.returncode == 0, p1.stderr[-400:]
+    assert "appended 1 rows" in p1.stdout
+    assert "newproj-banana" in p1.stderr and "NOT appended" in p1.stderr
+    got = [json.loads(l) for l in open(os.path.join(tables, "projects.jsonl")) if l.strip()]
+    assert [r["id"] for r in got] == ["newproj-docs"]
+    assert got[0]["profile"] == "P3_DOCS"
+
+    # idempotent: a second run appends nothing and still names the skip
+    p2 = _run_gen(db, fleet, tables, "--skip-unknown")
+    assert p2.returncode == 0, p2.stderr[-400:]
+    assert "0 appends" in p2.stderr
+
+
 def test_generator_db_fleet_divergence_names_both_sides(tmp_path):
     db = str(tmp_path / "s.db")
     fleet = str(tmp_path / "fleet.toml")
