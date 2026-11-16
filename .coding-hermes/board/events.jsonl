@@ -1104,3 +1104,4 @@
 {"event_type":"task_created","actor":"foreman","timestamp":"2026-11-15T19:31:29Z","id":1794115000000000059,"task_id":"DOC-19","tick_number":null,"detail":"{\"id\":\"DOC-19\",\"status\":\"pending\"}"}
 {"event_type":"task_created","actor":"foreman","timestamp":"2026-11-15T21:31:58Z","id":1794115000000000060,"task_id":"QA-TASKROUTER-25","tick_number":null,"detail":"{\"id\":\"QA-TASKROUTER-25\",\"status\":\"pending\"}"}
 {"event_type":"task_created","actor":"foreman","timestamp":"2026-11-15T21:39:08Z","id":1794115000000000061,"task_id":"QA-TASKROUTER-26","tick_number":null,"detail":"{\"id\":\"QA-TASKROUTER-26\",\"status\":\"pending\"}"}
+{"event_type":"task_created","actor":"foreman","timestamp":"2026-11-16T18:05:12Z","id":1794115000000000062,"task_id":"TR-CMPLX-001","tick_number":null,"detail":"{\"id\":\"TR-CMPLX-001\",\"status\":\"pending\"}"}
