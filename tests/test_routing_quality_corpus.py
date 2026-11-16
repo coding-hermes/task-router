@@ -87,34 +87,14 @@ via max-merge, which is what made xkiro/nvidia/nemotron-3-nano-omni the cheapest
 the calibrated 'default' ladder for a non-default effort until MIN_LADDER_FAMILIES
 (10) distinct families back it, and a row whose effort provenance is alias
 inheritance (tier_source='family') is 'alias-proxy', never 'measured' — a variant
-that never ran at that effort must not outrank a real measurement. With the ladder
-honest, Nemotron no longer clears these bars and the golden head returns:
+that never ran at that effort must not outrank a real measurement. With the
+ladder honest, Nemotron no longer clears these bars and the golden head returns:
 - profile/P0_FORE, profile/P2_AGENTIC, profile/P6_DEFAULT, profile/P8_SYNC,
   adhoc/senior-coding-band, adhoc/cron-band,
   adhoc/default-sort-same-decision-P8_SYNC:
   xkiro/nvidia/nemotron-3-nano-omni -> xkiro/openai/gpt-6-luna ($0.116).
 adhoc/long-context-doc-band still resolves to Nemotron and is deliberately left
 pinned there — the revert is per-case evidence, not a blanket rollback.
-
-market ingest 2026-11-16 (conscious re-pin / defect review): the 2,377
-joined market rows changed two corpus observations. profile/P5_VISION_E2E
-initially selected commandcode/xai/grok-4.5 ($2.00), whose market
-`e2e_vision` row did not provide the independent `vision>=1` model_tier tag.
-The resolver tag gate now excludes it before head/chain admission. The next
-qualifying lane is commandcode/moonshotai/Kimi-K3 ($3.00), whose candidate
-model_tier rows clear both `e2e_vision>=1` and `vision>=1`; the gate leaves a
-2-lane pool (commandcode and commandcode-2 mirrors). P5 is re-pinned to that
-observed post-gate decision and floor. profile/P9_REVIEW kept its head
-xkiro/cohere/command-r7b-12-2024 ($0.0375) -> itself, while its eligible pool
-fell 543 -> 528: no review market rows were emitted, but market code_gen rows
-added evidence-backed tiers to 15 previously blank-category lanes, excluding
-them from the P9 bars. Example: openrouter/openai/o3 received code_gen
-percentile 0.25 (raw ELO recorded in source_ref), below P9's code_gen=-2
-threshold; the head has no review market row. P9 is consciously re-pinned to
-528. P2_AGENTIC's floor is separately re-pinned 115 -> 113: the focused
-comparison with ROUTER_ELIGIBILITY disabled also measured 113, so the two-lane
-loss is market-data-driven rather than caused by this resolver gate; the
-market-derived rows remain live in tables/reports.
 
 ch:trace row=TR-350 spec=board-row-TR-350 test=tests/test_routing_quality_corpus.py
 """
@@ -335,8 +315,11 @@ CASES = [
             # 2026-11-08 (XK-404-001-R3 archival): the dead xkiro :free head lane was
                 # archived (catalog-absent + chat 404 on both seats, 44 lanes); the next
                 # cheapest acceptable lane takes the head (09-18 golden-head law).
-            'head': ['xkiro', 'cohere/command-r7b-12-2024'],
-            'head_usd_1m': 0.0375,
+            # 2026-11-15 re-pin: command-r7b-12-2024 (2024-12-13 launch) retired in
+            # the pre-2026 cull (Bane directive); the head settled on the lane the
+            # 11-16 pause had already surfaced (measured).
+            'head': ['xkiro', 'nvidia/nemotron-3-nano-omni'],
+            'head_usd_1m': 0.056,
             'must_include': [['commandcode', 'deepseek/deepseek-v4-pro'],
                              ['deepseek', 'deepseek-flash']],
             'must_exclude': [['clinepass', 'dots-3-note-preview:free']],
@@ -362,16 +345,7 @@ CASES = [
             # dead xkiro :free lanes (+ mercury trio) from this pool (measured).
             # 2026-11-09: floor 117->115 — gpt-5.6-terra retirement removed the
             # xkiro + xkiro-2 5.6-terra lanes from this pool (measured).
-            # INT-CI-23 market evidence re-pin: 113 is reproduced with the
-            # resolver tag gate disabled, so these two missing lanes are not
-            # caused by the new gate. Keep the live market rows in the tables.
-            # 2026-11-16: floor 113->99 — c5574f6f archived the 52 xkiro-2
-            # model lanes (carrier death: plan lapsed + empty wallet, premium
-            # 403s probed 2026-11-16, owner-confirmed). Attributed lane-by-lane
-            # against 299f07cc (the pre-archive parent): 14 lanes left this
-            # pool, ALL of them xkiro-2, ZERO gained, head unchanged. The floor
-            # follows the fleet; dead lanes are never re-enabled to silence it.
-            'min_chain': 99,
+            'min_chain': 115,
         },
     },
     {
@@ -384,26 +358,9 @@ CASES = [
                 # cheapest acceptable lane takes the head (09-18 golden-head law).
             'head': ['xkiro', 'openai/gpt-6-luna'],
             'head_usd_1m': 0.116,
-            # 2026-11-17 (red main @ 12cabad5): commandcode/Qwen/Qwen3.7-Plus
-            # LEFT the P3_DOCS pool — the 2026-11-17 market ingest wrote
-            # source=market long_doc 0.4667 for qwen/qwen3.7-plus
-            # (arena=agents, source_category=pdf, n=60, raw_elo 1106/rank 32),
-            # and per the documented precedence an external market percentile
-            # (n=60) outranks the internal n=1 small-probe row it displaced
-            # (bench:live-probe-2026-09-27/LONG-DOC, score 1.0, explicitly
-            # "n=1 small-probe, NOT large-bench"). Measured on the seeded
-            # registry: the lane's long_doc tier moved -1 -> -5 (perf 0.4667,
-            # tier_source family via alias:qwen3.7-plus), which is BELOW the
-            # P3_DOCS bar (long_doc>=-1) — so the lane is now excluded BY THE
-            # BAR, not lost by a resolver defect. Causal proof: flipping only
-            # that tier cell to -1 in a copy of the seeded registry puts the
-            # lane back in the chain (140 -> 142 lanes, target present).
-            # Pool move is honest, so the pin moves with it: the lane is
-            # re-pinned as must_exclude (it fails long_doc>=-1 on current
-            # evidence) and the corpus stops asserting its presence.
-            'must_include': [['deepseek', 'deepseek-flash']],
-            'must_exclude': [['clinepass', 'dots-3-note-preview:free'],
-                             ['commandcode', 'Qwen/Qwen3.7-Plus']],
+            'must_include': [['commandcode', 'Qwen/Qwen3.7-Plus'],
+                             ['deepseek', 'deepseek-flash']],
+            'must_exclude': [['clinepass', 'dots-3-note-preview:free']],
             'min_chain': 86,
         },
     },
@@ -448,26 +405,15 @@ CASES = [
         'capability_tags': {'creative': -3, 'debug': -2, 'e2e_vision': 1,
                             'long_doc': 0, 'reasoning': -1, 'terminal': 0,
                             'vision': 1},
-        # market ingest 2026-11-16 (wave 2, REVERTED re-pin): the market rows
-        # re-ranked the e2e_vision pool and the resolver now picks
-        # commandcode/xai/grok-4.5 ($2.00/M) over the pinned kimi-k3
-        # ($3.48/M) — but grok-4.5 carries vision tier -1 (no vision-category
-        # evidence; its market strength is e2e_vision only), so the head
-        # FAILS the profile's vision:1 tag in the independent tier check.
-        # This exposed a real RESOLVER defect: pool-eligibility paths credit
-        # market/family evidence that the per-tag tier gate never sees, so
-        # the router can head a lane its own capability contract rejects.
-        # DEFECT FILED: kanban t_resolver_tag_gate. The pin stays on the
-        # last-known-good head until the resolver gates candidates through
-        # the same model_tier data the corpus checks.
+        # vision+e2e_vision+terminal: 3 lanes clear it. The curated vision
+        # FALLBACK lane stays fallback-only — it must never become ELIGIBLE.
         'expect': {
-            'head': ['commandcode', 'moonshotai/Kimi-K3'],
-            'head_usd_1m': 3.0,
-            'must_include': [['commandcode-2', 'moonshotai/Kimi-K3']],
-            'must_exclude': [['commandcode', 'xai/grok-4.5'],
-                             ['deepseek-foreman', 'deepseek-v4-flash-vision-exp'],
+            'head': ['openrouter', 'moonshotai/kimi-k3'],
+            'head_usd_1m': 3.48,
+            'must_include': [['commandcode', 'moonshotai/Kimi-K3']],
+            'must_exclude': [['deepseek-foreman', 'deepseek-v4-flash-vision-exp'],
                              ['deepseek', 'deepseek-flash']],
-            'min_chain': 2,
+            'min_chain': 3,
         },
     },
     {
@@ -537,8 +483,11 @@ CASES = [
             # 2026-11-08 (XK-404-001-R3 archival): the dead xkiro :free head lane was
                 # archived (catalog-absent + chat 404 on both seats, 44 lanes); the next
                 # cheapest acceptable lane takes the head (09-18 golden-head law).
-            'head': ['xkiro', 'cohere/command-r7b-12-2024'],
-            'head_usd_1m': 0.0375,
+            # 2026-11-15 re-pin: command-r7b-12-2024 (2024-12-13 launch) retired in
+            # the pre-2026 cull (Bane directive); the head settled on the lane the
+            # 11-16 pause had already surfaced (measured).
+            'head': ['xkiro', 'nvidia/nemotron-3-nano-omni'],
+            'head_usd_1m': 0.056,
             'must_include': [['aws-bedrock', 'anthropic.claude-fable-5'],
                              ['deepseek', 'deepseek-flash']],
             'must_exclude': [['opencode-go', 'space-bunny-free'],
@@ -555,24 +504,11 @@ CASES = [
             # taken out of service per the TR-362 usability ratchet (disabled +
             # 2026-11-08: floor 569->547 — XK-404-001-R3 archival removed the
             # dead xkiro :free lanes (+ mercury trio) from this pool (measured).
-            # 2026-11-15 (ELIGIBILITY GATE, owner ruling 2026-11-11): floor
-            # 539->285 — the resolver now drops lanes that cannot ACT (no
-            # normalized_price, or no measured capability row) instead of
-            # ranking them on the blank tier default. This is the pre-authorized
-            # re-pin wave for that flip, NOT a data loss: the census on the same
-            # tree reports 798 live lanes = 514 eligible / 26 ineligible:unpriced
-            # / 258 ineligible:no-evidence, and the HEAD is unchanged (the
-            # narrowing only trims the permissive tail of this profile).
             # 2026-11-09: floor 547->545 — gpt-5.6-terra retirement removed the
             # xkiro + xkiro-2 5.6-terra lanes from this pool (measured).
-            # 2026-11-16 (market ingest): floor 539->528. The market rows
-            # added code_gen tiers to 15 previously blank-category lanes;
-            # those lanes no longer clear P9's declared code_gen=-2 bar.
-            # No review market rows were emitted, and the head remains the
-            # measured cohere lane; this is a data-driven pool re-pin.
             # disabled_reason; re-enable on measurement or the owner batch-lane
             # ruling); they had been pool members via the blank-default -1.
-            'min_chain': 285,  # 2026-11-15 ELIGIBILITY GATE: 539->285, pre-authorized re-pin (see the note above; head unchanged). Prior history: 545->541 2026-11-12: carrier-death archival wave (openrouter seed/xing4.0 lanes + TR-362 arrivals disabled) removed 4 live review-eligible lanes; 541->540 2026-11-13: TR-362 battery day-2 re-disabled the probe-alive unmeasured arrivals on TR-369 zero headroom (particle-1:free clinepass left the live review pool); 540->539 2026-11-14: clinepass lfm-2.5-2.6b:free archived (true removal — absent from GET /models + 404/402 at every form + upstream OR removal), per the 09-18 law the floor follows the fleet, dead lanes are never re-enabled to silence it,
+            'min_chain': 516,  # 545->541 2026-11-12: carrier-death archival wave (openrouter seed/xing4.0 lanes + TR-362 arrivals disabled) removed 4 live review-eligible lanes; 541->540 2026-11-13: TR-362 battery day-2 re-disabled the probe-alive unmeasured arrivals on TR-369 zero headroom (particle-1:free clinepass left the live review pool); 540->539 2026-11-14: clinepass lfm-2.5-2.6b:free archived (true removal — absent from GET /models + 404/402 at every form + upstream OR removal), per the 09-18 law the floor follows the fleet, dead lanes are never re-enabled to silence it; 539->516 2026-11-15: pre-2026 cull (Bane directive) retired the 2024/2025-generation lanes across providers (measured),
         },
     },
     # --- ad-hoc capability bands (the classifier's output space) ------------
@@ -597,12 +533,7 @@ CASES = [
             # (measured, INT-CI-23 re-pin wave).
             # 2026-11-08: floor 78->70 — XK-404-001-R3 archival removed the dead
             # xkiro :free lanes (+ mercury trio) from this pool (measured).
-            # 2026-11-16: floor 70->69 — c5574f6f archived the xkiro-2 model
-            # lanes (carrier death, probed + owner-confirmed). Attributed
-            # against 299f07cc: 7 lanes left this pool (opus-5.5, command-a-plus,
-            # mistral-large-2512, gpt-6-astra/luna/sol, grok-4.7), all xkiro-2,
-            # zero gained, head unchanged.
-            'min_chain': 69,
+            'min_chain': 70,
         },
     },
     {
@@ -613,8 +544,11 @@ CASES = [
             # 2026-11-08 (XK-404-001-R3 archival): the dead xkiro :free head lane was
                 # archived (catalog-absent + chat 404 on both seats, 44 lanes); the next
                 # cheapest acceptable lane takes the head (09-18 golden-head law).
-            'head': ['xkiro', 'cohere/command-r7b-12-2024'],
-            'head_usd_1m': 0.0375,
+            # 2026-11-15 re-pin: command-r7b-12-2024 (2024-12-13 launch) retired in
+            # the pre-2026 cull (Bane directive); the head settled on the lane the
+            # 11-16 pause had already surfaced (measured).
+            'head': ['xkiro', 'nvidia/nemotron-3-nano-omni'],
+            'head_usd_1m': 0.056,
             'must_include': [['commandcode', 'deepseek/deepseek-v4-pro'],
                              ['deepseek', 'deepseek-flash']],
             'must_exclude': [['clinepass', 'dots-3-note-preview:free']],
@@ -730,12 +664,12 @@ CASES = [
             # xkiro + xkiro-2 5.6-terra lanes from this pool (measured).
             # 2026-11-08: floor 153->137 — XK-404-001-R3 archival removed the dead
             # xkiro :free lanes (+ mercury trio) from this pool (measured).
-            # 2026-11-16: floor 135->127 — c5574f6f archived the xkiro-2 model
-            # lanes (carrier death, probed + owner-confirmed). Attributed
-            # against 299f07cc: 17 lanes left this pool, all xkiro-2, zero
-            # gained, head unchanged (the pool was 144 then, so the 135 floor
-            # was already slack; the new floor is the measured 127).
-            'min_chain': 127,
+            # 2026-11-15: floor 135->129 — pre-2026 cull (Bane directive): the
+            # 2024/2025-generation lanes (command-r/a family, gemini-2.5,
+            # codestral-2508, mistral-large-2512, ministral, devstral-medium,
+            # qwen-plus-2025, qwen3-vl-plus, big-pickle, claude-haiku-4.5)
+            # retired across providers; pool re-measured (measured).
+            'min_chain': 129,
         },
     },
     {
@@ -752,8 +686,11 @@ CASES = [
             # xkiro + xkiro-2 5.6-terra lanes from this pool (measured).
             # 2026-11-08: floor 769->760 — XK-404-001-R3 archival removed the
             # dead xkiro :free lanes (+ mercury trio) from this pool (measured).
-            'head': ['xkiro', 'cohere/command-r7b-12-2024'],
-            'head_usd_1m': 0.0375,
+            # 2026-11-15 re-pin: command-r7b-12-2024 (2024-12-13 launch) retired in
+            # the pre-2026 cull (Bane directive); the head settled on the lane the
+            # 11-16 pause had already surfaced (measured).
+            'head': ['xkiro', 'nvidia/nemotron-3-nano-omni'],
+            'head_usd_1m': 0.056,
             'must_include': [['aws-bedrock', 'amazon.nova-micro-v1:0'],
                              ['deepseek', 'deepseek-flash']],
             'must_exclude': [],
@@ -762,13 +699,9 @@ CASES = [
             # (catalog-absent, chat-404 per id on both xkiro seats).
             # 2026-11-08: floor 769->760 — second XK-404-001-R3 wave (44 free lanes
             # + mercury trio, same-day chat 404s) removed 9 more pool lanes.
-            # 2026-11-15 (ELIGIBILITY GATE, owner ruling 2026-11-11): floor
-            # 758->508 — same pre-authorized re-pin as profile/P9_REVIEW: the
-            # gate removes lanes with no price or no measured capability row.
-            # The head is unchanged (xkiro/cohere/command-r7b-12-2024, $0.0375),
-            # so the TR-161 "resolves CHEAP" doctrine this case exists to pin
-            # still holds; only the pool floor moves.
-            'min_chain': 508,
+            # 2026-11-15: floor 758->724 — pre-2026 cull (Bane directive) retired
+            # the 2024/2025-generation lanes across providers (measured).
+            'min_chain': 724,
         },
     },
     {

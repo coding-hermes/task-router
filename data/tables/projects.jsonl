@@ -4,7 +4,6 @@
 {"id": "9router-dogfood", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
 {"id": "9router-foreman", "sensitivity": "open", "board_type": "jsonl", "profile": "P0_FORE"}
 {"id": "9router-foreman-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
-{"id": "9router-ops", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
 {"id": "9router-perf", "sensitivity": "open", "board_type": "jsonl", "profile": "P2_AGENTIC"}
 {"id": "9router-pm", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
 {"id": "9router-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
@@ -17,7 +16,6 @@
 {"id": "9router-sync", "sensitivity": "open", "board_type": "", "profile": "P8_SYNC"}
 {"id": "HEADING", "sensitivity": "open", "board_type": "jsonl", "profile": "P0_FORE"}
 {"id": "HEADING-foreman", "sensitivity": "open", "board_type": "jsonl", "profile": "P0_FORE"}
-{"id": "HEADING-ops", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
 {"id": "Kobayashi-Maru", "sensitivity": "open", "board_type": "jsonl", "profile": "P0_FORE"}
 {"id": "Kobayashi-Maru-docs", "sensitivity": "open", "board_type": "jsonl", "profile": "P3_DOCS"}
 {"id": "Kobayashi-Maru-docs-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
@@ -28,19 +26,14 @@
 {"id": "Kobayashi-Maru-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
 {"id": "Kobayashi-Maru-readme", "sensitivity": "open", "board_type": "jsonl", "profile": "P3_DOCS"}
 {"id": "Kobayashi-Maru-readme-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
-{"id": "Kobayashi-Maru-review", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
 {"id": "SpecLang", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
 {"id": "SpecLang-foreman", "sensitivity": "open", "board_type": "jsonl", "profile": "P0_FORE"}
-{"id": "SpecLang-ops", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
-{"id": "SpecLang-releng", "sensitivity": "open", "board_type": "jsonl", "profile": "P2_AGENTIC"}
-{"id": "SpecLang-review", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
 {"id": "ai-plays-poke", "sensitivity": "open", "board_type": "jsonl", "profile": "P7_MOCK"}
 {"id": "ai-plays-poke-docs", "sensitivity": "open", "board_type": "jsonl", "profile": "P3_DOCS"}
 {"id": "ai-plays-poke-docs-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
 {"id": "ai-plays-poke-dogfood", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
 {"id": "ai-plays-poke-foreman", "sensitivity": "open", "board_type": "jsonl", "profile": "P0_FORE"}
 {"id": "ai-plays-poke-foreman-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
-{"id": "ai-plays-poke-ops", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
 {"id": "ai-plays-poke-perf", "sensitivity": "open", "board_type": "jsonl", "profile": "P2_AGENTIC"}
 {"id": "ai-plays-poke-perf-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
 {"id": "ai-plays-poke-pm", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
@@ -58,7 +51,6 @@
 {"id": "asce-dogfood", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
 {"id": "asce-foreman", "sensitivity": "open", "board_type": "jsonl", "profile": "P0_FORE"}
 {"id": "asce-foreman-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
-{"id": "asce-ops", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
 {"id": "asce-perf", "sensitivity": "open", "board_type": "jsonl", "profile": "P2_AGENTIC"}
 {"id": "asce-pm", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
 {"id": "asce-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
@@ -88,7 +80,6 @@
 {"id": "bankai", "sensitivity": "open", "board_type": "jsonl", "profile": "P0_FORE"}
 {"id": "bankai-sync", "sensitivity": "open", "board_type": "", "profile": "P8_SYNC"}
 {"id": "blog-sync", "sensitivity": "open", "board_type": "", "profile": "P8_SYNC"}
-{"id": "board-criteria-backfill", "sensitivity": "open", "board_type": "jsonl", "profile": "P7_MOCK"}
 {"id": "boardctl", "sensitivity": "open", "board_type": "jsonl", "profile": "P0_FORE"}
 {"id": "boardctl-docs", "sensitivity": "open", "board_type": "jsonl", "profile": "P3_DOCS"}
 {"id": "boardctl-docs-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
@@ -151,11 +142,6 @@
 {"id": "code-factory", "sensitivity": "open", "board_type": "jsonl", "profile": "P0_FORE"}
 {"id": "code-factory-docs", "sensitivity": "open", "board_type": "jsonl", "profile": "P3_DOCS"}
 {"id": "code-factory-dogfood", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
-{"id": "code-factory-duckbrain", "sensitivity": "open", "board_type": "jsonl", "profile": "P0_FORE"}
-{"id": "code-factory-duckbrain-dogfood", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
-{"id": "code-factory-duckbrain-pm", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
-{"id": "code-factory-duckbrain-releng", "sensitivity": "open", "board_type": "jsonl", "profile": "P2_AGENTIC"}
-{"id": "code-factory-duckbrain-sync", "sensitivity": "open", "board_type": "", "profile": "P8_SYNC"}
 {"id": "code-factory-ops", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
 {"id": "code-factory-perf", "sensitivity": "open", "board_type": "jsonl", "profile": "P2_AGENTIC"}
 {"id": "code-factory-pm", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
@@ -249,7 +235,6 @@
 {"id": "deepseek-dashboard-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
 {"id": "deepseek-dashboard-readme", "sensitivity": "open", "board_type": "jsonl", "profile": "P3_DOCS"}
 {"id": "deepseek-dashboard-readme-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
-{"id": "deepseek-dashboard-review", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
 {"id": "deepseek-dashboard-sync", "sensitivity": "open", "board_type": "", "profile": "P8_SYNC"}
 {"id": "deepseek-payg-sync", "sensitivity": "open", "board_type": "", "profile": "P8_SYNC"}
 {"id": "dexdat-core", "sensitivity": "open", "board_type": "jsonl", "profile": "P0_FORE"}
@@ -258,7 +243,6 @@
 {"id": "dexdat-core-dogfood", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
 {"id": "dexdat-core-foreman", "sensitivity": "open", "board_type": "jsonl", "profile": "P0_FORE"}
 {"id": "dexdat-core-foreman-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
-{"id": "dexdat-core-ops", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
 {"id": "dexdat-core-perf", "sensitivity": "open", "board_type": "jsonl", "profile": "P2_AGENTIC"}
 {"id": "dexdat-core-pm", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
 {"id": "dexdat-core-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
@@ -275,7 +259,6 @@
 {"id": "dexdat-memory-dogfood", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
 {"id": "dexdat-memory-foreman", "sensitivity": "open", "board_type": "jsonl", "profile": "P0_FORE"}
 {"id": "dexdat-memory-foreman-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
-{"id": "dexdat-memory-ops", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
 {"id": "dexdat-memory-perf", "sensitivity": "open", "board_type": "jsonl", "profile": "P2_AGENTIC"}
 {"id": "dexdat-memory-pm", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
 {"id": "dexdat-memory-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
@@ -305,8 +288,6 @@
 {"id": "digest-sync", "sensitivity": "open", "board_type": "", "profile": "P8_SYNC"}
 {"id": "doc-writer", "sensitivity": "open", "board_type": "jsonl", "profile": "P3_DOCS"}
 {"id": "doc-writer-foreman", "sensitivity": "open", "board_type": "jsonl", "profile": "P0_FORE"}
-{"id": "doc-writer-ops", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
-{"id": "doc-writer-review", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
 {"id": "dogfood-20260815", "sensitivity": "open", "board_type": "jsonl", "profile": "P7_MOCK"}
 {"id": "dogfood-20260815-dup", "sensitivity": "open", "board_type": "jsonl", "profile": "P7_MOCK"}
 {"id": "dogfood-20260815-guard", "sensitivity": "open", "board_type": "jsonl", "profile": "P7_MOCK"}
@@ -334,12 +315,10 @@
 {"id": "eduos.dexdat.com.co-docs", "sensitivity": "open", "board_type": "jsonl", "profile": "P3_DOCS"}
 {"id": "eduos.dexdat.com.co-dogfood", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
 {"id": "eduos.dexdat.com.co-foreman", "sensitivity": "open", "board_type": "jsonl", "profile": "P0_FORE"}
-{"id": "eduos.dexdat.com.co-ops", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
 {"id": "eduos.dexdat.com.co-perf", "sensitivity": "open", "board_type": "jsonl", "profile": "P2_AGENTIC"}
 {"id": "eduos.dexdat.com.co-pm", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
 {"id": "eduos.dexdat.com.co-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
 {"id": "eduos.dexdat.com.co-readme", "sensitivity": "open", "board_type": "jsonl", "profile": "P3_DOCS"}
-{"id": "eduos.dexdat.com.co-review", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
 {"id": "escalation-doctrine", "sensitivity": "open", "board_type": "jsonl", "profile": "P0_FORE"}
 {"id": "escalation-doctrine-docs", "sensitivity": "open", "board_type": "jsonl", "profile": "P3_DOCS"}
 {"id": "escalation-doctrine-docs-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
@@ -350,7 +329,6 @@
 {"id": "escalation-doctrine-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
 {"id": "escalation-doctrine-readme", "sensitivity": "open", "board_type": "jsonl", "profile": "P3_DOCS"}
 {"id": "escalation-doctrine-readme-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
-{"id": "escalation-doctrine-review", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
 {"id": "escalation-doctrine-sync", "sensitivity": "open", "board_type": "", "profile": "P8_SYNC"}
 {"id": "fleet-ops-check", "sensitivity": "open", "board_type": "jsonl", "profile": "P7_MOCK"}
 {"id": "fleet-releng", "sensitivity": "open", "board_type": "jsonl", "profile": "P2_AGENTIC"}
@@ -378,13 +356,6 @@
 {"id": "gitreins-releng-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
 {"id": "gitreins-review", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
 {"id": "gitreins-review-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
-{"id": "gitreins-rs-dogfood", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
-{"id": "gitreins-rs-foreman", "sensitivity": "open", "board_type": "jsonl", "profile": "P0_FORE"}
-{"id": "gitreins-rs-pm", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
-{"id": "gitreins-rs-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
-{"id": "gitreins-rs-releng", "sensitivity": "open", "board_type": "jsonl", "profile": "P2_AGENTIC"}
-{"id": "gitreins-rs-review", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
-{"id": "gitreins-rs-sync", "sensitivity": "open", "board_type": "", "profile": "P8_SYNC"}
 {"id": "gitreins-sync", "sensitivity": "open", "board_type": "", "profile": "P8_SYNC"}
 {"id": "global-fast", "sensitivity": "open", "board_type": "jsonl", "profile": "P7_MOCK"}
 {"id": "global-slow", "sensitivity": "open", "board_type": "jsonl", "profile": "P7_MOCK"}
@@ -481,7 +452,6 @@
 {"id": "helios-readme-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
 {"id": "helios-releng", "sensitivity": "open", "board_type": "jsonl", "profile": "P2_AGENTIC"}
 {"id": "helios-releng-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
-{"id": "helios-review", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
 {"id": "helios-sync", "sensitivity": "open", "board_type": "", "profile": "P8_SYNC"}
 {"id": "helix", "sensitivity": "open", "board_type": "jsonl", "profile": "P0_FORE"}
 {"id": "helix-docs", "sensitivity": "open", "board_type": "jsonl", "profile": "P3_DOCS"}
@@ -493,7 +463,6 @@
 {"id": "helix-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
 {"id": "helix-readme", "sensitivity": "open", "board_type": "jsonl", "profile": "P3_DOCS"}
 {"id": "helix-readme-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
-{"id": "helix-review", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
 {"id": "helix-sync", "sensitivity": "open", "board_type": "", "profile": "P8_SYNC"}
 {"id": "hermes-agent-sync", "sensitivity": "open", "board_type": "", "profile": "P8_SYNC"}
 {"id": "hermes-canopy", "sensitivity": null, "board_type": null, "profile": "P0_FORE"}
@@ -502,7 +471,6 @@
 {"id": "hermes-canopy-dogfood", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
 {"id": "hermes-canopy-foreman", "sensitivity": "open", "board_type": "jsonl", "profile": "P0_FORE"}
 {"id": "hermes-canopy-foreman-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
-{"id": "hermes-canopy-ops", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
 {"id": "hermes-canopy-perf", "sensitivity": "open", "board_type": "jsonl", "profile": "P2_AGENTIC"}
 {"id": "hermes-canopy-pm", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
 {"id": "hermes-canopy-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
@@ -537,7 +505,6 @@
 {"id": "hermes-rs-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
 {"id": "hermes-rs-releng", "sensitivity": "open", "board_type": "jsonl", "profile": "P2_AGENTIC"}
 {"id": "hermes-rs-releng-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
-{"id": "hermes-rs-review", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
 {"id": "hermes-rs-sync", "sensitivity": "open", "board_type": "", "profile": "P8_SYNC"}
 {"id": "hermes4friends-infra", "sensitivity": "proprietary", "board_type": "jsonl", "profile": "P0_FORE"}
 {"id": "hermes4friends-infra-docs", "sensitivity": "open", "board_type": "jsonl", "profile": "P3_DOCS"}
@@ -549,7 +516,6 @@
 {"id": "hermes4friends-infra-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
 {"id": "hermes4friends-infra-readme", "sensitivity": "open", "board_type": "jsonl", "profile": "P3_DOCS"}
 {"id": "hermes4friends-infra-readme-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
-{"id": "hermes4friends-infra-review", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
 {"id": "hermes4friends-infra-sync", "sensitivity": "open", "board_type": "", "profile": "P8_SYNC"}
 {"id": "hivemind-sync", "sensitivity": "open", "board_type": "", "profile": "P8_SYNC"}
 {"id": "hivemind-work", "sensitivity": "open", "board_type": "jsonl", "profile": "P2_AGENTIC"}
@@ -558,7 +524,6 @@
 {"id": "hivemind-work-dogfood", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
 {"id": "hivemind-work-foreman", "sensitivity": "open", "board_type": "jsonl", "profile": "P0_FORE"}
 {"id": "hivemind-work-foreman-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
-{"id": "hivemind-work-ops", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
 {"id": "hivemind-work-perf", "sensitivity": "open", "board_type": "jsonl", "profile": "P2_AGENTIC"}
 {"id": "hivemind-work-pm", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
 {"id": "hivemind-work-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
@@ -590,7 +555,6 @@
 {"id": "inference-estimator-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
 {"id": "inference-estimator-readme", "sensitivity": "open", "board_type": "jsonl", "profile": "P3_DOCS"}
 {"id": "inference-estimator-readme-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
-{"id": "inference-estimator-review", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
 {"id": "inference-estimator-sync", "sensitivity": "open", "board_type": "", "profile": "P8_SYNC"}
 {"id": "kobayashi-maru-sync", "sensitivity": "open", "board_type": "", "profile": "P8_SYNC"}
 {"id": "lane-cadence-check", "sensitivity": "open", "board_type": "jsonl", "profile": "P7_MOCK"}
@@ -635,7 +599,6 @@
 {"id": "mafia-ai-benchmark-dogfood", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
 {"id": "mafia-ai-benchmark-foreman", "sensitivity": "open", "board_type": "jsonl", "profile": "P0_FORE"}
 {"id": "mafia-ai-benchmark-foreman-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
-{"id": "mafia-ai-benchmark-ops", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
 {"id": "mafia-ai-benchmark-perf", "sensitivity": "open", "board_type": "jsonl", "profile": "P2_AGENTIC"}
 {"id": "mafia-ai-benchmark-pm", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
 {"id": "mafia-ai-benchmark-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
@@ -659,7 +622,6 @@
 {"id": "mischief-dogfood", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
 {"id": "mischief-foreman", "sensitivity": "open", "board_type": "jsonl", "profile": "P0_FORE"}
 {"id": "mischief-foreman-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
-{"id": "mischief-ops", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
 {"id": "mischief-pm", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
 {"id": "mischief-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
 {"id": "mischief-readme", "sensitivity": "open", "board_type": "jsonl", "profile": "P3_DOCS"}
@@ -708,12 +670,10 @@
 {"id": "musterflow-docs", "sensitivity": "open", "board_type": "jsonl", "profile": "P3_DOCS"}
 {"id": "musterflow-dogfood", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
 {"id": "musterflow-foreman", "sensitivity": "open", "board_type": "jsonl", "profile": "P0_FORE"}
-{"id": "musterflow-ops", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
 {"id": "musterflow-perf", "sensitivity": "open", "board_type": "jsonl", "profile": "P2_AGENTIC"}
 {"id": "musterflow-pm", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
 {"id": "musterflow-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
 {"id": "musterflow-readme", "sensitivity": "open", "board_type": "jsonl", "profile": "P3_DOCS"}
-{"id": "musterflow-review", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
 {"id": "musterflow-sync", "sensitivity": "open", "board_type": "", "profile": "P8_SYNC"}
 {"id": "my-project", "sensitivity": null, "board_type": null, "profile": "P0_FORE"}
 {"id": "my-project-docs", "sensitivity": "open", "board_type": "jsonl", "profile": "P3_DOCS"}
@@ -733,7 +693,6 @@
 {"id": "my-project-sync", "sensitivity": "open", "board_type": "", "profile": "P8_SYNC"}
 {"id": "mythos", "sensitivity": "open", "board_type": "jsonl", "profile": "P0_FORE"}
 {"id": "mythos-foreman", "sensitivity": "open", "board_type": "jsonl", "profile": "P0_FORE"}
-{"id": "mythos-review", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
 {"id": "mythos-sync", "sensitivity": "open", "board_type": "", "profile": "P8_SYNC"}
 {"id": "off-by-one", "sensitivity": "open", "board_type": "jsonl", "profile": "P0_FORE"}
 {"id": "off-by-one-docs", "sensitivity": "open", "board_type": "jsonl", "profile": "P3_DOCS"}
@@ -741,7 +700,6 @@
 {"id": "off-by-one-dogfood", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
 {"id": "off-by-one-foreman", "sensitivity": "open", "board_type": "jsonl", "profile": "P0_FORE"}
 {"id": "off-by-one-foreman-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
-{"id": "off-by-one-ops", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
 {"id": "off-by-one-perf", "sensitivity": "open", "board_type": "jsonl", "profile": "P2_AGENTIC"}
 {"id": "off-by-one-pm", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
 {"id": "off-by-one-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
@@ -752,14 +710,12 @@
 {"id": "off-by-one-review", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
 {"id": "off-by-one-review-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
 {"id": "off-by-one-sync", "sensitivity": "open", "board_type": "", "profile": "P8_SYNC"}
-{"id": "project-sitrep-print", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
 {"id": "pulse", "sensitivity": "open", "board_type": "jsonl", "profile": "P0_FORE"}
 {"id": "pulse-docs", "sensitivity": "open", "board_type": "jsonl", "profile": "P3_DOCS"}
 {"id": "pulse-docs-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
 {"id": "pulse-dogfood", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
 {"id": "pulse-foreman", "sensitivity": "open", "board_type": "jsonl", "profile": "P0_FORE"}
 {"id": "pulse-foreman-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
-{"id": "pulse-ops", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
 {"id": "pulse-perf", "sensitivity": "open", "board_type": "jsonl", "profile": "P2_AGENTIC"}
 {"id": "pulse-perf-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
 {"id": "pulse-pm", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
@@ -847,7 +803,6 @@
 {"id": "rabbit-hole-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
 {"id": "rabbit-hole-readme", "sensitivity": "open", "board_type": "jsonl", "profile": "P3_DOCS"}
 {"id": "rabbit-hole-readme-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
-{"id": "rabbit-hole-review", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
 {"id": "rabbit-hole-sync", "sensitivity": "open", "board_type": "", "profile": "P8_SYNC"}
 {"id": "release-engineer", "sensitivity": "open", "board_type": "jsonl", "profile": "P2_AGENTIC"}
 {"id": "release-engineer-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
@@ -862,7 +817,6 @@
 {"id": "rethinkdb-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
 {"id": "rethinkdb-readme", "sensitivity": "open", "board_type": "jsonl", "profile": "P3_DOCS"}
 {"id": "rethinkdb-readme-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
-{"id": "rethinkdb-review", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
 {"id": "rethinkdb-sync", "sensitivity": "open", "board_type": "", "profile": "P8_SYNC"}
 {"id": "ring-runner", "sensitivity": "open", "board_type": "jsonl", "profile": "P0_FORE"}
 {"id": "ring-runner-docs", "sensitivity": "open", "board_type": "jsonl", "profile": "P3_DOCS"}
@@ -874,7 +828,6 @@
 {"id": "ring-runner-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
 {"id": "ring-runner-readme", "sensitivity": "open", "board_type": "jsonl", "profile": "P3_DOCS"}
 {"id": "ring-runner-readme-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
-{"id": "ring-runner-review", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
 {"id": "ring-runner-sync", "sensitivity": "open", "board_type": "", "profile": "P8_SYNC"}
 {"id": "sim-alpha", "sensitivity": "open", "board_type": "jsonl", "profile": "P7_MOCK"}
 {"id": "sim-beta", "sensitivity": "open", "board_type": "jsonl", "profile": "P7_MOCK"}
@@ -890,8 +843,6 @@
 {"id": "speclang-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
 {"id": "speclang-readme", "sensitivity": "open", "board_type": "jsonl", "profile": "P3_DOCS"}
 {"id": "speclang-readme-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
-{"id": "speclang-releng", "sensitivity": "open", "board_type": "jsonl", "profile": "P2_AGENTIC"}
-{"id": "speclang-review", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
 {"id": "speclang-sync", "sensitivity": "open", "board_type": "", "profile": "P8_SYNC"}
 {"id": "stand-in-pm", "sensitivity": "open", "board_type": "", "profile": "P8_SYNC"}
 {"id": "task-router", "sensitivity": "open", "board_type": "jsonl", "profile": "P2_AGENTIC"}
@@ -993,12 +944,7 @@
 {"id": "uhlp-readme", "sensitivity": "open", "board_type": "jsonl", "profile": "P3_DOCS"}
 {"id": "uhlp-readme-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
 {"id": "uhlp-sync", "sensitivity": "open", "board_type": "", "profile": "P8_SYNC"}
-{"id": "voice-mode-dogfood", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
 {"id": "voice-mode-foreman", "sensitivity": "open", "board_type": "jsonl", "profile": "P0_FORE"}
-{"id": "voice-mode-pm", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
-{"id": "voice-mode-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
-{"id": "voice-mode-releng", "sensitivity": "open", "board_type": "jsonl", "profile": "P2_AGENTIC"}
-{"id": "voice-mode-sync", "sensitivity": "open", "board_type": "", "profile": "P8_SYNC"}
 {"id": "warpfs", "sensitivity": "open", "board_type": "jsonl", "profile": "P0_FORE"}
 {"id": "warpfs-docs", "sensitivity": "open", "board_type": "jsonl", "profile": "P3_DOCS"}
 {"id": "warpfs-docs-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
