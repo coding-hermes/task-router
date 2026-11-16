@@ -87,14 +87,31 @@ via max-merge, which is what made xkiro/nvidia/nemotron-3-nano-omni the cheapest
 the calibrated 'default' ladder for a non-default effort until MIN_LADDER_FAMILIES
 (10) distinct families back it, and a row whose effort provenance is alias
 inheritance (tier_source='family') is 'alias-proxy', never 'measured' — a variant
-that never ran at that effort must not outrank a real measurement. With the
-ladder honest, Nemotron no longer clears these bars and the golden head returns:
+that never ran at that effort must not outrank a real measurement. With the ladder
+honest, Nemotron no longer clears these bars and the golden head returns:
 - profile/P0_FORE, profile/P2_AGENTIC, profile/P6_DEFAULT, profile/P8_SYNC,
   adhoc/senior-coding-band, adhoc/cron-band,
   adhoc/default-sort-same-decision-P8_SYNC:
   xkiro/nvidia/nemotron-3-nano-omni -> xkiro/openai/gpt-6-luna ($0.116).
 adhoc/long-context-doc-band still resolves to Nemotron and is deliberately left
 pinned there — the revert is per-case evidence, not a blanket rollback.
+
+market ingest 2026-11-16 (conscious re-pin / defect review): the 2,377
+joined market rows changed two corpus observations. profile/P5_VISION_E2E
+would move openrouter/moonshotai/kimi-k3 ($3.48) -> commandcode/gpt-6.1-sol
+($2.00): the mapped e2e_vision market percentile is 0.906666667 (raw ELO
+1279, webapps rank 7/75) versus the old head's 0.88 (raw ELO 1274, rank
+9/75). It is NOT re-pinned because the independent model_tier check finds
+vision>=1 missing for commandcode/gpt-6.1-sol, despite models.jsonl declaring
+vision=true; this is a data-plane defect, not a stale pin. profile/P9_REVIEW
+kept its head xkiro/cohere/command-r7b-12-2024 ($0.0375) -> itself, while its
+eligible pool fell 543 -> 528: no review market rows were emitted, but market
+code_gen rows added evidence-backed tiers to 15 previously blank-category
+lanes, excluding them from the P9 bars. Example: openrouter/openai/o3
+received code_gen percentile 0.25 (raw ELO recorded in source_ref), below
+P9's code_gen=-2 threshold; the head has no review market row. P9 is
+consciously re-pinned to the observed pool floor 528; P5 remains an explicit
+known defect until the missing vision tier is repaired.
 
 ch:trace row=TR-350 spec=board-row-TR-350 test=tests/test_routing_quality_corpus.py
 """
@@ -402,8 +419,13 @@ CASES = [
         'capability_tags': {'creative': -3, 'debug': -2, 'e2e_vision': 1,
                             'long_doc': 0, 'reasoning': -1, 'terminal': 0,
                             'vision': 1},
-        # vision+e2e_vision+terminal: 3 lanes clear it. The curated vision
-        # FALLBACK lane stays fallback-only — it must never become ELIGIBLE.
+        # market ingest 2026-11-16: the mapped e2e_vision market percentile
+        # for commandcode/gpt-6.1-sol is 0.906666667 (raw ELO 1279,
+        # webapps rank 7/75), beating the old Kimi head's 0.88 (raw ELO
+        # 1274, rank 9/75), while the commandcode lane is cheaper. The
+        # independent tier contract still rejects it on vision>=1: this is a
+        # data-plane defect (models.jsonl says vision=true, model_tier omits
+        # the required vision row), so the case remains deliberately red.
         'expect': {
             'head': ['openrouter', 'moonshotai/kimi-k3'],
             'head_usd_1m': 3.48,
@@ -508,6 +530,11 @@ CASES = [
             # narrowing only trims the permissive tail of this profile).
             # 2026-11-09: floor 547->545 — gpt-5.6-terra retirement removed the
             # xkiro + xkiro-2 5.6-terra lanes from this pool (measured).
+            # 2026-11-16 (market ingest): floor 539->528. The market rows
+            # added code_gen tiers to 15 previously blank-category lanes;
+            # those lanes no longer clear P9's declared code_gen=-2 bar.
+            # No review market rows were emitted, and the head remains the
+            # measured cohere lane; this is a data-driven pool re-pin.
             # disabled_reason; re-enable on measurement or the owner batch-lane
             # ruling); they had been pool members via the blank-default -1.
             'min_chain': 285,  # 2026-11-15 ELIGIBILITY GATE: 539->285, pre-authorized re-pin (see the note above; head unchanged). Prior history: 545->541 2026-11-12: carrier-death archival wave (openrouter seed/xing4.0 lanes + TR-362 arrivals disabled) removed 4 live review-eligible lanes; 541->540 2026-11-13: TR-362 battery day-2 re-disabled the probe-alive unmeasured arrivals on TR-369 zero headroom (particle-1:free clinepass left the live review pool); 540->539 2026-11-14: clinepass lfm-2.5-2.6b:free archived (true removal — absent from GET /models + 404/402 at every form + upstream OR removal), per the 09-18 law the floor follows the fleet, dead lanes are never re-enabled to silence it,
