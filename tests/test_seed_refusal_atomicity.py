@@ -38,17 +38,9 @@ conftest's session-wide ROUTING_ALLOW_UNSATISFIABLE=1 into the refusal legs
 (and the operator's data home into every leg). Fixtures are tmp copies of the
 committed tables; the real checkout is never touched.
 
-Known shared premise: the fixture must be UNSATISFIABLE, or the refusal legs
-have nothing to refuse. That premise used to be carried by the live registry's
-`math` gap; commit 95896e60 turned that gap into a DECLARED decision
-(data/tables/unmeasured_categories.jsonl), which withdraws math 0..5 from the
-emit domain and makes the committed tables satisfiable — so the seed correctly
-published and these legs went red. The fixture now DROPS the declaration from
-its copy, which restores the undeclared gap the refusal path exists to catch:
-the premise is pinned by the fixture instead of by whatever the live corpus
-happens to look like today. If a routable lane ever measures math >= 0.996 the
-gap closes for real and leg 1's "SATISFIABILITY FAIL" assertion is the tripwire
-that says so.
+Known shared premise: the committed tables currently carry an unservable
+rating (the TR-383 `math` gap), which is what makes the refusal legs refuse.
+tests/test_tr383_satisfiability.py pins the same premise for the same reason.
 """
 import hashlib
 import json
@@ -88,18 +80,18 @@ def _make_fixture(tmp_path):
     The sentinel matters: "unchanged" must mean an EXISTING registry is not
     clobbered (the live shape — a refusal must not overwrite the store the
     fleet is currently using), not merely that no file appeared.
-
-    The copy DROPS data/tables/unmeasured_categories.jsonl on purpose: that
-    declaration is what makes the committed corpus satisfiable (math 0..5 is
-    withdrawn from the emit domain), and these legs need an UNSATISFIABLE
-    registry to prove the refusal path. Removing the declaration restores the
-    undeclared math gap — the exact defect TR-383 exists to catch — so the
-    premise is a property of the fixture, not of today's live data.
     """
     data = tmp_path / "data" / "tables"
     data.parent.mkdir()
     shutil.copytree(COMMITTED_TABLES, data)
-    (data / "unmeasured_categories.jsonl").unlink(missing_ok=True)
+    # TR-403 math declaration (2026-11-15): the committed tables carry
+    # unmeasured_categories.jsonl, which RESOLVES the satisfiability gap the
+    # refusal legs exist to test. The refusal contract is only exercisable on a
+    # fixture with an UNRESOLVED gap, so the declaration is removed here — these
+    # legs test the fatal path, not the declared path.
+    decl = data / "unmeasured_categories.jsonl"
+    if decl.exists():
+        decl.unlink()
     reg = tmp_path / "registry.json"
     reg.write_text(json.dumps({"version": 0, "sentinel": "pre-run"}) + "\n")
     (tmp_path / "home").mkdir()
@@ -112,6 +104,14 @@ def _child_env(tmp_path, reg, data) -> dict:
     env = {k: v for k, v in os.environ.items()
            if k in ("PATH", "LANG", "LC_ALL", "PYTHONPATH", "VIRTUAL_ENV",
                     "PYTHONHOME", "SYSTEMROOT")}
+    # HOME is redirected below, which hides the real user site-packages
+    # (~/.local/lib/python3.X/site-packages — duckdb lives there on this host).
+    # Re-expose it explicitly so the scrubbed child can import what the parent
+    # environment provides; without this the seed dies at import with an empty
+    # stdout and the refusal contract is untestable (seen 2026-11-16).
+    import site as _site
+    _usersite = _site.getusersitepackages()
+    env["PYTHONPATH"] = (env.get("PYTHONPATH", "") + os.pathsep + _usersite).lstrip(os.pathsep)
     env.update({
         "HOME": str(tmp_path / "home"),
         "XDG_DATA_HOME": str(tmp_path / "xdg"),
