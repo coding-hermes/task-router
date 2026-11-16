@@ -221,6 +221,21 @@ def test_eligibility_block_is_on_every_payload(monkeypatch, tmp_path):
         assert "enabled" in block and "reason" in block
 
 
+def test_profile_tag_missing_model_tier_is_excluded_with_named_reason():
+    """A true capability flag cannot bypass the model_tier tag gate."""
+    tables = _tables()
+    tables["models"][0]["vision"] = True
+    misses = []
+    rows = router_spawn._build_chain(
+        tables, [("vision", 1)], misses_out=misses,
+        eligibility_ctx={"enabled": True})
+    assert not any((p, m) == (P, EVID) for _h, p, m, *_rest in rows)
+    rec = next(e for e in misses if e["provider"] == P and e["model"] == EVID)
+    assert "capability-flag-tier" in rec["codes"]
+    assert any("vision=1" in reason and "tier=-1" in reason
+               for reason in rec["reasons"])
+
+
 def test_gate_never_moves_a_measured_hop(monkeypatch, tmp_path):
     """(i) eligibility REORDERS nothing: measured lanes keep hop + order."""
     _wire(monkeypatch, tmp_path)

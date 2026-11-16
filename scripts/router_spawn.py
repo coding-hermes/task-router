@@ -3614,15 +3614,29 @@ def _build_chain(tables: Any, reqs: Any, limit: Any=DEFAULT_CHAIN_LIMIT, sort_sp
                 v = m.get(name)
                 if v is not True:
                     why = 'unsupported' if v is False else 'unknown (unresearched)'
-                    flag_miss.append((name, why, v))
-                else:
-                    # Boolean is true — now check the tier if it exists
-                    tier_val = mt.get(name)
-                    if tier_val is not None and tier_val < lvl:
-                        flag_miss.append((name, f'tier contradicts boolean (tier={tier_val} < {lvl})', v))
+                    kind = 'unsupported' if v is False else 'unknown'
+                    flag_miss.append((name, why, kind))
+                    continue
+                # A boolean vendor/catalog flag is not sufficient evidence for
+                # a routed capability when the resolve-time eligibility gate is
+                # active. The corpus independently grades every declared profile
+                # tag from model_tier, so resolve() applies the same check BEFORE
+                # a lane can enter the chain. Use the candidate's own model_tier
+                # rows (case-folded, but not family aliases): alias credit is
+                # valid for pool evidence, but cannot manufacture a missing
+                # per-tag capability row for this exact candidate.
+                if _elig_on:
+                    own_mt = tiers.get(model) or tiers_folded.get(str(model).lower()) or {}
+                    tier_val = own_mt.get(name)
+                    observed = -1 if tier_val is None else tier_val
+                    if observed < lvl:
+                        why = (f'tier contradicts boolean (tier={observed} < {lvl})'
+                               if tier_val is not None
+                               else f'model_tier missing (tier={observed} < {lvl})')
+                        flag_miss.append((name, why, 'tier'))
             if flag_miss:
                 try:
-                    for name, why, _v in flag_miss:
+                    for name, why, _kind in flag_miss:
                         _err(f"ROUTER-MISS: {prov}/{model} fails capability "
                              f"{name}=1 ({why})")
                 except Exception:  # noqa: BLE001, S110 — fail-open contract
@@ -3630,11 +3644,10 @@ def _build_chain(tables: Any, reqs: Any, limit: Any=DEFAULT_CHAIN_LIMIT, sort_sp
                 if misses_out is not None:
                     misses_out.append({
                         'provider': prov, 'model': model,
-                        'codes': ['capability-flag-'
-                                  + ('unsupported' if v is False else 'unknown' if 'tier' not in why else 'tier-contradiction')
-                                  for name, why, v in flag_miss],
+                        'codes': [f'capability-flag-{kind}'
+                                  for _name, _why, kind in flag_miss],
                         'reasons': [f'capability {name}=1 ({why})'
-                                    for name, why, _v in flag_miss]})
+                                    for name, why, _kind in flag_miss]})
                 continue
 
         # TR-015: min_context gating. NULL passes (with a note); known value
