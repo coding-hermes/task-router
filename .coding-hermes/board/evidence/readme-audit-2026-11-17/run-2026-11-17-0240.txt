@@ -1,0 +1,69 @@
+task-router README audit — run 2026-11-17-02-40-53
+==================================================
+lane      : task-router-readme-2026-11-17-02-40-53 (scheduler tick, workdir /home/kara/.hermes/stand-in/readme/task-router)
+target    : task-router @ origin/main c4ac89ad4baa1871950d3a880fd489c1a57ee0c0
+README    : blob c30b9a297d814beed40bc8ab2b6e65aeec64b10f, sha256 68f83bddaf1eabde42a1c4c946a77d32d0238d5f373632faacaf7cf972b97151, 768 lines, 18 H2 / 62 headings
+probe tree: detached worktree of the same commit (README byte-identical to the stand-in copy — sha256 compared).
+runner    : shim scripts importing task_router.cli:main, because an editable install in the probe tree was refused for lack
+            of consent. Two shims: board venv (duckdb present) and /usr/bin/python3.12 (duckdb absent, stdlib only).
+sandbox   : TASK_ROUTER_HOME + ROUTER_STATE_DIR pointed at a scratch home, so no registry under test was mutated by accident.
+
+1. LINK / ANCHOR / BADGE DRIFT  — clean
+   python3 linkaudit-1117.py  ->  SUMMARY: 36 links, 0 broken; headings=62 images=0
+   Every relative link resolves inside the tree; every #anchor matches a heading slug; no images or badges at all
+   (so badge-drift and broken-badge theses are both moot for this README).
+
+2. DOCUMENTED COMMAND MATRIX — executed against the published tree
+   Harness: probe-matrix-1117.sh (arms B1-B22), log: matrix-1117.log (596 lines, overall rc=0).
+   Executed for real (T3): status, validate, spawn --list-profiles, spawn --profile P0_FORE --format json,
+   spawn --profile-req 'reasoning=5 debug=3 min_context=100000', circuit status --json,
+   estimate --project my-project --tokens-in/--tokens-out, estimate positional, diff, gaps, quota status,
+   maintain --dry-run, seed, post-seed validate, spawn <project>.
+   Commands whose documented output matched what was printed: status, validate, spawn (all three forms),
+   circuit status, estimate (both forms), diff, gaps, quota status, seed (with duckdb).
+
+3. FINDING FILED THIS RUN
+   README.md:660 documents:
+     | `router maintain` | Reprice / seed / export / snapshot / commit maintenance (`--dry-run`) |
+   The only invocation that row implies:
+     $ router maintain --dry-run
+     usage: router_maintain.py [-h] [--dry-run]
+                               {reprice,seed,export,snapshot,commit,all} [{reprice,seed,export,snapshot,commit,all} ...]
+     router_maintain.py: error: the following arguments are required: step
+     rc=2
+   The step positional set {reprice,seed,export,snapshot,commit,all} appears ONLY in `router maintain --help`
+   (maintain-help.txt, 11 lines) — nowhere in README.md. Working form, for the fixer:
+     $ router maintain reprice --dry-run
+     [reprice] 3 row(s) would change
+       deepseek/deepseek-flash: 0.14 -> 0.09 (deepseek: OR in-price)
+       deepseek/deepseek-v4-pro: 0.9483 -> 0.9 (deepseek: OR in-price)
+       opencode-go/glm-5: 0.6528 -> 1.088 (opencode-go: blended 0.96.in + 0.04.out of z-ai/glm-5)
+     [reprice] 1458 row(s) skipped/unmapped
+     rc=0
+   Filed as README-1000489997499222 (doc severity P4 by the 2026-09-30 ruling; board priority field P3, the closed
+   vocabulary's lowest tier, per TR-348 — the P4 label lives in the TITLE only).
+
+4. RE-VERIFIED, NOT RE-FILED (existing rows still describe reality)
+   README-6 (seed without duckdb): $ <python3.12, no duckdb> ... seed  ->  rc=1, stdout 0 bytes, stderr 0 bytes.
+     README.md:73-75 promises a loud "No module named 'duckdb'" failure; the command exits 1 in total silence.
+     The existing row is accurate; this run only adds the byte counts (seed-nodb.out / seed-nodb.err).
+   DOC-12 / README-2 (CLI table repeats commands, omits context-call): confirmed on the same page — `router quota`
+     appears twice at README.md:661 and :662, `chain-run`/`outcomes`/`pricing-audit` likewise. Covered.
+   README-3 / README-1000022374340374 / README-1000489997499220 (no version / CHANGELOG / freshness reference):
+     confirmed still true — README.md carries no version string, no CHANGELOG pointer, no release reference.
+   README-1000489997499221 (Contents omits License): confirmed — License is the only H2 absent from the TOC.
+   Stranger install path: pyproject declares requires-python >=3.11 and a `test` extra; README's floor matches
+     (3.11+), so no new floor drift. The test-extra gap is already carried by the README-1 family.
+
+5. NEGATIVE RESULTS (measured, nothing to file)
+   - router status --json  ->  rc=2 "unrecognized arguments: --json". This is MY probe error, not a doc defect:
+     README.md never documents --json for status (Quick start uses bare `router status`; the --json examples in the
+     table are circuit/quota/gaps). Recorded here so a later run does not re-file it as a finding.
+   - make restart-router, run in the scratch home, exits 1 with "worker needs to run as systemd --user" — that is
+     the documented fail-closed guard behaving exactly as README describes. Not a finding.
+
+6. LEFT UNVERIFIED
+   - `make schemas` (README-5 already says scripts/schema_check.py is absent; not re-measured this run).
+   - Bunker/remote-host arms: no remote host was contacted; every probe ran on this host.
+   - The docs/ tree beyond README.md (docs/configuration.md claims belong to DOC-5..DOC-16 rows, not this sweep).
+   - Router API server routes (DOC-6/DOC-15 territory) were not started or curled.
