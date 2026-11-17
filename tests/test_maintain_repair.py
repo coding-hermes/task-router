@@ -77,9 +77,20 @@ def scratch(tmp_path):
         # Fresh clone (CI): registry.json is gitignored live state (Bane
         # 2026-08-27). Derive it from the committed tables instead of
         # failing — same content a first `router_seed.py` run produces.
+        #
+        # ROUTING_DATA_DIR is MANDATORY here. Without it the seed publishes
+        # into the checkout's own data/tables (its tail-sync rewrites every
+        # tracked *.jsonl), so a CI run — where registry.json is absent and
+        # this branch always fires — dirtied the tree for every test that ran
+        # after it. Measured: the null census then judged a table that was no
+        # longer the committed one and reported 27 unexplained live nulls,
+        # failing in CI while passing on any box that had a registry.json.
+        # A test that seeds must never write the checkout it is testing.
         import subprocess
         seed = os.path.join(REPO, "scripts", "router_seed.py")
-        env = dict(os.environ, ROUTING_REGISTRY=str(reg))
+        env = dict(os.environ, ROUTING_REGISTRY=str(reg),
+                   ROUTING_DATA_DIR=str(data),
+                   ROUTING_NS=str(tmp_path / "routing-ns"))
         subprocess.run([sys.executable, seed, "--help"],
                        capture_output=True, env=env)
         r = subprocess.run([sys.executable, seed], capture_output=True,
