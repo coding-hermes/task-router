@@ -392,7 +392,20 @@ def _attach_lane_capabilities(rows: Any) -> list:
         derived = _cvocab.derive_lane_capabilities(
             r.get('model'), lookup(r.get('provider'), r.get('model')))
         for fam, val in derived.items():
-            r[_cvocab.family_column(fam)] = val
+            col = _cvocab.family_column(fam)
+            # A NULL derivation means "no catalog evidence in THIS data dir",
+            # never "erase the evidence already ON the row". Derived evidence
+            # wins when it exists; otherwise the recorded value round-trips
+            # like every other column does. Without this, the seed's output is
+            # not a fixed point of its own input: the 3 ':batch' lanes whose
+            # cap_* booleans a market cross-check card filled (they have no
+            # catalog row of their own — a ':batch' id is a transport, not a
+            # model) were silently reverted to NULL on every seed run, which
+            # dirtied data/tables during a full-suite run and turned the null
+            # census red in CI (t_suite_pollution).
+            if val is None and r.get(col) is not None:
+                val = r.get(col)
+            r[col] = val
             counts[fam][val] = counts[fam].get(val, 0) + 1
     print('capabilities derived (evidence=True, absence=False, unresearched=None): '
           + ', '.join(f"{f} T{counts[f][True]}/F{counts[f][False]}/N{counts[f][None]}"
