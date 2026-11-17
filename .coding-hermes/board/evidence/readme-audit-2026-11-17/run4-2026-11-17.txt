@@ -1,0 +1,8 @@
+## stranger interpreter case: venv3 python (documented install only)
+/home/kara/.hermes/stand-in/readme/task-router/stranger-1717/venv3/bin/python: No module named pytest
+--rc=1
+
+## venv2 (no duckdb) router seed, stdout and stderr separated:
+rc=1
+stdout bytes: 0
+stderr bytes: 0

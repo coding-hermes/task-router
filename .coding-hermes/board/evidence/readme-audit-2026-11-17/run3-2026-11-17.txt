@@ -1,0 +1,45 @@
+
+########## ARM: C1-venv3-documented-install
+
+[notice] A new release of pip is available: 26.2.2 -> 26.3
+[notice] To update, run: /home/kara/.hermes/stand-in/readme/task-router/stranger-1717/venv3/bin/python3.14 -m pip install --upgrade pip
+--install-rc=0
+[notice] A new release of pip is available: 26.2.2 -> 26.3
+[notice] To update, run: /home/kara/.hermes/stand-in/readme/task-router/stranger-1717/venv3/bin/python3.14 -m pip install --upgrade pip
+--duckdb-rc=0
+## venv3 pkgs:
+duckdb      2.0.0
+task-router 0.2.0   /home/kara/.hermes/stand-in/readme/task-router/stranger-1717/repo
+## [README:45 claim] router validate BEFORE seed:
+
+INVALID — 1 issue(s):
+  - registry.exists: missing: /home/kara/.hermes/stand-in/readme/task-router/stranger-1717/repo/registry.json — run scripts/router_seed.py once to generate it
+--validate-pre-seed-rc=1
+## [README:46] router seed:
+SATISFIABILITY OK: all 918 rating(s) in the emit domain are servable by at least one routable lane
+ns mirror absent — skipped ns export (fresh clone is fine)
+wrote /home/kara/.hermes/stand-in/readme/task-router/stranger-1717/repo/registry.json (9671.0 KB)
+synced data/tables -> /home/kara/.hermes/stand-in/readme/task-router/stranger-1717/repo/data/tables
+--seed-rc=0
+## registry.json after seed: YES
+## [README:70] the exact documented test command:
+........................................................................ [  2%]
+........................................................................ [  4%]
+................................
+--pytest-documented-rc=124
+
+########## ARM: C2-venv2-no-duckdb
+cmd: router seed | rc=1 | bytes=0 | head: 
+cmd: router status | rc=0 | bytes=11998 | head: {  "generated_at": "2026-11-17T03:08:22+00:00", 
+cmd: router validate | rc=0 | bytes=1429 | head: [ok  ] registry.exists: /home/kara/.hermes/stand-in/readme/task-router/stranger-1717/repo/registry.json [ok  ] registry.parse: valid JSON 
+cmd: router spawn my-project --format json | rc=0 | bytes=45368 | head: {  "project": "my-project", 
+cmd: router estimate --project my-project --tokens-in 1000 --tokens-out 1000 | rc=0 | bytes=33897 | head: {  "project": "my-project", 
+
+########## ARM: C3-readme-lines
+35:pip install -e .
+40:pip install duckdb          # or: uv pip install duckdb
+69:#   ~/.hermes/venvs/board/bin/python3 -m pytest -q tests/
+70:python3 -m pytest -q tests/
+166:`pip install -e .` installs one executable, `router`, with a subcommand per
+
+=== PART3 COMPLETE ===

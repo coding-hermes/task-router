@@ -1,0 +1,145 @@
+=== SWEEP task-router README 2026-11-17 ===
+## date: 2026-11-16T21:58:31-05:00
+
+########## ARM: A1-identity
+## cmd: git rev-parse HEAD; git rev-parse origin/main; git rev-parse HEAD:README.md
+## cwd: /home/kara/.hermes/stand-in/readme/task-router/pub-2026-11-17
+d811f55940c5c44631b2be0f0dc4b1b52b91f61e
+d811f55940c5c44631b2be0f0dc4b1b52b91f61e
+c30b9a297d814beed40bc8ab2b6e65aeec64b10f
+68f83bddaf1eabde42a1c4c946a77d32d0238d5f373632faacaf7cf972b97151  README.md
+68f83bddaf1eabde42a1c4c946a77d32d0238d5f373632faacaf7cf972b97151  -
+-- rc=0
+
+########## ARM: A2-release-boundary
+## cmd: gh release view; git ls-remote --tags; CHANGELOG head; pyproject version
+## cwd: /home/kara/.hermes/stand-in/readme/task-router/pub-2026-11-17
+To get started with GitHub CLI, please run:  gh auth login
+Alternatively, populate the GH_TOKEN environment variable with a GitHub API authentication token.
+--gh-rc=0
+--tags-rc=0
+7:## [Unreleased]
+73:## [0.2.0] — 2026-09-24
+127:## [0.1.0] — 2026-09-21
+6:name = "task-router"
+7:version = "0.2.0"
+10:requires-python = ">=3.11"
+95896e60 2026-11-15 fix(seed): declared-unmeasured categories — the math gap becomes a decision, not a deadlock
+
+########## ARM: A3-pytest-verbatim
+## cmd: python3 -m pytest -q tests/   # README line 70, after the documented install only
+## cwd: /home/kara/.hermes/stand-in/readme/task-router/stranger-1717/repo
+python 3.14.9
+duckdb      2.0.0
+pytest      9.2.0
+PyYAML      6.0.3
+........................................................................ [  2%]
+........................................................................ [  4%]
+..................................--pytest-rc=124
+
+########## ARM: A4-make-schemas
+## cmd: make schemas   # Makefile target
+## cwd: /home/kara/.hermes/stand-in/readme/task-router/stranger-1717/repo
+          name as your package as they may take precedence during imports.
+          ********************************************************************************
+  
+  !!
+    with strategy, WheelFile(wheel_path, "w") as wheel_obj:
+router installed: .venv/bin/router
+.venv/bin/python: can't open file '/home/kara/.hermes/stand-in/readme/task-router/stranger-1717/repo/scripts/schema_check.py': [Errno 2] No such file or directory
+make: *** [Makefile:87: schemas] Error 2
+--make-schemas-rc=2
+ls: cannot access 'scripts/schema_check.py': No such file or directory
+
+########## ARM: A5-seed-fresh-clone
+## cmd: router seed  (venv WITHOUT duckdb, fresh clone)
+## cwd: /home/kara/.hermes/stand-in/readme/task-router/stranger-1717
+## venv2 pkgs:
+(-- neither duckdb nor pytest installed)
+## registry.json present before: no
+/home/kara/.hermes/stand-in/readme/task-router/stranger-1717/venv2/bin/python: No module named task_router.__main__; 'task_router' is a package and cannot be directly executed
+--seed-rc=0
+## registry.json after: no
+
+########## ARM: A6-chainrun-outside-checkout
+## cmd: router chain-run   (cwd is NOT a git checkout)
+## cwd: /home/kara/.hermes/stand-in/readme/task-router/home-1717
+router: cannot find the task-router checkout.
+  looked for: /home/kara/.hermes/scripts/router_chain_run.py
+  The scripts/ tools ship with the checkout, not with the installed wheel.
+  Fix one of these ways:
+    * run `router` from inside a checkout (any subdirectory works), or
+    * point at one explicitly: TASK_ROUTER_REPO=/path/to/task-router router chain-run ..., or
+    * use the checkout's own entry point: python3 scripts/router_chain_run.py ...
+--chain-run-rc=2
+  looked for: /home/kara/.hermes/scripts/router_chain_run.py
+  The scripts/ tools ship with the checkout, not with the installed wheel.
+  Fix one of these ways:
+    * run `router` from inside a checkout (any subdirectory works), or
+    * point at one explicitly: TASK_ROUTER_REPO=/path/to/task-router router chain-run ..., or
+    * use the checkout's own entry point: python3 scripts/router_chain_run.py ...
+--chain-run-proj-rc=2
+
+########## ARM: A7-env-var-count
+## cmd: grep ROUTER_* in code vs docs/configuration.md; README claim
+## cwd: /home/kara/.hermes/stand-in/readme/task-router/pub-2026-11-17
+## README claim:
+260:    `ROUTER_NOHOPS_BURST_MIN`), `/api/ui/unservable` (TR-344 the
+344:export ROUTER_PROXY_UPSTREAM=http://127.0.0.1:8642
+690:**Complete reference:** The table above covers the core configuration variables. For the remaining 44 `ROUTER_*` environment variables (classifier, proxy, spawn, cache, health, verification, Hermes integration), see [docs/configuration.md](docs/configuration.md).
+## unique in task_router/ + scripts/:
+158
+## unique documented in docs/configuration.md:
+131
+
+########## ARM: A8-toc-vs-h2
+## cmd: H2 headings vs Contents entries
+## cwd: /home/kara/.hermes/stand-in/readme/task-router/pub-2026-11-17
+9:## Contents
+28:## Quick start
+164:## The router command
+170:## Web UI
+187:## API server and MCP bridge
+327:## Classified proxy deployment (TR-067)
+456:## Bus ingress (TR-236)
+488:## Automatic board task intake (TR-298)
+527:## Architecture
+593:## Context windows and capabilities
+601:## Versioned, tagged profiles
+621:## Provider mapping
+630:## CLI reference
+675:## Configuration
+696:## Metrics
+718:## Data and namespaces
+760:## Contributing and security
+766:## License
+## TOC bullet count (lines 9-27):
+16
+## TOC entries missing an H2, and H2s missing from TOC:
+H2 count 18 TOC count 16
+H2 NOT IN TOC: Contents
+H2 NOT IN TOC: License
+
+########## ARM: A9-cli-table-drift
+## cmd: router --help command list vs README CLI reference
+## cwd: /home/kara/.hermes/stand-in/readme/task-router/stranger-1717/repo
+--help-rc=0
+CLI commands: 0
+README table rows: 32 unique: 27
+IN CLI, MISSING FROM README: []
+IN README, NOT IN CLI: ['chain-run', 'circuit', 'clinepass', 'decide', 'diff', 'estimate', 'gaps', 'ingress', 'learn', 'ledger', 'lifecycle', 'maintain', 'metrics', 'modelsdev', 'outcomes', 'plan-sweep', 'pricing', 'pricing-audit', 'probe', 'probefix', 'quota', 'seed', 'server', 'spawn', 'status', 'validate', 'web']
+DUPLICATED IN README: ['chain-run', 'lifecycle', 'outcomes', 'pricing-audit', 'quota']
+
+########## ARM: A10-quickstart-rerun
+## cmd: documented quickstart commands, rc only
+## cwd: /home/kara/.hermes/stand-in/readme/task-router/stranger-1717/repo
+cmd: router seed | rc=0 | first-line:   TR-232: probe row NOT undamped (no attributable ratio): union-alpha agent_tick score=1.0 src=live-probe-2026-09-16 3-step CI plan, exact f
+cmd: router validate | rc=0 | first-line: [ok  ] registry.exists: /home/kara/.hermes/stand-in/readme/task-router/stranger-1717/repo/registry.json
+cmd: router status | rc=0 | first-line: {
+cmd: router spawn my-project --format json | rc=0 | first-line: {
+cmd: router spawn P1_CODING --format json | rc=0 | first-line: {
+cmd: router spawn --list-profiles | rc=0 | first-line: {
+cmd: router circuit status --json | rc=0 | first-line: {
+cmd: router estimate --project my-project --tokens-in 100000 --tokens-out 100000 | rc=0 | first-line: {
+
+=== SWEEP COMPLETE ===

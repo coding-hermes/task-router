@@ -1,0 +1,131 @@
+
+########## ARM: B1-pyproject-deps
+[project]
+name = "task-router"
+version = "0.2.0"
+description = "Deterministic task router CLI for the coding-hermes fleet — wraps the scripts/ tools behind one `router` entry point with a configurable data home."
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+authors = [{name = "Bane", email = "wojonstech@gmail.com"}]
+# stdlib only — scripts/ tools must run in the bare board venv.
+
+[project.optional-dependencies]
+# NOT runtime deps (runtime stays stdlib-only). Only what make test needs:
+# pytest runs the suite; duckdb is imported by scripts/router_seed.py, which
+# tests/conftest.py runs once per session to build the shared tables fixture;
+# pyyaml is imported by scripts/router_probe_run.py (config.yaml loader,
+# INT-CI-20260928-01).
+test = ["pytest", "duckdb", "pyyaml"]
+# QA-TASKROUTER-5: `dev` is the advertised developer install path
+# (`pip install -e .[dev]`). Self-referential extra — resolves to everything
+# `test` needs without duplicating the list (valid PEP 621 + setuptools).
+dev = ["task-router[test]"]
+
+[project.scripts]
+-- extras:
+[project.optional-dependencies]
+# NOT runtime deps (runtime stays stdlib-only). Only what make test needs:
+# pytest runs the suite; duckdb is imported by scripts/router_seed.py, which
+# tests/conftest.py runs once per session to build the shared tables fixture;
+# pyyaml is imported by scripts/router_probe_run.py (config.yaml loader,
+# INT-CI-20260928-01).
+test = ["pytest", "duckdb", "pyyaml"]
+# QA-TASKROUTER-5: `dev` is the advertised developer install path
+# (`pip install -e .[dev]`). Self-referential extra — resolves to everything
+# `test` needs without duplicating the list (valid PEP 621 + setuptools).
+dev = ["task-router[test]"]
+
+[project.scripts]
+
+########## ARM: B2-pytest-origin
+duckdb      2.0.0
+pytest      9.2.0
+PyYAML      6.0.3
+task-router 0.2.0   /home/kara/.hermes/stand-in/readme/task-router/stranger-1717/repo
+-- egg-link / direct_url:
+{"dir_info": {"editable": true}, "url": "file:///home/kara/.hermes/stand-in/readme/task-router/stranger-1717/repo"}-- what a bare 'pip install -e .' would install (dry, from pyproject):
+core deps: None
+optional: {'test': ['pytest', 'duckdb', 'pyyaml'], 'dev': ['task-router[test]']}
+
+########## ARM: B3-router-seed-no-duckdb
+task-router 0.2.0   /home/kara/.hermes/stand-in/readme/task-router/stranger-1717/repo
+
+--seed-rc=1
+## registry.json created: NO
+
+########## ARM: B4-cli-surface
+usage: router [-h] COMMAND [args...]
+
+task-router CLI — deterministic model routing for the coding-hermes fleet.
+Each subcommand runs the matching scripts/router_<name>.py tool with
+data-home env overrides applied. `router <cmd> --help` passes through to
+the underlying tool's own argparse.
+
+COMMAND
+  chain-run   
+  circuit     circuit-breaker state for (provider, model) pairs
+  clinepass   Cline Pass plan lane diagnostics
+  context-call
+  decide      just-in-time execution decision: closed v1 request -> canonical expiring route receipt (ACP-ROUTER-001; --verify checks a receipt)
+  diff        chain snapshot diff between two dates (head moves, price deltas)
+  estimate    cost estimate for a project's chain at given token volumes
+  gaps        registry coverage gap report
+  ingress     
+  learn       DuckBrain-backed learning loop (dump/lesson/doctrine)
+  ledger      spawn-ledger start/end/status (TR-007)
+  lifecycle   
+  maintain    registry repair/export/reprice maintenance
+  metrics     usage metrics: top providers/models/pairs, per-profile, since-window
+  modelsdev   models.dev catalog sync + price refresh
+  outcomes    
+  plan-sweep  disable plan-outside flat-subscription lanes
+  pricing     price table diagnostics
+  pricing-audit
+  probe       provider health probe (manual calibration run)
+  probefix    resolve 404/400 model ids from probe logs
+  quota       plan-window quota gates (429 exhaustion): set/clear/status; plus accounting (TR-209 L2 view), pacing (TR-210 L3 gate), burn (TR-211 L3 burn-surplus finder)
+-- help rc=0
+-- context-call in help: 1
+-- context-call --help rc:
+rc=0
+-- README mentions context-call: 0
+-- README CLI-table rows for context-call: 0
+
+########## ARM: B5-classifier-model
+## README recipe line:
+346:export ROUTER_CLASSIFIER_MODEL=deepseek-v4.1-flash
+## source default:
+309:              'model': os.environ.get('ROUTER_CLASSIFIER_MODEL', 'glm-5.3-flash'),
+608:    out = {'prompt_version': version, 'model': os.environ.get('ROUTER_CLASSIFIER_MODEL'),
+## docs/configuration.md row:
+49:| `ROUTER_CLASSIFIER_MODEL` | `router_classify.py`, `router_server.py` | Model ID to use for classification requests | `deepseek-v4.1-flash` |
+
+########## ARM: B6-freshness-in-readme
+20:- [Versioned, tagged profiles](#versioned-tagged-profiles)
+533:     task profile (signed levels by category, versioned + tagged)
+601:## Versioned, tagged profiles
+610:   (`PROFILE_NOT_FOUND`) — it never silently upgrades to the tagged row.
+728:- Profile layer: `task_profiles` (versioned + tagged), `task_profile_requirements`.
+--rc=0
+## README 'Badge' count: 0
+## README line1-8:
+# task-router
+
+A deterministic model router for AI fleets: task profiles → eligible provider/model pairs → price-sorted fallback chains → runtime gates.
+
+`task-router` makes model selection inspectable rather than incidental. A task declares signed capability requirements by category. The router admits only pairs that clear **every** requirement, sorts the eligible pairs by effective price, then filters that stored chain with current quota, health, circuit-breaker, diversity, and (when wired) concurrency state. The caller receives the first open pair and the full explanation of exclusions.
+
+The runtime contract is **fail-open**: `router_spawn.py` always exits `0`. If resolution fails, it writes a JSON error so the consuming scheduler or application can use its own fallback instead of being blocked by routing infrastructure.
+
+
+########## ARM: B7-host-port-state
+LISTEN 0 5 127.0.0.1:9391 0.0.0.0:* users:(("python3",pid=752047,fd=3)) 
+LISTEN 0 5 127.0.0.1:9093 0.0.0.0:* users:(("python3",pid=2083846,fd=3)) 
+LISTEN 0 5 127.0.0.1:9092 0.0.0.0:* users:(("python3",pid=3315430,fd=3)) 
+LISTEN 0 128 127.0.0.1:8642 0.0.0.0:* users:(("hermes",pid=3904515,fd=73)) 
+LISTEN 0 5 100.97.236.14:9092 0.0.0.0:* users:(("socat",pid=2137000,fd=5)) 
+LISTEN 0 5 100.97.236.14:8642 0.0.0.0:* users:(("socat",pid=1865837,fd=5)) 
+LISTEN 0 5 100.97.236.14:9391 0.0.0.0:* users:(("socat",pid=2137001,fd=5)) 
+
+=== PART2 COMPLETE ===

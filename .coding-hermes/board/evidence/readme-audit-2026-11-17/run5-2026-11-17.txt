@@ -1,0 +1,17 @@
+########## ARM: D1-no-duckdb (README:73-78 claim)
+Cloning into 'repo2'...
+
+[notice] A new release of pip is available: 26.2.2 -> 26.3
+[notice] To update, run: /home/kara/.hermes/stand-in/readme/task-router/stranger-1717/venv4/bin/python3.14 -m pip install --upgrade pip
+--install-rc=0
+## venv4 pkgs:
+task-router 0.2.0   /home/kara/.hermes/stand-in/readme/task-router/stranger-1717/repo2
+## registry.json before: NO
+## router seed (no duckdb installed):
+--seed-rc=1
+## registry.json after: NO
+## router status (README:77 'every other subcommand still works'):
+{
+ "generated_at": "2026-11-17T03:15:04+00:00",
+ "registry": {
+--status-rc=0
