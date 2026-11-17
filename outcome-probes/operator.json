@@ -1,0 +1,12 @@
+{
+ "authored_at": "2026-11-17T07:05:00Z",
+ "authored_by": "model-router data-quality cron 2026-11-17 (primary-lane outcome contract; states the outcome the next dispatch must show \u2014 no project-specific claim)",
+ "probes": [
+  {
+   "id": "operator-P1",
+   "kind": "outcome",
+   "statement": "operator: its next dispatch lands operator tooling that matches the shipped behavior (no operator capability the code contradicts) and closes a board row whose acceptance criteria are bound to a recorded evidence run"
+  }
+ ],
+ "project": "operator"
+}

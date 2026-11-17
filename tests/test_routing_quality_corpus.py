@@ -508,7 +508,7 @@ CASES = [
             # xkiro + xkiro-2 5.6-terra lanes from this pool (measured).
             # disabled_reason; re-enable on measurement or the owner batch-lane
             # ruling); they had been pool members via the blank-default -1.
-            'min_chain': 516,  # 545->541 2026-11-12: carrier-death archival wave (openrouter seed/xing4.0 lanes + TR-362 arrivals disabled) removed 4 live review-eligible lanes; 541->540 2026-11-13: TR-362 battery day-2 re-disabled the probe-alive unmeasured arrivals on TR-369 zero headroom (particle-1:free clinepass left the live review pool); 540->539 2026-11-14: clinepass lfm-2.5-2.6b:free archived (true removal — absent from GET /models + 404/402 at every form + upstream OR removal), per the 09-18 law the floor follows the fleet, dead lanes are never re-enabled to silence it; 539->516 2026-11-15: pre-2026 cull (Bane directive) retired the 2024/2025-generation lanes across providers (measured),
+            'min_chain': 512,  # 545->541 2026-11-12: carrier-death archival wave (openrouter seed/xing4.0 lanes + TR-362 arrivals disabled) removed 4 live review-eligible lanes; 541->540 2026-11-13: TR-362 battery day-2 re-disabled the probe-alive unmeasured arrivals on TR-369 zero headroom (particle-1:free clinepass left the live review pool); 540->539 2026-11-14: clinepass lfm-2.5-2.6b:free archived (true removal — absent from GET /models + 404/402 at every form + upstream OR removal), per the 09-18 law the floor follows the fleet, dead lanes are never re-enabled to silence it; 539->516 2026-11-15: pre-2026 cull (Bane directive) retired the 2024/2025-generation lanes across providers (measured),; 516->512 2026-11-17: catalog-removal archival of 5 openrouter lanes (liquid/lfm-2.5-2.6b + :free, qwen/qwen3-vl-30b-a3b-thinking, tencent/hunyuan-a13b-instruct, stepfun/step-3.5-flash — trusted-complete fetch + OR 404 "no provider serves" on two) net of the +2 live qwen4-max arrivals (tier'd via launch-chart bench rows); arrivals gated same-day per the 11-14 law.
         },
     },
     # --- ad-hoc capability bands (the classifier's output space) ------------
@@ -701,7 +701,10 @@ CASES = [
             # + mercury trio, same-day chat 404s) removed 9 more pool lanes.
             # 2026-11-15: floor 758->724 — pre-2026 cull (Bane directive) retired
             # the 2024/2025-generation lanes across providers (measured).
-            'min_chain': 724,
+            # 2026-11-17: floor 724->722 — 5 openrouter catalog-removal archives
+            # (VANISHED ids correctly attributed to openrouter per the 11-03
+            # id-intersection law) net of the +2 live qwen4-max arrivals.
+            'min_chain': 722,
         },
     },
     {

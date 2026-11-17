@@ -1775,6 +1775,16 @@ def apply_tick_verdicts(store_path: Any = None, db_path: str = None) -> dict:
                     'verdict_status': status}
         os.replace(store, backup)
         os.replace(tmp, store)
+        # Retention: keep only the newest 3 verdicts backups. Without this the
+        # hourly import piled up ~406M copies per run (162G by 2026-11-16).
+        try:
+            import glob as _glob
+            _baks = sorted(_glob.glob(f'{store}.bak-verdicts-*'),
+                           key=os.path.getmtime, reverse=True)
+            for _old in _baks[3:]:
+                os.remove(_old)
+        except OSError:
+            pass
         return {'changed': changed, 'reasons_stamped': reasons,
                 'already_current': current, 'settled_kept': settled,
                 'verdict_status': status, 'backup': backup}

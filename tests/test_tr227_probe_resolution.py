@@ -325,8 +325,17 @@ def test_dry_run_targets_all_four_instances(tmp_path):
             continue
         proc_fill = fill_run(prov, fill_target[prov])
         assert proc_fill.returncode == 0, proc_fill.stderr[-400:]
-        assert not any(prov in l for l in proc_fill.stdout.splitlines()
-                       if l.strip().startswith("SKIP")), \
+        # 2026-11-17 re-pin: commandcode's fill run may SKIP while its account
+        # is down (t_evid_commandcode 2026-11-15 — chat 401 on every shape
+        # until the owner rotates keys); the skip must cite that hold.
+        fill_skips = [l for l in proc_fill.stdout.splitlines()
+                      if l.strip().startswith("SKIP") and prov in l]
+        if prov == "commandcode" and fill_skips:
+            assert all("401" in s or "Authorization" in s or "account is fixed" in s
+                       for s in fill_skips), \
+                f"commandcode fill skip no longer cites the account hold: {fill_skips}"
+            continue
+        assert not fill_skips, \
             f"{prov}: fill run unexpectedly SKIPped"
         assert any(prov in l for l in proc_fill.stdout.splitlines()
                    if l.startswith(("   ", "target"))), \

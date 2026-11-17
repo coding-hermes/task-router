@@ -72,6 +72,12 @@ SUFFIX_PROFILE = {
     # precedent rows bunker-pm crier-pm gitreins-pm hermes-dagger-pm
     # task-router-pm coding-hermes-scheduler-pm — all P8_SYNC jsonl.
     'ops': 'P8_SYNC',
+    # 2026-11-17: 'print' = periodic report-printer lanes (sole precedent:
+    # project-sitrep-print — a 6h command lane running
+    # ~/.hermes/scripts/project-sitrep-print.sh, coding-hermes board family,
+    # created 2026-10-29). A sitrep printer is report/sync volume writing
+    # (P8_SYNC), jsonl board_type ('' stays reserved for -sync lanes).
+    'print': 'P8_SYNC',
     # TR-381: mon-check is the table's sole -check row (P7_MOCK, beside the
     # mon-alert/mon-ping/dc-prune/dc-rotate/dc-vacuum utility family).
     'check': 'P7_MOCK',

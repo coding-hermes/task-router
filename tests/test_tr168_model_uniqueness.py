@@ -613,6 +613,14 @@ POST_DEDUPE_ADDITIONS = {
     ("synthetic", "hf:moonshotai/Kimi-K3.1-Pro"): "models.dev sync 2026-11-15 — hf: explicit id, alias-tier'd to kimi-k3.1-pro",
     ("clinepass", "cline-astra-opus10-20261114-azure-r1"): "clinepass API sync 2026-11-15 — ephemeral nightly SKU, plan-sweep disabled",
     ("clinepass", "cline-fable52-opus10-20261114-vertex-global-r1"): "clinepass API sync 2026-11-15 — ephemeral nightly SKU, plan-sweep disabled",
+    # 2026-11-17 tick (model-registry-data-quality cron): models.dev sync wave
+    # (both new generations shipped ~11-16) + clinepass carrier SKUs
+    ("opencode-go", "hy4-flash-free"): "models.dev sync 2026-11-17 — free serving variant of hy4-flash, TR-362-disabled (measured below every band floor)",
+    ("opencode-go", "qwen4-max"): "models.dev sync 2026-11-17 — live, tier'd via Alibaba launch-chart bench rows (terminal -4 / long_horizon -3 / code_gen -5)",
+    ("openrouter", "qwen/qwen4-max"): "models.dev sync 2026-11-17 — vendor-org mirror, aliased to qwen4-max base, live",
+    ("openrouter", "tencent/hy4-flash"): "models.dev sync 2026-11-17 — vendor-org mirror of hy4-flash, TR-362-disabled (measured below every band floor)",
+    ("clinepass", "qwen4-max"): "clinepass API sync 2026-11-17 — carrier SKU, plan-sweep disabled on arrival",
+    ("clinepass", "hy4-flash"): "clinepass API sync 2026-11-17 — carrier SKU, plan-sweep disabled on arrival",
 }
 
 
