@@ -1,0 +1,50 @@
+
+########## ARM: V1-identity
+## worktree: /home/kara/.hermes/stand-in/readme/task-router/wt-0240-refire
+114ab70b848b0f41c12d6d982f5f4e9aeb3466ea
+c30b9a297d814beed40bc8ab2b6e65aeec64b10f
+68f83bddaf1eabde42a1c4c946a77d32d0238d5f373632faacaf7cf972b97151  /home/kara/.hermes/stand-in/readme/task-router/wt-0240-refire/README.md
+0
+768
+18
+62
+
+########## ARM: V2-maintain-row
+| `router maintain` | Reprice / seed / export / snapshot / commit maintenance (`--dry-run`) |
+## cmd: /home/kara/task-router/.venv/bin/python /home/kara/.hermes/stand-in/readme/task-router/wt-0240-refire/scripts/router_maintain.py --dry-run
+usage: router_maintain.py [-h] [--dry-run]
+                          {reprice,seed,export,snapshot,commit,all}
+                          [{reprice,seed,export,snapshot,commit,all} ...]
+router_maintain.py: error: the following arguments are required: step
+## rc=2
+## cmd: /home/kara/task-router/.venv/bin/python /home/kara/.hermes/stand-in/readme/task-router/wt-0240-refire/scripts/router_maintain.py reprice --dry-run
+[reprice] WARNING: registry.json missing/unreadable — skipping reprice (fail-open)
+## rc=0
+
+########## ARM: V3-toc-vs-h2
+9:## Contents
+28:## Quick start
+164:## The router command
+170:## Web UI
+187:## API server and MCP bridge
+327:## Classified proxy deployment (TR-067)
+456:## Bus ingress (TR-236)
+488:## Automatic board task intake (TR-298)
+527:## Architecture
+593:## Context windows and capabilities
+601:## Versioned, tagged profiles
+621:## Provider mapping
+630:## CLI reference
+675:## Configuration
+696:## Metrics
+718:## Data and namespaces
+760:## Contributing and security
+766:## License
+## TOC bullet count (lines 9-27):
+16
+## License line:
+766:## License
+## License present in TOC bullets:
+0
+
+=== REFIRE VERIFICATION COMPLETE ===
