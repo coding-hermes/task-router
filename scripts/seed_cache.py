@@ -87,7 +87,7 @@ DERIVATION_MODULES = (
     'router_satisfiability.py',
 )
 
-_HERE = os.path.dirname(os.path.abspath(__file__))
+_HERE = os.path.dirname(os.path.realpath(__file__))
 
 #: Env inputs the seed's DERIVATION reads. Same inputs + different flag = a
 #: different registry (or no registry at all), so an entry derived under one
