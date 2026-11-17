@@ -384,9 +384,26 @@ CASES = [
                 # cheapest acceptable lane takes the head (09-18 golden-head law).
             'head': ['xkiro', 'openai/gpt-6-luna'],
             'head_usd_1m': 0.116,
-            'must_include': [['commandcode', 'Qwen/Qwen3.7-Plus'],
-                             ['deepseek', 'deepseek-flash']],
-            'must_exclude': [['clinepass', 'dots-3-note-preview:free']],
+            # 2026-11-17 (red main @ 12cabad5): commandcode/Qwen/Qwen3.7-Plus
+            # LEFT the P3_DOCS pool — the 2026-11-17 market ingest wrote
+            # source=market long_doc 0.4667 for qwen/qwen3.7-plus
+            # (arena=agents, source_category=pdf, n=60, raw_elo 1106/rank 32),
+            # and per the documented precedence an external market percentile
+            # (n=60) outranks the internal n=1 small-probe row it displaced
+            # (bench:live-probe-2026-09-27/LONG-DOC, score 1.0, explicitly
+            # "n=1 small-probe, NOT large-bench"). Measured on the seeded
+            # registry: the lane's long_doc tier moved -1 -> -5 (perf 0.4667,
+            # tier_source family via alias:qwen3.7-plus), which is BELOW the
+            # P3_DOCS bar (long_doc>=-1) — so the lane is now excluded BY THE
+            # BAR, not lost by a resolver defect. Causal proof: flipping only
+            # that tier cell to -1 in a copy of the seeded registry puts the
+            # lane back in the chain (140 -> 142 lanes, target present).
+            # Pool move is honest, so the pin moves with it: the lane is
+            # re-pinned as must_exclude (it fails long_doc>=-1 on current
+            # evidence) and the corpus stops asserting its presence.
+            'must_include': [['deepseek', 'deepseek-flash']],
+            'must_exclude': [['clinepass', 'dots-3-note-preview:free'],
+                             ['commandcode', 'Qwen/Qwen3.7-Plus']],
             'min_chain': 86,
         },
     },
