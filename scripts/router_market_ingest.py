@@ -229,8 +229,20 @@ def write_outputs(
     if output_path.exists():
         with output_path.open(encoding="utf-8") as handle:
             existing = [json.loads(line) for line in handle if line.strip()]
-    prefix = f"openrouter-models-api:{report['date']}"
-    existing = [r for r in existing if not (r.get("source") == "market" and str(r.get("source_ref", "")).startswith(prefix))]
+    # A refresh must CONVERGE, not accumulate. The first landed pass (2026-11-16)
+    # wrote 4,914 source=market rows with NO source_ref at all, so a date-prefix
+    # filter could never retire them: every later run would append a second,
+    # better-shaped copy of the same cells and the file would grow forever while
+    # the provenance-less rows kept feeding the tier bridge. Market rows are
+    # derived evidence, so the ingest owns them wholesale: drop every prior
+    # source=market row for the (model, category) cells this run emits, then
+    # write the fresh rows. Cells the feed no longer ranks are dropped too —
+    # a stale percentile is worse than an absent one.
+    emitted_cells = {(row["model"], row["category"]) for row in rows}
+    existing = [
+        r for r in existing
+        if not (r.get("source") == "market" and (r.get("model"), r.get("category")) in emitted_cells)
+    ]
     with output_path.open("w", encoding="utf-8") as handle:
         for row in existing + rows:
             handle.write(json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n")

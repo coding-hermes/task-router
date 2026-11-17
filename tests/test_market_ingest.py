@@ -85,3 +85,37 @@ def test_market_rows_are_accepted_by_effort_gate():
     }]
     assert gate.check_efforts([], rows) == []
     assert mod.map_category("models", "codecategories") == "code_gen"
+
+
+def test_refresh_converges_and_purges_provenance_less_market_rows(tmp_path):
+    """A second run must REPLACE the cells it emits, not append a second copy.
+
+    The first landed pass wrote source=market rows with no source_ref, so a
+    date-prefix filter could never retire them; a refresh would then leave two
+    rows per cell and the provenance-less one would keep feeding the bridge.
+    """
+    mod = _module()
+    feed = json.loads(FIXTURE.read_text())
+    registry = tmp_path / "models.jsonl"
+    registry.write_text("\n".join(json.dumps({"provider": "openrouter", "model": m})
+                                  for m in ("vendor/ranked-model", "vendor/other-model")) + "\n")
+    output = tmp_path / "benchmarks.jsonl"
+    stale = {"model": "vendor/ranked-model", "category": "code_gen", "score": 0.5,
+             "max_score": 1.0, "source": "market", "valid_from": "2026-11-16",
+             "reasoning_effort": "default"}
+    keep = {"model": "vendor/ranked-model", "category": "terminal", "score": 0.9,
+            "max_score": 1.0, "source": "Terminal-Bench research-bench-2026-11-01",
+            "valid_from": "2026-11-01", "reasoning_effort": "default"}
+    output.write_text(json.dumps(stale) + "\n" + json.dumps(keep) + "\n")
+
+    rows, report = mod.build_rows(feed, mod.load_registry_ids(str(registry)), "2026-11-17")
+    mod.write_outputs(rows, report, str(output), str(tmp_path / "queue"), [])
+
+    written = [json.loads(line) for line in output.read_text().splitlines() if line.strip()]
+    market = [r for r in written if r.get("source") == "market"]
+    assert market, "refresh emitted no market rows"
+    assert all(r.get("source_ref") for r in market), "refreshed rows must carry provenance"
+    cells = [(r["model"], r["category"]) for r in market]
+    assert len(cells) == len(set(cells)), "refresh left duplicate market cells"
+    assert not any(r.get("source_ref") is None and r["category"] == "code_gen" for r in market)
+    assert keep in written, "non-market evidence must never be touched by a market refresh"
