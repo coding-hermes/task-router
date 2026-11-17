@@ -226,6 +226,12 @@ STRUCTURAL = {
         # readers live (modelsdev skip-retired, release_backfill stamps,
         # validate_provider_quota roster); null = provider not retired.
         "valid_to": "provider not retired (no retirement date exists)",
+        # TR-199 R4: the column exists so retirement evidence survives the
+        # publish round-trip (xkiro-2, 2026-11-16). A provider with no
+        # lifecycle event on record is the normal case, not debt — the null
+        # means "nothing retired this provider", and the retirement path
+        # fills it when something does.
+        "lifecycle_source": "no lifecycle event on record for this provider",
         # api_base_url/api_key_env KEEP their entries (live on 2/29 rows).
         "api_base_url": "base URL private to the operator (key-based config)",
         "api_key_env": "credential handled outside the registry",
