@@ -365,7 +365,13 @@ CASES = [
             # INT-CI-23 market evidence re-pin: 113 is reproduced with the
             # resolver tag gate disabled, so these two missing lanes are not
             # caused by the new gate. Keep the live market rows in the tables.
-            'min_chain': 113,
+            # 2026-11-16: floor 113->99 — c5574f6f archived the 52 xkiro-2
+            # model lanes (carrier death: plan lapsed + empty wallet, premium
+            # 403s probed 2026-11-16, owner-confirmed). Attributed lane-by-lane
+            # against 299f07cc (the pre-archive parent): 14 lanes left this
+            # pool, ALL of them xkiro-2, ZERO gained, head unchanged. The floor
+            # follows the fleet; dead lanes are never re-enabled to silence it.
+            'min_chain': 99,
         },
     },
     {
@@ -574,7 +580,12 @@ CASES = [
             # (measured, INT-CI-23 re-pin wave).
             # 2026-11-08: floor 78->70 — XK-404-001-R3 archival removed the dead
             # xkiro :free lanes (+ mercury trio) from this pool (measured).
-            'min_chain': 70,
+            # 2026-11-16: floor 70->69 — c5574f6f archived the xkiro-2 model
+            # lanes (carrier death, probed + owner-confirmed). Attributed
+            # against 299f07cc: 7 lanes left this pool (opus-5.5, command-a-plus,
+            # mistral-large-2512, gpt-6-astra/luna/sol, grok-4.7), all xkiro-2,
+            # zero gained, head unchanged.
+            'min_chain': 69,
         },
     },
     {
@@ -702,7 +713,12 @@ CASES = [
             # xkiro + xkiro-2 5.6-terra lanes from this pool (measured).
             # 2026-11-08: floor 153->137 — XK-404-001-R3 archival removed the dead
             # xkiro :free lanes (+ mercury trio) from this pool (measured).
-            'min_chain': 135,
+            # 2026-11-16: floor 135->127 — c5574f6f archived the xkiro-2 model
+            # lanes (carrier death, probed + owner-confirmed). Attributed
+            # against 299f07cc: 17 lanes left this pool, all xkiro-2, zero
+            # gained, head unchanged (the pool was 144 then, so the 135 floor
+            # was already slack; the new floor is the measured 127).
+            'min_chain': 127,
         },
     },
     {
