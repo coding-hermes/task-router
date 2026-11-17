@@ -28,6 +28,23 @@ import pytest
 # any test module imports router_spawn — means the spawn cache never spawns.
 os.environ.setdefault('ROUTER_CACHE', '0')
 
+# t_seed_cache_gate_adoption: ROUTER_CACHE=0 above is about the RUNTIME spawn
+# cache and must not cost the suite a full seed derivation per spawn. The seed
+# content-hash cache is a different cache with a different failure mode (it
+# reuses a byte-identical registry for byte-identical inputs), so it is switched
+# ON explicitly here — the specific switch beats the general one (seed_cache
+# honours ROUTING_SEED_CACHE=on over ROUTER_CACHE=0).
+#
+# The suite seeds into a throwaway copy of data/tables per session, so entries
+# would otherwise be stranded under each tempdir. ROUTING_SEED_CACHE_DIR points
+# every spawn at ONE store: entries are keyed on the input bytes AND on a
+# derivation fingerprint (seed source modules + duckdb version), so a shared
+# store can never serve an entry the current code would not have derived.
+os.environ.setdefault('ROUTING_SEED_CACHE', 'on')
+os.environ.setdefault(
+    'ROUTING_SEED_CACHE_DIR',
+    os.path.join(os.environ.get('TMPDIR') or '/tmp', 'task-router-seed-cache'))
+
 # TR-344: the resolver now appends every UNSERVABLE rating to
 # data/state/unservable-counters.jsonl (the fleet-scale census). Pre-existing
 # tests drive real router_spawn.resolve() calls at unsatisfiable ratings

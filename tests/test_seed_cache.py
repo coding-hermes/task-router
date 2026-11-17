@@ -54,7 +54,7 @@ def tree(tmp_path):
 def _seed(env, extra=None, timeout=900):
     e = dict(os.environ)
     for k in ("ROUTER_CACHE", "ROUTING_SEED_CACHE", "ROUTING_SEED_CACHE_REBUILD",
-              "ROUTING_SEED_CACHE_MAX_AGE_S"):
+              "ROUTING_SEED_CACHE_MAX_AGE_S", "ROUTING_SEED_CACHE_DIR"):
         e.pop(k, None)
     e.update(env)
     if extra:
@@ -214,12 +214,87 @@ def test_hash_covers_content_not_mtime(tree):
     assert h3 == h1
 
 
-def test_cache_dir_is_outside_data_tables(tree):
+def test_cache_dir_is_outside_data_tables(tree, monkeypatch):
     """The cache must live under <data home>/state/, never inside data/tables —
     anything under data/tables is a seed INPUT and would self-invalidate."""
     from seed_cache import cache_dir
+    monkeypatch.delenv('ROUTING_SEED_CACHE_DIR', raising=False)
     data = os.path.join('/x', 'data', 'tables')
     assert cache_dir(data) == os.path.join('/x', 'data', 'state', 'seed_cache')
+
+
+def test_cache_dir_env_override_is_shared_and_still_validates(tree, monkeypatch):
+    """t_seed_cache_gate_adoption: ROUTING_SEED_CACHE_DIR lets surfaces that seed
+    into throwaway data dirs (the pytest session copy) share ONE store.
+
+    The entry only validates against its exact input hash + derivation
+    fingerprint, so a shared store is a cache, not a source of stale bytes.
+    """
+    from seed_cache import cache_dir, derivation_fingerprint
+    monkeypatch.delenv('ROUTING_SEED_CACHE_DIR', raising=False)
+    monkeypatch.setenv('ROUTING_SEED_CACHE_DIR', '/shared/seed-cache')
+    assert cache_dir('/x/data/tables') == '/shared/seed-cache'
+    monkeypatch.delenv('ROUTING_SEED_CACHE_DIR', raising=False)
+
+    root, env = tree
+    shared = root / "shared-cache"
+    env2 = dict(env, ROUTING_SEED_CACHE_DIR=str(shared))
+    p1, _ = _seed(env2)
+    assert p1.returncode == 0, p1.stdout[-3000:] + p1.stderr[-3000:]
+    assert (shared / "manifest.json").exists(), "entry must land in the shared dir"
+    assert not (root / "state" / "seed_cache").exists(), "tree-local store must stay empty"
+    man = json.loads((shared / "manifest.json").read_text())
+    assert man.get('derivation_fingerprint'), man
+    assert man['cache_version'] >= 2
+    # The stored fingerprint must be the one this code computes (a mismatch
+    # would mean the entry is unservable and the shared store pointless).
+    monkeypatch.setenv("ROUTING_SEED_CACHE_DIR", str(shared))
+    assert man['derivation_fingerprint'] == derivation_fingerprint()
+
+
+def test_code_or_flag_change_never_serves_a_stale_hit(tree):
+    """The adoption's safety property: same inputs, different derivation (code
+    fingerprint or a derivation-read flag) must MISS, never serve old bytes."""
+    root, env = tree
+    p1, _ = _seed(env)
+    assert p1.returncode == 0
+    cache = root / "state" / "seed_cache"
+    man = json.loads((cache / "manifest.json").read_text())
+
+    # (a) an entry derived by DIFFERENT CODE (tamper the stored fingerprint).
+    good = man['derivation_fingerprint']
+    man['derivation_fingerprint'] = 'f' * 64
+    (cache / "manifest.json").write_text(json.dumps(man))
+    p2, _ = _seed(env)
+    assert p2.returncode == 0, p2.stdout[-2000:] + p2.stderr[-2000:]
+    assert 'SEED CACHE HIT' not in p2.stdout
+    assert 'derived by different code' in p2.stderr
+
+    # (b) a derivation-read FLAG posting (ladder ignore) is a different
+    # derivation over the SAME input bytes -> miss, then its own entry.
+    p3, _ = _seed(env)
+    assert 'SEED CACHE HIT' in p3.stdout, p3.stdout[-2000:]
+    p4, _ = _seed(env, {"ROUTING_TIER_LADDER_IGNORE": "1"})
+    assert p4.returncode == 0, p4.stdout[-2000:] + p4.stderr[-2000:]
+    assert 'SEED CACHE HIT' not in p4.stdout, p4.stdout[-2000:]
+    p5, _ = _seed(env, {"ROUTING_TIER_LADDER_IGNORE": "1"})
+    assert 'SEED CACHE HIT' in p5.stdout, p5.stdout[-2000:]
+    assert json.loads((cache / "manifest.json").read_text())['derivation_fingerprint'] != good
+
+
+def test_specific_switch_beats_general_one(tree):
+    """ROUTER_CACHE=0 exists to keep the RUNTIME spawn cache out of the way
+    (tests/conftest.py). It must not force a full derivation when the caller
+    says the SEED cache is on — the specific switch wins."""
+    root, env = tree
+    p1, _ = _seed(env)
+    assert p1.returncode == 0
+    p2, _ = _seed(env, {"ROUTER_CACHE": "0", "ROUTING_SEED_CACHE": "on"})
+    assert p2.returncode == 0
+    assert 'SEED CACHE HIT' in p2.stdout, p2.stdout[-2000:]
+    # ...and the general switch still wins when the specific one is not on.
+    p3, _ = _seed(env, {"ROUTER_CACHE": "0"})
+    assert 'SEED CACHE OFF' in p3.stdout
 
 def test_derivation_is_idempotent_over_its_own_output(tree):
     """The cache keys on the POST-publish hash, so the contract it relies on is:
