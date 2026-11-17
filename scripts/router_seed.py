@@ -141,6 +141,29 @@ for _flag in ('--help', '-h'):
     if _flag in sys.argv:
         sys.argv.remove(_flag)
 
+# ---------- seed content-hash cache (card t_seed_cache_hash_gate) ----------
+# The derivation below is the expensive part (duckdb UNPIVOT of models.jsonl +
+# the 918-rating satisfiability pass + an 8.6MB registry rewrite; measured
+# 24-63 s wall per run on a loaded box). Every test/gate spawn paid it even
+# when data/tables/ had not changed. scripts/seed_cache.py keys the derived outputs on a content hash of
+# the seed's INPUT tables; a repeat spawn with identical inputs republishes the
+# previous run's registry verbatim (byte-identical, generated_at untouched) and
+# exits before any derivation. Escape hatches: ROUTER_CACHE=0 /
+# ROUTING_SEED_CACHE=off (no read, no store), ROUTING_SEED_CACHE_REBUILD=1
+# (force a real run — the refusal/atomicity tests use this to exercise the
+# fatal path), ROUTING_SEED_CACHE_MAX_AGE_S (freshness bound, default 30d).
+try:
+    import seed_cache as _seed_cache
+except ImportError:  # pragma: no cover — direct-script invocation from elsewhere
+    sys.path.insert(0, _HERE)
+    import seed_cache as _seed_cache
+
+_SEED_SOURCE_HASH = None
+if __name__ == '__main__':
+    _SEED_SOURCE_HASH, _ = _seed_cache.hash_inputs(DATA_DIR)
+    if _seed_cache.try_hit(DATA_DIR, REGISTRY, NS, _NS_REDIRECTED):
+        raise SystemExit(0)
+
 # Base tables come from the committed namespace JSONL (array-per-line, column
 # order = duckdb DESCRIBE order) — or from an existing registry.json when the
 # ns copy is stale. Types are explicit so the derivation SQL behaves exactly
@@ -2217,6 +2240,14 @@ def _build_registry_doc() -> dict:
            'generated_at': datetime.datetime.now(datetime.timezone.utc).isoformat(timespec='seconds'),
            'source': 'router_seed.py (in-memory duckdb engine)',
            'tables': {}}
+    # t_seed_cache_hash_gate: traceability for the content-hash cache. The hash
+    # of the INPUT tables this artifact was derived from rides inside the
+    # artifact, so a cached registry can always name its source bytes and a
+    # stale cache is detectable by comparing the two. It is content-addressed,
+    # so it does not break byte-identity across a cache hit (unlike
+    # generated_at, which is deliberately NOT rewritten on a hit).
+    if _SEED_SOURCE_HASH:
+        doc['seed_source_hash'] = _SEED_SOURCE_HASH
     for t in ALL_TABLES:
         cols = [c[0] for c in con.execute(f'DESCRIBE {t}').fetchall()]
         # Full-column ORDER BY — deterministic row order (matches the ns
@@ -2269,30 +2300,40 @@ def _stage_run_outputs(doc: dict, staging: str) -> None:
             for _r in _rows:
                 f.write(json.dumps(_r, ensure_ascii=False) + '\n')
 
-def _export_ns_mirror() -> None:
+def _export_ns_mirror() -> dict:
     # ns mirror export (arrays) — only when the DuckBrain namespace exists; a
     # fresh clone has no ns and that's fine (data/tables/ is the committed source).
     # TR-048: a redirected unset-NS run (_NS_REDIRECTED) creates its scratch ns
     # here so repeated bare runs land in the same self-contained place.
+    # Returns {table: bytes} of exactly what it wrote so the seed cache can
+    # replay the same bytes on a hit (duckdb's str(datetime) shape — space
+    # separator, not the registry's ISO 'T' — is not reproducible from the
+    # staged JSONL, so the bytes are stored, never re-derived).
+    written = {}
     if os.path.isdir(NS) or _NS_REDIRECTED:
         os.makedirs(f'{NS}/tables', exist_ok=True)
         for t in ['level_defs', 'model_perf', 'category_levels', 'model_tier',
                   'task_profiles', 'task_profile_requirements']:
             cols = [c[0] for c in con.execute(f'DESCRIBE {t}').fetchall()]
             order = ', '.join(str(i + 1) for i in range(len(cols)))
-            with open(f'{NS}/tables/{t}.jsonl', 'w') as f:
-                for row in con.execute(f'SELECT * FROM {t} ORDER BY {order}').fetchall():
-                    f.write(json.dumps(row, default=str) + '\n')
+            buf = []
+            for row in con.execute(f'SELECT * FROM {t} ORDER BY {order}').fetchall():
+                buf.append(json.dumps(row, default=str) + '\n')
+            blob = ''.join(buf).encode()
+            with open(f'{NS}/tables/{t}.jsonl', 'wb') as f:
+                f.write(blob)
+            written[t] = blob
         print('exported tables to', NS)
     else:
         print('ns mirror absent — skipped ns export (fresh clone is fine)')
+    return written
 
 def _publish_run(doc: dict, staging: str) -> None:
     """Publish the graded staged outputs to their real paths, printing the
     same lines in the same order the pre-atomicity seed printed: the ns
     mirror, then registry.json, then the data/tables sync. Called only after
     the gate passed (or the opt-out fired) — never on the refusal path."""
-    _export_ns_mirror()
+    _ns_bytes = _export_ns_mirror()
     shutil.copyfile(os.path.join(staging, 'registry.json'), REGISTRY)
     print('wrote', REGISTRY, f'({os.path.getsize(REGISTRY) / 1024:.1f} KB)')
     # Sync the COMMITTED in-repo data/tables/*.jsonl (keyed records) from the
@@ -2302,6 +2343,19 @@ def _publish_run(doc: dict, staging: str) -> None:
         shutil.copyfile(os.path.join(staging, 'tables', f'{_t}.jsonl'),
                         os.path.join(DATA_DIR, f'{_t}.jsonl'))
     print('synced data/tables ->', DATA_DIR)
+    # t_seed_cache_hash_gate: remember exactly these bytes so a later spawn with
+    # unchanged inputs can republish them verbatim. Stored AFTER the publish so
+    # a refused run never leaves a cache behind, and keyed on the POST-publish
+    # hash (the sync above re-emits data/tables, so that is the state a
+    # following run will hash). A store failure never fails a good seed.
+    try:
+        _stored = _seed_cache.store(DATA_DIR, doc, os.path.join(staging, 'registry.json'),
+                                    os.path.join(staging, 'tables'), ns_bytes=_ns_bytes)
+        if _stored:
+            print(f'seed cache: stored {_stored[:12]} '
+                  f'({len(doc.get("tables") or {})} tables) -> {_seed_cache.cache_dir(DATA_DIR)}')
+    except Exception as _e:  # noqa: BLE001 — the cache is an optimisation
+        print(f'seed cache: store skipped ({_e})', file=sys.stderr)
 
 _doc = _build_registry_doc()
 # Run-unique staging OUTSIDE the repo tree (tempfile's default dir — never
