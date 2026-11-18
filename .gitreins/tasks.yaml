@@ -1759,3 +1759,13 @@ tasks:
     external state.
   status: in_progress
   created_at: '2026-11-09T13:00:00.558211+00:00'
+- id: TR-294C
+  title: Propagate classifier call_meta into the ledger row (TR-294 AC4)
+  criteria:
+  - The ledger row's classifier evidence carries call_meta naming the thinking rung
+    and the structured rung used; Raw.meta records the structured rung; both requirement-dict
+    paths in router_server.py carry call_meta; focused pytest on tests/test_classifier_structured.py
+    and tests/test_proxy_serving_path.py passes.
+  status: complete
+  created_at: '2026-11-18T01:14:40.878255+00:00'
+  completed_at: '2026-11-18T01:38:44.325258+00:00'
