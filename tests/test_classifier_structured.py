@@ -168,6 +168,8 @@ def test_the_thinking_mode_is_recorded_on_the_call_meta(monkeypatch):
                         lambda lane, body: rc.Raw('{"categories": {"code_gen": 2}}',
                                                   thinking=('none' if json.loads(body).get('reasoning_effort')
                                                             == 'none' else 'default'),
+                                                  structured=(json.loads(body).get('response_format') or {})
+                                                             .get('type') or 'none',
                                                   chars_reasoning=0, reasoning_tokens=None))
     monkeypatch.setattr(rc, '_classifier_lanes',
                         lambda: [{'base': 'http://x', 'model': 'm', 'key_env': '', 'key_value': 'k',
@@ -176,6 +178,55 @@ def test_the_thinking_mode_is_recorded_on_the_call_meta(monkeypatch):
     monkeypatch.delenv('ROUTER_CLASSIFY_THINKING', raising=False)
     out = rc.classify('task text')
     assert out['call_meta']['thinking'] == 'none'
+    # TR-294/AC4: the structured rung rides call_meta too (structured 'off' -> none).
+    assert out['call_meta']['structured'] == 'none'
+
+
+class _FakeResponse:
+    """The slice of urlopen's return _call_lane consumes (context manager + read)."""
+
+    def __init__(self, payload):
+        self._payload = payload
+
+    def read(self):
+        return json.dumps(self._payload).encode()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+
+def test_call_lane_records_the_structured_rung_on_the_meta(monkeypatch):
+    """TR-294/AC4: _call_lane's meta must name the structured-output rung that
+    actually produced the answer — a ladder step-down (json_schema -> json_object)
+    must be readable from the row's call_meta, not inferred from the config."""
+    lane = {'base': 'http://x', 'model': 'm', 'key_env': '', 'key_value': 'k',
+            'timeout': 5.0}
+
+    def fake_urlopen(req, timeout=None):
+        return _FakeResponse({'choices': [{'message': {'content': '{"categories": {"code_gen": 2}}'},
+                                           'finish_reason': 'stop'}],
+                              'usage': {}})
+
+    monkeypatch.setattr(rc.urllib.request, 'urlopen', fake_urlopen)
+    body = json.dumps({'messages': [{'role': 'user', 'content': 'task'}],
+                       'max_tokens': 4096, 'reasoning_effort': 'none',
+                       'response_format': {'type': 'json_object'}})
+    raw = rc._call_lane(lane, body)
+    assert str(raw) == '{"categories": {"code_gen": 2}}'
+    assert raw.meta['structured'] == 'json_object'
+    # every pre-existing meta key is still present
+    assert raw.meta['finish_reason'] == 'stop'
+    assert raw.meta['max_tokens'] == 4096
+    assert raw.meta['thinking'] == 'none'
+    assert raw.meta['model'] == 'm'
+    # no response_format in the payload -> the rung is honestly 'none'
+    raw_plain = rc._call_lane(lane, json.dumps(
+        {'messages': [{'role': 'user', 'content': 'task'}],
+         'max_tokens': 4096, 'reasoning_effort': 'none'}))
+    assert raw_plain.meta['structured'] == 'none'
 
 
 def test_a_rejected_thinking_param_steps_down_without_losing_the_rating(monkeypatch):

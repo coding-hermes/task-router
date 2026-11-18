@@ -3657,7 +3657,11 @@ def _proxy_requirements(body: Any, headers: Any, path: Any) -> tuple:
         return 'default', {'profile_id': _ovr, 'matrix': None, 'complexity_sig': None,
                            'confidence': res.get('confidence'),
                            'prompt_version': res.get('prompt_version'),
-                           'model': res.get('model'), 'problems': _stamp_unrated(
+                           'model': res.get('model'),
+                           # TR-294/AC4: the row must carry the call_meta even on
+                           # the degrade path (thinking + structured rung named).
+                           'call_meta': res.get('call_meta'),
+                           'problems': _stamp_unrated(
                                res.get('problems') or [],
                                'unrated -> fail-cheap floor requirements (TR-139)') +
                                _ovr_warn}
@@ -3674,7 +3678,10 @@ def _proxy_requirements(body: Any, headers: Any, path: Any) -> tuple:
                           'complexity_sig': _sig,
                           'confidence': res.get('confidence'),
                           'prompt_version': res.get('prompt_version'),
-                          'model': res.get('model'), 'problems': _probs}
+                          'model': res.get('model'),
+                          # TR-294/AC4: the call_meta (thinking + structured rung)
+                          # rides the requirements dict to the ledger row.
+                          'call_meta': res.get('call_meta'), 'problems': _probs}
 
 
 def _lane_hint(headers: Any) -> Any:
@@ -4004,6 +4011,10 @@ def _classifier_evidence(requirements: Any, source: Any) -> dict:
     return {'source': source, 'parse': parse, 'model': requirements.get('model'),
             'prompt_version': requirements.get('prompt_version'),
             'confidence': requirements.get('confidence'),
+            # TR-294/AC4: the classifier call's own meta (thinking mode, the
+            # structured-output rung that produced the answer). None on legacy
+            # rows is honest — the evidence was not recorded before TR-294.
+            'call_meta': requirements.get('call_meta'),
             'problems': problems}
 
 

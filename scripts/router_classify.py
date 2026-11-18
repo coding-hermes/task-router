@@ -588,7 +588,11 @@ def _call_lane(lane: Any, body: Any) -> Raw:
             'chars_content': len(content), 'chars_reasoning': len(reasoning),
             'reasoning_tokens': usage.get('completion_tokens_details', {}).get('reasoning_tokens')
                                 if isinstance(usage.get('completion_tokens_details'), dict) else None,
-            'model': payload.get('model')}
+            'model': payload.get('model'),
+            # TR-294/AC4: WHICH structured-output rung actually produced this
+            # answer (json_schema | json_object | none) — a ladder step-down
+            # must be visible in the ledger's call_meta, not inferred.
+            'structured': (payload.get('response_format') or {}).get('type') or 'none'}
     if content:
         return Raw(content, **meta)
     # Empty completion. If the model reasoned instead, keep the reasoning as a

@@ -409,3 +409,89 @@ def test_async_server_pool_limits_default_to_admission_ceiling_plus_margin(monke
     monkeypatch.setenv("ROUTER_POOL_QUEUE_MAX", "not-a-number")
     size2, qbound2 = rsrv._server_pool_limits("async")
     assert size2 == 11 and qbound2 == 11 + 11 // 2
+
+
+# ----------------------------------------------------------- TR-294 (AC4)
+
+def _classify_result(matrix, problems=()):
+    """A classify() result shaped as the proxy consumes it, with call_meta
+    carrying the thinking rung and the structured-output rung (TR-294)."""
+    return {'prompt_version': 'v3', 'model': 'classifier-model',
+            'matrix': matrix, 'complexity_sig': 'sig-tr294',
+            'confidence': None if matrix is None else 0.9,
+            'problems': list(problems),
+            'call_meta': {'thinking': 'none', 'structured': 'json_schema',
+                          'finish_reason': 'stop', 'max_tokens': 4096,
+                          'chars_content': 31, 'chars_reasoning': 0,
+                          'reasoning_tokens': None, 'model': 'classifier-model'}}
+
+
+def _served_row(monkeypatch, tmp_path, classify_result, content):
+    """Drive the REAL requirements path through proxy_chat — only
+    router_classify.classify and the option chain are stubbed — and return the
+    served ledger row, so the test proves the whole chain: call_meta on the
+    classify() result -> requirements dict -> _classifier_evidence -> row."""
+    import router_classify as rcls
+    import router_outcomes as ro
+    path = tmp_path / 'outcomes-tr294.jsonl'
+    path.write_text('')
+    monkeypatch.setenv('ROUTER_STATE_DIR', str(tmp_path))
+    monkeypatch.setenv('ROUTING_OUTCOMES_FILE', str(path))
+    monkeypatch.setattr(ro, 'outcomes_path', lambda *a, **k: str(path))
+    monkeypatch.delenv('ROUTER_SCORER', raising=False)
+    monkeypatch.setattr(rcls, 'classify', lambda text, **k: classify_result)
+    monkeypatch.setattr(rsrv, '_proxy_chain', lambda reqs, **k: {
+        'chain': [{'hop': 1, 'provider': 'p1', 'model': 'm1', 'usd_1m': 0.1}],
+        'sort': 'price'})
+    status, _payload = rsrv.proxy_chat(
+        '/v1/chat/completions',
+        {'messages': [{'role': 'user', 'content': content}]},
+        {'x-router-session': 'sess-tr294'},
+        upstream=lambda *a, **k: (200, {'choices': [{'message': {'content': 'ok'}}],
+                                        'usage': {'prompt_tokens': 1,
+                                                  'completion_tokens': 1}}))
+    assert status == 200
+    rows = [json.loads(line) for line in open(path) if line.strip()]
+    rows = [r for r in rows if r.get('route_outcome') == 'served']
+    assert rows, 'the serving path must write a served ledger row'
+    return rows[0]
+
+
+def test_served_row_carries_classifier_call_meta_with_both_rungs(tmp_path, monkeypatch):
+    """AC4: the row's .classifier evidence names the thinking rung AND the
+    structured-output rung that produced the rating."""
+    row = _served_row(monkeypatch, tmp_path, _classify_result({'code_gen': 3}),
+                      'tr294 served body zeta')
+    ev = row['classifier']
+    assert ev['source'] == 'classifier'
+    assert ev['parse'] == 'ok'
+    cm = ev['call_meta']
+    assert cm['thinking'] == 'none'
+    assert cm['structured'] == 'json_schema'
+
+
+def test_degrade_path_row_also_carries_call_meta(tmp_path, monkeypatch):
+    """A matrix-None rating (unrated -> fail-cheap floor, TR-139) must NOT erase
+    the call_meta: the row still names which rungs were tried."""
+    row = _served_row(
+        monkeypatch, tmp_path,
+        _classify_result(None, problems=['no JSON object in classifier output']),
+        'tr294 degrade body gamma')
+    ev = row['classifier']
+    assert ev['source'] == 'default'
+    assert ev['parse'] == 'no-json'
+    cm = ev['call_meta']
+    assert cm['thinking'] == 'none'
+    assert cm['structured'] == 'json_schema'
+
+
+def test_classifier_evidence_on_a_legacy_requirement_dict_reads_none():
+    """Requirements dicts from before TR-294 carry no call_meta — the evidence
+    says None rather than inventing an empty dict."""
+    ev = rsrv._classifier_evidence({'model': 'm', 'problems': []}, 'classifier')
+    assert ev['call_meta'] is None
+    ev_named = rsrv._classifier_evidence(
+        {'model': 'm', 'problems': [], 'call_meta': {'thinking': 'none',
+                                                     'structured': 'json_object'}},
+        'classifier')
+    assert ev_named['call_meta'] == {'thinking': 'none', 'structured': 'json_object'}
