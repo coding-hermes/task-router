@@ -70,6 +70,16 @@ def build_rows(
         m["id"]: "not in openrouter registry" for m in models if m["id"] not in registry_ids
     }
     arena_entries: defaultdict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
+    # The feed's `rank` is ARENA-scoped, not category-scoped: one leaderboard per
+    # arena, and a model carries the same rank in every category it is listed
+    # under (openai/gpt-5.2 is rank 84 in codecategories and rank 72 in website
+    # of the same 186-model `models` arena). The percentile population must
+    # therefore be the arena's ranked-model count, never the category's entry
+    # count — mixing the two populations is what pinned every image-arena row to
+    # 0.0 (graphicdesign/image/logo carry n=5 entries but ranks 4..11, and
+    # imageediting carries n=1 with rank 3, so 1 - rank/n went negative and the
+    # clamp turned "top of class" into "worst in class").
+    arena_population: dict[str, set[str]] = defaultdict(set)
     for model in models:
         for entry in (model.get("benchmarks") or {}).get("design_arena", []) or []:
             if not isinstance(entry, dict):
@@ -77,18 +87,29 @@ def build_rows(
             arena = str(entry.get("arena") or "")
             category = str(entry.get("category") or "")
             if isinstance(entry.get("rank"), int) and entry["rank"] > 0:
-                # The percentile population is the complete feed category;
-                # unjoined ids are excluded only at emission, not denominator.
+                # The percentile population is the complete feed arena; unjoined
+                # ids are excluded only at emission, not denominator.
                 arena_entries[(arena, category)].append({"model": model, "entry": entry})
+                arena_population[arena].add(model["id"])
 
     rows: list[dict[str, Any]] = []
     skipped_categories: Counter[str] = Counter()
     rows_by_category: Counter[str] = Counter()
+    population_violations: dict[str, str] = {}
     for (arena, source_category), entries in sorted(arena_entries.items()):
-        n = len(entries)
+        n = len(arena_population[arena])
         category = map_category(arena, source_category)
         if category is None:
             skipped_categories[f"{arena}/{source_category}"] += n
+            continue
+        max_rank = max(item["entry"]["rank"] for item in entries)
+        if max_rank > n:
+            # A rank outside its own population cannot be normalized: refuse the
+            # arena loudly instead of clamping a negative percentile to 0.0.
+            population_violations[arena] = (
+                f"max rank {max_rank} exceeds arena population {n}"
+            )
+            skipped_categories[f"{arena}/{source_category}"] += len(entries)
             continue
         for item in sorted(entries, key=lambda x: (x["entry"]["rank"], x["model"]["id"])):
             if item["model"]["id"] not in joined:
@@ -103,6 +124,7 @@ def build_rows(
                 "source_ref": _source_ref(
                     date, arena=arena, source_category=source_category,
                     raw_elo=entry.get("elo"), rank=entry["rank"], n=n,
+                    population="arena",
                 ),
                 "valid_from": date,
                 "reasoning_effort": "default",
@@ -141,6 +163,7 @@ def build_rows(
         "rows_added_by_category": dict(sorted(rows_by_category.items())),
         "skipped_models": skipped_models,
         "skipped_categories": dict(sorted(skipped_categories.items())),
+        "population_violations": dict(sorted(population_violations.items())),
         "unmapped_reasons": {
             f"{arena}/{category}": reason
             for (arena, category), reason in sorted(UNMAPPED_REASONS.items())

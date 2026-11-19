@@ -71,6 +71,100 @@ def test_build_rows_contains_market_percentiles_and_raw_elo():
     assert report["skipped_models"]["vendor/not-registered"] == "not in openrouter registry"
 
 
+def test_percentile_population_is_arena_scoped_not_category_scoped():
+    """rank and n must come from the SAME population.
+
+    The feed ranks a model inside its ARENA, so a category with few entries can
+    carry ranks far above its own entry count. Normalizing an arena rank by the
+    category's entry count produced negative percentiles that the clamp turned
+    into 0.0 — "top of class" stored as "worst in class".
+    """
+    mod = _module()
+    payload = {"data": [
+        {"id": "vendor/a", "benchmarks": {"design_arena": [
+            {"arena": "models", "category": "graphicdesign", "elo": 1251, "rank": 1}]}},
+        {"id": "vendor/b", "benchmarks": {"design_arena": [
+            {"arena": "models", "category": "image", "elo": 1225, "rank": 2}]}},
+        {"id": "vendor/c", "benchmarks": {"design_arena": [
+            {"arena": "models", "category": "image", "elo": 1200, "rank": 3}]}},
+        {"id": "vendor/d", "benchmarks": {"design_arena": [
+            {"arena": "models", "category": "image", "elo": 1190, "rank": 4}]}},
+    ]}
+    rows, report = mod.build_rows(payload, {"vendor/a", "vendor/b", "vendor/c", "vendor/d"}, "2026-11-18")
+    assert report["population_violations"] == {}
+    by_model = {r["model"]: r for r in rows}
+    # arena population is 4 distinct ranked models, not the 1-entry category:
+    # the old category-scoped denominator stored 1 - 1/1 = 0.0 for vendor/a.
+    assert by_model["vendor/a"]["score"] == round(1 - 1 / 4, 12)
+    assert by_model["vendor/d"]["score"] == 0.0
+    assert "n=4" in by_model["vendor/a"]["source_ref"]
+    assert "population=arena" in by_model["vendor/a"]["source_ref"]
+
+
+def test_rank_beyond_arena_population_is_reported_and_skipped():
+    """A rank outside its own population is refused, never clamped to 0.0."""
+    mod = _module()
+    payload = {"data": [
+        {"id": "vendor/a", "benchmarks": {"design_arena": [
+            {"arena": "models", "category": "imageediting", "elo": 1227, "rank": 3}]}},
+        {"id": "vendor/b", "benchmarks": {"design_arena": [
+            {"arena": "models", "category": "imageediting", "elo": 1200, "rank": 1}]}},
+    ]}
+    rows, report = mod.build_rows(payload, {"vendor/a", "vendor/b"}, "2026-11-18")
+    assert rows == []
+    assert report["population_violations"]["models"] == "max rank 3 exceeds arena population 2"
+    assert report["skipped_categories"]["models/imageediting"] == 2
+
+
+def test_image_arena_ranks_are_not_pinned_to_zero():
+    """Regression for the 2026-11-17 finding: image arenas stored 0.0 at top rank.
+
+    google/gemini-2.5-flash-image carried raw_elo 1167/1168/1169 at rank 10/10/11
+    with n=5 per category, so every row clamped to 0.0 while the model ranked
+    mid-pack of the 186-model arena.
+    """
+    mod = _module()
+    arena = []
+    for rank in range(1, 12):
+        arena.append({"id": f"vendor/m{rank}", "benchmarks": {"design_arena": [
+            {"arena": "models", "category": "graphicdesign", "elo": 1200 - rank, "rank": rank}]}})
+    rows, report = mod.build_rows({"data": arena}, {f"vendor/m{rank}" for rank in range(1, 12)}, "2026-11-18")
+    assert report["population_violations"] == {}
+    scores = {r["model"]: r["score"] for r in rows}
+    assert scores["vendor/m10"] == round(1 - 10 / 11, 12)
+    assert scores["vendor/m10"] > 0.0
+    assert min(scores.values()) == 0.0  # only the last-ranked model is 0.0
+
+
+def test_corpus_market_rows_never_carry_a_rank_beyond_their_population():
+    """Ratchet on the landed corpus, not just on the builder.
+
+    A stored percentile is only meaningful if its rank and its population come
+    from the same list. Any market row whose source_ref encodes rank > n is a
+    clamped negative — the exact defect that stored 0.0 for the image arenas.
+    """
+    import re
+
+    bench = ROOT / "data" / "tables" / "benchmarks.jsonl"
+    offenders = []
+    for line in bench.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        row = json.loads(line)
+        if row.get("source") != "market":
+            continue
+        ref = row.get("source_ref") or ""
+        match = re.search(r"rank=(\d+):n=(\d+)", ref)
+        if not match:
+            continue
+        rank, n = int(match.group(1)), int(match.group(2))
+        if rank > n:
+            offenders.append((row.get("model"), row.get("category"), rank, n))
+        if row.get("score") == 0.0 and rank > 1:
+            offenders.append((row.get("model"), row.get("category"), rank, n))
+    assert offenders == [], f"market rows with rank beyond population: {offenders[:5]}"
+
+
 def test_market_rows_are_accepted_by_effort_gate():
     mod = _module()
     gate_spec = importlib.util.spec_from_file_location(
