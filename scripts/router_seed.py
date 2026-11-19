@@ -870,6 +870,21 @@ BENCH_OVERLAY = {
     # convention; one key per category for the same reason as above.
     'live-probe-2026-09-27/AGENT-TICK': ['agent_tick'],
     'live-probe-2026-09-27/DELEGATION': ['delegation'],
+    # 2026-11-15 (openrouter no-evidence sweep): the nine chat-probeable
+    # openrouter lanes that carried no capability row at all (legacy/small
+    # models: mythomax, weaver, phi-4, lunaris, remm-slerp, the hy-mt2
+    # translation trio). Same small-n deterministic battery, one key per
+    # measured category for the HAZARD reason above.
+    'live-probe-2026-11-15/T1-TOOL': ['tool_use'],
+    'live-probe-2026-11-15/T2-CODE': ['code_gen'],
+    'live-probe-2026-11-15/T3-REASON': ['reasoning'],
+    'live-probe-2026-11-15/T5-DEBUG': ['debug'],
+    'live-probe-2026-11-15/AGENT-TICK': ['agent_tick'],
+    'live-probe-2026-11-15/DELEGATION': ['delegation'],
+    'live-probe-2026-11-15/SCHEMA': ['schema'],
+    'live-probe-2026-11-15/LONG-DOC': ['long_doc'],
+    'live-probe-2026-11-15/LONG-HORIZON': ['long_horizon'],
+    'live-probe-2026-11-15/TEST': ['test'],
     'live-probe-2026-09-27/SCHEMA': ['schema'],
     'live-probe-2026-09-27/LONG-DOC': ['long_doc'],
     'live-probe-2026-09-27/LONG-HORIZON': ['long_horizon'],
