@@ -202,7 +202,8 @@ def stamp_remaining() -> tuple[int, int]:
     are asserted equal first; a mismatch falls back to a frozen stamp instead of
     inventing a pairing.
     """
-    rows = [json.loads(l) for l in open(BENCH, encoding="utf-8") if l.strip()]
+    lines = [l for l in open(BENCH, encoding="utf-8")]
+    rows = [json.loads(l) for l in lines if l.strip()]
     by_cat: dict[str, list[dict]] = {}
     for r in rows:
         if r.get("model") == FEED_ID and r.get("source") == "market" and r.get("source_ref"):
@@ -211,10 +212,14 @@ def stamp_remaining() -> tuple[int, int]:
         v.sort(key=lambda x: -x["score"])
     cursor: dict[str, int] = {}
     out, mirrored, frozen = [], 0, 0
-    for r in rows:
+    for line in lines:
+        if not line.strip():
+            out.append(line)
+            continue
+        r = json.loads(line)
         if (r.get("model") != BARE_ID or r.get("source") != "market"
                 or r.get("source_ref")):
-            out.append(json.dumps(r, ensure_ascii=False, sort_keys=True) + "\n")
+            out.append(line)  # untouched rows keep their exact bytes
             continue
         twins = by_cat.get(r["category"]) or []
         i = cursor.get(r["category"], 0)
@@ -228,7 +233,7 @@ def stamp_remaining() -> tuple[int, int]:
         else:
             index = next((k for k, v in AA_CATS.items() if v == r["category"]), None)
             if index is None:
-                out.append(json.dumps(r, ensure_ascii=False, sort_keys=True) + "\n")
+                out.append(line)
                 continue
             raw = round(float(r["score"]) * 100.0, 6)
             r["source_ref"] = (
