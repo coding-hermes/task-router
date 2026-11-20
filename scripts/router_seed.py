@@ -987,6 +987,24 @@ _BRIDGE_EXCLUDE_SRC = ('battery-T4-INSTR-floor', 'xkiro-live-battery',
 #: Flash stack's number as if it were FlashX's own measurement.
 _BRIDGE_INERT_MARKERS = ('inert', 'by design', 'no overlay pattern')
 
+#: Source-class rank for the benchmark bridge (t_market_precedence, 2026-11-20).
+#: The doctrine's precedence is internal n>=3/large-bench > external published >
+#: market percentile > n=1 small-probe, and the bridge must apply it BEFORE the
+#: score: a percentile is a RELATIVE rank, an absolute score is a capability
+#: measurement, so max(score) silently promotes the weaker evidence class.
+#:   1  internal measured battery (battery-T1-TOOL / T2-CODE / T3-REASON /
+#:      T5-DEBUG — router_probe_ingest.BATTERIES declares n=3 for each)
+#:   2  external published (research-bench-*, vendor cards, official reads)
+#:   3  market percentile (source='market', the OpenRouter design-arena read)
+#:   4  n=1 small-probe (live-probe-* rows, which say so in their own source)
+#: Anything unrecognised lands in class 2 (external published) rather than
+#: class 1: an unknown source must not outrank a known internal measurement.
+_BRIDGE_SRC_CLASS_SQL = """CASE
+                WHEN lower(source) LIKE 'battery-%' THEN 1
+                WHEN lower(source) = 'market' THEN 3
+                WHEN lower(source) LIKE 'live-probe-%' THEN 4
+                ELSE 2 END"""
+
 overlay = []  # (provider, model, category, rel_score, bench_source)
 
 
@@ -1433,8 +1451,19 @@ def apply_benchmark_categories():
       * _BRIDGE_EXCLUDE_SRC never contributes;
       * INSERT ONLY — an existing (measured / estimate / alias / overlay) value
         is never overwritten. When a benchmark table carries several values for
-        the same (model, category) the window picks max(rel) with explicit
+        the same (model, category) the window picks the best value by SOURCE
+        CLASS first and score second (see _BRIDGE_SRC_CLASS_SQL), with explicit
         tie-breaks (source, model) so the output stays byte-stable.
+
+    MARKET PRECEDENCE (t_market_precedence, 2026-11-20). The window used to
+    order by score/max_score alone — a pure max. That cannot express the
+    doctrine's ordering (internal n>=3/large-bench > external published >
+    market percentile > n=1 small-probe), because a percentile is a RELATIVE
+    rank and an absolute score is a capability measurement. Measured on
+    z-ai/glm-5.3: the market percentile for code_gen is 0.872 while the
+    publisher's DeepSWE v1.1 absolute is 66.9/100 = 0.669, so the percentile
+    won the cell and the published measurement was inert. The same inversion
+    applied to any internal n>=3 measurement below the market percentile.
     Returns the number of rows inserted.
     """
     live = ("(SELECT DISTINCT lower(model) FROM models "
@@ -1454,7 +1483,8 @@ def apply_benchmark_categories():
                  reasoning_effort AS effort,
                  row_number() OVER (PARTITION BY lower(model), replace(category, '-', '_'),
                                                     reasoning_effort
-                                    ORDER BY score / max_score DESC, source ASC,
+                                    ORDER BY {_BRIDGE_SRC_CLASS_SQL} ASC,
+                                             score / max_score DESC, source ASC,
                                              model ASC) AS rn
           FROM benchmarks
           WHERE max_score IS NOT NULL AND score IS NOT NULL AND max_score <> 0
