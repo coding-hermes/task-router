@@ -1,0 +1,42 @@
+{
+  "scheduler_tick_id": "task-router-foreman-2026-11-20-10-24-58",
+  "project": "task-router",
+  "created_utc": "2026-11-20T10:35:00-05:00",
+  "wave_budget": 5,
+  "wave_size": 2,
+  "workers": [
+    {
+      "row": "TR-246",
+      "mode": "worker-worktree",
+      "worktree": "/home/kara/worktrees/task-router-TR-246",
+      "branch": "wt/TR-246",
+      "base_sha": "6ffed995",
+      "model": "glm-5.3-flash",
+      "provider": "zai-glm",
+      "files_family": "data/tables/models.jsonl + data/tables/model_notes.jsonl + scripts scan"
+    },
+    {
+      "row": "TR-371",
+      "mode": "foreman-direct",
+      "worktree": "(main tree)",
+      "branch": "main",
+      "base_sha": "6ffed995",
+      "files_family": "monitoring/ + tests/ + board + live fleet-monitor proof"
+    }
+  ],
+  "excluded": [
+    {
+      "rows": ["TR-390", "TR-399"],
+      "reason": "same-file seam: both write data/tables/model_perf.jsonl and data/tables/model_notes.jsonl, colliding with the in-flight TR-246 registry worker; serial after merge"
+    },
+    {
+      "rows": ["TR-294"],
+      "reason": "owner-gated: router service restart requires separate authorization (measured stale:true 2026-11-20) -> route task-router-releng"
+    },
+    {
+      "rows": ["TR-394"],
+      "reason": "work is Go code in the coding-hermes-scheduler repo, not this lane's repo; live >=2h-gap acceptance spans hours -> defer to owning lane"
+    }
+  ],
+  "independence_basis": "depends_on edges empty on all picked rows; file seams disjoint (TR-246: registry tables; TR-371: monitoring/tests/board/live-proof)"
+}
