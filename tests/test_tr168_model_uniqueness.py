@@ -621,6 +621,43 @@ POST_DEDUPE_ADDITIONS = {
     ("openrouter", "tencent/hy4-flash"): "models.dev sync 2026-11-17 — vendor-org mirror of hy4-flash, TR-362-disabled (measured below every band floor)",
     ("clinepass", "qwen4-max"): "clinepass API sync 2026-11-17 — carrier SKU, plan-sweep disabled on arrival",
     ("clinepass", "hy4-flash"): "clinepass API sync 2026-11-17 — carrier SKU, plan-sweep disabled on arrival",
+    # 2026-11-20 tick (model-registry-data-quality): 33 arrivals — today's clinepass
+    # sync + models.dev openrouter gemini-4-neon, the ORPHANED uncommitted 11-18
+    # gpt-6.2 wave (rows+aliases+stamps sat uncommitted in the worktree; completed
+    # and landed with canonical stamps this tick), and this tick's arrivals.
+    ("clinepass", "cline-sol62-blog47-20261117-openai-r1"): "clinepass API sync 2026-11-20 — odd catalog leaf, plan-sweep disabled on arrival (price NULL, no sticker source)",
+    ("clinepass", "gemini-4-neon"): "clinepass API sync 2026-11-20 — carrier SKU, plan-sweep disabled on arrival",
+    ("clinepass", "gemini-4-neon:batch"): "clinepass API sync 2026-11-20 — carrier SKU, plan-sweep disabled on arrival",
+    ("clinepass", "gpt-6.2-astra"): "clinepass API sync 2026-11-20 — carrier SKU, plan-sweep disabled on arrival",
+    ("clinepass", "gpt-6.2-astra-pro"): "clinepass API sync 2026-11-20 — carrier SKU, plan-sweep disabled on arrival",
+    ("clinepass", "gpt-6.2-astra-pro:batch"): "clinepass API sync 2026-11-20 — carrier SKU, plan-sweep disabled on arrival",
+    ("clinepass", "gpt-6.2-astra:batch"): "clinepass API sync 2026-11-20 — carrier SKU, plan-sweep disabled on arrival",
+    ("clinepass", "gpt-6.2-sol"): "clinepass API sync 2026-11-20 — carrier SKU, plan-sweep disabled on arrival",
+    ("clinepass", "gpt-6.2-sol-pro"): "clinepass API sync 2026-11-20 — carrier SKU, plan-sweep disabled on arrival",
+    ("clinepass", "gpt-6.2-sol-pro:batch"): "clinepass API sync 2026-11-20 — carrier SKU, plan-sweep disabled on arrival",
+    ("clinepass", "gpt-6.2-sol:batch"): "clinepass API sync 2026-11-20 — carrier SKU, plan-sweep disabled on arrival",
+    ("clinepass", "pixtral-large-2502"): "clinepass API sync 2026-11-20 — carrier SKU, plan-sweep disabled on arrival (openrouter twin catalog-removed + overlay-pinned the same tick)",
+    ("commandcode", "Qwen/Qwen4-Max"): "filed 2026-11-20 — Alibaba official 1.50/4.50 (commandcode catalog+models.dev listing absent), aliased to qwen4-max base (sticker ratio 1.0x), live",
+    ("commandcode", "google/gemini-4-neon"): "filed 2026-11-20 — models.dev google sticker 3/15, live + tier'd via DeepMind launch-table bench rows (kingy/DataCamp corroborate)",
+    ("commandcode", "gpt-6.2-astra"): "filed 2026-11-20 — official 8/40 input-sticker, live, inherits measured gpt-6.2-astra alias family",
+    ("commandcode", "gpt-6.2-sol"): "filed 2026-11-20 — official 2/10 input-sticker, live, inherits measured gpt-6.2-sol alias family",
+    ("commandcode", "tencent/hy4"): "filed 2026-11-20 — canonical tencent rate 0.834/2.501 (5 models.dev resellers agree), live, exact-name match to measured tencent/hy4",
+    ("commandcode", "tencent/hy4-flash"): "filed 2026-11-20 — TR-362-disabled on arrival: measured-below-floor family (TB4 19.2 / ProgramBench 16.0 vs code_gen -5 floor 0.2116); price kept for audit",
+    ("openai-codex", "gpt-6.2-astra"): "orphaned 11-18 seat work (models.dev openai->openai-codex alias catalog), completed + landed 2026-11-20 with canonical stamps; live via launch-documented 0.8x alias",
+    ("openai-codex", "gpt-6.2-sol"): "orphaned 11-18 seat work, completed + landed 2026-11-20 with canonical stamps; live via 1.0x alias to measured gpt-6.1-sol",
+    ("opencode-go-2", "hy4-flash-free"): "filed 2026-11-20 — TR-362-disabled on arrival: measured-below-floor family + :free (blank-default -1 would clear lenient bars); price kept for audit",
+    ("opencode-go-2", "qwen4-max"): "filed 2026-11-20 — mirror-seat lane at the models.dev opencode-go sticker 1.5/4.5 (engine sub-bucket blended est 1.62), live + tier'd via the qwen4-max launch-chart rows",
+    ("openrouter", "google/gemini-4-neon"): "models.dev sync 2026-11-20 — new 1M-ctx generation, sticker 3/15, live + tier'd via DeepMind launch-table bench rows",
+    ("openrouter", "google/gemini-4-neon:batch"): "models.dev sync 2026-11-20 — 50% batch transport variant, :batch alias for the lane-level account only (spawn excludes batch lanes)",
+    ("openrouter", "mistralai/pixtral-large-2502"): "2026-11-20 — resurrected from uncommitted sync state merged across a 22-commit ff-pull (absent from every committed tree); re-removed + lifecycle-overlay-pinned archive:true the same tick",
+    ("openrouter", "openai/gpt-6.2-astra"): "orphaned 11-18 seat work, completed + landed 2026-11-20 (aliases + canonical stamps); live, launch-documented 0.8x",
+    ("openrouter", "openai/gpt-6.2-astra-pro"): "orphaned 11-18 seat work, completed + landed 2026-11-20; pro == astra weights + priority",
+    ("openrouter", "openai/gpt-6.2-astra-pro:batch"): "orphaned 11-18 seat work, completed + landed 2026-11-20; :batch transport variant",
+    ("openrouter", "openai/gpt-6.2-astra:batch"): "orphaned 11-18 seat work, completed + landed 2026-11-20; :batch transport variant",
+    ("openrouter", "openai/gpt-6.2-sol"): "orphaned 11-18 seat work, completed + landed 2026-11-20; live via 1.0x alias to measured gpt-6.1-sol + FrontierCode bench row",
+    ("openrouter", "openai/gpt-6.2-sol-pro"): "orphaned 11-18 seat work, completed + landed 2026-11-20; pro inherits the measured sol base",
+    ("openrouter", "openai/gpt-6.2-sol-pro:batch"): "orphaned 11-18 seat work, completed + landed 2026-11-20; :batch transport variant",
+    ("openrouter", "openai/gpt-6.2-sol:batch"): "orphaned 11-18 seat work, completed + landed 2026-11-20; :batch transport variant",
 }
 
 

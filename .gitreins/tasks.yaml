@@ -1769,3 +1769,28 @@ tasks:
   status: complete
   created_at: '2026-11-18T01:14:40.878255+00:00'
   completed_at: '2026-11-18T01:38:44.325258+00:00'
+- id: TR-1000976681059301
+  title: provider_health_probe marks 5xx providers OK
+  criteria:
+  - provider_health_probe.py must classify any probe ending in HTTP 5xx (incl 502/503)
+    as DOWN or DEGRADED, never OK; unit test with a 503 probe asserts status != OK;
+    full suite run before done
+  status: in_progress
+  created_at: '2026-11-18T03:28:15.724518+00:00'
+- id: TR-1000976681059264
+  title: router chain-run exits 0 when every hop fails
+  criteria:
+  - 'An exhausted walk must exit non-zero: exit 0 only when a hop succeeded or --dry-run
+    planned the walk, exit 1 when every attempt failed, exit 2 usage errors; README
+    documents chain-run exit codes; CI test covers fail/success/dry-run and JSON success+final
+    unchanged'
+  status: in_progress
+  created_at: '2026-11-18T03:28:17.300592+00:00'
+- id: TR-1000976681059257
+  title: router_seed dirties tracked data/tables on a clean checkout
+  criteria:
+  - In a clean checkout of main, ROUTING_ALLOW_UNSATISFIABLE=1 python3 -m scripts.router_seed
+    leaves git status --porcelain with NO tracked data/tables/*.jsonl change; a fresh
+    clone + seed + suite reproduces CI exactly
+  status: in_progress
+  created_at: '2026-11-18T03:28:19.364057+00:00'

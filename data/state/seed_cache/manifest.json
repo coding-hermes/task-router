@@ -1,5 +1,5 @@
 {
- "cache_version": 1,
+ "cache_version": 2,
  "columns": {
   "archetypes": [
    "id",
@@ -174,7 +174,8 @@
    "recheck"
   ]
  },
- "derived_at": "2026-11-17T15:07:38+00:00",
+ "derivation_fingerprint": "d68e3b7a16942201b901b048277d6097a7974e986a01ebeb6215967ca594abc1",
+ "derived_at": "2026-11-20T08:30:34+00:00",
  "input_files": [
   "archetypes.jsonl",
   "benchmarks.jsonl",
@@ -211,9 +212,9 @@
   "type_hint_baseline.jsonl",
   "unmeasured_categories.jsonl"
  ],
- "registry_generated_at": "2026-11-17T15:07:36+00:00",
- "registry_seed_source_hash": "4200e622ca50b736ee7f856fbaac922daaf6ddae9d2e66c4b8598ec68313649c",
- "source_hash": "4200e622ca50b736ee7f856fbaac922daaf6ddae9d2e66c4b8598ec68313649c",
+ "registry_generated_at": "2026-11-20T08:30:33+00:00",
+ "registry_seed_source_hash": "b11114f15e774537c1727a32c43b3abc2a59359e92524a121a9b4ab6cd6550b5",
+ "source_hash": "93b22040c7418924e51d5dcbd5b6a6a8fc6c076600228c076a11010499099873",
  "tables": [
   "archetypes",
   "benchmarks",

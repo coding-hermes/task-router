@@ -784,7 +784,7 @@ CASES = [
             # The head is unchanged (xkiro/cohere/command-r7b-12-2024, $0.0375),
             # so the TR-161 "resolves CHEAP" doctrine this case exists to pin
             # still holds; only the pool floor moves.
-            'min_chain': 507,  # 2026-11-17: 508->507 — net -1 lane from the 11-17 arrival/archival wave on this pool
+            'min_chain': 500,  # 2026-11-20: 507->500 — the tree now carries the 11-18 fireworks dead-id disable wave (23 lanes leave the pool) plus this tick's arrival-day filings (gpt-6.2 family, gemini-4-neon + :batch, qwen4-max mirror seats enter measured); head unchanged
         },
     },
     {
