@@ -56,6 +56,25 @@ def _source_ref(date: str, **fields: Any) -> str:
     return f"openrouter-models-api:{date}" + (f":{suffix}" if suffix else "")
 
 
+def _frozen_source_ref(row: dict[str, Any], date: str) -> str:
+    """Provenance for a market row this run's feed does not republish.
+
+    The pre-provenance pass recorded no arena, rank or population, so the
+    original measurement cannot be reconstructed — inventing one would be a
+    fabrication. What IS known is stated: the row's own valid_from, the fact
+    that the current feed carries no cell for it, and the stored score. The
+    shape is the one scripts/market_verify_model.py already uses for carried
+    cells (2026-11-20c precedent), so the corpus has ONE vocabulary for
+    "real evidence, not republished" rather than two.
+    """
+    origin = str(row.get("valid_from") or "unknown")
+    return (
+        f"openrouter-models-api:{origin}"
+        f":carried-forward:not-republished-{date}"
+        f":category={row.get('category')}:raw_score={row.get('score')}"
+    )
+
+
 def build_rows(
     payload: Any, registry_ids: set[str], date: str
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
@@ -266,6 +285,22 @@ def write_outputs(
         r for r in existing
         if not (r.get("source") == "market" and (r.get("model"), r.get("category")) in emitted_cells)
     ]
+    # Cells the feed no longer ranks are NOT re-emitted, so the filter above
+    # leaves their prior rows in place. The pre-provenance pass (2026-11-16/17)
+    # wrote those rows with no source_ref at all, which made them unverifiable
+    # AND un-retirable: nothing on the row said where the number came from or
+    # that the feed had stopped publishing it. Carry them forward instead of
+    # dropping them — the evidence is real, it is just not republished — with
+    # the same stamp scripts/market_verify_model.py uses. The stamp is
+    # idempotent: a carried row already carries a source_ref, so a second run
+    # leaves it byte-identical.
+    carried = 0
+    for row in existing:
+        if row.get("source") != "market" or row.get("source_ref"):
+            continue
+        row["source_ref"] = _frozen_source_ref(row, report["date"])
+        carried += 1
+    report["carried_forward_rows"] = carried
     with output_path.open("w", encoding="utf-8") as handle:
         for row in existing + rows:
             handle.write(json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n")

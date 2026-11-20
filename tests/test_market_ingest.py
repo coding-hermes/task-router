@@ -213,3 +213,47 @@ def test_refresh_converges_and_purges_provenance_less_market_rows(tmp_path):
     assert len(cells) == len(set(cells)), "refresh left duplicate market cells"
     assert not any(r.get("source_ref") is None and r["category"] == "code_gen" for r in market)
     assert keep in written, "non-market evidence must never be touched by a market refresh"
+
+
+def test_unrepublished_market_cells_are_carried_forward_with_provenance(tmp_path):
+    """A cell the feed stops ranking must be EXPLAINED, not silently kept bare.
+
+    The pre-provenance pass wrote source=market rows with no source_ref. A
+    refresh only replaces the cells it emits, so a cell the feed no longer
+    carries would keep an unverifiable row forever. The refresh must stamp it
+    with its origin date, the stored score and the fact that this feed does not
+    republish it — and the stamp must be idempotent, so a second run is
+    byte-identical.
+    """
+    mod = _module()
+    feed = json.loads(FIXTURE.read_text())
+    registry = tmp_path / "models.jsonl"
+    registry.write_text("\n".join(json.dumps({"provider": "openrouter", "model": m})
+                                  for m in ("vendor/ranked-model", "vendor/absent-model")) + "\n")
+    output = tmp_path / "benchmarks.jsonl"
+    stale = {"model": "vendor/absent-model", "category": "artificial_analysis_coding",
+             "score": 0.715, "max_score": 1.0, "source": "market",
+             "valid_from": "2026-11-17", "reasoning_effort": "default"}
+    output.write_text(json.dumps(stale) + "\n")
+
+    rows, report = mod.build_rows(feed, mod.load_registry_ids(str(registry)), "2026-11-20")
+    mod.write_outputs(rows, report, str(output), str(tmp_path / "queue"), [])
+    first = output.read_text()
+
+    written = [json.loads(line) for line in first.splitlines() if line.strip()]
+    carried = [r for r in written if r.get("model") == "vendor/absent-model"]
+    assert len(carried) == 1, "the unrepublished cell must survive as one row"
+    ref = carried[0]["source_ref"]
+    assert ref.startswith("openrouter-models-api:2026-11-17:"), ref
+    assert "carried-forward" in ref, ref
+    assert "not-republished-2026-11-20" in ref, ref
+    assert "category=artificial_analysis_coding" in ref, ref
+    assert "raw_score=0.715" in ref, ref
+    assert report["carried_forward_rows"] == 1, report["carried_forward_rows"]
+
+    # Idempotent: the carried row already carries provenance, so a re-run is a
+    # byte-identical no-op (this is the property the card is about).
+    rows2, report2 = mod.build_rows(feed, mod.load_registry_ids(str(registry)), "2026-11-20")
+    mod.write_outputs(rows2, report2, str(output), str(tmp_path / "queue"), [])
+    assert output.read_text() == first, "a second refresh must not rewrite carried rows"
+    assert report2["carried_forward_rows"] == 0, report2["carried_forward_rows"]
