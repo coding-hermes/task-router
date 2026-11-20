@@ -221,6 +221,18 @@ def main(argv: list[str] | None = None) -> int:
         if not (r.get("source") == "market" and (r.get("model"), r.get("category")) in replaced)
     ]
     report["bench_carried_forward"] = sorted(r["category"] for r in carried)
+    # TR-350 applies to carried cells too: the evidence belongs to the MODEL, so a
+    # bare-id lane serving the same model must get the same re-stamped row. Without
+    # this the feed-id lane ends up provenanced while its bare twin keeps the
+    # provenance-less 2026-11-17 row — the exact split TR-350 exists to prevent.
+    carried_mirrored: list[dict] = []
+    for row in carried:
+        for variant in sorted(variants):
+            alt = dict(row)
+            alt["model"] = variant
+            carried_mirrored.append(alt)
+    carried = carried + carried_mirrored
+    report["bench_carried_mirrored"] = len(carried_mirrored)
     report["bench_emitted_total"] = len(emitted) + len(carried)
     report["bench_dropped_cells"] = sorted(
         {r["category"] for r in prior if (r["model"], r["category"]) not in replaced}

@@ -158,3 +158,57 @@ def test_ranked_model_gets_arena_provenance(tmp_path, monkeypatch):
     ref = mine[0]["source_ref"]
     assert "arena=models" in ref and "rank=1" in ref and "n=2" in ref, ref
     assert mine[0]["score"] == 0.5  # rank 1 of 2 -> 1 - 1/2
+
+
+def test_carried_cells_are_mirrored_onto_bare_id_lanes(tmp_path, monkeypatch):
+    """TR-350 for carried cells: the bare-id twin must not keep the stale row.
+
+    The 2026-11-17 ingest wrote the same cell under both the feed id and the bare
+    id. Re-stamping only the feed id leaves the bare lane's row provenance-less,
+    which is the split TR-350 exists to prevent.
+    """
+    model = "vendor/aa-only"
+    bare = "aa-only"
+    models, bench = _write_repo(tmp_path, model, [
+        {
+            "model": model,
+            "category": "artificial_analysis_coding",
+            "score": 0.114,
+            "max_score": 1.0,
+            "source": "market",
+            "valid_from": "2026-11-17",
+            "reasoning_effort": "default",
+        },
+        {
+            "model": bare,
+            "category": "artificial_analysis_coding",
+            "score": 0.114,
+            "max_score": 1.0,
+            "source": "market",
+            "valid_from": "2026-11-17",
+            "reasoning_effort": "default",
+        },
+    ])
+    # register the bare-id lane so the mirror set is non-empty
+    with models.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps({
+            "provider": "commandcode",
+            "model": bare,
+            "context_limit": 1000,
+        }) + "\n")
+    feed = tmp_path / "feed.json"
+    feed.write_text(json.dumps(_feed([_entry(model)])), encoding="utf-8")
+
+    monkeypatch.chdir(tmp_path)
+    mod = _module()
+    rc = mod.main([
+        "--model", model, "--date", "2026-11-20", "--input", str(feed),
+        "--models", str(models), "--output", str(bench), "--write",
+    ])
+    assert rc == 0
+
+    rows = [json.loads(line) for line in bench.read_text().splitlines() if line.strip()]
+    for lane in (model, bare):
+        mine = [r for r in rows if r["model"] == lane and r["source"] == "market"]
+        assert len(mine) == 1, lane
+        assert "carried-forward" in (mine[0].get("source_ref") or ""), (lane, mine[0])
