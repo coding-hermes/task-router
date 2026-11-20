@@ -302,10 +302,15 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(report, indent=2, sort_keys=True))
         return 0
 
-    if replaced:
+    if replaced or carried:
         # Byte-for-byte preservation: only the lines this card owns are
         # re-serialised. Re-dumping every line would rewrite 17k lines of other
         # models' evidence under a one-model commit message.
+        # The guard is `replaced OR carried`: a model whose feed read publishes
+        # no arena cell at all (every AA-only lane) has an empty `replaced` set,
+        # and gating the rewrite on `replaced` alone silently skipped the
+        # carry-forward — the report claimed the cells were carried while the
+        # provenance-less rows stayed on disk.
         carried_by_cell = {(r["model"], r["category"]): r for r in carried}
         out: list[str] = []
         with bench_path.open(encoding="utf-8") as handle:
