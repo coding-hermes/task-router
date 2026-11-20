@@ -1812,3 +1812,12 @@ tasks:
   status: complete
   created_at: '2026-11-21T16:57:41.297171+00:00'
   completed_at: '2026-11-21T18:43:07.698671+00:00'
+- id: TR-246
+  title: Import gpt-6.1-sol registry lane (1.05M ctx)
+  criteria:
+  - gpt-6.1-sol and -pro exist as registry rows for xkiro, xkiro-2, clinepass, commandcode-2,
+    openai-codex, 9router with price provenance or explicit NULL+reason; context window
+    1050000 in per-(model,provider) context data; resolve emits the lane via CLI against
+    repo registry; tier dimension present or explicitly recorded missing
+  status: in_progress
+  created_at: '2026-11-20T10:32:28.527205+00:00'
