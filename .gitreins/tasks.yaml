@@ -1801,5 +1801,6 @@ tasks:
     openai-codex, 9router with price provenance or explicit NULL+reason; context window
     1050000 in per-(model,provider) context data; resolve emits the lane via CLI against
     repo registry; tier dimension present or explicitly recorded missing
-  status: in_progress
+  status: complete
   created_at: '2026-11-20T10:32:28.527205+00:00'
+  completed_at: '2026-11-20T12:04:51.923050+00:00'
