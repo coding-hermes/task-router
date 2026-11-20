@@ -42,6 +42,14 @@ import router_market_ingest as rmi  # noqa: E402
 
 BENCH = Path("data/tables/benchmarks.jsonl")
 MODELS = Path("data/tables/models.jsonl")
+NULL_REASONS = Path("data/null_reasons.jsonl")
+# Fields the NULL-stamp registry explains. A stamp on any of these is only valid
+# while the row leaves the field null.
+_STAMPABLE_FIELDS = (
+    "api_type", "data_class", "context_limit", "vision", "thinking",
+    "cap_image_generation", "cap_embedding", "cap_computer_use", "cap_audio",
+    "cap_web_search", "cap_video", "release_date", "normalized_price",
+)
 
 
 def load_jsonl(path: Path) -> list[dict]:
@@ -242,6 +250,40 @@ def main(argv: list[str] | None = None) -> int:
             if applies:
                 row[delta["field"]] = delta["feed"]
     report["spec_updates"] = spec_updates
+
+    # A filled field must RETIRE its NULL stamp. data/null_reasons.jsonl explains
+    # why a field is null; once the feed proves the value, the stamp is a lie and
+    # tests/test_null_census.py::test_stamp_registry_vocabulary_is_the_finite_ac2_set
+    # fails on it (it asserts every stamp targets a field the row actually leaves
+    # null). Retiring the stamp is the honest repair, not widening the test.
+    # The invariant is "a stamp targets a field the row leaves null", so retire
+    # every stamp whose field is now non-null on this model's rows — not just the
+    # ones this run filled. A previous run (or a sibling wave) may have filled it
+    # already, and re-running must still converge the registry.
+    filled = {
+        (row.get("provider"), args.model, field)
+        for row in lane_rows
+        for field in _STAMPABLE_FIELDS
+        if row.get(field) is not None
+    }
+    retired: list[dict] = []
+    if filled and NULL_REASONS.exists():
+        kept_stamps: list[str] = []
+        with NULL_REASONS.open(encoding="utf-8") as handle:
+            for raw in handle:
+                if not raw.strip():
+                    continue
+                stamp = json.loads(raw)
+                key = (stamp.get("provider"), stamp.get("model"), stamp.get("field"))
+                if key in filled:
+                    retired.append(stamp)
+                    continue
+                kept_stamps.append(raw.rstrip("\n"))
+        if retired:
+            NULL_REASONS.write_text("\n".join(kept_stamps) + "\n", encoding="utf-8")
+    report["stamps_retired"] = [
+        {"provider": s["provider"], "field": s["field"], "reason": s["reason"]} for s in retired
+    ]
 
     # --- 3. explained nulls ------------------------------------------------
     explained: dict[str, str] = {}
