@@ -1794,3 +1794,15 @@ tasks:
     clone + seed + suite reproduces CI exactly
   status: in_progress
   created_at: '2026-11-18T03:28:19.364057+00:00'
+- id: TR-399
+  title: 'Ingest change: probes and benchmark pulls record the effort level they ran
+    at'
+  criteria:
+  - 'Effort-parameterized measurement pipeline on origin/main: probe runner accepts
+    --effort/--efforts and runs the battery per effort; ingest writes reasoning_effort
+    into model_perf rows and refuses a result lacking the stamp; pre-effort-era imports
+    migrated with reason=pre-effort-era documented in model_notes; bound by tests/test_tr399_effort_ingest.py
+    (86 family tests green)'
+  status: complete
+  created_at: '2026-11-21T01:25:35.440233+00:00'
+  completed_at: '2026-11-21T01:27:19.499784+00:00'

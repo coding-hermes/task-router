@@ -1,0 +1,32 @@
+TR-399 — effort-axis ingest — landed-but-unclosed closeout evidence
+tick: task-router-foreman-2026-11-21-01-05-08
+authored: 2026-11-21 (host clock EST)
+implementation commits: 88e29311 (feat TR-399: measurement pipeline records the reasoning effort it ran at) + f77dbb95 (test TR-399: carry the effort flag through the existing probe/tier callers), both on origin/main
+CI witness: github:43152679739 — completed success, head f77dbb95cb706ce1df1147b99ebbc11c138e37ef, 2026-11-12T04:07:16Z
+
+1. ACCEPTANCE -> BINDING TESTS (run 2026-11-21 against origin/main @ 87316ccd, worktree wt/TR-399-closeout)
+   pytest tests/test_tr399_effort_ingest.py tests/test_tr398_effort_axis.py tests/test_tr400_cost_effort.py
+          tests/test_tr401_effort_resolver.py tests/test_tr402_effort_tier_publish.py tests/test_probe_flags.py
+   -> 86 passed in 5.73s (0 failed)
+   - probe run at two efforts -> two perf rows with distinct efforts
+     tests/test_tr399_effort_ingest.py::test_two_efforts_produce_two_rows_with_distinct_efforts
+   - ingest refuses a result lacking the effort field
+     tests/test_tr399_effort_ingest.py::test_ingest_refuses_a_result_without_an_effort_stamp
+     (plus ::test_efforts_allowlist_refuses_a_row_outside_it)
+   - pre-effort-era migration documented in model_notes
+     tests/test_tr399_effort_ingest.py::test_pre_effort_era_migration_is_documented_in_model_notes
+     (note present: data/tables/model_notes.jsonl "effort-axis-migration-2026-11-11", reason=pre-effort-era)
+   - data-wide invariant: every committed perf and bench row carries an effort stamp
+     tests/test_tr399_effort_ingest.py::test_every_committed_perf_and_bench_row_carries_an_effort
+
+2. SURFACE PROOF (committed tree at origin/main)
+   scripts/router_probe_run.py  --effort/--efforts battery loop (TR-399 comments, line 736-746)
+   scripts/router_probe_ingest.py --effort/--efforts + refusal of unstamped rows (TR-399 comments)
+
+3. NOTE (honest gap, not an AC)
+   The row description mentions refusal "by the commit gate from TR-362/TR-394"; .githooks/pre-commit
+   carries no effort check today — refusal is enforced at ingest time (tested) and the commit-gate leg
+   belongs to the still-pending TR-394 row. The binding acceptance list is fully green.
+
+verdict: the row's premise landed with the TR-398..403 effort family; every acceptance criterion is
+bound by a named green test on the exact CI-witnessed head. Closed as landed-but-unclosed.
