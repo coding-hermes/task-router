@@ -1803,3 +1803,12 @@ tasks:
   status: complete
   created_at: '2026-11-21T15:18:27.494492+00:00'
   completed_at: '2026-11-21T16:03:01.546319+00:00'
+- id: INT-CI-30
+  title: Boundary gate must refuse run ids the replay resolver cannot resolve
+  criteria:
+  - Completion flips carrying a local tick-directory label must be REFUSED by board_commit_boundary_gate
+    with a message naming accepted forms; proven by unit tests and by --base 8b8d76a3
+    --head 01251fa4 refusing, with d69f464^..d69f464 still OK
+  status: complete
+  created_at: '2026-11-21T16:57:41.297171+00:00'
+  completed_at: '2026-11-21T18:43:07.698671+00:00'
