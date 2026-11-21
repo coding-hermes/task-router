@@ -857,8 +857,28 @@ def main(config_path: Any=None, only_providers: Any=None, output_path: Any=None,
     # behind the resolver's coverage demote (an unprobed lane sorts behind a
     # probed sibling). Additive: consumers that do not know the key ignore it.
     _coverage = coverage_block(results)
+    # t_neuralwatt_probe_coverage: the probe enumerates from the CURATED
+    # probe_providers.jsonl, so a provider with live lanes and no probe row is
+    # silently un-gated (router_spawn treats an absent provider as fail-open).
+    # Assert coverage on every run and carry the gap list in the state doc, so
+    # the hole is visible hourly instead of being rediscovered by hand. Fail
+    # open: a missing helper module must never break the probe.
+    _cov = None
+    try:
+        import health_coverage_check as _hcc
+        _cov = _hcc.coverage_report(
+            _hcc.load_jsonl(os.path.join(DATA_DIR, 'models.jsonl')),
+            _hcc.load_jsonl(os.path.join(DATA_DIR, 'providers.jsonl')),
+            _hcc.load_jsonl(os.path.join(DATA_DIR, 'probe_providers.jsonl')),
+            {'providers': merged_providers},
+            _hcc.load_json(os.path.join(MR, 'quota-state.json'), {}) or {},
+            datetime.date.today().isoformat())
+    except Exception as exc:  # noqa: BLE001 — coverage is additive, never fatal
+        _cov = {'status': 'skip', 'reason': f'{type(exc).__name__}: {exc}', 'gaps': []}
     state = {'updated': ts, 'probe_version': 3, 'providers': merged_providers,
-             'coverage': _coverage}
+             'coverage': _coverage,
+             # additive: consumers that do not know the key ignore it
+             'unprobed_routable': _cov.get('gaps', [])}
     if write:
         out_dir = os.path.dirname(HEALTH_STATE)
         if out_dir:
@@ -917,6 +937,25 @@ def main(config_path: Any=None, only_providers: Any=None, output_path: Any=None,
         out.append(f'⚪ UNPROBED ({len(unprobed)})')
         for p, r in unprobed:
             out.extend(fmt_provider_block(p, r))
+    # t_neuralwatt_probe_coverage: the coverage assertion, printed every run.
+    # A provider with routable lanes and no health entry is the silent un-gate
+    # (neuralwatt: 402 on every call, 38 lanes in chains, nothing to filter on).
+    if _cov is not None:
+        if _cov.get('status') == 'skip':
+            out.append('')
+            out.append(f"⚠️  health coverage NOT checked: {_cov.get('reason')}")
+        else:
+            out.append('')
+            _gaps = _cov.get('gaps') or []
+            if _gaps:
+                out.append(f'🕳️  ACTIVE BUT UNPROBED ({len(_gaps)}) — routable lanes '
+                           f'with no health entry, so the resolve-time gate cannot fire:')
+                for _g in _gaps:
+                    out.append(f"    {_g['provider']}  {_g['lanes']} lane(s)  "
+                               f"[{_g['kind']}] {_g['detail']}")
+            else:
+                out.append(f"✅ health coverage: all {_cov.get('routable_providers')} "
+                           f"routable providers have a health entry")
     if not write:
         out.append('')
         out.append('(--no-write: probes ran but nothing was written — '
