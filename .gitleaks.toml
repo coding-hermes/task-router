@@ -42,3 +42,35 @@ regexes = [
   # tests/test_quota_readback.py — the fixture row names its env var
   '''"auth_env":\s*"TR215_FIXTURE_KEY"''',
 ]
+
+# Scan-scope exclusions — a separate concern from the fixture allowlist above,
+# and the reason the tier-1 secrets lane could not finish at all
+# (TR-1000976681059305, foreman tick 2026-11-21):
+#   `gitreins task complete` reported
+#     "gitleaks whole-tree scan did not complete: ... timed out after 180 seconds"
+#   on a tree of 4.6 GB. gitleaks runs with `--no-git`, so it walks
+#   gitignored artifacts too; ~4.1 GB of that tree is generated data:
+#     data/state/outcomes.jsonl                478 MB  (gitignored, .gitignore:31)
+#     data/state/outcomes.jsonl.bak-*/backup-* ~2.2 GB  (rotated copies)
+#     data/metrics.jsonl{,.N,.gz}              1.3 GB  (gitignored, .gitignore:16-20)
+#   None of these are source: they are append-only runtime data whose size, not
+#   whose content, is the problem. Excluding them keeps every source file,
+#   every test file and every committed data table (data/tables/*.jsonl) in
+#   scope — this is NOT a path-wide blind on code.
+#   Verified after the change: whole-tree scan completes in 22 s (was killed at
+#   the 180 s budget), the three fixture findings stay silenced, and planted
+#   secrets are still reported — aws-access-token, github-pat and
+#   stripe-access-token in the repo root, plus aws-access-token planted in
+#   scripts/ and again in tests/ (so both trees stay in scan scope).
+# Entries are Go regexps, which is how gitleaks compiles `paths`.
+paths = [
+  '''(^|/)\.gitreins/.*''',
+  '''(^|/)data/state/outcomes\.jsonl$''',
+  '''(^|/)data/state/outcomes\.jsonl\..*$''',
+  '''(^|/)data/metrics\.jsonl(\.[0-9]+)?(\.gz)?$''',
+  '''(^|/)\.vfs/.*''',
+  '''(^|/)\.venv/.*''',
+  '''(^|/)dist/.*''',
+  '''(^|/)__pycache__/.*''',
+  '''(^|/)\.(?:pytest|ruff|mypy)_cache/.*''',
+]
