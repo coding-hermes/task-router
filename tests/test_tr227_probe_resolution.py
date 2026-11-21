@@ -300,7 +300,10 @@ def test_dry_run_targets_all_four_instances(tmp_path):
     #   (b) fill path: an explicit --models run for a ranked lane must NOT
     #       SKIP and must print its real base_url (already-ranked lanes are
     #       filtered from default targets BY DESIGN).
-    fill_target = {"commandcode": "z-ai/glm-5.3-flash", "grok-build": "grok-build-0.1"}
+    # 2026-11-21: grok-build representative moved grok-build-0.1 -> grok-4.5 — the Build SKU was
+    # removed upstream (chat 404 does-not-exist + absent from live catalogs; archived same tick).
+    # The contract still proves resolution for all four instances via the surviving ranked lane.
+    fill_target = {"commandcode": "z-ai/glm-5.3-flash", "grok-build": "grok-4.5"}
 
     def fill_run(prov, model):
         return subprocess.run(
