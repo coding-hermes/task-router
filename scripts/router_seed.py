@@ -629,7 +629,7 @@ try:
         _lc_rows = [json.loads(_l) for _l in _f if _l.strip()]
 except FileNotFoundError:
     pass
-def overlay_update(overlay: Any, updatable: Any) -> tuple:
+def overlay_update(overlay: Any, updatable: Any, base_disabled: Any = None) -> tuple:
     """(columns, args) for ONE lifecycle overlay — ONLY the keys it names.
 
     TR-180: this used to be `SET <every column> = _o.get(c)`, so any column the
@@ -640,8 +640,20 @@ def overlay_update(overlay: Any, updatable: Any) -> tuple:
 
     A key-wise merge is the honest contract: you touch what you name, and naming
     a key with null still clears it explicitly. Nothing vanishes silently.
+
+    EXCEPT the disable flag, which is ONE-WAY through the overlay. A catalog
+    snapshot taken while a lane was live carries `"disabled": null`; merging
+    that key-wise CLEARS a later owner cancellation, so every reseed resurrects
+    the lane. Measured 2026-11-21: 41 overlay rows cleared a base disable
+    (16 neuralwatt, 16 xkiro, 8 openrouter, 1 opencode-go-2), and a clean
+    reseed of main re-enabled 12 neuralwatt lanes the owner cancelled on
+    2026-11-16 — the live resolver then handed out hops to a provider answering
+    HTTP 402. An overlay may still SET a disable (a retirement notice is exactly
+    that); it may never clear one.
     """
     cols = [c for c in updatable if c in overlay]
+    if base_disabled and 'disabled' in cols and not overlay.get('disabled'):
+        cols = [c for c in cols if c not in ('disabled', 'disabled_reason')]
     return cols, [overlay[c] for c in cols]
 
 
@@ -651,9 +663,10 @@ for _o in _lc_rows:
         raise SystemExit(f'lifecycle overlay without provider/model: {_o}')
     if not _o.get('lifecycle_source'):
         raise SystemExit(f'lifecycle overlay without provenance (R4): {_prov}/{_mod}')
-    if con.execute('SELECT 1 FROM models WHERE provider=? AND model=?',
-                   [_prov, _mod]).fetchone():
-        _cols, _vals = overlay_update(_o, _LC_UPDATABLE)
+    _base = con.execute('SELECT disabled FROM models WHERE provider=? AND model=?',
+                        [_prov, _mod]).fetchone()
+    if _base:
+        _cols, _vals = overlay_update(_o, _LC_UPDATABLE, base_disabled=_base[0])
         if _cols:
             _sets = ', '.join(f'{c} = ?' for c in _cols)
             con.execute(f'UPDATE models SET {_sets} WHERE provider=? AND model=?',

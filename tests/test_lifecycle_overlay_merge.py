@@ -72,3 +72,83 @@ def test_the_real_overlay_file_has_a_thin_row_this_protects():
     f = _overlay_update()
     cols, _ = f(thin[0], [c for c in COLS if c not in ('provider', 'model')])
     assert 'normalized_price' not in cols
+
+
+# ---------- the disable flag is ONE-WAY through the overlay ------------------
+# Measured 2026-11-21: 41 overlay rows carried `"disabled": null` (a catalog
+# snapshot taken while the lane was live) and the key-wise merge CLEARED the
+# base disable, so every reseed resurrected the lane. A clean reseed of main
+# re-enabled 12 neuralwatt lanes the owner cancelled on 2026-11-16 and the live
+# resolver handed out hops to a provider answering HTTP 402.
+
+DISABLE_COLS = COLS + ['disabled', 'disabled_reason']
+
+
+def test_a_null_disabled_never_clears_a_base_disable():
+    """The owner cancellation must survive a stale catalog snapshot."""
+    f = _overlay_update()
+    o = {'provider': 'neuralwatt', 'model': 'glm-5.3-flex', 'disabled': None,
+         'disabled_reason': None, 'lifecycle_source': 'catalog snapshot 2026-09-21'}
+    cols, _ = f(o, [c for c in DISABLE_COLS if c not in ('provider', 'model')],
+                base_disabled=True)
+    assert 'disabled' not in cols, 'a null in the overlay must not re-enable a lane'
+    assert 'disabled_reason' not in cols, 'the reason must not be dropped with the flag'
+    assert 'lifecycle_source' in cols, 'the rest of the overlay still applies'
+
+
+def test_an_overlay_may_still_set_a_disable():
+    """A retirement notice is exactly the case the overlay exists for."""
+    f = _overlay_update()
+    o = {'provider': 'x', 'model': 'y', 'disabled': True,
+         'disabled_reason': 'provider-announcement: retired 2026-11-16',
+         'lifecycle_source': 'provider-announcement'}
+    cols, vals = f(o, [c for c in DISABLE_COLS if c not in ('provider', 'model')],
+                   base_disabled=None)
+    assert 'disabled' in cols and 'disabled_reason' in cols, cols
+    assert vals[cols.index('disabled')] is True
+
+
+def test_a_null_disabled_still_clears_when_the_base_is_enabled():
+    """No behaviour change for the ordinary case: clearing a clear flag is a no-op."""
+    f = _overlay_update()
+    o = {'provider': 'x', 'model': 'y', 'disabled': None,
+         'lifecycle_source': 'manual clear'}
+    cols, _ = f(o, [c for c in DISABLE_COLS if c not in ('provider', 'model')],
+                base_disabled=None)
+    assert 'disabled' in cols, cols
+
+
+def test_the_real_overlay_file_cannot_resurrect_a_disabled_lane():
+    """End-to-end over the real files: every overlay row that names a falsy
+    `disabled` for a lane the committed tables disable must be neutralised."""
+    import json
+    lc_path = os.path.join(REPO, 'data', 'lifecycle.jsonl')
+    models_path = os.path.join(REPO, 'data', 'tables', 'models.jsonl')
+    if not (os.path.exists(lc_path) and os.path.exists(models_path)):
+        return
+    base = {}
+    for line in open(models_path):
+        if line.strip():
+            r = json.loads(line)
+            base[(r.get('provider'), r.get('model'))] = r
+    f = _overlay_update()
+    updatable = [c for c in DISABLE_COLS if c not in ('provider', 'model')]
+    resurrected = []
+    for line in open(lc_path):
+        if not line.strip():
+            continue
+        o = json.loads(line)
+        if 'disabled' not in o:
+            continue
+        if o.get('disabled'):
+            continue  # an overlay SETTING a disable is the allowed direction
+        b = base.get((o.get('provider'), o.get('model')))
+        if b is None or not b.get('disabled'):
+            continue
+        cols, _ = f(o, updatable, base_disabled=b.get('disabled'))
+        if 'disabled' in cols:
+            resurrected.append(f"{o['provider']}/{o['model']}")
+    assert not resurrected, (
+        'these lifecycle overlay rows would re-enable a lane the tables disable: '
+        f'{resurrected}'
+    )
