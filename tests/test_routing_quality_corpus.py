@@ -323,7 +323,7 @@ CASES = [
             'must_include': [['commandcode', 'moonshotai/Kimi-K2.7-Code'],
                              ['deepseek', 'deepseek-flash']],
             'must_exclude': [['clinepass', 'dots-3-note-preview:free']],
-            'min_chain': 26,
+            'min_chain': 21,  # 2026-11-21: 26->21 — neuralwatt lanes disabled (owner cancelled the provider 2026-11-16; live probe 402 overage cap, key valid); head unchanged
         },
     },
     {
@@ -344,7 +344,7 @@ CASES = [
             'must_include': [['commandcode', 'deepseek/deepseek-v4-pro'],
                              ['deepseek', 'deepseek-flash']],
             'must_exclude': [['clinepass', 'dots-3-note-preview:free']],
-            'min_chain': 198,  # 2026-11-17: 204->198 — merged-tree pool after the cull execution + the 11-17 arrival/archival wave
+            'min_chain': 191,  # 2026-11-21: 198->191 — neuralwatt lanes disabled (owner cancelled the provider 2026-11-16; live probe 402 overage cap, key valid); head unchanged  # 2026-11-17: 204->198 — merged-tree pool after the cull execution + the 11-17 arrival/archival wave
         },
     },
     {
@@ -375,7 +375,7 @@ CASES = [
             # against 299f07cc (the pre-archive parent): 14 lanes left this
             # pool, ALL of them xkiro-2, ZERO gained, head unchanged. The floor
             # follows the fleet; dead lanes are never re-enabled to silence it.
-            'min_chain': 96,  # 2026-11-17: merged-tree pool after the cull execution + the 11-17 arrival/archival wave
+            'min_chain': 95,  # 2026-11-21: 96->95 — neuralwatt lanes disabled (owner cancelled the provider 2026-11-16; live probe 402 overage cap, key valid); head unchanged  # 2026-11-17: merged-tree pool after the cull execution + the 11-17 arrival/archival wave
         },
     },
     {
@@ -491,7 +491,7 @@ CASES = [
             'must_include': [['commandcode', 'meituan/LongCat-2.0'],
                              ['deepseek', 'deepseek-flash']],
             'must_exclude': [['clinepass', 'dots-3-note-preview:free']],
-            'min_chain': 108,
+            'min_chain': 105,  # 2026-11-21: 108->105 — neuralwatt lanes disabled (owner cancelled the provider 2026-11-16; live probe 402 overage cap, key valid); head unchanged
         },
     },
     {
@@ -580,7 +580,7 @@ CASES = [
             # measured cohere lane; this is a data-driven pool re-pin.
             # disabled_reason; re-enable on measurement or the owner batch-lane
             # ruling); they had been pool members via the blank-default -1.
-            'min_chain': 285,  # 2026-11-15 ELIGIBILITY GATE: 539->285, pre-authorized re-pin (see the note above; head unchanged). Prior history: 545->541 2026-11-12: carrier-death archival wave (openrouter seed/xing4.0 lanes + TR-362 arrivals disabled) removed 4 live review-eligible lanes; 541->540 2026-11-13: TR-362 battery day-2 re-disabled the probe-alive unmeasured arrivals on TR-369 zero headroom (particle-1:free clinepass left the live review pool); 540->539 2026-11-14: clinepass lfm-2.5-2.6b:free archived (true removal — absent from GET /models + 404/402 at every form + upstream OR removal), per the 09-18 law the floor follows the fleet, dead lanes are never re-enabled to silence it,
+            'min_chain': 274,  # 2026-11-21: 285->274 — neuralwatt lanes disabled (owner cancelled the provider 2026-11-16; live probe 402 overage cap, key valid); head unchanged  # 2026-11-15 ELIGIBILITY GATE: 539->285, pre-authorized re-pin (see the note above; head unchanged). Prior history: 545->541 2026-11-12: carrier-death archival wave (openrouter seed/xing4.0 lanes + TR-362 arrivals disabled) removed 4 live review-eligible lanes; 541->540 2026-11-13: TR-362 battery day-2 re-disabled the probe-alive unmeasured arrivals on TR-369 zero headroom (particle-1:free clinepass left the live review pool); 540->539 2026-11-14: clinepass lfm-2.5-2.6b:free archived (true removal — absent from GET /models + 404/402 at every form + upstream OR removal), per the 09-18 law the floor follows the fleet, dead lanes are never re-enabled to silence it,
         },
     },
     # --- ad-hoc capability bands (the classifier's output space) ------------
@@ -630,7 +630,7 @@ CASES = [
             'must_include': [['commandcode', 'deepseek/deepseek-v4-pro'],
                              ['deepseek', 'deepseek-flash']],
             'must_exclude': [['clinepass', 'dots-3-note-preview:free']],
-            'min_chain': 203,
+            'min_chain': 193,  # 2026-11-21: 203->193 — neuralwatt lanes disabled (owner cancelled the provider 2026-11-16; live probe 402 overage cap, key valid); head unchanged
         },
     },
     {
@@ -644,7 +644,7 @@ CASES = [
                              ['commandcode', 'stepfun/Step-3.7-Flash']],
             'must_exclude': [['clinepass', 'dots-3-note-preview:free'],
                              ['deepseek', 'deepseek-flash']],
-            'min_chain': 36,
+            'min_chain': 33,  # 2026-11-21: 36->33 — neuralwatt lanes disabled (owner cancelled the provider 2026-11-16; live probe 402 overage cap, key valid); head unchanged
         },
     },
     {
@@ -747,7 +747,7 @@ CASES = [
             # against 299f07cc: 17 lanes left this pool, all xkiro-2, zero
             # gained, head unchanged (the pool was 144 then, so the 135 floor
             # was already slack; the new floor is the measured 127).
-            'min_chain': 117,  # 2026-11-17: merged-tree pool after the cull execution + the 11-17 arrival/archival wave
+            'min_chain': 116,  # 2026-11-21: 117->116 — neuralwatt lanes disabled (owner cancelled the provider 2026-11-16; live probe 402 overage cap, key valid); head unchanged  # 2026-11-17: merged-tree pool after the cull execution + the 11-17 arrival/archival wave
         },
     },
     {
@@ -784,7 +784,7 @@ CASES = [
             # The head is unchanged (xkiro/cohere/command-r7b-12-2024, $0.0375),
             # so the TR-161 "resolves CHEAP" doctrine this case exists to pin
             # still holds; only the pool floor moves.
-            'min_chain': 500,  # 2026-11-20: 507->500 — the tree now carries the 11-18 fireworks dead-id disable wave (23 lanes leave the pool) plus this tick's arrival-day filings (gpt-6.2 family, gemini-4-neon + :batch, qwen4-max mirror seats enter measured); head unchanged
+            'min_chain': 472,  # 2026-11-21: 500->472 — neuralwatt lanes disabled (owner cancelled the provider 2026-11-16; live probe 402 overage cap, key valid); head unchanged  # 2026-11-20: 507->500 — the tree now carries the 11-18 fireworks dead-id disable wave (23 lanes leave the pool) plus this tick's arrival-day filings (gpt-6.2 family, gemini-4-neon + :batch, qwen4-max mirror seats enter measured); head unchanged
         },
     },
     {
