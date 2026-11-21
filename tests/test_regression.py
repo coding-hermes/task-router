@@ -795,6 +795,43 @@ def test_owner_cancelled_lanes_stay_disabled():
     )
 
 
+def test_owner_cancelled_lanes_are_pinned_in_the_lifecycle_overlay():
+    """DURABILITY ARM for the same owner decision (Bane 2026-11-16).
+
+    test_owner_cancelled_lanes_stay_disabled reads data/tables/models.jsonl — the
+    seed's INPUT. A stale working tree replaces that input wholesale, so the table
+    pin alone cannot stop a reseed from a pre-72f339f9 snapshot: measured
+    2026-11-21, the main checkout carried 38/49 neuralwatt lanes enabled, the seed
+    read that tree, and the live resolver handed out hops to a provider answering
+    HTTP 402. The lifecycle overlay is the seed's designated durable mechanism
+    ("survives every reseed by construction"), so the cancellation must ALSO live
+    there — one row per cancelled lane naming disabled=true. Red-proven: seeding
+    the stale snapshot with the pre-fix overlay yields 38 enabled lanes; with these
+    rows it yields 0.
+    """
+    models = _load_tables()["models"]
+    overlay_path = os.path.join(os.path.dirname(DATA_DIR), "lifecycle.jsonl")
+    last = {}
+    for line in open(overlay_path):
+        if not line.strip():
+            continue
+        row = json.loads(line)
+        last[(row.get("provider"), row.get("model"))] = row  # file order: last wins
+
+    cancelled = [m for m in models
+                 if m.get("provider") == "neuralwatt" and m.get("disabled")
+                 and "cancel" in (m.get("disabled_reason") or "").lower()]
+    assert cancelled, ("no owner-cancelled neuralwatt lanes — this pin would pass "
+                       "vacuously; retire it deliberately")
+    unpinned = [m["model"] for m in cancelled
+                if not (last.get(("neuralwatt", m["model"])) or {}).get("disabled")]
+    assert not unpinned, (
+        "these owner-cancelled neuralwatt lanes carry no overlay disable, so a "
+        "reseed from a stale table snapshot re-enables them and the resolver hands "
+        f"out HTTP 402 hops: {unpinned}"
+    )
+
+
 def test_fallback_lane_fires_when_all_subs_down(monkeypatch, tmp_path):
     """Bane 2026-08-27 (cron integration): crons must ALWAYS run. When every
     eligible hop is gated/down AND the normal chain cannot serve deepseek
