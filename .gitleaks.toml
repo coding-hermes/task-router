@@ -1,0 +1,44 @@
+# gitleaks configuration — task-router
+#
+# Why this file exists (TR-1000976681059305):
+#   `gitreins` tier-1 secrets (gitleaks, builtin ruleset) red-classified a
+#   pristine origin/main checkout with three `generic-api-key` findings that
+#   are test fixtures, not credentials:
+#
+#     tests/test_quota_poller.py:264,278   _Env(tmp_path, "<provider>", key="<fixture>")
+#     tests/test_quota_readback.py:577     "auth_env": "TR215_FIXTURE_KEY"
+#
+#   The fixtures exist to prove the auth path (TR-208/TR-215): a key must reach
+#   the Authorization header and must never leak into argv, cache or errors.
+#   They are literals in the test source, so no real credential is exposed.
+#
+# What is deliberately NOT done here:
+#   There is no path-wide `paths = [...]` allowlist. Allowing whole test files
+#   would blind the scanner to a real secret committed into them later. Each
+#   entry below matches the *line shape* of the fixture only
+#   (regexTarget = "line"), so any other secret in these files — or anywhere
+#   else — is still reported.
+#
+# Verification (both directions, TR-1000976681059305 evidence):
+#   * `gitleaks detect --source . --no-git` on a pristine origin/main worktree
+#     exits 0 (was: 3 findings).
+#   * A planted `AKIA...` / `sk-...` style secret in the same files and in an
+#     unrelated file IS still reported — the builtin ruleset is intact because
+#     of `[extend] useDefault = true`.
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "TR-208/TR-215 auth-path test fixtures (line-shaped, not path-wide)"
+
+# regexTarget = "line" makes the entries below match the full source line
+# rather than the extracted secret, which is what keeps them narrow.
+regexTarget = "line"
+
+regexes = [
+  # tests/test_quota_poller.py — _Env(tmp_path, "<provider>", key="<fixture>")
+  '''_Env\(tmp_path,\s*"(?:deepseek|stepfun)",\s*key="[^"]*"\)''',
+  # tests/test_quota_readback.py — the fixture row names its env var
+  '''"auth_env":\s*"TR215_FIXTURE_KEY"''',
+]

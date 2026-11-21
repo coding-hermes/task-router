@@ -41,6 +41,16 @@ packages = ["task_router"]
 # structure, not an accident.
 line-length = 100
 
+# TR-1000976681059305: `.vfs/` is a jail-mapped working dir — symbol index and
+# one-off scripts the guard/agents drop there (graph cache, board_scan.py,
+# tr345_closeout.py). It is not repo code and must not be linted: on
+# 2026-11-21 a tier-1 run red-classified the tree on `I001` inside
+# `.vfs/board_scan.py`. `force-exclude` keeps the exclusion in force even when
+# a caller hands ruff explicit paths (gitreins diff mode passes files, and
+# plain `exclude` is bypassed for explicitly named paths).
+extend-exclude = [".vfs"]
+force-exclude = true
+
 [tool.ruff.lint]
 select = ["E4", "E7", "E9", "F", "I"]
 ignore = ["E402"]
