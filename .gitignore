@@ -69,6 +69,19 @@ data/state/.store-sync.lock
 .gitreins/usage.jsonl
 .gitreins/qa-ledger.jsonl
 .gitreins/config.yaml.bak
+# gitreins review bookkeeping — same class as the entries above, declared late.
+# engine/review_state.py builds .gitreins/review-state.json (the review-state
+# document, deliberately separate from verdict history) and
+# .gitreins/review-state.lock (its flock), and it quarantines a corrupt document
+# as .gitreins/review-state.corrupt-<ts>. engine/fingerprint.py already excludes
+# all three from its own working-tree digest (_SELF_STATE_PATHS + the corrupt-
+# prefix filter, lines 60-64/189), i.e. upstream treats them as self-state, but
+# no ignore rule existed, so every `gitreins task complete` left two untracked
+# entries where a wave's `git add -A` could sweep review bookkeeping into a
+# commit. Class rules, not per-file entries: the corrupt member is timestamped.
+.gitreins/review-state.json
+.gitreins/review-state.lock
+.gitreins/review-state.corrupt-*
 data/state/outcomes.jsonl.backup-*
 data/state/outcomes.jsonl.bak-*
 .coding-hermes/board/.lock
