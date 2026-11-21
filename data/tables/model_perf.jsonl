@@ -243,7 +243,7 @@
 {"model": "accounts/fireworks/models/ember-1", "category": "schema", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-11-15/SCHEMA", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/models/ember-1", "category": "test", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-11-15/TEST", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/models/ember-1", "category": "tool_use", "perf": 0.667, "source": "bench", "source_ref": "bench:live-probe-2026-11-15/T1-TOOL", "reasoning_effort": "default"}
-{"model": "accounts/fireworks/models/glm-5p2", "category": "agent_tick", "perf": 0.785714285714, "source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
+{"model": "accounts/fireworks/models/glm-5p2", "category": "agent_tick", "perf": 0.75, "source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/models/glm-5p2", "category": "code_gen", "perf": 0.629, "source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/models/glm-5p2", "category": "creative", "perf": 0.45, "source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/models/glm-5p2", "category": "debug", "perf": 0.5, "source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
@@ -516,7 +516,7 @@
 {"model": "accounts/fireworks/routers/deepseek-flash-latest", "category": "e2e_vision", "perf": 0.55, "source": "family", "source_ref": "alias:deepseek-v4-flash", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/routers/deepseek-flash-latest", "category": "guard", "perf": 0.88, "source": "family", "source_ref": "alias:deepseek-v4-flash", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/routers/deepseek-flash-latest", "category": "long_doc", "perf": 0.72, "source": "family", "source_ref": "alias:deepseek-v4-flash", "reasoning_effort": "default"}
-{"model": "accounts/fireworks/routers/deepseek-flash-latest", "category": "long_horizon", "perf": 0.630057803468, "source": "family", "source_ref": "alias:deepseek-v4-flash", "reasoning_effort": "default"}
+{"model": "accounts/fireworks/routers/deepseek-flash-latest", "category": "long_horizon", "perf": 0.548, "source": "family", "source_ref": "alias:deepseek-v4-flash", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/routers/deepseek-flash-latest", "category": "mechanical", "perf": 0.72, "source": "family", "source_ref": "alias:deepseek-v4-flash", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/routers/deepseek-flash-latest", "category": "mock", "perf": 0.87, "source": "family", "source_ref": "alias:deepseek-v4-flash", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/routers/deepseek-flash-latest", "category": "multilingual", "perf": 0.9, "source": "family", "source_ref": "alias:deepseek-v4-flash", "reasoning_effort": "default"}
@@ -538,7 +538,7 @@
 {"model": "accounts/fireworks/routers/deepseek-pro-latest", "category": "e2e_vision", "perf": 0.4, "source": "family", "source_ref": "alias:deepseek-v4-pro", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/routers/deepseek-pro-latest", "category": "guard", "perf": 0.0, "source": "family", "source_ref": "alias:deepseek-v4-pro", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/routers/deepseek-pro-latest", "category": "long_doc", "perf": 0.8, "source": "family", "source_ref": "alias:deepseek-v4-pro", "reasoning_effort": "default"}
-{"model": "accounts/fireworks/routers/deepseek-pro-latest", "category": "long_horizon", "perf": 0.722543352601, "source": "family", "source_ref": "alias:deepseek-v4-pro", "reasoning_effort": "default"}
+{"model": "accounts/fireworks/routers/deepseek-pro-latest", "category": "long_horizon", "perf": 0.08, "source": "family", "source_ref": "alias:deepseek-v4-pro", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/routers/deepseek-pro-latest", "category": "mechanical", "perf": 0.833, "source": "family", "source_ref": "alias:deepseek-v4-pro", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/routers/deepseek-pro-latest", "category": "mock", "perf": 1.0, "source": "family", "source_ref": "alias:deepseek-v4-pro", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/routers/deepseek-pro-latest", "category": "multilingual", "perf": 1.0, "source": "family", "source_ref": "alias:deepseek-v4-pro", "reasoning_effort": "default"}
@@ -592,7 +592,7 @@
 {"model": "accounts/fireworks/routers/deepseek-v4p1-flash-spot", "category": "schema", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-11-15/SCHEMA", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/routers/deepseek-v4p1-flash-spot", "category": "test", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-11-15/TEST", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/routers/deepseek-v4p1-flash-spot", "category": "tool_use", "perf": 0.667, "source": "bench", "source_ref": "bench:live-probe-2026-11-15/T1-TOOL", "reasoning_effort": "default"}
-{"model": "accounts/fireworks/routers/glm-5p2-fast", "category": "agent_tick", "perf": 0.785714285714, "source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
+{"model": "accounts/fireworks/routers/glm-5p2-fast", "category": "agent_tick", "perf": 0.75, "source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/routers/glm-5p2-fast", "category": "code_gen", "perf": 0.629, "source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/routers/glm-5p2-fast", "category": "creative", "perf": 0.45, "source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
 {"model": "accounts/fireworks/routers/glm-5p2-fast", "category": "debug", "perf": 0.5, "source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
@@ -1669,7 +1669,7 @@
 {"model": "deepseek-v4-flash", "category": "e2e_vision", "perf": 0.55, "source": "measured", "source_ref": "models.jsonl:perf_e2e_vision", "reasoning_effort": "default"}
 {"model": "deepseek-v4-flash", "category": "guard", "perf": 0.88, "source": "estimate", "source_ref": "QUALITY_ESTIMATES", "reasoning_effort": "default"}
 {"model": "deepseek-v4-flash", "category": "long_doc", "perf": 0.72, "source": "measured", "source_ref": "models.jsonl:perf_long_doc", "reasoning_effort": "default"}
-{"model": "deepseek-v4-flash", "category": "long_horizon", "perf": 0.630057803468, "source": "bench", "source_ref": "bench:market", "reasoning_effort": "default"}
+{"model": "deepseek-v4-flash", "category": "long_horizon", "perf": 0.548, "source": "bench", "source_ref": "bench:research-bench-2026-10-04: AutomationBench 54.8 on GA build (mindstudio V4.1 Flash writeup, budget-unknown cross-check 2026-10-04) vs 54.4 on 0731 re-run — marginal GA gain, same weight class. Absolute percent scale -> max_score 1.", "reasoning_effort": "default"}
 {"model": "deepseek-v4-flash", "category": "mechanical", "perf": 0.72, "source": "estimate", "source_ref": "PROFILE_TAGS:deepseek v4 flash", "reasoning_effort": "default"}
 {"model": "deepseek-v4-flash", "category": "mock", "perf": 0.87, "source": "estimate", "source_ref": "QUALITY_ESTIMATES", "reasoning_effort": "default"}
 {"model": "deepseek-v4-flash", "category": "multilingual", "perf": 0.9, "source": "estimate", "source_ref": "QUALITY_ESTIMATES", "reasoning_effort": "default"}
@@ -1704,7 +1704,7 @@
 {"model": "deepseek-v4-flash-flex", "category": "e2e_vision", "perf": 0.55, "source": "family", "source_ref": "alias:deepseek-v4-flash", "reasoning_effort": "default"}
 {"model": "deepseek-v4-flash-flex", "category": "guard", "perf": 0.88, "source": "family", "source_ref": "alias:deepseek-v4-flash", "reasoning_effort": "default"}
 {"model": "deepseek-v4-flash-flex", "category": "long_doc", "perf": 0.72, "source": "family", "source_ref": "alias:deepseek-v4-flash", "reasoning_effort": "default"}
-{"model": "deepseek-v4-flash-flex", "category": "long_horizon", "perf": 0.630057803468, "source": "family", "source_ref": "alias:deepseek-v4-flash", "reasoning_effort": "default"}
+{"model": "deepseek-v4-flash-flex", "category": "long_horizon", "perf": 0.548, "source": "family", "source_ref": "alias:deepseek-v4-flash", "reasoning_effort": "default"}
 {"model": "deepseek-v4-flash-flex", "category": "mechanical", "perf": 0.72, "source": "family", "source_ref": "alias:deepseek-v4-flash", "reasoning_effort": "default"}
 {"model": "deepseek-v4-flash-flex", "category": "mock", "perf": 0.87, "source": "family", "source_ref": "alias:deepseek-v4-flash", "reasoning_effort": "default"}
 {"model": "deepseek-v4-flash-flex", "category": "multilingual", "perf": 0.9, "source": "family", "source_ref": "alias:deepseek-v4-flash", "reasoning_effort": "default"}
@@ -1750,7 +1750,7 @@
 {"model": "deepseek-v4-pro", "category": "e2e_vision", "perf": 0.4, "source": "measured", "source_ref": "models.jsonl:perf_e2e_vision", "reasoning_effort": "default"}
 {"model": "deepseek-v4-pro", "category": "guard", "perf": 0.0, "source": "bench", "source_ref": "bench:GUARD", "reasoning_effort": "default"}
 {"model": "deepseek-v4-pro", "category": "long_doc", "perf": 0.8, "source": "measured", "source_ref": "models.jsonl:perf_long_doc", "reasoning_effort": "default"}
-{"model": "deepseek-v4-pro", "category": "long_horizon", "perf": 0.722543352601, "source": "bench", "source_ref": "bench:market", "reasoning_effort": "default"}
+{"model": "deepseek-v4-pro", "category": "long_horizon", "perf": 0.08, "source": "bench", "source_ref": "bench:DeepSWE (community repro) research-bench-2026-08-28", "reasoning_effort": "default"}
 {"model": "deepseek-v4-pro", "category": "mechanical", "perf": 0.833, "source": "bench", "source_ref": "bench:MECHANICAL", "reasoning_effort": "default"}
 {"model": "deepseek-v4-pro", "category": "mock", "perf": 1.0, "source": "bench", "source_ref": "bench:MOCK", "reasoning_effort": "default"}
 {"model": "deepseek-v4-pro", "category": "multilingual", "perf": 1.0, "source": "bench", "source_ref": "bench:MULTILINGUAL", "reasoning_effort": "default"}
@@ -1886,7 +1886,7 @@
 {"model": "deepseek/deepseek-v4-flash", "category": "e2e_vision", "perf": 0.55, "source": "family", "source_ref": "alias:deepseek-v4-flash", "reasoning_effort": "default"}
 {"model": "deepseek/deepseek-v4-flash", "category": "guard", "perf": 0.88, "source": "family", "source_ref": "alias:deepseek-v4-flash", "reasoning_effort": "default"}
 {"model": "deepseek/deepseek-v4-flash", "category": "long_doc", "perf": 0.72, "source": "family", "source_ref": "alias:deepseek-v4-flash", "reasoning_effort": "default"}
-{"model": "deepseek/deepseek-v4-flash", "category": "long_horizon", "perf": 0.630057803468, "source": "family", "source_ref": "alias:deepseek-v4-flash", "reasoning_effort": "default"}
+{"model": "deepseek/deepseek-v4-flash", "category": "long_horizon", "perf": 0.548, "source": "family", "source_ref": "alias:deepseek-v4-flash", "reasoning_effort": "default"}
 {"model": "deepseek/deepseek-v4-flash", "category": "mechanical", "perf": 0.72, "source": "family", "source_ref": "alias:deepseek-v4-flash", "reasoning_effort": "default"}
 {"model": "deepseek/deepseek-v4-flash", "category": "mock", "perf": 0.87, "source": "family", "source_ref": "alias:deepseek-v4-flash", "reasoning_effort": "default"}
 {"model": "deepseek/deepseek-v4-flash", "category": "multilingual", "perf": 0.9, "source": "family", "source_ref": "alias:deepseek-v4-flash", "reasoning_effort": "default"}
@@ -1924,7 +1924,7 @@
 {"model": "deepseek/deepseek-v4-flash-fast", "category": "e2e_vision", "perf": 0.55, "source": "family", "source_ref": "alias:deepseek-v4-flash", "reasoning_effort": "default"}
 {"model": "deepseek/deepseek-v4-flash-fast", "category": "guard", "perf": 0.88, "source": "family", "source_ref": "alias:deepseek-v4-flash", "reasoning_effort": "default"}
 {"model": "deepseek/deepseek-v4-flash-fast", "category": "long_doc", "perf": 0.72, "source": "family", "source_ref": "alias:deepseek-v4-flash", "reasoning_effort": "default"}
-{"model": "deepseek/deepseek-v4-flash-fast", "category": "long_horizon", "perf": 0.630057803468, "source": "family", "source_ref": "alias:deepseek-v4-flash", "reasoning_effort": "default"}
+{"model": "deepseek/deepseek-v4-flash-fast", "category": "long_horizon", "perf": 0.548, "source": "family", "source_ref": "alias:deepseek-v4-flash", "reasoning_effort": "default"}
 {"model": "deepseek/deepseek-v4-flash-fast", "category": "mechanical", "perf": 0.72, "source": "family", "source_ref": "alias:deepseek-v4-flash", "reasoning_effort": "default"}
 {"model": "deepseek/deepseek-v4-flash-fast", "category": "mock", "perf": 0.87, "source": "family", "source_ref": "alias:deepseek-v4-flash", "reasoning_effort": "default"}
 {"model": "deepseek/deepseek-v4-flash-fast", "category": "multilingual", "perf": 0.9, "source": "family", "source_ref": "alias:deepseek-v4-flash", "reasoning_effort": "default"}
@@ -2170,32 +2170,24 @@
 {"model": "gemini-4-hydrogen:batch", "category": "long_doc", "perf": 0.733333333333, "source": "bench", "source_ref": "bench:market", "reasoning_effort": "default"}
 {"model": "gemini-4-hydrogen:batch", "category": "long_horizon", "perf": 0.947976878613, "source": "bench", "source_ref": "bench:market", "reasoning_effort": "default"}
 {"model": "gemini-4-hydrogen:batch", "category": "ui_frontend", "perf": 0.972067039106, "source": "bench", "source_ref": "bench:market", "reasoning_effort": "default"}
-{"model": "gemma-4-31b", "category": "agent_tick", "perf": 0.75, "source": "measured", "source_ref": "models.jsonl:perf_agent_tick", "reasoning_effort": "default"}
+{"model": "gemma-4-31b", "category": "agent_tick", "perf": 0.75, "source": "bench", "source_ref": "bench:battery-T1-TOOL", "reasoning_effort": "default"}
 {"model": "gemma-4-31b", "category": "code_gen", "perf": 0.75, "source": "bench", "source_ref": "bench:battery-T5-DEBUG", "reasoning_effort": "default"}
 {"model": "gemma-4-31b", "category": "debug", "perf": 0.75, "source": "bench", "source_ref": "bench:T5-DEBUG", "reasoning_effort": "default"}
-{"model": "gemma-4-31b", "category": "delegation", "perf": 0.75, "source": "measured", "source_ref": "models.jsonl:perf_delegation", "reasoning_effort": "default"}
-{"model": "gemma-4-31b", "category": "e2e_vision", "perf": 0.25, "source": "measured", "source_ref": "models.jsonl:perf_e2e_vision", "reasoning_effort": "default"}
+{"model": "gemma-4-31b", "category": "delegation", "perf": 0.75, "source": "bench", "source_ref": "bench:battery-T1-TOOL", "reasoning_effort": "default"}
 {"model": "gemma-4-31b", "category": "guard", "perf": 0.72, "source": "estimate", "source_ref": "QUALITY_ESTIMATES", "reasoning_effort": "default"}
-{"model": "gemma-4-31b", "category": "long_doc", "perf": 0.5, "source": "measured", "source_ref": "models.jsonl:perf_long_doc", "reasoning_effort": "default"}
 {"model": "gemma-4-31b", "category": "mock", "perf": 0.72, "source": "estimate", "source_ref": "QUALITY_ESTIMATES", "reasoning_effort": "default"}
 {"model": "gemma-4-31b", "category": "multilingual", "perf": 0.76, "source": "estimate", "source_ref": "QUALITY_ESTIMATES", "reasoning_effort": "default"}
-{"model": "gemma-4-31b", "category": "reasoning", "perf": 0.7, "source": "measured", "source_ref": "models.jsonl:perf_reasoning", "reasoning_effort": "default"}
 {"model": "gemma-4-31b", "category": "refactor", "perf": 0.5, "source": "bench", "source_ref": "bench:battery-T2-CODE", "reasoning_effort": "default"}
-{"model": "gemma-4-31b", "category": "review", "perf": 0.62, "source": "measured", "source_ref": "models.jsonl:perf_review", "reasoning_effort": "default"}
-{"model": "gemma-4-31b", "category": "schema", "perf": 0.5, "source": "measured", "source_ref": "models.jsonl:perf_schema", "reasoning_effort": "default"}
+{"model": "gemma-4-31b", "category": "schema", "perf": 0.5, "source": "bench", "source_ref": "bench:battery-T2-CODE", "reasoning_effort": "default"}
 {"model": "gemma-4-31b", "category": "tool_use", "perf": 0.75, "source": "bench", "source_ref": "bench:battery-T1-TOOL", "reasoning_effort": "default"}
 {"model": "gemma-4:31b", "category": "agent_tick", "perf": 0.75, "source": "family", "source_ref": "alias:gemma-4-31b", "reasoning_effort": "default"}
 {"model": "gemma-4:31b", "category": "code_gen", "perf": 0.75, "source": "family", "source_ref": "alias:gemma-4-31b", "reasoning_effort": "default"}
 {"model": "gemma-4:31b", "category": "debug", "perf": 0.75, "source": "family", "source_ref": "alias:gemma-4-31b", "reasoning_effort": "default"}
 {"model": "gemma-4:31b", "category": "delegation", "perf": 0.75, "source": "family", "source_ref": "alias:gemma-4-31b", "reasoning_effort": "default"}
-{"model": "gemma-4:31b", "category": "e2e_vision", "perf": 0.25, "source": "family", "source_ref": "alias:gemma-4-31b", "reasoning_effort": "default"}
 {"model": "gemma-4:31b", "category": "guard", "perf": 0.72, "source": "family", "source_ref": "alias:gemma-4-31b", "reasoning_effort": "default"}
-{"model": "gemma-4:31b", "category": "long_doc", "perf": 0.5, "source": "family", "source_ref": "alias:gemma-4-31b", "reasoning_effort": "default"}
 {"model": "gemma-4:31b", "category": "mock", "perf": 0.72, "source": "family", "source_ref": "alias:gemma-4-31b", "reasoning_effort": "default"}
 {"model": "gemma-4:31b", "category": "multilingual", "perf": 0.76, "source": "family", "source_ref": "alias:gemma-4-31b", "reasoning_effort": "default"}
-{"model": "gemma-4:31b", "category": "reasoning", "perf": 0.7, "source": "family", "source_ref": "alias:gemma-4-31b", "reasoning_effort": "default"}
 {"model": "gemma-4:31b", "category": "refactor", "perf": 0.5, "source": "family", "source_ref": "alias:gemma-4-31b", "reasoning_effort": "default"}
-{"model": "gemma-4:31b", "category": "review", "perf": 0.62, "source": "family", "source_ref": "alias:gemma-4-31b", "reasoning_effort": "default"}
 {"model": "gemma-4:31b", "category": "schema", "perf": 0.5, "source": "family", "source_ref": "alias:gemma-4-31b", "reasoning_effort": "default"}
 {"model": "gemma-4:31b", "category": "tool_use", "perf": 0.75, "source": "family", "source_ref": "alias:gemma-4-31b", "reasoning_effort": "default"}
 {"model": "glm-4.5", "category": "code_gen", "perf": 0.49710982659, "source": "bench", "source_ref": "bench:market", "reasoning_effort": "default"}
@@ -2222,7 +2214,7 @@
 {"model": "glm-4.6v-flash", "category": "schema", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/SCHEMA", "reasoning_effort": "default"}
 {"model": "glm-4.6v-flash", "category": "test", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/TEST", "reasoning_effort": "default"}
 {"model": "glm-4.6v-flash", "category": "tool_use", "perf": 0.333, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/T1-TOOL", "reasoning_effort": "default"}
-{"model": "glm-4.7", "category": "agent_tick", "perf": 0.365384615385, "source": "bench", "source_ref": "bench:market", "reasoning_effort": "default"}
+{"model": "glm-4.7", "category": "agent_tick", "perf": 0.25, "source": "bench", "source_ref": "bench:battery-T1-TOOL", "reasoning_effort": "default"}
 {"model": "glm-4.7", "category": "code_gen", "perf": 0.5, "source": "bench", "source_ref": "bench:T2-CODE", "reasoning_effort": "default"}
 {"model": "glm-4.7", "category": "creative", "perf": 0.621951219512, "source": "bench", "source_ref": "bench:market", "reasoning_effort": "default"}
 {"model": "glm-4.7", "category": "debug", "perf": 0.5, "source": "bench", "source_ref": "bench:T5-DEBUG", "reasoning_effort": "default"}
@@ -2250,7 +2242,7 @@
 {"model": "glm-5", "category": "long_horizon", "perf": 0.728323699422, "source": "bench", "source_ref": "bench:market", "reasoning_effort": "default"}
 {"model": "glm-5", "category": "test", "perf": 0.72, "source": "estimate", "source_ref": "CATEGORY_ESTIMATES", "reasoning_effort": "default"}
 {"model": "glm-5", "category": "ui_frontend", "perf": 0.709497206704, "source": "bench", "source_ref": "bench:market", "reasoning_effort": "default"}
-{"model": "glm-5-2", "category": "agent_tick", "perf": 0.785714285714, "source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
+{"model": "glm-5-2", "category": "agent_tick", "perf": 0.75, "source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
 {"model": "glm-5-2", "category": "code_gen", "perf": 0.629, "source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
 {"model": "glm-5-2", "category": "creative", "perf": 0.45, "source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
 {"model": "glm-5-2", "category": "debug", "perf": 0.5, "source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
@@ -2346,7 +2338,7 @@
 {"model": "glm-5.1", "category": "test", "perf": 0.72, "source": "estimate", "source_ref": "CATEGORY_ESTIMATES", "reasoning_effort": "default"}
 {"model": "glm-5.1", "category": "tool_use", "perf": 0.75, "source": "bench", "source_ref": "bench:battery-T1-TOOL", "reasoning_effort": "default"}
 {"model": "glm-5.1", "category": "ui_frontend", "perf": 0.888268156425, "source": "bench", "source_ref": "bench:market", "reasoning_effort": "default"}
-{"model": "glm-5.2", "category": "agent_tick", "perf": 0.785714285714, "source": "bench", "source_ref": "bench:market", "reasoning_effort": "default"}
+{"model": "glm-5.2", "category": "agent_tick", "perf": 0.75, "source": "bench", "source_ref": "bench:battery-T1-TOOL", "reasoning_effort": "default"}
 {"model": "glm-5.2", "category": "code_gen", "perf": 0.629, "source": "bench", "source_ref": "bench:SWE-rebench", "reasoning_effort": "default"}
 {"model": "glm-5.2", "category": "creative", "perf": 0.45, "source": "estimate", "source_ref": "PROFILE_TAGS:glm-5.2", "reasoning_effort": "default"}
 {"model": "glm-5.2", "category": "debug", "perf": 0.5, "source": "bench", "source_ref": "bench:T5-DEBUG", "reasoning_effort": "default"}
@@ -2393,7 +2385,7 @@
 {"model": "glm-5.2-fast", "category": "tool_use", "perf": 0.75, "source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
 {"model": "glm-5.2-fast", "category": "ui_frontend", "perf": 0.72, "source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
 {"model": "glm-5.2-fast", "category": "vision", "perf": 0.45, "source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
-{"model": "glm-5.2-flex", "category": "agent_tick", "perf": 0.785714285714, "source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
+{"model": "glm-5.2-flex", "category": "agent_tick", "perf": 0.75, "source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
 {"model": "glm-5.2-flex", "category": "code_gen", "perf": 0.629, "source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
 {"model": "glm-5.2-flex", "category": "creative", "perf": 0.45, "source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
 {"model": "glm-5.2-flex", "category": "debug", "perf": 0.5, "source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
@@ -2439,23 +2431,22 @@
 {"model": "glm-5.2-short", "category": "tool_use", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/T1-TOOL", "reasoning_effort": "default"}
 {"model": "glm-5.2-short", "category": "ui_frontend", "perf": 0.72, "source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
 {"model": "glm-5.2-short", "category": "vision", "perf": 0.45, "source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
-{"model": "glm-5.2-short-fast", "category": "agent_tick", "perf": 0.5, "source": "measured", "source_ref": "models.jsonl:perf_agent_tick", "reasoning_effort": "default"}
+{"model": "glm-5.2-short-fast", "category": "agent_tick", "perf": 0.5, "source": "bench", "source_ref": "bench:battery-T1-TOOL", "reasoning_effort": "default"}
 {"model": "glm-5.2-short-fast", "category": "code_gen", "perf": 0.75, "source": "bench", "source_ref": "bench:battery-T5-DEBUG", "reasoning_effort": "default"}
 {"model": "glm-5.2-short-fast", "category": "creative", "perf": 0.45, "source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
 {"model": "glm-5.2-short-fast", "category": "debug", "perf": 0.75, "source": "bench", "source_ref": "bench:T5-DEBUG", "reasoning_effort": "default"}
-{"model": "glm-5.2-short-fast", "category": "delegation", "perf": 0.5, "source": "measured", "source_ref": "models.jsonl:perf_delegation", "reasoning_effort": "default"}
-{"model": "glm-5.2-short-fast", "category": "e2e_vision", "perf": 0.0, "source": "measured", "source_ref": "models.jsonl:perf_e2e_vision", "reasoning_effort": "default"}
+{"model": "glm-5.2-short-fast", "category": "delegation", "perf": 0.5, "source": "bench", "source_ref": "bench:battery-T1-TOOL", "reasoning_effort": "default"}
+{"model": "glm-5.2-short-fast", "category": "e2e_vision", "perf": 0.785714285714, "source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
 {"model": "glm-5.2-short-fast", "category": "guard", "perf": 0.8, "source": "estimate", "source_ref": "QUALITY_ESTIMATES", "reasoning_effort": "default"}
-{"model": "glm-5.2-short-fast", "category": "long_doc", "perf": 0.0, "source": "measured", "source_ref": "models.jsonl:perf_long_doc", "reasoning_effort": "default"}
+{"model": "glm-5.2-short-fast", "category": "long_doc", "perf": 0.85, "source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
 {"model": "glm-5.2-short-fast", "category": "long_horizon", "perf": 0.809248554913, "source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
 {"model": "glm-5.2-short-fast", "category": "math", "perf": 0.992, "source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
 {"model": "glm-5.2-short-fast", "category": "mechanical", "perf": 0.571428571429, "source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
 {"model": "glm-5.2-short-fast", "category": "mock", "perf": 0.78, "source": "estimate", "source_ref": "QUALITY_ESTIMATES", "reasoning_effort": "default"}
 {"model": "glm-5.2-short-fast", "category": "multilingual", "perf": 0.85, "source": "estimate", "source_ref": "QUALITY_ESTIMATES", "reasoning_effort": "default"}
-{"model": "glm-5.2-short-fast", "category": "reasoning", "perf": 0.0, "source": "measured", "source_ref": "models.jsonl:perf_reasoning", "reasoning_effort": "default"}
+{"model": "glm-5.2-short-fast", "category": "reasoning", "perf": 0.912, "source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
 {"model": "glm-5.2-short-fast", "category": "refactor", "perf": 0.5, "source": "bench", "source_ref": "bench:battery-T2-CODE", "reasoning_effort": "default"}
-{"model": "glm-5.2-short-fast", "category": "review", "perf": 0.0, "source": "measured", "source_ref": "models.jsonl:perf_review", "reasoning_effort": "default"}
-{"model": "glm-5.2-short-fast", "category": "schema", "perf": 0.5, "source": "measured", "source_ref": "models.jsonl:perf_schema", "reasoning_effort": "default"}
+{"model": "glm-5.2-short-fast", "category": "schema", "perf": 0.5, "source": "bench", "source_ref": "bench:battery-T2-CODE", "reasoning_effort": "default"}
 {"model": "glm-5.2-short-fast", "category": "security", "perf": 0.85, "source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
 {"model": "glm-5.2-short-fast", "category": "spec_docs", "perf": 0.72, "source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
 {"model": "glm-5.2-short-fast", "category": "terminal", "perf": 0.81, "source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
@@ -2937,7 +2928,7 @@
 {"model": "gpt-5.4:batch", "category": "e2e_vision", "perf": 0.421052631579, "source": "bench", "source_ref": "bench:market", "reasoning_effort": "default"}
 {"model": "gpt-5.4:batch", "category": "long_horizon", "perf": 0.739884393064, "source": "bench", "source_ref": "bench:market", "reasoning_effort": "default"}
 {"model": "gpt-5.4:batch", "category": "ui_frontend", "perf": 0.708333333333, "source": "bench", "source_ref": "bench:market", "reasoning_effort": "default"}
-{"model": "gpt-5.5", "category": "agent_tick", "perf": 0.642857142857, "source": "bench", "source_ref": "bench:market", "reasoning_effort": "default"}
+{"model": "gpt-5.5", "category": "agent_tick", "perf": 0.5, "source": "bench", "source_ref": "bench:battery-T1-TOOL", "reasoning_effort": "default"}
 {"model": "gpt-5.5", "category": "code_gen", "perf": 0.5, "source": "bench", "source_ref": "bench:T2-CODE", "reasoning_effort": "default"}
 {"model": "gpt-5.5", "category": "creative", "perf": 0.805031446541, "source": "bench", "source_ref": "bench:market", "reasoning_effort": "default"}
 {"model": "gpt-5.5", "category": "debug", "perf": 0.5, "source": "bench", "source_ref": "bench:T5-DEBUG", "reasoning_effort": "default"}
@@ -3402,7 +3393,7 @@
 {"model": "grok-4.5", "category": "e2e_vision", "perf": 0.848484848485, "source": "bench", "source_ref": "bench:market", "reasoning_effort": "default"}
 {"model": "grok-4.5", "category": "guard", "perf": 1.0, "source": "bench", "source_ref": "bench:GUARD", "reasoning_effort": "default"}
 {"model": "grok-4.5", "category": "long_doc", "perf": 0.516666666667, "source": "bench", "source_ref": "bench:market", "reasoning_effort": "default"}
-{"model": "grok-4.5", "category": "long_horizon", "perf": 0.768786127168, "source": "bench", "source_ref": "bench:market", "reasoning_effort": "default"}
+{"model": "grok-4.5", "category": "long_horizon", "perf": 0.53, "source": "bench", "source_ref": "bench:DeepSWE 1.1 research-bench-2026-08-28", "reasoning_effort": "default"}
 {"model": "grok-4.5", "category": "mechanical", "perf": 1.0, "source": "bench", "source_ref": "bench:MECHANICAL", "reasoning_effort": "default"}
 {"model": "grok-4.5", "category": "mock", "perf": 0.833, "source": "bench", "source_ref": "bench:MOCK", "reasoning_effort": "default"}
 {"model": "grok-4.5", "category": "multilingual", "perf": 1.0, "source": "bench", "source_ref": "bench:MULTILINGUAL", "reasoning_effort": "default"}
@@ -3414,7 +3405,7 @@
 {"model": "grok-4.5", "category": "test", "perf": 0.72, "source": "estimate", "source_ref": "CATEGORY_ESTIMATES", "reasoning_effort": "default"}
 {"model": "grok-4.5", "category": "tool_use", "perf": 0.75, "source": "bench", "source_ref": "bench:battery-T1-TOOL", "reasoning_effort": "default"}
 {"model": "grok-4.5", "category": "ui_frontend", "perf": 0.843575418994, "source": "bench", "source_ref": "bench:market", "reasoning_effort": "default"}
-{"model": "grok-4.6", "category": "agent_tick", "perf": 0.923076923077, "source": "bench", "source_ref": "bench:market", "reasoning_effort": "default"}
+{"model": "grok-4.6", "category": "agent_tick", "perf": 0.75, "source": "bench", "source_ref": "bench:battery-T1-TOOL", "reasoning_effort": "default"}
 {"model": "grok-4.6", "category": "code_gen", "perf": 0.75, "source": "bench", "source_ref": "bench:battery-T5-DEBUG", "reasoning_effort": "default"}
 {"model": "grok-4.6", "category": "creative", "perf": 0.893081761006, "source": "bench", "source_ref": "bench:market", "reasoning_effort": "default"}
 {"model": "grok-4.6", "category": "debug", "perf": 0.75, "source": "bench", "source_ref": "bench:T5-DEBUG", "reasoning_effort": "default"}
@@ -3422,7 +3413,7 @@
 {"model": "grok-4.6", "category": "e2e_vision", "perf": 0.954545454545, "source": "bench", "source_ref": "bench:market", "reasoning_effort": "default"}
 {"model": "grok-4.6", "category": "guard", "perf": 0.75, "source": "bench", "source_ref": "bench:GUARD", "reasoning_effort": "default"}
 {"model": "grok-4.6", "category": "long_doc", "perf": 0.8, "source": "bench", "source_ref": "bench:market", "reasoning_effort": "default"}
-{"model": "grok-4.6", "category": "long_horizon", "perf": 0.861271676301, "source": "bench", "source_ref": "bench:market", "reasoning_effort": "default"}
+{"model": "grok-4.6", "category": "long_horizon", "perf": 0.659, "source": "bench", "source_ref": "bench:DeepSWE v1.1 High (vendor, VENDOR-REPORTED) research-bench-2026-09-06", "reasoning_effort": "default"}
 {"model": "grok-4.6", "category": "mechanical", "perf": 1.0, "source": "bench", "source_ref": "bench:MECHANICAL", "reasoning_effort": "default"}
 {"model": "grok-4.6", "category": "mock", "perf": 1.0, "source": "bench", "source_ref": "bench:MOCK", "reasoning_effort": "default"}
 {"model": "grok-4.6", "category": "multilingual", "perf": 1.0, "source": "bench", "source_ref": "bench:MULTILINGUAL", "reasoning_effort": "default"}
@@ -3597,7 +3588,7 @@
 {"model": "hf:zai-org/GLM-4.7-Flash", "category": "schema", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/SCHEMA", "reasoning_effort": "default"}
 {"model": "hf:zai-org/GLM-4.7-Flash", "category": "test", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/TEST", "reasoning_effort": "default"}
 {"model": "hf:zai-org/GLM-4.7-Flash", "category": "tool_use", "perf": 0.333, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/T1-TOOL", "reasoning_effort": "default"}
-{"model": "hf:zai-org/GLM-5.2", "category": "agent_tick", "perf": 0.785714285714, "source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
+{"model": "hf:zai-org/GLM-5.2", "category": "agent_tick", "perf": 0.75, "source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
 {"model": "hf:zai-org/GLM-5.2", "category": "code_gen", "perf": 0.629, "source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
 {"model": "hf:zai-org/GLM-5.2", "category": "creative", "perf": 0.45, "source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
 {"model": "hf:zai-org/GLM-5.2", "category": "debug", "perf": 0.5, "source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
@@ -3667,7 +3658,7 @@
 {"model": "hy3", "category": "ui_frontend", "perf": 0.85, "source": "estimate", "source_ref": "PROFILE_TAGS:hy3", "reasoning_effort": "default"}
 {"model": "hy3-preview", "category": "reasoning", "perf": 0.904, "source": "bench", "source_ref": "bench:GPQA", "reasoning_effort": "default"}
 {"model": "hy3-preview", "category": "terminal", "perf": 0.544, "source": "bench", "source_ref": "bench:Terminal-Bench", "reasoning_effort": "default"}
-{"model": "hy4", "category": "code_gen", "perf": 0.763005780347, "source": "bench", "source_ref": "bench:market", "reasoning_effort": "default"}
+{"model": "hy4", "category": "code_gen", "perf": 0.657, "source": "bench", "source_ref": "bench:Tencent Hy4 appendix VENDOR-REPORTED SWE-bench Pro 65.7, gen-over-gen 57.9 -> 65.7 (corroborated 2026-11-04 by eesel/aimlapi hy4 reviews)", "reasoning_effort": "default"}
 {"model": "hy4", "category": "creative", "perf": 0.829268292683, "source": "bench", "source_ref": "bench:market", "reasoning_effort": "default"}
 {"model": "hy4", "category": "guard", "perf": 1.0, "source": "bench", "source_ref": "bench:GUARD", "reasoning_effort": "default"}
 {"model": "hy4", "category": "long_horizon", "perf": 0.85549132948, "source": "bench", "source_ref": "bench:market", "reasoning_effort": "default"}
@@ -3817,7 +3808,7 @@
 {"model": "kimi-k2-7-code", "category": "ui_frontend", "perf": 0.782122905028, "source": "family", "source_ref": "alias:kimi-k2.7-code", "reasoning_effort": "default"}
 {"model": "kimi-k2-thinking", "category": "test", "perf": 0.72, "source": "estimate", "source_ref": "CATEGORY_ESTIMATES", "reasoning_effort": "default"}
 {"model": "kimi-k2-thinking", "category": "ui_frontend", "perf": 0.374301675978, "source": "bench", "source_ref": "bench:market", "reasoning_effort": "default"}
-{"model": "kimi-k2.5", "category": "agent_tick", "perf": 0.846153846154, "source": "bench", "source_ref": "bench:market", "reasoning_effort": "default"}
+{"model": "kimi-k2.5", "category": "agent_tick", "perf": 0.75, "source": "bench", "source_ref": "bench:battery-T1-TOOL", "reasoning_effort": "default"}
 {"model": "kimi-k2.5", "category": "code_gen", "perf": 0.75, "source": "bench", "source_ref": "bench:battery-T5-DEBUG", "reasoning_effort": "default"}
 {"model": "kimi-k2.5", "category": "creative", "perf": 0.666666666667, "source": "bench", "source_ref": "bench:market", "reasoning_effort": "default"}
 {"model": "kimi-k2.5", "category": "debug", "perf": 0.75, "source": "bench", "source_ref": "bench:T5-DEBUG", "reasoning_effort": "default"}
@@ -4702,7 +4693,7 @@
 {"model": "mistralai/voxtral-small-24b-2507", "category": "tool_use", "perf": 1.0, "source": "bench", "source_ref": "bench:T1-TOOL", "reasoning_effort": "default"}
 {"model": "moonshot.kimi-k2-thinking", "category": "test", "perf": 0.72, "source": "estimate", "source_ref": "CATEGORY_ESTIMATES", "reasoning_effort": "default"}
 {"model": "moonshot.kimi-k2-thinking", "category": "ui_frontend", "perf": 0.374301675978, "source": "family", "source_ref": "alias:kimi-k2-thinking", "reasoning_effort": "default"}
-{"model": "moonshotai.kimi-k2.5", "category": "agent_tick", "perf": 0.846153846154, "source": "family", "source_ref": "alias:kimi-k2.5", "reasoning_effort": "default"}
+{"model": "moonshotai.kimi-k2.5", "category": "agent_tick", "perf": 0.75, "source": "family", "source_ref": "alias:kimi-k2.5", "reasoning_effort": "default"}
 {"model": "moonshotai.kimi-k2.5", "category": "code_gen", "perf": 0.75, "source": "family", "source_ref": "alias:kimi-k2.5", "reasoning_effort": "default"}
 {"model": "moonshotai.kimi-k2.5", "category": "creative", "perf": 0.666666666667, "source": "family", "source_ref": "alias:kimi-k2.5", "reasoning_effort": "default"}
 {"model": "moonshotai.kimi-k2.5", "category": "debug", "perf": 0.75, "source": "family", "source_ref": "alias:kimi-k2.5", "reasoning_effort": "default"}
@@ -4714,7 +4705,7 @@
 {"model": "moonshotai.kimi-k2.5", "category": "test", "perf": 0.72, "source": "estimate", "source_ref": "CATEGORY_ESTIMATES", "reasoning_effort": "default"}
 {"model": "moonshotai.kimi-k2.5", "category": "tool_use", "perf": 0.75, "source": "family", "source_ref": "alias:kimi-k2.5", "reasoning_effort": "default"}
 {"model": "moonshotai.kimi-k2.5", "category": "ui_frontend", "perf": 0.72625698324, "source": "family", "source_ref": "alias:kimi-k2.5", "reasoning_effort": "default"}
-{"model": "moonshotai/Kimi-K2.5", "category": "agent_tick", "perf": 0.846153846154, "source": "family", "source_ref": "alias:kimi-k2.5", "reasoning_effort": "default"}
+{"model": "moonshotai/Kimi-K2.5", "category": "agent_tick", "perf": 0.75, "source": "family", "source_ref": "alias:kimi-k2.5", "reasoning_effort": "default"}
 {"model": "moonshotai/Kimi-K2.5", "category": "code_gen", "perf": 0.75, "source": "family", "source_ref": "alias:kimi-k2.5", "reasoning_effort": "default"}
 {"model": "moonshotai/Kimi-K2.5", "category": "creative", "perf": 0.666666666667, "source": "family", "source_ref": "alias:kimi-k2.5", "reasoning_effort": "default"}
 {"model": "moonshotai/Kimi-K2.5", "category": "debug", "perf": 0.75, "source": "family", "source_ref": "alias:kimi-k2.5", "reasoning_effort": "default"}
@@ -4891,7 +4882,7 @@
 {"model": "morph-dsv41flash-1017", "category": "spec_docs", "perf": 1.0, "source": "bench", "source_ref": "bench:SPEC-DOCS", "reasoning_effort": "default"}
 {"model": "morph-dsv41flash-1017", "category": "test", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-11-15/TEST", "reasoning_effort": "default"}
 {"model": "morph-dsv41flash-1017", "category": "tool_use", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-11-15/T1-TOOL", "reasoning_effort": "default"}
-{"model": "morph-glm52-744b", "category": "agent_tick", "perf": 0.785714285714, "source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
+{"model": "morph-glm52-744b", "category": "agent_tick", "perf": 0.75, "source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
 {"model": "morph-glm52-744b", "category": "code_gen", "perf": 0.629, "source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
 {"model": "morph-glm52-744b", "category": "creative", "perf": 0.45, "source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
 {"model": "morph-glm52-744b", "category": "debug", "perf": 0.5, "source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
@@ -5102,7 +5093,7 @@
 {"model": "nemotron-3-super", "category": "delegation", "perf": 0.75, "source": "bench", "source_ref": "bench:battery-T1-TOOL", "reasoning_effort": "default"}
 {"model": "nemotron-3-super", "category": "reasoning", "perf": 0.8, "source": "bench", "source_ref": "bench:GPQA", "reasoning_effort": "default"}
 {"model": "nemotron-3-super", "category": "refactor", "perf": 0.5, "source": "bench", "source_ref": "bench:battery-T2-CODE", "reasoning_effort": "default"}
-{"model": "nemotron-3-super", "category": "schema", "perf": 0.85375, "source": "bench", "source_ref": "bench:BenchLM", "reasoning_effort": "default"}
+{"model": "nemotron-3-super", "category": "schema", "perf": 0.5, "source": "bench", "source_ref": "bench:battery-T2-CODE", "reasoning_effort": "default"}
 {"model": "nemotron-3-super", "category": "spec_docs", "perf": 0.85375, "source": "bench", "source_ref": "bench:BenchLM", "reasoning_effort": "default"}
 {"model": "nemotron-3-super", "category": "tool_use", "perf": 0.75, "source": "bench", "source_ref": "bench:battery-T1-TOOL", "reasoning_effort": "default"}
 {"model": "nemotron-3-super-120b", "category": "guard", "perf": 0.65, "source": "estimate", "source_ref": "QUALITY_ESTIMATES", "reasoning_effort": "default"}
@@ -5194,7 +5185,7 @@
 {"model": "nvidia/nemotron-3-super", "category": "reasoning", "perf": 0.8, "source": "family", "source_ref": "alias:nemotron-3-super", "reasoning_effort": "default"}
 {"model": "nvidia/nemotron-3-super", "category": "refactor", "perf": 0.5, "source": "family", "source_ref": "alias:nemotron-3-super", "reasoning_effort": "default"}
 {"model": "nvidia/nemotron-3-super", "category": "review", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/REVIEW-V2", "reasoning_effort": "default"}
-{"model": "nvidia/nemotron-3-super", "category": "schema", "perf": 0.85375, "source": "family", "source_ref": "alias:nemotron-3-super", "reasoning_effort": "default"}
+{"model": "nvidia/nemotron-3-super", "category": "schema", "perf": 0.5, "source": "family", "source_ref": "alias:nemotron-3-super", "reasoning_effort": "default"}
 {"model": "nvidia/nemotron-3-super", "category": "spec_docs", "perf": 0.667, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/SPEC-DOCS-V3", "reasoning_effort": "default"}
 {"model": "nvidia/nemotron-3-super", "category": "tool_use", "perf": 0.75, "source": "family", "source_ref": "alias:nemotron-3-super", "reasoning_effort": "default"}
 {"model": "nvidia/nemotron-3-super-120b-a12b", "category": "agent_tick", "perf": 0.75, "source": "bench", "source_ref": "bench:AGENT-TICK", "reasoning_effort": "default"}
@@ -5431,7 +5422,7 @@
 {"model": "openai/gpt-5.4-mini", "category": "schema", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/SCHEMA", "reasoning_effort": "default"}
 {"model": "openai/gpt-5.4-mini", "category": "test", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/TEST", "reasoning_effort": "default"}
 {"model": "openai/gpt-5.4-mini", "category": "tool_use", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/T1-TOOL", "reasoning_effort": "default"}
-{"model": "openai/gpt-5.5", "category": "agent_tick", "perf": 0.642857142857, "source": "family", "source_ref": "alias:gpt-5.5", "reasoning_effort": "default"}
+{"model": "openai/gpt-5.5", "category": "agent_tick", "perf": 0.5, "source": "family", "source_ref": "alias:gpt-5.5", "reasoning_effort": "default"}
 {"model": "openai/gpt-5.5", "category": "code_gen", "perf": 0.5, "source": "family", "source_ref": "alias:gpt-5.5", "reasoning_effort": "default"}
 {"model": "openai/gpt-5.5", "category": "creative", "perf": 0.805031446541, "source": "family", "source_ref": "alias:gpt-5.5", "reasoning_effort": "default"}
 {"model": "openai/gpt-5.5", "category": "debug", "perf": 0.5, "source": "family", "source_ref": "alias:gpt-5.5", "reasoning_effort": "default"}
@@ -6757,7 +6748,7 @@
 {"model": "xai/grok-4.5", "category": "test", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/TEST", "reasoning_effort": "default"}
 {"model": "xai/grok-4.5", "category": "tool_use", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/T1-TOOL", "reasoning_effort": "default"}
 {"model": "xai/grok-4.5", "category": "ui_frontend", "perf": 0.843575418994, "source": "bench", "source_ref": "bench:market", "reasoning_effort": "default"}
-{"model": "xai/grok-4.6", "category": "agent_tick", "perf": 0.923076923077, "source": "family", "source_ref": "alias:grok-4.6", "reasoning_effort": "default"}
+{"model": "xai/grok-4.6", "category": "agent_tick", "perf": 0.75, "source": "family", "source_ref": "alias:grok-4.6", "reasoning_effort": "default"}
 {"model": "xai/grok-4.6", "category": "code_gen", "perf": 0.75, "source": "family", "source_ref": "alias:grok-4.6", "reasoning_effort": "default"}
 {"model": "xai/grok-4.6", "category": "creative", "perf": 0.893081761006, "source": "family", "source_ref": "alias:grok-4.6", "reasoning_effort": "default"}
 {"model": "xai/grok-4.6", "category": "debug", "perf": 0.75, "source": "family", "source_ref": "alias:grok-4.6", "reasoning_effort": "default"}
@@ -6765,7 +6756,7 @@
 {"model": "xai/grok-4.6", "category": "e2e_vision", "perf": 0.954545454545, "source": "family", "source_ref": "alias:grok-4.6", "reasoning_effort": "default"}
 {"model": "xai/grok-4.6", "category": "guard", "perf": 0.75, "source": "family", "source_ref": "alias:grok-4.6", "reasoning_effort": "default"}
 {"model": "xai/grok-4.6", "category": "long_doc", "perf": 0.8, "source": "family", "source_ref": "alias:grok-4.6", "reasoning_effort": "default"}
-{"model": "xai/grok-4.6", "category": "long_horizon", "perf": 0.861271676301, "source": "family", "source_ref": "alias:grok-4.6", "reasoning_effort": "default"}
+{"model": "xai/grok-4.6", "category": "long_horizon", "perf": 0.659, "source": "family", "source_ref": "alias:grok-4.6", "reasoning_effort": "default"}
 {"model": "xai/grok-4.6", "category": "mechanical", "perf": 1.0, "source": "family", "source_ref": "alias:grok-4.6", "reasoning_effort": "default"}
 {"model": "xai/grok-4.6", "category": "mock", "perf": 1.0, "source": "family", "source_ref": "alias:grok-4.6", "reasoning_effort": "default"}
 {"model": "xai/grok-4.6", "category": "multilingual", "perf": 1.0, "source": "family", "source_ref": "alias:grok-4.6", "reasoning_effort": "default"}
@@ -6929,7 +6920,7 @@
 {"model": "z-ai/glm-4.6v-flashx", "category": "schema", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/SCHEMA", "reasoning_effort": "default"}
 {"model": "z-ai/glm-4.6v-flashx", "category": "test", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/TEST", "reasoning_effort": "default"}
 {"model": "z-ai/glm-4.6v-flashx", "category": "tool_use", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/T1-TOOL", "reasoning_effort": "default"}
-{"model": "z-ai/glm-4.7", "category": "agent_tick", "perf": 0.365384615385, "source": "family", "source_ref": "alias:glm-4.7", "reasoning_effort": "default"}
+{"model": "z-ai/glm-4.7", "category": "agent_tick", "perf": 0.25, "source": "family", "source_ref": "alias:glm-4.7", "reasoning_effort": "default"}
 {"model": "z-ai/glm-4.7", "category": "code_gen", "perf": 0.5, "source": "family", "source_ref": "alias:glm-4.7", "reasoning_effort": "default"}
 {"model": "z-ai/glm-4.7", "category": "creative", "perf": 0.621951219512, "source": "family", "source_ref": "alias:glm-4.7", "reasoning_effort": "default"}
 {"model": "z-ai/glm-4.7", "category": "debug", "perf": 0.5, "source": "family", "source_ref": "alias:glm-4.7", "reasoning_effort": "default"}
@@ -7069,7 +7060,7 @@
 {"model": "zai-org/GLM-5.1", "category": "test", "perf": 0.72, "source": "estimate", "source_ref": "CATEGORY_ESTIMATES", "reasoning_effort": "default"}
 {"model": "zai-org/GLM-5.1", "category": "tool_use", "perf": 0.75, "source": "family", "source_ref": "alias:glm-5.1", "reasoning_effort": "default"}
 {"model": "zai-org/GLM-5.1", "category": "ui_frontend", "perf": 0.888268156425, "source": "family", "source_ref": "alias:glm-5.1", "reasoning_effort": "default"}
-{"model": "zai-org/GLM-5.2", "category": "agent_tick", "perf": 0.785714285714, "source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
+{"model": "zai-org/GLM-5.2", "category": "agent_tick", "perf": 0.75, "source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
 {"model": "zai-org/GLM-5.2", "category": "code_gen", "perf": 0.629, "source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
 {"model": "zai-org/GLM-5.2", "category": "creative", "perf": 0.45, "source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
 {"model": "zai-org/GLM-5.2", "category": "debug", "perf": 0.5, "source": "family", "source_ref": "alias:glm-5.2", "reasoning_effort": "default"}
@@ -7139,7 +7130,7 @@
 {"model": "zai-org/GLM-5.3", "category": "tool_use", "perf": 1.0, "source": "bench", "source_ref": "bench:live-probe-2026-09-27/T1-TOOL", "reasoning_effort": "default"}
 {"model": "zai-org/GLM-5.3", "category": "ui_frontend", "perf": 0.948717948718, "source": "family", "source_ref": "alias:glm-5.3", "reasoning_effort": "default"}
 {"model": "zai-org/GLM-5.3", "category": "vision", "perf": 0.45, "source": "family", "source_ref": "alias:glm-5.3", "reasoning_effort": "default"}
-{"model": "zai.glm-4.7", "category": "agent_tick", "perf": 0.365384615385, "source": "family", "source_ref": "alias:glm-4.7", "reasoning_effort": "default"}
+{"model": "zai.glm-4.7", "category": "agent_tick", "perf": 0.25, "source": "family", "source_ref": "alias:glm-4.7", "reasoning_effort": "default"}
 {"model": "zai.glm-4.7", "category": "code_gen", "perf": 0.5, "source": "family", "source_ref": "alias:glm-4.7", "reasoning_effort": "default"}
 {"model": "zai.glm-4.7", "category": "creative", "perf": 0.621951219512, "source": "family", "source_ref": "alias:glm-4.7", "reasoning_effort": "default"}
 {"model": "zai.glm-4.7", "category": "debug", "perf": 0.5, "source": "family", "source_ref": "alias:glm-4.7", "reasoning_effort": "default"}
@@ -7177,7 +7168,7 @@
 {"model": "~deepseek/deepseek-flash-latest", "category": "e2e_vision", "perf": 0.55, "source": "family", "source_ref": "alias:accounts/fireworks/routers/deepseek-flash-latest", "reasoning_effort": "default"}
 {"model": "~deepseek/deepseek-flash-latest", "category": "guard", "perf": 0.88, "source": "family", "source_ref": "alias:accounts/fireworks/routers/deepseek-flash-latest", "reasoning_effort": "default"}
 {"model": "~deepseek/deepseek-flash-latest", "category": "long_doc", "perf": 0.72, "source": "family", "source_ref": "alias:accounts/fireworks/routers/deepseek-flash-latest", "reasoning_effort": "default"}
-{"model": "~deepseek/deepseek-flash-latest", "category": "long_horizon", "perf": 0.630057803468, "source": "family", "source_ref": "alias:accounts/fireworks/routers/deepseek-flash-latest", "reasoning_effort": "default"}
+{"model": "~deepseek/deepseek-flash-latest", "category": "long_horizon", "perf": 0.548, "source": "family", "source_ref": "alias:accounts/fireworks/routers/deepseek-flash-latest", "reasoning_effort": "default"}
 {"model": "~deepseek/deepseek-flash-latest", "category": "mechanical", "perf": 0.72, "source": "family", "source_ref": "alias:accounts/fireworks/routers/deepseek-flash-latest", "reasoning_effort": "default"}
 {"model": "~deepseek/deepseek-flash-latest", "category": "mock", "perf": 0.87, "source": "family", "source_ref": "alias:accounts/fireworks/routers/deepseek-flash-latest", "reasoning_effort": "default"}
 {"model": "~deepseek/deepseek-flash-latest", "category": "multilingual", "perf": 0.9, "source": "family", "source_ref": "alias:accounts/fireworks/routers/deepseek-flash-latest", "reasoning_effort": "default"}
@@ -7199,7 +7190,7 @@
 {"model": "~deepseek/deepseek-pro-latest", "category": "e2e_vision", "perf": 0.4, "source": "family", "source_ref": "alias:accounts/fireworks/routers/deepseek-pro-latest", "reasoning_effort": "default"}
 {"model": "~deepseek/deepseek-pro-latest", "category": "guard", "perf": 0.0, "source": "family", "source_ref": "alias:accounts/fireworks/routers/deepseek-pro-latest", "reasoning_effort": "default"}
 {"model": "~deepseek/deepseek-pro-latest", "category": "long_doc", "perf": 0.8, "source": "family", "source_ref": "alias:accounts/fireworks/routers/deepseek-pro-latest", "reasoning_effort": "default"}
-{"model": "~deepseek/deepseek-pro-latest", "category": "long_horizon", "perf": 0.722543352601, "source": "family", "source_ref": "alias:accounts/fireworks/routers/deepseek-pro-latest", "reasoning_effort": "default"}
+{"model": "~deepseek/deepseek-pro-latest", "category": "long_horizon", "perf": 0.08, "source": "family", "source_ref": "alias:accounts/fireworks/routers/deepseek-pro-latest", "reasoning_effort": "default"}
 {"model": "~deepseek/deepseek-pro-latest", "category": "mechanical", "perf": 0.833, "source": "family", "source_ref": "alias:accounts/fireworks/routers/deepseek-pro-latest", "reasoning_effort": "default"}
 {"model": "~deepseek/deepseek-pro-latest", "category": "mock", "perf": 1.0, "source": "family", "source_ref": "alias:accounts/fireworks/routers/deepseek-pro-latest", "reasoning_effort": "default"}
 {"model": "~deepseek/deepseek-pro-latest", "category": "multilingual", "perf": 1.0, "source": "family", "source_ref": "alias:accounts/fireworks/routers/deepseek-pro-latest", "reasoning_effort": "default"}

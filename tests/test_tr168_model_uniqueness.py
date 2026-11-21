@@ -658,6 +658,11 @@ POST_DEDUPE_ADDITIONS = {
     ("openrouter", "openai/gpt-6.2-sol-pro"): "orphaned 11-18 seat work, completed + landed 2026-11-20; pro inherits the measured sol base",
     ("openrouter", "openai/gpt-6.2-sol-pro:batch"): "orphaned 11-18 seat work, completed + landed 2026-11-20; :batch transport variant",
     ("openrouter", "openai/gpt-6.2-sol:batch"): "orphaned 11-18 seat work, completed + landed 2026-11-20; :batch transport variant",
+    # 2026-11-21 tick (model-router daily): 4 catalog arrivals, all arrival-day gated
+    ("clinepass", "daisyrose-27b"): "clinepass API sync 2026-11-21 — carrier arrival, priced at the docs reference (engine), twin of the radixark SKU",
+    ("clinepass", "inkling-2-mini"): "clinepass API sync 2026-11-21 — carrier arrival of the inkling-2 generation, priced at the docs reference (engine)",
+    ("openrouter", "radixark/daisyrose-27b"): "models.dev sync 2026-11-21 — new catalog lane, sticker-priced 0.15 (normalized:payg-sticker); TR-362-disabled on arrival (no measured base, blank -1 would clear lenient bars)",
+    ("openrouter", "thinkingmachines/inkling-2-mini"): "models.dev sync 2026-11-21 — new-generation catalog lane, sticker-priced 0.10 (normalized:payg-sticker); TR-362-disabled on arrival (inkling/inkling-small are prior-gen; cross-gen alias would be a guess)",
 }
 
 
