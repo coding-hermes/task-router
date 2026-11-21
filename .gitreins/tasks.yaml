@@ -1720,8 +1720,9 @@ tasks:
     requires the live fleet Prometheus rule loaded; 3) the closeout commit b43f950
     is pushed to origin/main and the RELEASE row's completion binds a COMPLETED CI
     run id.
-  status: in_progress
+  status: complete
   created_at: '2026-11-07T03:34:39.089945+00:00'
+  completed_at: '2026-11-20T10:41:28.456443+00:00'
 - id: TR-362-V1
   title: 'TR-362 pre-commit leg: model-data commit gate lands in .githooks/pre-commit'
   criteria:
@@ -1794,15 +1795,11 @@ tasks:
     clone + seed + suite reproduces CI exactly
   status: in_progress
   created_at: '2026-11-18T03:28:19.364057+00:00'
-- id: TR-399
-  title: 'Ingest change: probes and benchmark pulls record the effort level they ran
-    at'
+- id: TR-1000976681059305
+  title: gitreins tier1 guard context fails on clean main
   criteria:
-  - 'Effort-parameterized measurement pipeline on origin/main: probe runner accepts
-    --effort/--efforts and runs the battery per effort; ingest writes reasoning_effort
-    into model_perf rows and refuses a result lacking the stamp; pre-effort-era imports
-    migrated with reason=pre-effort-era documented in model_notes; bound by tests/test_tr399_effort_ingest.py
-    (86 family tests green)'
+  - gitleaks allowlist silences the TR-208 fixture findings without weakening detection;
+    guard lint scope excludes .vfs/; quota-gate test passes solo
   status: complete
-  created_at: '2026-11-21T01:25:35.440233+00:00'
-  completed_at: '2026-11-21T01:53:03.522125+00:00'
+  created_at: '2026-11-21T15:18:27.494492+00:00'
+  completed_at: '2026-11-21T16:03:01.546319+00:00'
