@@ -54,6 +54,91 @@ consumers must read by key, never by position.
 | `caller_session_key` | string \| null | no | **the caller's own join key (TR-173)**: the `X-Hermes-Session-Key` the caller sent, when it sent one — for the scheduler this is the TICK the call served. Validated with the same rules the forwarded header answers to (no control characters, ≤256 chars); a value the gateway itself would reject is never persisted, and the drop is named in the response envelope's `_router.problems`. `null` = the caller sent no key (or one that failed validation) — never a synthesized placeholder, never `""` standing in for "unknown". Together with `session_id`, `parent_session_id`, `provider`, `model` and `cost_usd`, this single ledger line answers "what did tick X route to, and what did it cost" without guessing. |
 | `ts` | number | **yes** | epoch seconds; the decay anchor. Defaults to the ingest time when absent. |
 
+### Failure attribution — who is charged for a failed row
+
+A failure row is not automatically a statement about the model. The TR-354
+outcome-floor gate reads a lane's completion rate, and that rate is computed in
+`router_outcomes.compute_averages` as
+
+```
+n_success_known = (rows with success != null) - n_router_side
+success_rate    = n_completed / n_success_known
+```
+
+so the ONLY thing that keeps a failure out of the denominator is a
+`failure_reason` that appears in `ROUTER_SIDE_FAILURE_REASONS`. Everything
+else — including a failure with no reason at all — is charged to the model.
+
+| field | type | written by | meaning |
+|---|---|---|---|
+| `route_outcome` | string \| null | the proxy | which door the request came out of: `served`, `failed`, `no-hops`, `rejected`. |
+| `failure_reason` | string \| null | the proxy | the failure CODE from `router_hop_taxonomy` (`402-no-credit`, `401-403-auth`, `404-405-route`, `hop-wall-timeout`, `no-hops`, `unservable-rating`, `gateway-draining`, `transport-error`, …). **This is the attribution field.** `null` = the producer recorded no reason, and the row is charged to the model. |
+| `success_reason` | string \| null | the hermes driver | the SUCCESS-side reason — the scheduler's tick verdict (`no_scheduler_tick_for_session`, `tick_commits_observed`, `tick_concluded_no_commits`). **Never an attribution signal.** |
+
+`ROUTER_SIDE_FAILURE_REASONS` is a closed set of four reasons, each a statement
+about the proxy's own decision rather than the model's quality:
+
+```
+hop-wall-timeout   the hop was killed at its wall ceiling
+no-hops            the ladder found no open hop
+unservable-rating  nothing in the registry could serve the declared rating
+gateway-draining   the upstream gateway was draining
+```
+
+A named reason that is NOT in that set (a `402-no-credit`, an `401-403-auth`)
+still charges the model. That is current doctrine, not an oversight: widening
+the set moves routing for every profile, so it needs an owner ruling and a
+deliberate change to the set — never a "bug fix" to the gate.
+
+The derived counts a reader will see on an averages row:
+
+| count | meaning |
+|---|---|
+| `n_router_side` | failures excluded from the denominator (reason in the set) |
+| `n_unattributed` | failures with no reason at all — charged, and the class a producer fix can shrink |
+| `n_verdicts_raw` | every row with a non-null `success` |
+| `n_success_known` | `n_verdicts_raw - n_router_side` — the denominator |
+| `success_rate` | `n_completed / n_success_known`, `null` when the denominator is 0 |
+
+#### The field trap
+
+`success_reason` is the success-side field. It is null on most failures and
+carries a tick verdict on the rest, so selecting failures with
+`success_reason is null` is not an attribution measurement in either
+direction: it over-selects (every failure with no success-side reason) and
+under-selects (it drops the tick verdicts that do carry one). An audit that
+does this reports a phantom defect and proposes a fix to a producer that is
+already correct. Select on `failure_reason`.
+
+#### Measuring it
+
+`scripts/outcome_attribution_census.py` reports the attribution split by
+source and by month, plus the floor impact under each counterfactual, using the
+gate's own arithmetic:
+
+```bash
+python3 scripts/outcome_attribution_census.py            # text report
+python3 scripts/outcome_attribution_census.py --json     # machine census
+```
+
+It MEASURES and never reclassifies — it does not touch
+`ROUTER_SIDE_FAILURE_REASONS`.
+
+Two classes it names, both charged to the model today and both awaiting a
+doctrine decision rather than a code fix:
+
+* **unattributed pre-model rows** — a failure with no tokens and under a second
+  of wall time never reached a model. Measured 2026-11-21: 37,613 rows, of
+  which 37,591 are a single-day 2026-06 `pi` bulk import (one lane,
+  `deepseek/deepseek-v4-pro`, which is why that lane reads 0.001). The live
+  `router-proxy` producer is clean: every failure since 2026-10 carries a
+  `failure_reason`.
+* **tick verdicts** — the hermes driver writes a tick that concluded with no
+  commits as `success: false` + `success_reason: tick_concluded_no_commits`
+  with no `failure_reason`, so the gate charges it to the model. Measured
+  2026-11-21: 1,985 rows across 41 lanes; 5 lanes would clear the floor if they
+  were dropped.
+
 ### Joining a routed call to the task that asked for it (TR-173)
 
 A caller that speaks the gateway's session protocol (the scheduler does) sends
