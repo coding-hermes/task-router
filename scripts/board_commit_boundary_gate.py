@@ -38,7 +38,23 @@ makes the TR-112 class unable to recur silently.
 A row that flips to complete with NONE of these is REFUSED with exit 1 and
 the refusal names the row id, the file, and the missing evidence forms.
 
-Regression fixture (pinned in tests/test_board_commit_boundary_gate.py):
+INT-CI-30 — bound run ids must be RESOLVABLE FORMS. The boundary gate and
+the CI evidence-replay gate (scripts/evidence_replay.py) must AGREE on what
+"evidence-bound" means. A completion flip's bound run id
+(evidence_run_id / detail.evidence[].run_id) must be one of the store
+decision's forms: (a) an all-digit GitHub Actions run id (>= 6 digits),
+(b) a verdict-form run id that resolves to
+.gitreins/history/<date>/<id>/verdict.json under the repo that owns the
+board, or (c) the row states a reason: evidence_none /
+witness=none:<reason>. Anything else — hand-written labels, tick-directory
+names (foreman-tick-...), .gitreins/history paths used as ids, free prose —
+is REFUSED: a local tick label is gitignored state that can never resolve
+in CI, so a row carrying one passed THIS gate while the replay gate reded
+the SAME diff (TR-1000976681059305 @ 01251fa4, CI run 44922361578). Rows
+with NO bound run id keep the TR-249 evidence_state forms (measured number
+/ artifact path / stated NULL) via board_complete_gate.
+
+Regression fixture (pinned in tests/test_tr251_boundary_and_replay.py):
 TR-011's shape — status=complete, 4 acceptance_criteria, guard_result=PASS,
 no evidence_run_id — must be REFUSED. Four criteria and a green guard are
 exactly what a false completion carries; the boundary gate exists because
@@ -49,13 +65,14 @@ Usage:
   python3 scripts/board_commit_boundary_gate.py --base A --head B
   python3 scripts/board_commit_boundary_gate.py --old-file F --new-file F2
 
-ch:trace row=TR-251 spec=docs/traceability-doctrine.md#hard-rules test=tests/test_board_commit_boundary_gate.py evidence=docs/evidence-run-store-decision.md
+ch:trace row=TR-251 spec=docs/traceability-doctrine.md#hard-rules test=tests/test_tr251_boundary_and_replay.py evidence=docs/evidence-run-store-decision.md
 """
 from __future__ import annotations
 
 import argparse
 import json
 import os
+import re
 import subprocess
 import sys
 
@@ -85,23 +102,88 @@ def _rows_from_lines(lines: list[str]) -> dict[str, dict]:
     return latest
 
 
-def _has_bound_run(row: dict) -> bool:
-    """The boardctl --evidence-run-id shapes: a top-level evidence_run_id, or
-    detail.evidence[].run_id (the SG-126 envelope)."""
-    if str(row.get("evidence_run_id") or "").strip():
-        return True
+#: INT-CI-30: a bound evidence-run id must be a RESOLVABLE FORM
+#: (docs/evidence-run-store-decision.md). The replay gate
+#: (evidence_replay.resolve_run) refuses anything else, so the boundary
+#: gate must refuse it too — otherwise a row passes here and reds CI on the
+#: same diff (TR-1000976681059305 @ 01251fa4 bound a local foreman-tick-...
+#: directory label; CI run 44922361578 went red).
+CI_RUN_ID = re.compile(r"[0-9]{6,}")   # form (a): all digits, >= 6 digits
+VERDICT_DOC = "docs/evidence-run-store-decision.md"
+ACCEPTED_FORMS = (
+    "(a) a GitHub Actions run id (all digits, >= 6 digits), "
+    "(b) a verdict-form run id that resolves to "
+    ".gitreins/history/<date>/<id>/verdict.json, or "
+    "(c) the row states evidence_none / witness=none:<reason>")
+
+
+def _bound_run_ids(row: dict) -> list[str]:
+    """All bound evidence-run ids: a top-level evidence_run_id, plus
+    detail.evidence[].run_id (the SG-126 envelope). Same extraction the
+    replay gate's _row_run_ids performs, so both gates judge the same set."""
+    runs: list[str] = []
+    v = str(row.get("evidence_run_id") or "").strip()
+    if v:
+        runs.append(v)
     detail = row.get("detail")
     if isinstance(detail, str):
         try:
             detail = json.loads(detail)
         except ValueError:
-            return False
+            detail = None
     if not isinstance(detail, dict):
-        return False
+        return runs
     for ev in detail.get("evidence") or []:
-        if isinstance(ev, dict) and str(ev.get("run_id") or "").strip():
+        if isinstance(ev, dict):
+            rid = str(ev.get("run_id") or "").strip()
+            if rid and rid not in runs:
+                runs.append(rid)
+    return runs
+
+
+def _verdict_form_resolves(run_id: str, repo: str) -> bool:
+    """Form (b): .gitreins/history/<date>/<run_id>/verdict.json exists under
+    the repo that owns the board (the store decision's GitReins verdict
+    history). Same lookup evidence_replay.resolve_run performs."""
+    history = os.path.join(repo, ".gitreins", "history")
+    if not os.path.isdir(history):
+        return False
+    for date in os.listdir(history):
+        if os.path.exists(os.path.join(history, date, run_id, "verdict.json")):
             return True
     return False
+
+
+def _run_id_form_problem(run_id: str, repo: str) -> str | None:
+    """None when run_id is a resolvable form; otherwise a short reason the
+    refusal can quote."""
+    rid = str(run_id or "").strip()
+    if not rid:
+        return "empty run id"
+    if CI_RUN_ID.fullmatch(rid):
+        return None  # form (a): a GitHub Actions run id
+    if rid.lower().startswith("none:"):
+        return ("a stated-reason null belongs in the evidence_none field or "
+                "witness=none:<reason>, not in the run-id slot")
+    if "/" in rid or "\\" in rid:
+        return ("a filesystem path is not a run id — .gitreins/history paths "
+                "name the verdict STORE, never an id")
+    if _verdict_form_resolves(rid, repo):
+        return None  # form (b): a verdict-form run that resolves
+    return ("not a GitHub Actions run id (all digits, >= 6 digits) and no "
+            f".gitreins/history/<date>/{rid}/verdict.json resolves — a "
+            "hand-written label or local tick-directory name is gitignored "
+            "state that can never resolve")
+
+
+def _unresolvable_run_refusal(row: dict, problems: list[tuple[str, str]]) -> str:
+    quoted = "; ".join(f"run {r!r}: {why}" for r, why in problems)
+    return (
+        f"{row.get('id')}: completion REFUSED by board_commit_boundary_gate "
+        f"(TR-251, INT-CI-30): bound evidence run id is not a resolvable form "
+        f"({quoted}). Accepted forms per {VERDICT_DOC}: {ACCEPTED_FORMS}. "
+        "Rebind the row (--evidence-run-id / detail.evidence[].run_id) to a "
+        "resolvable form, or state the reason.")
 
 
 def _has_stated_null(row: dict) -> bool:
@@ -173,12 +255,25 @@ def check_introduced_priorities(introduced: list[dict]) -> list[str]:
     return refusals
 
 
-def check_flipped_rows(flipped: list[dict]) -> list[str]:
-    """Refusal lines [] for the flipped rows; non-empty = the gate fails."""
+def check_flipped_rows(flipped: list[dict], repo: str | None = None) -> list[str]:
+    """Refusal lines [] for the flipped rows; non-empty = the gate fails.
+
+    A stated-reason null passes (form c). Bound run ids must be RESOLVABLE
+    forms (a)/(b) — anything else is REFUSED (INT-CI-30). Rows with no bound
+    run id keep the TR-249 evidence_state forms (measured number / artifact
+    path / stated NULL) via board_complete_gate."""
+    repo = repo or REPO
     refusals = []
     for row in flipped:
-        if _has_bound_run(row) or _has_stated_null(row):
+        if _has_stated_null(row):
             continue
+        runs = _bound_run_ids(row)
+        if runs:
+            problems = [(r, why) for r in runs
+                        if (why := _run_id_form_problem(r, repo))]
+            if problems:
+                refusals.append(_unresolvable_run_refusal(row, problems))
+            continue  # every bound run id is a resolvable form (or refused above)
         ok_ev, why_ev = evidence_state(row)
         if ok_ev:
             continue
@@ -186,7 +281,7 @@ def check_flipped_rows(flipped: list[dict]) -> list[str]:
             f"{row.get('id')}: completion REFUSED by board_commit_boundary_gate (TR-251): "
             f"row flips to status={row.get('status')} with unbound evidence "
             f"({why_ev}). Bind an evidence run (--evidence-run-id, stored per "
-            f"docs/evidence-run-store-decision.md), or state evidence_none/witness=none:<reason>.")
+            f"{VERDICT_DOC}), or state evidence_none/witness=none:<reason>.")
     return refusals
 
 
@@ -244,7 +339,7 @@ def main(argv: list[str] | None = None) -> int:
     flipped = rows_flipped_to_complete(old, new)
     introduced = priorities_introduced(old, new)
     refusals = check_introduced_priorities(introduced)
-    refusals += check_flipped_rows(flipped)
+    refusals += check_flipped_rows(flipped, repo=args.repo)
     if refusals:
         for r in refusals:
             print(r, file=sys.stderr)
