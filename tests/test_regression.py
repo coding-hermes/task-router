@@ -757,6 +757,44 @@ def test_plan_included_lanes_never_disabled():
         )
 
 
+def test_owner_cancelled_lanes_stay_disabled():
+    """OWNER-DECISION LOCK (Bane 2026-11-16, landed 72f339f9): the neuralwatt
+    account was closed, so NO neuralwatt lane may be routable. The flag had
+    never been set, so the disable was applied by hand — which means a later
+    seed/table regeneration that rebuilds models.jsonl from a pre-fix snapshot
+    silently re-enables all 38 lanes (observed 2026-11-20: a stale working tree
+    carried 11/49 disabled) and nothing else notices, because the revert drops
+    `disabled` and `disabled_reason` together.
+
+    Two arms, so a partial revert cannot slip through either:
+      * provider-level: every neuralwatt lane is disabled (the account is gone);
+      * reason-level: any lane whose disabled_reason records an owner
+        cancellation is disabled (survives the provider's rows being retired).
+    """
+    tables = _load_tables()
+    models = tables["models"]
+
+    nw = [m for m in models if m.get("provider") == "neuralwatt"]
+    assert nw, ("neuralwatt lanes are gone from the registry — retire this pin "
+                "deliberately rather than letting it pass vacuously")
+    enabled = [f"{m['provider']}/{m['model']}" for m in nw if not m.get("disabled")]
+    assert not enabled, (
+        "the neuralwatt account was closed by the owner (2026-11-16) but these "
+        f"lanes are routable again: {enabled} — a stale seed/table snapshot "
+        "re-enabled them (see 72f339f9)"
+    )
+
+    cancelled = [m for m in models
+                 if "cancel" in (m.get("disabled_reason") or "").lower()]
+    assert cancelled, ("no owner-cancellation reasons in the registry — the "
+                       "reason-level arm would pass vacuously")
+    still_on = [f"{m['provider']}/{m['model']}" for m in cancelled
+                if not m.get("disabled")]
+    assert not still_on, (
+        f"lanes carry an owner-cancellation reason but are enabled: {still_on}"
+    )
+
+
 def test_fallback_lane_fires_when_all_subs_down(monkeypatch, tmp_path):
     """Bane 2026-08-27 (cron integration): crons must ALWAYS run. When every
     eligible hop is gated/down AND the normal chain cannot serve deepseek
