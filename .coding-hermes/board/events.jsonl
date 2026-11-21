@@ -1153,3 +1153,8 @@
 {"event_type": "task_created", "actor": "foreman", "timestamp": "2026-11-18T01:51:32Z", "id": 1794115000000000101, "task_id": "TR-1000976681059304", "tick_number": null, "detail": "{\"id\":\"TR-1000976681059304\",\"status\":\"pending\"}"}
 {"event_type": "task_created", "actor": "foreman", "timestamp": "2026-11-20T10:34:47Z", "id": 1794115000000000102, "task_id": "TR-406", "tick_number": null, "detail": "{\"id\":\"TR-406\",\"status\":\"pending\"}"}
 {"event_type": "task_created", "actor": "foreman", "timestamp": "2026-11-21T02:15:43Z", "id": 1794115000000000103, "task_id": "TR-1000976681059305", "tick_number": null, "detail": "{\"id\":\"TR-1000976681059305\",\"status\":\"pending\"}"}
+{"event_type": "task_completed", "actor": "foreman", "timestamp": "2026-11-21T06:50:42Z", "id": 1794115000000000104, "task_id": "DOC-20", "tick_number": null, "detail": "{\"status\":\"complete\"}"}
+{"event_type": "task_completed", "actor": "foreman", "timestamp": "2026-11-21T06:50:43Z", "id": 1794115000000000105, "task_id": "DOC-21", "tick_number": null, "detail": "{\"status\":\"complete\"}"}
+{"event_type": "task_completed", "actor": "foreman", "timestamp": "2026-11-21T06:50:43Z", "id": 1794115000000000106, "task_id": "TR-1000976681059255-R2", "tick_number": null, "detail": "{\"status\":\"complete\"}"}
+{"event_type": "task_completed", "actor": "foreman", "timestamp": "2026-11-21T06:50:43Z", "id": 1794115000000000107, "task_id": "INT-CI-0000000027", "tick_number": null, "detail": "{\"status\":\"complete\"}"}
+{"event_type": "task_created", "actor": "foreman", "timestamp": "2026-11-21T06:51:01Z", "id": 1794115000000000108, "task_id": "INT-CI-0000000028", "tick_number": null, "detail": "{\"id\":\"INT-CI-0000000028\",\"status\":\"pending\"}"}
