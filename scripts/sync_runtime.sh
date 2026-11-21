@@ -62,7 +62,12 @@ done
 # IMPORTS it (sys.path = ~/.hermes/scripts), so a repo-only module makes every
 # hourly run die on ImportError and health.jsonl freezes — the copy list must
 # carry every module on the probe's import path, not just entry points.
-for f in provider_health_probe.py router_hop_taxonomy.py state_dir.py registry_path.py router-data-quality.sh fleet-cooldown-policy.py router_health.py router_validate.py sync_task_router_duckbrain.py router_data_cache.py; do
+# health_coverage_check.py is here for the same reason (t_neuralwatt_probe_coverage):
+# the probe imports it to assert that every ROUTABLE provider has a health entry.
+# A repo-only module would leave the hourly coverage assertion dark (the probe
+# fails open and prints "health coverage NOT checked"), which is the exact
+# silent-hole shape the check exists to close.
+for f in provider_health_probe.py health_coverage_check.py router_hop_taxonomy.py state_dir.py registry_path.py router-data-quality.sh fleet-cooldown-policy.py router_health.py router_validate.py sync_task_router_duckbrain.py router_data_cache.py; do
   want=644; [ "${f##*.}" = "sh" ] && want=755
   if [ "${f}" = "fleet-cooldown-policy.py" ]; then
     # ── SCHED-PERF-006 deploy-hash guard ──────────────────────────────────
