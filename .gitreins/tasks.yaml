@@ -1697,7 +1697,7 @@ tasks:
   - Add the TaskRouterNoHopsHigh rule or an honest repository-owned integration artifact,
     with regression coverage and documented live acceptance; do not fabricate external
     monitoring evidence.
-  status: pending
+  status: in_progress
   created_at: '2026-11-07T03:34:38.541436+00:00'
 - id: TR-389
   title: Deploy the spec section 6 alert set into the fleet Prometheus
@@ -1841,5 +1841,6 @@ tasks:
     on the live ledger; AC4: call_meta present on classifier rows naming thinking
     + structured rungs; AC5: 400-resolve binding census re-run against the live proxy
     with the rate recorded on TR-289'
-  status: in_progress
+  status: complete
   created_at: '2026-11-22T09:49:36.348453+00:00'
+  completed_at: '2026-11-22T12:45:51.224553+00:00'
