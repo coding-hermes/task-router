@@ -1855,3 +1855,13 @@ tasks:
   status: complete
   created_at: '2026-11-22T19:35:02.378462+00:00'
   completed_at: '2026-11-22T22:37:11.050413+00:00'
+- id: TR-290
+  title: 'Stamp space-bunny promo windows: dated expiry or explicit unknown-window
+    reason on every free-promo lane'
+  criteria:
+  - 'Every 0.0-priced space-bunny registry row and the temporary_discounts space-bunny
+    row carry a promo window stamp: a dated valid_to or an explicit unknown-window
+    reason naming a dated recheck and on-expiry action; jq probes show 0 undated promo
+    rows; tests/test_tr199_anonymous_dates.py exits 0'
+  status: in_progress
+  created_at: '2026-11-22T23:51:02.367949+00:00'
