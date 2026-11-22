@@ -212,3 +212,49 @@ def test_carried_cells_are_mirrored_onto_bare_id_lanes(tmp_path, monkeypatch):
         mine = [r for r in rows if r["model"] == lane and r["source"] == "market"]
         assert len(mine) == 1, lane
         assert "carried-forward" in (mine[0].get("source_ref") or ""), (lane, mine[0])
+
+
+def test_explained_null_is_only_claimed_for_a_field_the_row_leaves_null(tmp_path, monkeypatch):
+    """A settled capability must not be annotated as an open NULL.
+
+    The note is the lane's audit trail and the NULL census reads a NULL claim as
+    an open gap. Two lanes serve the same model here: the live one gets its
+    modality-settled fields FILLED from the feed (so it has no gap to explain),
+    the disabled one keeps them null (so it does). Writing "cap_audio=NULL" on
+    the live lane would invent debt that does not exist — the feed proving a
+    channel ABSENT is a settled value, not a missing one.
+    """
+    model = "vendor/settled"
+    models, bench = _write_repo(tmp_path, model, [])
+    rows = [json.loads(line) for line in models.read_text().splitlines() if line.strip()]
+    live = dict(rows[0])
+    live["cap_video"] = None
+    disabled = dict(rows[0])
+    disabled.update({"provider": "commandcode", "disabled": True,
+                     "disabled_reason": "test lane: never measured",
+                     "cap_audio": None, "cap_image_generation": None,
+                     "cap_video": None})
+    models.write_text(
+        "".join(json.dumps(r) + "\n" for r in (live, disabled)), encoding="utf-8"
+    )
+    feed = tmp_path / "feed.json"
+    feed.write_text(json.dumps(_feed([_entry(model)])), encoding="utf-8")
+
+    monkeypatch.chdir(tmp_path)
+    mod = _module()
+    rc = mod.main([
+        "--model", model, "--date", "2026-11-20", "--input", str(feed),
+        "--models", str(models), "--output", str(bench), "--write",
+    ])
+    assert rc == 0
+
+    by_provider = {
+        r["provider"]: r
+        for r in (json.loads(line) for line in models.read_text().splitlines() if line.strip())
+    }
+    live_note = by_provider["openrouter"].get("note") or ""
+    assert live_note == "", live_note
+    assert by_provider["openrouter"]["cap_video"] is False
+    disabled_note = by_provider["commandcode"].get("note") or ""
+    assert "cap_video=NULL" in disabled_note, disabled_note
+    assert "cap_audio=NULL" in disabled_note, disabled_note

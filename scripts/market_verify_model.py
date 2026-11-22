@@ -306,8 +306,20 @@ def main(argv: list[str] | None = None) -> int:
     if not spec["video_input"]:
         explained["cap_video"] = f"feed input_modalities has no video channel (modality={spec['modality']})"
     for row in lane_rows:
-        row["note"] = _merge_note(row.get("note"), args.model, args.date, explained, spec)
+        # An explained NULL is only honest for a field the row actually leaves
+        # null. A row that already carries cap_audio=false must NOT be annotated
+        # "cap_audio=NULL": the note is the lane's audit trail, and the NULL
+        # census reads a NULL claim as an open gap that does not exist. The feed
+        # proves the capability is ABSENT, which is a settled value, not a gap.
+        row_explained = {field: reason for field, reason in explained.items() if row.get(field) is None}
+        row["note"] = _merge_note(row.get("note"), args.model, args.date, row_explained, spec)
     report["explained_nulls"] = explained
+    report["explained_nulls_written"] = {
+        row.get("provider"): sorted(
+            field for field in explained if row.get(field) is None
+        )
+        for row in lane_rows
+    }
 
     if not args.write:
         report["wrote"] = False
