@@ -663,6 +663,10 @@ POST_DEDUPE_ADDITIONS = {
     ("clinepass", "inkling-2-mini"): "clinepass API sync 2026-11-21 — carrier arrival of the inkling-2 generation, priced at the docs reference (engine)",
     ("openrouter", "radixark/daisyrose-27b"): "models.dev sync 2026-11-21 — new catalog lane, sticker-priced 0.15 (normalized:payg-sticker); TR-362-disabled on arrival (no measured base, blank -1 would clear lenient bars)",
     ("openrouter", "thinkingmachines/inkling-2-mini"): "models.dev sync 2026-11-21 — new-generation catalog lane, sticker-priced 0.10 (normalized:payg-sticker); TR-362-disabled on arrival (inkling/inkling-small are prior-gen; cross-gen alias would be a guess)",
+    # TR-246 (2026-11-20 import, landed 2026-11-22 after rebase onto main): the
+    # commandcode twin of the gpt-6.1-sol import. Named here per this test's
+    # contract — a new lane is allowed only when the addition ledger names it.
+    ("commandcode-2", "gpt-6.1-sol"): "TR-246 2026-11-20 — gpt-6.1-sol on the commandcode-2 carrier (keyless catalog probe HTTP 200, ctx 1,050,000, catalog price null = PAYG pass-through); sticker 2.0/10.0 from models.dev provenance, mirroring the commandcode twin (TR-217)",
 }
 
 
