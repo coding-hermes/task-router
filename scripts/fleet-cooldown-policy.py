@@ -112,7 +112,7 @@ ELEVATED_PINS = {
     'h3-foreman': 21600,  # was 'h3': 43200 (Bane 2026-08-27 anti-flood) — superseded; h3-foreman carries 21600 in db+toml
     'warpfs-foreman': 21600,  # was 'warpfs': 21600 (Bane 2026-08-19 6h window) — same value, live lane name
     'hermes-canopy-releng': 86400,  # Bane 2026-09-19: releng is 24h, not 6h
-    'hermes-dagger-foreman': 3600,  # was 'hermes-dagger': 900 (2026-09-15 speed ruling) — live lane carries 3600 in db+toml
+    'hermes-dagger-foreman': 604800,  # was 'hermes-dagger': 900 (2026-09-15 speed ruling), then 3600 — superseded 2026-11-22: lane parked, pin 604800 in db+toml (both stores, operator PUT 08:05Z); whole DAGger family on elevated pins
     'hermes-canopy-foreman': 21600,  # was 'hermes-canopy': 21600 (Bane 2026-09-17 all primaries 21600) — same value, live lane name
     # ── Role-lane cadence (supervisor 2026-09-27) ──────────────────────
     # The role lanes below sit at their namespace's DOMINANT pinned cadence
