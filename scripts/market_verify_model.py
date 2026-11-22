@@ -242,13 +242,17 @@ def main(argv: list[str] | None = None) -> int:
     lane_rows = [r for r in models if r.get("model") == args.model]
     spec_updates: list[dict] = []
     for row in lane_rows:
-        # Only a LIVE lane is written: the NULL census and the resolver read live
-        # lanes, and an archived lane's spec is a historical record, not a
-        # routing input. Conflicts on archived lanes are still reported.
-        live = not row.get("archive") and not row.get("disabled") and not row.get("valid_to")
+        # A DISABLED lane is parked, not historical: it is re-enabled the moment
+        # its measurement lands, and the spec it carries then is a routing input.
+        # Only an ARCHIVED or expired lane is a historical record. The NULL census
+        # ignores disabled lanes, so recording a feed-proven fact here cannot
+        # create debt — while refusing to record it leaves a silent blank on a row
+        # that will be read the day the lane comes back. Conflicts are still
+        # reported rather than applied (the feed is a carrier view).
+        writable = not row.get("archive") and not row.get("valid_to")
         deltas = spec_deltas(row, spec)
         for delta in deltas:
-            applies = live and (delta["kind"] == "fill" or args.force_spec)
+            applies = writable and (delta["kind"] == "fill" or args.force_spec)
             spec_updates.append(
                 {
                     "provider": row.get("provider"),

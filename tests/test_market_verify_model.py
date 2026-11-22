@@ -229,13 +229,13 @@ def test_explained_null_is_only_claimed_for_a_field_the_row_leaves_null(tmp_path
     rows = [json.loads(line) for line in models.read_text().splitlines() if line.strip()]
     live = dict(rows[0])
     live["cap_video"] = None
-    disabled = dict(rows[0])
-    disabled.update({"provider": "commandcode", "disabled": True,
-                     "disabled_reason": "test lane: never measured",
+    archived = dict(rows[0])
+    archived.update({"provider": "commandcode", "archive": True,
+                     "valid_to": "2026-11-19",
                      "cap_audio": None, "cap_image_generation": None,
                      "cap_video": None})
     models.write_text(
-        "".join(json.dumps(r) + "\n" for r in (live, disabled)), encoding="utf-8"
+        "".join(json.dumps(r) + "\n" for r in (live, archived)), encoding="utf-8"
     )
     feed = tmp_path / "feed.json"
     feed.write_text(json.dumps(_feed([_entry(model)])), encoding="utf-8")
@@ -255,6 +255,48 @@ def test_explained_null_is_only_claimed_for_a_field_the_row_leaves_null(tmp_path
     live_note = by_provider["openrouter"].get("note") or ""
     assert live_note == "", live_note
     assert by_provider["openrouter"]["cap_video"] is False
-    disabled_note = by_provider["commandcode"].get("note") or ""
-    assert "cap_video=NULL" in disabled_note, disabled_note
-    assert "cap_audio=NULL" in disabled_note, disabled_note
+    archived_note = by_provider["commandcode"].get("note") or ""
+    assert "cap_video=NULL" in archived_note, archived_note
+    assert "cap_audio=NULL" in archived_note, archived_note
+
+
+def test_disabled_lane_gets_feed_proven_spec_but_archived_lane_does_not(tmp_path, monkeypatch):
+    """A parked lane is not a historical record.
+
+    A disabled lane is re-enabled the moment its measurement lands, so the spec
+    it carries then is a routing input; leaving a feed-proven release_date NULL
+    on it is a silent blank. An ARCHIVED lane is history and must not be
+    rewritten. The NULL census ignores disabled lanes, so the fill creates no
+    debt either way.
+    """
+    model = "vendor/parked"
+    models, bench = _write_repo(tmp_path, model, [])
+    rows = [json.loads(line) for line in models.read_text().splitlines() if line.strip()]
+    parked = dict(rows[0])
+    parked.update({"provider": "commandcode", "disabled": True,
+                   "disabled_reason": "test lane: never measured",
+                   "release_date": None})
+    archived = dict(rows[0])
+    archived.update({"provider": "openrouter", "archive": True,
+                     "valid_to": "2026-11-19", "release_date": None})
+    models.write_text(
+        "".join(json.dumps(r) + "\n" for r in (parked, archived)), encoding="utf-8"
+    )
+    feed = tmp_path / "feed.json"
+    feed.write_text(json.dumps(_feed([_entry(model)])), encoding="utf-8")
+
+    monkeypatch.chdir(tmp_path)
+    mod = _module()
+    rc = mod.main([
+        "--model", model, "--date", "2026-11-20", "--input", str(feed),
+        "--models", str(models), "--output", str(bench), "--write",
+    ])
+    assert rc == 0
+
+    by_provider = {
+        r["provider"]: r
+        for r in (json.loads(line) for line in models.read_text().splitlines() if line.strip())
+    }
+    # _entry() stamps created=1700000000 -> 2023-11-14
+    assert by_provider["commandcode"]["release_date"] == "2023-11-14"
+    assert by_provider["openrouter"]["release_date"] is None
