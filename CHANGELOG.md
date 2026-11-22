@@ -4,8 +4,6 @@ All notable changes to task-router are documented here. The project follows
 Conventional Commits; commit subjects are the source of truth (this file is
 curated from the git log, not generated).
 
-## [Unreleased]
-
 ## [0.3.0] - 2026-11-22
 
 Minor bump from 0.2.0, promoted from the curated [Unreleased] section
@@ -136,3 +134,7 @@ Initial release-ready state: deterministic task router for the coding-hermes
 fleet — capability profiles, eligibility filtering, price-ranked chains,
 provider gates (quota / health / circuit), the `router` CLI entry point, and
 the JSONL workboard (RELEASE-001 readiness sweep, 2026-09-21).
+
+## [Unreleased]
+
+Nothing yet.
