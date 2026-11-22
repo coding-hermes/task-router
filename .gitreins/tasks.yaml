@@ -1845,3 +1845,12 @@ tasks:
   status: complete
   created_at: '2026-11-22T09:49:36.348453+00:00'
   completed_at: '2026-11-22T12:45:51.224553+00:00'
+- id: RELEASE-2026-11-15-001
+  title: Promote version surface to 0.3.0
+  criteria:
+  - pyproject and __init__ pins = 0.3.0; CHANGELOG newest heading is promoted '##
+    [0.3.0]' - <date> with [Unreleased] no longer newest; release_driver check --tag
+    v0.3.0 exits 0; docs/releases/release-readiness.md updated; CI success on promoted
+    SHA
+  status: in_progress
+  created_at: '2026-11-22T19:35:02.378462+00:00'
