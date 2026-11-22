@@ -1852,5 +1852,6 @@ tasks:
     [0.3.0]' - <date> with [Unreleased] no longer newest; release_driver check --tag
     v0.3.0 exits 0; docs/releases/release-readiness.md updated; CI success on promoted
     SHA
-  status: in_progress
+  status: complete
   created_at: '2026-11-22T19:35:02.378462+00:00'
+  completed_at: '2026-11-22T22:37:11.050413+00:00'
