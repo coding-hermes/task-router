@@ -48,6 +48,16 @@ DATA = os.environ.get('ROUTING_DATA_DIR') or os.path.join(ROOT, 'data', 'tables'
 BASELINE = os.path.join(ROOT, 'data', 'state', 'usability-baseline.json')
 MISSING_TIER_DEFAULT = -1
 
+# TR-390: how a tier row's provenance classifies for the measured-vs-estimate
+# report. Derived from tier_source, never asserted: 'bench'/'measured' rows
+# name a measurement (benchmarks.jsonl row or a lane-carried perf_* column),
+# 'estimate'/'family' rows name a documented fill (survey estimate or alias
+# inheritance). Any other source lands in 'other' so the per-category
+# measured + estimate + other identity always reconciles against the raw
+# model_tier row count.
+MEASURED_TIER_SOURCES = ('bench', 'measured')
+ESTIMATE_TIER_SOURCES = ('estimate', 'family')
+
 
 def _jsonl(name):
     out = []
@@ -115,6 +125,103 @@ def classify():
     return usable, explained, defects, reasons
 
 
+def category_census():
+    """Per-category measured-vs-estimate census over the tier rows (TR-390).
+
+    WHY: 14 of the 24 capability categories were populated mostly by
+    estimates, and nothing distinguished a measured tier from a guessed one.
+    This block counts, for EVERY registry category, the tier rows classified
+    by their own tier_source: measured (bench | measured) vs estimate
+    (estimate | family) vs other (a source this report does not know —
+    reported, never silently dropped). The category list comes from
+    capability_vocab (the one vocabulary the seed/server/spawn spell), so a
+    category with zero rows still appears.
+    """
+    try:
+        sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+        import capability_vocab
+        cats = list(capability_vocab.PERF_CATEGORIES)
+    except Exception as exc:  # noqa: BLE001 — report the gap, never crash the gate
+        return {'categories': {}, 'totals': {},
+                'reason': f'capability-vocab-error: {exc}'}
+    counts = {c: {'measured': 0, 'estimate': 0, 'other': 0} for c in cats}
+    for t in _jsonl('model_tier.jsonl'):
+        c = t.get('category')
+        if c not in counts:
+            continue  # a tier row outside the vocabulary is the vocab's bug, not this report's
+        src = t.get('tier_source')
+        if src in MEASURED_TIER_SOURCES:
+            counts[c]['measured'] += 1
+        elif src in ESTIMATE_TIER_SOURCES:
+            counts[c]['estimate'] += 1
+        else:
+            counts[c]['other'] += 1
+    totals = {'measured': 0, 'estimate': 0, 'other': 0}
+    for c in counts.values():
+        for k in totals:
+            totals[k] += c[k]
+    for c in counts.values():
+        c['total'] = c['measured'] + c['estimate'] + c['other']
+    totals['total'] = sum(totals.values())
+    return {'categories': counts, 'totals': totals}
+
+
+def profile_gap_census():
+    """AC2 (TR-390): the 20 cheapest live priced lanes per task profile, and
+    the required categories each of them lacks tier evidence for.
+
+    WHY: a lane with no tier row reads the blank default (-1) in EVERY
+    category, so a $0 lane ranks on nothing yet still heads every chain the
+    price order builds. For each task profile (task_profile_requirements.jsonl)
+    this census takes the 20 cheapest live+priced lanes in the resolver's own
+    chain order — PAYG bucket last, then plan_tier, then effective price
+    (normalized_price * token_factor), then model, provider — and lists every
+    required category that has NO tier row for the lane's exact model id.
+    A gap is acceptable ONLY when the lane carries an explicit unknown-by-design
+    model_notes.jsonl row (source mentioning TR-390); anything else is an
+    unexplained unknown. Categories declared unmeasured
+    (unmeasured_categories.jsonl) are still REPORTED as missing — the
+    declaration is the by-design reason, and the note cites it — because
+    "no lane can hold it" and "this lane was never measured" must stay
+    distinguishable in the output.
+    """
+    models = [m for m in _jsonl('models.jsonl') if _live(m)]
+    providers = {p.get('id'): p.get('plan') for p in _jsonl('providers.jsonl')}
+    payg = {pid for pid, plan in providers.items() if plan == 'PAYG'}
+    priced = [m for m in models if m.get('normalized_price') is not None]
+
+    def _sort_key(m):
+        eff = (m.get('normalized_price') or 0.0) * (m.get('token_factor') or 1.0)
+        return (1 if m.get('provider') in payg else 0,
+                m.get('plan_tier') if m.get('plan_tier') is not None else 1 << 30,
+                eff, m.get('model') or '', m.get('provider') or '')
+
+    priced.sort(key=_sort_key)
+    tier_by_model = collections.defaultdict(set)
+    for t in _jsonl('model_tier.jsonl'):
+        if t.get('tier') is not None:
+            tier_by_model[t.get('model')].add(t.get('category'))
+    req_by_profile = collections.defaultdict(set)
+    for r in _jsonl('task_profile_requirements.jsonl'):
+        req_by_profile[r['task_id']].add(r['category'])
+    noted = {(n.get('provider'), n.get('model')) for n in _jsonl('model_notes.jsonl')
+             if 'TR-390' in str(n.get('source') or '')}
+
+    out = {}
+    for profile, cats in sorted(req_by_profile.items()):
+        lanes = []
+        for m in priced[:20]:
+            missing = sorted(cats - tier_by_model.get(m.get('model'), set()))
+            lanes.append({
+                'provider': m.get('provider'), 'model': m.get('model'),
+                'price': m.get('normalized_price'),
+                'missing': missing,
+                'has_tr390_note': (m.get('provider'), m.get('model')) in noted,
+            })
+        out[profile] = {'required': sorted(cats), 'lanes': lanes}
+    return out
+
+
 def _eligibility_census():
     """The resolver's eligibility census, or an explained absence.
 
@@ -141,6 +248,9 @@ def _eligibility_census():
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--json', action='store_true')
+    ap.add_argument('--profile-census', action='store_true',
+                    help='print the AC2 cheapest-20-per-profile evidence census '
+                         '(gaps without an explicit TR-390 unknown-by-design note)')
     ap.add_argument('--ratchet', action='store_true',
                     help='write today\'s defect count as the new baseline (may only decrease)')
     args = ap.parse_args()
@@ -162,6 +272,10 @@ def main():
     # the same tables (perf/bench rows), never re-asserted here.
     eligibility = _eligibility_census()
 
+    # TR-390: per-category measured-vs-estimate census. Derived from the
+    # tier rows' own provenance, never asserted.
+    cats_report = category_census()
+
     report = {
         'live_lane_rows': total_live,
         'usable': len(usable),
@@ -171,12 +285,37 @@ def main():
         'reasons': dict(reasons),
         'baseline_defects': (baseline or {}).get('defects'),
         'eligibility': eligibility,
+        'categories': cats_report['categories'],
+        'categories_total': cats_report['totals'],
     }
+    if cats_report.get('reason'):
+        report['categories_reason'] = cats_report['reason']
+
+    census = None
+    if args.profile_census:
+        census = profile_gap_census()
+        unexplained = [(pid, l) for pid, pc in census.items()
+                       for l in pc['lanes'] if l['missing'] and not l['has_tr390_note']]
+        if not args.json:
+            print('\n  profile census (AC2, TR-390 — 20 cheapest priced lanes per profile):')
+            print(f'      unexplained gaps (missing evidence, no TR-390 note): {len(unexplained)}')
+            for pid, pc in census.items():
+                gaps = [l for l in pc['lanes'] if l['missing']]
+                noted = [l for l in gaps if l['has_tr390_note']]
+                print(f'      {pid:<12} {len(gaps)}/{len(pc["lanes"])} lanes missing evidence; '
+                      f'{len(noted)} carry the TR-390 unknown-by-design note')
+                for l in gaps:
+                    if not l['has_tr390_note']:
+                        print(f'          UNEXPLAINED {l["provider"]:<14} {str(l["model"])[:38]} '
+                              f'missing: {",".join(l["missing"])}')
 
     if args.json:
-        print(json.dumps({**report,
-                          'defect_samples': defects[:25],
-                          'explained_samples': explained[:10]}, indent=1))
+        payload = {**report,
+                   'defect_samples': defects[:25],
+                   'explained_samples': explained[:10]}
+        if census is not None:
+            payload['profile_census'] = census
+        print(json.dumps(payload, indent=1))
     else:
         print('=' * 70)
         print('USABILITY GATE — presence is not usability')
@@ -189,6 +328,16 @@ def main():
             print('  eligibility (resolver verdicts, same names as the payload):')
             for k, v in sorted(eligibility['counts'].items()):
                 print(f'      {k:<28}{v:>6}')
+        if cats_report.get('categories'):
+            ct = cats_report['totals']
+            print('  categories (tier rows by provenance, TR-390): '
+                  f'measured {ct["measured"]}, estimate {ct["estimate"]}, '
+                  f'other {ct["other"]}, total {ct["total"]}')
+            for c in sorted(cats_report['categories']):
+                row = cats_report['categories'][c]
+                print(f'      {c:<16} measured {row["measured"]:>5}   '
+                      f'estimate {row["estimate"]:>5}   '
+                      f'other {row["other"]:>3}   total {row["total"]:>5}')
         for k, v in reasons.most_common():
             print(f'      {k:<28}{v:>6}')
         if defects:
