@@ -1478,6 +1478,19 @@ def apply_benchmark_categories():
     won the cell and the published measurement was inert. The same inversion
     applied to any internal n>=3 measurement below the market percentile.
     Returns the number of rows inserted.
+
+    LANE-SPELLING NORMALIZATION (TR-390, 2026-11-22). The insert used to
+    store the carried evidence under the BENCHMARK row's own model spelling,
+    so a lane whose registry row spells the same id with a different case
+    (`commandcode/moonshotai/Kimi-K3.1-Pro` next to benchmarks'
+    `moonshotai/kimi-k3.1-pro`) found NO tier row under its exact name and
+    counted as never-measured while the measurement sat in the registry one
+    casing away (measured: 4 live lanes in exactly this state). Evidence is
+    per MODEL — one row per (model, category, effort) — and the registry
+    itself treats case-folded-equal names as the same lane (the alias pass's
+    several-casings-of-one-lane rule), so the evidence now lands under
+    EVERY live lane spelling that matches case-insensitively, each carrying
+    the same source='bench' + source_ref='bench:<source>' provenance.
     """
     live = ("(SELECT DISTINCT lower(model) FROM models "
             "WHERE (valid_to IS NULL OR valid_to > CURRENT_DATE) "
@@ -1490,7 +1503,7 @@ def apply_benchmark_categories():
     before = con.execute("SELECT count(*) FROM model_perf").fetchone()[0]
     con.execute(f"""
         INSERT INTO model_perf (model, category, perf, source, source_ref, reasoning_effort)
-        SELECT b.model, b.cat, b.rel, 'bench', 'bench:' || b.src, b.effort FROM (
+        SELECT lane.model, b.cat, b.rel, 'bench', 'bench:' || b.src, b.effort FROM (
           SELECT model, replace(category, '-', '_') AS cat,
                  score / max_score AS rel, source AS src,
                  reasoning_effort AS effort,
@@ -1505,9 +1518,13 @@ def apply_benchmark_categories():
             AND replace(category, '-', '_') IN ({cats})
             {ex}
         ) AS b
+        JOIN (SELECT DISTINCT model, lower(model) AS lmodel FROM models
+              WHERE (valid_to IS NULL OR valid_to > CURRENT_DATE)
+                AND archive = false) lane
+          ON lane.lmodel = lower(b.model)
         WHERE b.rn = 1
           AND NOT EXISTS (SELECT 1 FROM model_perf p
-                          WHERE lower(p.model) = lower(b.model) AND p.category = b.cat
+                          WHERE lower(p.model) = lane.lmodel AND p.category = b.cat
                             AND p.reasoning_effort = b.effort)
     """).fetchall()
     return con.execute("SELECT count(*) FROM model_perf").fetchone()[0] - before
@@ -1609,6 +1626,26 @@ def seed_estimates():
     # fails 0 and up. Gaps are surfaced by router_gaps.py (perf/tiers dims).
     return n
 
+def _lane_spellings(lower_name: Any):
+    """Every live lane row whose model id matches case-insensitively, or None.
+
+    TR-390: the registry serves one weights id under several casings (one row
+    per provider lane), while benchmark evidence arrives under whichever
+    casing the probe wrote. Evidence is per MODEL, so a carried row must land
+    under every spelling a resolver's exact-match tier lookup can ask for.
+    None (never an empty list) means no live lane serves this id — callers
+    keep their legacy spelling for that orphan case. Liveness matches the
+    bridge's rule: not expired, not archived (disabled lanes share the
+    model's evidence; the gate filters them from its own census).
+    """
+    rows = con.execute(
+        "SELECT DISTINCT model FROM models WHERE lower(model)=? "
+        "AND (valid_to IS NULL OR valid_to > CURRENT_DATE) "
+        # TR-200: available_from filter dropped with the column.
+        "AND archive = false", [lower_name]).fetchall()
+    return [r[0] for r in rows] or None
+
+
 def apply_overlay():
     """Benchmark overlay: set new-category perfs from benchmark rel scores.
 
@@ -1621,6 +1658,10 @@ def apply_overlay():
        tool_use evidence silently discarded -> tier -1, excluded from chains.
     2. UPDATE when the existing estimate is neutral 0.50 (measured score wins
        over the neutral fill; non-neutral tag estimates are preserved).
+
+    TR-390: a fresh INSERT lands under every live lane spelling of the id
+    (case-insensitive), not only the benchmark row's own casing — see
+    _lane_spellings and the bridge's lane-spelling normalization.
     """
     n_ins = n_upd = n_decl = 0
 
@@ -1649,9 +1690,17 @@ def apply_overlay():
                           "WHERE lower(model)=? AND category=? AND reasoning_effort=?",
                           [model.lower(), cat, effort]).fetchone()
         if cur is None:
-            con.execute("INSERT INTO model_perf (model, category, perf, source, source_ref, reasoning_effort) "
-                        "VALUES (?,?,?,?,?,?)", [model, cat, rel, 'bench', f'bench:{bsrc}', effort])
-            n_ins += 1
+            # TR-390 lane-spelling normalization: evidence is per MODEL, and
+            # the registry carries one lane per casing of the id, so the new
+            # measurement lands under EVERY live lane spelling that matches
+            # case-insensitively (each row keeps the same bench provenance).
+            # The benchmark spelling itself stays the fallback for ids no
+            # lane serves (legacy orphan-row behaviour, unchanged).
+            lane_rows = _lane_spellings(model.lower())
+            for lane in (lane_rows if lane_rows is not None else [model]):
+                con.execute("INSERT INTO model_perf (model, category, perf, source, source_ref, reasoning_effort) "
+                            "VALUES (?,?,?,?,?,?)", [lane, cat, rel, 'bench', f'bench:{bsrc}', effort])
+                n_ins += 1
         elif _is_declaration(cur[2]):
             con.execute("UPDATE model_perf SET perf=?, source='bench', source_ref=? "
                         "WHERE lower(model)=? AND category=? AND reasoning_effort=?",
