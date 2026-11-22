@@ -1,25 +1,5 @@
 {
- "_comment": "TR-209 quota L2 limit config — read at QUERY time by scripts/router_quota_accounting.py. Windows match each plan's real cap cycle (z.ai weekly err-1310 cap; Go Plus monthly; GOAT monthly credit; the rest monthly). PAYG guards are accident brakes, not budgets. Written 2026-11-22 by the model-chain steward.",
+ "_comment": "TR-209 quota L2 limit config — read at QUERY time by scripts/router_quota_accounting.py (`router quota accounting`). This is CONFIGURATION, not state: the accounting itself is derived from the outcome ledger (data/state/outcomes.jsonl) and this file is never written back. window: rolling_5h | rolling_daily | daily | rolling (+ window_hours) | weekly | monthly. limit_usd: number, or null/absent = no limit (remaining stays NULL with the reason). Providers absent from 'providers' still appear in the view with spent only.",
  "default_window": "rolling_5h",
- "providers": {
-  "zai-glm":         {"window": "weekly",  "limit_usd": 42},
-  "zai-glm-default": {"window": "weekly",  "limit_usd": 42},
-  "opencode-go":     {"window": "monthly", "limit_usd": 40},
-  "opencode-go-2":   {"window": "monthly", "limit_usd": 40},
-  "commandcode":     {"window": "monthly", "limit_usd": 70},
-  "commandcode-2":   {"window": "monthly", "limit_usd": 70},
-  "synthetic":       {"window": "monthly", "limit_usd": 30},
-  "kimi-for-coding": {"window": "monthly", "limit_usd": 100},
-  "minimax":         {"window": "monthly", "limit_usd": 50},
-  "stepfun":         {"window": "monthly", "limit_usd": 29},
-  "openai-codex":    {"window": "monthly", "limit_usd": 100},
-  "clinepass":       {"window": "monthly", "limit_usd": 10},
-  "ollama-cloud":    {"window": "monthly", "limit_usd": 100},
-  "neuralwatt":      {"window": "monthly", "limit_usd": 100},
-  "morph":           {"window": "monthly", "limit_usd": 200},
-  "grok-build":      {"window": "monthly", "limit_usd": 25},
-  "xkiro":           {"window": "weekly",  "limit_usd": 50, "_note": "guard until billing truth settled"},
-  "fireworks":       {"window": "daily",   "limit_usd": 10, "_note": "PAYG accident brake"},
-  "deepseek":        {"window": "daily",   "limit_usd": 5,  "_note": "PAYG accident brake"}
- }
+ "providers": {}
 }
