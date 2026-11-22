@@ -4346,7 +4346,6 @@
 {"model": "inkling", "category": "ui_frontend", "score": 0.455284552846, "max_score": 1.0, "source": "market", "valid_from": "2026-11-17", "reasoning_effort": "default"}
 {"model": "inkling", "category": "ui_frontend", "score": 0.589285714286, "max_score": 1.0, "source": "market", "valid_from": "2026-11-17", "reasoning_effort": "default"}
 {"model": "inkling", "category": "ui_frontend", "score": 0.653631284916, "max_score": 1.0, "source": "market", "valid_from": "2026-11-17", "reasoning_effort": "default"}
-{"model": "inkling-2-small", "category": "artificial_analysis_intelligence", "score": 0.306, "max_score": 1.0, "source": "market", "valid_from": "2026-11-17", "reasoning_effort": "default"}
 {"model": "inkling-2-small:free", "category": "artificial_analysis_intelligence", "score": 0.306, "max_score": 1.0, "source": "market", "valid_from": "2026-11-17", "reasoning_effort": "default"}
 {"model": "inkling-small", "category": "artificial_analysis_agentic", "score": 0.235, "max_score": 1.0, "source": "market", "valid_from": "2026-11-17", "reasoning_effort": "default"}
 {"model": "inkling-small", "category": "artificial_analysis_coding", "score": 0.529, "max_score": 1.0, "source": "market", "valid_from": "2026-11-17", "reasoning_effort": "default"}
@@ -7789,7 +7788,6 @@
 {"model": "thinkingmachines/inkling", "category": "ui_frontend", "score": 0.455284552846, "max_score": 1.0, "source": "market", "valid_from": "2026-11-17", "reasoning_effort": "default"}
 {"model": "thinkingmachines/inkling", "category": "ui_frontend", "score": 0.589285714286, "max_score": 1.0, "source": "market", "valid_from": "2026-11-17", "reasoning_effort": "default"}
 {"model": "thinkingmachines/inkling", "category": "ui_frontend", "score": 0.653631284916, "max_score": 1.0, "source": "market", "valid_from": "2026-11-17", "reasoning_effort": "default"}
-{"model": "thinkingmachines/inkling-2-small", "category": "artificial_analysis_intelligence", "score": 0.306, "max_score": 1.0, "source": "market", "valid_from": "2026-11-17", "reasoning_effort": "default"}
 {"model": "thinkingmachines/inkling-2-small:free", "category": "artificial_analysis_intelligence", "score": 0.306, "max_score": 1.0, "source": "market", "valid_from": "2026-11-17", "reasoning_effort": "default"}
 {"model": "thinkingmachines/inkling-small", "category": "artificial_analysis_agentic", "score": 0.235, "max_score": 1.0, "source": "market", "valid_from": "2026-11-17", "reasoning_effort": "default"}
 {"model": "thinkingmachines/inkling-small", "category": "artificial_analysis_coding", "score": 0.529, "max_score": 1.0, "source": "market", "valid_from": "2026-11-17", "reasoning_effort": "default"}
@@ -8692,3 +8690,5 @@
 {"category": "long_horizon", "max_score": 1.0, "model": "hy4-flash", "reasoning_effort": "default", "score": 0.725806451613, "source": "market", "source_ref": "openrouter-models-api:2026-11-22:arena=models:source_category=gamedev:raw_elo=1202:rank=51:n=186:population=arena", "valid_from": "2026-11-22"}
 {"category": "ui_frontend", "max_score": 1.0, "model": "hy4-flash", "reasoning_effort": "default", "score": 0.811827956989, "source": "market", "source_ref": "openrouter-models-api:2026-11-22:arena=models:source_category=uicomponent:raw_elo=1262:rank=35:n=186:population=arena", "valid_from": "2026-11-22"}
 {"category": "ui_frontend", "max_score": 1.0, "model": "hy4-flash", "reasoning_effort": "default", "score": 0.688172043011, "source": "market", "source_ref": "openrouter-models-api:2026-11-22:arena=models:source_category=website:raw_elo=1227:rank=58:n=186:population=arena", "valid_from": "2026-11-22"}
+{"category": "artificial_analysis_intelligence", "max_score": 1.0, "model": "thinkingmachines/inkling-2-small", "reasoning_effort": "default", "score": 0.306, "source": "market", "source_ref": "openrouter-models-api:2026-11-22:index=intelligence_index:raw_score=30.6", "valid_from": "2026-11-22"}
+{"category": "artificial_analysis_intelligence", "max_score": 1.0, "model": "inkling-2-small", "reasoning_effort": "default", "score": 0.306, "source": "market", "source_ref": "openrouter-models-api:2026-11-22:index=intelligence_index:raw_score=30.6", "valid_from": "2026-11-22"}
