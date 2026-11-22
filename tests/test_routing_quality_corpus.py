@@ -610,7 +610,18 @@ CASES = [
             # against 299f07cc: 7 lanes left this pool (opus-5.5, command-a-plus,
             # mistral-large-2512, gpt-6-astra/luna/sol, grok-4.7), all xkiro-2,
             # zero gained, head unchanged.
-            'min_chain': 67,  # 2026-11-21 (2nd pin, daily tick): 68->67 — the 4 dead-id/catalog-removed lanes archived/disabled this tick (openrouter meta-llama/llama-3.2-1b-instruct probe-404, openrouter meituan/longcat-2.0 catalog-removed trusted-complete, openrouter dots-studio/dots-3-note-preview:free catalog-removed+STUCK, fireworks routers/glm-5p3-spot chat-400 deserialization dead-id) leave this pool; heads unchanged  #  # 2026-11-17: merged-tree pool after the cull execution + the 11-17 arrival/archival wave
+            # 2026-11-22: floor 67->66 — TR-390 (44f771a7) carried bench evidence to
+            # every lane spelling, and the measured live-probe tier for
+            # Qwen/Qwen3.8-27B (bench:live-probe-2026-09-27/T2-CODE, code_gen=0)
+            # replaced the alias-derived code_gen=2 (alias:qwen3.8-27b) on the
+            # commandcode and commandcode-2 lanes. Measured evidence outranks an
+            # alias guess, so both lanes correctly leave a code_gen>=2 pool. One
+            # lane joined in the same window (commandcode-2/gpt-6.1-sol, TR-246
+            # import b8b5bff3), so the net is -1. Attributed against fb22889d by
+            # resolving the case on both trees: left = commandcode/Qwen3.8-27B +
+            # commandcode-2/Qwen3.8-27B, joined = commandcode-2/gpt-6.1-sol,
+            # head unchanged (xkiro/openai/gpt-6-luna $0.116).
+            'min_chain': 66,  # 2026-11-21 (2nd pin, daily tick): 68->67 — the 4 dead-id/catalog-removed lanes archived/disabled this tick (openrouter meta-llama/llama-3.2-1b-instruct probe-404, openrouter meituan/longcat-2.0 catalog-removed trusted-complete, openrouter dots-studio/dots-3-note-preview:free catalog-removed+STUCK, fireworks routers/glm-5p3-spot chat-400 deserialization dead-id) leave this pool; heads unchanged  #  # 2026-11-17: merged-tree pool after the cull execution + the 11-17 arrival/archival wave
         },
     },
     {
