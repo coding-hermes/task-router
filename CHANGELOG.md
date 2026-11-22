@@ -6,6 +6,12 @@ curated from the git log, not generated).
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-22
+
+Minor bump from 0.2.0, promoted from the curated [Unreleased] section
+(RELEASE-2026-11-15-001, 2026-11-22). Surface promotion only — the cut owner
+gate remains `RELEASE-2026-10-22-001`; no tag, no Release.
+
 ### Added
 
 - **Quota remaining panel (TR-212)**: `/api/ui/quota` + a data-command-center

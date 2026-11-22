@@ -10,38 +10,55 @@ invokes the driver — it is never re-derived by hand. That row itself ran
 DRY-RUNS ONLY (no tag, no push, no Release); its evidence:
 `docs/releases/evidence/RELEASE-2026-11-03-001-evidence.md`.
 
-## 1. Current release surface: none
+Updated **2026-11-22** (RELEASE-2026-11-15-001): **version surface promoted
+to 0.3.0** — both pins bumped and the curated `[Unreleased]` CHANGELOG
+section promoted to `## [0.3.0] - 2026-11-22`, with a fresh empty
+`[Unreleased]` above it. This is surface promotion only, in prep for the due
+minor cut authorized by `RELEASE-2026-10-22-001`: **no tag, no tag push, no
+GitHub Release, no cut executed.**
+
+## 1. Current release surface: none (version surface PROMOTED 2026-11-22)
 
 Measured live on 2026-10-11 (not recalled from docs); re-verified 2026-11-09
-(read-only `git tag -l` and `git ls-remote --tags origin` — both empty):
+(read-only `git tag -l` and `git ls-remote --tags origin` — both empty);
+re-measured 2026-11-22 (RELEASE-2026-11-15-001, read-only commands):
 
-| Check | Command | Result |
+| Check | Command | Result (2026-11-22) |
 |---|---|---|
-| Tags | `git tag -l`; `gh api repos/coding-hermes/task-router/tags` | **zero tags, ever** (`[]`) |
+| Tags | `git tag -l`; `git ls-remote --tags origin` | **zero tags, ever** (both empty) |
 | Releases | `gh release list` | **zero releases** |
-| In-flight CI | `gh run list --limit 6` | HEAD run `38178630630` in_progress; HEAD~1 `38174792603` success; last failure `38135792741` at 2026-10-11T11:30Z |
-| Version pins | `pyproject.toml`, `task_router/__init__.py` | both `0.2.0` (0.2.0 shipped UNRELEASED — no tag was ever cut for it) |
+| CI on main | `gh run list --limit 3` | 3/3 recent main-push runs completed/success (pre-promotion surface, HEAD `e03bfce0`) |
+| Version pins | `pyproject.toml`, `task_router/__init__.py`, newest CHANGELOG heading | all `0.3.0` — promoted 2026-11-22 (RELEASE-2026-11-15-001) |
+
+History: the pins were `0.2.0` at every prior measurement (2026-10-11 and
+2026-11-09 — `0.2.0` shipped UNRELEASED in-tree at `f04ac474`, no tag was
+ever cut for it); the 2026-11-22 promotion is the first time the surface
+matches the proposed cut version.
 
 Conclusion of the v0.2.0 readiness report (`v0.2.0-readiness.md` §7: "tag
 `v0.2.0`, push the tag, dispatch CI…") was never executed: the release
 handoff lapsed after the 2026-09-24 merge. The repo therefore has a release
 *procedure* on paper and zero release *artifacts*.
 
-## 2. First-cut decision: BLOCKED / NOT AUTHORIZED
+## 2. First-cut decision: authorized (RELEASE-2026-10-22-001) — NOT EXECUTED
 
-No owner authorization for a cut exists. This row deliberately does NOT
-invent one. Before any release action, the owner must:
+The owner gate that blocked the 2026-10-11 sweep has since moved:
+`RELEASE-2026-10-22-001` owns the first-ever-publication decision and names
+a default (cut `v0.3.0` from the promoted main SHA) — it is no longer a
+standing NO-GO, so the due minor cut is authorized pending its own gates.
+With the 2026-11-22 promotion, step 2 of the old checklist is done: the
+version is pinned (`0.3.0` — both pins AND the newest CHANGELOG heading),
+which the driver enforces mechanically. What remains before a cut:
 
-1. **Authorize or decline the cut** (explicit statement, not silence).
-2. **Pick the version.** `CHANGELOG.md` currently has a populated
-   `[Unreleased]` section (TR-299 verified-outcome feedback leg, SCHED-GAP-1713
-   per-lane ingress). By this repo's own semver rationale
-   (`v0.2.0-readiness.md` §1 — pre-1.0, 0.y is the minor axis, feature work
-   ⇒ MINOR), the natural candidate is `0.3.0`, decided by the owner.
+1. ~~**Authorize or decline the cut**~~ — RELEASE-2026-10-22-001 names the
+   due-minor decision (§4 still records any explicit owner statement at
+   execute time).
+2. ~~**Pick the version.**~~ DONE — `0.3.0`, promoted 2026-11-22
+   (RELEASE-2026-11-15-001).
 3. **Pick the tag baseline SHA** — normally `origin/main` HEAD at cut time,
    with CI green on that exact SHA.
 
-Until that decision exists: **NO tag, NO GitHub Release, no version bump.**
+Until the remaining gates are met: **no tag, NO GitHub Release.**
 The driver enforces this shape mechanically: `cut --execute` is the only
 publishing command in the repo, it refuses every unsafe preflight, and
 nothing in CI or the Makefile invokes it (§3.4).
@@ -80,13 +97,14 @@ environment failure (missing backend/tool). Run it inside the venv
 ### 3.2 Pre-cut procedure (driver invocation — replaces the old manual checklist)
 
 ```bash
-# 0. Owner authorization + version + baseline SHA (§2) — still required.
-#    The driver REFUSES until the promotion is done; the sed commands below
-#    remain the promotion mechanism (two pins, no other location):
-#      rename "## [Unreleased]" to "## [<version>] - <date>" in CHANGELOG.md
-#      and start a fresh empty [Unreleased]; then bump both pins:
-sed -i 's/^version = "0.2.0"/version = "<version>"/' pyproject.toml
-sed -i 's/^__version__ = "0.2.0"/__version__ = "<version>"/' task_router/__init__.py
+# 0. Owner authorization (RELEASE-2026-10-22-001) + version + baseline SHA.
+#    The version promotion this step used to require is DONE (2026-11-22,
+#    RELEASE-2026-11-15-001): both pins AND the newest CHANGELOG heading are
+#    `0.3.0`, so the pin checks below pass unchanged. A future cut repeats
+#    the same promotion mechanism (rename the freshly-empty [Unreleased],
+#    bump both pins — two pins, no other location).
+#      sed -i 's/^version = "0.3.0"/version = "<version>"/' pyproject.toml
+#      sed -i 's/^__version__ = "0.3.0"/__version__ = "<version>"/' task_router/__init__.py
 
 # 1. Preflight — every refusal above, as executed read-only commands:
 make release-check TAG=v0.3.0 BASE=$(git rev-parse origin/main)
@@ -170,14 +188,23 @@ this file or its successor at cut time):
 2. CHANGELOG `[Unreleased]` promoted + version bumped in
    `pyproject.toml` AND `task_router/__init__.py` — mechanically proven by
    `make release-check TAG=v<version>` exiting 0 (the driver refuses
-   `[Unreleased]` and any pin mismatch).
+   `[Unreleased]` and any pin mismatch). **DONE 2026-11-22**
+   (RELEASE-2026-11-15-001): the driver's full `check --tag v0.3.0
+   --base origin/main` exits 0 in a clean detached verification worktree at
+   the promoted SHA. The identical invocation in THIS shared checkout
+   refuses — on the checkout's three pre-existing foreign entries (two
+   untracked `data/quota_limits.json.bak*` files and the foreman-owned
+   dirty `.gitreins/tasks.yaml` row update), not on the promotion surface.
 3. CI green on the exact tagged SHA (a `workflow_dispatch` run on that ref).
 4. Tag pushed to origin.
 5. `gh release view` shows the release with notes + assets.
 6. Fresh-venv consumer smoke passes (§3.5 post-cut).
 
-Anything less = NO CUT. This row's verdict: **NO CUT (blocked on owner
-decision; zero prior releases; CI in flight at time of check).**
+Anything less = NO CUT. Verdict as of 2026-11-22 (RELEASE-2026-11-15-001):
+**version surface PROMOTED, cut NOT executed** — gate 2 is the only one
+met so far (§ above); CI-on-promoted-SHA, tag push, Release and consumer
+smoke remain unexecuted, and zero tags / zero releases still hold (§1
+measurement of 2026-11-22).
 
 ## 5. Evidence & cross-references
 
