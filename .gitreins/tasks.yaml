@@ -1833,3 +1833,13 @@ tasks:
     down; tests cover the new report and derivation
   status: in_progress
   created_at: '2026-11-22T07:09:17.611115+00:00'
+- id: TR-294
+  title: Deploy and prove the classifier work + measured ordering across AC3/AC4/AC5
+    census legs
+  criteria:
+  - 'AC3: proxy rows with empty complexity_sig below 20% over 200+ proxy rows measured
+    on the live ledger; AC4: call_meta present on classifier rows naming thinking
+    + structured rungs; AC5: 400-resolve binding census re-run against the live proxy
+    with the rate recorded on TR-289'
+  status: in_progress
+  created_at: '2026-11-22T09:49:36.348453+00:00'
