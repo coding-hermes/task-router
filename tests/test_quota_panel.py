@@ -79,7 +79,12 @@ def _panel(tmp_path, quota_rows, ledger_rows=None, limits=None, cache=None,
            now=NOW, scan_limit=None, query=None):
     qt = _quota_table(tmp_path, quota_rows)
     led = _ledger(tmp_path, ledger_rows or [])
-    lim = _limits_file(tmp_path, limits or {}) if limits is not None else None
+    # ALWAYS pin the limits file too (empty when the test sets none): the
+    # ambient data/quota_limits.json is operator state and must never leak
+    # into a hermetic view — a new provider entry there changed summary
+    # counts fleet-wide (2026-11-22: the morph monthly guard broke two
+    # tests that relied on the ambient file being empty).
+    lim = _limits_file(tmp_path, limits or {})
     # ALWAYS pin the readback cache — the ambient ROUTER_STATE_DIR cache (a
     # real poller run on this box) must never leak into a hermetic test
     cache_p = tmp_path / "no-cache-here.json"

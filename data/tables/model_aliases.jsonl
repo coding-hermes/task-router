@@ -272,3 +272,6 @@
 {"model": "openai/gpt-6.2-astra-pro:batch", "inherits": "gpt-6.2-astra-pro:batch", "note": "2026-11-18: prefixed :batch transport variant; spawn excludes batch lanes"}
 {"model": "Qwen/Qwen4-Max", "inherits": "qwen4-max", "note": "2026-11-20 arrival-day gate: vendor-org namespace mirror (commandcode); sticker 1.50/4.50 == Alibaba official launch == qwen4-max base; deepinfra 1.413/4.24 + llmgateway 1.45/4.25 corroborate the ratio 1.0x"}
 {"model": "google/gemini-4-neon:batch", "inherits": "google/gemini-4-neon", "note": "2026-11-20 arrival: :batch = async transport variant of the same weights (batch price 1.5/7.5 = 50% of the 3/15 standard batch discount); spawn excludes batch lanes (batch-async-only 2026-11-16) — tier inheritance for the usability-gate lane-level account only"}
+{"model": "moonshotai/kimi-k3.1-pro", "inherits": "kimi-k3.1-pro", "note": "same vendor SKU resold (openrouter); sticker 2.00 corroborates opencode-go 2.32 band"}
+{"model": "hf:moonshotai/Kimi-K3.1-Pro", "inherits": "kimi-k3.1-pro", "note": "synthetic hf: explicit id of the same weights; sticker 2.00 == openrouter 2.00"}
+{"model": "stepfun/step-3.7-flash", "inherits": "step-3.7-flash", "note": "same vendor SKU resold (openrouter); openrouter 0.20 vs vendor-direct 0.0164 (margin, same weights)"}

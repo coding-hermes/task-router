@@ -616,8 +616,17 @@ def account_provider(provider: Any, rows: Any, cfg: Any, now_ts: Any, default_wi
             block['remaining_reason'] = None
     if block['remaining_usd'] is not None and resets is not None \
             and resets > now:
+        # 2026-11-22 (determinism defect, daily tick): the headroom slot fed the
+        # spawn ORDER demote term, and (resets - now) decays every second — two
+        # identical resolves seconds apart produced different chains
+        # (morph-dsv41flash/-1017/glm53flash were the live witnesses: the only
+        # provider with a quota_limits entry). Quantize the denominator to whole
+        # minutes so the ordering term is stable within a resolve-compare window;
+        # reported resets_at / time_to_reset stay exact. max(60s) keeps tiny
+        # windows conservative (understated headroom demotes, never promotes).
+        qsecs = max(60.0, round((resets - now) / 60.0) * 60.0)
         block['headroom_usd_per_s'] = round(
-            block['remaining_usd'] / (resets - now), 12)
+            block['remaining_usd'] / qsecs, 12)
     return block
 
 

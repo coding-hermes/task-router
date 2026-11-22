@@ -744,7 +744,11 @@ CASES = [
             # 2026-11-08: floor 153->137 — XK-404-001-R3 archival removed the
             # dead xkiro :free lanes (+ mercury trio) from this pool (measured).
             # from every tool_use>=0 band until a qualifying sample lands.
-            'must_include': [['clinepass', 'deepseek-v4-flash']],
+            # 2026-11-22 (daily tick): must_include clinepass/deepseek-v4-flash REMOVED —
+            # plan-inclusion loss (three-form sweep: plan rail 404, credits rail 402); the
+            # lane is disabled with price NULL and the clinepass plan list re-pinned.
+            # Re-pin a named lane when a plan-rail-served deepseek SKU is evidenced again.
+            'must_include': [],
             'must_exclude': [['clinepass', 'dots-3-note-preview:free']],
             # 2026-11-07: floor 192->153 — the 951-row landing raised the shared
             # tool_use scale, so every lane whose tool_use tier fell below the
@@ -795,7 +799,11 @@ CASES = [
             # The head is unchanged (xkiro/cohere/command-r7b-12-2024, $0.0375),
             # so the TR-161 "resolves CHEAP" doctrine this case exists to pin
             # still holds; only the pool floor moves.
-            'min_chain': 466,  # 2026-11-21 (2nd pin, daily tick): 468->466 — the 4 dead-id/catalog-removed lanes archived/disabled this tick (openrouter meta-llama/llama-3.2-1b-instruct probe-404, openrouter meituan/longcat-2.0 catalog-removed trusted-complete, openrouter dots-studio/dots-3-note-preview:free catalog-removed+STUCK, fireworks routers/glm-5p3-spot chat-400 deserialization dead-id) leave this pool; heads unchanged  #  # 2026-11-21: 472->468 — the 4 dead-id/catalog-absent archives (grok-build-0.1 x2, openrouter cohere/north-mini-code:free + thinkingmachines/inkling-2-small:free) leave the eligible pool; head unchanged  # 2026-11-21: 500->472 — neuralwatt lanes disabled (owner cancelled the provider 2026-11-16; live probe 402 overage cap, key valid); head unchanged  # 2026-11-20: 507->500 — the tree now carries the 11-18 fireworks dead-id disable wave (23 lanes leave the pool) plus this tick's arrival-day filings (gpt-6.2 family, gemini-4-neon + :batch, qwen4-max mirror seats enter measured); head unchanged
+            # 2026-11-22 (daily tick): 466->456 — the 13 clinepass lanes disabled on the
+            # plan-rail sweep (6 paid + 7 :free; measured/paid members left this pool) plus
+            # the 2 expired-archive completions (opencode-go-2/glm-5.2, openrouter
+            # tencent/hy3-preview); head unchanged (xkiro nemotron-3-nano-omni).
+            'min_chain': 456,  # 2026-11-21 (2nd pin, daily tick): 468->466 — the 4 dead-id/catalog-removed lanes archived/disabled this tick (openrouter meta-llama/llama-3.2-1b-instruct probe-404, openrouter meituan/longcat-2.0 catalog-removed trusted-complete, openrouter dots-studio/dots-3-note-preview:free catalog-removed+STUCK, fireworks routers/glm-5p3-spot chat-400 deserialization dead-id) leave this pool; heads unchanged  #  # 2026-11-21: 472->468 — the 4 dead-id/catalog-absent archives (grok-build-0.1 x2, openrouter cohere/north-mini-code:free + thinkingmachines/inkling-2-small:free) leave the eligible pool; head unchanged  # 2026-11-21: 500->472 — neuralwatt lanes disabled (owner cancelled the provider 2026-11-16; live probe 402 overage cap, key valid); head unchanged  # 2026-11-20: 507->500 — the tree now carries the 11-18 fireworks dead-id disable wave (23 lanes leave the pool) plus this tick's arrival-day filings (gpt-6.2 family, gemini-4-neon + :batch, qwen4-max mirror seats enter measured); head unchanged
         },
     },
     {

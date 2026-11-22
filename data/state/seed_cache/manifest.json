@@ -174,8 +174,8 @@
    "recheck"
   ]
  },
- "derivation_fingerprint": "d3eee51f88aa85aa246c88140e7410c21e261bc72f26850ff61737a2dae03076",
- "derived_at": "2026-11-21T12:30:34+00:00",
+ "derivation_fingerprint": "8505e3b90c90fc763a152271e819a813a24a1de30d6a4777159b02902a49e021",
+ "derived_at": "2026-11-22T12:36:22+00:00",
  "input_files": [
   "archetypes.jsonl",
   "benchmarks.jsonl",
@@ -212,9 +212,9 @@
   "type_hint_baseline.jsonl",
   "unmeasured_categories.jsonl"
  ],
- "registry_generated_at": "2026-11-21T12:30:33+00:00",
- "registry_seed_source_hash": "3215f8fdb5e5f006d7262314941a0f9042e504b13c6eccdd4ef70755aec75c6b",
- "source_hash": "7b97036e16b48fb64f079b4c985670bb39e67c30218082cca22147c8e6f79068",
+ "registry_generated_at": "2026-11-22T12:36:20+00:00",
+ "registry_seed_source_hash": "1d4cd5a9e288b476d6175549cb4037ab1e7bfee5cb741acc76814f5d6e966897",
+ "source_hash": "1d4cd5a9e288b476d6175549cb4037ab1e7bfee5cb741acc76814f5d6e966897",
  "tables": [
   "archetypes",
   "benchmarks",
