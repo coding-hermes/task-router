@@ -1822,3 +1822,14 @@ tasks:
   status: complete
   created_at: '2026-11-20T10:32:28.527205+00:00'
   completed_at: '2026-11-22T05:48:40.625516+00:00'
+- id: TR-390
+  title: 'Backfill the capability matrix: measured evidence and explicit unknown-by-design
+    notes'
+  criteria:
+  - router_usability_gate --json exits 0 reporting measured vs estimate counts for
+    all 24 categories; every defect lane with existing bench/perf evidence gains tier
+    rows derived from that evidence; lanes with no evidence carry an explicit note
+    naming what was inspected; defect count strictly decreases and the baseline ratchets
+    down; tests cover the new report and derivation
+  status: in_progress
+  created_at: '2026-11-22T07:09:17.611115+00:00'
