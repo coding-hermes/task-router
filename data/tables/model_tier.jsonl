@@ -6185,10 +6185,8 @@
 {"model": "space-bunny-free", "category": "debug", "perf": 0.75, "tier": 0, "tier_source": "estimate", "source_ref": "CATEGORY_ESTIMATES", "reasoning_effort": "default"}
 {"model": "space-bunny-free", "category": "delegation", "perf": 0.5, "tier": -2, "tier_source": "estimate", "source_ref": "CATEGORY_ESTIMATES", "reasoning_effort": "default"}
 {"model": "space-bunny-free", "category": "e2e_vision", "perf": 0.55, "tier": 1, "tier_source": "estimate", "source_ref": "CATEGORY_ESTIMATES", "reasoning_effort": "default"}
-{"model": "space-bunny-free", "category": "guard", "perf": 0.86, "tier": -2, "tier_source": "estimate", "source_ref": "QUALITY_ESTIMATES", "reasoning_effort": "default"}
 {"model": "space-bunny-free", "category": "long_doc", "perf": 0.78, "tier": -3, "tier_source": "estimate", "source_ref": "CATEGORY_ESTIMATES", "reasoning_effort": "default"}
 {"model": "space-bunny-free", "category": "long_horizon", "perf": 0.85, "tier": -3, "tier_source": "estimate", "source_ref": "CATEGORY_ESTIMATES", "reasoning_effort": "default"}
-{"model": "space-bunny-free", "category": "mock", "perf": 0.84, "tier": -2, "tier_source": "estimate", "source_ref": "QUALITY_ESTIMATES", "reasoning_effort": "default"}
 {"model": "space-bunny-free", "category": "reasoning", "perf": 0.8, "tier": -3, "tier_source": "estimate", "source_ref": "CATEGORY_ESTIMATES", "reasoning_effort": "default"}
 {"model": "space-bunny-free", "category": "refactor", "perf": 0.75, "tier": 4, "tier_source": "estimate", "source_ref": "CATEGORY_ESTIMATES", "reasoning_effort": "default"}
 {"model": "space-bunny-free", "category": "review", "perf": 0.72, "tier": -4, "tier_source": "estimate", "source_ref": "CATEGORY_ESTIMATES", "reasoning_effort": "default"}
