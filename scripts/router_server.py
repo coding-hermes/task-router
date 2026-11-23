@@ -2215,6 +2215,16 @@ def _classify_hop_failure(exc: Any=None, status: Any=None, unservable: bool=Fals
     if _is_router_generated(body_text):
         return ("none-generated",
                 f"upstream HTTP {code} (router-generated refusal)")
+    # TR-360: mirror of the TR-340 preflight above, one hop later. A 429 whose
+    # body names the GATEWAY's own concurrency cap ('Too many concurrent runs
+    # (max 10)') is the shared gateway refusing work the ROUTER saturated —
+    # never provider health. Classified out of the taxonomy here so the code
+    # and its detail demote nothing (see _HOP_GATEWAY_CONCURRENCY); the
+    # circuit-side mirror lives at the _is_router_generated caller in
+    # _proxy_record.
+    if _is_gateway_concurrency(body_text):
+        return ("gateway-concurrency",
+                f"upstream HTTP {code} (gateway concurrency cap)")
     tax = router_hop_taxonomy.code_from_status(code, body_text)
     if tax is not None:
         return tax, f"upstream HTTP {code}: {body_text[:160]}" if body_text \
@@ -4318,6 +4328,50 @@ def _is_router_generated(reason: Any) -> bool:
     return any(m in r for m in _ROUTER_GENERATED_MARKERS)
 
 
+#: TR-360: the GATEWAY's own concurrency limiter (scheduler max-concurrent)
+#: answers an oversaturated gateway with HTTP 429 and a body that names the
+#: gateway cap — measured live 2026-11: the scheduler saturated the gateway
+#: (max-concurrent 10 == gateway cap 10) and FOUR provider breakers opened
+#: while every provider was healthy. 'Too many concurrent runs (max 10)' is
+#: a statement about THIS router's own shared gateway, never evidence about
+#: the (provider, model) pair the ladder happened to be trying — the same
+#: doctrine as _ROUTER_GENERATED_MARKERS (TR-340) one hop later. Matched by
+#: _is_gateway_concurrency (normalised: case + whitespace runs), so a REAL
+#: provider-side 429 with any other body still records exactly as before.
+_GATEWAY_CONCURRENCY_MARKER = 'too many concurrent runs'
+
+#: TR-360: the pair-scoped hop code _classify_hop_failure returns when the
+#: upstream BODY (or the recorded reason) is the gateway's own concurrency
+#: limiter. Not in HOP_FAILURE_REASONS and not in the shared taxonomy's
+#: BLAST_RADIUS: it demotes neither a pair nor a provider — the same shape
+#: as the TR-340 'none-generated' classification arm.
+_HOP_GATEWAY_CONCURRENCY = 'gateway-concurrency'
+
+
+def _is_gateway_concurrency(reason: Any) -> bool:
+    """True when the failure TEXT is the gateway's own concurrency cap (TR-360).
+
+    A 'Too many concurrent runs (max 10)' 429 is the shared gateway rejecting
+    a request because the ROUTER saturated it — its blast radius is the
+    gateway's slot pool, not the provider. Recording it as an api_down/
+    429-capacity (provider, model) event self-poisoned the circuit store.
+    Normalised before matching: case and whitespace runs (the body can be
+    re-wrapped on the way through the envelope) never change the verdict, and
+    nothing else is exempted — a provider-side 429 with a different body must
+    still open its pair.
+
+    Fail-open and never raises: a classification predicate must not be able to
+    fail a served request (see the module's fail-open contract).
+    """
+    try:
+        if not reason:
+            return False
+        r = reason if isinstance(reason, str) else str(reason)
+        return _GATEWAY_CONCURRENCY_MARKER in ' '.join(r.lower().split())
+    except Exception:  # noqa: BLE001 -- a predicate must never raise
+        return False
+
+
 #: Cache for the shared kind -> circuit-class table (router_circuit's
 #: FAILURE_CLASS_MAP). A list-box (rebound in place, never reassigned) so the
 #: hot path reads it without taking a module lock -- the same pattern the
@@ -4409,6 +4463,15 @@ def _demote_on_taxonomy(provider: Any, model: Any, code: Any, detail: str='') ->
         _p = (provider or '').strip()
         _m = (model or '').strip()
         if not _p or not _m or _p.lower() in _NOT_A_LANE or _m.lower() in _NOT_A_LANE:
+            return
+        # TR-360: the gateway's own concurrency cap demotes NOTHING. The
+        # classify preflight hands this path _HOP_GATEWAY_CONCURRENCY, and a
+        # legacy/taxonomy path can still carry the raw 'Too many concurrent
+        # runs' text inside the detail -- both arms return here instead of
+        # shelling out to router_circuit.py. The ledger row is still written;
+        # only the circuit is left alone (same contract as the TR-340 guard).
+        if (_HOP_GATEWAY_CONCURRENCY == str(code or '').strip().lower()
+                or _is_gateway_concurrency(f'{code or ""} {detail or ""}')):
             return
         # TR-346: the provider's OWN reset instant, parsed from the FULL detail
         # (the reason passed to the circuit is truncated to 200 chars, and the
@@ -4654,6 +4717,16 @@ def _proxy_record(provider: Any, model: Any, ok: Any, requirements: Any, reason:
             # routing/policy outcome says nothing about the provider, so it opens
             # nothing. The ledger row (above) is still written -- only the circuit
             # is left alone.
+            return
+        if _is_gateway_concurrency(reason):
+            # TR-360: the GATEWAY's own concurrency limiter is not provider
+            # health either. The scheduler saturated the shared gateway
+            # ('Too many concurrent runs (max 10)') and every saturated pair's
+            # 429 was recorded as api_down/quota events on healthy (provider,
+            # model) pairs, until FOUR provider-level breakers opened. As with
+            # TR-340 the ledger row above is still written; the circuit hears
+            # nothing. A 429 with any OTHER body is NOT matched here and still
+            # records exactly as before.
             return
         if _p.lower() in _NOT_A_LANE or _m.lower() in _NOT_A_LANE:
             # TR-182: a router-internal outcome is NOT a provider event. The no-hops row
