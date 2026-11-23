@@ -1,6 +1,13 @@
 #!/usr/bin/env bash
 # Pre-push gate: refuse to land on a branch whose CI is red.
 #
+# Hook wiring (TR-407): scripts/install-hooks.sh sets core.hooksPath=.githooks,
+# so BOTH hooks here are live. Live order on every commit: .githooks/pre-commit
+# runs scripts/decline_contract.py --staged then scripts/model_data_commit_gate.py
+# --staged (the pre-commit gate). This pre-push hook runs scripts/ci_gate_check.py
+# (CI-truth gate), scripts/board_commit_boundary_gate.py (TR-251), and
+# scripts/null_debt_invariants.py --inv4-diff (TR-362 INV4).
+#
 # Installed by scripts/install-hooks.sh (sets core.hooksPath). Git passes the
 # refs being pushed on stdin as: <local ref> <local sha> <remote ref> <remote sha>
 #
@@ -66,8 +73,10 @@ while read -r local_ref local_sha remote_ref remote_sha; do
   # data/null_reasons.jsonl (reason from the AC2 REASONS vocabulary) or
   # disabled=true with a non-empty disabled_reason. Whole-tree INV4 (the
   # same script without flags) stays report-only because ~1900 pre-existing
-  # lanes predate the gate; this diff mode is the enforcement. NOTE: this
-  # repo has NO pre-commit hook, so this pre-push hook IS the commit gate.
+  # lanes predate the gate; this diff mode is the enforcement. NOTE: the
+  # pre-commit half of this gate is .githooks/pre-commit (decline_contract +
+  # model_data_commit_gate --staged); this pre-push hook adds the CI-truth,
+  # TR-251 boundary and TR-362 INV4 layers on gated-branch pushes.
   # Escape hatch: ALLOW_NULL_DEBT=1 (prints a warning; no gate bypasses
   # silently).
   if [ "${ALLOW_NULL_DEBT:-0}" = "1" ]; then
