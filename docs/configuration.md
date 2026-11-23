@@ -319,6 +319,11 @@ The bus→router door: `scripts/router_ingress.py`. Contract and evidence in
 | `ROUTER_CACHE_MAX_WORKERS` | `router_data_cache.py` | TR-277: ceiling on concurrent background reload workers (AC3 bounded) | `2` |
 | `ROUTER_CACHE_FIRST_LOAD_WAIT_S` | `router_data_cache.py` | TR-277: how long a caller waits on another caller's in-flight first load before falling through to its own (fail-open) parse | `10.0` |
 | `ROUTER_CACHE_COPY_MODE` | `router_spawn.py` | TR-277: `deepcopy` hands every caller a private deep copy of cached tables (defensive mode; default `share` serves one parsed object graph — consumers treat rows as read-only) | `share` |
+| `ROUTER_BG_POLL_S` | `router_background_jobs.py` | TR-366: poll interval of the in-process outcome loops (how often due-ness is re-checked). The loops are mtime-driven, so this bounds only reaction latency, never correctness | `30.0` |
+| `ROUTER_IMPORT_PERIOD_S` | `router_background_jobs.py` | TR-366: the TR-116 outcome-import due period — the sweep fires when the outcome store (or, after the first successful sweep, the `.imported` marker) is older than this | `3600.0` |
+| `ROUTER_AVERAGES_PERIOD_S` | `router_background_jobs.py` | TR-366: the TR-065 averages-refresh due period — the refresh fires when `outcomes-averages.jsonl` is missing, older than this, or older than the outcome store (make rule) | `3600.0` |
+| `ROUTER_IMPORT_RERUN_FLOOR_S` | `router_background_jobs.py` | TR-366: minimum spacing between import sweeps that add no rows (a sweep that leaves the store mtime unmoved cannot pin the loop); mtime still decides catch-up across restarts | `900.0` |
+| `ROUTER_BG_ENABLED` | `router_background_jobs.py` | TR-366: set to `0` to boot the server without the in-process loops (hermetic tests, debugging); any other value keeps them on. Fail-open: a failed start is logged and the server still serves | `1` (on) |
 
 ---
 

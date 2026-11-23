@@ -50,6 +50,7 @@ import lifecycle_gate
 import router_data_cache
 import router_decision
 import router_drain
+import router_background_jobs
 import router_health
 import router_hop_taxonomy
 import router_models_browser
@@ -6201,11 +6202,27 @@ def main(argv: Any=None) -> bool | int:
         flush=True,
     )
     serving, previous_signals = _install_graceful_signals(server)
+    # TR-366: the serving process owns the outcome loops. The averages
+    # refresh + the TR-116 driver sweep run on a background thread whose
+    # due-ness derives from file mtimes (a restart never resets the clock);
+    # failures surface in /health. Never a boot blocker: a failed start is
+    # logged and the server still serves.
+    app.background_jobs = None
+    try:
+        app.background_jobs = router_background_jobs.start_default()
+        print(json.dumps({'event': 'background_jobs',
+                          'started': app.background_jobs is not None}),
+              flush=True)
+    except Exception as exc:  # noqa: BLE001 — fail-open, serving comes first
+        print(f'router_server: background jobs failed to start ({exc})',
+              file=sys.stderr, flush=True)
     try:
         serving.set()
         server.serve_forever()
     finally:
         # Also close readiness if serve_forever exits through an unexpected exception.
+        if app.background_jobs is not None:
+            app.background_jobs.stop()
         app.lifecycle.begin_drain()
         # Stop accepting before waiting. Handler threads are daemonized and
         # block_on_close=False, so this wait is explicitly bounded rather than

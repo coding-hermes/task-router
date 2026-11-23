@@ -504,6 +504,27 @@ def health(mode: str="read-only", data_dir: Any=None):
     except Exception as exc:  # noqa: BLE001
         out["coverage"] = {"basis": "price-first", "coverage": 0.0,
                            "error": f"coverage block failed: {exc}"[:200]}
+    # TR-366: the in-process outcome loops (averages refresh + TR-116 driver
+    # import). Every run reports last_run/duration_s/rows/error here — a
+    # failed refresh SURFACES (the killed crons could only die silently).
+    # Fail-open like every other block: a process that never started the
+    # loops reports enabled=False, never a 500.
+    try:
+        import router_background_jobs
+        _bg = router_background_jobs.health_snapshot()
+    except Exception as exc:  # noqa: BLE001
+        _bg = {"enabled": False, "error": str(exc)[:200]}
+    out["background_jobs"] = _bg
+    # The AC names the fields directly on an averages block: hoist the
+    # averages-refresh job report to the top level so
+    # `curl .../health | jq .averages` answers last_run/duration_s/rows/error
+    # without digging through background_jobs.
+    if isinstance(_bg, dict) and isinstance(_bg.get("averages"), dict):
+        out["averages"] = _bg["averages"]
+    elif isinstance(_bg, dict):
+        out["averages"] = {"enabled": False,
+                           "reason": _bg.get("reason", "loops not started"),
+                           **({"error": _bg["error"]} if _bg.get("error") else {})}
     return out
 
 
