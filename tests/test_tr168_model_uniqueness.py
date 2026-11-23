@@ -667,6 +667,21 @@ POST_DEDUPE_ADDITIONS = {
     # commandcode twin of the gpt-6.1-sol import. Named here per this test's
     # contract — a new lane is allowed only when the addition ledger names it.
     ("commandcode-2", "gpt-6.1-sol"): "TR-246 2026-11-20 — gpt-6.1-sol on the commandcode-2 carrier (keyless catalog probe HTTP 200, ctx 1,050,000, catalog price null = PAYG pass-through); sticker 2.0/10.0 from models.dev provenance, mirroring the commandcode twin (TR-217)",
+    # 2026-11-23 arrivals sweep (cron data import; completed as b5d444ba + the
+    # b9960a7b half-commit): 12 carrier/catalog arrivals, all stamped
+    # (no-sample-yet perf + unknown-by-design capability) in null_reasons.jsonl.
+    ("ollama-cloud", "hy4"): "2026-11-23 arrivals sweep — ollama-cloud carrier arrival, models.dev sticker 0.834/2.501 (normalized_price null: not-published-by-provider), ctx 1,048,576, vision+thinking, live census stamp",
+    ("opencode-go", "longcat-2.5"): "2026-11-23 arrivals sweep — models.dev catalog arrival on the opencode-go usage-bucket plan, sub-bucket blended est 0.336; TR-362-disabled at arrival (no measured base for the longcat-2.5 generation, serving unverified)",
+    ("xkiro", "google/gemini-4-argon"): "2026-11-23 arrivals sweep — gemini-4 generation mirror on the xkiro carrier catalog (plan-covered lane)",
+    ("xkiro", "google/gemini-4-carbon"): "2026-11-23 arrivals sweep — gemini-4 generation mirror on the xkiro carrier catalog (plan-covered lane)",
+    ("xkiro", "google/gemini-4-hydrogen"): "2026-11-23 arrivals sweep — gemini-4 generation mirror on the xkiro carrier catalog (plan-covered lane)",
+    ("xkiro", "openai/gpt-6.2-astra"): "2026-11-23 arrivals sweep — gpt-6.2 generation mirror on the xkiro carrier catalog (plan-covered lane)",
+    ("xkiro", "openai/gpt-6.2-sol"): "2026-11-23 arrivals sweep — gpt-6.2 generation mirror on the xkiro carrier catalog (plan-covered lane)",
+    ("xkiro-2", "google/gemini-4-argon"): "2026-11-23 arrivals sweep — gemini-4 generation mirror on the xkiro-2 (2nd account) carrier catalog (plan-covered lane)",
+    ("xkiro-2", "google/gemini-4-carbon"): "2026-11-23 arrivals sweep — gemini-4 generation mirror on the xkiro-2 (2nd account) carrier catalog (plan-covered lane)",
+    ("xkiro-2", "google/gemini-4-hydrogen"): "2026-11-23 arrivals sweep — gemini-4 generation mirror on the xkiro-2 (2nd account) carrier catalog (plan-covered lane)",
+    ("xkiro-2", "openai/gpt-6.2-astra"): "2026-11-23 arrivals sweep — gpt-6.2 generation mirror on the xkiro-2 (2nd account) carrier catalog (plan-covered lane)",
+    ("xkiro-2", "openai/gpt-6.2-sol"): "2026-11-23 arrivals sweep — gpt-6.2 generation mirror on the xkiro-2 (2nd account) carrier catalog (plan-covered lane)",
 }
 
 
