@@ -1885,3 +1885,14 @@ tasks:
   status: complete
   created_at: '2026-11-23T03:15:56.112661+00:00'
   completed_at: '2026-11-23T03:17:35.078768+00:00'
+- id: '45105923269'
+  title: 'INT-CI-10 + INT-CI-11 closure: TR-251 evidence-replay refusals remediated
+    and closed'
+  criteria:
+  - 'PASS: TR-298 and TR-280 rebound to CI-resolvable GitHub Actions run ids (37240664457
+    success at e68ed11; 40850437608 success at fdbd469); PASS: boundary gate on d69f464^..d69f464
+    prints 0 refusals; PASS: pushed head 54e52e4e ran job test SUCCESS with the TR-251
+    boundary gate step passing (run 45105923269); PASS: QA-TASKROUTER-6 covered by
+    remediation, bound to verified success run 40475812170; PASS: gate scripts untouched'
+  status: in_progress
+  created_at: '2026-11-23T05:08:40.281440+00:00'
