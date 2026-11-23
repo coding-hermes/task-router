@@ -1866,3 +1866,22 @@ tasks:
   status: complete
   created_at: '2026-11-22T23:51:02.367949+00:00'
   completed_at: '2026-11-23T02:00:15.492433+00:00'
+- id: TR-360
+  title: Gateway-side 429 'Too many concurrent runs' must not open circuit pairs or
+    provider breakers
+  criteria:
+  - A stub returning 429 with the gateway concurrent-run body leaves zero NEW open
+    pairs and zero NEW provider breakers under an isolated ROUTER_STATE_DIR while
+    the control arm proves a genuine upstream 429 still opens them; pytest tests/test_circuit_hardening.py
+    passes
+  status: in_progress
+  created_at: '2026-11-23T03:15:53.120522+00:00'
+- id: TR-407
+  title: .githooks/pre-push comment matches the live hook wiring
+  criteria:
+  - grep -c 'NO pre-commit hook' .githooks/pre-push == 0; the comment names core.hooksPath=.githooks
+    and both hooks' roles; test -x .githooks/pre-commit and .githooks/pre-push; pytest
+    -k 'hook or precommit or pre_commit' passes
+  status: complete
+  created_at: '2026-11-23T03:15:56.112661+00:00'
+  completed_at: '2026-11-23T03:17:35.078768+00:00'
