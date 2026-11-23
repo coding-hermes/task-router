@@ -30,6 +30,7 @@ REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SCRIPT = os.path.join(REPO, "scripts", "router_circuit.py")
 
 _RC = None
+_RS = None
 
 
 def _load_once():
@@ -41,6 +42,18 @@ def _load_once():
         spec.loader.exec_module(mod)
         _RC = mod
     return _RC
+
+
+def _rs_once():
+    """Import the real server module once per session (TR-360 sections)."""
+    global _RS
+    if _RS is None:
+        path = os.path.join(REPO, "scripts", "router_server.py")
+        spec = importlib.util.spec_from_file_location("router_server_under_test", path)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        _RS = mod
+    return _RS
 
 
 @pytest.fixture()
@@ -74,6 +87,23 @@ def _state(tmp_path):
 def _write_state(tmp_path, st):
     with open(os.path.join(str(tmp_path), "circuit-state.json"), "w") as f:
         json.dump(st, f)
+
+
+def _state_or_empty(tmp_path):
+    """The circuit state after a test where recording may have been refused
+    entirely (no record-* call ever runs -> no state file is written)."""
+    st_path = os.path.join(str(tmp_path), "circuit-state.json")
+    if not os.path.exists(st_path):
+        return {"pairs": {}, "v2": {"provider_breakers": {}}}
+    with open(st_path) as f:
+        return json.load(f)
+
+
+def _breaker_providers(st):
+    """Provider-level breaker ids currently held in state (`v2` may be absent
+    on a state file a legacy writer produced)."""
+    v2 = st.get("v2") or {}
+    return set((v2.get("provider_breakers") or {}).keys())
 
 
 # ---------------------------------------------------------------- argparse --
@@ -318,3 +348,189 @@ def test_subprocess_parity_smoke(tmp_path):
     rc.STATE = os.path.join(str(tmp_path), "circuit-state.json")
     st = _state(tmp_path)
     assert st["pairs"]["parity/probe"]["failures"] == 1
+
+
+# ------------------------------------------------ TR-360 gateway concurrency --
+#
+# The gateway's own concurrency limiter ("Too many concurrent runs (max 10)")
+# poisoned the circuit store when the scheduler saturated the shared gateway
+# (scheduler max-concurrent == gateway cap 10): every saturated (provider,
+# model) pair's 429 was recorded as its own pair event and FOUR provider-level
+# breakers opened while the providers were healthy. The gateway arm now
+# classifies NOTHING into pair or provider breakers; a genuine provider-side
+# 429 with a different body still records exactly as before, and every
+# existing TR-340 marker keeps its behaviour.
+#
+# Subject: router_server._proxy_record / _demote_on_taxonomy /
+# _classify_hop_failure (same subject as tests/test_proxy_circuit_hygiene.py).
+# The circuit CLI is re-routed onto the REAL router_circuit module through the
+# SAME in-process `call` harness this file owns, with STATE pointed at the
+# test's tmp dir — so every assertion below reads a real circuit-state.json.
+
+_GATEWAY_BODY = {
+    "error": "Gateway Error: 'Too many concurrent runs (max 10)' "
+             "for this gateway slot pool"
+}
+_PROVIDER_BODY = {
+    "error": "upstream HTTP 429: provider monthly cap reached"
+}
+
+
+@pytest.fixture()
+def server(tmp_path, monkeypatch):
+    """router_server with its circuit shell-out re-routed in-process.
+
+    The ledger row is stubbed away (router_outcomes writes real files; the
+    circuit, not the ledger, is the subject here — same split
+    test_proxy_circuit_hygiene pins as 'the ledger row is still written').
+    Everything _proxy_record/_demote_on_taxonomy would have exec'd as
+    `router_circuit.py ...` runs through the real circuit module instead and
+    lands in this test's ROUTER_STATE_DIR / circuit-state.json.
+    """
+    rs = _rs_once()
+    import router_outcomes as ro
+
+    monkeypatch.setenv('ROUTER_STATE_DIR', str(tmp_path))
+    monkeypatch.setattr(ro, 'append_row_fast', lambda *a, **k: None)
+    monkeypatch.setattr(ro, 'accumulate_row', lambda *a, **k: None)
+    monkeypatch.setattr(rs, 'router_outcomes', ro, raising=False)
+
+    rc = _load_once()
+    rc.STATE = os.path.join(str(tmp_path), "circuit-state.json")
+
+    def in_process_circuit(script, args, timeout=60):
+        assert script == "router_circuit.py", (script, args)
+        return call(rc, *args)
+
+    monkeypatch.setattr(rs, '_subprocess_text', in_process_circuit)
+    return rs
+
+
+# --- the classifier helper itself (no recording involved) ---
+
+def test_gateway_concurrency_marker_normalised_matching(server):
+    rs = server
+    gw = rs._GATEWAY_CONCURRENCY_MARKER
+    assert gw == 'too many concurrent runs'
+    assert rs._is_gateway_concurrency('Too many concurrent runs (max 10)')
+    assert rs._is_gateway_concurrency(_GATEWAY_BODY["error"])
+    # case/whitespace normalisation: re-wrapped and shouted bodies still match
+    assert rs._is_gateway_concurrency('TOO   many\nconcurrent\tRUNS (max 10)')
+    # and NOTHING else is exempted — a provider-side 429 must not match
+    assert not rs._is_gateway_concurrency(_PROVIDER_BODY["error"])
+    assert not rs._is_gateway_concurrency('rate limit exceeded, retry after 5s')
+    assert not rs._is_gateway_concurrency('Too many concurrent REQUESTS (max 10)')
+    assert not rs._is_gateway_concurrency('')
+    assert rs._is_gateway_concurrency(None) is False
+    # TR-340 markers are UNCHANGED by the new predicate's existence
+    for marker in ('no open hop', 'unservable-rating', 'registry-missing',
+                   'no eligible model'):
+        assert rs._is_router_generated(marker), marker
+        assert not rs._is_gateway_concurrency(marker), marker
+
+
+def test_gateway_429_body_classifies_gateway_capacity_not_provider(server):
+    """The hop classifier routes the gateway body to its own pair-scoped arm
+    — NOT to the shared 429 taxonomy whose classes demote state."""
+    rs = server
+    code, detail = rs._classify_hop_failure(status=429, body=dict(_GATEWAY_BODY))
+    assert code == rs._HOP_GATEWAY_CONCURRENCY, (code, detail)
+    assert 'gateway concurrency cap' in detail
+    # control: the SAME status with a genuine provider body still taxonomises
+    ctrl_code, _ = rs._classify_hop_failure(status=429, body=dict(_PROVIDER_BODY))
+    assert ctrl_code != rs._HOP_GATEWAY_CONCURRENCY
+    assert ctrl_code.startswith('429'), ctrl_code
+
+
+def test_gateway_arm_opens_zero_new_pairs_and_zero_provider_breakers(
+        server, tmp_path):
+    """RED-to-GREEN: the buggy behaviour recorded every saturated pair's 429
+    as an api_down/pair event (and 3-of-a-class opened provider breakers).
+    The gateway arm must leave the circuit store untouched."""
+    rs = server
+    # two saturated pairs + the demote arm, mirroring the live multi-pair arm
+    for prov, model in (("gw-prov-a", "model-a"), ("gw-prov-b", "model-b")):
+        rs._proxy_record(prov, model, False, {"matrix": {}},
+                         reason=_GATEWAY_BODY["error"][:200],
+                         latency_s=0.5, route_outcome='failed', hops_attempted=1)
+        code, detail = rs._classify_hop_failure(status=429, body=dict(_GATEWAY_BODY))
+        rs._demote_on_taxonomy(prov, model, code, detail)
+    st = _state_or_empty(tmp_path)
+    assert st.get("pairs", {}) == {}, \
+        f"gateway-concurrency 429 must open NO pair, saw: {list(st.get('pairs', {}))}"
+    assert _breaker_providers(st) == set(), \
+        f"gateway-concurrency 429 must open NO provider breaker, saw: {_breaker_providers(st)}"
+
+
+def test_control_arm_genuine_429_still_opens_its_pair(server, tmp_path):
+    """Control: the SAME code path with a provider-limit body (no gateway
+    text) still records the pair — the exemption is not a blanket 429 rule."""
+    rs = server
+    rs._proxy_record("ctl-prov", "ctl-model", False, {"matrix": {}},
+                     reason=_PROVIDER_BODY["error"][:200],
+                     latency_s=0.4, route_outcome='failed', hops_attempted=1)
+    st = _state(tmp_path)
+    pair = st["pairs"]["ctl-prov/ctl-model"]
+    assert pair["failures"] >= 1
+    assert pair["open_until"] > pair["last_failure"], "the pair must be OPEN"
+
+
+def test_control_arm_429_taxonomy_still_demotes_pair(server, tmp_path):
+    """Control: a genuine 429-capacity code with a provider body still walks
+    the taxonomy demotion path and records the (provider, model) pair."""
+    rs = server
+    code, detail = rs._classify_hop_failure(status=429, body=dict(_PROVIDER_BODY))
+    rs._demote_on_taxonomy("ctl-tax-prov", "ctl-tax-model", code, detail)
+    st = _state(tmp_path)
+    pair = st["pairs"]["ctl-tax-prov/ctl-tax-model"]
+    assert pair["failures"] >= 1
+
+
+def test_gateway_arm_demote_records_nothing(server, tmp_path):
+    """The demote path fed by the REAL classify output of the gateway body
+    must not shell out to the circuit (pair or provider) either."""
+    rs = server
+    code, detail = rs._classify_hop_failure(status=429, body=dict(_GATEWAY_BODY))
+    rs._demote_on_taxonomy("gw-d-prov", "gw-d-model", code, detail)
+    st = _state_or_empty(tmp_path)
+    assert st.get("pairs", {}) == {}
+    assert _breaker_providers(st) == set()
+    # and the raw-text arm ('Too many concurrent runs' inside the detail of a
+    # legacy taxonomy code) is refused too — the demote guard checks BOTH
+    rs._demote_on_taxonomy("gw-e-prov", "gw-e-model", "429-capacity",
+                           "upstream HTTP 429: Too many concurrent runs (max 10)")
+    st = _state_or_empty(tmp_path)
+    assert st.get("pairs", {}) == {}
+    assert _breaker_providers(st) == set()
+
+
+def test_control_demote_legacy_code_raw_gateway_text_is_refused(server, tmp_path):
+    """The refusal is marker-scoped, not code-scoped: a LEGACY taxonomy code
+    whose detail happens to carry the gateway marker is also refused, which
+    is exactly how the live arm reached the demote path pre-fix."""
+    rs = server
+    # proof the refusal lives in the TEXT match, not only the code name:
+    # the same legacy code with a NON-gateway detail still records
+    rs._demote_on_taxonomy("ctl-x-prov", "ctl-x-model", "429-capacity",
+                           "upstream HTTP 429: provider monthly cap reached")
+    assert "ctl-x-prov/ctl-x-model" in _state(tmp_path)["pairs"]
+    # and swapping ONLY the marker-bearing token suppresses the record
+    rs._demote_on_taxonomy("ctl-y-prov", "ctl-y-model", "429-capacity",
+                           "upstream HTTP 429: Too many concurrent runs (max 10)")
+    assert "ctl-y-prov/ctl-y-model" not in _state_or_empty(tmp_path).get("pairs", {})
+
+
+def test_tr340_still_refused_via_new_gateway_paths(server, tmp_path):
+    """No existing TR-340 marker behaviour changed: the 'no open hop' body
+    still classifies none-generated, still records nothing, and the new
+    predicate never claims it."""
+    rs = server
+    code, detail = rs._classify_hop_failure(status=503, body={
+        "error": "no open hop for this request"})
+    assert code == "none-generated", (code, detail)
+    rs._proxy_record("tr340-prov", "tr340-model", False, {"matrix": {}},
+                     reason="no open hop for this request",
+                     route_outcome='failed', hops_attempted=1)
+    st = _state_or_empty(tmp_path)
+    assert st.get("pairs", {}) == {}
+    assert _breaker_providers(st) == set()
