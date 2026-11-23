@@ -655,7 +655,7 @@ CASES = [
                              ['commandcode', 'stepfun/Step-3.7-Flash']],
             'must_exclude': [['clinepass', 'dots-3-note-preview:free'],
                              ['deepseek', 'deepseek-flash']],
-            'min_chain': 33,  # 2026-11-21: 36->33 — neuralwatt lanes disabled (owner cancelled the provider 2026-11-16; live probe 402 overage cap, key valid); head unchanged
+            'min_chain': 32,  # 2026-11-22 (TR-290): 33->32 — opencode-go space-bunny-free disabled (free-promo window closed: id absent from GET https://opencode.ai/zen/go/v1/models, 200 OK 30 ids, zero bunny ids; dated catalog-removal in models.jsonl); head unchanged  # 2026-11-21: 36->33 — neuralwatt lanes disabled (owner cancelled the provider 2026-11-16; live probe 402 overage cap, key valid); head unchanged
         },
     },
     {
@@ -803,7 +803,7 @@ CASES = [
             # plan-rail sweep (6 paid + 7 :free; measured/paid members left this pool) plus
             # the 2 expired-archive completions (opencode-go-2/glm-5.2, openrouter
             # tencent/hy3-preview); head unchanged (xkiro nemotron-3-nano-omni).
-            'min_chain': 456,  # 2026-11-21 (2nd pin, daily tick): 468->466 — the 4 dead-id/catalog-removed lanes archived/disabled this tick (openrouter meta-llama/llama-3.2-1b-instruct probe-404, openrouter meituan/longcat-2.0 catalog-removed trusted-complete, openrouter dots-studio/dots-3-note-preview:free catalog-removed+STUCK, fireworks routers/glm-5p3-spot chat-400 deserialization dead-id) leave this pool; heads unchanged  #  # 2026-11-21: 472->468 — the 4 dead-id/catalog-absent archives (grok-build-0.1 x2, openrouter cohere/north-mini-code:free + thinkingmachines/inkling-2-small:free) leave the eligible pool; head unchanged  # 2026-11-21: 500->472 — neuralwatt lanes disabled (owner cancelled the provider 2026-11-16; live probe 402 overage cap, key valid); head unchanged  # 2026-11-20: 507->500 — the tree now carries the 11-18 fireworks dead-id disable wave (23 lanes leave the pool) plus this tick's arrival-day filings (gpt-6.2 family, gemini-4-neon + :batch, qwen4-max mirror seats enter measured); head unchanged
+            'min_chain': 455,  # 2026-11-22 (TR-290): 456->455 — opencode-go space-bunny-free disabled (free-promo window closed: id absent from GET https://opencode.ai/zen/go/v1/models, 200 OK 30 ids, zero bunny ids; dated catalog-removal in models.jsonl); head unchanged  # 2026-11-21 (2nd pin, daily tick): 468->466 — the 4 dead-id/catalog-removed lanes archived/disabled this tick (openrouter meta-llama/llama-3.2-1b-instruct probe-404, openrouter meituan/longcat-2.0 catalog-removed trusted-complete, openrouter dots-studio/dots-3-note-preview:free catalog-removed+STUCK, fireworks routers/glm-5p3-spot chat-400 deserialization dead-id) leave this pool; heads unchanged  #  # 2026-11-21: 472->468 — the 4 dead-id/catalog-absent archives (grok-build-0.1 x2, openrouter cohere/north-mini-code:free + thinkingmachines/inkling-2-small:free) leave the eligible pool; head unchanged  # 2026-11-21: 500->472 — neuralwatt lanes disabled (owner cancelled the provider 2026-11-16; live probe 402 overage cap, key valid); head unchanged  # 2026-11-20: 507->500 — the tree now carries the 11-18 fireworks dead-id disable wave (23 lanes leave the pool) plus this tick's arrival-day filings (gpt-6.2 family, gemini-4-neon + :batch, qwen4-max mirror seats enter measured); head unchanged
         },
     },
     {
