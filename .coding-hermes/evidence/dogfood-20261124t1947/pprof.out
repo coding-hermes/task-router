@@ -1,0 +1,887 @@
+{
+ "project": "P1_CODING",
+ "profile": "P1_CODING",
+ "resolved_version": 1,
+ "resolved_at": "2026-11-24T20:06:03+00:00",
+ "lifecycle_counts": {
+  "live": 1549,
+  "retired": 680
+ },
+ "resolved_as": "profile",
+ "hint": "use --profile P1_CODING",
+ "board_profile": null,
+ "head": {
+  "hop": 1,
+  "provider": "xkiro",
+  "model": "openai/gpt-6-luna",
+  "usd_1m": 0.116,
+  "in_per_m": 0.1,
+  "out_per_m": 0.5,
+  "price": 0.003867,
+  "effective_price": 0.003867,
+  "price_basis": "plan-effective (list 0.116/M)",
+  "cache_read_per_m": null,
+  "cache_write_per_m": null,
+  "data_class": "unknown",
+  "context_limit": 1050000,
+  "outcomes": {
+   "window_h": 24,
+   "matched": "unconditioned",
+   "stats_fallback": "unconditioned",
+   "stats_source": "merged",
+   "n_samples": 7096,
+   "complexity_sig": null,
+   "required_categories": null,
+   "predicted_cost_per_task": 0.07422848173989738,
+   "avg_wall_time_s": 1155.322246195828,
+   "avg_turns": 28.80183580263018,
+   "avg_tokens_in": 141314.402467953,
+   "avg_tokens_out": 8996.649293548768,
+   "avg_tokens_total": 150311.0517615019,
+   "success_rate": 0.4425287356321839
+  }
+ },
+ "chain": [
+  {
+   "hop": 1,
+   "provider": "xkiro",
+   "model": "openai/gpt-6-luna",
+   "usd_1m": 0.116,
+   "in_per_m": 0.1,
+   "out_per_m": 0.5,
+   "price": 0.003867,
+   "effective_price": 0.003867,
+   "price_basis": "plan-effective (list 0.116/M)",
+   "cache_read_per_m": null,
+   "cache_write_per_m": null,
+   "data_class": "unknown",
+   "context_limit": 1050000,
+   "outcomes": {
+    "window_h": 24,
+    "matched": "unconditioned",
+    "stats_fallback": "unconditioned",
+    "stats_source": "merged",
+    "n_samples": 7096,
+    "complexity_sig": null,
+    "required_categories": null,
+    "predicted_cost_per_task": 0.07422848173989738,
+    "avg_wall_time_s": 1155.322246195828,
+    "avg_turns": 28.80183580263018,
+    "avg_tokens_in": 141314.402467953,
+    "avg_tokens_out": 8996.649293548768,
+    "avg_tokens_total": 150311.0517615019,
+    "success_rate": 0.4425287356321839
+   }
+  },
+  {
+   "hop": 3,
+   "provider": "opencode-go",
+   "model": "deepseek-flash",
+   "usd_1m": 0.168,
+   "in_per_m": 0.15,
+   "out_per_m": 0.6,
+   "price": 0.029538,
+   "effective_price": 0.029538,
+   "price_basis": "plan-effective (list 0.168/M)",
+   "cache_read_per_m": null,
+   "cache_write_per_m": null,
+   "data_class": "zdr",
+   "context_limit": 1000000,
+   "outcomes": {
+    "window_h": 24,
+    "matched": null,
+    "stats_fallback": "model-family",
+    "stats_source": "merged",
+    "stats_fallback_family": "deepseek",
+    "family_n_samples": 4155,
+    "family_n_success_known": 18,
+    "family_n_completed": 8,
+    "family_success_rate": 0.4444444444444444
+   }
+  },
+  {
+   "hop": 4,
+   "provider": "commandcode-2",
+   "model": "z-ai/glm-5.3-flash",
+   "usd_1m": 0.075,
+   "in_per_m": 0.075,
+   "out_per_m": 0.025,
+   "price": 0.075,
+   "effective_price": 0.075,
+   "price_basis": "list",
+   "cache_read_per_m": null,
+   "cache_write_per_m": null,
+   "data_class": "zdr",
+   "context_limit": 1048576,
+   "outcomes": {
+    "window_h": 24,
+    "matched": null,
+    "stats_fallback": "model-family",
+    "stats_source": "merged",
+    "stats_fallback_family": "xkiro",
+    "family_n_samples": 16448,
+    "family_n_success_known": 488,
+    "family_n_completed": 294,
+    "family_success_rate": 0.6024590163934426
+   }
+  },
+  {
+   "hop": 5,
+   "provider": "commandcode",
+   "model": "z-ai/glm-5.3-flash",
+   "usd_1m": 0.075,
+   "in_per_m": 0.075,
+   "out_per_m": 0.025,
+   "price": 0.075,
+   "effective_price": 0.075,
+   "price_basis": "list",
+   "cache_read_per_m": null,
+   "cache_write_per_m": null,
+   "data_class": "zdr",
+   "context_limit": 1000000,
+   "outcomes": {
+    "window_h": 24,
+    "matched": null,
+    "stats_fallback": "model-family",
+    "stats_source": "merged",
+    "stats_fallback_family": "xkiro",
+    "family_n_samples": 16448,
+    "family_n_success_known": 488,
+    "family_n_completed": 294,
+    "family_success_rate": 0.6024590163934426
+   }
+  },
+  {
+   "hop": 6,
+   "provider": "openrouter",
+   "model": "openai/gpt-6-luna",
+   "usd_1m": 0.116,
+   "in_per_m": 0.1,
+   "out_per_m": 0.5,
+   "price": 0.1,
+   "effective_price": 0.1,
+   "price_basis": "plan-effective (list 0.116/M)",
+   "cache_read_per_m": 0.01,
+   "cache_write_per_m": 0.125,
+   "data_class": "zdr",
+   "context_limit": 1050000,
+   "outcomes": {
+    "window_h": 24,
+    "matched": "unconditioned",
+    "stats_fallback": "unconditioned",
+    "stats_source": "merged",
+    "n_samples": 66,
+    "complexity_sig": null,
+    "required_categories": null,
+    "predicted_cost_per_task": 0.11135187236411442,
+    "avg_wall_time_s": 754.3244220044279,
+    "avg_turns": 49.24156639759536,
+    "avg_tokens_in": 153.37798625030143,
+    "avg_tokens_out": 32659.635709883827,
+    "avg_tokens_total": 32813.01369613413,
+    "success_rate": null
+   }
+  },
+  {
+   "hop": 7,
+   "provider": "deepseek",
+   "model": "deepseek-flash",
+   "usd_1m": 0.375,
+   "in_per_m": 0.15,
+   "out_per_m": 0.6,
+   "price": 0.14,
+   "effective_price": 0.14,
+   "price_basis": "plan-effective (list 0.375/M)",
+   "cache_read_per_m": null,
+   "cache_write_per_m": null,
+   "data_class": "zdr",
+   "context_limit": 1048576,
+   "outcomes": {
+    "window_h": 24,
+    "matched": "unconditioned",
+    "stats_fallback": "unconditioned",
+    "stats_source": "merged",
+    "n_samples": 4035,
+    "complexity_sig": null,
+    "required_categories": null,
+    "predicted_cost_per_task": 0.06169670929988444,
+    "avg_wall_time_s": 4126.912524084524,
+    "avg_turns": 73.23626354927381,
+    "avg_tokens_in": 121641.65749295842,
+    "avg_tokens_out": 40673.91276202295,
+    "avg_tokens_total": 162315.57025498134,
+    "success_rate": 0.4444444444444444
+   }
+  },
+  {
+   "hop": 8,
+   "provider": "openrouter",
+   "model": "z-ai/glm-5.3-flash",
+   "usd_1m": 0.164,
+   "in_per_m": 0.15,
+   "out_per_m": 0.5,
+   "price": 0.15,
+   "effective_price": 0.15,
+   "price_basis": "plan-effective (list 0.164/M)",
+   "cache_read_per_m": 0.03,
+   "cache_write_per_m": null,
+   "data_class": "zdr",
+   "context_limit": 1048576,
+   "outcomes": {
+    "window_h": 24,
+    "matched": "unconditioned",
+    "stats_fallback": "unconditioned",
+    "stats_source": "merged",
+    "n_samples": 4,
+    "complexity_sig": null,
+    "required_categories": null,
+    "predicted_cost_per_task": 4.237532005662192e-05,
+    "avg_wall_time_s": 32.81408120167767,
+    "avg_turns": 3.0254004893835624,
+    "avg_tokens_in": 1475.2004771735287,
+    "avg_tokens_out": 19.261962344392188,
+    "avg_tokens_total": 1494.4624395179212,
+    "success_rate": null
+   }
+  },
+  {
+   "hop": 9,
+   "provider": "synthetic",
+   "model": "hf:zai-org/GLM-5.3-Flash",
+   "usd_1m": 0.164,
+   "in_per_m": 0.15,
+   "out_per_m": 0.5,
+   "price": 0.15,
+   "effective_price": 0.15,
+   "price_basis": "plan-effective (list 0.164/M)",
+   "cache_read_per_m": null,
+   "cache_write_per_m": null,
+   "data_class": "zdr",
+   "context_limit": 524288,
+   "outcomes": {
+    "window_h": 24,
+    "matched": "unconditioned",
+    "stats_fallback": "unconditioned",
+    "stats_source": "merged",
+    "n_samples": 165,
+    "complexity_sig": null,
+    "required_categories": null,
+    "predicted_cost_per_task": 0.03389437993056102,
+    "avg_wall_time_s": 2809.6362205517316,
+    "avg_turns": 43.35606716111712,
+    "avg_tokens_in": 187215.34577195326,
+    "avg_tokens_out": 17951.108294818085,
+    "avg_tokens_total": 205166.45406677123,
+    "success_rate": null
+   }
+  },
+  {
+   "hop": 10,
+   "provider": "synthetic",
+   "model": "hf:nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-NVFP4",
+   "usd_1m": 0.328,
+   "in_per_m": 0.3,
+   "out_per_m": 1.0,
+   "price": 0.3,
+   "effective_price": 0.3,
+   "price_basis": "plan-effective (list 0.328/M)",
+   "cache_read_per_m": null,
+   "cache_write_per_m": null,
+   "data_class": "zdr",
+   "context_limit": 262144,
+   "outcomes": {
+    "window_h": 24,
+    "matched": null,
+    "stats_fallback": "no-samples",
+    "stats_source": "merged"
+   }
+  },
+  {
+   "hop": 11,
+   "provider": "deepseek-foreman",
+   "model": "deepseek-flash",
+   "usd_1m": 0.375,
+   "in_per_m": 0.15,
+   "out_per_m": 0.6,
+   "price": 0.375,
+   "effective_price": 0.375,
+   "price_basis": "list",
+   "cache_read_per_m": null,
+   "cache_write_per_m": null,
+   "data_class": "zdr",
+   "context_limit": 1000000,
+   "outcomes": {
+    "window_h": 24,
+    "matched": null,
+    "stats_fallback": "model-family",
+    "stats_source": "merged",
+    "stats_fallback_family": "deepseek",
+    "family_n_samples": 4155,
+    "family_n_success_known": 18,
+    "family_n_completed": 8,
+    "family_success_rate": 0.4444444444444444
+   }
+  },
+  {
+   "hop": 12,
+   "provider": "commandcode",
+   "model": "deepseek/deepseek-v4-pro",
+   "usd_1m": 0.435,
+   "in_per_m": 0.435,
+   "out_per_m": 0.87,
+   "price": 0.435,
+   "effective_price": 0.435,
+   "price_basis": "list",
+   "cache_read_per_m": null,
+   "cache_write_per_m": null,
+   "data_class": "zdr",
+   "context_limit": 1000000,
+   "outcomes": {
+    "window_h": 24,
+    "matched": "unconditioned",
+    "stats_fallback": "unconditioned",
+    "stats_source": "merged",
+    "n_samples": 3,
+    "complexity_sig": null,
+    "required_categories": null,
+    "predicted_cost_per_task": 0.06239433574377681,
+    "avg_wall_time_s": 860.9340296217979,
+    "avg_turns": 31.03336690859216,
+    "avg_tokens_in": 80776.02176341932,
+    "avg_tokens_out": 31329.61257244561,
+    "avg_tokens_total": 112105.63433586493,
+    "success_rate": null
+   }
+  },
+  {
+   "hop": 13,
+   "provider": "commandcode-2",
+   "model": "deepseek/deepseek-v4-pro",
+   "usd_1m": 0.435,
+   "in_per_m": 0.435,
+   "out_per_m": 0.87,
+   "price": 0.435,
+   "effective_price": 0.435,
+   "price_basis": "list",
+   "cache_read_per_m": null,
+   "cache_write_per_m": null,
+   "data_class": "zdr",
+   "context_limit": 1000000,
+   "outcomes": {
+    "window_h": 24,
+    "matched": null,
+    "stats_fallback": "model-family",
+    "stats_source": "merged",
+    "stats_fallback_family": "commandcode",
+    "family_n_samples": 3,
+    "family_n_success_known": 0,
+    "family_n_completed": 0,
+    "family_success_rate": null
+   }
+  },
+  {
+   "hop": 14,
+   "provider": "openrouter",
+   "model": "moonshotai/kimi-k2.7-code",
+   "usd_1m": 0.716,
+   "in_per_m": 0.6,
+   "out_per_m": 3.5,
+   "price": 0.6,
+   "effective_price": 0.6,
+   "price_basis": "plan-effective (list 0.716/M)",
+   "cache_read_per_m": 0.16,
+   "cache_write_per_m": null,
+   "data_class": "zdr",
+   "context_limit": 262144,
+   "outcomes": {
+    "window_h": 24,
+    "matched": null,
+    "stats_fallback": "no-samples",
+    "stats_source": "merged"
+   }
+  },
+  {
+   "hop": 15,
+   "provider": "commandcode",
+   "model": "moonshotai/Kimi-K2.7-Code",
+   "usd_1m": 0.9006,
+   "in_per_m": 0.9006,
+   "out_per_m": 4.389,
+   "price": 0.9006,
+   "effective_price": 0.9006,
+   "price_basis": "list",
+   "cache_read_per_m": null,
+   "cache_write_per_m": null,
+   "data_class": "zdr",
+   "context_limit": 256000,
+   "outcomes": {
+    "window_h": 24,
+    "matched": "unconditioned",
+    "stats_fallback": "unconditioned",
+    "stats_source": "merged",
+    "n_samples": 4,
+    "complexity_sig": null,
+    "required_categories": null,
+    "predicted_cost_per_task": 0.39097230875331695,
+    "avg_wall_time_s": 1457.3706532411047,
+    "avg_turns": 45.54055529098201,
+    "avg_tokens_in": 373123.45250241517,
+    "avg_tokens_out": 12517.04888275593,
+    "avg_tokens_total": 385640.5013851711,
+    "success_rate": null
+   }
+  },
+  {
+   "hop": 16,
+   "provider": "commandcode-2",
+   "model": "moonshotai/Kimi-K2.7-Code",
+   "usd_1m": 0.9006,
+   "in_per_m": 0.9006,
+   "out_per_m": 4.389,
+   "price": 0.9006,
+   "effective_price": 0.9006,
+   "price_basis": "list",
+   "cache_read_per_m": null,
+   "cache_write_per_m": null,
+   "data_class": "zdr",
+   "context_limit": 256000,
+   "outcomes": {
+    "window_h": 24,
+    "matched": null,
+    "stats_fallback": "model-family",
+    "stats_source": "merged",
+    "stats_fallback_family": "commandcode",
+    "family_n_samples": 5,
+    "family_n_success_known": 0,
+    "family_n_completed": 0,
+    "family_success_rate": null
+   }
+  },
+  {
+   "hop": 17,
+   "provider": "openrouter",
+   "model": "deepseek/deepseek-v4-pro",
+   "usd_1m": 0.9935,
+   "in_per_m": 0.95526,
+   "out_per_m": 1.91052,
+   "price": 0.95526,
+   "effective_price": 0.95526,
+   "price_basis": "plan-effective (list 0.99347/M)",
+   "cache_read_per_m": 0.079605,
+   "cache_write_per_m": null,
+   "data_class": "zdr",
+   "context_limit": 1048576,
+   "outcomes": {
+    "window_h": 24,
+    "matched": null,
+    "stats_fallback": "model-family",
+    "stats_source": "merged",
+    "stats_fallback_family": "commandcode",
+    "family_n_samples": 3,
+    "family_n_success_known": 0,
+    "family_n_completed": 0,
+    "family_success_rate": null
+   }
+  },
+  {
+   "hop": 18,
+   "provider": "openrouter",
+   "model": "nvidia/nemotron-3-ultra-550b-a55b:free",
+   "usd_1m": 1.5,
+   "in_per_m": 0.0,
+   "out_per_m": 0.0,
+   "price": 1.5,
+   "effective_price": 1.5,
+   "price_basis": "list",
+   "cache_read_per_m": null,
+   "cache_write_per_m": null,
+   "data_class": "zdr",
+   "context_limit": 1000000,
+   "outcomes": {
+    "window_h": 24,
+    "matched": null,
+    "stats_fallback": "no-samples",
+    "stats_source": "merged"
+   }
+  },
+  {
+   "hop": 19,
+   "provider": "openrouter",
+   "model": "openai/gpt-5.6-terra",
+   "usd_1m": 2.4,
+   "in_per_m": 2.0,
+   "out_per_m": 12.0,
+   "price": 2.0,
+   "effective_price": 2.0,
+   "price_basis": "plan-effective (list 2.4/M)",
+   "cache_read_per_m": 0.2,
+   "cache_write_per_m": 2.5,
+   "data_class": "zdr",
+   "context_limit": 1050000,
+   "outcomes": {
+    "window_h": 24,
+    "matched": "unconditioned",
+    "stats_fallback": "unconditioned",
+    "stats_source": "merged",
+    "n_samples": 2,
+    "complexity_sig": null,
+    "required_categories": null,
+    "predicted_cost_per_task": 2.0360664324678632,
+    "avg_wall_time_s": 2080.1939996525216,
+    "avg_turns": 36.04308212451405,
+    "avg_tokens_in": 108.12924637354216,
+    "avg_tokens_out": 19929.262437170244,
+    "avg_tokens_total": 20037.391683543785,
+    "success_rate": null
+   }
+  },
+  {
+   "hop": 20,
+   "provider": "commandcode",
+   "model": "zai-org/GLM-5.2-Fast",
+   "usd_1m": 2.2,
+   "in_per_m": 2.2,
+   "out_per_m": 6.5,
+   "price": 2.2,
+   "effective_price": 2.2,
+   "price_basis": "list",
+   "cache_read_per_m": null,
+   "cache_write_per_m": null,
+   "data_class": "zdr",
+   "context_limit": 1000000,
+   "outcomes": {
+    "window_h": 24,
+    "matched": null,
+    "stats_fallback": "model-family",
+    "stats_source": "merged",
+    "stats_fallback_family": "custom",
+    "family_n_samples": 3,
+    "family_n_success_known": 0,
+    "family_n_completed": 0,
+    "family_success_rate": null
+   }
+  },
+  {
+   "hop": 21,
+   "provider": "commandcode-2",
+   "model": "zai-org/GLM-5.2-Fast",
+   "usd_1m": 2.2,
+   "in_per_m": 2.2,
+   "out_per_m": 6.5,
+   "price": 2.2,
+   "effective_price": 2.2,
+   "price_basis": "list",
+   "cache_read_per_m": null,
+   "cache_write_per_m": null,
+   "data_class": "zdr",
+   "context_limit": 1000000,
+   "outcomes": {
+    "window_h": 24,
+    "matched": null,
+    "stats_fallback": "model-family",
+    "stats_source": "merged",
+    "stats_fallback_family": "custom",
+    "family_n_samples": 3,
+    "family_n_success_known": 0,
+    "family_n_completed": 0,
+    "family_success_rate": null
+   }
+  }
+ ],
+ "exclusions": [
+  {
+   "hop": 2,
+   "provider": "deepseek-duckbrain-sync",
+   "model": "deepseek-flash",
+   "why": [
+    "policy-gate-missing-row: provider not listed in quota-state.json"
+   ],
+   "codes": [
+    "policy-gate-missing-row"
+   ]
+  }
+ ],
+ "gate_reasons": [
+  "hop 2 deepseek-duckbrain-sync/deepseek-flash: policy-gate-missing-row: provider not listed in quota-state.json"
+ ],
+ "effort": {
+  "requested": null,
+  "source": "absent",
+  "status": "absent",
+  "ranked": false,
+  "note": null,
+  "inference": null,
+  "measured_lanes": 0,
+  "proxy_lanes": 0,
+  "promoted_by_measurement": [],
+  "proxy_order": "demote"
+ },
+ "free_pool": {
+  "exhausted": []
+ },
+ "probe_coverage": {
+  "providers_probed": 0,
+  "unprobed_eligible": []
+ },
+ "degraded_fallback": false,
+ "quota_ordering": {
+  "enabled": true,
+  "guard_usd_per_s": 0.01,
+  "reason": null,
+  "deprioritised": [],
+  "limits_path": "/home/kara/.hermes/cache/scratch/tr-dogfood-20261124a/consumer/data/quota_limits.json",
+  "ledger_path": "/home/kara/.hermes/cache/scratch/tr-dogfood-20261124a/consumer/data/state/outcomes.jsonl",
+  "providers_with_limits": 1
+ },
+ "hop0_eligibility": {
+  "judged": true,
+  "displaced": [],
+  "rule": "a lane whose observed dry rate (failures / known outcomes) exceeds ROUTER_HOP0_MAX_DRY over >= ROUTER_HOP0_MIN_KNOWN known outcomes may not hold hop 0 regardless of price (TR-357)",
+  "max_dry": 0.65,
+  "min_known": 8,
+  "ineligible": [],
+  "reason": "head eligible \u2014 no displacement"
+ },
+ "eligibility": {
+  "rule": "a lane is eligible only with a normalized_price AND >=1 measured capability row (model_perf.perf or benchmarks.score); otherwise it leaves the chain named ineligible:unpriced or ineligible:no-evidence",
+  "enabled": true,
+  "reason": "default-on: owner ruling 2026-11-11",
+  "env": null,
+  "live_lanes": 675,
+  "counts": {
+   "eligible": 526,
+   "ineligible:unpriced": 18,
+   "ineligible:no-evidence": 131
+  },
+  "share_eligible": 0.7793,
+  "evidence_models": 894,
+  "named": [
+   {
+    "provider": "commandcode",
+    "model": "Qwen/Qwen3.8-Max-Prime",
+    "verdict": "ineligible:no-evidence"
+   },
+   {
+    "provider": "commandcode",
+    "model": "deepseek/deepseek-v4.1-flash-fast",
+    "verdict": "ineligible:no-evidence"
+   },
+   {
+    "provider": "commandcode",
+    "model": "inclusionai/ling-3.1-flash-1019",
+    "verdict": "ineligible:no-evidence"
+   },
+   {
+    "provider": "commandcode",
+    "model": "meta/muse-wonder-1.0",
+    "verdict": "ineligible:no-evidence"
+   },
+   {
+    "provider": "commandcode",
+    "model": "mistral/mistral-large-4",
+    "verdict": "ineligible:no-evidence"
+   },
+   {
+    "provider": "commandcode",
+    "model": "ornith/ornith-1.5-122b",
+    "verdict": "ineligible:no-evidence"
+   },
+   {
+    "provider": "commandcode",
+    "model": "stealth/glyph-cluster:free",
+    "verdict": "ineligible:no-evidence"
+   },
+   {
+    "provider": "fireworks-ai",
+    "model": "accounts/fireworks/routers/kimi-k3-spot",
+    "verdict": "ineligible:no-evidence"
+   },
+   {
+    "provider": "ollama-cloud",
+    "model": "mistral-large-4",
+    "verdict": "ineligible:no-evidence"
+   },
+   {
+    "provider": "opencode-go",
+    "model": "cat-jam-free",
+    "verdict": "ineligible:no-evidence"
+   }
+  ],
+  "named_unpriced": [
+   {
+    "provider": "kimi-for-coding",
+    "model": "kimi-for-coding",
+    "verdict": "ineligible:unpriced"
+   },
+   {
+    "provider": "kimi-for-coding",
+    "model": "kimi-for-coding-highspeed",
+    "verdict": "ineligible:unpriced"
+   },
+   {
+    "provider": "morph",
+    "model": "morph-kimik31",
+    "verdict": "ineligible:unpriced"
+   },
+   {
+    "provider": "ollama-cloud",
+    "model": "hy4",
+    "verdict": "ineligible:unpriced"
+   },
+   {
+    "provider": "ollama-cloud",
+    "model": "inkling-2-small",
+    "verdict": "ineligible:unpriced"
+   },
+   {
+    "provider": "ollama-cloud",
+    "model": "kimi-k3.1-pro",
+    "verdict": "ineligible:unpriced"
+   },
+   {
+    "provider": "openrouter",
+    "model": "nvidia/switchyard",
+    "verdict": "ineligible:unpriced"
+   },
+   {
+    "provider": "openrouter",
+    "model": "openrouter/auto",
+    "verdict": "ineligible:unpriced"
+   },
+   {
+    "provider": "openrouter",
+    "model": "openrouter/bodybuilder",
+    "verdict": "ineligible:unpriced"
+   },
+   {
+    "provider": "openrouter",
+    "model": "openrouter/fusion",
+    "verdict": "ineligible:unpriced"
+   }
+  ]
+ },
+ "outcome_demotions": {
+  "judged": true,
+  "active": [],
+  "displaced": [],
+  "rule": "a lane with >= ROUTER_DEMOTE_AFTER_FAILURES consecutive observed task failures (success=false tick verdicts) is demoted \u2014 it may not hold chain position 0 until an observed success clears it; every transition is recorded in the demotions log (TR-357)",
+  "state_path": "/home/kara/.hermes/cache/scratch/tr-dogfood-20261124a/consumer/data/state/demotions.jsonl",
+  "threshold": 3,
+  "reason": "no lane demoted"
+ },
+ "source": "registry.json",
+ "fallback_used": false,
+ "data_home": {
+  "registry": "/home/kara/.hermes/cache/scratch/tr-dogfood-20261124a/tf-home/registry.json",
+  "data_dir": "/home/kara/.hermes/cache/scratch/tr-dogfood-20261124a/consumer/data/tables",
+  "state_dir": "/home/kara/.hermes/cache/scratch/tr-dogfood-20261124a/tf-state",
+  "source": "registry.json",
+  "fallback": false,
+  "bootstrap": true,
+  "note": "quota-state.json is the first-run bootstrap sample (all providers OPEN) \u2014 edit it to apply real gates"
+ },
+ "bootstrap": true,
+ "note": "quota-state.json is the first-run bootstrap sample (all providers OPEN) \u2014 edit it to apply real gates",
+ "gates_loaded": {
+  "health": false,
+  "circuit": false,
+  "quota": true,
+  "ledger": false,
+  "ledger_rows": 0
+ },
+ "quota_gates": {
+  "gated": [],
+  "expired": [],
+  "source": "/home/kara/.hermes/cache/scratch/tr-dogfood-20261124a/tf-state/quota-state.json"
+ },
+ "warnings": [
+  "spawn ledger NOT WIRED: ledger.jsonl has no trace rows \u2014 the 'model busy' concurrency gate cannot fire; TR-007 knobs are inactive until the scheduler calls router_ledger.py start/end around spawns (cross-repo: coding-hermes-scheduler TASK-ROUTER-002 call side)"
+ ],
+ "quota": {
+  "path": "/home/kara/.hermes/cache/scratch/tr-dogfood-20261124a/tf-state/quota-state.json",
+  "present": true,
+  "bootstrap": true,
+  "providers": 30,
+  "note": "quota-state.json is the first-run bootstrap sample (all providers OPEN) \u2014 edit it to apply real gates: /home/kara/.hermes/cache/scratch/tr-dogfood-20261124a/tf-state/quota-state.json"
+ },
+ "gate": "OPEN",
+ "settings": {
+  "max_consecutive_per_provider": null,
+  "max_total_per_provider": null,
+  "model_concurrency_limit": null,
+  "overrides": {
+   "profile": false,
+   "consecutive": false,
+   "total": false
+  }
+ },
+ "sort": "predicted_cost_per_task",
+ "sort_stats": {
+  "window_h": 24,
+  "backend": null,
+  "merge_backends": true,
+  "loaded": true,
+  "source": "merged",
+  "rows": 283,
+  "path": "/home/kara/.hermes/cache/scratch/tr-dogfood-20261124a/consumer/data/state/outcomes-averages.jsonl",
+  "problem": null,
+  "warning": null,
+  "sufficiency": {
+   "sort": "predicted_cost_per_task",
+   "floor_samples": 3,
+   "coverage": 0.3333,
+   "min_coverage": 0.5,
+   "ranked_on_measurement": 7,
+   "fell_back_to_price": 14,
+   "lanes": 21,
+   "effective": "price",
+   "blend_ceiling_samples": 9,
+   "blend_weight": 5.0,
+   "explore_share": 0.0,
+   "explore_reason": "disabled",
+   "outcome_floor": {
+    "min_known": 8,
+    "floor_rate": 0.35,
+    "excluded": []
+   },
+   "reason": "below-coverage-floor"
+  }
+ }
+}
+         10153356 function calls (10148297 primitive calls) in 7.454 seconds
+
+   Ordered by: cumulative time
+   List reduced from 1238 to 28 due to restriction <28>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+     75/2    0.004    0.000    7.361    3.681 {built-in method builtins.exec}
+      2/1    0.000    0.000    7.361    7.361 <frozen runpy>:269(run_path)
+      2/1    0.000    0.000    7.361    7.361 <frozen runpy>:91(_run_module_code)
+      2/1    0.000    0.000    7.361    7.361 <frozen runpy>:65(_run_code)
+464766/463562    0.341    0.000    4.759    0.000 /home/kara/.local/share/uv/python/cpython-3.14.5-linux-x86_64-gnu/lib/python3.14/json/__init__.py:304(loads)
+464766/463562    1.181    0.000    4.066    0.000 /home/kara/.local/share/uv/python/cpython-3.14.5-linux-x86_64-gnu/lib/python3.14/json/decoder.py:340(decode)
+464766/463562    2.446    0.000    2.453    0.000 /home/kara/.local/share/uv/python/cpython-3.14.5-linux-x86_64-gnu/lib/python3.14/json/decoder.py:351(raw_decode)
+        7    0.016    0.002    1.977    0.282 /home/kara/.hermes/cache/scratch/tr-dogfood-20261124a/consumer/scripts/router_data_cache.py:486(_load_install)
+        6    0.193    0.032    1.403    0.234 {built-in method time.sleep}
+        6    0.000    0.000    1.081    0.180 scripts/router_spawn.py:1625(<lambda>)
+        7    0.004    0.001    1.051    0.150 scripts/router_spawn.py:1575(_registry_loader_with_meta)
+        1    0.001    0.001    0.977    0.977 scripts/router_spawn.py:4376(resolve)
+       13    0.005    0.000    0.922    0.071 /home/kara/.local/share/uv/python/cpython-3.14.5-linux-x86_64-gnu/lib/python3.14/json/__init__.py:278(load)
+       15    0.014    0.001    0.784    0.052 /home/kara/.hermes/cache/scratch/tr-dogfood-20261124a/consumer/scripts/router_data_cache.py:452(_identity)
+        1    0.006    0.006    0.662    0.662 scripts/router_spawn.py:3399(_build_chain)
+        9    0.000    0.000    0.464    0.052 scripts/router_spawn.py:2459(_lane_headroom)
+      321    0.000    0.000    0.351    0.001 /home/kara/.hermes/cache/scratch/tr-dogfood-20261124a/consumer/scripts/router_data_cache.py:94(file_identity)
+      689    0.134    0.000    0.340    0.000 {built-in method posix.stat}
+        9    0.001    0.000    0.325    0.036 scripts/router_spawn.py:303(_tables_composite_identity)
+        9    0.046    0.005    0.289    0.032 /home/kara/.hermes/cache/scratch/tr-dogfood-20261124a/consumer/scripts/router_quota_accounting.py:492(account_provider)
+   929564    0.254    0.000    0.254    0.000 {method 'match' of 're.Pattern' objects}
+     35/3    0.030    0.001    0.254    0.085 /home/kara/.local/share/uv/python/cpython-3.14.5-linux-x86_64-gnu/lib/python3.14/threading.py:337(wait)
+  1311542    0.240    0.000    0.240    0.000 {method 'get' of 'dict' objects}
+       13    0.043    0.003    0.236    0.018 {method 'read' of '_io.TextIOWrapper' objects}
+        1    0.118    0.118    0.222    0.222 scripts/router_spawn.py:2487(_quota_order_ctx)
+        1    0.000    0.000    0.174    0.174 scripts/router_spawn.py:3857(_stamp_quota_headroom)
+       44    0.039    0.001    0.164    0.004 /home/kara/.hermes/cache/scratch/tr-dogfood-20261124a/consumer/scripts/router_quota_accounting.py:459(_convert_usd)
+  1604841    0.143    0.000    0.143    0.000 {built-in method builtins.isinstance}
+
+
+

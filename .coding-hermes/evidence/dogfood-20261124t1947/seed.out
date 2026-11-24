@@ -1,0 +1,135 @@
+SEED CACHE MISS 0e0d9e679625 — no reusable entry (34 input tables); deriving
+  TR-232: probe row NOT undamped (no attributable ratio): union-alpha agent_tick score=1.0 src=live-probe-2026-09-16 3-step CI plan, exact format (n=1-2 small-probe, NOT large
+  TR-232: probe row NOT undamped (no attributable ratio): union-alpha code_gen score=1.0 src=live-probe-2026-09-16 is_balanced stack algorithm correct (2 takes) (n=1-2 small
+  TR-232: probe row NOT undamped (no attributable ratio): union-alpha debug score=1.0 src=live-probe-2026-09-16 IndexError off-by-one explained correctly (n=1-2 small-pro
+  TR-232: probe row NOT undamped (no attributable ratio): union-alpha delegation score=1.0 src=live-probe-2026-09-16 3-line assignment format exact, sensible (n=1-2 small-prob
+  TR-232: probe row NOT undamped (no attributable ratio): union-alpha long_doc score=1.0 src=live-probe-2026-09-16 3-question comprehension over ~1.5k-char notes, 3/3 correc
+  TR-232: probe row NOT undamped (no attributable ratio): union-alpha long_horizon score=1.0 src=live-probe-2026-09-16 DONE/NEXT/BLOCKED resume note, exact format (n=1 small-pro
+  TR-232: probe row NOT undamped (no attributable ratio): union-alpha reasoning score=1.0 src=live-probe-2026-09-16 catch-up train word problem: 6:00 correct (n=1-2 small-pro
+  TR-232: probe row NOT undamped (no attributable ratio): union-alpha schema score=1.0 src=live-probe-2026-09-16 valid JSON Ada/36 (n=1-2 small-probe, NOT large-bench; cli
+  TR-232: probe row NOT undamped (no attributable ratio): union-alpha test score=1.0 src=live-probe-2026-09-16 pytest 4 asserts, 4 requested classes, correct (n=1-2 smal
+  TR-232: probe row NOT undamped (no attributable ratio): union-alpha tool_use score=1.0 src=live-probe-2026-09-16 ordered 3-tool plan, correct sequence+why (n=1 small-probe
+TR-232 undamped 0 probe rows (2801 already undamped) -> /home/kara/.hermes/cache/scratch/tr-dogfood-20261124a/consumer/data/tables/benchmarks.jsonl (backup /home/kara/.hermes/cache/scratch/tr-dogfood-20261124a/consumer/data/state/benchmarks.jsonl.bak-20261124-150243; unattributable left as-is: 10)
+loaded providers     30 rows
+capabilities derived (evidence=True, absence=False, unresearched=None): image_generation T11/F1133/N1085, embedding T0/F1133/N1096, computer_use T0/F0/N2229, audio T133/F1016/N1080, web_search T10/F0/N2219, video T305/F871/N1053
+loaded models       2229 rows
+loaded benchmarks   8714 rows
+loaded archetypes    10 rows
+loaded projects     1041 rows
+loaded task_profiles  11 rows
+loaded task_profile_requirements  72 rows
+loaded cost_effort  1035 rows
+applied 893 lifecycle overlays from /home/kara/.hermes/cache/scratch/tr-dogfood-20261124a/consumer/data/lifecycle.jsonl
+placeholder perf dropped (all-zero, unranked not floored): 1 lanes
+   openai/gpt-oss-20b
+probe keys derived from the battery spec: 22 keys, 22 new mappings
+provider mappings: 107 rule(s) loaded (TR-019)
+  GAP: lane provider 'deepseek-duckbrain-sync' not in providers.jsonl and no provider_mappings rule resolves it (visible gap, never silent)
+overlay: 2535 inserted, 448 neutral-updated, 85 DECLARATION replaced by measurement
+benchmark-category rows carried into model_perf (TR-181): 1727
+quality estimate rows updated (TR-002): 69
+category estimate rows inserted (TR-039): 194
+aliases: 270 variants, 2568 inherited perfs
+  alias: gpt-6.1-sol-pro -> openai/gpt-6.1-sol-pro (base has no perf rows, skipped)
+  alias: kimi-latest -> morph-kimik31 (base has no perf rows, skipped)
+tier ladder: 24 frozen absolute pair(s) from tier_ladder.jsonl, 60 from pool quantiles (fallback)
+  effort ladder: agent_tick@high population 1 families/1 distinct perfs < floor 10 -> default ladder reused (proxy scale)
+  effort ladder: agent_tick@low population 1 families/1 distinct perfs < floor 10 -> default ladder reused (proxy scale)
+  effort ladder: agent_tick@max population 1 families/1 distinct perfs < floor 10 -> default ladder reused (proxy scale)
+  effort ladder: agent_tick@medium population 1 families/1 distinct perfs < floor 10 -> default ladder reused (proxy scale)
+  effort ladder: agent_tick@off population 1 families/1 distinct perfs < floor 10 -> default ladder reused (proxy scale)
+  effort ladder: agent_tick@x-high population 1 families/1 distinct perfs < floor 10 -> default ladder reused (proxy scale)
+  effort ladder: code_gen@high population 1 families/1 distinct perfs < floor 10 -> default ladder reused (proxy scale)
+  effort ladder: code_gen@low population 1 families/1 distinct perfs < floor 10 -> default ladder reused (proxy scale)
+  effort ladder: code_gen@max population 1 families/1 distinct perfs < floor 10 -> default ladder reused (proxy scale)
+  effort ladder: code_gen@medium population 1 families/1 distinct perfs < floor 10 -> default ladder reused (proxy scale)
+  effort ladder: code_gen@off population 1 families/1 distinct perfs < floor 10 -> default ladder reused (proxy scale)
+  effort ladder: code_gen@x-high population 1 families/1 distinct perfs < floor 10 -> default ladder reused (proxy scale)
+  effort ladder: debug@high population 1 families/1 distinct perfs < floor 10 -> default ladder reused (proxy scale)
+  effort ladder: debug@low population 1 families/1 distinct perfs < floor 10 -> default ladder reused (proxy scale)
+  effort ladder: debug@max population 1 families/1 distinct perfs < floor 10 -> default ladder reused (proxy scale)
+  effort ladder: debug@medium population 1 families/1 distinct perfs < floor 10 -> default ladder reused (proxy scale)
+  effort ladder: debug@off population 1 families/1 distinct perfs < floor 10 -> default ladder reused (proxy scale)
+  effort ladder: debug@x-high population 1 families/1 distinct perfs < floor 10 -> default ladder reused (proxy scale)
+  effort ladder: delegation@high population 1 families/1 distinct perfs < floor 10 -> default ladder reused (proxy scale)
+  effort ladder: delegation@low population 1 families/1 distinct perfs < floor 10 -> default ladder reused (proxy scale)
+  effort ladder: delegation@max population 1 families/1 distinct perfs < floor 10 -> default ladder reused (proxy scale)
+  effort ladder: delegation@medium population 1 families/1 distinct perfs < floor 10 -> default ladder reused (proxy scale)
+  effort ladder: delegation@off population 1 families/1 distinct perfs < floor 10 -> default ladder reused (proxy scale)
+  effort ladder: delegation@x-high population 1 families/1 distinct perfs < floor 10 -> default ladder reused (proxy scale)
+  effort ladder: long_doc@high population 1 families/1 distinct perfs < floor 10 -> default ladder reused (proxy scale)
+  effort ladder: long_doc@low population 1 families/1 distinct perfs < floor 10 -> default ladder reused (proxy scale)
+  effort ladder: long_doc@max population 1 families/1 distinct perfs < floor 10 -> default ladder reused (proxy scale)
+  effort ladder: long_doc@medium population 1 families/1 distinct perfs < floor 10 -> default ladder reused (proxy scale)
+  effort ladder: long_doc@off population 1 families/1 distinct perfs < floor 10 -> default ladder reused (proxy scale)
+  effort ladder: long_doc@x-high population 1 families/1 distinct perfs < floor 10 -> default ladder reused (proxy scale)
+  effort ladder: long_horizon@high population 1 families/1 distinct perfs < floor 10 -> default ladder reused (proxy scale)
+  effort ladder: long_horizon@low population 1 families/1 distinct perfs < floor 10 -> default ladder reused (proxy scale)
+  effort ladder: long_horizon@max population 1 families/1 distinct perfs < floor 10 -> default ladder reused (proxy scale)
+  effort ladder: long_horizon@medium population 1 families/1 distinct perfs < floor 10 -> default ladder reused (proxy scale)
+  effort ladder: long_horizon@off population 1 families/1 distinct perfs < floor 10 -> default ladder reused (proxy scale)
+  effort ladder: long_horizon@x-high population 1 families/1 distinct perfs < floor 10 -> default ladder reused (proxy scale)
+  effort ladder: reasoning@high population 1 families/1 distinct perfs < floor 10 -> default ladder reused (proxy scale)
+  effort ladder: reasoning@low population 1 families/1 distinct perfs < floor 10 -> default ladder reused (proxy scale)
+  effort ladder: reasoning@max population 1 families/1 distinct perfs < floor 10 -> default ladder reused (proxy scale)
+  effort ladder: reasoning@medium population 1 families/1 distinct perfs < floor 10 -> default ladder reused (proxy scale)
+  effort ladder: reasoning@off population 1 families/1 distinct perfs < floor 10 -> default ladder reused (proxy scale)
+  effort ladder: reasoning@x-high population 1 families/1 distinct perfs < floor 10 -> default ladder reused (proxy scale)
+  effort ladder: schema@high population 1 families/1 distinct perfs < floor 10 -> default ladder reused (proxy scale)
+  effort ladder: schema@low population 1 families/1 distinct perfs < floor 10 -> default ladder reused (proxy scale)
+  effort ladder: schema@max population 1 families/1 distinct perfs < floor 10 -> default ladder reused (proxy scale)
+  effort ladder: schema@medium population 1 families/1 distinct perfs < floor 10 -> default ladder reused (proxy scale)
+  effort ladder: schema@off population 1 families/1 distinct perfs < floor 10 -> default ladder reused (proxy scale)
+  effort ladder: schema@x-high population 1 families/1 distinct perfs < floor 10 -> default ladder reused (proxy scale)
+  effort ladder: test@high population 1 families/1 distinct perfs < floor 10 -> default ladder reused (proxy scale)
+  effort ladder: test@low population 1 families/1 distinct perfs < floor 10 -> default ladder reused (proxy scale)
+  effort ladder: test@max population 1 families/1 distinct perfs < floor 10 -> default ladder reused (proxy scale)
+  effort ladder: test@medium population 1 families/1 distinct perfs < floor 10 -> default ladder reused (proxy scale)
+  effort ladder: test@off population 1 families/1 distinct perfs < floor 10 -> default ladder reused (proxy scale)
+  effort ladder: test@x-high population 1 families/1 distinct perfs < floor 10 -> default ladder reused (proxy scale)
+  effort ladder: tool_use@high population 1 families/1 distinct perfs < floor 10 -> default ladder reused (proxy scale)
+  effort ladder: tool_use@low population 1 families/1 distinct perfs < floor 10 -> default ladder reused (proxy scale)
+  effort ladder: tool_use@max population 1 families/1 distinct perfs < floor 10 -> default ladder reused (proxy scale)
+  effort ladder: tool_use@medium population 1 families/1 distinct perfs < floor 10 -> default ladder reused (proxy scale)
+  effort ladder: tool_use@off population 1 families/1 distinct perfs < floor 10 -> default ladder reused (proxy scale)
+  effort ladder: tool_use@x-high population 1 families/1 distinct perfs < floor 10 -> default ladder reused (proxy scale)
+unmeasured: math levels 0..5 WITHDRAWN from the emit domain (6 level row(s)) — no routable lane can hold math >= 0: the only lane that ever held a math tier (ollama-cloud/qwen3.5:397b, bench AIME26 1.0) was retired 2026-09-25 and is disabled + unpriced, leaving a ONE-VALUE live population — glm-5.2 at perf 0.992 (bench AIME 2026 99.2, 6 routable providers) — which sits 8e-05 BELOW the lowest frozen band (-5 at min_perf 0.99208). A one-value population cannot be re-derived by quantile, so the bands are not the defect to fix here; the missing measurement is. Levels -5..-1 stay published: every lane serves them by the blank default tier -1.
+unmeasured: 1 declared range(s) from unmeasured_categories.jsonl
+seeded task profiles from data rows (11 profiles, 72 reqs)
+model_perf rows: 7458
+category_levels rows: 918
+tier_cost_effort cells: 6615
+model_tier rows: 7133
+profiles: [('P0_FORE',), ('P1_CODING',), ('P1_WORKER',), ('P2_AGENTIC',), ('P3_DOCS',), ('P4_SECURITY',), ('P5_VISION_E2E',), ('P6_DEFAULT',), ('P7_MOCK',), ('P8_SYNC',), ('P9_REVIEW',)]
+categories: 24
+  ('agent_tick', 453)
+  ('code_gen', 629)
+  ('creative', 418)
+  ('debug', 374)
+  ('delegation', 363)
+  ('e2e_vision', 275)
+  ('guard', 254)
+  ('long_doc', 402)
+  ('long_horizon', 587)
+  ('math', 15)
+  ('mechanical', 314)
+  ('mock', 250)
+  ('multilingual', 258)
+  ('reasoning', 310)
+  ('refactor', 195)
+  ('review', 212)
+  ('schema', 364)
+  ('security', 36)
+  ('spec_docs', 305)
+  ('terminal', 131)
+  ('test', 450)
+  ('tool_use', 362)
+  ('ui_frontend', 418)
+  ('vision', 83)
+DECLARED UNMEASURED: math levels 0..5 — no routable lane can hold math >= 0: the only lane that ever held a math tier (ollama-cloud/qwen3.5:397b, bench AIME26 1.0) was retired 2026-09-25 and is disabled + unpriced, leaving a ONE-VALUE live population — glm-5.2 at perf 0.992 (bench AIME 2026 99.2, 6 routable providers) — which sits 8e-05 BELOW the lowest frozen band (-5 at min_perf 0.99208). A one-value population cannot be re-derived by quantile, so the bands are not the defect to fix here; the missing measurement is. Levels -5..-1 stay published: every lane serves them by the blank default tier -1.
+
+SATISFIABILITY OK: all 918 rating(s) in the emit domain are servable by at least one routable lane
+exported tables to /home/kara/.hermes/cache/scratch/tr-dogfood-20261124a/tf-home/scratch/ns/routing
+wrote /home/kara/.hermes/cache/scratch/tr-dogfood-20261124a/tf-home/registry.json (10384.9 KB)
+synced data/tables -> /home/kara/.hermes/cache/scratch/tr-dogfood-20261124a/consumer/data/tables
+seed cache: stored 0e0d9e679625 (14 tables) -> /home/kara/.hermes/cache/scratch/tr-dogfood-20261124a/consumer/data/state/seed_cache

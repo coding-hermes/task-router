@@ -1,0 +1,18 @@
+# A: cwd=<scratch parent of consumer> (under ~/.hermes)
+router: dispatch failed: No module named 'lifecycle_gate'
+rc=1
+
+# B: cwd=/home/kara (no walk-up match, falls to editable-install checkout)
+[ok  ] profiles.table: 11 profiles, ids unique, required fields present
+[ok  ] profiles.requirements: 72 requirement rows: levels within -5..+5, all task_ids resolve
+
+valid: all 14 checks passed
+rc=0
+
+# probe: REPO resolved by cli.py from parent cwd
+# probe (rerun, abs path): REPO resolved by cli.py from cwd=<scratch parent>
+ModuleNotFoundError: No module named 'lifecycle_gate'
+ModuleNotFoundError: No module named 'lifecycle_gate'
+cwd: /home/kara/.hermes/cache/scratch/tr-dogfood-20261124a
+REPO: /home/kara/.hermes
+EXC: ModuleNotFoundError No module named 'lifecycle_gate'

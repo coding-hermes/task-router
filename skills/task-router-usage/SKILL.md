@@ -405,3 +405,37 @@ surface and `/openapi.json` is the contract of record.
 
 Cost, measured (16 cores, loadavg 3.6): `router spawn` 198 ms warm / 190 ms cold / 49.8 MB RSS;
 served `/resolve` ~300 ms per call; `/health` 125–190 ms. Nothing here is slow enough to feel.
+
+## Dogfood run 47 (2026-11-24) — dispatch identity and the outcomes-store tax
+
+**Know which tree you are grading.** `_resolve_repo_root()` (task_router/cli.py:165-178)
+walk-up accepts ANY ancestor tree owning `scripts/router_spawn.py` — and `~/.hermes`
+ships one (an agent-maintained mirror). Run the installed `router` from any cwd under
+`~/.hermes` and you dispatch the MIRROR's scripts, not the checkout's: the mirror has
+drifted (missing `lifecycle_gate.py` at tip 3231e966), so `router validate` there dies
+`router: dispatch failed: No module named 'lifecycle_gate'` rc 1 while the same CLI from
+`/home/kara` works (14/14). Fleet cron cwd IS `~/.hermes`. When in doubt:
+`TASK_ROUTER_REPO=<checkout>` (outranks the walk-up) — row TR-1000976681059308.
+
+**The outcomes store is a per-invocation tax (row PERF-2).** `router_store_sync`
+(TR-116) imports the live outcome store into `<repo>/data/state/outcomes.jsonl` on
+spawn entry — on a fleet box that is 232 MB–535 MB — and every CLI `spawn`/`estimate`
+then re-parses the whole file per process (`router_outcomes.py:849`, called from
+`router_spawn.py:2516` quota headroom + `:1851` outcome stats): warm spawn 5.4–6.95 s
+at 461,863 rows vs **0.29–0.39 s** with `ROUTING_OUTCOMES_FILE` pointed at an empty
+file, or 0.3 s on a fresh clone before the first sync. The TR-277 data cache covers
+`data/tables` only. For honest numbers: measure both arms (`ROUTING_OUTCOMES_FILE` is
+the control), and do not read a plain wall-clock as "router is slow — check what it
+is parsing". The live :9092/:9093 server loads in-process (TR-366) and does NOT pay
+the per-call parse; the CLI school does.
+
+**First-run bootstrap quirk (row TR-1000976681059309):** the bootstrap
+`quota-state.json` sample does not enumerate every registry provider (misses
+`deepseek-duckbrain-sync` at this tip), so hop 2 of a fresh install's chain is excluded
+`policy-gate-missing-row: provider not listed in quota-state.json` — named honestly in
+`exclusions`/`gate_reasons`, but it is gate-out-by-omission; the note claiming "all
+providers OPEN" is the tell that the sample is lying by omission.
+
+**Seed is clean at this tip (95896e60):** SAT-satisfiable trees pass; a refused seed
+writes nothing. Still budget ~80 s for `router seed` — it derives all 34 tables.
+

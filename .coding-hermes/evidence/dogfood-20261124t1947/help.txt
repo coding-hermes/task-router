@@ -1,0 +1,38 @@
+usage: router [-h] COMMAND [args...]
+
+task-router CLI — deterministic model routing for the coding-hermes fleet.
+Each subcommand runs the matching scripts/router_<name>.py tool with
+data-home env overrides applied. `router <cmd> --help` passes through to
+the underlying tool's own argparse.
+
+COMMAND
+  chain-run   
+  circuit     circuit-breaker state for (provider, model) pairs
+  clinepass   Cline Pass plan lane diagnostics
+  context-call
+  decide      just-in-time execution decision: closed v1 request -> canonical expiring route receipt (ACP-ROUTER-001; --verify checks a receipt)
+  diff        chain snapshot diff between two dates (head moves, price deltas)
+  estimate    cost estimate for a project's chain at given token volumes
+  gaps        registry coverage gap report
+  ingress     
+  learn       DuckBrain-backed learning loop (dump/lesson/doctrine)
+  ledger      spawn-ledger start/end/status (TR-007)
+  lifecycle   
+  maintain    registry repair/export/reprice maintenance
+  metrics     usage metrics: top providers/models/pairs, per-profile, since-window
+  modelsdev   models.dev catalog sync + price refresh
+  outcomes    
+  plan-sweep  disable plan-outside flat-subscription lanes
+  pricing     price table diagnostics
+  pricing-audit
+  probe       provider health probe (manual calibration run)
+  probefix    resolve 404/400 model ids from probe logs
+  quota       plan-window quota gates (429 exhaustion): set/clear/status; plus accounting (TR-209 L2 view), pacing (TR-210 L3 gate), burn (TR-211 L3 burn-surplus finder)
+  seed        rebuild registry.json from data/tables/*.jsonl
+  server      OpenAPI API server + MCP bridge (read-only | edit with API key)
+  spawn       resolve a task/profile to a model chain (fail-open JSON/text)
+  status      one-command overview: registry, gates, circuit, gaps (json|text)
+  validate    registry/schema/state/profile integrity check (--json, exit 1 on issues)
+  web         local web UI: settings editor + live resolve preview (:9093)
+
+Data home: $TASK_ROUTER_HOME > $XDG_DATA_HOME/task-router > ~/.local/share/task-router (see task_router.paths).

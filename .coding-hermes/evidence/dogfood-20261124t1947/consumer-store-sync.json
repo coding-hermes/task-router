@@ -1,0 +1,12 @@
+{
+ "last_launch_epoch": 1795550721.2200372,
+ "last_launch_at": "2026-11-24T15:05:21-0500",
+ "last_sync_epoch": 1795550736.540773,
+ "last_sync_at": "2026-11-24T15:05:36-0500",
+ "ok": true,
+ "detail": {
+  "rows_before": null,
+  "rows_after": 461863,
+  "added": null
+ }
+}

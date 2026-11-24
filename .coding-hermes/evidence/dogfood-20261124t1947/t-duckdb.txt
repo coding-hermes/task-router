@@ -1,0 +1,1 @@
+duckdb 0.59 s rc=0

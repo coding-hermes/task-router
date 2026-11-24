@@ -1,0 +1,12 @@
+{
+ "error": "project no-such-project-xyz not in registry",
+ "data_home": {
+  "registry": "/home/kara/.hermes/cache/scratch/tr-dogfood-20261124a/tf-home/registry.json",
+  "data_dir": "/home/kara/.hermes/cache/scratch/tr-dogfood-20261124a/consumer/data/tables",
+  "state_dir": "/home/kara/.hermes/cache/scratch/tr-dogfood-20261124a/tf-home",
+  "source": "registry.json",
+  "fallback": false,
+  "bootstrap": true,
+  "note": "quota-state.json is the first-run bootstrap sample (all providers OPEN) \u2014 edit it to apply real gates"
+ }
+}

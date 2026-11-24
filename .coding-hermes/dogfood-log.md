@@ -942,3 +942,67 @@ with operator history.
 `DOC-19` P3). Left behind: this entry, `.coding-hermes/evidence/DOGFOOD-2026-11-15-2015-taskrouter-46f.jsonl`
 (8 records: 1 run header + 7 steps), `docs/dogfood/2026-11-15-run46f-diagnostics.md` and `docs/dogfood/2026-11-15-run46f-integration.md`.**
 No product code, no existing row's status, no visibility, permission, scheduler state or credential touched.
+## run 47 — 2026-11-24 — skill-driven EXECUTOR fire: CLI school re-walk at tip 3231e966 (358-commit delta), dispatch identity + outcomes-store perf
+
+Fire 1 of tick `task-router-dogfood-2026-11-24-19-47-57` (gateway dispatch
+2026-11-24 14:48:52 host-local, count 1 incl. this fire). Angles: the 361-commit
+product delta since run 46f (seed SAT fix 95896e60, eligibility gate 7b985d91,
+TR-366 outcome loops), and `router chain-run`-free CLI paths (spawn/status/
+validate/estimate) — chain-run itself was 46f's ground and was NOT re-walked.
+
+**The documented workflow holds at this tip.** Fresh scratch consumer (clone +
+uv venv + editable install 1.17 s + duckdb 0.59 s, clean `TASK_ROUTER_HOME` +
+`ROUTING_NS`): pre-seed `validate` exits 1 naming `registry.exists` exactly as
+README promises; seed now PASSES (79.95 s, rc 0 — run 42's refused-yet-wrote
+defect is gone at this tip; clone stayed clean but the seed-cache manifest);
+post-seed validate 14/14; `spawn P1_CODING` 20 hops from `registry.json`
+(`fallback_used=false`), head xkiro/openai/gpt-6-luna $0.003867/M
+plan-effective, eligibility gate naming 526 eligible / 18 unpriced / 131
+no-evidence lanes; `status` 0.66 s rc 0; unknown project rc 0 with JSON
+`error` (fail-open contract intact).
+
+**Two findings are fresh mechanisms, one is a skipped leg.**
+(1) TR-1000976681059308 (P1, reproduced 2x + probe): running the installed
+`router` from a cwd whose walk-up reaches `~/.hermes` resolves
+`REPO=/home/kara/.hermes` (task_router/cli.py:165-178 — any tree owning
+scripts/router_spawn.py wins) and dispatches the Hermes MIRROR's scripts; the
+mirror has drifted (36 vs 79 scripts, lifecycle_gate.py missing), so
+`router validate` there dies `router: dispatch failed: No module named
+'lifecycle_gate'` rc 1 while the identical CLI from `/home/kara` runs 14/14.
+Fleet cron cwd is `~/.hermes` — every cron-fired `router` verb grades the
+wrong tree. (2) PERF-2 (P2): every CLI `spawn`/`estimate` re-parses
+`data/state/outcomes.jsonl` per invocation — warm n=5 5.14–5.75 s, steady
+n=3 6.77/5.40/6.95 s and `estimate` 6.18 s at 461,863 rows / 232 MB (store
+self-imports on spawn entry via router_store_sync TR-116), vs `ROUTING_
+OUTCOMES_FILE`→empty 0.34–0.39 s and fresh-clone-no-store 0.29–0.30 s;
+cProfile 464,766 json.loads = 4.76 s, callers router_outcomes.py:849
+load_outcome_rows ← router_spawn.py:2516 (quota headroom) + :1851 (outcome
+stats). PERF-1's chain-run pathology is now on the mainline one-shot verb,
+and the live store is 534.8 MB and growing. (3) TR-1000976681059309 (P3):
+fresh-install bootstrap quota-state.json ("all providers OPEN", 30 providers)
+omits deepseek-duckbrain-sync, so hop 2 is excluded
+`policy-gate-missing-row` on every fresh install. (4) QA-TASKROUTER-27 (P3):
+SKIPPED-install-bunker — `bunker-qa.sh launch /home/kara/task-router --keep`
+PREFLIGHT FAIL disk 96% > 94% rc 2 (0.88 s; `bunker metrics` read 137.7/149.9
+GB = 91.9% at the same time; host ONLINE 10d, 3/50 agents, net-mode shared).
+The local documented-install leg itself was re-proven this fire (see above).
+
+**Perf leg summary (skill coding-hermes/coding-hermes-perf):** headline op =
+warm `router spawn` with the synced store: **5.4–6.95 s** (n=8 across two
+passes) vs **0.29–0.39 s** without the store — a finding users feel, filed as
+PERF-2 with the exact commands, both arms' numbers, cProfile pstats
+(pprof.out/pcallers.out), and file:line hot path. `status` (0.66 s) and a
+no-store spawn (0.3 s) are NOT slow enough to notice; no rows filed for them.
+
+**Install: SKIPPED (explicit row QA-TASKROUTER-27).** No silent pass, no
+agent created, nothing to collect or destroy.
+
+Left behind: `.coding-hermes/evidence/dogfood-20261124t1947/` (25 artifacts:
+timings, spawn captures, cProfile, wrong-tree A/B + probe, store-sync stamp,
+rowcount), `docs/dogfood/2026-11-24-run47-integration.md` +
+`2026-11-24-run47-diagnostics.md`, and a "Dogfood run 47" section in
+`skills/task-router-usage/SKILL.md`. Rows filed: 4 (2 TR-bug, 1 PERF, 1
+QA-TASKROUTER skipped-install). Foreman NOT woken (dogfood lane is read-only
+on scheduler state; the project's foreman runs on its own cadence).
+No product code, no existing row's status, no visibility, permission,
+scheduler state or credential touched.

@@ -1,0 +1,715 @@
+{
+ "project": "P1_CODING",
+ "profile": "P1_CODING",
+ "resolved_version": 1,
+ "resolved_at": "2026-11-24T20:05:33+00:00",
+ "lifecycle_counts": {
+  "live": 1549,
+  "retired": 680
+ },
+ "resolved_as": "profile",
+ "hint": "use --profile P1_CODING",
+ "board_profile": null,
+ "head": {
+  "hop": 1,
+  "provider": "xkiro",
+  "model": "openai/gpt-6-luna",
+  "usd_1m": 0.116,
+  "in_per_m": 0.1,
+  "out_per_m": 0.5,
+  "price": 0.003867,
+  "effective_price": 0.003867,
+  "price_basis": "plan-effective (list 0.116/M)",
+  "cache_read_per_m": null,
+  "cache_write_per_m": null,
+  "data_class": "unknown",
+  "context_limit": 1050000,
+  "outcomes": {
+   "window_h": 24,
+   "matched": null,
+   "stats_fallback": "no-samples",
+   "stats_source": "merged"
+  }
+ },
+ "chain": [
+  {
+   "hop": 1,
+   "provider": "xkiro",
+   "model": "openai/gpt-6-luna",
+   "usd_1m": 0.116,
+   "in_per_m": 0.1,
+   "out_per_m": 0.5,
+   "price": 0.003867,
+   "effective_price": 0.003867,
+   "price_basis": "plan-effective (list 0.116/M)",
+   "cache_read_per_m": null,
+   "cache_write_per_m": null,
+   "data_class": "unknown",
+   "context_limit": 1050000,
+   "outcomes": {
+    "window_h": 24,
+    "matched": null,
+    "stats_fallback": "no-samples",
+    "stats_source": "merged"
+   }
+  },
+  {
+   "hop": 3,
+   "provider": "opencode-go",
+   "model": "deepseek-flash",
+   "usd_1m": 0.168,
+   "in_per_m": 0.15,
+   "out_per_m": 0.6,
+   "price": 0.029538,
+   "effective_price": 0.029538,
+   "price_basis": "plan-effective (list 0.168/M)",
+   "cache_read_per_m": null,
+   "cache_write_per_m": null,
+   "data_class": "zdr",
+   "context_limit": 1000000,
+   "outcomes": {
+    "window_h": 24,
+    "matched": null,
+    "stats_fallback": "no-samples",
+    "stats_source": "merged"
+   }
+  },
+  {
+   "hop": 4,
+   "provider": "commandcode-2",
+   "model": "z-ai/glm-5.3-flash",
+   "usd_1m": 0.075,
+   "in_per_m": 0.075,
+   "out_per_m": 0.025,
+   "price": 0.075,
+   "effective_price": 0.075,
+   "price_basis": "list",
+   "cache_read_per_m": null,
+   "cache_write_per_m": null,
+   "data_class": "zdr",
+   "context_limit": 1048576,
+   "outcomes": {
+    "window_h": 24,
+    "matched": null,
+    "stats_fallback": "no-samples",
+    "stats_source": "merged"
+   }
+  },
+  {
+   "hop": 5,
+   "provider": "commandcode",
+   "model": "z-ai/glm-5.3-flash",
+   "usd_1m": 0.075,
+   "in_per_m": 0.075,
+   "out_per_m": 0.025,
+   "price": 0.075,
+   "effective_price": 0.075,
+   "price_basis": "list",
+   "cache_read_per_m": null,
+   "cache_write_per_m": null,
+   "data_class": "zdr",
+   "context_limit": 1000000,
+   "outcomes": {
+    "window_h": 24,
+    "matched": null,
+    "stats_fallback": "no-samples",
+    "stats_source": "merged"
+   }
+  },
+  {
+   "hop": 6,
+   "provider": "openrouter",
+   "model": "openai/gpt-6-luna",
+   "usd_1m": 0.116,
+   "in_per_m": 0.1,
+   "out_per_m": 0.5,
+   "price": 0.1,
+   "effective_price": 0.1,
+   "price_basis": "plan-effective (list 0.116/M)",
+   "cache_read_per_m": 0.01,
+   "cache_write_per_m": 0.125,
+   "data_class": "zdr",
+   "context_limit": 1050000,
+   "outcomes": {
+    "window_h": 24,
+    "matched": null,
+    "stats_fallback": "no-samples",
+    "stats_source": "merged"
+   }
+  },
+  {
+   "hop": 7,
+   "provider": "deepseek",
+   "model": "deepseek-flash",
+   "usd_1m": 0.375,
+   "in_per_m": 0.15,
+   "out_per_m": 0.6,
+   "price": 0.14,
+   "effective_price": 0.14,
+   "price_basis": "plan-effective (list 0.375/M)",
+   "cache_read_per_m": null,
+   "cache_write_per_m": null,
+   "data_class": "zdr",
+   "context_limit": 1048576,
+   "outcomes": {
+    "window_h": 24,
+    "matched": null,
+    "stats_fallback": "no-samples",
+    "stats_source": "merged"
+   }
+  },
+  {
+   "hop": 8,
+   "provider": "openrouter",
+   "model": "z-ai/glm-5.3-flash",
+   "usd_1m": 0.164,
+   "in_per_m": 0.15,
+   "out_per_m": 0.5,
+   "price": 0.15,
+   "effective_price": 0.15,
+   "price_basis": "plan-effective (list 0.164/M)",
+   "cache_read_per_m": 0.03,
+   "cache_write_per_m": null,
+   "data_class": "zdr",
+   "context_limit": 1048576,
+   "outcomes": {
+    "window_h": 24,
+    "matched": null,
+    "stats_fallback": "no-samples",
+    "stats_source": "merged"
+   }
+  },
+  {
+   "hop": 9,
+   "provider": "synthetic",
+   "model": "hf:zai-org/GLM-5.3-Flash",
+   "usd_1m": 0.164,
+   "in_per_m": 0.15,
+   "out_per_m": 0.5,
+   "price": 0.15,
+   "effective_price": 0.15,
+   "price_basis": "plan-effective (list 0.164/M)",
+   "cache_read_per_m": null,
+   "cache_write_per_m": null,
+   "data_class": "zdr",
+   "context_limit": 524288,
+   "outcomes": {
+    "window_h": 24,
+    "matched": null,
+    "stats_fallback": "no-samples",
+    "stats_source": "merged"
+   }
+  },
+  {
+   "hop": 10,
+   "provider": "synthetic",
+   "model": "hf:nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-NVFP4",
+   "usd_1m": 0.328,
+   "in_per_m": 0.3,
+   "out_per_m": 1.0,
+   "price": 0.3,
+   "effective_price": 0.3,
+   "price_basis": "plan-effective (list 0.328/M)",
+   "cache_read_per_m": null,
+   "cache_write_per_m": null,
+   "data_class": "zdr",
+   "context_limit": 262144,
+   "outcomes": {
+    "window_h": 24,
+    "matched": null,
+    "stats_fallback": "no-samples",
+    "stats_source": "merged"
+   }
+  },
+  {
+   "hop": 11,
+   "provider": "deepseek-foreman",
+   "model": "deepseek-flash",
+   "usd_1m": 0.375,
+   "in_per_m": 0.15,
+   "out_per_m": 0.6,
+   "price": 0.375,
+   "effective_price": 0.375,
+   "price_basis": "list",
+   "cache_read_per_m": null,
+   "cache_write_per_m": null,
+   "data_class": "zdr",
+   "context_limit": 1000000,
+   "outcomes": {
+    "window_h": 24,
+    "matched": null,
+    "stats_fallback": "no-samples",
+    "stats_source": "merged"
+   }
+  },
+  {
+   "hop": 12,
+   "provider": "commandcode",
+   "model": "deepseek/deepseek-v4-pro",
+   "usd_1m": 0.435,
+   "in_per_m": 0.435,
+   "out_per_m": 0.87,
+   "price": 0.435,
+   "effective_price": 0.435,
+   "price_basis": "list",
+   "cache_read_per_m": null,
+   "cache_write_per_m": null,
+   "data_class": "zdr",
+   "context_limit": 1000000,
+   "outcomes": {
+    "window_h": 24,
+    "matched": null,
+    "stats_fallback": "no-samples",
+    "stats_source": "merged"
+   }
+  },
+  {
+   "hop": 13,
+   "provider": "commandcode-2",
+   "model": "deepseek/deepseek-v4-pro",
+   "usd_1m": 0.435,
+   "in_per_m": 0.435,
+   "out_per_m": 0.87,
+   "price": 0.435,
+   "effective_price": 0.435,
+   "price_basis": "list",
+   "cache_read_per_m": null,
+   "cache_write_per_m": null,
+   "data_class": "zdr",
+   "context_limit": 1000000,
+   "outcomes": {
+    "window_h": 24,
+    "matched": null,
+    "stats_fallback": "no-samples",
+    "stats_source": "merged"
+   }
+  },
+  {
+   "hop": 14,
+   "provider": "openrouter",
+   "model": "moonshotai/kimi-k2.7-code",
+   "usd_1m": 0.716,
+   "in_per_m": 0.6,
+   "out_per_m": 3.5,
+   "price": 0.6,
+   "effective_price": 0.6,
+   "price_basis": "plan-effective (list 0.716/M)",
+   "cache_read_per_m": 0.16,
+   "cache_write_per_m": null,
+   "data_class": "zdr",
+   "context_limit": 262144,
+   "outcomes": {
+    "window_h": 24,
+    "matched": null,
+    "stats_fallback": "no-samples",
+    "stats_source": "merged"
+   }
+  },
+  {
+   "hop": 15,
+   "provider": "commandcode",
+   "model": "moonshotai/Kimi-K2.7-Code",
+   "usd_1m": 0.9006,
+   "in_per_m": 0.9006,
+   "out_per_m": 4.389,
+   "price": 0.9006,
+   "effective_price": 0.9006,
+   "price_basis": "list",
+   "cache_read_per_m": null,
+   "cache_write_per_m": null,
+   "data_class": "zdr",
+   "context_limit": 256000,
+   "outcomes": {
+    "window_h": 24,
+    "matched": null,
+    "stats_fallback": "no-samples",
+    "stats_source": "merged"
+   }
+  },
+  {
+   "hop": 16,
+   "provider": "commandcode-2",
+   "model": "moonshotai/Kimi-K2.7-Code",
+   "usd_1m": 0.9006,
+   "in_per_m": 0.9006,
+   "out_per_m": 4.389,
+   "price": 0.9006,
+   "effective_price": 0.9006,
+   "price_basis": "list",
+   "cache_read_per_m": null,
+   "cache_write_per_m": null,
+   "data_class": "zdr",
+   "context_limit": 256000,
+   "outcomes": {
+    "window_h": 24,
+    "matched": null,
+    "stats_fallback": "no-samples",
+    "stats_source": "merged"
+   }
+  },
+  {
+   "hop": 17,
+   "provider": "openrouter",
+   "model": "deepseek/deepseek-v4-pro",
+   "usd_1m": 0.9935,
+   "in_per_m": 0.95526,
+   "out_per_m": 1.91052,
+   "price": 0.95526,
+   "effective_price": 0.95526,
+   "price_basis": "plan-effective (list 0.99347/M)",
+   "cache_read_per_m": 0.079605,
+   "cache_write_per_m": null,
+   "data_class": "zdr",
+   "context_limit": 1048576,
+   "outcomes": {
+    "window_h": 24,
+    "matched": null,
+    "stats_fallback": "no-samples",
+    "stats_source": "merged"
+   }
+  },
+  {
+   "hop": 18,
+   "provider": "openrouter",
+   "model": "nvidia/nemotron-3-ultra-550b-a55b:free",
+   "usd_1m": 1.5,
+   "in_per_m": 0.0,
+   "out_per_m": 0.0,
+   "price": 1.5,
+   "effective_price": 1.5,
+   "price_basis": "list",
+   "cache_read_per_m": null,
+   "cache_write_per_m": null,
+   "data_class": "zdr",
+   "context_limit": 1000000,
+   "outcomes": {
+    "window_h": 24,
+    "matched": null,
+    "stats_fallback": "no-samples",
+    "stats_source": "merged"
+   }
+  },
+  {
+   "hop": 19,
+   "provider": "openrouter",
+   "model": "openai/gpt-5.6-terra",
+   "usd_1m": 2.4,
+   "in_per_m": 2.0,
+   "out_per_m": 12.0,
+   "price": 2.0,
+   "effective_price": 2.0,
+   "price_basis": "plan-effective (list 2.4/M)",
+   "cache_read_per_m": 0.2,
+   "cache_write_per_m": 2.5,
+   "data_class": "zdr",
+   "context_limit": 1050000,
+   "outcomes": {
+    "window_h": 24,
+    "matched": null,
+    "stats_fallback": "no-samples",
+    "stats_source": "merged"
+   }
+  },
+  {
+   "hop": 20,
+   "provider": "commandcode",
+   "model": "zai-org/GLM-5.2-Fast",
+   "usd_1m": 2.2,
+   "in_per_m": 2.2,
+   "out_per_m": 6.5,
+   "price": 2.2,
+   "effective_price": 2.2,
+   "price_basis": "list",
+   "cache_read_per_m": null,
+   "cache_write_per_m": null,
+   "data_class": "zdr",
+   "context_limit": 1000000,
+   "outcomes": {
+    "window_h": 24,
+    "matched": null,
+    "stats_fallback": "no-samples",
+    "stats_source": "merged"
+   }
+  },
+  {
+   "hop": 21,
+   "provider": "commandcode-2",
+   "model": "zai-org/GLM-5.2-Fast",
+   "usd_1m": 2.2,
+   "in_per_m": 2.2,
+   "out_per_m": 6.5,
+   "price": 2.2,
+   "effective_price": 2.2,
+   "price_basis": "list",
+   "cache_read_per_m": null,
+   "cache_write_per_m": null,
+   "data_class": "zdr",
+   "context_limit": 1000000,
+   "outcomes": {
+    "window_h": 24,
+    "matched": null,
+    "stats_fallback": "no-samples",
+    "stats_source": "merged"
+   }
+  }
+ ],
+ "exclusions": [
+  {
+   "hop": 2,
+   "provider": "deepseek-duckbrain-sync",
+   "model": "deepseek-flash",
+   "why": [
+    "policy-gate-missing-row: provider not listed in quota-state.json"
+   ],
+   "codes": [
+    "policy-gate-missing-row"
+   ]
+  }
+ ],
+ "gate_reasons": [
+  "hop 2 deepseek-duckbrain-sync/deepseek-flash: policy-gate-missing-row: provider not listed in quota-state.json"
+ ],
+ "effort": {
+  "requested": null,
+  "source": "absent",
+  "status": "absent",
+  "ranked": false,
+  "note": null,
+  "inference": null,
+  "measured_lanes": 0,
+  "proxy_lanes": 0,
+  "promoted_by_measurement": [],
+  "proxy_order": "demote"
+ },
+ "free_pool": {
+  "exhausted": []
+ },
+ "probe_coverage": {
+  "providers_probed": 0,
+  "unprobed_eligible": []
+ },
+ "degraded_fallback": false,
+ "quota_ordering": {
+  "enabled": true,
+  "guard_usd_per_s": 0.01,
+  "reason": null,
+  "deprioritised": [],
+  "limits_path": "/home/kara/.hermes/cache/scratch/tr-dogfood-20261124a/consumer/data/quota_limits.json",
+  "ledger_path": "/home/kara/.hermes/cache/scratch/tr-dogfood-20261124a/consumer/data/state/outcomes.jsonl",
+  "providers_with_limits": 1
+ },
+ "hop0_eligibility": {
+  "judged": true,
+  "displaced": [],
+  "rule": "a lane whose observed dry rate (failures / known outcomes) exceeds ROUTER_HOP0_MAX_DRY over >= ROUTER_HOP0_MIN_KNOWN known outcomes may not hold hop 0 regardless of price (TR-357)",
+  "max_dry": 0.65,
+  "min_known": 8,
+  "ineligible": [],
+  "reason": "head eligible \u2014 no displacement"
+ },
+ "eligibility": {
+  "rule": "a lane is eligible only with a normalized_price AND >=1 measured capability row (model_perf.perf or benchmarks.score); otherwise it leaves the chain named ineligible:unpriced or ineligible:no-evidence",
+  "enabled": true,
+  "reason": "default-on: owner ruling 2026-11-11",
+  "env": null,
+  "live_lanes": 675,
+  "counts": {
+   "eligible": 526,
+   "ineligible:unpriced": 18,
+   "ineligible:no-evidence": 131
+  },
+  "share_eligible": 0.7793,
+  "evidence_models": 894,
+  "named": [
+   {
+    "provider": "commandcode",
+    "model": "Qwen/Qwen3.8-Max-Prime",
+    "verdict": "ineligible:no-evidence"
+   },
+   {
+    "provider": "commandcode",
+    "model": "deepseek/deepseek-v4.1-flash-fast",
+    "verdict": "ineligible:no-evidence"
+   },
+   {
+    "provider": "commandcode",
+    "model": "inclusionai/ling-3.1-flash-1019",
+    "verdict": "ineligible:no-evidence"
+   },
+   {
+    "provider": "commandcode",
+    "model": "meta/muse-wonder-1.0",
+    "verdict": "ineligible:no-evidence"
+   },
+   {
+    "provider": "commandcode",
+    "model": "mistral/mistral-large-4",
+    "verdict": "ineligible:no-evidence"
+   },
+   {
+    "provider": "commandcode",
+    "model": "ornith/ornith-1.5-122b",
+    "verdict": "ineligible:no-evidence"
+   },
+   {
+    "provider": "commandcode",
+    "model": "stealth/glyph-cluster:free",
+    "verdict": "ineligible:no-evidence"
+   },
+   {
+    "provider": "fireworks-ai",
+    "model": "accounts/fireworks/routers/kimi-k3-spot",
+    "verdict": "ineligible:no-evidence"
+   },
+   {
+    "provider": "ollama-cloud",
+    "model": "mistral-large-4",
+    "verdict": "ineligible:no-evidence"
+   },
+   {
+    "provider": "opencode-go",
+    "model": "cat-jam-free",
+    "verdict": "ineligible:no-evidence"
+   }
+  ],
+  "named_unpriced": [
+   {
+    "provider": "kimi-for-coding",
+    "model": "kimi-for-coding",
+    "verdict": "ineligible:unpriced"
+   },
+   {
+    "provider": "kimi-for-coding",
+    "model": "kimi-for-coding-highspeed",
+    "verdict": "ineligible:unpriced"
+   },
+   {
+    "provider": "morph",
+    "model": "morph-kimik31",
+    "verdict": "ineligible:unpriced"
+   },
+   {
+    "provider": "ollama-cloud",
+    "model": "hy4",
+    "verdict": "ineligible:unpriced"
+   },
+   {
+    "provider": "ollama-cloud",
+    "model": "inkling-2-small",
+    "verdict": "ineligible:unpriced"
+   },
+   {
+    "provider": "ollama-cloud",
+    "model": "kimi-k3.1-pro",
+    "verdict": "ineligible:unpriced"
+   },
+   {
+    "provider": "openrouter",
+    "model": "nvidia/switchyard",
+    "verdict": "ineligible:unpriced"
+   },
+   {
+    "provider": "openrouter",
+    "model": "openrouter/auto",
+    "verdict": "ineligible:unpriced"
+   },
+   {
+    "provider": "openrouter",
+    "model": "openrouter/bodybuilder",
+    "verdict": "ineligible:unpriced"
+   },
+   {
+    "provider": "openrouter",
+    "model": "openrouter/fusion",
+    "verdict": "ineligible:unpriced"
+   }
+  ]
+ },
+ "outcome_demotions": {
+  "judged": true,
+  "active": [],
+  "displaced": [],
+  "rule": "a lane with >= ROUTER_DEMOTE_AFTER_FAILURES consecutive observed task failures (success=false tick verdicts) is demoted \u2014 it may not hold chain position 0 until an observed success clears it; every transition is recorded in the demotions log (TR-357)",
+  "state_path": "/home/kara/.hermes/cache/scratch/tr-dogfood-20261124a/consumer/data/state/demotions.jsonl",
+  "threshold": 3,
+  "reason": "no lane demoted"
+ },
+ "source": "registry.json",
+ "fallback_used": false,
+ "data_home": {
+  "registry": "/home/kara/.hermes/cache/scratch/tr-dogfood-20261124a/tf-home/registry.json",
+  "data_dir": "/home/kara/.hermes/cache/scratch/tr-dogfood-20261124a/consumer/data/tables",
+  "state_dir": "../tf-state",
+  "source": "registry.json",
+  "fallback": false,
+  "bootstrap": true,
+  "note": "quota-state.json is the first-run bootstrap sample (all providers OPEN) \u2014 edit it to apply real gates"
+ },
+ "bootstrap": true,
+ "note": "quota-state.json is the first-run bootstrap sample (all providers OPEN) \u2014 edit it to apply real gates",
+ "gates_loaded": {
+  "health": false,
+  "circuit": false,
+  "quota": true,
+  "ledger": false,
+  "ledger_rows": 0
+ },
+ "quota_gates": {
+  "gated": [],
+  "expired": [],
+  "source": "../tf-state/quota-state.json"
+ },
+ "warnings": [
+  "spawn ledger NOT WIRED: ledger.jsonl has no trace rows \u2014 the 'model busy' concurrency gate cannot fire; TR-007 knobs are inactive until the scheduler calls router_ledger.py start/end around spawns (cross-repo: coding-hermes-scheduler TASK-ROUTER-002 call side)"
+ ],
+ "quota": {
+  "path": "../tf-state/quota-state.json",
+  "present": true,
+  "bootstrap": true,
+  "providers": 30,
+  "note": "quota-state.json is the first-run bootstrap sample (all providers OPEN) \u2014 edit it to apply real gates: ../tf-state/quota-state.json"
+ },
+ "gate": "OPEN",
+ "settings": {
+  "max_consecutive_per_provider": null,
+  "max_total_per_provider": null,
+  "model_concurrency_limit": null,
+  "overrides": {
+   "profile": false,
+   "consecutive": false,
+   "total": false
+  }
+ },
+ "sort": "predicted_cost_per_task",
+ "sort_stats": {
+  "window_h": 24,
+  "backend": null,
+  "merge_backends": true,
+  "loaded": true,
+  "source": "merged",
+  "rows": 0,
+  "path": "/home/kara/.hermes/cache/scratch/tr-dogfood-20261124a/consumer/data/state/outcomes-averages.jsonl",
+  "problem": "unreadable averages: [Errno 2] No such file or directory: '/home/kara/.hermes/cache/scratch/tr-dogfood-20261124a/consumer/data/state/outcomes-averages.jsonl'",
+  "warning": null,
+  "sufficiency": {
+   "sort": "predicted_cost_per_task",
+   "floor_samples": 3,
+   "coverage": 0.0,
+   "min_coverage": 0.5,
+   "ranked_on_measurement": 0,
+   "fell_back_to_price": 21,
+   "lanes": 21,
+   "effective": "price",
+   "blend_ceiling_samples": 9,
+   "blend_weight": 5.0,
+   "explore_share": 0.0,
+   "explore_reason": "disabled",
+   "outcome_floor": {
+    "min_known": 8,
+    "floor_rate": 0.35,
+    "excluded": []
+   },
+   "reason": "below-coverage-floor"
+  }
+ }
+}
