@@ -1073,3 +1073,63 @@ law); PERF-2's numbers stand at the tested tip.
 No product code, no existing row's status, no visibility, permission, scheduler
 state or credential touched. The one write this delivery owns is this entry
 (plus the push of Fire 1's already-committed record above).
+## 2026-11-24 no-op provenance — delivery 3 (run 47 re-fire; install battery still PARTIAL — harvested, not relaunched) | tick in body
+
+Delivery 3 of tick task-router-dogfood-2026-11-24-19-47-57. Gateway dispatches
+of this tick id (distinct `inbound message` timestamps; gateway.log and
+agent.log carry the SAME lines, counted once): 2026-11-24 14:48:52 fire 1,
+15:39:19 fire 2, 16:59:44 this fire — all host-local (-05 confirmed by `date`),
+~50 min apart, no burst. Raw distinct-timestamp count 3 = attributed count 3;
+the count includes this fire, so this is delivery 3.
+
+**Product delta since the record commit: zero.** `git fetch --quiet origin`,
+`rev-list --left-right --count HEAD...origin/main` = `0 0` at tip 4baeda19
+(delivery 2's record commit, already pushed there); `git diff --name-only
+4baeda19..origin/main` empty. Working tree carries only pre-existing untracked
+evidence/backup files owned by other lanes (listed, not touched). No product
+code changed → the dogfood loop is NOT re-driven (unchanged tree re-driven
+measures the host).
+
+**Attribution:** three deliveries of one label at a zero product delta is a
+scheduler/gateway duplicate-dispatch event, NOT a product finding — owning
+surface = the coding-hermes scheduler/gateway (count stated in the chat
+report), deliberately NOT filed to this product board (same ruling as
+delivery 2).
+
+**Board health at this delivery (read from disk through the stand-in's
+.coding-hermes/board symlink → the board mtime is 2026-11-24 15:09:49, inside
+delivery 2's window, i.e. untouched since):** 593 rows, 0 duplicate ids,
+whole-stream jq parse clean; statuses 385 complete / 172 pending / 9
+superseded / 11 done / 8 blocked / 6 review / 1 closed / 1 in_progress. Fire
+1's rows TR-1000976681059308, PERF-2, TR-1000976681059309 and QA-TASKROUTER-27
+plus QA-TASKROUTER-7 (the known tests-FAIL carrier) are all still pending for
+the foreman.
+
+**Residue scan:** same posture as delivery 2 — no dogfood-residue process from
+any delivery of this tick. Running matches are all pre-tick deployed services:
+router_server.py read-only listeners 127.0.0.1:9092 (pid 1146547) and :9391
+(pid 1775016), started Nov 23, children under the systemd-user tree; socat
+tailnet bridges on 100.97.236.14:9090/:9092/:9391/:9095 (pids 1775xxx/3118393,
+Nov 23); older standalone python listeners :9099 (pid 2956) and :9095 (pid
+3030). Named and left running.
+
+**Install leg: HARVESTED per delivery 2's rule, not relaunched.** Polls of
+`bunker-qa.sh collect --evidence /tmp/bunker-qa-evidence-20261124T204139Z-1517344.jsonl`
+this delivery sync the row count 15 → 17 → 18; terminal cell statuses are
+stable (launch OK agent=90365977, target-binding OK, fresh-install OK, 10
+toolchain-bootstrap OK, lint/compose_config/docker_build N/A by trigger
+absence, tests FAIL rc=1 = the QA-TASKROUTER-7 harness sync defect, no fresh
+product red). The battery is STILL RUNNING at ~+80 min in its compose leg; the
+latest synced row is a new `collect INFO` — COLLECT-RETRY attempt=1 stage=probe
+reason="state probe returned no state from agent=90365977" — so the collector
+probes are retried, no `COLLECTED` terminal line yet. Grade stays **PARTIAL**
+with 18 synced rows. Agent 90365977 left intact (--keep), TTL 4h from launch
+20:44Z Nov 24 (reaps ~00:44Z Nov 25 unless collected). Next fire: harvest
+again, never relaunch; QA-TASKROUTER-27 stays pending for the foreman to close
+on a COMPLETED battery.
+
+Perf leg: NOT re-measured — unchanged tree re-driven measures the host (skill
+law); PERF-2's numbers stand at the tested tip.
+
+No product code, no existing row's status, no visibility, permission, scheduler
+state or credential touched. The one write this delivery owns is this entry.
