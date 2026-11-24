@@ -1133,3 +1133,75 @@ law); PERF-2's numbers stand at the tested tip.
 
 No product code, no existing row's status, no visibility, permission, scheduler
 state or credential touched. The one write this delivery owns is this entry.
+
+## 2026-11-24 no-op provenance — delivery 4 (records-only re-fire; battery still PARTIAL, probe-dead agent) | tick in body
+
+Delivery 4 of tick task-router-dogfood-2026-11-24-19-47-57. Gateway dispatches
+of this tick id (distinct `inbound message` timestamps; gateway.log and
+agent.log carry the SAME lines, counted once): 2026-11-24 14:48:52 fire 1,
+15:39:19 fire 2, 16:59:44 fire 3, 17:28:27 this fire — all host-local (-05
+confirmed by `date`), ~50/80/29 min apart, no burst. Raw distinct-timestamp
+count 4 = attributed count 4; the count includes this fire, so this is
+delivery 4. Routing note: this fire's first turn_context shows
+model=gpt-6.1-sol provider=custom, and the session subsequently runs
+glm-5.3-flash via ollama-cloud (agent.log API lines) — a gateway-side
+model-fallback hop, scheduler-surface evidence again.
+
+**Product delta since the record commit: zero.** `git fetch --quiet origin`,
+`git rev-list --left-right --count HEAD...origin/main` = `0 0` at tip c9cc5596
+(delivery 3's record commit, already pushed there); `git diff --name-only
+HEAD..origin/main` empty. Working tree carries only the three pre-existing
+untracked evidence/backup files owned by other lanes (listed in delivery 3's
+entry, untouched again). No product code changed → the dogfood loop is NOT
+re-driven (unchanged tree re-driven measures the host).
+
+**Attribution:** four deliveries of one label at a zero product delta is a
+scheduler/gateway duplicate-dispatch event, NOT a product finding — owning
+surface = the coding-hermes scheduler/gateway (count stated in the chat
+report), deliberately NOT filed to this product board (same ruling as
+deliveries 2 and 3).
+
+**Board health at this delivery (read from disk through the stand-in's
+.coding-hermes/board symlink → /home/kara/task-router/.coding-hermes/board;
+board mtime 2026-11-24 15:09, untouched since delivery 2's window):** 593
+rows, 0 duplicate ids, whole-stream jq parse clean; statuses 385 complete /
+172 pending / 11 done / 9 superseded / 8 blocked / 6 review / 1 closed /
+1 in_progress — identical census to delivery 3. Delivery 1's rows (PERF-2,
+TR-1000976681059308/-9, QA-TASKROUTER-27) plus QA-TASKROUTER-7 (the known
+tests-FAIL carrier) remain pending for the foreman.
+
+**Residue scan:** no dogfood-residue process from any delivery of this tick
+(pgrep keyed on dogfood/bunker-qa/task-router; self filtered). Running
+matches are the pre-tick deployed services named by delivery 3: read-only
+router_server.py listeners 127.0.0.1:9092 (pid 1146547) and :9391 (pid
+1775016, Nov 23), plus the socat tailnet bridges on 100.97.236.14
+:9090/:9092/:9391/:9095. Named and left running. No .git/index.lock; zero
+processes with cwd inside task-router.
+
+**Install leg: HARVESTED per delivery 2's rule, not relaunched.** One collect
+poll this delivery: `bunker-qa.sh collect --evidence
+/tmp/bunker-qa-evidence-20261124T204139Z-1517344.jsonl` synced the ledger to
+19 rows (was 18 at delivery 3); the same two `COLLECT-RETRY attempt=1
+stage=probe reason="state probe returned no state from agent=90365977
+(bunker-las-03)"` INFO lines it appends are the collector's own retries, not
+new evidence. The agent is ALIVE per `bunker list --server bunker-las-03`
+(agent 90365977, running, 10.7 GB used, created 12:42:50 -08) but UNRESPONSIVE
+to direct probes (`bunker exec 90365977 -- ...` times out rc=124; same refusal
+shape as the collector's probe), so the compose leg has produced no new rows
+and no `COLLECTED` terminal line yet. Terminal cell statuses unchanged
+(launch OK agent=90365977, fresh-install OK, 10 toolchain-bootstrap OK, lint/
+compose_config/docker_build N/A by trigger absence, tests FAIL rc=1 = the
+QA-TASKROUTER-7 harness sync defect on the battery's single-commit sync tree —
+no product red). Grade stays **PARTIAL** at 19 synced rows. Agent 90365977
+left intact (--keep), TTL 4h from launch 20:44Z Nov 24 (reaps ~00:44Z Nov 25
+unless collected). Next fire: harvest again, never relaunch; direct
+`bunker exec -- cat /home/bunker-90365977/qa-evidence.jsonl` is the transport
+that already worked (proven by delivery 2/3), so prefer it over the collector
+probe when reconciling; QA-TASKROUTER-27 stays pending for the foreman to
+close ON A COMPLETED battery, never on this partial.
+
+Perf leg: NOT re-measured — unchanged tree re-driven measures the host (skill
+law); PERF-2's numbers stand at the tested tip.
+
+No product code, no existing row's status, no visibility, permission, scheduler
+state or credential touched. The one write this delivery owns is this entry.
