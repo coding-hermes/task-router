@@ -1,0 +1,15 @@
+Creating agent...
+Agent created: 90365977
+
+══════════ Connection Bundle ══════════
+
+  Docker SSH:   DOCKER_HOST=ssh://bunker-90365977@100.69.3.13?path=/run/bunker/90365977/docker.sock
+  SSH Key:      (saved to ~/.bunker/keys/)
+                /home/kara/.config/bunker/keys/90365977
+  Port Range:   30200-30299
+  Expires:      2026-11-24T16:42:50-08:00
+  api_key=[REDACTED]
+  SSHFS Mount:  sshfs -o IdentityFile=/home/kara/.config/bunker/keys/90365977 -o idmap=user -o allow_other bunker-90365977@100.69.3.13:/home/bunker-90365977 /mnt/bunker/90365977
+  Docker Tunnel: ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR -o IdentitiesOnly=yes -i /home/kara/.config/bunker/keys/90365977 -L 2376:/run/bunker/90365977/docker.sock bunker-90365977@100.69.3.13 -N
+
+═ Use `bunker exec` to run commands in this agent ═

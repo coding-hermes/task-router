@@ -1,0 +1,14 @@
+TARGET-BINDING repo=/home/kara/task-router
+  target=<unset>
+  runner=<unset>
+  repo-identity=task-router (source=origin-remote)
+  evidence-project=task-router
+  verdict=bound
+→ QA LAUNCH project: task-router — detached battery on bunker-las-03 (ttl 4h)
+→ agent=90365977 @ bunker-las-03 (tailscale)
+→ CELL fresh-install: sync repo → ~/qa-task-router
+→ QA launch complete — no cells waited on locally (phase B: collect --evidence /tmp/bunker-qa-evidence-20261124T204139Z-1517344.jsonl)
+Total time: ? | Passed: 0 | Failed: 0 | Audited: 0 | Findings: 0 | NotVerified: 0 — NOTHING AUDITED (0 cells with a verdict; wrapper steps do not count)
+LAUNCHED agent=90365977 evidence=/tmp/bunker-qa-evidence-20261124T204139Z-1517344.jsonl
+TARGET-PROJECT=task-router
+EVIDENCE_SHA256=6a2a56682c4394c6fc60dc35c4b447c4de2512b9d2aba7dbd8957372e8250dc4

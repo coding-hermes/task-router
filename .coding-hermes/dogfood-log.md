@@ -1006,3 +1006,70 @@ QA-TASKROUTER skipped-install). Foreman NOT woken (dogfood lane is read-only
 on scheduler state; the project's foreman runs on its own cadence).
 No product code, no existing row's status, no visibility, permission,
 scheduler state or credential touched.
+## 2026-11-24 no-op provenance — delivery 2 (run 47 re-fire; install leg walked) | tick in body
+
+Delivery 2 of tick task-router-dogfood-2026-11-24-19-47-57 — Fire 1's entry is
+directly below (gateway dispatches of this tick id:
+2026-11-24 14:48:52 host-local fire 1, 2026-11-24 15:39:19 host-local this
+fire — raw distinct-timestamp count 2, attributed count 2; no burst, two real
+delivery slots ~50 min apart). A repeat dispatch of one label at a zero product
+delta is a scheduler duplicate-dispatch event, not a product finding: owning
+surface = the coding-hermes scheduler/gateway (repeat dispatch counted in chat
+report), deliberately NOT filed to this product board.
+
+**Product delta since the record commit: zero.** Fire 1 landed b77f8b3f (found
+unpushed by this delivery — rev-list HEAD...origin/main read `1 0`); the only
+files differing b77f8b3f..3231e966 were the record commit's own artifacts
+(board, dogfood log, evidence/, docs/dogfood x2, usage skill). This delivery
+pushed the stranded record commit (3231e966..b77f8b3f main -> main, repo gates
+green: CI gate, board_commit_boundary_gate OK, inv4 PASS; parity now 0 0).
+No product file was touched by either delivery.
+
+**Board health at this delivery (mtime-checked):** 593 rows, 0 duplicate ids,
+whole-stream jq parse clean; Fire 1's four rows all present + pending
+(TR-1000976681059308, PERF-2, TR-1000976681059309, QA-TASKROUTER-27);
+`grep -c` on the tick id in the log = 1 before this entry. Scratch evidence
+dir from Fire 1 still on disk: .coding-hermes/evidence/dogfood-20261124t1947/
+(26 files).
+
+**Residue scan:** no dogfood-residue processes on this host. The two read-only
+router servers (127.0.0.1:9092, :9093) + one on :9391, plus the socat tailnet
+bridge on 100.97.236.14:9092, are all children of systemd --user (ppid tree
+confirmed), started Nov 23 — BEFORE this tick's first dispatch (Nov 24 14:48).
+Deployed services, named and left running.
+
+**Install leg: walked this delivery (Fire 1's SKIPPED premise was stale-now).**
+`bunker metrics bunker-las-03` reads 173.7/220.6 GB = 78.7% vs Fire 1's
+preflight refusal at 91.9% (94% threshold). Per the skill this tick's later
+delivery ran the walkable arm: `bunker-qa.sh launch /home/kara/task-router
+--keep`, BUNKER_QA_SERVER=bunker-las-03, detached — agent=90365977, evidence
+/tmp/bunker-qa-evidence-20261124T204139Z-1517344.jsonl, launched 20:44Z, ttl 4h
+agent / 6h orphan. Synced rows (adopted after the launch wrapper died at +4 min
+— COLLECT-ADOPT each poll): fresh-install OK ("Successfully installed duckdb-
+2.0.1 pyyaml-6.0.4 task-router-0.3.0 [pip install -e .]"), toolchain-bootstrap
+9x OK (go 1.27.4, venv+pytest, gcc/g++ wrappers, make, jq, compose plugin,
+buildx, node v22.23.4), lint N/A (no linter trigger), tests FAIL rc=1 =
+tests/test_tr168_model_uniqueness.py — the QA-TASKROUTER-7 carrier (1 failed, 2547
+passed, 17 skipped in 28:25; the failure is subprocess.CalledProcessError
+'git show 1fcd9aa:data/tables/models.jsonl' rc=128 on the battery's single-
+commit sync tree — harness sync defect owned by pending row QA-TASKROUTER-7,
+verified verbatim on the agent log /home/bunker-90365977/qa-logs-2116256/
+tests.log; no new row filed for it, no product red).
+
+**Grade: PARTIAL.** At +66 min the battery was still running in its compose
+leg (compose.log present, remaining cells ungraded); collect was polled
+incrementally (every ~4 min) rather than graded as failed. The agent is left
+intact (--keep) for the collector: poll with `bunker-qa.sh collect --evidence
+/tmp/bunker-qa-evidence-20261124T204139Z-1517344.jsonl` (adoption works from a
+fresh shell — proven 7x this delivery); terminal `COLLECTED`/`EVIDENCE-DIR=`
+line completes it; the agent's own 4h TTL reaps it otherwise. Harvest rule for
+the next fire: this leg was HARVESTED, not re-launched, and QA-TASKROUTER-27
+upgrade (its SKIPPED premise) is what this entry records — status still pending
+for the foreman to close ON THE COMPLETED BATTERY, not on this partial.
+
+Perf leg: NOT re-measured — unchanged tree re-driven measures the host (skill
+law); PERF-2's numbers stand at the tested tip.
+
+No product code, no existing row's status, no visibility, permission, scheduler
+state or credential touched. The one write this delivery owns is this entry
+(plus the push of Fire 1's already-committed record above).
