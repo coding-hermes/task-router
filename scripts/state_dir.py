@@ -60,6 +60,7 @@ WARN_ENV_VAR = 'ROUTER_STATE_DIR_WARN'
 DEFAULT_STATE_DIR = os.path.expanduser('~/.hermes/model-router')
 LIVE_INSTALL_DIR = os.path.realpath(os.path.expanduser('~/.hermes/scripts'))
 QUOTA_STATE_NAME = 'quota-state.json'
+MODELS_TABLE_NAME = 'models.jsonl'
 BOOTSTRAP_NOTE = 'first-run bootstrap: all providers OPEN; edit to gate'
 
 _WARNED = set()
@@ -167,13 +168,12 @@ def quota_state_path(state_dir: Any=None):
     return os.path.join(state_dir or resolve_state_dir(), QUOTA_STATE_NAME)
 
 
-def provider_ids(providers_path: Any=None, repo_root: Any=None):
-    """Provider ids from a providers.jsonl table; [] on any problem.
+def _table_candidates(providers_path: Any=None, repo_root: Any=None):
+    """The providers-table path candidates, in precedence order.
 
     providers_path may be a single path or a list of candidates (first existing
     wins) — router_spawn passes ROUTING_DATA_DIR first, then <repo>/data/tables,
     because a live byte-copy of the script can sit outside the checkout.
-    Never raises.
     """
     cands = []
     if isinstance(providers_path, (list, tuple)):
@@ -185,26 +185,63 @@ def provider_ids(providers_path: Any=None, repo_root: Any=None):
                                   'providers.jsonl'))
     cands.append(os.path.join(os.path.dirname(os.path.dirname(
         os.path.realpath(__file__))), 'data', 'tables', 'providers.jsonl'))
-    for path in cands:
-        try:
-            if not os.path.isfile(path):
-                continue
-            ids = []
-            with open(path, encoding='utf-8') as fh:
-                for line in fh:
-                    line = line.strip()
-                    if not line:
-                        continue
-                    try:
-                        pid = json.loads(line).get('id')
-                    except Exception:
-                        continue
-                    if pid:
-                        ids.append(pid)
-            if ids:
-                return ids
-        except Exception:
-            continue
+    return cands
+
+
+def _ids_from_table(path: Any, field: Any) -> list:
+    """Ids from one JSONL table's `field` column; [] on any problem."""
+    ids = []
+    try:
+        if not os.path.isfile(path):
+            return ids
+        with open(path, encoding='utf-8') as fh:
+            for line in fh:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    row = json.loads(line)
+                except Exception:  # noqa: BLE001 — one torn row never hides the file
+                    continue
+                pid = row.get(field) if isinstance(row, dict) else None
+                if pid and pid not in ids:
+                    ids.append(pid)
+    except Exception:  # noqa: BLE001 — never raise out of a table read
+        return ids
+    return ids
+
+
+def provider_ids(providers_path: Any=None, repo_root: Any=None):
+    """Provider ids from a providers.jsonl table; [] on any problem.
+
+    First existing candidate wins. Never raises.
+    """
+    for path in _table_candidates(providers_path, repo_root):
+        ids = _ids_from_table(path, 'id')
+        if ids:
+            return ids
+    return []
+
+
+def model_provider_ids(providers_path: Any=None, repo_root: Any=None):
+    """Providers named ONLY by the registry's models table (TR-1000976681059309).
+
+    The resolver enumerates candidate lanes from the registry MODELS rows, so a
+    provider can be fully routable while `providers.jsonl` has no row for it
+    (measured: `deepseek-duckbrain-sync`, 30-row table vs 31 resolvable
+    providers). Seeding the first-run bootstrap from the providers table alone
+    therefore re-created the very `policy-gate-missing-row` exclusion the
+    bootstrap exists to remove: hop 2 of every fresh resolve was excluded on a
+    file the operator never had a chance to populate.
+
+    Reads `provider` from models.jsonl in the SAME directory as the providers
+    table that would be used. First existing candidate wins; never raises.
+    """
+    for path in _table_candidates(providers_path, repo_root):
+        sib = os.path.join(os.path.dirname(path), MODELS_TABLE_NAME)
+        ids = _ids_from_table(sib, 'provider')
+        if ids:
+            return ids
     return []
 
 
@@ -230,6 +267,11 @@ def bootstrap_quota_state(state_dir: Any, providers_path: Any=None,
     policy-gate-missing-row exclusion and the isolated dir was not
     self-sufficient). When given, it wins over providers_path.
 
+    TR-1000976681059309 AC3: when NO authoritative list is given (the `router`
+    CLI first-run path), the seed is providers.jsonl ∪ the `provider` column of
+    the sibling models.jsonl — the same registry-only-provider class, closed for
+    every caller instead of only the one that can pass a list.
+
     Returns {'written', 'path', 'providers', 'reason'} — reason explains a
     no-write ('exists', 'no provider table to seed from', 'no state dir', …) so
     callers can report it instead of guessing.
@@ -250,6 +292,15 @@ def bootstrap_quota_state(state_dir: Any, providers_path: Any=None,
                 ids.append(pid)
         if not ids:
             ids = provider_ids(providers_path=providers_path, repo_root=repo_root)
+            # TR-1000976681059309 AC3: a registry-only provider (named by the
+            # MODELS table, absent from providers.jsonl) is a routable lane, so
+            # the starter policy plane must carry a row for it too — otherwise
+            # the first resolve excludes it `policy-gate-missing-row` on a file
+            # the operator had no way to populate.
+            for pid in model_provider_ids(providers_path=providers_path,
+                                          repo_root=repo_root):
+                if pid not in ids:
+                    ids.append(pid)
         if not ids:
             out['reason'] = 'no provider table to seed from'
             return out
