@@ -175,7 +175,7 @@
   ]
  },
  "derivation_fingerprint": "8505e3b90c90fc763a152271e819a813a24a1de30d6a4777159b02902a49e021",
- "derived_at": "2026-11-25T01:37:09+00:00",
+ "derived_at": "2026-11-25T12:13:28+00:00",
  "input_files": [
   "archetypes.jsonl",
   "benchmarks.jsonl",
@@ -212,9 +212,9 @@
   "type_hint_baseline.jsonl",
   "unmeasured_categories.jsonl"
  ],
- "registry_generated_at": "2026-11-25T01:37:08+00:00",
- "registry_seed_source_hash": "b0d34b2fd07c5e83529f62f5b0785d3ef3b1e8b4c05334b510994bd2c97c1a58",
- "source_hash": "620156cd4609c5420788d7d537ebb936d1714a158399ecc6eac0bbf31dae5417",
+ "registry_generated_at": "2026-11-25T12:13:15+00:00",
+ "registry_seed_source_hash": "ebd3ca2a94de64a81c3710b1f9933640ec4a65a7c7ab38d8494ec3d22eb772c1",
+ "source_hash": "3be0b1dc85af413721d7df98de21bcba4169705960f9c545f64756d716787662",
  "tables": [
   "archetypes",
   "benchmarks",
