@@ -934,6 +934,160 @@ def tail_rows(path: Any, max_lines: int=2000, max_bytes: Any=512 * 1024):
     return rows
 
 
+# ------------------------------------------------- window-bounded tail scan ---
+# TR-414: the spawn hot path builds a per-provider WINDOW aggregate (TR-213
+# headroom) but used to re-parse the whole store to do it — 496,686 json.loads
+# over a 540 MB ledger on every resolve. A row older than every configured
+# quota window cannot move any headroom, so the reader below starts at the END
+# of the store and walks backwards only as far as the window rule requires.
+
+#: Consecutive out-of-window rows that mean "we are past the boundary".
+DEFAULT_WINDOW_SCAN_SETTLE = 512
+#: Backward read step.
+DEFAULT_WINDOW_SCAN_CHUNK = 1 << 20
+#: Hard cap on a bounded scan; hitting it FAILS OVER to the whole-store scan
+#: (correctness before speed — a bound is an optimization, never a filter).
+DEFAULT_WINDOW_SCAN_MAX_BYTES = 256 << 20
+
+
+def parse_row_ts(value: Any):
+    """Ledger `ts` -> epoch seconds (float) or None (never guess).
+
+    THE single authority for a ledger timestamp: router_quota_accounting
+    .parse_ts() delegates here so the window scan and the accounting view can
+    never disagree about which rows a window owns. Accepts the epoch numbers
+    normalize_row writes and ISO-8601 strings (naive ISO is read as UTC).
+    """
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, (int, float)):
+        return float(value) if math.isfinite(value) else None
+    if isinstance(value, str):
+        s = value.strip()
+        if not s:
+            return None
+        try:
+            f = float(s)
+        except ValueError:
+            pass
+        else:
+            return f if math.isfinite(f) else None
+        try:
+            dt = datetime.datetime.fromisoformat(s.replace('Z', '+00:00'))
+        except ValueError:
+            return None
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=datetime.timezone.utc)
+        return dt.timestamp()
+    return None
+
+
+def iter_tail_lines(path: Any, chunk_bytes: Any=DEFAULT_WINDOW_SCAN_CHUNK):
+    """Yield the store's raw lines NEWEST-FIRST, reading backwards in bounded
+    chunks. Yields bytes (decoding is the caller's business); a partial first
+    line at the chunk edge is carried into the next read, and a torn final
+    line is yielded as-is so the caller can skip it loudly."""
+    size = os.path.getsize(path)
+    pos = size
+    carry = b''
+    with open(path, 'rb') as f:
+        while pos > 0:
+            step = min(int(chunk_bytes), pos)
+            pos -= step
+            f.seek(pos)
+            chunk = f.read(step) + carry
+            parts = chunk.split(b'\n')
+            carry = parts[0]          # may be a partial line — read more
+            for line in reversed(parts[1:]):
+                yield line
+    if carry:
+        yield carry
+
+
+def load_outcome_rows_since(path: Any, cutoff_ts: Any,
+                            settle_rows: Any=DEFAULT_WINDOW_SCAN_SETTLE,
+                            chunk_bytes: Any=DEFAULT_WINDOW_SCAN_CHUNK,
+                            max_bytes: Any=DEFAULT_WINDOW_SCAN_MAX_BYTES,
+                            where: Any='window'):
+    """Tolerant WINDOW-BOUNDED scan: (rows, stats).
+
+    Every row whose `ts` is at/after `cutoff_ts`, read from the END of the
+    store — the same tolerant semantics as load_outcome_rows() (torn lines are
+    skipped and reported, never raised), but bounded work instead of O(store).
+
+    STOP RULE: the scan walks backwards until it has seen `settle_rows`
+    CONSECUTIVE rows older than the cutoff, then stops. The store is
+    append-ordered, so an older-dated row only appears after a newer one
+    inside the same append burst; 512 consecutive old rows is far past any
+    such burst. (A row dated long ago and appended today is out of every
+    window anyway; the only shape this misses is a row handed a RECENT ts long
+    after its neighbours, which no writer does — `ts` is session time at
+    append.)
+
+    FAIL-OPEN: (None, stats) when the scan hits `max_bytes`, when the file is
+    unreadable, or when there is no store — the caller then uses the
+    whole-store scan. rows are returned OLDEST-FIRST (file order). Rows whose
+    ts cannot be parsed are KEPT (the accounting view drops them exactly as
+    before) and never advance the settle counter.
+    """
+    stats = {'path': str(path), 'cutoff_ts': cutoff_ts,
+             'rows_parsed': 0, 'rows_kept': 0, 'rows_below_cutoff': 0,
+             'malformed': 0, 'bytes_read': 0, 'stop': None,
+             'bounded': False, 'settle_rows': int(settle_rows),
+             'max_bytes': int(max_bytes), 'error': None}
+    try:
+        cutoff = float(cutoff_ts)
+        if not math.isfinite(cutoff):
+            stats.update(stop='bad-cutoff', error='cutoff is not finite')
+            return None, stats
+        if not os.path.exists(path):
+            stats.update(stop='no-store', bounded=True)
+            return [], stats
+        settle = max(1, int(settle_rows))
+        kept, malformed = [], 0
+        consec = 0
+        for raw in iter_tail_lines(path, chunk_bytes):
+            stats['bytes_read'] += len(raw) + 1
+            if stats['bytes_read'] > int(max_bytes):
+                stats.update(stop='cap', error=(
+                    f'bounded scan exceeded {int(max_bytes)} bytes — falling '
+                    'back to the whole-store scan (fail-open)'))
+                return None, stats
+            if not raw.strip():
+                continue
+            try:
+                r = json.loads(raw.decode('utf-8', errors='replace'))
+            except ValueError:
+                malformed += 1
+                continue
+            if not isinstance(r, dict):
+                malformed += 1
+                continue
+            stats['rows_parsed'] += 1
+            ts = parse_row_ts(r.get('ts'))
+            if ts is not None and ts < cutoff:
+                stats['rows_below_cutoff'] += 1
+                consec += 1
+                if consec >= settle:
+                    stats['stop'] = 'settled'
+                    break
+                continue
+            consec = 0
+            kept.append(r)
+        stats['stop'] = stats['stop'] or 'eof'
+        stats['malformed'] = malformed
+        stats['rows_kept'] = len(kept)
+        stats['bounded'] = True
+    except OSError as e:
+        stats.update(stop='unreadable', error=f'{type(e).__name__}: {e}')
+        return None, stats
+    if malformed:
+        print(f'{where}: skipped {malformed} malformed line(s) in the last '
+              f'{stats["bytes_read"]} bytes of {path}', file=sys.stderr)
+    kept.reverse()
+    return kept, stats
+
+
 def _merge_task_rows(prev: Any, incoming: Any):
     """Merge one step of a task into its accumulated task row.
 

@@ -372,31 +372,13 @@ def load_aggregate_display(path: Any=None) -> dict:
 def parse_ts(value: Any):
     """Ledger `ts` -> epoch seconds (float) or None (never guess).
 
-    Accepts the epoch numbers normalize_row writes and ISO-8601 strings
-    (naive ISO is read as UTC, matching router_quota.parse_reset).
+    TR-414: delegates to router_outcomes.parse_row_ts — ONE authority for the
+    ledger timestamp, so the window-bounded ledger scan and this accounting
+    view can never disagree about which rows a window owns. Accepts the epoch
+    numbers normalize_row writes and ISO-8601 strings (naive ISO is read as
+    UTC, matching router_quota.parse_reset).
     """
-    if isinstance(value, bool):
-        return None
-    if isinstance(value, (int, float)):
-        return float(value) if math.isfinite(value) else None
-    if isinstance(value, str):
-        s = value.strip()
-        if not s:
-            return None
-        try:
-            f = float(s)
-        except ValueError:
-            pass
-        else:
-            return f if math.isfinite(f) else None
-        try:
-            dt = datetime.datetime.fromisoformat(s.replace('Z', '+00:00'))
-        except ValueError:
-            return None
-        if dt.tzinfo is None:
-            dt = dt.replace(tzinfo=datetime.timezone.utc)
-        return dt.timestamp()
-    return None
+    return router_outcomes.parse_row_ts(value)
 
 
 def _iso(epoch: Any):
@@ -452,6 +434,62 @@ def _in_window(ts: Any, bounds: Any, now_ts: Any) -> bool:
     if resets is None:
         return start < ts <= now_ts
     return start <= ts < resets
+
+
+#: Safety margin on the scan cutoff (TR-414): the bound is padded by an hour so
+#: a row dated slightly before a window start is never discarded on an edge.
+DEFAULT_WINDOW_CUTOFF_MARGIN = 3600.0
+
+
+def widest_window_cutoff(limits: Any, now_ts: Any,
+                         margin_seconds: Any=DEFAULT_WINDOW_CUTOFF_MARGIN):
+    """The oldest `ts` that can still be INSIDE some configured provider window
+    — the deterministic cutoff a bounded ledger scan may start after (TR-414).
+
+    Each provider owns its own window kind (rolling_5h / rolling_daily / daily /
+    rolling+Nh / weekly / monthly), and `default_window` covers the entries that
+    declare none, so the cutoff is the EARLIEST of those window starts (minus
+    `margin_seconds`). A row older than that is outside every window at once and
+    cannot move any headroom — which is exactly what the spawn hot path reads
+    the ledger for.
+
+    None (never a guess) when no bound can be derived: no provider entries, or
+    every entry's window is unusable. The caller then keeps the whole-store
+    scan — today's behavior, fail-open.
+    """
+    doc = limits if isinstance(limits, dict) else {}
+    provs = doc.get('providers') or {}
+    if not isinstance(provs, dict):
+        return None
+    try:
+        now = float(now_ts)
+    except (TypeError, ValueError):
+        return None
+    if not math.isfinite(now):
+        return None
+    starts = []
+    needs_default = False
+    for cfg in provs.values():
+        cfg = cfg if isinstance(cfg, dict) else {}
+        kind = cfg.get('window')
+        if not kind:
+            needs_default = True
+            kind = doc.get('default_window') or DEFAULT_WINDOW
+        bounds = window_bounds(kind, now, cfg.get('window_hours'))
+        if bounds is not None:
+            starts.append(bounds[0])
+    if needs_default:
+        default_bounds = window_bounds(doc.get('default_window') or DEFAULT_WINDOW,
+                                       now, None)
+        if default_bounds is not None:
+            starts.append(default_bounds[0])
+    if not starts:
+        return None
+    try:
+        margin = max(0.0, float(margin_seconds))
+    except (TypeError, ValueError):
+        margin = DEFAULT_WINDOW_CUTOFF_MARGIN
+    return min(starts) - margin
 
 
 # --------------------------------------------------------------- conversion --

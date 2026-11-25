@@ -1,0 +1,140 @@
+TR-414 — bound the spawn-path outcome-ledger scan to the quota window
+=====================================================================
+Date: 2026-11-25
+Host: karaHermes-mde-7840hs (16 c), load average 22.0 -> 39.8 during the run.
+Repo: task-router. Base: origin/main 84953703.
+
+DEFECT (as filed)
+-----------------
+scripts/router_spawn._quota_order_ctx() built the TR-213 headroom term by
+calling router_outcomes.load_outcome_rows(outcomes_path()) — a whole-store
+tolerant JSONL scan — then grouped the rows per provider for _lane_headroom.
+A per-provider WINDOW aggregate cost O(store) on every resolve.
+
+FIX (read path only; no ordering, pricing or accounting change)
+---------------------------------------------------------------
+1. router_quota_accounting.widest_window_cutoff(limits, now, margin=3600)
+   The EARLIEST window start over every provider entry in the limits config
+   (each provider owns its own kind: rolling_5h / rolling_daily / daily /
+   rolling+Nh / weekly / monthly; `default_window` covers entries that declare
+   none), minus a 1 h margin. A row older than that is outside EVERY window at
+   once, so it cannot move any headroom. None (never a guess) when no bound is
+   derivable -> the caller keeps the whole-store scan.
+2. router_outcomes.load_outcome_rows_since(path, cutoff, settle_rows=512,
+   chunk_bytes=1 MiB, max_bytes=256 MiB) + iter_tail_lines()
+   Walks the store BACKWARDS from EOF in bounded chunks and stops after 512
+   consecutive rows older than the cutoff. Torn lines are skipped loudly
+   (same doctrine as load_outcome_rows, TR-244); rows are returned
+   oldest-first. (None, stats) on cap/unreadable/missing store -> the caller
+   falls back to the whole-store scan.
+3. router_outcomes.parse_row_ts() is now THE authority for a ledger timestamp;
+   router_quota_accounting.parse_ts() delegates to it, so the window scan and
+   the accounting view cannot disagree about which rows a window owns.
+4. router_spawn._quota_order_ctx() uses (1)+(2), records how the ledger was
+   read on the internal ctx['scan'] (never serialised into the resolve doc),
+   and falls back to the whole-store read on any error WITHOUT disabling the
+   quota term.
+
+WHY A SETTLE RUN, NOT "STOP AT THE FIRST OLD ROW"
+-------------------------------------------------
+The live store is NOT ts-monotonic: 111,027 of 496,884 rows (22.3%) are older
+than the row before them (concurrent sessions complete out of order). A
+first-old-row stop would truncate real in-window rows, so the stop rule is a
+consecutive run. Measured on the live store (origin/main, 2026-11-25), in-window
+rows MISSED by the rule, by window and settle size:
+
+    window   in_window   K=64   K=256  K=1024  K=4096      (missed rows)
+    5h           224       0      0       0       0
+    24h        1,748       0      0       0       0
+    7d        12,802       0      0       0       0
+    31d       82,728       0      0       0       0
+
+Rows parsed (live store, one _quota_order_ctx() call, in-process counter):
+    5h window  :    303 rows     24h: 1,812    7d: 12,903    31d: 82,886
+The shipped settle is 512 — 8x the smallest K that showed zero misses above.
+
+AC1 — bounded work, proven by an in-process counter (no wall-clock)
+-------------------------------------------------------------------
+Synthetic store: 200,000 in-window rows + 50,000 out-of-window rows at the head
+(250,000 lines). Counter = json.loads calls during one
+router_spawn._quota_order_ctx() (probe: kb_scan_probe.py, both arms):
+
+                         json.loads   rows kept   headroom (prov-a)
+    pre-change (84953703)   250,001     250,000     -0.000557413601
+    post-change             200,513     200,000     -0.000557413601
+
+Tests (tests/test_tr414_bounded_ledger_scan.py):
+  test_ac1_bounded_resolve_parses_only_the_window   asserts
+      rows_parsed <= in_window + settle_rows, the 50k out-of-window block at
+      the head is never parsed, and the counter matches the scan stats.
+  test_ac1_pre_change_shape_parses_the_whole_store  red arm: with the bound
+      disabled (cutoff None = the pre-change read shape) the SAME fixture
+      parses ALL 250,000 lines.
+  Red-proof, whole file: the 15 new tests were run against a clean worktree at
+  origin/main 84953703 (no source change) -> 15 failed; against the fix -> 15
+  passed. (The AC2/AC3 identity tests fail pre-change only because the toggle
+  they compare does not exist there; they are no-regression guards.)
+
+LIVE STORE (read-only probe, real config), same counter
+-------------------------------------------------------
+    store: /home/kara/task-router/data/state/outcomes.jsonl
+           540,953,982 bytes, 496,884 lines, 2 torn lines (436576, 436577),
+           neither touched.
+                                json.loads   rows parsed   bytes read
+    pre-change (84953703)         496,978       496,882    540,953,982
+    post-change                    62,807        62,711    225,835,220
+
+    cutoff age 599.3 h — the live data/quota_limits.json's ONLY entry is
+    `morph: monthly`, so the cutoff is the 1st-of-month start (minus margin).
+    morph headroom identical on both paths: -0.000420396407.
+
+AC2 — byte-identical resolve JSON (bounded vs whole-store, same seeded state)
+----------------------------------------------------------------------------
+test_ac2_resolve_json_identical_bounded_vs_whole_store and
+test_ac2_json_identical_with_sorts_and_profiles compare json.dumps(..., sort_keys)
+of the FULL resolve document for sort=price / health / quality over a fixture
+with a spent 5h window, an expired window, an unpriceable model, an
+alias-inherited provider (gw-prov-c -> prov-c) and a provider with no limits
+entry: identical, and quota_ordering.enabled is True in both runs (the term is
+live, not two inert runs compared).
+
+AC3 — headroom unchanged on the four shapes
+--------------------------------------------
+test_ac2_ac3_same_rows_same_headroom_both_paths compares every decision field
+of the L2 block (window, window_start, n_rows, token sums, spent_usd,
+unpriced_rows/reason, limit_usd, remaining_usd/reason, resets_at,
+headroom_usd_per_s) per provider on both paths: identical. Unknown stays NULL
+(prov-b has no limit config -> headroom None, never 0).
+
+AC4 — quiet-host A/B: NOT GRADED (honest)
+------------------------------------------
+The host was at load 22.0 (pre-change probe) and 39.8 (post-change probe) — far
+above the card's "under 4" bar, and the two probes ran at DIFFERENT loads, so
+the wall-clock pair (16.7 s vs 9.4 s) is NOT a valid A/B and is not claimed as
+one. AC1's deterministic counter is the graded evidence for boundedness. A
+quiet-host A/B remains open and is recorded on the board row.
+
+AC5 — full suite
+----------------
+python3 -m pytest -q tests/   (board venv, committed tree): RESULT_LINE
+
+AC6 — evidence
+--------------
+This file + the commit message carry the row counts, the cutoff rule and the
+load caveat.
+
+RESIDUAL (named, not hidden)
+----------------------------
+The live limits config declares ONE provider with a MONTHLY window, so the
+cutoff is ~25 days and the bounded read is 62,711 rows / 226 MB of the 541 MB
+store — an 87% cut in parses and 58% in bytes, not the 300-row read a 5h-only
+config would give. Two further levers, deliberately NOT taken in this card
+(each changes more than the read bound):
+  (a) provider-scoped prefilter: skip json.loads for lines that cannot contain
+      a provider that owns a limit (byte substring test is sound — equality
+      implies containment). Would cut the live month scan to a few hundred
+      parses with the same byte read.
+  (b) rows for a provider with no limit entry are provably irrelevant to
+      _lane_headroom (cfg {} -> headroom None); they are still passed through
+      today, keeping ctx['rows_by_provider'] an honest window view.
+Recorded as the follow-up for t_4b038823 (its 0.5 s warm-spawn bar).

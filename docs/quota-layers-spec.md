@@ -161,6 +161,17 @@ in token/credit units, while the L2 ledger query is denominated in dollars.*
    output states the term: per-hop `headroom_usd_per_s`, `deprioritised_for_low_headroom` +
    `deprioritised_reason` on lanes that actually lost a position, and a top-level `quota_ordering` block
    (enabled/guard/reason/deprioritised/paths). No re-rank when the inputs are absent — inert by default.*
+
+   *Bounded read 2026-11-25 (TR-414): the headroom term is a per-provider WINDOW aggregate, so the spawn
+   path reads the ledger's TAIL instead of re-parsing the whole store. The cutoff is the EARLIEST window
+   start over every provider in the limits config (plus `default_window`, minus a one-hour margin) —
+   `router_quota_accounting.widest_window_cutoff()`; a row older than that is outside every window at once
+   and cannot move any headroom. `router_outcomes.load_outcome_rows_since()` walks backwards from EOF and
+   stops after `settle_rows` consecutive out-of-window rows (the store is append-ordered, so that run is
+   proof of crossing the boundary). Same byte/row semantics as `load_outcome_rows()` (torn lines skipped
+   loudly). Fail-open: no derivable cutoff, a byte cap, an unreadable store or any error falls back to the
+   whole-store scan — the bound is an optimization, never a filter and never a new failure mode. The
+   accounting view itself is unchanged: L2 is still a view over the ledger with no second store.*
 3. **Burn-surplus** (your use: "find a project to burn it on") — for each window compute
    `expected_unused = remaining − (current_rate × time_to_reset)`. Positive and about to reset ⇒ surface it:
    provider, window, surplus in its unit, and what spending it would cost us in real cash (for a subscription

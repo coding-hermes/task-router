@@ -2521,7 +2521,10 @@ def _quota_order_ctx() -> dict:
     never blocks one (fail-open is sacred)."""
     ctx = {'enabled': False, 'reason': None, 'limits': None, 'limits_path': None,
            'ledger_path': None, 'rows_by_provider': {}, 'alias_target': {},
-           'n_limits': 0, 'now': time.time(), 'guard': _quota_order_guard()}
+           'n_limits': 0, 'now': time.time(), 'guard': _quota_order_guard(),
+           # TR-414: how the ledger was read (internal — never serialised into
+           # the resolve doc; the tests and the CLI use it to prove the bound).
+           'scan': {'mode': 'inert', 'cutoff_ts': None, 'rows_parsed': None}}
     try:
         path = _rqa.limits_path()
         doc = _rqa.load_limits(path)
@@ -2542,8 +2545,34 @@ def _quota_order_ctx() -> dict:
         alias_of = _rqa.load_alias_map()
         alias_target = {a: _rqa.canonical_provider(a, {}, alias_of)
                         for a in alias_of}
+        # TR-414: BOUND the ledger read. The headroom term is a per-provider
+        # WINDOW aggregate, so a row older than every configured window start
+        # cannot move it; the scan starts at the store's tail instead of
+        # re-parsing the whole 540 MB ledger (505k json.loads -> a few hundred).
+        # No derivable bound, a scrolled-past cap, or any read error falls back
+        # to the whole-store scan — the bound is an optimization, never a
+        # filter, and never a new failure mode.
+        cutoff = None
+        try:
+            cutoff = _rqa.widest_window_cutoff(ctx['limits'], ctx['now'])
+        except Exception:  # noqa: BLE001 — no bound = today's whole-store scan
+            cutoff = None
+        ctx['scan'] = {'mode': 'whole-store', 'cutoff_ts': cutoff,
+                       'rows_parsed': None}
+        rows = None
+        if cutoff is not None:
+            try:
+                rows, scan = _rqa.router_outcomes.load_outcome_rows_since(
+                    ledger, cutoff, where='quota_order')
+            except Exception as e:  # noqa: BLE001 — fall back, never disable
+                rows, scan = None, {'mode': 'bounded-error',
+                                    'error': f'{type(e).__name__}: {e}'}
+            ctx['scan'] = dict(scan or {}, mode='bounded' if rows is not None
+                               else 'whole-store-fallback')
+        if rows is None:
+            rows = _rqa.router_outcomes.load_outcome_rows(ledger)
         by = {}
-        for r in _rqa.router_outcomes.load_outcome_rows(ledger):
+        for r in rows:
             p = (r or {}).get('provider')
             if p is None:
                 continue
