@@ -169,6 +169,18 @@ jobs:
         run: python3 scripts/null_debt_invariants.py
 
       # ---------------------------------------------------------------------
+      # TR-368: chain-diversity gate. Resolves EVERY profile in
+      # data/tables/task_profiles.jsonl through the real resolver and fails the
+      # job when any profile resolves to 0 hops or fewer than 2 distinct
+      # providers — a data change that starves a profile cannot land silently.
+      # Hermetic measurement plane (committed tables only; registry.json forced
+      # to the data/tables fallback; scratch ci-mirror policy dir; no
+      # outcome-floor data), so the verdict comes from the diff, not from this
+      # runner's state. Red/green proof: tests/test_chain_diversity_gate.py.
+      - name: Chain-diversity gate (TR-368)
+        run: python3 scripts/chain_diversity_gate.py
+
+      # ---------------------------------------------------------------------
       # TR-251: mechanical completeness at the CI boundary.
       # * commit-boundary gate — refuse a diff that flips a board row to
       #   complete with unbound evidence (the CI twin of the pre-push hook).

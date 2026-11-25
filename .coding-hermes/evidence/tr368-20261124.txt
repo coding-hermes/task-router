@@ -1,0 +1,62 @@
+TR-368 chain-diversity CI gate — evidence, 2026-11-24
+=====================================================
+
+BOARD BASELINE (measured when the row was filed, 2026-11-24T23:18Z)
+-------------------------------------------------------------------
+P4_SECURITY   0 hops
+P5_VISION_E2E 0 hops
+61 of 98 hops on one free-priced provider (total 98 hops / 11 profiles)
+
+RE-MEASUREMENT BEFORE THE FIX (2026-11-24/25, task-router @ dc8bf1e9 tree,
+data tables unchanged by this task)
+
+Method: real chain resolution via router_spawn.resolve(profile_id=...),
+profile list read from data/tables/task_profiles.jsonl. Three planes measured:
+
+1. CI plane (deterministic, the one the gate measures), seeded registry +
+   scratch ci-mirror policy state + gitignored outcome data excluded:
+   P0_FORE 7/7, P1_CODING 6/6, P1_WORKER 26/9, P2_AGENTIC 8/6, P3_DOCS 28/10,
+   P4_SECURITY 5/3, P5_VISION_E2E 4/3, P6_DEFAULT 9/8, P7_MOCK 22/9,
+   P8_SYNC 11/9, P9_REVIEW 134/14   (hops/distinct-providers; total 260)
+2. Committed-tables fallback plane (registry.json forced absent), same state
+   seeding: identical verdicts to plane 1 (hops differ only where the local
+   outcome-floor data excludes lanes; verdict unchanged).
+3. Live production state (~/.hermes/model-router, stale 8 days): all 11
+   profiles resolve >= 3 hops / >= 2 providers; P4_SECURITY 5/3,
+   P5_VISION_E2E 3/2. Total 234 hops.
+
+FINDING: the baseline numbers do NOT reproduce on the committed data on any
+plane. No data table change was needed — every profile already resolves with
+>= 1 hop and >= 2 distinct providers. The baseline was presumably measured
+against live deployment state (stale quota/circuit policy) rather than the
+committed tables; with the gate's hermetic plane that state cannot decide a
+data change again. No data rows were touched by this task.
+
+THINNEST PROFILES (report-only, passing): P5_VISION_E2E 2 hops / 2 providers
+(commandcode + commandcode-2, gate output below), P4_SECURITY 5/3 (commandcode,
+commandcode-2, openrouter).
+
+FINAL GATE OUTPUT (scripts/chain_diversity_gate.py, exit 0)
+-----------------------------------------------------------
+[output captured in the same commit message body; command:
+ .venv/bin/python scripts/chain_diversity_gate.py]
+
+DELIVERABLES
+------------
+- scripts/chain_diversity_gate.py — the gate (resolve-every-profile, print
+  hops + provider histogram, exit non-zero on no-hops / single-provider).
+- tests/test_chain_diversity_gate.py — 7 tests: committed-data pass,
+  full-profile-census coverage, torn-line handling, pure verdict unit arms,
+  red/green scratch fixtures (0-hop arm, 1-provider arm), and a
+  production-state-mtime hermeticity probe.
+- .github/workflows/ci.yml — new step "Chain-diversity gate (TR-368)" after
+  the null-debt invariants step.
+- README.md — "Chain-diversity gate in CI (TR-368)" subsection under
+  "Data and namespaces".
+
+VERIFICATION
+------------
+- .venv/bin/python scripts/chain_diversity_gate.py -> exit 0, 11/11 profiles.
+- .venv/bin/python -m pytest tests/test_chain_diversity_gate.py -q -> 7 passed.
+- full suite: see commit body (run recorded there).
+- ci.yml YAML parses (pyyaml safe_load).

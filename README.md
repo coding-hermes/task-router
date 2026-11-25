@@ -741,6 +741,32 @@ python3 scripts/router_seed.py
 router spawn my-project --format json
 ```
 
+### Chain-diversity gate in CI (TR-368)
+
+The data gate that keeps every task profile servable:
+[scripts/chain_diversity_gate.py](scripts/chain_diversity_gate.py) resolves
+EVERY profile in `data/tables/task_profiles.jsonl` through the real resolver
+(`router_spawn.resolve`) and fails when a profile resolves to **0 hops** or
+fewer than **2 distinct providers**, printing the per-profile hop count and
+provider histogram. CI runs it after the table-invariant gates (see
+`.github/workflows/ci.yml`, step "Chain-diversity gate (TR-368)"):
+
+```bash
+python3 scripts/chain_diversity_gate.py          # exit 1 on any starved profile
+python3 scripts/chain_diversity_gate.py --json   # machine-readable table
+.venv/bin/python -m pytest tests/test_chain_diversity_gate.py -q
+```
+
+The measurement plane is hermetic and stated so it is not mistaken for
+production resolution: registry.json is forced to the committed-tables
+fallback, the policy gates read a scratch ci-mirror dir (every provider open
+except the two deliberately gated), and the gitignored outcome-floor data is
+excluded — so the verdict comes from the tables a commit changes, not from the
+running deployment's state. When the gate fails, fix the data feeding
+resolution (`fallback_lanes` / `model_perf` / `category_levels` / the profile's
+requirements) so the profile is servable by at least two providers — never
+delete a profile to pass it. Red/green proof: `tests/test_chain_diversity_gate.py`.
+
 **Direct seed invocation is mirror-safe (TR-048):** with `ROUTING_NS` unset,
 `python3 scripts/router_seed.py` never writes the fleet DuckBrain mirror —
 the ns export goes to `<data home>/scratch/ns/routing` when a DuckBrain ns
