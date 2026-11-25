@@ -510,3 +510,50 @@ def test_estimate_resolves_the_same_source_as_spawn(tmp_path):
         (sp.get("head") or {}).get("provider")
     assert (est.get("head") or {}).get("model") == \
         (sp.get("head") or {}).get("model")
+import os
+
+
+# --------------------------------------------------------------------------
+# REPO resolution must never grade the runtime MIRROR (TR-1000976681059308)
+# --------------------------------------------------------------------------
+
+def test_repo_root_follows_a_runtime_mirror_to_the_real_checkout(tmp_path, monkeypatch):
+    """A mirror is not a checkout.
+
+    ~/.hermes/scripts/ mirrors the canonical tree through symlinks. Standing in
+    a cwd under ~/.hermes used to resolve REPO=<that mirror dir> (it holds
+    scripts/router_spawn.py via the symlink), so the CLI dispatched the mirror's
+    scripts and graded the wrong tree. Following the symlink must land on the
+    checkout that owns the scripts.
+    """
+    real = tmp_path / "task-router"
+    (real / "scripts").mkdir(parents=True)
+    (real / "scripts" / "router_spawn.py").write_text("", encoding="utf-8")
+
+    mirror = tmp_path / ".hermes"
+    (mirror / "scripts").mkdir(parents=True)
+    os.symlink(str(real / "scripts" / "router_spawn.py"),
+               str(mirror / "scripts" / "router_spawn.py"))
+    (mirror / "cron").mkdir()
+
+    monkeypatch.delenv("TASK_ROUTER_REPO", raising=False)
+    monkeypatch.delenv("TASK_ROUTER_HOME", raising=False)
+    monkeypatch.chdir(mirror / "cron")
+    assert cli._resolve_repo_root() == str(real)
+
+
+def test_repo_root_does_not_redirect_a_real_checkout(tmp_path, monkeypatch):
+    """The mirror rule must not move a genuine checkout's resolution.
+
+    A candidate whose scripts/router_spawn.py is a real file is the checkout
+    itself; resolving from inside it (cwd in the tree, no env override) must
+    return that tree unchanged.
+    """
+    real = tmp_path / "task-router"
+    (real / "scripts").mkdir(parents=True)
+    (real / "scripts" / "router_spawn.py").write_text("", encoding="utf-8")
+
+    monkeypatch.delenv("TASK_ROUTER_REPO", raising=False)
+    monkeypatch.delenv("TASK_ROUTER_HOME", raising=False)
+    monkeypatch.chdir(real / "scripts")
+    assert cli._resolve_repo_root() == str(real)

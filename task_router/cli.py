@@ -144,6 +144,36 @@ def _parents(path):
         path = parent
 
 
+def _canonical_through_symlink(cand):
+    """Follow a runtime-mirror candidate to the checkout that owns its scripts.
+
+    ~/.hermes/scripts/ is a live MIRROR of the canonical checkout: each tool is
+    a symlink (router_spawn.py -> <checkout>/scripts/router_spawn.py). Because
+    the cwd walk-up stops at the first directory holding scripts/router_spawn.py,
+    standing anywhere under ~/.hermes resolved REPO=~/.hermes and dispatched the
+    mirror instead of the checkout — the CLI then graded the wrong tree (and the
+    mirror can lag: `router validate` there died on `No module named
+    'lifecycle_gate'`). A mirror is not a checkout, so resolve the symlink target
+    and keep walking in the real tree.
+
+    Returns the owning checkout, or None when the candidate's entry point is a
+    real file (nothing to redirect).
+    """
+    entry = os.path.join(cand, "scripts", "router_spawn.py")
+    if not os.path.islink(entry):
+        return None
+    try:
+        real = os.path.realpath(entry)
+    except OSError:
+        return None
+    checkout = os.path.dirname(os.path.dirname(real))
+    if checkout == cand:
+        return None
+    if os.path.isfile(os.path.join(checkout, "scripts", "router_spawn.py")):
+        return checkout
+    return None
+
+
 def _resolve_repo_root():
     """Locate the checkout that holds scripts/.
 
@@ -155,7 +185,9 @@ def _resolve_repo_root():
 
       1. TASK_ROUTER_REPO / TASK_ROUTER_HOME -- an operator override wins.
       2. walk UP from the current working directory -- the common case: you are
-         standing in the checkout, or in a directory under it.
+         standing in the checkout, or in a directory under it. A candidate that
+         only qualifies through a SYMLINKED entry point (~/.hermes/scripts/, the
+         runtime mirror) is redirected to the checkout the symlink names.
       3. walk up from this file -- the source-checkout / editable-install case.
 
     Returns the best candidate even when nothing matches, so cli.REPO keeps its
@@ -174,7 +206,7 @@ def _resolve_repo_root():
             continue
         seen.add(cand)
         if os.path.isfile(os.path.join(cand, "scripts", "router_spawn.py")):
-            return cand
+            return _canonical_through_symlink(cand) or cand
     return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # historical fallback
 
 
