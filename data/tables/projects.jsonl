@@ -62,6 +62,7 @@
 {"id": "asce-dogfood", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
 {"id": "asce-foreman", "sensitivity": "open", "board_type": "jsonl", "profile": "P0_FORE"}
 {"id": "asce-foreman-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
+{"id": "asce-ops", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
 {"id": "asce-perf", "sensitivity": "open", "board_type": "jsonl", "profile": "P2_AGENTIC"}
 {"id": "asce-pm", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
 {"id": "asce-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
@@ -236,6 +237,17 @@
 {"id": "crier-review-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
 {"id": "crier-sync", "sensitivity": "open", "board_type": "", "profile": "P8_SYNC"}
 {"id": "dagger-sync", "sensitivity": "open", "board_type": "", "profile": "P8_SYNC"}
+{"id": "dagger-v2-docs", "sensitivity": "open", "board_type": "jsonl", "profile": "P3_DOCS"}
+{"id": "dagger-v2-dogfood", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
+{"id": "dagger-v2-foreman", "sensitivity": "open", "board_type": "jsonl", "profile": "P0_FORE"}
+{"id": "dagger-v2-ops", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
+{"id": "dagger-v2-perf", "sensitivity": "open", "board_type": "jsonl", "profile": "P2_AGENTIC"}
+{"id": "dagger-v2-pm", "sensitivity": "open", "board_type": "jsonl", "profile": "P8_SYNC"}
+{"id": "dagger-v2-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
+{"id": "dagger-v2-readme", "sensitivity": "open", "board_type": "jsonl", "profile": "P3_DOCS"}
+{"id": "dagger-v2-releng", "sensitivity": "open", "board_type": "jsonl", "profile": "P2_AGENTIC"}
+{"id": "dagger-v2-review", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
+{"id": "dagger-v2-sync", "sensitivity": "open", "board_type": "", "profile": "P8_SYNC"}
 {"id": "dc-prune", "sensitivity": "open", "board_type": "jsonl", "profile": "P7_MOCK"}
 {"id": "dc-rotate", "sensitivity": "open", "board_type": "jsonl", "profile": "P7_MOCK"}
 {"id": "dc-vacuum", "sensitivity": "open", "board_type": "jsonl", "profile": "P7_MOCK"}
@@ -538,6 +550,8 @@
 {"id": "hermes4friends-infra-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
 {"id": "hermes4friends-infra-readme", "sensitivity": "open", "board_type": "jsonl", "profile": "P3_DOCS"}
 {"id": "hermes4friends-infra-readme-qa", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
+{"id": "hermes4friends-infra-releng", "sensitivity": "open", "board_type": "jsonl", "profile": "P2_AGENTIC"}
+{"id": "hermes4friends-infra-review", "sensitivity": "open", "board_type": "jsonl", "profile": "P9_REVIEW"}
 {"id": "hermes4friends-infra-sync", "sensitivity": "open", "board_type": "", "profile": "P8_SYNC"}
 {"id": "hivemind-sync", "sensitivity": "open", "board_type": "", "profile": "P8_SYNC"}
 {"id": "hivemind-work", "sensitivity": "open", "board_type": "jsonl", "profile": "P2_AGENTIC"}
