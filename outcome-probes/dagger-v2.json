@@ -1,0 +1,12 @@
+{
+  "authored_at": "2026-11-25T02:05:00Z",
+  "authored_by": "kanban-worker (model-routing card t_9e033335; probe authored after the dagger-v2 family was seeded into the registry table)",
+  "probes": [
+    {
+      "id": "dagger-v2-P1",
+      "kind": "outcome",
+      "statement": "a dagger-v2 lane task resolves a router hop chain at spawn (no ROUTER-MISS fallback to a static chain) and its DAG run records a terminal verdict for every node it executed, with no abandoned checkpoints left behind"
+    }
+  ],
+  "project": "dagger-v2"
+}
