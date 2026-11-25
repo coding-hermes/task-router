@@ -1,0 +1,60 @@
+{
+  "task_id": "TR-367",
+  "task_title": "Board-task intake daemon is dead: restore auto-resolve on submission",
+  "task_criteria": [
+    "tests/test_board_task_intake.py runs green; a newly appended pending row produces exactly one intake-resolves record naming the task id, chain head and complexity source; a cold start adds zero resolves for pre-existing pending rows; a supervised intake daemon pid is live"
+  ],
+  "passed": false,
+  "worktree": "/home/kara/task-router",
+  "branch": "main",
+  "commit": "0c2089534a005385fa5ccf90883e6112480acfa7",
+  "pass_class": "tier1-only",
+  "tier2_skipped": true,
+  "working_tree_content_fingerprint": "d249329dc4f11919d68744dfac505f1411b84aa9826fb6f143061dd4f60c9e65",
+  "working_tree_dirty_path_count": 10,
+  "items": [],
+  "review": {
+    "reviewer_email": "totalwindupflightsystems@gmail.com",
+    "reviewer_name": "totalwindupflightsystems",
+    "commit_author_email": "totalwindupflightsystems@gmail.com",
+    "commit_author_name": "totalwindupflightsystems",
+    "self_review": true,
+    "findings": [],
+    "summary": "The diff contains only operational state files \u2014 an appended board event line, two task-ledger entries, and regenerated seed-cache manifest hashes/timestamps consistent with prior formats \u2014 with no code, symbols, flags, or logic changes, so no correctness, wiring, missing-failure-path-test, or convention-drift defect is evidenced.",
+    "raw_reply": "",
+    "retry": {
+      "count": 1,
+      "raw_reply": "{\"findings\":[],\"summary\":\"The diff contains only operational state files \u2014 an appended board event line, two task-ledger entries, and regenerated seed-cache manifest hashes/timestamps consistent with prior formats \u2014 with no code, symbols, flags, or logic changes, so no correctness, wiring, missing-failure-path-test, or convention-drift defect is evidenced.\"}"
+    },
+    "review_state": {
+      "emitted": [],
+      "carried": []
+    }
+  },
+  "summary": "Judge Result: TR-367\n\nOverall: FAIL \u2717",
+  "evaluated_at": "2026-11-25T09:03:32.665352",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-11-25T09:03:32.707687+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 1075,
+        "truncated": false,
+        "source": "git show 0c2089534a00"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 3484,
+        "truncated": false,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "TR-367"
+  }
+}

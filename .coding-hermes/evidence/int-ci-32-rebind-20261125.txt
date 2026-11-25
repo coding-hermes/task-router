@@ -1,0 +1,27 @@
+INT-CI-32: CI red on main — board-commit boundary gate refuses completions bound to gitignored evidence run ids
+2026-11-25T15:48Z, tick task-router-foreman-2026-11-25-15-43-56
+
+RED RUNS (both on main, discovered this tick):
+  run 45529586050 (ae7668d3, TR-368 closeout): gate refused run_id 'tr368-fm-20261124' — hand-written local tick label.
+  run 45583574098 (edda077b, TR-367 closeout): gate refused run_id 'd314eba8' — local gitreins history dir.
+  (also red, distinct class → INT-CI-33: run 45529711352 / 54403596, pytest test_seed_refusal_atomicity)
+
+ROOT CAUSE: both run ids are gitignored local state (.gitreins/history/*/; tick directory labels).
+They resolve in the author's checkout [form (b)] but NEVER on a CI fresh clone, so the completion is refused there.
+TR-367's row on current main still carried d314eba8 → latent refusal on any future edit of that row.
+
+FIX (this commit, board-only):
+  TR-367: d314eba8 -> 45570515095 (GREEN hosted run, exact graded merge head 0c208953, 2026-11-25T07:44:35Z)
+  TR-368: tr368-fm-20261124 -> 45525543171 (GREEN hosted run, chain-diversity gate commit 681fdacc, 2026-11-25T01:24:41Z)
+  Evidence substance unchanged; form (a) per docs/evidence-run-store-decision.md. Verdict artifacts of d314eba8
+  preserved from gitignored history into .coding-hermes/evidence/int-ci-32/ before any gitreins pruning.
+
+GATE PROOFS (file-mode, fresh-clone simulation by hiding .gitreins/history/2026-11-25/d314eba8):
+  RED  old=0c208953 board new=edda077b board -> REFUSAL verbatim of CI class (exit 1)   [d314eba8]
+  PASS old=0c208953 board new=rebound  board -> OK, 1 completion flip, all evidence-bound (exit 0)
+  PASS old=ae7668d3^  board new=ae7668d3 board -> OK locally (tr368-fm resolves via its OWN local history
+      dir, form (b)) — the CI refusal of run 45529586050 is authoritative for the fresh-clone direction
+  PASS old=ae7668d3^  board new=rebound  board -> OK, 2 flips, all evidence-bound (exit 0)
+  history dir restored after proofs; verdict.json sha256 d6c56a299ba26af6094da952494707fd98d3d1ac5b09f1f8dabc037c6b6fabcf
+
+CLOSURE PATH for INT-CI-32: green exact-head CI run of the rebind commit (cited by run id in the row).
