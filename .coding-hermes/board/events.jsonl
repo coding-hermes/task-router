@@ -1186,3 +1186,6 @@
 {"event_type": "task_created", "actor": "foreman", "timestamp": "2026-11-24T20:09:48Z", "id": 1794115000000000134, "task_id": "PERF-2", "tick_number": null, "detail": "{\"id\":\"PERF-2\",\"status\":\"pending\"}"}
 {"event_type": "task_created", "actor": "foreman", "timestamp": "2026-11-24T20:09:49Z", "id": 1794115000000000135, "task_id": "QA-TASKROUTER-27", "tick_number": null, "detail": "{\"id\":\"QA-TASKROUTER-27\",\"status\":\"pending\"}"}
 {"event_type": "task_created", "actor": "foreman", "timestamp": "2026-11-24T20:09:49Z", "id": 1794115000000000136, "task_id": "TR-1000976681059309", "tick_number": null, "detail": "{\"id\":\"TR-1000976681059309\",\"status\":\"pending\"}"}
+{"event_type": "task_updated", "actor": "foreman", "timestamp": "2026-11-25T01:47:00Z", "id": 1794115000000000137, "task_id": "TR-218", "tick_number": null, "detail": "{\"status\":\"failed\"}"}
+{"event_type": "task_updated", "actor": "foreman", "timestamp": "2026-11-25T01:47:05Z", "id": 1794115000000000138, "task_id": "TR-219", "tick_number": null, "detail": "{\"status\":\"failed\"}"}
+{"event_type": "task_updated", "actor": "foreman", "timestamp": "2026-11-25T01:47:05Z", "id": 1794115000000000139, "task_id": "TR-359", "tick_number": null, "detail": "{\"status\":\"failed\"}"}
