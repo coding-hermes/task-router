@@ -45,10 +45,17 @@ daemon dies mid-resolve, the next boot finds the dangling claim and writes an
 `error` record to the resolves ledger (reconciliation at startup) — a task is
 never lost silently, and it is never resolved twice.
 
-Cold start: a first boot (empty seen state) seeds every id already on the
-board as seen WITHOUT resolving them — intake begins with genuinely new
-submissions. `--once` is the opposite contract: drain the CURRENT backlog and
-exit (testing/CI), resolving every pending id the state does not know yet.
+Cold start: TR-367 R2 — on EVERY daemon start (not only a fresh state dir),
+`main()` seeds every id already on the board as seen WITHOUT resolving them
+BEFORE the first poll, and `seed()` advances the offset tail to the bytes it
+read: intake begins with genuinely new submissions even when the seen file
+is non-empty but stale (a crashed daemon left it covering only part of the
+board — the pre-R2 first poll then read from byte 0 and mass-resolved every
+pre-existing pending id absent from seen; the live restart of 2026-11-25
+resolved 9 old rows in 95s that way). If the board is unreadable at start,
+seeding retries before the first poll. `--once` is the opposite contract:
+drain the CURRENT backlog and exit (testing/CI), resolving every pending id
+the state does not know yet.
 Repeat runs stay idempotent: the second `--once` adds no records.
 
 Stdlib only (like every script in this repo — it must run in the bare board
@@ -407,14 +414,17 @@ class BoardIntake:
         return tally
 
     def seed(self):
-        """First-boot baseline: mark every id already on the board as seen
-        WITHOUT resolving it. Returns how many ids were seeded."""
+        """Cold-start baseline: mark every id already on the board as seen
+        WITHOUT resolving it (TR-367 R2: runs before the first poll on every
+        daemon start, not only a fresh state). Returns how many ids were
+        seeded, or -1 on a board read failure (start must NOT first-poll an
+        unseeded board — that mass-resolves)."""
         try:
             with open(self.board, 'rb') as f:
                 raw = f.read()
         except OSError as e:
             self._report_board_error(f'seed read failed: {e}')
-            return 0
+            return -1
         count = 0
         for row in self._iter_rows(raw.decode('utf-8', errors='replace')):
             tid = row.get('id') if row else None
@@ -425,6 +435,18 @@ class BoardIntake:
             append_jsonl(self.seen_file, entry)
             self.seen[str(tid)] = entry
             count += 1
+        if not raw:
+            return count
+        # Mirror the exact post-read state _read_new_bytes() leaves: the
+        # offset points past everything seed just read and the trailing
+        # bytes after the last newline are carried in _pending — so the
+        # first poll sees ONLY bytes appended after the start (ids appended
+        # during the run are not seeded and their rows still reassemble
+        # whole via the carry), and a board mid-write at start is not
+        # duplicated.
+        cut = raw.rfind(b'\n')
+        self._offset = len(raw)
+        self._pending = raw[cut + 1:] if cut >= 0 else raw
         return count
 
 
@@ -495,10 +517,24 @@ def main(argv: Any=None) -> int:
                    f"skipped={tally['skipped']}")
         return 0
 
-    if intake.fresh_state:
+    # TR-367 R2 (live failure 2026-11-25): cold start NEVER mass-resolves —
+    # for ANY daemon start, not only a fresh state dir. A stale seen file (a
+    # crashed daemon left it covering only part of the board) used to meet a
+    # first poll reading from offset 0, and every pre-existing pending id
+    # absent from seen was resolved as if newly submitted. Seed every id
+    # already on the board as seen WITHOUT resolving (the first-boot seed
+    # mechanism) BEFORE the first poll; seed() also advances the offset tail
+    # to what it read, so the first poll sees only rows appended after the
+    # start. If the board is not readable yet, keep retrying: first-polling
+    # an UNSEEDED board would mass-resolve once it appears.
+    seeded = intake.seed()
+    while seeded < 0:
+        intake.log('seed read failed; retrying before first poll '
+                   '(must not first-poll an unseeded board)')
+        time.sleep(interval)
         seeded = intake.seed()
-        intake.log(f'first boot: seeded {seeded} existing board ids as seen '
-                   f'(not resolved) — intake starts with NEW submissions')
+    intake.log(f'start: seeded {seeded} existing board ids as seen '
+               f'(not resolved) — intake starts with NEW submissions')
 
     intake.log(f'watching {board} every {interval:g}s '
                f'(state: {state_dir})')

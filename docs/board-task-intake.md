@@ -67,9 +67,16 @@ source}` row per event, LAST row per id wins) is the idempotence key:
   (duplicate rows, `--once` again, a daemon restart) resolve nothing;
 - `--once` drains the CURRENT backlog and exits (testing/CI): a fresh state
   + `--once` resolves every pending id already on the board;
-- a daemon (no `--once`) cold-booting with a fresh state **seeds** every id
-  already on the board as seen WITHOUT resolving them — intake begins with
-  genuinely new submissions;
+- a daemon (no `--once`) **seeds** every id already on the board as seen
+  WITHOUT resolving them before its first poll — intake begins with
+  genuinely new submissions. This holds for ANY daemon start, not only a
+  fresh state dir (TR-367 R2, 2026-11-25): a stale seen file — a crashed
+  daemon left it covering only part of the board — no longer meets a first
+  poll reading from byte 0; the start reconciles the stale plane by seeding
+  the pre-existing ids (and advances the offset tail to what it read, so
+  only rows appended after the start resolve). If the board is unreadable
+  at start, seeding retries before the first poll — first-polling an
+  unseeded board would mass-resolve;
 - a dangling claim (daemon killed mid-resolve) is reconciled at the next
   boot into an `error` record ("resolve interrupted before completion") —
   visible, attributable, and still never resolved twice.
@@ -139,9 +146,12 @@ fails on any tree that loses this wiring (the dead-daemon class).
 python3 -m pytest -q tests/test_board_task_intake.py
 ```
 
-24 tests: exactly-once trigger, idempotent replay (duplicate row, second
+27 tests: exactly-once trigger, idempotent replay (duplicate row, second
 `--once`, daemon restart, board rewrite), truncated + malformed lines,
 fail-open subprocess errors (crash / timeout / garbage / spawn's own
 error payload) with the loop continuing, dangling-claim reconciliation,
-`--once` drain + idempotence, cold-boot seeding, spawn-argv shape against a
-stub interpreter, and the gitignore/doc-parity guards.
+`--once` drain + idempotence, cold-boot seeding on ANY start including the
+stale-seen plane (TR-367 R2: the regression test
+`test_daemon_start_with_stale_seen_never_mass_resolves` is RED on the
+pre-R2 tree), spawn-argv shape against a stub interpreter, and the
+gitignore/doc-parity guards.
