@@ -468,6 +468,112 @@ def test_seed_then_new_task_resolves(make_intake, env):
 
 
 # ---------------------------------------------------------------------------
+# 5b. TR-367 R2 — cold start NEVER mass-resolves, for ANY daemon start.
+# ---------------------------------------------------------------------------
+
+class _StopDaemon(Exception):
+    """Raised from the mocked time.sleep to bound main()'s poll loop."""
+
+
+def _run_daemon_bounded(intake_mod, argv, monkeypatch):
+    """Run intake.main() WITHOUT --once and stop it at the end of the first
+    poll interval. This exercises the REAL daemon start sequence (the code
+    that changed in TR-367 R2), not a hand-written re-creation of it.
+    time.sleep fires outside main()'s poll-fail-open try block, so the
+    sentinel propagates out of main()."""
+
+    def _bounded_sleep(_seconds):
+        _bounded_sleep.calls += 1
+        if _bounded_sleep.calls >= 1:
+            raise _StopDaemon()
+
+    _bounded_sleep.calls = 0
+    monkeypatch.setattr(intake_mod.time, "sleep", _bounded_sleep)
+    with pytest.raises(_StopDaemon):
+        intake_mod.main(argv)
+
+
+def _write_stale_seen(env):
+    """A NON-EMPTY but stale seen file: a crashed daemon left it covering
+    exactly ONE of several pre-existing board ids (the 2026-11-25 live
+    incident shape: seen covered ~99 of ~598 board rows). Rows are completed
+    claims so startup reconciliation adds nothing to the resolves ledger."""
+    seen_file = Path(env["state"]) / intake.SEEN_FILE
+    seen_file.parent.mkdir(parents=True, exist_ok=True)
+    seen_file.write_text(json.dumps(
+        {"id": "TASK-OLD-1", "ts": "2026-10-13T00:00:00+00:00",
+         "resolved_at": "2026-10-13T00:00:00+00:00",
+         "source": "claim-completed", "outcome": "ok"}) + "\n")
+
+
+def test_daemon_start_with_stale_seen_never_mass_resolves(
+        make_intake, env, monkeypatch):
+    """TR-367 R2 (RED-proven on the pre-R2 tree, live failure 2026-11-25):
+    a daemon start with a non-empty STALE seen file must seed every
+    pre-existing board id as seen WITHOUT resolving them BEFORE the first
+    poll. Pre-R2, only a fresh state dir was seeded — the daemon restart
+    then read the whole board from offset 0 and resolved every pending id
+    absent from seen as if newly submitted (the live restart mass-resolved
+    9 old rows, incl. a 2026-09-23 task, in 95s)."""
+    make, spy = make_intake
+    _write_stale_seen(env)
+    _append(env["board"], [_task_row("TASK-OLD-1"),
+                           _task_row("TASK-OLD-2"),
+                           _task_row("TASK-OLD-3", status="complete")])
+
+    _run_daemon_bounded(intake, [
+        "--board", env["board"], "--state-dir", env["state"],
+        "--spawn-cmd", " ".join(env["spawn_cmd"]), "--interval-s", "0.05",
+    ], monkeypatch)
+
+    assert spy.calls == [], (
+        "daemon start mass-resolved pre-existing rows: "
+        f"{[c['task_id'] for c in spy.calls]}")
+    assert _resolves(env["state"]) == []
+    # the start reconciled the stale plane: every pre-existing id is seen
+    assert {"TASK-OLD-1", "TASK-OLD-2", "TASK-OLD-3"} <= set(_seen(env["state"]))
+
+
+def test_append_after_stale_seen_start_resolves_exactly_once(make_intake, env):
+    """The appended-row contract still holds on a stale seen plane: a
+    pending row appended AFTER the start resolves exactly once, and a repeat
+    start (fresh instance over the now-reconciled state) resolves nothing."""
+    make, spy = make_intake
+    _write_stale_seen(env)
+    _append(env["board"], [_task_row("TASK-OLD-1"),
+                           _task_row("TASK-OLD-2")])
+    obj = make()
+    obj.seed()
+    _append(env["board"], [_task_row("TASK-NEW-9")])
+    obj.poll()
+    assert [c["task_id"] for c in spy.calls] == ["TASK-NEW-9"]
+    assert len(_resolves(env["state"])) == 1
+
+    obj2 = make()
+    obj2.seed()
+    obj2.poll()
+    assert [c["task_id"] for c in spy.calls] == ["TASK-NEW-9"]
+    assert len(_resolves(env["state"])) == 1
+
+
+def test_daemon_fresh_state_cold_boot_main_path_resolves_zero(
+        make_intake, env, monkeypatch):
+    """Fresh-state cold start through the REAL main() path still resolves
+    ZERO for pre-existing rows (TR-367 R2 keeps the original contract)."""
+    make, spy = make_intake
+    _append(env["board"], [_task_row("TASK-F1"), _task_row("TASK-F2")])
+
+    _run_daemon_bounded(intake, [
+        "--board", env["board"], "--state-dir", env["state"],
+        "--spawn-cmd", " ".join(env["spawn_cmd"]), "--interval-s", "0.05",
+    ], monkeypatch)
+
+    assert spy.calls == []
+    assert _resolves(env["state"]) == []
+    assert set(_seen(env["state"])) == {"TASK-F1", "TASK-F2"}
+
+
+# ---------------------------------------------------------------------------
 # 6. Default spawn command + docs parity guards.
 # ---------------------------------------------------------------------------
 
