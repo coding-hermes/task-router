@@ -1917,3 +1917,14 @@ tasks:
   status: complete
   created_at: '2026-11-23T18:39:37.926129+00:00'
   completed_at: '2026-11-23T21:34:17.730020+00:00'
+- id: TR-368
+  title: 'Chain-diversity gate in CI: no profile may resolve to zero hops or a single
+    provider'
+  criteria:
+  - A CI check resolves EVERY profile in data/tables/task_profiles.jsonl, prints per-profile
+    hop count and provider histogram, and exits non-zero when any profile returns
+    0 hops or fewer than 2 distinct providers; it exits 0 on the fixed data and pytest
+    tests -q passes
+  status: complete
+  created_at: '2026-11-24T23:18:09.800582+00:00'
+  completed_at: '2026-11-25T01:43:57.266656+00:00'
