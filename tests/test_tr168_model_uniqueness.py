@@ -147,6 +147,28 @@ def test_deduped_pair_keeps_union_row_with_twin_provenance(
 #: must name its importer commit — an append that is not in this list (and not
 #: added here with its evidence) fails the pin exactly like a lost lane.
 POST_DEDUPE_ADDITIONS = {
+    # 2026-11-25 tick (model-registry-data-quality cron): models.dev + clinepass
+    # sync arrivals, all arrival-day gated in the same tick (lesson
+    # ratchet-arrival-day): measured-base aliases, or TR-362-disable with the
+    # sticker kept for audit; capability columns null-stamped (no-sample-yet).
+    ("fireworks-ai", "accounts/fireworks/models/hy4-flash"): "models.dev sync 2026-11-25 — catalog arrival, sticker-priced 0.07, TR-362-disabled (measured-below-floor precedent 2026-11-17)",
+    ("fireworks-ai", "accounts/fireworks/models/qwen4-max"): "models.dev sync 2026-11-25 — catalog arrival, sticker-priced 1.5, alias -> qwen4-max (measured launch-chart tiers)",
+    ("fireworks-ai", "accounts/fireworks/models/ultramarine-1-flash-us"): "models.dev sync 2026-11-25 — catalog arrival, sticker-priced 0.15, TR-362-disabled (proprietary bundle, no measured base)",
+    ("fireworks-ai", "accounts/fireworks/routers/deepseek-v4p1-flash-1017-flex"): "models.dev sync 2026-11-25 — catalog arrival, sticker-priced 0.15, alias -> deepseek-v4.1-flash-1017 (flex tier)",
+    ("fireworks-ai", "accounts/fireworks/routers/deepseek-v4p1-flash-1017-us"): "models.dev sync 2026-11-25 — catalog arrival, sticker-priced 0.45, alias -> deepseek-v4.1-flash-1017 (US premium)",
+    ("fireworks-ai", "accounts/fireworks/routers/deepseek-v4p1-flash-us"): "models.dev sync 2026-11-25 — catalog arrival, sticker-priced 0.45, alias -> deepseek-v4.1-flash (US premium)",
+    ("fireworks-ai", "accounts/fireworks/routers/glm-5p3-us"): "models.dev sync 2026-11-25 — catalog arrival, sticker-priced 2.1, alias -> glm-5.3 (US premium)",
+    ("fireworks-ai", "accounts/fireworks/routers/kimi-k3-us"): "models.dev sync 2026-11-25 — catalog arrival, sticker-priced 4.5, alias -> kimi-k3 (US premium)",
+    ("fireworks-ai", "accounts/fireworks/routers/kimi-k3p1-pro-us"): "models.dev sync 2026-11-25 — catalog arrival, sticker-priced 2.5, alias -> kimi-k3.1-pro (US premium)",
+    ("opencode-go", "hungerg-free"): "models.dev sync 2026-11-25 — catalog arrival, blended-est $0, TR-362-disabled (proprietary bundle, no measured base)",
+    ("openrouter", "upstage/solar-mini-4-5"): "models.dev sync 2026-11-25 — catalog arrival, sticker-priced 0.01, TR-362-disabled (new Solar 4.5 gen, no measured base)",
+    ("openrouter", "upstage/solar-pro-4-contributor"): "models.dev sync 2026-11-25 — catalog arrival, sticker-priced 0.09, alias -> solar-pro4 (contributor discount)",
+    ("openrouter", "xiaomi/mimo-v2.6-flash-mopd"): "models.dev sync 2026-11-25 — catalog arrival, sticker-priced 0.15, alias -> xiaomi/mimo-v2.6-flash (mopd serving variant)",
+    ("stepfun", "step-1o-turbo-vision"): "models.dev sync 2026-11-25 — catalog arrival, outside Step Plan included list, TR-362-disabled (unmeasured vision turbo)",
+    ("zai-glm", "glm-5.3-flashx-legal"): "models.dev sync 2026-11-25 — name-variant arrival, TR-362-disabled (FlashX not on the GLM Coding Plan, 2026-09-19 doctrine)",
+    ("clinepass", "solar-mini-4-5"): "clinepass API sync 2026-11-25 — carrier arrival, TR-362-disabled PAYG-outside-flat-plan (not in included_models)",
+    ("clinepass", "solar-pro-4-contributor"): "clinepass API sync 2026-11-25 — carrier arrival, TR-362-disabled PAYG-outside-flat-plan (not in included_models)",
+    ("clinepass", "mimo-v2.6-flash-mopd"): "clinepass API sync 2026-11-25 — carrier arrival, TR-362-disabled PAYG-outside-flat-plan (not in included_models)",
     # TR-254 tick 2026-10-14 (model-registry-data-quality cron): carrier-arrival
     # lanes from the daily syncs + the HELD-lane filing wave. Every key matches a
     # lane in the committed models.jsonl at HEAD; reasons per family below.

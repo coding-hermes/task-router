@@ -203,9 +203,17 @@ def _spawn_profile_err(env_extra):
 
 
 def test_spawn_json_byte_identical_with_and_without_warning(
-        seed_registry_copy):
+        seed_registry_copy, tmp_path):
+    home = tmp_path / "home"
+    home.mkdir()
     base = {"ROUTING_REGISTRY": seed_registry_copy["ROUTING_REGISTRY"],
             "ROUTING_DATA_DIR": seed_registry_copy["ROUTING_DATA_DIR"],
+            # hermeticity (hit live 2026-11-25): spawn's default quota-state
+            # paths resolve under HOME; a host whose ~/.hermes/model-router
+            # and canonical CLI state files both exist and diverge fires the
+            # paths-diverge warning even under WARN=suppress. Redirect HOME
+            # so the no-state-dir scenario under test is the only input.
+            "HOME": str(home),
             # spawn's quiet convention (TR-055): diagnostics need the opt-in
             "ROUTER_MISS_VERBOSE": "1"}
     env_nowarn = dict(base, ROUTER_STATE_DIR_WARN="suppress")
@@ -224,7 +232,10 @@ def test_spawn_json_byte_identical_with_and_without_warning(
     assert payload.get("code") == "PROFILE_NOT_FOUND"
     assert "ROUTER_STATE_DIR" not in a.stderr
     assert "ROUTER_STATE_DIR" in b.stderr
-    assert sd.DEFAULT_STATE_DIR in b.stderr
+    # HOME-relative (hit live 2026-11-25): the subprocess computes its default
+    # state dir from ITS env HOME, so the warning names <home>/.hermes/...
+    # — asserting the absolute host path would depend on where the suite runs.
+    assert str(home / ".hermes" / "model-router") in b.stderr
 
 
 # --------------------------------------------- per-script helper-used probes

@@ -558,7 +558,14 @@ def test_end_to_end_gate_written_by_the_cli_is_honored_by_the_resolver(tmp_path)
                '--state-dir', str(state))
     assert p.returncode == 0, p.stderr
     env = dict(os.environ, ROUTER_STATE_DIR=str(state), ROUTING_REGISTRY=reg,
-               ROUTING_DATA_DIR=str(tmp_path / 'data'))
+               ROUTING_DATA_DIR=str(tmp_path / 'data'),
+               # hermeticity (hit live 2026-11-25): the outcome-floor/TR-357
+               # gates otherwise read the LIVE rolling-averages store, whose
+               # merged records flip daily — point them at absent tmp paths
+               # so the fixture scenario is the only input (fail-open: an
+               # unreadable averages file yields an empty index).
+               ROUTING_AVERAGES_FILE=str(tmp_path / 'averages-absent.jsonl'),
+               ROUTING_OUTCOMES_FILE=str(tmp_path / 'outcomes-absent.jsonl'))
     proc = subprocess.run([sys.executable, os.path.join(SCRIPTS, 'router_spawn.py'),
                            'demo', '--format', 'json'],
                           capture_output=True, text=True, timeout=SEED_TIMEOUT, env=env)
@@ -671,7 +678,13 @@ def test_cli_quota_set_changes_spawn_head_without_state_dir(tmp_path):
                 'LEDGER_FILE'):
         env.pop(key, None)
     env.update(HOME=str(tmp_path / 'real-home'), TASK_ROUTER_HOME=str(home),
-               PYTHONPATH=REPO)
+               PYTHONPATH=REPO,
+               # hermeticity (hit live 2026-11-25): isolate the rolling
+               # averages/outcomes stores the same way the state dirs are
+               # isolated above — the gate semantics under test are quota
+               # gates, not live outcome-floor state.
+               ROUTING_AVERAGES_FILE=str(tmp_path / 'averages-absent.jsonl'),
+               ROUTING_OUTCOMES_FILE=str(tmp_path / 'outcomes-absent.jsonl'))
     entry = ("import sys; sys.argv = ['router'] + sys.argv[1:]; "
              "from task_router.cli import main; sys.exit(main())")
 
