@@ -1,0 +1,48 @@
+# task-router-intake.service — TR-298 board task intake daemon as a systemd
+# --user unit. Committed in TR-367 because the daemon stopped resolving on
+# 2026-10-13 (the live resolves ledger froze at 48 records) while every
+# supervision asset existed ONLY as an inline snippet in
+# docs/board-task-intake.md: when the polling process died there was no
+# installed unit and nothing on the tree to restart it. This file is the
+# committed wiring the supervisor wrapper installs.
+#
+# Arm (the one explicit operator step; after review — this repo never starts
+# its own daemon):
+#
+#     ~/.hermes/venvs/board/bin/python3 scripts/intake_supervise.py arm
+#
+# or by hand:
+#
+#     cp scripts/task-router-intake.service ~/.config/systemd/user/
+#     systemctl --user daemon-reload
+#     systemctl --user enable --now task-router-intake.service
+#
+# Wiring is validated offline first by the same wrapper:
+#
+#     ~/.hermes/venvs/board/bin/python3 scripts/intake_supervise.py check
+#
+# NOTE: concrete paths follow the repo's service-file convention
+# (scripts/task-router-web.service) — the canonical checkout on this host.
+[Unit]
+Description=Task Router automatic board task intake daemon (TR-298, TR-367)
+Documentation=file:///home/kara/task-router/docs/board-task-intake.md
+After=network-online.target
+
+[Service]
+Type=simple
+# The board venv interpreter, exactly like task-router-web.service — the
+# daemon is stdlib-only, but under the documented unit the resolve
+# subprocess reproduces the manual command exactly.
+WorkingDirectory=/home/kara/task-router
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/home/kara/.hermes/venvs/board/bin/python3 /home/kara/task-router/scripts/board_task_intake.py --board /home/kara/task-router/.coding-hermes/board/tasks.jsonl --state-dir /home/kara/task-router/data/state --interval-s 30
+# A cold boot SEEDS every pending id already on the board as seen without
+# resolving it, so daemon restarts (crash, reboot, this restart policy) are
+# safe: existing rows never re-resolve, only genuinely NEW submissions do.
+Restart=always
+RestartSec=10
+StandardOutput=append:/home/kara/.hermes/logs/task-router-intake.log
+StandardError=append:/home/kara/.hermes/logs/task-router-intake.log
+
+[Install]
+WantedBy=default.target
