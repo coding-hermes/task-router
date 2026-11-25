@@ -1,0 +1,102 @@
+CF-246 satisfiability audit — P0_FORE capability-gap fix
+=========================================================
+Date: 2026-11-26
+Tree: worktree wt/cf-246, base origin/main 8f9ab832, with the CF-246 table
+      change applied (P0_FORE gains exactly one row: long_horizon level 2;
+      the working-tree tool_use row from the previous attempt was REMOVED —
+      it conflicts with the owner regime lock, Bane 2026-08-27 2nd
+      correction, enforced by
+      tests/test_regression.py::test_p0_fore_has_no_tool_use_bar).
+
+1. Satisfiability tool over the emit domain
+-------------------------------------------
+Command:  python3 scripts/router_satisfiability.py     (exit code 0)
+
+DECLARED UNMEASURED: math levels 0..5 — no routable lane can hold math >= 0: the only lane that ever held a math tier (ollama-cloud/qwen3.5:397b, bench AIME26 1.0) was retired 2026-09-25 and is disabled + unpriced, leaving a ONE-VALUE live population — glm-5.2 at perf 0.992 (bench AIME 2026 99.2, 6 routable providers) — which sits 8e-05 BELOW the lowest frozen band (-5 at min_perf 0.99208). A one-value population cannot be re-derived by quantile, so the bands are not the defect to fix here; the missing measurement is. Levels -5..-1 stay published: every lane serves them by the blank default tier -1. (declared 2026-11-15 by t_math_unservable)
+SATISFIABILITY OK: all 918 rating(s) in the emit domain are servable by at least one routable lane
+
+2. Per-profile adjudication — the five code-factory profiles
+------------------------------------------------------------
+Method: import router_satisfiability as sat; tables = sat.load_tables('.');
+idx = sat.capability_index(tables); every requirement row of the five
+profiles (as named by the code-factory* lanes in data/tables/projects.jsonl)
+checked against the capability index for (a) satisfiability and (b)
+blank-default (-1) resolution with no measured holders.
+
+  P0_FORE:   18 rows   (17 pre-fix + the new long_horizon=2 row)
+  P2_AGENTIC: 4 rows
+  P3_DOCS:    3 rows
+  P8_SYNC:    8 rows
+  P9_REVIEW:  8 rows
+
+  satisfiability_findings: EMPTY — no profile requirement row is
+  unsatisfiable; no row resolves to the -1 blank default at a required level
+  above it.
+
+  The only category any of the five profiles needs with zero measured
+  holders is math, and P0_FORE requires it at level -5 — at/below the blank
+  default, so the blank default itself serves it. Per foreman resolution 3
+  (CF-246): a declared negative requirement with no routable supply is NOT a
+  default-resolution defect; the row stays as-is.
+
+3. Routable rungs per category (verified, not assumed)
+------------------------------------------------------
+long_horizon: [-5, -4, -3, -2, 5]   best routable tier 5  → required level 2 SATISFIABLE (5 >= 2)
+tool_use:     [-5, -4, -3, -2, -1, 0, 5]
+
+Verified on TWO surfaces, which agree exactly:
+  (a) raw committed tables (data/tables/models.jsonl + model_tier.jsonl,
+      routability per router_satisfiability.is_routable: not archived,
+      not disabled, not retired, priced);
+  (b) the clamp's own view — a seeded registry (scripts/router_seed.py over
+      the committed tables), populated rungs per
+      router_outcomes.clamp_inferred_levels (model_tier rows minus
+      archive/disabled models):
+        long_horizon: [-5, -4, -3, -2, 5]
+        tool_use:     [-5, -4, -3, -2, -1, 0, 5]
+
+Note the tool_use shape: a cliff. No lane holds levels 1..4 on either
+surface — which is exactly the cliff-artifact category the owner regime lock
+(Bane 2026-08-27, 2nd correction) forbids gating P0_FORE on.
+
+4. Clamp site (where the original 503 was produced)
+---------------------------------------------------
+scripts/router_server.py:3572 — `_clamp_inferred`, the ROUTER_INFER_PROFILE
+clamp applied to SCORER-produced matrices (never an explicit --profile-req),
+via `_infer_reference_profile()` (default P0_FORE); called from
+_proxy_requirements at router_server.py:3632 and 3680. The clamp delegates to
+router_outcomes.clamp_inferred_levels, which drops an inferred
+(category, level) the reference profile never declares when the populated
+rungs do not express it. On 2026-11-05 a code-factory tick's inferred matrix
+wanted long_horizon=2 while P0_FORE did not declare the category; the tick
+hard-failed with requirements_unmet (503 class, scheduler.db). The fix
+declares long_horizon=2 on P0_FORE — satisfiable (tier 5 >= 2) — so the
+foreman tick's demand is a real profile requirement instead of a fabricated
+tick-time collision. Undeclared tool_use stays handled by the clamp's drop
+path plus the documented-unrequired disposition
+(docs/p0-fore-tool-use-disposition.md); it must NOT be re-added as a
+requirement row.
+
+5. Regression coverage (tests/test_profile_capability_coverage.py)
+-------------------------------------------------------------------
+  ARM 1  profile requirement rows of the code-factory profiles must not
+         resolve to the -1 blank default at a required level above it.
+  ARM 2  scorer-demanded categories (long_horizon, tool_use — the two with
+         live tick-time evidence) must be declared with a satisfiable level
+         by P0_FORE or covered by the documented-unrequired disposition.
+
+Red controls (scratch mutation of the working tree, restored byte-identical
+immediately after — never a committed broken tree):
+  * pre-fix table (long_horizon row removed): ARM 2 FAILS —
+    "P0_FORE does not declare long_horizon and no documented-unrequired
+    disposition exists for it ..." (1 failed, 1 passed).
+  * synthetic unmeasured requirement (P9_REVIEW requires math>=0 appended):
+    ARM 1 FAILS — "P9_REVIEW requires math>=0 but no routable lane MEASURES
+    math: every lane falls to the blank default tier -1 ...".
+Both restores verified with cmp against the pre-mutation copy; git diff
+after restore shows only the intended one-row table change.
+
+6. Green state on the fixed tree
+--------------------------------
+  python3 -m pytest tests/test_regression.py::test_p0_fore_has_no_tool_use_bar \
+      tests/test_profile_capability_coverage.py -q   →  3 passed
