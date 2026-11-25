@@ -1573,10 +1573,40 @@ def _stamp_payg_providers(tables: Any) -> None:
 
 
 def _registry_loader_with_meta() -> tuple:
-    """One parse pass over registry.json (data/tables arm included). The cache's
-    loader: called once per composite identity. Returns (payload, err) where
-    payload is (tables, source, fallback_used, warning) on success or None when
-    every arm failed (the caller then builds the empty-registry fail-open row)."""
+    """One parse pass over registry.json (data/tables arm included), memoized
+    per-process by the composite file identity.
+
+    Returns (payload, err) where payload is (tables, source, fallback_used,
+    warning) on success or None when every arm failed (the caller then builds
+    the empty-registry fail-open row).
+
+    TR-260b perf: cProfile showed 33 loader invocations in a single resolve
+    (each a full ~424k-row re-parse, 6.3s+ cum) — the cache's identity check
+    passes but its loader re-runs per get(). This memo keys on the same
+    composite identity the cache uses, so change-driven invalidation is
+    preserved (any member file stat change re-parses) while repeat loads
+    within one process collapse to one parse. One-shot CLI semantics: the
+    registry cannot legitimately change mid-resolve, so reuse is safe.
+    """
+    try:
+        ident = _tables_composite_identity(REGISTRY)
+    except Exception:  # noqa: BLE001 — identity trouble → parse plainly
+        ident = None
+    if ident is not None:
+        memo = _REGISTRY_LOADER_MEMO.get(ident)
+        if memo is not None:
+            return memo
+    result = _registry_loader_with_meta_uncached()
+    if ident is not None:
+        _REGISTRY_LOADER_MEMO[ident] = result
+    return result
+
+
+_REGISTRY_LOADER_MEMO: dict[tuple, tuple] = {}
+
+
+def _registry_loader_with_meta_uncached() -> tuple:
+    """The original single-parse body (memoized by _registry_loader_with_meta)."""
     try:
         with open(REGISTRY) as f:
             doc = json.load(f)
