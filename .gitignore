@@ -69,6 +69,10 @@ data/state/.store-sync.lock
 .gitreins/usage.jsonl
 .gitreins/qa-ledger.jsonl
 .gitreins/config.yaml.bak
+# TR-367 sandbox — scratch board/state/gate dirs for end-to-end intake runs
+# (fresh state + scratch gate plane per TR-319; runtime scratch, never tracked)
+.sandbox/
+
 # gitreins review bookkeeping — same class as the entries above, declared late.
 # engine/review_state.py builds .gitreins/review-state.json (the review-state
 # document, deliberately separate from verdict history) and

@@ -98,29 +98,31 @@ As a daemon (poll loop, every 30s):
     --state-dir data/state --interval-s 30
 ```
 
-Systemd **user** unit template (drop as
-`~/.config/systemd/user/task-router-intake@.service` if a host ever wants
-it as a service; the `%i` is the repo path):
+### Supervision wiring (TR-367 — the 2026-10-13 outage fix)
 
-```ini
-[Unit]
-Description=task-router automatic board task intake (%i)
-After=network-online.target
+The daemon stopped resolving on 2026-10-13 with the script itself healthy:
+every supervision asset existed only as an inline snippet, so when the
+polling process died there was no installed unit and nothing on the tree to
+restart it (the live resolves ledger froze at 48 records). Since TR-367 the
+wiring is committed, not described:
 
-[Service]
-ExecStart=%h/.hermes/venvs/board/bin/python3 %i/scripts/board_task_intake.py \
-    --board %i/.coding-hermes/board/tasks.jsonl \
-    --state-dir %i/data/state --interval-s 30
-Restart=on-failure
-RestartSec=10
+- `scripts/task-router-intake.service` — systemd **user** unit pointing at
+  the canonical checkout (same convention as `scripts/task-router-web.service`);
+- `scripts/intake_supervise.py` — the supervisor wrapper:
 
-[Install]
-WantedBy=default.target
-```
+  ```bash
+  ~/.hermes/venvs/board/bin/python3 scripts/intake_supervise.py check  # offline wiring validation
+  ~/.hermes/venvs/board/bin/python3 scripts/intake_supervise.py status # is-active + last ledger line
+  ~/.hermes/venvs/board/bin/python3 scripts/intake_supervise.py arm    # install unit + daemon-reload + enable --now
+  ```
 
-Nothing is installed or started by this repo — enabling remains an explicit
-operator decision (`systemctl --user enable --now
-task-router-intake@/home/kara/task-router` on a host that wants it).
+`arm` is fail-closed (a failing `check` or a missing board path refuses the
+install) and `--unit-dir` can point it at a scratch dir for CI. Nothing is
+installed or started by this repo — enabling remains an explicit operator
+decision on a host that wants it; the arm step is documented on the unit
+file itself, and the regression test
+`tests/test_board_task_intake.py::test_intake_supervision_wiring_committed_and_usable`
+fails on any tree that loses this wiring (the dead-daemon class).
 
 ## Environment overrides
 
@@ -137,7 +139,7 @@ task-router-intake@/home/kara/task-router` on a host that wants it).
 python3 -m pytest -q tests/test_board_task_intake.py
 ```
 
-21 tests: exactly-once trigger, idempotent replay (duplicate row, second
+24 tests: exactly-once trigger, idempotent replay (duplicate row, second
 `--once`, daemon restart, board rewrite), truncated + malformed lines,
 fail-open subprocess errors (crash / timeout / garbage / spawn's own
 error payload) with the loop continuing, dangling-claim reconciliation,

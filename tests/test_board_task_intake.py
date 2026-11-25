@@ -532,3 +532,50 @@ def test_stale_gitignore_rule_cleaned_up():
     offenders = [line for line in p.stdout.splitlines() if line.strip()]
     assert not offenders, \
         f"class gitignore rule swallows tracked state files: {offenders}"
+
+
+# ---------------------------------------------------------------------------
+# 7. TR-367 — supervision wiring: the dead-daemon regression class.
+# ---------------------------------------------------------------------------
+
+def test_intake_supervision_wiring_committed_and_usable():
+    """TR-367: the intake daemon stopped resolving on 2026-10-13 (the live
+    resolves ledger froze at 48 records) although the daemon script itself
+    was healthy — because every supervision asset existed ONLY as an inline
+    snippet in docs/board-task-intake.md. When the polling process died
+    there was no installed unit and nothing on the tree to restart it: this
+    test is RED on that pre-TR-367 tree and pins the restored contract (a
+    committed systemd --user unit + a supervisor wrapper whose `check` arm
+    validates the real wiring, not a doc snippet)."""
+    unit = SCRIPTS / "task-router-intake.service"
+    assert unit.is_file(), (
+        "no committed supervision unit for the intake daemon — a host that "
+        "loses the process has no wiring to restart it (the TR-367 defect)")
+    text = unit.read_text()
+    # the arm step must live ON the wiring, not only in prose docs
+    assert "systemctl --user" in text, "unit lacks the documented arm step"
+    assert "intake_supervise.py" in text, \
+        "unit does not name the supervisor wrapper"
+
+    # runnable validation via the supervisor wrapper's own offline check
+    p = subprocess.run(
+        [sys.executable, str(SCRIPTS / "intake_supervise.py"), "check"],
+        cwd=REPO, capture_output=True, text=True)
+    assert p.returncode == 0, f"supervisor wiring check FAILED: {p.stdout}{p.stderr}"
+    assert "board_task_intake.py" in p.stdout, p.stdout
+
+
+def test_sandbox_scratch_dir_gitignored():
+    """Sandbox end-to-end runs (TR-367 AC, fresh state + scratch gate plane
+    after TR-319) live under .sandbox/ — runtime scratch, never tracked."""
+    import shutil
+    git = shutil.which("git")
+    assert git, "git not available"
+    p = subprocess.run(
+        [git, "check-ignore", "--no-index", "-v", "--",
+         ".sandbox/board/tasks.jsonl", ".sandbox/state/intake-resolves.jsonl"],
+        cwd=REPO, capture_output=True, text=True)
+    matched = [line for line in p.stdout.splitlines() if line.strip()]
+    assert len(matched) == 2, (
+        f".sandbox paths not both gitignored: rc={p.returncode} "
+        f"stdout={p.stdout!r} stderr={p.stderr!r}")
