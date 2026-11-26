@@ -1957,3 +1957,17 @@ tasks:
   status: complete
   created_at: '2026-11-25T15:56:58.578129+00:00'
   completed_at: '2026-11-25T16:54:02.778353+00:00'
+- id: TR-394
+  title: 'Foreman spin: tasks-admitted lanes bypass cooldown (cross-repo close of
+    SCHED-GAP-17040)'
+  criteria:
+  - 'Closing evidence .coding-hermes/evidence/tr394-crossrepo-close-20261126.md exists
+    on the graded tree and documents the owning lane''s complete closeout: noop-pacing
+    arm commits 79510add and 76264ed9, RED/GREEN noop_pacing test proof (undefined
+    tasksNoopCooldown on parent 0b357bb9 vs 28/28 solo green on fix), judge verdict
+    4aa5c586 PASS graded at bf096cf8, and live measurements (69 spawns/day pre-fix
+    to 4 since 11-24, dry tick not respawned 4h20m+); board row TR-394 records the
+    routed-complete disposition'
+  status: complete
+  created_at: '2026-11-26T12:18:52.488762+00:00'
+  completed_at: '2026-11-26T13:19:11.609012+00:00'
