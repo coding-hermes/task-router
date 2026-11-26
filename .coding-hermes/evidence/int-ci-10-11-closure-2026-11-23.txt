@@ -1,0 +1,68 @@
+# INT-CI-10 / INT-CI-11 closure evidence — 2026-11-23
+
+Tick: task-router-foreman-2026-11-23-04-44-46
+Repo: coding-hermes/task-router @ HEAD ef5b89b4b14b3abaf999b0d8bd82616bbaecf47d (origin/main parity 0/0)
+
+## Root cause (both rows)
+
+October CI reds (runs 40473682824 @50c156b, 40480018298 @6612939) were TR-251
+boundary-gate refusals of completions bound to verdict-form run ids. The
+verdict store .gitreins/history/ is gitignored (verified: `git check-ignore -v
+.gitreins/history/2026-11-23/tr407-fm-20261123/verdict.json` matches
+.gitignore:10; `git ls-files .gitreins/history | wc -l` = 0), so a verdict-form
+id can never resolve on CI (ci.yml comment: "CI carries no .gitreins/history;
+verdict-form flips are refused LOUDLY" per TR-339-03).
+
+## INT-CI-10 — acceptance criteria vs measured evidence
+
+AC "TR-298 completion carries evidence the boundary gate can bind":
+  MEASURED: TR-298 rebound this tick to GitHub Actions run 37240664457
+  (terminal SUCCESS on its merge commit e68ed11c0d3eb0ddfa8af5809d118ec426771b56,
+  gh run view verified) at detail.evidence[].run_id — the SG-126 envelope form
+  the gate reads (scripts/board_commit_boundary_gate.py:_bound_run_ids).
+  TR-280 likewise rebound to run 40850437608 (terminal SUCCESS on fdbd469).
+
+AC "gate on d69f464 prints 0 refusal(s)":
+  MEASURED: python3 scripts/board_commit_boundary_gate.py --base d69f464^ --head d69f464
+  -> "board_commit_boundary_gate: OK (1 completion flip(s) in the diff, all
+  evidence-bound; 0 off-vocabulary priority emission(s))", rc=0. Re-verified
+  with TR251_CI_MODE=1: identical OK.
+
+AC "a pushed head after the fix runs the test job green with the TR-251
+boundary gate step passing":
+  MEASURED: run 45105923269 on pushed head 54e52e4eb3bdef9dfe9c27a2c12dafc294c44c6a
+  (2026-11-23T03:25:45Z, push event, main): job test conclusion=success, jobs
+  API shows zero failed steps — the TR-251 boundary gate step passed inside it.
+
+AC "Do NOT weaken the gate":
+  MEASURED: scripts/board_commit_boundary_gate.py and scripts/evidence_replay.py
+  untouched by this tick (no code paths changed; board-only closure).
+
+## INT-CI-11 — acceptance criteria vs measured evidence
+
+AC "identify whether run 40480018298 is fully covered by the existing TR-251
+evidence-replay remediation":
+  DETERMINATION: COVERED. The refused row QA-TASKROUTER-6 now binds GitHub
+  Actions run 40475812170 (terminal SUCCESS on 1a9ec4d405b8816ec165bf2629f1875bd2fa4332
+  = the row's commit_hash), a resolvable form (a) per
+  docs/evidence-run-store-decision.md. The replay remediation (resolvable
+  binding + TR-343 GH_TOKEN verification path) covers the failure class.
+
+AC "bind a verified successful follow-up main run on the relevant fix":
+  MEASURED: run 45105923269 @54e52e4e (see above) bound on both closure rows
+  via this artifact + summary; also run 45105923269's predecessor streak
+  (45100325992 @55db0de, 45096970677 @1ae76ef9, 45091738958 @de38962) all
+  terminal success.
+
+AC "with scripts/evidence_replay.py and board_commit_boundary_gate.py evidence":
+  MEASURED: boundary gate OK on the staged closure diff (run before commit;
+  result recorded in the tick report); evidence_replay.py untouched; its CI
+  arm (TR251_CI_MODE=1) verified green on heads 54e52e4e..ef5b89b4 streak.
+
+## Residual (not this tick's rows)
+
+- Systemic trap: verdict-form run ids are CI-unresolvable by construction;
+  tracked under INT-CI-30. Today's fresh red 45107146462 @390b7085 (same
+  class: TR-246/TR-407 completions bound to labels tr246-*/tr407-fm-*) was
+  already fixed by successor commit ef5b89b4 (rows rebound to stated-reason /
+  resolvable forms); its CI run 45111359177 was in progress at closure time.
