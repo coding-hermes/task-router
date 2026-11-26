@@ -1948,3 +1948,12 @@ tasks:
   status: complete
   created_at: '2026-11-25T07:32:05.179225+00:00'
   completed_at: '2026-11-25T09:14:25.024352+00:00'
+- id: INT-CI-32
+  title: boundary gate refuses gitignored evidence run ids; rebind TR-367/TR-368 to
+    hosted GH run ids + file INT-CI-33
+  criteria:
+  - rebind head pushes and CI green; gate file-mode RED/PASS proofs recorded; no unresolvable
+    run_id remains on main board
+  status: complete
+  created_at: '2026-11-25T15:56:58.578129+00:00'
+  completed_at: '2026-11-25T16:54:02.778353+00:00'
