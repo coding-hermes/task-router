@@ -151,6 +151,14 @@ except Exception as _rqa_exc:  # noqa: BLE001 — fail-open: quota never blocks 
     _err(f'WARNING: TR-213 quota ordering unavailable — '
          f'router_quota_accounting import failed: {_rqa_exc}')
 
+# TR-415: the persisted per-provider window rollup — the fast leg of the same
+# headroom inputs. Fail-open exactly like the accounting import: a missing
+# module costs seconds, never a resolve.
+try:
+    import router_quota_rollup as _qroll
+except Exception:  # noqa: BLE001 — fail-open: fall back to the ledger scan
+    _qroll = None
+
 # TR-369: the one capability vocabulary. --profile-req accepts these six
 # families as first-class requirements filtering on the stored cap_* columns;
 # the same tokens are store columns and /v1/models capabilities keys.
@@ -2505,7 +2513,12 @@ def _lane_headroom(quota_ctx: Any, provider: Any) -> float | None:
             (quota_ctx.get('rows_by_provider') or {}).get(key, []),
             (limits.get('providers') or {}).get(key) or {},
             quota_ctx.get('now'),
-            default_window=limits.get('default_window') or _rqa.DEFAULT_WINDOW)
+            default_window=limits.get('default_window') or _rqa.DEFAULT_WINDOW,
+            # TR-415: the rollup leg hands over the window TOTALS it already
+            # aggregated (same `_in_window` rule, same accumulation order), so
+            # the headroom arithmetic — and therefore the chain — is identical
+            # to the ledger walk. Absent totals = today's rows path.
+            totals=(quota_ctx.get('totals_by_provider') or {}).get(key))
         h = block.get('headroom_usd_per_s')
         if isinstance(h, (int, float)) and not isinstance(h, bool):
             return float(h)
@@ -2560,6 +2573,40 @@ def _quota_order_ctx() -> dict:
         ctx['scan'] = {'mode': 'whole-store', 'cutoff_ts': cutoff,
                        'rows_parsed': None}
         rows = None
+        # TR-415: the persisted per-provider WINDOW ROLLUP is the fast leg.
+        # It answers "spend per provider per configured window as of now" from a
+        # small sidecar next to the ledger, keyed by the ledger's file identity
+        # (append -> incremental delta, rewrite -> rebuild). Absent, stale,
+        # corrupt or disabled -> the bounded scan + whole-store path below,
+        # unchanged. Fail-open is sacred: nothing here can fail a resolve.
+        totals = None
+        if _qroll is not None:
+            try:
+                state, rstats = _qroll.refresh(ledger, cutoff)
+                if state is not None:
+                    totals = _qroll.totals_by_provider(
+                        state, ctx['limits'], ctx['now'], alias_target)
+                    ctx['scan'] = {'mode': 'rollup-' + str(rstats.get('mode')),
+                                   'cutoff_ts': cutoff,
+                                   'rows_parsed': rstats.get('rows_parsed'),
+                                   'rollup': {
+                                       'mode': rstats.get('mode'),
+                                       'bytes_read': rstats.get('bytes_read'),
+                                       'entries': rstats.get('entries'),
+                                       'providers': rstats.get('providers'),
+                                       'rebuilt': rstats.get('rebuilt'),
+                                       'single_pass': rstats.get('single_pass'),
+                                       'path': rstats.get('path'),
+                                       'reason': rstats.get('reason')}}
+            except Exception as e:  # noqa: BLE001 — fall back, never disable
+                totals = None
+                ctx['scan'] = {'mode': 'rollup-error', 'cutoff_ts': cutoff,
+                               'rows_parsed': None,
+                               'error': f'{type(e).__name__}: {e}'}
+        if totals is not None:
+            ctx.update(enabled=True, ledger_path=ledger, rows_by_provider={},
+                       totals_by_provider=totals, alias_target=alias_target)
+            return ctx
         if cutoff is not None:
             try:
                 rows, scan = _rqa.router_outcomes.load_outcome_rows_since(
@@ -2570,7 +2617,27 @@ def _quota_order_ctx() -> dict:
             ctx['scan'] = dict(scan or {}, mode='bounded' if rows is not None
                                else 'whole-store-fallback')
         if rows is None:
-            rows = _rqa.router_outcomes.load_outcome_rows(ledger)
+            # TR-415 NO DOUBLE PAY: a capped bounded scan means the in-window
+            # tail is larger than the scan budget — the rollup's ONE streaming
+            # pass then answers both questions (build + today's rows) instead of
+            # paying for the capped scan AND the whole-store scan.
+            used = None
+            if _qroll is not None:
+                try:
+                    state, rstats = _qroll.refresh(ledger, cutoff)
+                    if state is not None:
+                        used = _qroll.rows_from_state(state)
+                        ctx['scan'] = {'mode': 'single-pass-build',
+                                       'cutoff_ts': cutoff,
+                                       'rows_parsed': rstats.get('rows_parsed'),
+                                       'rollup': {k: rstats.get(k) for k in (
+                                           'mode', 'bytes_read', 'entries',
+                                           'rebuilt', 'single_pass', 'path',
+                                           'reason')}}
+                except Exception:  # noqa: BLE001 — today's path, never a failure
+                    used = None
+            rows = used if used is not None \
+                else _rqa.router_outcomes.load_outcome_rows(ledger)
         by = {}
         for r in rows:
             p = (r or {}).get('provider')

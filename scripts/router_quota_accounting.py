@@ -527,8 +527,95 @@ def _num_or_0(v: Any) -> int:
 
 # --------------------------------------------------------------- accounting --
 
+def rows_totals(rows: Any, bounds: Any, now_ts: Any) -> dict:
+    """The window totals `account_provider` derives from ledger ROWS.
+
+    Extracted (TR-415) so the ledger walk and the persisted rollup
+    (`entries_totals`) share ONE membership rule — `_in_window` — and can never
+    disagree about which rows a window owns. Same accumulation ORDER as the
+    original inline loop, so the float sums are bit-identical.
+    """
+    now = float(now_ts)
+    t = {'n_rows': 0, 'n_out': 0, 'tin': 0, 'tout': 0, 'treason': 0,
+         'usd': 0.0, 'unknown_rows': 0, 'no_usage_rows': 0,
+         'unknown_details': set(), 'oldest': None}
+    for r in rows or ():
+        if not isinstance(r, dict):
+            t['n_out'] += 1
+            continue
+        ts = parse_ts(r.get('ts'))
+        if ts is None or not _in_window(ts, bounds, now):
+            t['n_out'] += 1
+            continue
+        t['n_rows'] += 1
+        t['oldest'] = ts if t['oldest'] is None else min(t['oldest'], ts)
+        t['tin'] += _num_or_0(r.get('tokens_in'))
+        t['tout'] += _num_or_0(r.get('tokens_out'))
+        t['treason'] += _num_or_0(r.get('tokens_reasoning'))
+        cost, klass, detail = _convert_usd(r)
+        if cost is None:
+            if klass == 'unknown-price':
+                t['unknown_rows'] += 1
+                t['unknown_details'].add(detail or 'no declared price')
+            else:
+                t['no_usage_rows'] += 1
+        else:
+            t['usd'] += cost
+    return t
+
+
+def entries_totals(entries: Any, bounds: Any, now_ts: Any, details: Any=None) -> dict:
+    """The SAME totals over compact rollup entries (TR-415).
+
+    An entry is `[ts, usd, tokens_in, tokens_out, tokens_reasoning, kind]`,
+    where `kind` is how the row was priced when the rollup was built:
+    0 measured row cost, 1 price-table derived, 2 unpriced (no declared price),
+    3 no token usage. Kinds 2/3 reproduce the accounting view's NULL spend
+    exactly (an unpriceable row makes the window SUM null — understating a
+    budget would fake headroom), so a rollup-backed block equals a
+    ledger-backed block field for field. `details` carries the build's
+    unpriced-row reasons (the rollup keeps one string per provider, not per
+    row) so the reported reason text matches the ledger walk too.
+
+    NOTE: token sums use `_num_or_0` (integer tokens); USD must NOT — that
+    helper coerces to int, which silently truncated a real spend to whole
+    dollars on the first cut of this function.
+    """
+    now = float(now_ts)
+    t = {'n_rows': 0, 'n_out': 0, 'tin': 0, 'tout': 0, 'treason': 0,
+         'usd': 0.0, 'unknown_rows': 0, 'no_usage_rows': 0,
+         'unknown_details': set(), 'oldest': None}
+    for e in entries or ():
+        try:
+            ts = float(e[0])
+        except (TypeError, ValueError, IndexError):
+            t['n_out'] += 1
+            continue
+        if not _in_window(ts, bounds, now):
+            t['n_out'] += 1
+            continue
+        kind = e[5] if len(e) > 5 else 0
+        t['n_rows'] += 1
+        t['oldest'] = ts if t['oldest'] is None else min(t['oldest'], ts)
+        t['tin'] += _num_or_0(e[2] if len(e) > 2 else 0)
+        t['tout'] += _num_or_0(e[3] if len(e) > 3 else 0)
+        t['treason'] += _num_or_0(e[4] if len(e) > 4 else 0)
+        if kind == 2:
+            t['unknown_rows'] += 1
+            for detail in (details or ('no declared price',)):
+                t['unknown_details'].add(detail)
+        elif kind == 3:
+            t['no_usage_rows'] += 1
+        else:
+            value = e[1] if len(e) > 1 else None
+            if isinstance(value, (int, float)) and not isinstance(value, bool) \
+                    and math.isfinite(value):
+                t['usd'] += float(value)
+    return t
+
+
 def account_provider(provider: Any, rows: Any, cfg: Any, now_ts: Any, default_window: Any=DEFAULT_WINDOW,
-                     account: Any=None):
+                     account: Any=None, totals: Any=None):
     """The L2 block for ONE provider (or provider+account) over ITS rows.
 
     Rows are whatever the caller scoped to this provider — the grouping lives
@@ -581,34 +668,19 @@ def account_provider(provider: Any, rows: Any, cfg: Any, now_ts: Any, default_wi
     start, resets, seconds = bounds
     block['window_start'] = _iso(start)
 
-    tin = tout = treason = n_rows = n_out = 0
-    usd = 0.0
-    priced = unknown_rows = no_usage_rows = 0
-    unknown_details = set()
-    oldest = None
-    for r in rows:
-        if not isinstance(r, dict):
-            n_out += 1
-            continue
-        ts = parse_ts(r.get('ts'))
-        if ts is None or not _in_window(ts, bounds, now):
-            n_out += 1
-            continue
-        n_rows += 1
-        oldest = ts if oldest is None else min(oldest, ts)
-        tin += _num_or_0(r.get('tokens_in'))
-        tout += _num_or_0(r.get('tokens_out'))
-        treason += _num_or_0(r.get('tokens_reasoning'))
-        cost, klass, detail = _convert_usd(r)
-        if cost is None:
-            if klass == 'unknown-price':
-                unknown_rows += 1
-                unknown_details.add(detail or 'no declared price')
-            else:
-                no_usage_rows += 1
-        else:
-            usd += cost
-            priced += 1
+    t = totals if isinstance(totals, dict) else None
+    if t is None:
+        t = rows_totals(rows, bounds, now)
+    n_rows = t.get('n_rows') or 0
+    n_out = t.get('n_out') or 0
+    tin = t.get('tin') or 0
+    tout = t.get('tout') or 0
+    treason = t.get('treason') or 0
+    usd = t.get('usd') or 0.0
+    unknown_rows = t.get('unknown_rows') or 0
+    no_usage_rows = t.get('no_usage_rows') or 0
+    unknown_details = t.get('unknown_details') or set()
+    oldest = t.get('oldest')
 
     block['n_rows'] = n_rows
     block['n_rows_outside_window'] = n_out

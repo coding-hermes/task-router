@@ -137,3 +137,8 @@ docs/chains-*.md
 # manifest convention stays tracked; the table copies regenerate every run.
 data/state/seed_cache/tables/
 data/state/seed_cache/ns_tables/
+
+# TR-415 quota window rollup sidecar (derived runtime aggregate, next to the ledger)
+*.quota-rollup.json
+*.quota-rollup.json.tmp
+.quota-rollup-*.tmp
