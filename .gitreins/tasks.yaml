@@ -1971,3 +1971,22 @@ tasks:
   status: complete
   created_at: '2026-11-26T12:18:52.488762+00:00'
   completed_at: '2026-11-26T13:19:11.609012+00:00'
+- id: TR-REV-20261027-02
+  title: Fresh-clone full pytest suite hangs before a verdict
+  criteria:
+  - On a fresh clone, timeout 1500 python3 -m pytest -q tests/ terminates with a printed
+    summary and exit code; the hang cause (shared resource or external service reached
+    by a specific test file) is named in the row detail; isolation run of that file
+    (e.g. timeout 120 pytest -q tests/test_proxy_serving_path.py) exits 0
+  status: in_progress
+  created_at: '2026-11-26T14:10:19.523899+00:00'
+- id: TR-382
+  title: Blocking vocabulary parity test for capability registry
+  criteria:
+  - scripts/test_vocabulary_parity.py exists under scripts/ and asserts set(task_profile_requirements.category)
+    == set(models.jsonl perf_* columns); it exits 1 when one dimension is removed
+    from data/tables/task_profile_requirements.jsonl and exits 0 after restoring;
+    python3 scripts/router_seed.py exits 0 with no unsupported-dimension or unservable-rating
+    warning
+  status: in_progress
+  created_at: '2026-11-26T15:05:15.200241+00:00'
