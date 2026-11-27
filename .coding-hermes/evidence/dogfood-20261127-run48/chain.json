@@ -1,0 +1,44 @@
+{
+ "attempts": [
+  {
+   "hop": 1,
+   "provider": "xkiro",
+   "model": "openai/gpt-6-luna",
+   "wire_id": "openai/gpt-6-luna",
+   "usd_1m": 0.116,
+   "complexity_sig": null,
+   "stats_fallback": "no-samples",
+   "command": "true",
+   "outcome": "planned"
+  },
+  {
+   "hop": 2,
+   "provider": "deepseek-duckbrain-sync",
+   "model": "deepseek-flash",
+   "wire_id": "deepseek-flash",
+   "usd_1m": 0.1456,
+   "complexity_sig": null,
+   "stats_fallback": "no-samples",
+   "command": "true",
+   "outcome": "planned"
+  },
+  {
+   "hop": 3,
+   "provider": "opencode-go",
+   "model": "deepseek-flash",
+   "wire_id": "deepseek-flash",
+   "usd_1m": 0.168,
+   "complexity_sig": null,
+   "stats_fallback": "no-samples",
+   "command": "true",
+   "outcome": "planned"
+  }
+ ],
+ "final": null,
+ "success": false,
+ "session_id": null,
+ "profile_id": "P1_CODING",
+ "required_categories": null,
+ "chain_length": 21,
+ "sort": "predicted_cost_per_task"
+}

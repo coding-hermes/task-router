@@ -1,0 +1,6 @@
+▶ estimate P1_CODING  profile=P1_CODING  gate=OPEN  tokens 1000/500
+  HEAD 1: xkiro/openai/gpt-6-luna            $0.0003    subscription ($200 coding)
+  hop  2: deepseek-duckbrain-sync/deepseek-flash               $0.0003    unknown
+  hop  3: opencode-go/deepseek-flash               $0.0004    subscription ($40/mo Go Plus (2 accounts = $80/mo))
+  hop  4: commandcode-2/z-ai/glm-5.3-flash           $0.0001    subscription ($10/mo GOAT: $70 of usage included per billing cycle (dollar-denominated credit value, NOT tokens or requests); extra 5h $14 / weekly $35 pace the included credits (2nd individual plan - NOT pooled))
+  chain total (all 21 priced hops): $0.0352  · payg 2 · subscription 18

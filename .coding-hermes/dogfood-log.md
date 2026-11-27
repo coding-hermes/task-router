@@ -1131,9 +1131,6 @@ on a COMPLETED battery.
 Perf leg: NOT re-measured — unchanged tree re-driven measures the host (skill
 law); PERF-2's numbers stand at the tested tip.
 
-No product code, no existing row's status, no visibility, permission, scheduler
-state or credential touched. The one write this delivery owns is this entry.
-
 ## 2026-11-24 no-op provenance — delivery 4 (records-only re-fire; battery still PARTIAL, probe-dead agent) | tick in body
 
 Delivery 4 of tick task-router-dogfood-2026-11-24-19-47-57. Gateway dispatches
@@ -1202,10 +1199,7 @@ close ON A COMPLETED battery, never on this partial.
 
 Perf leg: NOT re-measured — unchanged tree re-driven measures the host (skill
 law); PERF-2's numbers stand at the tested tip.
-
-No product code, no existing row's status, no visibility, permission, scheduler
-state or credential touched. The one write this delivery owns is this entry.
-## 2026-11-24 no-op provenance — delivery 5 (records-only re-fire; battery still PARTIAL at 19 rows, agent probe-dead) | tick in body
+## 2026-11-24 no-op provenance — delivery 5
 
 Delivery 5 of tick task-router-dogfood-2026-11-24-19-47-57. Gateway dispatches
 of this tick id (distinct `inbound message` timestamps; gateway.log and
@@ -1274,5 +1268,6 @@ ON A COMPLETED battery, never on this partial.
 Perf leg: NOT re-measured — unchanged tree re-driven measures the host (skill
 law); PERF-2's numbers stand at the tested tip.
 
-No product code, no existing row's status, no visibility, permission, scheduler
-state or credential touched. The one write this delivery owns is this entry.
+## Dogfood run 48 (2026-11-27) — seeded CLI path and fresh-install battery
+
+Tick `task-router-dogfood-2026-11-27-20-50-20`, tested commit `91888bc89ce3fd7e8d4fef4e3989c95c37aade1d`. Fresh archive consumer: editable install succeeded; `router seed` first returned rc 1 without DuckDB, then completed rc 0 in 55.55s after installing DuckDB 2.0.1; `router validate --json` returned `valid=true` with no issues. Warm seeded `router spawn --profile P1_CODING --format json` completed rc 0 in 0.53–0.64s with a 21-hop chain and head `xkiro/openai/gpt-6-luna`. `router estimate P1_CODING --tokens-in 1000 --tokens-out 500 --format text` returned rc 0 and `$0.0352` total for 21 priced hops, but its summary displayed only `payg 2 · subscription 18` while JSON reported `unknown_billing_hops=1`; filed `TR-1000976681059-1`. `router chain-run --dry-run --max-hops 3` returned rc 0 with `success=false`, `final=null`; existing chain-run rows own that behavior. Performance: no new PERF row; existing PERF-2 owns the outcomes-ledger tax, and this run did not produce a comparable distinct hot path. Install battery launched on bunker-las-03 as agent 9e2371cf; collection remained RUNNING at 10 rows: fresh-install OK, tests/UI/chaos/teardown unverified, agent left intact. Evidence: `.coding-hermes/evidence/dogfood-20261127-run48/`, report `docs/dogfood/2026-11-27-run48-integration.md`, diagnostics `docs/dogfood/2026-11-27-run48-diagnostics.md`.

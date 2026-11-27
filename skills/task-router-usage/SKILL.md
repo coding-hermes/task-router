@@ -406,7 +406,13 @@ surface and `/openapi.json` is the contract of record.
 Cost, measured (16 cores, loadavg 3.6): `router spawn` 198 ms warm / 190 ms cold / 49.8 MB RSS;
 served `/resolve` ~300 ms per call; `/health` 125–190 ms. Nothing here is slow enough to feel.
 
-## Dogfood run 47 (2026-11-24) — dispatch identity and the outcomes-store tax
+## Dogfood run 48 (2026-11-27) — seeded CLI and cost summary
+
+At commit `91888bc89ce3fd7e8d4fef4e3989c95c37aade1d`, a fresh archive consumer installed with `pip install -e .`; seed requires DuckDB. With isolated `TASK_ROUTER_HOME` and `ROUTER_STATE_DIR`, `router seed` completed in 55.55s and `router validate --json` returned `valid=true` with no issues. Seeded `router spawn --profile P1_CODING --format json` returned a 21-hop chain in 0.53–0.64s warm.
+
+`router estimate P1_CODING --tokens-in 1000 --tokens-out 500 --format text` returned a correct `$0.0352` chain total, but the human summary showed only `payg 2 · subscription 18` while the JSON carried `unknown_billing_hops=1` for the 21-hop chain. The calculation is complete; the human summary is not reconcilable without inspecting JSON. This is tracked as `TR-1000976681059-1`.
+
+The detached install battery was launched with `bunker-qa.sh` on `bunker-las-03`, agent `9e2371cf`. At close, collection was still running with fresh-install OK and later cells unverified. Do not interpret a running battery as a full pass or relaunch it; collect the same evidence path on the next fire.
 
 **Know which tree you are grading.** `_resolve_repo_root()` (task_router/cli.py:165-178)
 walk-up accepts ANY ancestor tree owning `scripts/router_spawn.py` — and `~/.hermes`
