@@ -62,7 +62,7 @@ def _tables():
     }
 
 
-def _wire(monkeypatch, tmp_path, limits=None, quota_table=None):
+def _wire(monkeypatch, tmp_path, limits=None, quota_table=None, rollup=False):
     """Mini registry + scratch state/env-pinned ledger + limits config."""
     reg = tmp_path / "registry.json"
     reg.write_text(json.dumps({"version": 3, "tables": _tables()}))
@@ -80,6 +80,12 @@ def _wire(monkeypatch, tmp_path, limits=None, quota_table=None):
     monkeypatch.setenv("ROUTING_OUTCOMES_FILE", str(tmp_path / "outcomes.jsonl"))
     monkeypatch.setenv("ROUTER_QUOTA_LIMITS_FILE", str(tmp_path / "quota_limits.json"))
     monkeypatch.setenv("ROUTER_QUOTA_ORDER_GUARD", "0.0001")
+    # TR-415: these tests grade the BOUNDED-SCAN leg — the documented fallback
+    # authority — with parse-count instruments that only exist on that leg, so
+    # the persisted rollup is pinned OFF here. The rollup's own rule is graded
+    # in tests/test_quota_rollup.py; the cross-leg decision identity (rollup vs
+    # scan) is graded by test_ac2_rollup_leg_is_decision_identical_to_the_scan.
+    monkeypatch.setenv("ROUTER_QUOTA_ROLLUP", "1" if rollup else "0")
     if limits is not None:
         with open(tmp_path / "quota_limits.json", "w") as f:
             json.dump({"default_window": "rolling_5h", "providers": limits}, f)
@@ -485,3 +491,38 @@ def test_a_broken_bounded_scan_falls_open_without_disabling_ordering(
     assert ctx["scan"]["mode"] == "whole-store-fallback"
     assert "simulated scan failure" in ctx["scan"]["error"]
     assert router_spawn._lane_headroom(ctx, "prov-a") is not None
+
+
+# ------------------------------- TR-415: the rollup leg is not a second opinion ---
+
+def test_ac2_rollup_leg_is_decision_identical_to_the_scan(monkeypatch, tmp_path):
+    """TR-415 AC2: the persisted per-provider rollup (the DEFAULT leg) and the
+    bounded-scan leg are the SAME rule over the same rows — identical headroom
+    per provider (alias included) and a byte-identical resolve document. A cache
+    that moved a single decision would be a routing change, not a speedup."""
+    now = 1795644000.0
+    monkeypatch.setattr(router_spawn.time, "time", lambda: now)
+    ledger = _wire(monkeypatch, tmp_path, limits=AC_LIMITS, quota_table=ALIAS_TABLE,
+                   rollup=True)
+    _seeded_ledger(ledger, now)
+    rollup_ctx = router_spawn._quota_order_ctx()
+    assert rollup_ctx["enabled"] is True, rollup_ctx.get("reason")
+    assert rollup_ctx["scan"]["mode"].startswith("rollup-"), rollup_ctx["scan"]
+    assert rollup_ctx["rows_by_provider"] == {}          # totals leg carries no rows
+    rollup_doc = router_spawn.resolve(project="proj", sort="price")
+
+    monkeypatch.setenv("ROUTER_QUOTA_ROLLUP", "0")
+    scan_ctx = router_spawn._quota_order_ctx()
+    assert scan_ctx["scan"]["mode"] == "bounded", scan_ctx["scan"]
+    scan_doc = router_spawn.resolve(project="proj", sort="price")
+
+    for prov in ("prov-a", "prov-b", "prov-c", "morph", "gw-prov-c"):
+        assert router_spawn._lane_headroom(rollup_ctx, prov) == \
+            router_spawn._lane_headroom(scan_ctx, prov), prov
+    # the alias draws on its parent's window on BOTH legs (TR-216 rule)
+    assert router_spawn._lane_headroom(rollup_ctx, "gw-prov-c") == \
+        router_spawn._lane_headroom(rollup_ctx, "prov-c")
+    # AC2: the whole document — chain order, gate reasons, quota gates, settings
+    assert json.dumps(rollup_doc, sort_keys=True) == \
+        json.dumps(scan_doc, sort_keys=True)
+    assert rollup_doc["quota_ordering"]["enabled"] is True   # the term really fired

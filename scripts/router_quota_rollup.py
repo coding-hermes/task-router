@@ -122,7 +122,11 @@ def _prices_stat() -> dict | None:
     """The price table the build priced rows with (`router_outcomes
     ._registry_prices` reads this file). A price edit changes what a row from
     the price table is worth, so it invalidates the rollup."""
-    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    # realpath, never abspath: this module ships to ~/.hermes/scripts/ as a
+    # symlink, and the abspath idiom through a symlink resolves to the LIVE dir
+    # (~/.hermes) instead of the repo (the TR-202 bug, guarded by
+    # tests/test_symlink_path_resolution.py).
+    root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
     return _stat(os.path.join(root, 'data', 'tables', 'models.jsonl'))
 
 

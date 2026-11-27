@@ -164,11 +164,19 @@ def test_price_tie_unbroken_when_all_healthy(monkeypatch, tmp_path):
     assert r["quota_ordering"]["deprioritised"] == []
 
 
-def test_alias_spend_counts_toward_the_parents_headroom(monkeypatch, tmp_path):
+@pytest.mark.parametrize("rollup", ["0", "1"])
+def test_alias_spend_counts_toward_the_parents_headroom(monkeypatch, tmp_path, rollup):
     """TR-216: an alias owns no quota, so its spend belongs to the PARENT's
     window. The headroom term must read that window with the alias rows folded
     in — leaving them out would report headroom the lane does not have — and
-    the alias id must resolve to the same budget."""
+    the alias id must resolve to the same budget.
+
+    Graded on BOTH legs (TR-415): `0` = the bounded ledger scan, `1` = the
+    persisted per-provider rollup. The rollup must fold alias entries into the
+    parent group exactly like the walk; a leg that dropped the fold would hand
+    the alias lane a window it never drew down.
+    """
+    monkeypatch.setenv("ROUTER_QUOTA_ROLLUP", rollup)
     pq = tmp_path / "provider_quota.jsonl"
     with open(pq, "w") as f:
         f.write(json.dumps({"provider_id": "deepseek", "account": "default",
@@ -183,8 +191,17 @@ def test_alias_spend_counts_toward_the_parents_headroom(monkeypatch, tmp_path):
           ledger_rows=[("deepseek", 1.0), ("gw-deepseek", 2.0)])
     ctx = router_spawn._quota_order_ctx()
     assert ctx["enabled"] is True
-    assert len(ctx["rows_by_provider"]["deepseek"]) == 2
-    assert "gw-deepseek" not in ctx["rows_by_provider"]
+    if rollup == "0":
+        assert ctx["scan"]["mode"] == "bounded", ctx["scan"]
+        assert len(ctx["rows_by_provider"]["deepseek"]) == 2
+        assert "gw-deepseek" not in ctx["rows_by_provider"]
+    else:
+        assert ctx["scan"]["mode"].startswith("rollup-"), ctx["scan"]
+        # the totals leg carries aggregates only, and the alias's 2.00 folded in
+        assert ctx["rows_by_provider"] == {}
+        assert "gw-deepseek" not in ctx["totals_by_provider"]
+        parent = ctx["totals_by_provider"]["deepseek"]
+        assert parent["n_rows"] == 2 and parent["usd"] == pytest.approx(3.0)
     h_parent = router_spawn._lane_headroom(ctx, "deepseek")
     h_alias = router_spawn._lane_headroom(ctx, "gw-deepseek")
     assert h_parent is not None and h_alias is not None

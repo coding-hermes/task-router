@@ -172,6 +172,22 @@ in token/credit units, while the L2 ledger query is denominated in dollars.*
    loudly). Fail-open: no derivable cutoff, a byte cap, an unreadable store or any error falls back to the
    whole-store scan — the bound is an optimization, never a filter and never a new failure mode. The
    accounting view itself is unchanged: L2 is still a view over the ledger with no second store.*
+
+   *Persisted window rollup 2026-11-26 (TR-415): at fleet ledger width (592 MB / 500k rows) the bounded
+   read still pays 2.1 s for the window tail plus 4.7 s whenever the tail exceeds the scan byte cap.
+   `router_quota_rollup.py` therefore keeps a small sidecar next to the ledger —
+   `<outcomes>.quota-rollup.json` — that carries the per-provider window AGGREGATE the headroom term
+   actually needs: one compact entry per row (`[ts, usd, tokens_in, tokens_out, tokens_reasoning, kind]`),
+   pruned to the widest configured window. It is keyed by source-file identity (inode, size, mtime_ns and
+   a sha1 of the trailing 4 KiB), so an append costs a delta read of the new bytes and any rewrite, price
+   table change, wider window or version bump forces one streaming rebuild. The membership rule is SHARED
+   with the ledger walk (`router_quota_accounting.rows_totals` / `entries_totals`, one `_in_window`), and
+   alias rows fold into the parent provider exactly as in the walk, so a rollup-backed block equals a
+   ledger-backed block field for field (same `n_rows`, spend, unpriced accounting, headroom). Fail-open is
+   sacred: missing, unreadable, corrupt, stale or disabled (`ROUTER_QUOTA_ROLLUP=0`) falls back to the
+   TR-414 bounded scan and can never fail or block a resolve; a capped bounded scan reuses the rollup's
+   single pass instead of re-reading the store twice (no double pay). The sidecar is derived state,
+   gitignored and rebuildable — it is never a second source of truth.*
 3. **Burn-surplus** (your use: "find a project to burn it on") — for each window compute
    `expected_unused = remaining − (current_rate × time_to_reset)`. Positive and about to reset ⇒ surface it:
    provider, window, surplus in its unit, and what spending it would cost us in real cash (for a subscription
